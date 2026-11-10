@@ -249,17 +249,15 @@ impl Store {
         if !read.current() || read.source.selection().origin.record != prepared.record {
             return Err(Error::forbidden());
         }
-        if !self.authority_covers(
-            Self::peer_scopes(proof),
-            &Self::peer_scopes(proof).mutation_scopes(),
-        ) {
-            return Err(Error::forbidden());
-        }
         let mut c = self.try_connection()?;
         c.bind_available_mutation_authority(self, Self::peer_scopes(proof))?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let (_, _, required) = self.native_replacement_bookkeeping_scopes(&tx, &prepared.record)?;
+        if !self.authority_covers(Self::peer_scopes(proof), &required) {
+            return Err(Error::forbidden());
+        }
         let saved = allocated_current(self, &tx, &allocated)?;
         let (member, descriptor) = target_facts_for_profile(
             self,
@@ -361,7 +359,8 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.try_connection()?;
-                admission::mutation_row_scopes(&rows::by_record(&c, &prepared.record)?)
+                self.native_replacement_bookkeeping_scopes(&c, &prepared.record)
+                    .map(|(_, _, scopes)| scopes)
             },
         )?;
         let mut c = self.try_connection()?;
@@ -371,6 +370,10 @@ impl Store {
             .map_err(|_| Error::storage())?;
         let row = rows::by_record(&tx, &prepared.record)?;
         admission::require_row(self, &held, &row)?;
+        let (_, _, required) = self.native_replacement_bookkeeping_scopes(&tx, &prepared.record)?;
+        if !self.authority_covers(&held, &required) {
+            return Err(Error::forbidden());
+        }
         let old:Option<Option<String>>=tx.query_row("SELECT s.observation_json FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='start' JOIN operation_effects e ON e.id=s.effect_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND e.observation_json=?7",params![prepared.record,prepared.runtime,prepared.reservation,prepared.hash,attempt.attempt,attempt.effect,attempt.target],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
         let old = old.ok_or_else(Error::forbidden)?;
         if let Some(observation) = observation {

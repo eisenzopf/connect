@@ -187,20 +187,33 @@ pub(super) fn admitted(
     c.execute("INSERT INTO native_consultation_returns(operation_record_id,consultation_record_id,credential_id,runtime_epoch,original_digest,context_selection_json,audience_json) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![record,consultation_record_id,actor.credential_id,store.runtime_epoch(),hash,crate::provisioning::canonical_json(&context.selection)?,crate::provisioning::canonical_json(&context.audience)?]).map_err(|_|Error::storage())?;
     Ok(())
 }
-pub(super) fn recover_one(c: &Connection, row: &rows::Saved, store: &Store) -> Result<bool> {
+// The exact existing recovery decision is shared with control admission, so a
+// read-only Get acquires a Writer only when it actually settles this original
+// return. This never grants permission to start or repeat its physical effect.
+pub(super) fn recovery_disposition(
+    c: &Connection,
+    row: &rows::Saved,
+    store: &Store,
+) -> Result<Option<OperationState>> {
     if row.record.state.terminal() || row.record.state == OperationState::Unknown {
-        return Ok(false);
+        return Ok(None);
     }
     let (started,runtime):(bool,String)=c.query_row("SELECT started,runtime_epoch FROM native_consultation_returns WHERE operation_record_id=?1",[&row.record.record_id],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|Error::storage())?;
     if row.record.expires_at.is_none_or(|t| t <= crate::now())
         || (store.recover_foreign_runtime && runtime != store.runtime_epoch())
         || (row.worker.is_some() && row.lease_until.is_none_or(|t| t <= crate::now()))
     {
-        let next = if started {
+        return Ok(Some(if started {
             OperationState::Unknown
         } else {
             OperationState::Failed
-        };
+        }));
+    }
+    Ok(None)
+}
+pub(super) fn recover_one(c: &Connection, row: &rows::Saved, store: &Store) -> Result<bool> {
+    if let Some(next) = recovery_disposition(c, row, store)? {
+        let started = next == OperationState::Unknown;
         c.execute("UPDATE operation_effects SET state=?2 WHERE operation_record_id=?1 AND state IN ('prepared','submitting')",params![row.record.record_id,if started{"unknown"}else{"cancelled"}]).map_err(|_|Error::storage())?;
         c.execute(
             "UPDATE operations SET state=?2 WHERE record_id=?1",

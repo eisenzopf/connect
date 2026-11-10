@@ -275,7 +275,7 @@ fn dtmf_refresh_native_source_and_native_recipient_use_applied_epoch_without_cha
         OperationState::Completed
     );
     let sender = crate::connection_control::tests::consultation_reads::ready(&s.f, 2);
-    s.f.store.connection().unwrap().execute("UPDATE credentials SET operations=json_insert(operations,'$[#]','dtmf.send') WHERE id=?1",[&s.f.keys[2]]).unwrap();
+    fixture_change(&s.f, &[]).execute("UPDATE credentials SET operations=json_insert(operations,'$[#]','dtmf.send') WHERE id=?1",[&s.f.keys[2]]).unwrap();
     let incoming = native_batch(
         &s,
         sender,

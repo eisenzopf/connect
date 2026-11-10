@@ -1,5 +1,6 @@
 //! Original signed signal custody; queued work retains metadata, not readers.
 mod gateways;
+use crate::canonical_native_streams::CapturedStreamOutcome;
 use crate::{
     canonical_media::Connection,
     canonical_runtime::{Physical, Runtime},
@@ -344,172 +345,189 @@ impl Runtime {
         let remaining =
             Duration::from_secs((signal_expires_at - chrono::Utc::now().timestamp()).max(0) as u64);
         let preparation_deadline = Instant::now() + remaining.min(Duration::from_secs(2));
-        let capture = async {
-            let listeners = self
-                .dtmf_listeners
-                .lock()
-                .map_err(|_| Error::storage())?
-                .values()
-                .filter_map(Weak::upgrade)
-                .filter(|v| {
-                    v.registration.current()
-                        && !v.physical.is_cancelled()
-                        && v.entry.origin.runtime_connection_id()
-                            != source.origin.runtime_connection_id()
-                        && v.entry.origin.conversation_id() == source.origin.conversation_id()
-                        && v.entry.origin.session_id() == source.origin.session_id()
-                })
-                .map(|v| (v.id.clone(), v))
-                .collect::<BTreeMap<_, _>>();
-            let original_candidates = listeners
-                .values()
-                .map(|target| NativeDtmfRecipient {
-                    origin: target.entry.origin.clone(),
-                    registration_id: target.id.clone(),
-                })
-                .collect::<Vec<_>>();
-            let candidates = self
-                .native_preflight(&a, preparation_deadline, || {
-                    let candidates = original_candidates
-                        .iter()
-                        .map(|target| NativeDtmfRecipient {
-                            origin: target.origin.clone(),
-                            registration_id: target.registration_id.clone(),
-                        })
-                        .collect();
-                    store
-                        .select_native_dtmf_recipients_with_peer(
+        let prepared = 'prepared: {
+            let capture = async {
+                let listeners = self
+                    .dtmf_listeners
+                    .lock()
+                    .map_err(|_| Error::storage())?
+                    .values()
+                    .filter_map(Weak::upgrade)
+                    .filter(|v| {
+                        v.registration.current()
+                            && !v.physical.is_cancelled()
+                            && v.entry.origin.runtime_connection_id()
+                                != source.origin.runtime_connection_id()
+                            && v.entry.origin.conversation_id() == source.origin.conversation_id()
+                            && v.entry.origin.session_id() == source.origin.session_id()
+                    })
+                    .map(|v| (v.id.clone(), v))
+                    .collect::<BTreeMap<_, _>>();
+                let original_candidates = listeners
+                    .values()
+                    .map(|target| NativeDtmfRecipient {
+                        origin: target.entry.origin.clone(),
+                        registration_id: target.id.clone(),
+                    })
+                    .collect::<Vec<_>>();
+                let candidates = self
+                    .native_preflight(&a, preparation_deadline, || {
+                        let candidates = original_candidates
+                            .iter()
+                            .map(|target| NativeDtmfRecipient {
+                                origin: target.origin.clone(),
+                                registration_id: target.registration_id.clone(),
+                            })
+                            .collect();
+                        store
+                            .select_native_dtmf_recipients_with_peer(
+                                &lease,
+                                &source.origin,
+                                candidates,
+                                proof(&a)?,
+                            )
+                            .map_err(|error| {
+                                if matches!(
+                                    error.code.as_str(),
+                                    "authority-busy" | "storage-unavailable"
+                                ) {
+                                    Error::new(
+                                        "authority-busy",
+                                        "Native signal recipient selection is busy",
+                                    )
+                                } else {
+                                    error
+                                }
+                            })
+                    })
+                    .await?;
+                let gateway_legs = self
+                    .native_preflight(&a, preparation_deadline, || {
+                        let mut legs = self
+                            .media
+                            .initial_dtmf_targets(&source.origin)
+                            .map_err(|_| {
+                                Error::new(
+                                    "authority-busy",
+                                    "Gateway registration metadata is busy",
+                                )
+                            })?
+                            .into_iter()
+                            .map(crate::canonical_sip_signal::SipLeg::Initial)
+                            .collect::<Vec<_>>();
+                        legs.extend(
+                            self.media
+                                .established_dtmf_targets(&source.origin)
+                                .map_err(|_| {
+                                    Error::new(
+                                        "authority-busy",
+                                        "Established gateway metadata is busy",
+                                    )
+                                })?
+                                .into_iter()
+                                .map(crate::canonical_sip_signal::SipLeg::Established),
+                        );
+                        let mut registrations = BTreeMap::new();
+                        for leg in legs {
+                            let id = leg.registration().ok_or_else(Error::forbidden)?.to_owned();
+                            if registrations.insert(id, leg).is_some() {
+                                return Err(Error::forbidden());
+                            }
+                        }
+                        Ok(registrations)
+                    })
+                    .await?;
+                let gateways = self
+                    .native_preflight(&a, preparation_deadline, || {
+                        let candidates = gateway_legs
+                            .iter()
+                            .map(|(id, leg)| {
+                                Ok(connect_store::NativeDtmfGatewayRecipient {
+                                    origin: leg.origin().map_err(|_| Error::forbidden())?,
+                                    registration_id: id.clone(),
+                                })
+                            })
+                            .collect::<Result<Vec<_>>>()?;
+                        store.select_native_dtmf_gateways_with_peer(
                             &lease,
-                            &source.origin,
+                            source.origin.clone(),
                             candidates,
                             proof(&a)?,
                         )
-                        .map_err(|error| {
-                            if matches!(
-                                error.code.as_str(),
-                                "authority-busy" | "storage-unavailable"
-                            ) {
-                                Error::new(
-                                    "authority-busy",
-                                    "Native signal recipient selection is busy",
-                                )
-                            } else {
-                                error
-                            }
-                        })
-                })
-                .await?;
-            let gateway_legs = self
-                .native_preflight(&a, preparation_deadline, || {
-                    let mut legs = self
-                        .media
-                        .initial_dtmf_targets(&source.origin)
-                        .map_err(|_| {
-                            Error::new("authority-busy", "Gateway registration metadata is busy")
-                        })?
-                        .into_iter()
-                        .map(crate::canonical_sip_signal::SipLeg::Initial)
-                        .collect::<Vec<_>>();
-                    legs.extend(
-                        self.media
-                            .established_dtmf_targets(&source.origin)
-                            .map_err(|_| {
-                                Error::new("authority-busy", "Established gateway metadata is busy")
-                            })?
-                            .into_iter()
-                            .map(crate::canonical_sip_signal::SipLeg::Established),
-                    );
-                    let mut registrations = BTreeMap::new();
-                    for leg in legs {
-                        let id = leg.registration().ok_or_else(Error::forbidden)?.to_owned();
-                        if registrations.insert(id, leg).is_some() {
-                            return Err(Error::forbidden());
-                        }
-                    }
-                    Ok(registrations)
-                })
-                .await?;
-            let gateways = self
-                .native_preflight(&a, preparation_deadline, || {
-                    let candidates = gateway_legs
-                        .iter()
-                        .map(|(id, leg)| {
-                            Ok(connect_store::NativeDtmfGatewayRecipient {
-                                origin: leg.origin().map_err(|_| Error::forbidden())?,
-                                registration_id: id.clone(),
-                            })
-                        })
-                        .collect::<Result<Vec<_>>>()?;
-                    store.select_native_dtmf_gateways_with_peer(
-                        &lease,
-                        source.origin.clone(),
-                        candidates,
-                        proof(&a)?,
-                    )
-                })
-                .await?;
-            if candidates.is_empty() && gateways.is_empty() {
-                return Err(Error::new("not-recipient", "No current signal recipient"));
-            }
-            Ok((listeners, candidates, gateway_legs, gateways))
-        }
-        .await;
-        let (listeners, candidates, gateway_legs, gateways) = match capture {
-            Ok(v) => v,
-            Err(e) => {
-                let _ = tx.send(store.fail_native_stream_without_effect(lease, e).map(reply));
-                return;
-            }
-        };
-        let capture = Capture {
-            store: store.clone(),
-            source: source.clone(),
-            authorized: a.clone(),
-            lease,
-            candidates,
-            gateways,
-            batch: Mutex::new(None),
-        };
-        let observed = match self
-            .native_preflight(&a, preparation_deadline, || {
-                native
-                    .receive_managed_native_dtmf(&self.core, &id, &a, &capture, &capture)
-                    .map_err(|error| {
-                        tracing::debug!(
-                            ?error,
-                            stage = "source-capture",
-                            "Native DTMF source capture deferred or refused"
-                        );
-                        match error {
-                            rvoip_uctp::v2::native_negotiation::NativeOfferError::NotReady
-                            | rvoip_uctp::v2::native_negotiation::NativeOfferError::Dispatch(
-                                DispatchError::StorageUnavailable,
-                            ) => {
-                                Error::new("authority-busy", "Native signal source capture is busy")
-                            }
-                            _ => Error::forbidden(),
-                        }
                     })
-            })
-            .await
-        {
-            Ok(v) => v,
-            Err(e) => {
-                tracing::debug!(code=%e.code, "Native DTMF source capture refused");
-                let _ = tx.send(
-                    store
-                        .fail_native_stream_without_effect(capture.lease, e)
-                        .map(reply),
-                );
+                    .await?;
+                if candidates.is_empty() && gateways.is_empty() {
+                    return Err(Error::new("not-recipient", "No current signal recipient"));
+                }
+                Ok((listeners, candidates, gateway_legs, gateways))
+            }
+            .await;
+            let (listeners, candidates, gateway_legs, gateways) = match capture {
+                Ok(v) => v,
+                Err(e) => {
+                    break 'prepared Err(lease.without_effect(e));
+                }
+            };
+            let capture = Capture {
+                store: store.clone(),
+                source: source.clone(),
+                authorized: a.clone(),
+                lease,
+                candidates,
+                gateways,
+                batch: Mutex::new(None),
+            };
+            let observed = match self
+                .native_preflight(&a, preparation_deadline, || {
+                    native
+                        .receive_managed_native_dtmf(&self.core, &id, &a, &capture, &capture)
+                        .map_err(|error| {
+                            tracing::debug!(
+                                ?error,
+                                stage = "source-capture",
+                                "Native DTMF source capture deferred or refused"
+                            );
+                            match error {
+                                rvoip_uctp::v2::native_negotiation::NativeOfferError::NotReady
+                                | rvoip_uctp::v2::native_negotiation::NativeOfferError::Dispatch(
+                                    DispatchError::StorageUnavailable,
+                                ) => Error::new(
+                                    "authority-busy",
+                                    "Native signal source capture is busy",
+                                ),
+                                _ => Error::forbidden(),
+                            }
+                        })
+                })
+                .await
+            {
+                Ok(v) => v,
+                Err(e) => {
+                    tracing::debug!(code=%e.code, "Native DTMF source capture refused");
+                    break 'prepared Err(capture.lease.without_effect(e));
+                }
+            };
+            let Some(batch) = capture.batch.lock().ok().and_then(|mut b| b.take()) else {
+                let _ = tx.send(Err(Error::storage()));
+                return;
+            };
+            let batch = Arc::new(batch);
+            drop(capture);
+            Ok((listeners, gateway_legs, observed, batch))
+        };
+        let (listeners, gateway_legs, observed, batch) = match prepared {
+            Ok(value) => value,
+            Err(receipt) => {
+                let _ = tx.send(Ok(reply(started)));
+                drop(a);
+                drop(physical);
+                drop(credential);
+                CapturedStreamOutcome::NoEffect(receipt)
+                    .settle(store, &self.stop)
+                    .await;
                 return;
             }
         };
-        let Some(batch) = capture.batch.lock().ok().and_then(|mut b| b.take()) else {
-            let _ = tx.send(Err(Error::storage()));
-            return;
-        };
-        let batch = Arc::new(batch);
-        drop(capture);
         drop(a);
         drop(credential);
         // Release the handler's original invocation before downstream work.

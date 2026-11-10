@@ -95,7 +95,7 @@ impl Store {
                 let actor = actor_from_connection_at(&c, issuer, crate::now())?;
                 require_issuer(&c, &actor, &request, crate::now())?;
                 Ok(vec![
-                    AuthorityScope::identity(&actor.identity_id, AuthorityMode::Read)?,
+                    AuthorityScope::identity(&actor.identity_id, AuthorityMode::Write)?,
                     AuthorityScope::identity(&request.identity_id, AuthorityMode::Write)?,
                 ])
             },
@@ -109,7 +109,7 @@ impl Store {
         let actor = actor_from_connection_at(&tx, issuer, now)?;
         require_issuer(&tx, &actor, &request, now)?;
         let required = [
-            AuthorityScope::identity(&actor.identity_id, AuthorityMode::Read)?,
+            AuthorityScope::identity(&actor.identity_id, AuthorityMode::Write)?,
             AuthorityScope::identity(&request.identity_id, AuthorityMode::Write)?,
         ];
         if !self.authority_covers(&guard, &required) {

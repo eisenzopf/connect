@@ -348,14 +348,24 @@ fn assistant_provider_preserves_one_creation_original_selection_and_exact_ack() 
     f.store.record_native_assistant_closed(&closed).unwrap();
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
     let original_generation = target.generation();
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE connections SET generation=generation+1,state='retired' WHERE id=?1",
-            [target.connection_id()],
-        )
-        .unwrap();
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                &f.cid,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        f.store
+            .connection_with_authority(&writer)
+            .unwrap()
+            .execute(
+                "UPDATE connections SET generation=generation+1,state='retired' WHERE id=?1",
+                [target.connection_id()],
+            )
+            .unwrap();
+    }
     let Outcome::ContextDeliveries(page) = f
         .store
         .execute(
@@ -790,4 +800,310 @@ fn routed_assistant_creation_rechecks_route_after_preparation_before_possible_pr
         .try_native_assistant_provider_read(&context)
         .unwrap();
     assert!(read.current());
+}
+
+#[test]
+fn assistant_historical_receipts_defer_live_read_and_foreign_sql_then_reuse_same_capture() {
+    let (f, target, endpoint, _) = setup(true);
+    let context = reserve(&f, &target, &endpoint, "capture-writer-contention");
+    let read = f
+        .store
+        .try_native_assistant_provider_read(&context)
+        .unwrap();
+    let (attempt, read) = f
+        .store
+        .begin_native_assistant_provider(context.clone(), read)
+        .unwrap();
+    let created = attempt
+        .created("original-captured-provider".into())
+        .unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let began = std::time::Instant::now();
+    assert_eq!(
+        f.store
+            .record_native_assistant_provider_created(&created)
+            .unwrap_err()
+            .code,
+        "authority-busy",
+        "capture must not wait behind its original live IO read"
+    );
+    assert!(began.elapsed() < std::time::Duration::from_millis(500));
+    assert!(read.current());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    drop(read);
+
+    // This is real foreign SQLite writer contention, with no uncoordinated DML.
+    // After file admission the new SQL unit must retain its immediate timeout,
+    // release every acquired file gate and restore the ordinary2s SQL timeout.
+    let foreign = rusqlite::Connection::open(f.store.path()).unwrap();
+    foreign.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let began = std::time::Instant::now();
+    assert_eq!(
+        f.store
+            .record_native_assistant_provider_created(&created)
+            .unwrap_err()
+            .code,
+        "storage-unavailable"
+    );
+    assert!(began.elapsed() < std::time::Duration::from_millis(500));
+    let packet_fence = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .unwrap();
+    drop(packet_fence);
+    let timeout: u64 = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row("PRAGMA busy_timeout", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(timeout, 2000);
+    foreign.execute_batch("ROLLBACK").unwrap();
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+
+    f.store
+        .record_native_assistant_provider_created(&created)
+        .unwrap();
+    let recorded = Store::inspect_snapshot(f.store.path()).unwrap();
+    f.store
+        .record_native_assistant_provider_created(&created)
+        .unwrap();
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), recorded);
+    let read = f
+        .store
+        .try_native_assistant_provider_read(&context)
+        .unwrap();
+    let json = read.context_json().unwrap().to_owned();
+    let (export, read) = f
+        .store
+        .begin_native_assistant_export(context.clone(), read)
+        .unwrap();
+    let applied = export.acknowledged(&json).unwrap();
+    let before_ack = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(
+        f.store
+            .record_native_assistant_delivered(&applied)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(read.current());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before_ack);
+    drop(read);
+    f.store.record_native_assistant_delivered(&applied).unwrap();
+    let delivered = Store::inspect_snapshot(f.store.path()).unwrap();
+    f.store.record_native_assistant_delivered(&applied).unwrap();
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), delivered);
+    assert_eq!(f.count("native_assistant_providers"), 1);
+}
+
+#[test]
+fn assistant_rejection_and_cleanup_defer_live_read_then_preserve_original_capture_after_revocation()
+{
+    for mode in ["rejected", "closed", "uncertain"] {
+        let (f, target, endpoint, _) = setup(true);
+        let context = reserve(&f, &target, &endpoint, "historical-cleanup-writer");
+        let read = f
+            .store
+            .try_native_assistant_provider_read(&context)
+            .unwrap();
+        let (attempt, read) = f
+            .store
+            .begin_native_assistant_provider(context.clone(), read)
+            .unwrap();
+        if mode == "rejected" {
+            let rejected = attempt.rejected();
+            let before = Store::inspect_snapshot(f.store.path()).unwrap();
+            assert_eq!(
+                f.store
+                    .record_native_assistant_rejected(&rejected)
+                    .unwrap_err()
+                    .code,
+                "authority-busy"
+            );
+            assert!(read.current());
+            assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+            drop(read);
+            f.store
+                .revoke(&f.store.revalidate(&f.admin).unwrap(), &f.keys[0])
+                .unwrap();
+            f.store.record_native_assistant_rejected(&rejected).unwrap();
+            let recorded = Store::inspect_snapshot(f.store.path()).unwrap();
+            f.store.record_native_assistant_rejected(&rejected).unwrap();
+            assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), recorded);
+        } else {
+            drop(read);
+            let created = attempt.created("original-cleanup-call".into()).unwrap();
+            f.store
+                .record_native_assistant_provider_created(&created)
+                .unwrap();
+            let read = f
+                .store
+                .try_native_assistant_provider_read(&context)
+                .unwrap();
+            let before = Store::inspect_snapshot(f.store.path()).unwrap();
+            assert_eq!(
+                f.store
+                    .begin_native_assistant_end(&created)
+                    .unwrap_err()
+                    .code,
+                "authority-busy"
+            );
+            assert!(read.current());
+            assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+            drop(read);
+            let end = f.store.begin_native_assistant_end(&created).unwrap();
+            // The opaque end receipt retains no Writer through provider cleanup.
+            let io = f
+                .store
+                .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                    &f.cid,
+                    crate::AuthorityMode::Read,
+                )
+                .unwrap()])
+                .unwrap();
+            let before = Store::inspect_snapshot(f.store.path()).unwrap();
+            if mode == "closed" {
+                let closed = end.closed();
+                assert_eq!(
+                    f.store
+                        .record_native_assistant_closed(&closed)
+                        .unwrap_err()
+                        .code,
+                    "authority-busy"
+                );
+                assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+                drop(io);
+                f.store
+                    .revoke(&f.store.revalidate(&f.admin).unwrap(), &f.keys[0])
+                    .unwrap();
+                f.store.record_native_assistant_closed(&closed).unwrap();
+                let recorded = Store::inspect_snapshot(f.store.path()).unwrap();
+                f.store.record_native_assistant_closed(&closed).unwrap();
+                assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), recorded);
+            } else {
+                assert_eq!(
+                    f.store
+                        .native_assistant_end_uncertain(&end)
+                        .unwrap_err()
+                        .code,
+                    "authority-busy"
+                );
+                assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+                drop(io);
+                f.store
+                    .revoke(&f.store.revalidate(&f.admin).unwrap(), &f.keys[0])
+                    .unwrap();
+                f.store.native_assistant_end_uncertain(&end).unwrap();
+            }
+        }
+        assert!(f
+            .store
+            .try_native_assistant_provider_read(&context)
+            .is_err());
+        assert_eq!(f.count("native_assistant_providers"), 1);
+    }
+}
+
+#[test]
+fn context_delivery_begin_and_finish_drain_current_readers_without_provider_io() {
+    let (f, _, _, _) = setup(true);
+    f.store
+        .execute(
+            &f.keys[0],
+            &Operation::Send {
+                request_id: "legacy-context-writer-history".into(),
+                conversation_id: f.cid.clone(),
+                message: connect_protocol::messages::MessageDraft::text_all("ORIGINAL-CONTEXT"),
+            },
+        )
+        .unwrap();
+    let selection = f.store.context_for_session(&f.keys[0], "session").unwrap();
+    assert!(!selection.items.is_empty());
+    let read = f
+        .store
+        .read_authority(
+            &f.keys[0],
+            Some(&f.cid),
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    let store = &f.store;
+    let credential = &f.keys[0];
+    let (delivery, blocked) = std::thread::scope(|scope| {
+        let (entered, waiting) = std::sync::mpsc::channel();
+        let owner = scope.spawn(|| {
+            crate::authority_fences::with_waited_lock_probe(
+                move || {
+                    let _ = entered.send(());
+                },
+                || store.begin_context_delivery(credential, "session", "vapi", &selection),
+            )
+        });
+        let blocked = waiting
+            .recv_timeout(std::time::Duration::from_millis(500))
+            .is_ok()
+            && !owner.is_finished();
+        drop(read);
+        (owner.join().unwrap(), blocked)
+    });
+    assert!(
+        blocked,
+        "actual delivery creation must wait for original read authority"
+    );
+    let delivery = delivery.unwrap();
+    let read = f
+        .store
+        .read_authority(
+            &f.keys[0],
+            Some(&f.cid),
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        )
+        .unwrap();
+    let (finished, blocked) = std::thread::scope(|scope| {
+        let (entered, waiting) = std::sync::mpsc::channel();
+        let owner = scope.spawn(|| {
+            crate::authority_fences::with_waited_lock_probe(
+                move || {
+                    let _ = entered.send(());
+                },
+                || {
+                    store.finish_context_delivery(
+                        &delivery,
+                        "delivered",
+                        Some("original-private-instance"),
+                    )
+                },
+            )
+        });
+        let blocked = waiting
+            .recv_timeout(std::time::Duration::from_millis(500))
+            .is_ok()
+            && !owner.is_finished();
+        drop(read);
+        (owner.join().unwrap(), blocked)
+    });
+    assert!(
+        blocked,
+        "actual historical delivery completion must drain current readers"
+    );
+    finished.unwrap();
+    let (state, reference, count): (String, String, u64) = f.store.connection().unwrap().query_row(
+        "SELECT state,provider_ref,(SELECT COUNT(*) FROM context_deliveries WHERE id=?1) FROM context_deliveries WHERE id=?1", [&delivery], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?)),
+    ).unwrap();
+    assert_eq!(
+        (state.as_str(), reference.as_str(), count),
+        ("delivered", "original-private-instance", 1)
+    );
+    assert_eq!(
+        f.store
+            .finish_context_delivery(&delivery, "delivered", Some("replacement-instance"))
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
 }

@@ -26,9 +26,7 @@ fn established() -> (
     (f, phone, sources, route)
 }
 fn permissions(f: &Fixture, key: &str, names: &[&str]) {
-    f.store
-        .connection()
-        .unwrap()
+    fixture_change(f, &[key])
         .execute(
             "UPDATE credentials SET operations=?2 WHERE id=?1",
             params![key, serde_json::to_string(names).unwrap()],
@@ -41,7 +39,7 @@ fn established_signal_requires_independent_named_directions_without_codec_or_med
     let (f, phone, _, route) = established();
     // Keep the actual established incarnation while changing the current audio
     // preferences. A signal read must not manufacture a media grant for it.
-    f.store.connection().unwrap().execute(
+    fixture_change(&f, &[]).execute(
         "UPDATE session_presence_capabilities SET capabilities_json=?3 WHERE session_id=?1 AND participant_id=?2",
         params![phone.snapshot().session_id, phone.snapshot().participant_id, json!({"audio":["g.711-a"]}).to_string()],
     ).unwrap();
@@ -152,9 +150,7 @@ fn established_signal_pair_requires_opposite_native_direction_and_both_recipient
                 |r| r.get(0),
             )
             .unwrap();
-        f.store
-            .connection()
-            .unwrap()
+        fixture_change(&f, &[key])
             .execute("UPDATE credentials SET recipients='[]' WHERE id=?1", [key])
             .unwrap();
         for direction in [FromTelephone, ToTelephone] {
@@ -165,9 +161,7 @@ fn established_signal_pair_requires_opposite_native_direction_and_both_recipient
                 "{key} {direction:?}"
             );
         }
-        f.store
-            .connection()
-            .unwrap()
+        fixture_change(&f, &[key])
             .execute(
                 "UPDATE credentials SET recipients=?2 WHERE id=?1",
                 params![key, recipients],
@@ -221,7 +215,7 @@ fn established_signal_rechecks_actual_call_route_device_and_membership_lifetime(
             .unwrap()
             .current());
         let s = phone.snapshot();
-        let c = f.store.connection().unwrap();
+        let c = fixture_change(&f, &[&route]);
         let rows = match fault {
             "device" => c.execute("UPDATE devices SET revoked=1 WHERE id=?1", [&s.device_id]),
             "endpoint" => c.execute("UPDATE endpoints SET verification_state='unverified' WHERE id=?1", [&s.endpoint_id]),

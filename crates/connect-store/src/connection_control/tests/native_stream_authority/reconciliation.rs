@@ -83,8 +83,10 @@ fn selected_with_profile(
     // A fabricated engine observation is permitted only in this controlled
     // Store fixture. Production obtains the receipt from the actual Core call.
     let receipt = lease.committed(2, false, None).unwrap();
-    f.store.complete_native_stream(&receipt).unwrap();
+    // The effect is already captured. Historical recording obtains its own
+    // Writer after the original execution interval has ended.
     drop(proof);
+    f.store.complete_native_stream(&receipt).unwrap();
     (f, request, origin)
 }
 
@@ -136,9 +138,15 @@ fn terminal_admission_waits_only_for_managed_reconciliation_without_creating_an_
             "No SQL custody across a wait"
         );
     }
-    f.store
-        .complete_native_stream(&managed.committed(3, true, None).unwrap())
-        .unwrap();
+    let captured = managed.committed(3, true, None).unwrap();
+    assert_eq!(
+        f.store.complete_native_stream(&captured).unwrap_err().code,
+        "authority-busy"
+    );
+    drop(source);
+    drop(proof);
+    f.store.complete_native_stream(&captured).unwrap();
+    let proof = admit(&f, &end).unwrap();
     let accepted = f
         .store
         .try_accept_native_control_with_peer(&f.keys[0], &proof)
@@ -246,6 +254,16 @@ fn native_reconciliation_requires_completed_selector_and_current_exact_original_
         .begin_native_reconciliation(&source, "server-reconcile-2", json!({"streams":[]}))
         .is_err());
     let receipt = lease.committed(3, true, None).unwrap();
+    let subscription = source.subscription_record_id().to_owned();
+    assert_eq!(
+        f.store.complete_native_stream(&receipt).unwrap_err().code,
+        "authority-busy"
+    );
+    assert_eq!(
+        status(&f, "server-reconcile-1").state,
+        OperationState::Preparing
+    );
+    drop(source);
     let first = f.store.complete_native_stream(&receipt).unwrap();
     assert_eq!(first.state, OperationState::Completed);
     assert_eq!(first.subscription_record_id, row.subscription_record_id);
@@ -255,16 +273,16 @@ fn native_reconciliation_requires_completed_selector_and_current_exact_original_
     );
     assert_eq!(
         first.result.as_ref().unwrap()["subscription_record_id"],
-        source.subscription_record_id()
+        subscription
     );
     assert_eq!(f.store.complete_native_stream(&receipt).unwrap(), first);
-    assert!(f
-        .store
-        .begin_native_reconciliation(&source, "stale-source", json!({"streams":[]}))
-        .is_err());
-    drop(source);
     let source = f.store.try_native_reconciliation_read(&origin).unwrap();
     assert_eq!(source.stream_revision(), 3);
+    // Fresh authority cannot reuse the original once-only operation ID.
+    assert!(f
+        .store
+        .begin_native_reconciliation(&source, "server-reconcile-1", json!({"streams":[]}))
+        .is_err());
     assert!(f
         .store
         .begin_native_reconciliation(&source, "next-source", json!({"streams":[]}))
@@ -330,10 +348,14 @@ fn native_reconciliation_storage_rollback_preserves_the_original_id_and_explicit
         .begin_native_reconciliation(&source, "same-reconcile", json!({"streams":["camera"]}))
         .unwrap();
     let receipt = lease.committed(3, true, None).unwrap();
+    drop(source);
     let c = f.store.connection().unwrap();
     c.execute_batch("CREATE TRIGGER controlled_reconcile_record_failure BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.operation_id')='same-reconcile' AND json_extract(NEW.data_json,'$.state')='completed' BEGIN SELECT RAISE(ABORT,'controlled captured outcome storage failure'); END;").unwrap();
     drop(c);
-    assert!(f.store.complete_native_stream(&receipt).is_err());
+    assert_eq!(
+        f.store.complete_native_stream(&receipt).unwrap_err().code,
+        "storage-unavailable"
+    );
     assert_eq!(
         status(&f, "same-reconcile").state,
         OperationState::Preparing
@@ -384,10 +406,22 @@ fn original_no_effect_recording_releases_managed_admission_only_after_its_commit
             f.count("journal"),
         );
         f.store.connection().unwrap().execute_batch("CREATE TRIGGER fail_original_routing_receipt BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.operation_id')='routing-definitely-failed' AND json_extract(NEW.data_json,'$.state')='failed' BEGIN SELECT RAISE(ABORT,'controlled failed routing recording'); END;").unwrap();
-        assert!(f
-            .store
-            .record_native_stream_without_effect(&receipt)
-            .is_err());
+        assert_eq!(
+            f.store
+                .record_native_stream_without_effect(&receipt)
+                .unwrap_err()
+                .code,
+            "authority-busy"
+        );
+        drop(proof);
+        assert_eq!(
+            f.store
+                .record_native_stream_without_effect(&receipt)
+                .unwrap_err()
+                .code,
+            "storage-unavailable"
+        );
+        let proof = admit(&f, &request).unwrap();
         assert_eq!(status(&f, "routing-definitely-failed"), original);
         assert!(f
             .store
@@ -407,6 +441,7 @@ fn original_no_effect_recording_releases_managed_admission_only_after_its_commit
             .unwrap()
             .execute_batch("DROP TRIGGER fail_original_routing_receipt")
             .unwrap();
+        drop(proof);
         let failed = f
             .store
             .record_native_stream_without_effect(&receipt)
@@ -420,6 +455,7 @@ fn original_no_effect_recording_releases_managed_admission_only_after_its_commit
                 .unwrap(),
             failed
         );
+        let proof = admit(&f, &request).unwrap();
         let accepted = f
             .store
             .try_accept_native_control_with_peer(&f.keys[0], &proof)
@@ -473,6 +509,11 @@ fn native_reconciliation_cancellation_cannot_create_a_second_attempt_or_invent_a
     // Captured actual success is still historical success if cancellation raced
     // the already-running engine. It never authorizes another engine attempt.
     let receipt = lease.committed(3, true, None).unwrap();
+    assert_eq!(
+        f.store.complete_native_stream(&receipt).unwrap_err().code,
+        "authority-busy"
+    );
+    drop(source);
     let completed = f.store.complete_native_stream(&receipt).unwrap();
     assert_eq!(completed.state, OperationState::Completed);
     assert!(completed.cancel_requested);
@@ -481,7 +522,7 @@ fn native_reconciliation_cancellation_cannot_create_a_second_attempt_or_invent_a
 fn native_reconciliation_fresh_source_keeps_subscription_permission_separate_and_fences_generation()
 {
     let (f, _, origin) = selected();
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     let original: String = c
         .query_row(
             "SELECT operations FROM credentials WHERE id=?1",
@@ -506,7 +547,7 @@ fn native_reconciliation_fresh_source_keeps_subscription_permission_separate_and
             .code,
         "forbidden"
     );
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     c.execute(
         "UPDATE credentials SET operations=?2 WHERE id=?1",
         params![f.keys[0], original],
@@ -514,7 +555,7 @@ fn native_reconciliation_fresh_source_keeps_subscription_permission_separate_and
     .unwrap();
     drop(c);
     assert!(f.store.try_native_reconciliation_read(&origin).is_ok());
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     c.execute(
         "UPDATE connections SET generation=generation+1,state='retiring' WHERE id=?1",
         [origin.connection_id()],
@@ -581,9 +622,15 @@ fn data_admission_waits_without_a_message_or_effect_then_accepts_the_original_au
             before
         );
     }
-    f.store
-        .complete_native_stream(&managed.committed(3, true, None).unwrap())
-        .unwrap();
+    let captured = managed.committed(3, true, None).unwrap();
+    assert_eq!(
+        f.store.complete_native_stream(&captured).unwrap_err().code,
+        "authority-busy"
+    );
+    drop(source);
+    drop(proof);
+    f.store.complete_native_stream(&captured).unwrap();
+    let proof = admit(&f, &request).unwrap();
     let accepted = f
         .store
         .try_accept_native_control_with_peer(&f.keys[0], &proof)
@@ -616,11 +663,11 @@ fn routing_hint_requires_durable_completed_original_selector_and_exposes_no_capt
         .store
         .try_native_reconciliation_hint_read(&origin, &record)
         .is_err());
+    drop(source);
     let completed = f
         .store
         .complete_native_stream(&lease.committed(3, false, None).unwrap())
         .unwrap();
-    drop(source);
     let before = (
         f.count("operations"),
         f.count("operation_effects"),
@@ -668,10 +715,10 @@ fn routing_hint_does_not_relabel_a_resource_replacement_as_a_metadata_only_chang
         .begin_native_reconciliation(&source, "hint-replacement", json!({"streams":[]}))
         .unwrap();
     let record = lease.record_id().to_owned();
+    drop(source);
     f.store
         .complete_native_stream(&lease.committed(3, true, None).unwrap())
         .unwrap();
-    drop(source);
     assert!(f
         .store
         .try_native_reconciliation_hint_read(&origin, &record)
@@ -686,10 +733,10 @@ fn routing_hint_cannot_revive_an_old_physical_origin_after_store_succession() {
         .begin_native_reconciliation(&source, "hint-successor", json!({"streams":[]}))
         .unwrap();
     let record = lease.record_id().to_owned();
+    drop(source);
     f.store
         .complete_native_stream(&lease.committed(3, false, None).unwrap())
         .unwrap();
-    drop(source);
     let path = f.store.path().to_owned();
     let key = f.keys[0].clone();
     drop(f.store);

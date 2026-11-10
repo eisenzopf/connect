@@ -126,7 +126,7 @@ impl PublicNativeAudio {
         let expected = expected_revision
             .checked_add(1)
             .ok_or(ClientError::Protocol)?;
-        let id = self
+        let mut id = self
             .peer
             .client
             .send(
@@ -138,8 +138,16 @@ impl PublicNativeAudio {
             )
             .await?;
         let mut handle = self.peer.handle;
+        let mut receipt = SubscriptionReceipt::default();
         let mut completed = false;
-        for _ in 0..MAX_BATCH_FRAMES {
+        let mut response_seen = false;
+        let mut reply_scope = scope.clone();
+        let mut frames = 0;
+        loop {
+            if frames >= MAX_BATCH_FRAMES {
+                return Err(ClientError::Protocol);
+            }
+            frames += 1;
             let frame = self.peer.client.receive_wire().await?;
             if matches!(frame.kind(), "auth.bye" | "identity.assurance-changed") {
                 self.peer.client.queue_event(frame)?;
@@ -157,7 +165,15 @@ impl PublicNativeAudio {
                 self.peer.client.queue_event(frame)?;
                 continue;
             }
-            check_reply_scope(&frame, &scope, false)?;
+            check_reply_scope(
+                &frame,
+                if parameter_request {
+                    &scope
+                } else {
+                    &reply_scope
+                },
+                false,
+            )?;
             match frame.payload() {
                 Payload::ConnectionOffer(_) => {
                     let p = &frame.original()["payload"];
@@ -190,20 +206,38 @@ impl PublicNativeAudio {
                         .await?;
                 }
                 Payload::Error(error) => return Err(super::remote_error(error.code)),
-                Payload::OperationUpdated(update)
-                    if update.operation_id.as_str() == operation_id && !completed =>
-                {
-                    let result = update.result.as_ref().ok_or(ClientError::Protocol)?;
-                    if update.state != payloads::OperationState::Completed
-                        || update.problem.is_some()
-                        || result["connection_id"].as_str() != Some(self.connection_id())
-                        || result["stream_revision"] != expected
-                    {
-                        return Err(ClientError::Protocol);
-                    }
-                    completed = true;
+                Payload::OperationUpdated(update) if !response_seen => {
+                    completed = receipt.observe(
+                        update,
+                        operation_id,
+                        self.connection_id(),
+                        expected_revision,
+                    )?;
+                    response_seen = true;
                 }
-                Payload::Ack(_) if frame.scope(Scope::Reply) == Some(id.as_str()) && completed => {
+                Payload::Ack(_) if response_seen => {
+                    if !completed {
+                        // Acceptance is durable, not completed media. Observe
+                        // only this original operation after draining its ACK;
+                        // never resubmit the subscription or renew its timeout.
+                        tokio::time::sleep(Duration::from_millis(20)).await;
+                        reply_scope.operation_id = None;
+                        reply_scope.expected_revision = None;
+                        id = self
+                            .peer
+                            .client
+                            .send(
+                                Payload::OperationGet(payloads::OperationGet {
+                                    operation_id: Identifier::try_from(operation_id.to_owned())
+                                        .map_err(|_| ClientError::Protocol)?,
+                                }),
+                                reply_scope.clone(),
+                            )
+                            .await?;
+                        response_seen = false;
+                        frames = 0;
+                        continue;
+                    }
                     // Cached facts do not reactivate an expired/retired audio
                     // peer, even if its old receipt was already received.
                     let mut current = self.peer.client.pending()?;
@@ -215,7 +249,6 @@ impl PublicNativeAudio {
                 _ => return Err(ClientError::Protocol),
             }
         }
-        Err(ClientError::Protocol)
     }
     pub fn send_pcmu(&mut self, bytes: &[u8]) -> Result<()> {
         self.peer.send_pcmu(bytes)
@@ -252,3 +285,64 @@ impl CanonicalClient {
         Ok(PublicNativeAudio { peer, capabilities })
     }
 }
+
+/// Correlate every observation with the one accepted subscription. An ACK
+/// without a completed result cannot publish new audio handles or revisions.
+#[derive(Default)]
+struct SubscriptionReceipt {
+    record: Option<String>,
+    revision: Option<u64>,
+}
+impl SubscriptionReceipt {
+    fn observe(
+        &mut self,
+        update: &payloads::OperationUpdated,
+        operation: &str,
+        connection: &str,
+        expected_revision: u64,
+    ) -> Result<bool> {
+        let record = update
+            .record_id
+            .as_ref()
+            .ok_or(ClientError::Protocol)?
+            .as_str();
+        if update.operation_id.as_str() != operation
+            || update.command_type.as_deref() != Some("stream.subscribe")
+            || update.expected_revision != Some(expected_revision)
+            || self
+                .record
+                .as_deref()
+                .is_some_and(|original| original != record)
+            || self.revision.is_some_and(|last| update.revision < last)
+            || update.problem.is_some()
+        {
+            return Err(ClientError::Protocol);
+        }
+        let completed = match update.state {
+            payloads::OperationState::Accepted
+            | payloads::OperationState::Preparing
+            | payloads::OperationState::Ready
+            | payloads::OperationState::Committing => false,
+            payloads::OperationState::Completed => {
+                let result = update.result.as_ref().ok_or(ClientError::Protocol)?;
+                let next = expected_revision
+                    .checked_add(1)
+                    .ok_or(ClientError::Protocol)?;
+                if result["connection_id"].as_str() != Some(connection)
+                    || result["stream_revision"] != next
+                {
+                    return Err(ClientError::Protocol);
+                }
+                true
+            }
+            _ => return Err(ClientError::Protocol),
+        };
+        self.record = Some(record.to_owned());
+        self.revision = Some(update.revision);
+        Ok(completed)
+    }
+}
+
+#[cfg(test)]
+#[path = "public_audio_tests.rs"]
+mod tests;

@@ -1,0 +1,136 @@
+{
+  "format": "connect/g6-058-store-writer-batch4/1",
+  "recorded_at": "2026-11-10T03:46:04.948398+00:00",
+  "status": "partial-verification-failed; followthrough integrated and awaiting its own frozen run",
+  "source_freeze": {
+    "base_revision": "2bd3fa447a955898fd03076dc2b0ad5001539d9d",
+    "source_receipt_sha256": "93192daf7f900f88d1ed0b21603553e5fe5e29e75145ce1796480dc16e656ce3",
+    "frozen_file_count": 1386,
+    "libtest_executable_sha256": "069f3cf9ef21876cd7638fb4633e036bb57bd066eccfe29ee487194cf75ab528",
+    "source_file_count_is_not_test_count": true
+  },
+  "build": {
+    "package": "connect-store",
+    "target": "libtest",
+    "features": [
+      "test-support"
+    ],
+    "jobs": 8,
+    "profile": "normal default test profile",
+    "result_receipt_sha256": "7bfecb35c28af5e26b44b25360457fdd62bcace34644d9d960423181018c011d",
+    "exit_code": 0
+  },
+  "cohorts": {
+    "causal": {
+      "selected": 33,
+      "completed": 33,
+      "passed": 28,
+      "failed": 5,
+      "ignored": 0,
+      "all_test_commands_naturally_joined": true,
+      "result_sha256": "d9069daafeddcf719533e240bc9c9d406fa22b7a6e4f9dcd42df0b2dd59ab29a"
+    },
+    "affected": {
+      "selected": 70,
+      "completed": 70,
+      "passed": 47,
+      "failed": 23,
+      "ignored": 0,
+      "all_test_commands_naturally_joined": true,
+      "result_sha256": "b98089a78da29d654a54a55aecbac0a63187262fb5bfb2380013a5f7ef8b2499"
+    },
+    "retained": {
+      "selected": 394,
+      "completed": 394,
+      "passed": 195,
+      "failed": 199,
+      "ignored": 0,
+      "all_test_commands_naturally_joined": true,
+      "result_sha256": "eedc856affd4470dc581a17fc30729970100f614b8ded8c6d65d93cd886499cf"
+    }
+  },
+  "counting_rule": "Cohorts overlap and were run from the same frozen libtest image. Do not sum them into distinct passes or combine them with another source freeze. Frozen source files are provenance, not test cases.",
+  "causal_failures": [
+    "connection_control::tests::handoff_custody::handoff_begin_drains_original_packet_epoch_and_pins_one_current_control_writer",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_begin_releases_own_read_but_waits_for_real_alias_before_one_writer_step",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_begin_retries_brief_real_packet_drain_and_reserves_exactly_one_original_step",
+    "connection_control::tests::replacement_sources::telephone::runtime::telephone_begun_attempt_survives_fresh_read_contention_without_repeating_begin_or_cutoff",
+    "enrollment::tests::enrolled_issuer_delegation_and_revocation_drain_exact_subject_readers"
+  ],
+  "retained_root_groups": {
+    "groups_receipt_sha256": "33eb0a7c52b9e16063007e2e8a5fa75a292fe13d8691f16ec3c8d3dce04b6831",
+    "top_three_failures": 144,
+    "remaining_failures": 55,
+    "roots": [
+      {
+        "root": "Telephone replacement begin",
+        "retained_failures": 65,
+        "tested_location": "crates/connect-store/src/connection_control/tests/replacement_sources/telephone/runtime.rs:41:10",
+        "cause": "The strict SQL Unit binder rejects a mixed complete selection list containing the independent route-owner Read.",
+        "integrated_change": "Pin available actual Writes after unchanged complete-scope coverage/rederive; keep route-owner Read and original attempt/cutoff.",
+        "status": "integrated; runtime verification pending"
+      },
+      {
+        "root": "Private initial telephone preparation",
+        "retained_failures": 41,
+        "tested_location": "crates/connect-store/src/connection_control/tests/sip_consultation/planning.rs:93:14",
+        "cause": "Existing real scoped Writer was not bound to the mutation SQL Unit.",
+        "integrated_change": "Bind the already-held exact Writer; preserve rederive, source, reservation and current checks.",
+        "status": "integrated; runtime verification pending"
+      },
+      {
+        "root": "Initial telephone allocation",
+        "retained_failures": 38,
+        "tested_location": "crates/connect-store/src/transitions/initial_telephone/tests.rs:145:18",
+        "cause": "Existing real scoped Writer was not bound to the mutation SQL Unit.",
+        "integrated_change": "Bind the existing Writer for allocation/signaling lifecycle; metadata returns retain no Writer into IO.",
+        "status": "integrated; runtime verification pending"
+      }
+    ]
+  },
+  "integrated_pending_scope": [
+    "Telephone mixed Read/Write SQL binding correction; handoff expectation and delegation fixture correction.",
+    "Existing initial lifecycle/private Writers pinned to SQL and ordinary private/assistant/invitation fixtures repaired.",
+    "Assistant rejected/end/update historical Writers, once-only update reservation/fresh IO Read, bounded original-owner pre-reservation retries.",
+    "Reconnect state setup uses exact scoped Writers before actual reader-drain/storage races; idle-expiry real entrypoint regression added.",
+    "Provider claim/resolution existing Writers pinned to SQL and five ordinary endpoint/role fixture sites repaired."
+  ],
+  "integration_records": [
+    {
+      "record_name": "v212-batch5-candidates-integration.json",
+      "sha256": "621765b63be69f84a762eea95e3ff72681c03073132b66530f22cd7a4e83436f",
+      "candidate_names": [
+        "v212-assistant-combined-writer-candidate",
+        "v212-delegation-fixture-correction-candidate",
+        "v212-existing-writer-fixture-followthrough",
+        "v212-handoff-causal-expectation",
+        "v212-idle-expiry-causal-followthrough",
+        "v212-initial-gateway-fixture-followthrough",
+        "v212-reconnect-fixture-writers-candidate",
+        "v212-telephone-mixed-scope-binding-followthrough"
+      ]
+    },
+    {
+      "record_name": "v212-batch5-provider-additive-integration.json",
+      "sha256": "d31fa46dd5277fd78b6964d500daa45e3c1676051b687e5ee6134b58ccbbce1c",
+      "candidate_names": [
+        "v212-provider-claim-resolution-unit-candidate"
+      ]
+    },
+    {
+      "record_name": "v212-batch5-provider-fixtures-integration.json",
+      "sha256": "5487f35eea59653b8e45f6f5b9d4c3029ac6d17eab61dba175ce87d04c7cfcb2",
+      "candidate_names": [
+        "v212-provider-fixture-writers-candidate"
+      ]
+    }
+  ],
+  "historical_baseline": {
+    "selected": 1525,
+    "passed": 487,
+    "failed": 1034,
+    "ignored": 4,
+    "status": "unchanged failed baseline"
+  },
+  "qualification_boundary": "No full Store pass, signed/provider rehearsal, decoded-media pass, full-cell or Gate6 qualification is inferred. G6-054 remains parked. Raw logs, credentials, endpoints and local machine paths are not published here."
+}

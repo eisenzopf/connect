@@ -8,10 +8,7 @@ impl Scene {
         for key in [&self.f.keys[0], &self.policy.endpoint_credential_id] {
             let mut operations = self.f.store.revalidate(key).unwrap().scope.operations;
             operations.extend(["dtmf.send".into(), "dtmf.receive".into()]);
-            self.f
-                .store
-                .connection()
-                .unwrap()
+            self.change_fixture()
                 .execute(
                     "UPDATE credentials SET operations=?2 WHERE id=?1",
                     params![key, serde_json::to_string(&operations).unwrap()],
@@ -47,9 +44,7 @@ fn without(s: &Scene, key: &str, removed: &[&str]) -> Vec<String> {
         .iter()
         .filter(|p| !removed.contains(&p.as_str()))
         .collect();
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE credentials SET operations=?2 WHERE id=?1",
             params![key, serde_json::to_string(&operations).unwrap()],
@@ -80,9 +75,7 @@ fn private_sip_signal_requires_applied_pair_then_sealed_current_physical_lifetim
             assert!(s.signal(other, direction).is_err());
         }
     }
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&s.root.credential],
@@ -134,9 +127,7 @@ fn private_sip_signal_independent_named_directions_withdraw_and_recover() {
         let original = without(&s, key, &[permission]);
         assert!(s.signal(0, denied).is_err());
         assert!(s.signal(0, allowed).unwrap().current());
-        s.f.store
-            .connection()
-            .unwrap()
+        s.change_fixture()
             .execute(
                 "UPDATE credentials SET operations=?2 WHERE id=?1",
                 params![key, serde_json::to_string(&original).unwrap()],
@@ -154,7 +145,7 @@ fn private_sip_signal_survives_media_right_and_codec_preference_withdrawal_witho
     for key in [&s.f.keys[0], &s.policy.endpoint_credential_id] {
         without(&s, key, &["connection.offer", "stream.subscribe"]);
     }
-    let c = s.f.store.connection().unwrap();
+    let c = s.change_fixture();
     for pid in [&s.f.pids[0], &s.f.pids[2]] {
         c.execute(
             "UPDATE session_presence_capabilities SET capabilities_json=?2 WHERE participant_id=?1",
@@ -184,7 +175,7 @@ fn private_sip_signal_survives_media_right_and_codec_preference_withdrawal_witho
 fn private_sip_signal_rechecks_current_original_physical_principals_and_ceilings() {
     for fault in 0..10 {
         let s = sealed();
-        let c = s.f.store.connection().unwrap();
+        let c = s.change_fixture();
         let (sql, id) = match fault {
             0 => (
                 "UPDATE credentials SET revoked=1 WHERE id=?1",

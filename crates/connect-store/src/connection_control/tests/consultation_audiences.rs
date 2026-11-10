@@ -56,7 +56,16 @@ pub(super) fn candidate_named(
         .store
         .native_media_origin_with_peer(&f.keys[2], &proof, &lease)
         .unwrap();
-    let mut c = f.store.connection().unwrap();
+    drop(proof);
+    let writer = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap()])
+        .unwrap();
+    let mut c = f.store.connection_with_authority(&writer).unwrap();
     let tx = c.transaction().unwrap();
     tx.execute(
         "UPDATE operation_effects SET state='confirmed' WHERE id=?1",
@@ -222,13 +231,21 @@ pub(super) fn established_fixture() -> EstablishedFixture {
 fn established_fixture_with_preparation(qualified: bool) -> EstablishedFixture {
     let (f, sources, command, _) = consultation_reads::fixture();
     {
-        let c = f.store.connection().unwrap();
-        c.execute("UPDATE identities SET kind='human' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)",[&f.pids[2]]).unwrap();
-        c.execute(
-            "UPDATE participants SET kind='human' WHERE participant_id=?1",
-            [&f.pids[2]],
-        )
-        .unwrap();
+        // This is ordinary controlled setup, not adversarial corruption. The
+        // origins above are metadata only: no packet/consultation Read survives
+        // here. Use the real actor Identity + full Conversation writer, then
+        // pin that exact proof to this SQL connection before either mutation.
+        let writer = f.controlled_conversation_writer(2);
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        assert_eq!(c.execute("UPDATE identities SET kind='human' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)",[&f.pids[2]]).unwrap(), 1);
+        assert_eq!(
+            c.execute(
+                "UPDATE participants SET kind='human' WHERE participant_id=?1",
+                [&f.pids[2]],
+            )
+            .unwrap(),
+            1
+        );
     }
     let identity = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
     let mut scope = Scope::collaboration(vec!["*".into()]);
@@ -274,7 +291,8 @@ fn native_private_lifetime_requires_decoded_media_and_does_not_infer_ai_context_
         .record_native_consultation_decoded(&receipt)
         .unwrap();
     {
-        let c = f.store.connection().unwrap();
+        let writer = f.controlled_conversation_writer(2);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute("UPDATE identities SET kind='ai' WHERE id=(SELECT identity_id FROM connections WHERE id=?1)",[candidate.connection_id()]).unwrap();
     }
     assert!(f
@@ -326,7 +344,16 @@ fn native_private_lifetime_outlives_execution_source_but_obeys_current_physical_
     assert_eq!(result.session_revision, 4);
     assert_eq!(f.count("native_private_lifetimes"), 1);
     {
-        let c = f.store.connection().unwrap();
+        let identity = f.store.revalidate(&controller).unwrap().identity_id;
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &identity,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",
             params![controller, crate::now() - 1],
@@ -367,7 +394,16 @@ fn native_private_lifetime_outlives_execution_source_but_obeys_current_physical_
         done
     );
     {
-        let c = f.store.connection().unwrap();
+        let identity = f.store.revalidate(&f.keys[2]).unwrap().identity_id;
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &identity,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
         assert!(c.query_row("SELECT lease_owner IS NULL AND worker_runtime IS NULL FROM operations WHERE record_id=?1",[origin.record_id()],|r|r.get::<_,bool>(0)).unwrap());
         c.execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[2]])
             .unwrap();
@@ -456,7 +492,8 @@ fn native_private_lifetime_refuses_unqualified_preparation_or_replaced_physical_
             .record_native_consultation_decoded(&receipt)
             .unwrap();
         {
-            let c = f.store.connection().unwrap();
+            let writer = f.controlled_conversation_writer(2);
+            let c = f.store.connection_with_authority(&writer).unwrap();
             if replace {
                 c.execute(
                     "UPDATE connections SET generation=generation+1 WHERE id=?1",
@@ -600,7 +637,16 @@ fn native_private_lifetime_obeys_current_subscription_and_recipient_ceilings_bef
                 _ => unreachable!(),
             }
             {
-                let c = f.store.connection().unwrap();
+                let identity = f.store.revalidate(&f.keys[2]).unwrap().identity_id;
+                let writer = f
+                    .store
+                    .try_acquire_authority(&[crate::AuthorityScope::identity(
+                        &identity,
+                        crate::AuthorityMode::Write,
+                    )
+                    .unwrap()])
+                    .unwrap();
+                let c = f.store.connection_with_authority(&writer).unwrap();
                 c.execute(
                     "UPDATE credentials SET operations=?2,recipients=?3 WHERE id=?1",
                     params![

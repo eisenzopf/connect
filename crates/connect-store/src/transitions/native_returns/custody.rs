@@ -151,6 +151,31 @@ pub(super) fn touch(c: &Connection, record: &str, store: &Store) -> Result<()> {
     event(c, &rows::by_record(c, record)?, store)
 }
 impl Store {
+    fn native_return_recording_sql<'a>(
+        &'a self,
+        record: &str,
+    ) -> Result<(
+        Arc<crate::AuthorityGuardSet>,
+        crate::installation_ownership::ConnectionGuard<'a>,
+    )> {
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let scopes = {
+            let c = self.try_connection_with_wait(&wait)?;
+            admission::mutation_row_scopes(&rows::by_record(&c, record)?)?
+        };
+        let held = self.acquire_authority(&scopes, &wait)?;
+        let c = self.try_connection()?;
+        if !self.authority_covers(
+            &held,
+            &admission::mutation_row_scopes(&rows::by_record(&c, record)?)?,
+        ) {
+            return Err(Error::forbidden());
+        }
+        c.bind_available_mutation_authority(self, &held)?;
+        Ok((held, c))
+    }
+}
+impl Store {
     /// Drop planning readers before acquiring metadata writer authority. Plan
     /// and selected incarnations are durable before any execution permit exists.
     pub fn prepare_native_consultation_return(
@@ -170,6 +195,7 @@ impl Store {
         // no reservation or physical execution has happened on refusal.
         let mut c = self.try_connection()?;
         let held = self.try_acquire_authority(&selection.scopes(self, &c, true)?)?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| match error.sqlite_error_code() {
@@ -247,10 +273,26 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let (selection, routing, until) = read.into_mutation_selection(self)?;
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let held = self.acquire_authority(&routing, &wait)?;
+        let mut c = self.try_connection()?;
+        if !self.authority_covers(&held, &selection.scopes(self, &c, true)?) {
+            return Err(Error::new(
+                "authority-busy",
+                "Native return mutation scope changed",
+            ));
+        }
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
+            return Err(Error::forbidden());
+        }
+        // Construct the exact held control view BEFORE marking the original
+        // effect started. No post-reservation fresh Read can lose custody.
+        let read = self.native_return_read_in(&tx, selection, held, until)?;
         let row = bound(&tx, self, &lease)?;
         lease.selection.validate_plan(&tx, &lease.plan()?)?;
         if row.record.state != OperationState::Preparing {
@@ -278,9 +320,9 @@ impl Store {
     /// to call Core again. The caller drops its bounded IO readers first.
     pub fn native_consultation_return_uncertain(
         &self,
-        attempt: NativeConsultationReturnAttempt,
+        attempt: &NativeConsultationReturnAttempt,
     ) -> Result<()> {
-        let lease = attempt.lease;
+        let lease = &attempt.lease;
         let owner = self.require_runtime_owner()?;
         let origin = &lease.selection.origin;
         if origin.runtime != self.runtime_epoch()
@@ -292,18 +334,14 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &origin.record)?)
-            },
-        )?;
-        let mut c = self.connection()?;
+        let (held, mut c) = self.native_return_recording_sql(&origin.record)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = rows::by_record(&tx, &origin.record)?;
+        if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+            return Err(Error::forbidden());
+        }
         admission::require_row(self, &held, &row)?;
         let exact:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM native_consultation_returns WHERE operation_record_id=?1 AND attempt_id=?2 AND effect_id=?3 AND runtime_epoch=?4 AND plan_digest=?5 AND started=1)",params![origin.record,lease.attempt,lease.effect,origin.runtime,lease.hash],|r|r.get(0)).map_err(|_|Error::storage())?;
         if !exact
@@ -345,19 +383,14 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                let row = rows::by_record(&c, &receipt.record)?;
-                admission::row_scopes(&row)
-            },
-        )?;
-        let mut c = self.connection()?;
+        let (held, mut c) = self.native_return_recording_sql(&receipt.record)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = rows::by_record(&tx, &receipt.record)?;
+        if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+            return Err(Error::forbidden());
+        }
         admission::require_row(self, &held, &row)?;
         let existing:Option<Option<String>>=tx.query_row("SELECT applied_json FROM native_consultation_returns WHERE operation_record_id=?1 AND attempt_id=?2 AND effect_id=?3 AND plan_digest=?4 AND runtime_epoch=?5 AND started=1",params![receipt.record,receipt.attempt,receipt.effect,receipt.hash,receipt.runtime],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
         let existing = existing.ok_or_else(Error::forbidden)?;
@@ -493,6 +526,7 @@ impl Store {
             },
         )?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

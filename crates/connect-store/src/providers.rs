@@ -260,7 +260,7 @@ impl Store {
             .map_err(|_| Error::storage())?;
         const SCOPED:&str="SELECT r.conversation_id FROM provider_jobs j JOIN connector_routes r ON r.id=j.route_id WHERE j.state='pending' AND (?1 IS NULL OR j.route_id IN(SELECT value FROM json_each(?1))) AND (EXISTS(SELECT 1 FROM task_effect_links t WHERE t.kind='provider_job' AND t.resource_id=j.id) OR NOT EXISTS(SELECT 1 FROM provider_jobs running WHERE running.route_id=j.route_id AND running.state='sending' AND NOT EXISTS(SELECT 1 FROM task_effect_links t WHERE t.kind='provider_job' AND t.resource_id=running.id))) ORDER BY j.sequence LIMIT 1";
         let authority = self.runtime_query_authority(SCOPED, &[&selected])?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -442,7 +442,7 @@ impl Store {
             crate::authority_admission::runtime::PROVIDER_JOB,
             &[&job.id],
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

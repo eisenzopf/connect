@@ -498,7 +498,17 @@ impl Store {
         };
         let held = self.try_acquire_authority(&scopes)?;
         let c = self.try_connection()?;
-        let (context, views, current, expires_at) = resolve(self, &c, &selection)?;
+        self.native_handoff_read_with_authority(&c, selection, held)
+    }
+    // Reuse one already-owned interval at the actual handoff cut. In particular,
+    // a supplied Writer must not recursively acquire a nested packet Read.
+    pub(crate) fn native_handoff_read_with_authority(
+        &self,
+        c: &Connection,
+        selection: NativeHandoffSelection,
+        held: Arc<crate::AuthorityGuardSet>,
+    ) -> Result<NativeHandoffRead> {
+        let (context, views, current, expires_at) = resolve(self, c, &selection)?;
         if !self.authority_covers(&held, &current) || crate::now() >= expires_at {
             return Err(Error::forbidden());
         }

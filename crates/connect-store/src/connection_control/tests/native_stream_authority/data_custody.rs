@@ -101,6 +101,7 @@ fn native_data_queue_receipt_is_local_admission_without_stream_revision_or_deliv
         .unwrap()
         .is_none());
     let receipt = lease.queued().unwrap();
+    drop(proof);
     let completed = f.store.complete_native_stream(&receipt).unwrap();
     assert_eq!(
         completed.result,
@@ -109,6 +110,7 @@ fn native_data_queue_receipt_is_local_admission_without_stream_revision_or_deliv
         )
     );
     assert_eq!(f.store.complete_native_stream(&receipt).unwrap(), completed);
+    let proof = admit(&f, &request).unwrap();
     assert_eq!(
         f.store
             .accept_native_stream_with_peer(&f.keys[0], &proof)
@@ -195,7 +197,9 @@ fn native_data_all_replay_keeps_original_epoch_snapshots_after_presence_changes(
         .store
         .accept_native_stream_with_peer(&f.keys[0], &proof)
         .unwrap();
-    f.store.connection().unwrap().execute("UPDATE session_participants SET state='left' WHERE session_id='session' AND participant_id=?1",[&f.pids[1]]).unwrap();
+    drop(proof);
+    f.change_fixture().execute("UPDATE session_participants SET state='left' WHERE session_id='session' AND participant_id=?1",[&f.pids[1]]).unwrap();
+    let proof = admit(&f, &request).unwrap();
     let projection = f
         .store
         .project_native_data_with_peer(&f.keys[0], &proof)
@@ -221,7 +225,9 @@ fn native_data_cancel_before_publication_keeps_durable_message_and_never_starts_
     f.store
         .accept_native_stream_with_peer(&f.keys[0], &proof)
         .unwrap();
+    drop(proof);
     cancel_data(&f);
+    let proof = admit(&f, &request).unwrap();
     let cancelled = status(&f);
     assert_eq!(cancelled.state, OperationState::Cancelled);
     assert!(cancelled.effects.is_empty());
@@ -252,10 +258,11 @@ fn native_data_captured_queue_receipt_recovers_after_cancel_and_storage_failure_
         .unwrap()
         .unwrap();
     let receipt = lease.queued().unwrap();
+    drop(proof);
     cancel_data(&f);
     assert_eq!(status(&f).state, OperationState::Unknown);
     {
-        let c = f.store.connection().unwrap();
+        let c = f.change_fixture();
         c.execute(
             "UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=?1",
             [parent],
@@ -306,6 +313,7 @@ fn native_data_shares_message_and_logical_identity_namespaces_with_ordinary_mess
         .begin_native_stream_with_peer(&f.keys[0], &proof)
         .unwrap()
         .unwrap();
+    drop(proof);
     f.store
         .complete_native_stream(&lease.queued().unwrap())
         .unwrap();

@@ -52,7 +52,7 @@ fn established_sip_captured_origin_keeps_route_authority_separate_and_owns_no_id
 fn established_sip_captured_origin_refuses_foreign_dialog_and_retired_generation() {
     let (f, phone, _, _) = established();
     drop(f.store.try_telephone_media_read(phone.clone()).unwrap());
-    let c = f.store.connection().unwrap();
+    let c = fixture_change(&f, &[]);
     let (_, binding, _) = f.store.telephone_audience_facts(&c, &phone).unwrap();
     for (key, value) in [
         ("sip_call_id", json!("foreign-call")),
@@ -138,7 +138,7 @@ fn established_sip_audience_uses_current_route_without_retired_native_credential
 #[test]
 fn established_sip_audience_requires_complete_current_nonduplicated_scene() {
     let (f, phone, _, _) = established();
-    let c = f.store.connection().unwrap();
+    let c = fixture_change(&f, &[]);
     let source = SipAudienceOrigin::Established(phone.clone());
     let facts = |sources: &[SipAudienceOrigin], native: Vec<String>| {
         f.store.sip_audience_facts(
@@ -167,7 +167,7 @@ fn established_sip_audience_requires_complete_current_nonduplicated_scene() {
 #[test]
 fn established_sip_audience_captured_revision_never_rebinds_call_or_rewrites_later_state() {
     let (f, phone, _, _) = established();
-    let c = f.store.connection().unwrap();
+    let c = fixture_change(&f, &[]);
     let (_, binding, _) = f.store.telephone_audience_facts(&c, &phone).unwrap();
     let revision = || {
         c.query_row(

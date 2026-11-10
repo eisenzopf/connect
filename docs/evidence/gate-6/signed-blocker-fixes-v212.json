@@ -1,0 +1,1367 @@
+{
+  "format": "connect/g6-058-signed-blocker-fixes/1",
+  "updated": "2026-11-10T07:42:04.327715+00:00",
+  "task": "G6-058",
+  "scope": "Completed focused D2: Store70/71, Service37/37, Server6/6, retained unchanged Client5/5; signed16/24 includes15/23 production and cleanup helper1. E source followthrough unverified; no matrix qualification.",
+  "source": {
+    "base_revision": "2bd3fa447a955898fd03076dc2b0ad5001539d9d",
+    "frozen_source_sha256": "7ac5ef0242ca5ca39da598c772d41ccc2ac62bf0039d49ded04a0924c7e31a62",
+    "schema": 121,
+    "source_lock_sha256": "7b6d7cf3ad6ce66e2f86c37f7150a0b64f6c49a42b2c553580f69dfb21e6a156"
+  },
+  "prior_results": {
+    "evidence": "docs/evidence/gate-6/signed-cleanup-v212.json#verification_b",
+    "store_units": {
+      "passed": 766,
+      "selected": 766
+    },
+    "service_units": {
+      "passed": 32,
+      "selected": 32
+    },
+    "server": {
+      "passed": 4,
+      "selected": 4
+    },
+    "native_replacement": {
+      "passed": 0,
+      "selected": 2
+    },
+    "signed_rtc": {
+      "passed": 5,
+      "selected": 5
+    },
+    "runtime": {
+      "passed": 7,
+      "selected": 16
+    },
+    "child_sigabrt": 1,
+    "qualification": "Historical source-bound results remain unchanged; they do not verify this integrated fix batch."
+  },
+  "fixes": [
+    {
+      "id": "reserved_preparation_begin",
+      "status": "integrated; C new Store control and Service preflight controls pass; full runtime unresolved",
+      "candidate_manifest_sha256": "8405022ada5a1794f20ec61e0432533fdf7c27eed2f4ab67001c547565bc296d",
+      "candidate_patch_sha256": "0cec9ee57a9fb68a22dfaff0ab93d185decf30211129dbdb1b062ae819546411",
+      "identified_gap": "Same original reserved preparation can strand before Core after transient refused begin. Reservation already exists, so the outer unstarted probe correctly refuses whole preparation replay; no saved runtime preparation owns a continuation.",
+      "integrated_change": "Retry only fresh current resolution and atomic not-yet-begun admission for the SAME opaque lease in the same worker. Release per-attempt Read/coordinator before pause; first Read expiry only shortens; once-only Core call stays after successful begin.",
+      "qualification": "C actual reserved-begin Store1/1 and complete Service37/37 including new/existing preflight controls pass. Related native/telephone signed failures remain; D reduces independently proven oversized Identity writer. No general contention progress guarantee.",
+      "integrated_frozen_files": [
+        {
+          "path": "crates/connect-service/src/canonical_replacement.rs",
+          "sha256": "f0f98671c1d192f3234d32b06e3ddb31ff7d8983544b8a8120d6ae7ff0509308"
+        },
+        {
+          "path": "crates/connect-service/src/canonical_replacement/preflight.rs",
+          "sha256": "3072d4f8fd624be13d46d4c58e1cac02e60e3566fd5d833b86caaee42c6e22e3"
+        },
+        {
+          "path": "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs",
+          "sha256": "dadd225eb7b8c6ad2ec5e615f7f00aaf4acc29abcd99dea5682bea8b2e03560d"
+        },
+        {
+          "path": "crates/connect-store/src/transitions/native_replacements.rs",
+          "sha256": "a6cbf9dcbe8eb560e0bdcc53c66e1f8970a9ec7b6e82276d6286b1821674f57a"
+        }
+      ]
+    },
+    {
+      "id": "public_audio_original_subscription_receipt",
+      "status": "verified in C SDK5/5 scoped selection; actual public-provider runtime still fails later",
+      "identified_gap": "The SDK required an immediate Completed subscription update even though the original command may be durably accepted as Preparing.",
+      "integrated_change": "Drain each original reply ACK, then issue only read-only Get for the same original record/operation with exact scopes and monotonic revision. Update local handle/revision only after validated Completed result AND final ACK; original outer deadline/close-on-error retained.",
+      "source_review_sha256": "808944cbd7eedd58889a7d685fb96546ad2703d8fce9edcbd7757489e1353e99",
+      "reviewed_source_files": [
+        {
+          "path": "crates/connect-client/src/canonical/public_audio.rs",
+          "sha256": "bf4824c21e753eb8cc2ab94557ddbb3e8ba451890e32b8619b5ae13f6293a1b1"
+        },
+        {
+          "path": "crates/connect-client/src/canonical/public_audio_tests.rs",
+          "sha256": "ea85bd0549dafc4cfc382e944b332ca36b93e411c93e696d9bb8e900eb264eb9"
+        }
+      ],
+      "integrated_frozen_files": [
+        {
+          "path": "crates/connect-client/src/canonical/public_audio.rs",
+          "sha256": "a34cef61dfb98e725b7e3ed6aead20e607825b6f52d3483905563657cace90fb"
+        },
+        {
+          "path": "crates/connect-client/src/canonical/public_audio_tests.rs",
+          "sha256": "54d16ef45b100dcc5cff0564d6d7d405891b9abe7463812b844a96d84e5577ed"
+        }
+      ],
+      "qualification": "All five SDK receipt/signed-controlled controls pass, including original timeout and final ACK publication. Actual public AI run now reaches production context startup and stack-overflow aborts; no provider/audio/full-cell pass inferred."
+    },
+    {
+      "id": "data_original_operation_observation",
+      "status": "C Data00/01 pass; Data02 reaches later original connection.end assumption",
+      "candidate_manifest_sha256": "bc17c7408e38bebc1650b84fea47051a4bc080c0e700fb22c90f35f9b69958fb",
+      "candidate_patch_sha256": "5898eb628a3f88a639a6f6bd618434a8e9852e3f1dde256fa7d8cffcced01290",
+      "identified_gap": "Signed Data fixtures treated accepted Preparing as terminal Completed; verification-b Data cases reached later asynchronous-result assertions.",
+      "integrated_change": "Observe the same original message operation after its correlated ACK under its original absolute deadline; no message replay, parameter offer or relaxed queue/delivery assertions.",
+      "qualification": "Original message waiter progresses actual signed Data checks; separate shared end helper still required immediate Completed after Preparing. D end fixture correction is unverified. No blanket production Data or full-cell fix claim.",
+      "integrated_frozen_files": [
+        {
+          "path": "crates/connect-server/tests/support/canonical_native_connections.rs",
+          "sha256": "076a4e84227799413d6d66c71911d1b7f7774ca2b31bc4193cce00636f210d7b"
+        },
+        {
+          "path": "crates/connect-server/tests/support/canonical_native_connections/data.rs",
+          "sha256": "e1c08cda615b192111b67850a1e63d31e90c195fc2b729e64caa7588ea09fa90"
+        }
+      ]
+    },
+    {
+      "id": "replacement_admission_diagnostic",
+      "status": "integrated; verification pending",
+      "candidate_manifest_sha256": "815b15803a72653c3547b705dd6cca2bc55a7df9c3a7983762ef0cb90314dd60",
+      "candidate_patch_sha256": "c5d9e52a253f869d4474aae4fbac265c583c844671f83760b24737cc66392693",
+      "identified_gap": "Exact failed replacement-media admission stage/holder is not retained by existing refusal evidence.",
+      "integrated_change": "Opt only exact original replacement-media admission into existing bounded authority stage/long-hold diagnostics, cloning the SAME wait deadline and cancellation.",
+      "qualification": "Diagnostics only; no behavior fix or exact historical holder claim.",
+      "integrated_frozen_files": [
+        {
+          "path": "crates/connect-store/src/peer_authority.rs",
+          "sha256": "be7c85560cba9ed55ca8f3037665cc5cb5b3f567a75a7b4dea2d236249886252"
+        }
+      ]
+    },
+    {
+      "id": "return_read_reason_diagnostic",
+      "status": "integrated; verification pending",
+      "candidate_manifest_sha256": "e20a41b360a4e431711cf674e945be80eeffc3b843aa41cc229e10c7e7152aa3",
+      "candidate_patch_sha256": "db157133d4b645ff2fdca67849a45cd299cd47f87ed2daf34791988ee9f97684",
+      "identified_gap": "Private-return source-set drift is a source-grounded possibility; exact historical cause is unproved.",
+      "integrated_change": "Add one fixed source-set-drift classification to an existing failure log; other messages remain redacted.",
+      "qualification": "Diagnostic only. Current C provider-close case fails before ContextReady; return is not reached. Historical B return timeout remains separate.",
+      "integrated_frozen_files": [
+        {
+          "path": "crates/connect-service/src/canonical_consultation_return.rs",
+          "sha256": "c914f0a4f62eebf68870b302e603361d7dadb737a353e10f65ae3444da6be987"
+        }
+      ]
+    },
+    {
+      "id": "public_audio_signed_controlled_tests",
+      "status": "verified in C SDK5/5 scoped selection; actual public-provider runtime still fails later",
+      "candidate_manifest_sha256": "af3352464844dac9988eb9cbcd93c2bfc0ac46cee5f8e598a7b8649e237123fc",
+      "candidate_patch_sha256": "16e5143b665af30a2386e757a142afe80db4f0a34912677e8ffd7c866090c57b",
+      "identified_gap": "Public audio subscription must accept original asynchronous progress without publishing a new handle before final Completed receipt and ACK.",
+      "integrated_change": "Exercise actual SDK subscribe_audio over controlled signed QUIC for Preparing/Get/Completed/ACK, unchanged original deadline, one mutation and failure-close behavior.",
+      "qualification": "All five SDK receipt/signed-controlled controls pass, including original timeout and final ACK publication. Actual public AI run now reaches production context startup and stack-overflow aborts; no provider/audio/full-cell pass inferred.",
+      "integrated_frozen_files": [
+        {
+          "path": "crates/connect-client/src/canonical/tests.rs",
+          "sha256": "c0d5e31d1c28cbe1b6976e5cd8227ffc835856c494f8f61fa56e010ad23e3266"
+        },
+        {
+          "path": "crates/connect-client/src/canonical/private_audio.rs",
+          "sha256": "c1f9795ee4204e219f4424a9304402a2998677e45752dd030bc9ca4e291e5dc5"
+        },
+        {
+          "path": "crates/connect-client/src/canonical/public_audio_tests.rs",
+          "sha256": "54d16ef45b100dcc5cff0564d6d7d405891b9abe7463812b844a96d84e5577ed"
+        },
+        {
+          "path": "crates/connect-client/src/canonical/tests/public_audio_subscription.rs",
+          "sha256": "a7ffef698cccd220bdec806f048d07ddf6fdc0f613ad424f2537110033006270"
+        }
+      ]
+    }
+  ],
+  "next_verification": {
+    "status": "E working-source changes integrated or privately reviewed, no E runtime claim",
+    "required": [
+      "Recheck obsolete fixture with actual CID reader, transient operation observation and RTC current-withdrawal fixture corrections.",
+      "Run owned codec admission current-thread reader-drain/cancel controls and original signed bad-confirmation case.",
+      "Qualify live Subscribe quarantine under real held preparation with original route continuity and fresh activation authority.",
+      "Rerun exact unresolved signed native/telephone/provider scopes; preserve original deadlines and failures."
+    ],
+    "no_new_results_claimed": true
+  },
+  "unresolved": [
+    "Native initial-mute signed control returns error instead of connection.answer; private receiver epoch control passes (1/2).",
+    "RTC current-withdrawal control fails its fixture observation; other four signed RTC controls pass (4/5).",
+    "Telephone movement original operation Get refuses storage-unavailable; cancel/no-answer controls fail before IO with native-replacement-preparation forbidden. All three remain failed.",
+    "Public-AI caller aborts with primary stack overflow (exit -6). Provider-close fault scenario first fails configured initialization, then aborts during unwind with stack overflow (exit -6). Joined/reaped is not a natural successful child exit.",
+    "Bad codec confirmation still times out before first offer after 49 authority-busy admission deferrals; other two codec controls pass. Actual conflicting holder is not identified by these logs.",
+    "Live Subscribe resource preparation still needs its new independent preparation/current activation qualification.",
+    "Latest full matrix v209 remains0/32 cells with390/432 checks passed; no full media readiness is inferred."
+  ],
+  "latest_full_matrix_unchanged": {
+    "label": "v209",
+    "cells": {
+      "passed": 0,
+      "failed": 32,
+      "blocked": 0
+    },
+    "checks": {
+      "passed": 390,
+      "failed": 42,
+      "blocked": 0
+    }
+  },
+  "new_checks_run_for_documentation_update": "Documentation consistency only; no unit tests, Cargo, media, VM or full matrix launched.",
+  "completed_units_c": {
+    "scope": "Same frozen local macOS arm64 source; selected unit/controlled QUIC scopes only. Not full Store inventory, shipping or full transport matrix qualification.",
+    "source_snapshot": ".local/gate-6/v212-final-cleanup-verification-c/source.json",
+    "source_snapshot_sha256": "7ac5ef0242ca5ca39da598c772d41ccc2ac62bf0039d49ded04a0924c7e31a62",
+    "targets": {
+      "connect_client": {
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/connect_client-results.json",
+        "receipt_sha256": "c62b5271c5ac6668093dfaa84360dcc9bc4c54544364c98970adf804374bd358",
+        "binary_sha256": "46a320956be9bb86780c303c86dba8e199246e1c2918d8fd2f2aa70b5af4038a",
+        "rows": [
+          {
+            "test": "canonical::public_audio::tests::accepted_subscription_waits_for_original_completed_media_result",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e2a5297e06a6b68593f4c7a7886adfb36f2657d5e9ba60e600ea6f0ed4d915b2",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical::public_audio::tests::pending_subscription_cannot_switch_original_record_or_intent",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "80e5830f17480596092145f37b0a99bdedc962570e361bf178f582af7a40dd82",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical::public_audio::tests::public_audio_signed_preparing_get_completed_waits_for_final_ack_before_new_handle",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "06966c7214ce256497a7cf2a67df393c962ece0e627ced651750deb449684070",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical::public_audio::tests::public_audio_signed_preparing_reads_keep_original_deadline_and_close_without_publishing",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ba13882f061cfda591eeef41915c6a215740dceb6a3d63b5da48302cf157260d",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical::public_audio::tests::subscription_terminal_failure_or_foreign_media_never_completes",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "25a646a6ee7d42bc691be356ca4574ca9134c17ccffc2a557c39037cd469c1df",
+            "naturally_joined": true
+          }
+        ]
+      },
+      "connect_service": {
+        "summary": {
+          "selected": 37,
+          "completed": 37,
+          "passed": 37,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/connect_service-results.json",
+        "receipt_sha256": "e12b97a904034486b9f561b530ca0bff4ab1d5780dc21e613c48901f4484a978",
+        "binary_sha256": "a7fcba610f56fca8820059e23120f067f2a07094dc475879b5189a87be333cda",
+        "rows": [
+          {
+            "test": "canonical_media::packets::tests::publication_pair_retains_both_until_io_drop_in_original_order",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a50a82be639ea5e8358617bb5a870d2dce4368af5e64ebd3bfaa360d0b18bc75",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::packets::tests::publication_pair_refusal_releases_target_and_never_admits_later_source",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "aa057da7bdb811654d7c517fcd7fd1b88496a7a1c014872e531662d84b491e45",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::route_source_key_requires_exact_owner_generation_and_credential_epoch",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "eae56699bccb2e407e24a0d4753ae46d55b6341cbe9687449f310b1996617862",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::dead_route_source_cannot_be_resurrected_by_equal_runtime_metadata",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "03dcc0ab8f249dffcf180f3f08c04133f18eb1cffe8d7b7168ee03fb72b39db5",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::packets::tests::packet_trace_clock_only_observes_existing_elapsed_event_targets",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9815900d63bb805044e0c5f14b73f87f31111d65e4d29adb66e299398b3034c3",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::tests::native_packet_registry_writers_do_not_block_or_lend_missing_source_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "92a75604e6e8dfe13e819d2fd800960c16fd92309824daa7c34ab2f74ce58d19",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::tests::native_packet_poisoned_registry_is_authority_failure_rather_than_retry",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "165a9a831884b317c0f0a8a87bd41ad0a9c11b5b0c9f8850f40cf1b66cc64f98",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::tests::queued_receive_registry_contention_returns_to_the_async_packet_owner",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "5a5dec38a87437100f04c3d2581e4d14c5c333d7f384ee6b2a1543bd9bae3ae7",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::tests::queued_source_registry_contention_returns_to_the_original_packet_owner",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2213b6e215cb5307bce794bcf389aac82a74b649006669b59e4bf4fe4583f534",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::tests::original_ingress_reads_published_absence_while_all_writers_are_excluded",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ab2bac8b8c73a66d6218bb1cc37b99c40a16984adaa12c5fd49c3bc8d69cb5c5",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::packets::tests::publication_metadata_busy_uses_only_nonoriginal_media_retry_contract",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "8889bf9fe7d965d65806a788492b242f15c855c52065144b3102011a9daf8224",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::packets::tests::publication_retry_mapping_preserves_every_other_refusal_and_payload",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ca29d80583ad0bcac2e07c296a38f03957db42ff26301e58d3a9f853a67efc54",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::continuation_phase_key_never_borrows_ordinary_or_another_activation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3b0ed4ca7e162aa2940f2723c7034d327d87fed95cf0aa35a3ad764d58abbff0",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::eager_enrollment_defers_only_effect_free_authority_busy",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7b9b77b416b591fd22e1b49b43ef85b1ab7efc30fc762e1701eed8299c8cdb49",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::published::tests::readers_use_complete_published_map_while_writer_prepares_next_state",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "71ec1f5f01899263bedb6a9af16f09225d48753675e8cc7544ac1c551ee4addb",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::published::tests::writer_poison_never_publishes_partial_state_or_serves_old_metadata",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "47f1c9795d8ea4911311b22d3a474f6c3fece9047461caeca906740d2f734362",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::lifetime::tests::replaced_selected_lifetime_refusal_is_retryable_and_next_successor_is_observed",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e313916c4aa24e927cf8001b74c51beaf5c44bdac61b413b05c52c9f883c616a",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::lifetime::tests::unchanged_selected_lifetime_preserves_definitive_and_binding_refusals",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "596b6a05d49b700a57990f4bd5460390f209d50a923e7b7660ce71a75dbce079",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::roles::generation_tests::role_generation_racing_completion_remains_pending_without_renewed_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b2b3248a86dfdbdc42288cd573eb98624842cd2f614e1e6e0fb5356bbbbecaa3",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_media::roles::generation_tests::role_generation_retries_busy_and_skips_only_successfully_reconciled_state",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "4ecdf65eeedb9d13b0a2beaa01e037e4852984433b078fa5e99bd0817e8d40b9",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::cancelled_native_control_retains_running_sql_poll_through_drain",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "acfa1ca11ea361af89162a44676bee896cedfdd55a82d8358fcc37cba535c182",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::cancelled_original_store_waiter_retains_and_joins_actual_write_acquisition",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ebdd544206f249a276fdf71f97ef054abedf9b407345b0e18e61eab6a4fc21a8",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::native_control_poll_panic_remains_a_failed_drain",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c29e311ce14ef44afc1f8cb5154f2e1172c88fd3a930714de1b1833d8f474889",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::native_control_preserves_wakeups_deadline_and_nested_blocking_progress",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2b153844e63a6c187889982877bc5decb0025197bf5a9b4742d72cff5740da61",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::native_control_sql_wait_preserves_executor_progress_and_original_join",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "61eb1c81e304b77477a48582d1bad49b88aa206d2cb72cde2a4e3469675a21dd",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::original_store_call_keeps_typed_writer_until_caller_releases_it",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c193061e49dc9f8ab822c9fd68fe1ec0d23c6aac1e775717a340543afc1dc915",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::periodic_custodian_joins_completed_controls_without_new_submission_or_cancelling_pending",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e2e00dbd17430d249a22beb9087067c50ba913d7457df83bd00c4ae71e599db5",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_native_streams::outcome_recording_tests::temporary_recording_failures_keep_one_original_capture_until_success",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f97fceb9a68b5f9e12c5bcde0f8bb04c7226bb312ca67a1d2f9971a4e7ff3977",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_native_streams::outcome_recording_tests::permanent_recording_conflict_does_not_keep_an_idle_worker",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7957d8454d3405dc1fb9d3ed0403cd0177f057fb337901b0714d6b1c5f0e3e7b",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_native_streams::outcome_recording_tests::runtime_stop_during_temporary_recording_does_not_start_another_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ed03eac27c8f1656009719314743bf695302faa4cc0d22d65052e4b94e6bfe2b",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_consultation_return::return_recording_tests::original_return_capture_stays_owned_through_temporary_recording_pressure",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3e578af2d2f76e628269ad578d083ac1de79c82a9c4dff56ce5875baf2aefaf1",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_consultation_return::return_recording_tests::return_recording_stops_on_runtime_stop_or_permanent_refusal",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "31d52861befa81831180eaa1d435c1ed6ee894a40c0bb75f7fc53371f5cb324a",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_replacement::preflight::tests::a_reserved_or_effectful_original_never_repeats_preparation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "dc3ca14c5853399de82193c6a1505076661a9972d79f1e6a4f5f3f98b8d98a94",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_replacement::preflight::tests::busy_phase_reads_do_not_repeat_preparation_until_original_is_known_unstarted",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "4eb645d5097636f68262d6c22947f71e839e6436e08947d3a8db2b7521176b96",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_replacement::preflight::tests::current_refusal_propagates_and_shutdown_stops_unreadable_phase_without_replay",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "77521e96ece6f86a2240e20aaec639fcaedf225f44d85de9a25779eb1927cfd2",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_replacement::preflight::reserved_tests::original_reserved_begin_retries_without_recreating_reservation_or_holding_iteration_guards",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a06d80d6de6288660dafb856e6c794ca1b746ff56f50fdfb8bc0b9a4c508dc42",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_replacement::preflight::reserved_tests::reserved_begin_preserves_permanent_refusal_and_stops_at_original_cutoff_or_cancel",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "231d807ae684990867094fc31b2a941c56d2bc0f904eb99833fd44f4d45106eb",
+            "naturally_joined": true
+          }
+        ]
+      },
+      "connect_store": {
+        "summary": {
+          "selected": 51,
+          "completed": 51,
+          "passed": 44,
+          "failed": 7
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/connect_store-results.json",
+        "receipt_sha256": "3a757d75ef74708c17fecc0972a24139a3babbc57bfbcedb5172836044e3d82a",
+        "binary_sha256": "c833bbb7bbe4a5a97af8004a3f5d40b18be3c406f9a7cc910ab9190c172cc08a",
+        "rows": [
+          {
+            "test": "connection_control::tests::replacement_sources::custody::endpoint_reservation_refuses_contended_sql_but_accepts_current_readers",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "b1191b0620172a3177e51dbac7bdc34e1c8eb2b87ca01f4ea0bee14aae335dd0",
+            "naturally_joined": true,
+            "failure_location": "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs:207:10",
+            "classification": "production identity-scope overcontention",
+            "actual_failure": "authority-busy while original unrelated Identity reader is intentionally held",
+            "contract": "Original positive reader assertion is preserved; do not drop the reader or loosen the expected success."
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_backup_digest_covers_reservation_and_step_state",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "0162f56ca4c04ae57d6c27f14162e072900d56a37164146ac29dcaaa02ff76ee",
+            "naturally_joined": true,
+            "failure_location": "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs:547:10",
+            "classification": "fixture ownership/setup gap",
+            "actual_failure": "Unregistered direct SQLite fixture mutation refused by persistent writer guard."
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_captured_local_stop_is_idempotent_after_cancel_or_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3936c91fa48f676fb4a82a73e486d71bffe42d43c79a6ca1320e18a3d6e5c84b",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_local_stop_cannot_assert_cleanup_after_target_allocation_started",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "71888dc78a585a05c147df39619541fcfed83736d5842dc3d3294910fc90c842",
+            "naturally_joined": true,
+            "failure_location": "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs:860:275",
+            "classification": "fixture ownership/setup gap",
+            "actual_failure": "Fixture mutation has no actual bound scoped Writer/SQL Unit."
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preflight_refusal_is_exact_and_cannot_close_a_reserved_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b3c3685890acd03299fc68ccdf7ce3baf0b2a8af758bc6f01266a515c24cd1af",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preflight_retry_refuses_cancelled_or_revoked_original_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e5f0df38593cbb2c3ba14c66aa1fb55d45ca837846d52177bf4c0dbe1d8f5a2b",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preflight_retry_requires_the_exact_unreserved_original_and_is_read_only",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "20e0c24407996410dcab4e740a1b5d0279aa644dfdceaa92ca057caf0ead51b1",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_begins_once_and_unknown_never_authorizes_another_attempt",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "4d9d996f00872e9d7890b767cca692ae55d6e8a4474e101094a6d17267f56ee7",
+            "naturally_joined": true,
+            "failure_location": "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs:76:10",
+            "classification": "fixture ownership/setup gap",
+            "actual_failure": "Shared fixture alias or one-shot prebegin admission does not satisfy the current consuming short-writer API."
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_cancel_before_begin_preserves_original_and_tombstones_candidate",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "1320ee128407434f05030445745c0eb2c7eedd36a56836dc1494c971da2e6ff7",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_captured_fact_survives_cancel_and_revoke_without_media_or_role_claim",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "52250a9a0eb096096d4544067ac7277036f733e53145dc87698522cb5d9fbf04",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_current_policy_loss_prevents_begin_and_capture_is_not_execution",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "2b11b780a27c0e15572209b8fc5f6aa87289151b64ab35574530c16788d6acfc",
+            "naturally_joined": true,
+            "failure_location": "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs:453:22",
+            "classification": "fixture ownership/setup gap",
+            "actual_failure": "Fixture mutation has no actual bound scoped Writer/SQL Unit."
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_refuses_forged_ticket_fields_and_ready_claims",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c6fd7538f8ee21bd65eaf0c366ef33e9768c0fcb793136d5de70f8180da83033",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_reservation_is_exact_idempotent_and_does_not_allocate_or_claim_readiness",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "8720295ff5f3f7a7eff729d30c67e6f777841d684ed40ef9db02e05ba9e819b1",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_reserved_candidate_refuses_ordinary_native_preparation_before_and_after_cancel",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ddd78b088d7011547679cf932fb1085b7d966a266a2b5bd4b7afb28b900041d4",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_restart_fences_unstarted_started_and_captured_preparation_without_reexecution",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "6df7448168acd16a0f359af7820dad006cd8328fd3761ed1a1175f278af9154a",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_telephone_reservation_requires_explicit_valid_configured_digits_without_dialing",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ff1da11fdb598c91415f1185246e72f12f4fd11ec78cc92c3b61a64fa5a788f9",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reservation_metadata_respects_a_real_queued_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b563029e5b7327db40996e353dadca07f8bf8dd2329f9f897b561ebdb9a73821",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reservation_writer_drains_original_packet_reads_and_does_not_pin_later_media",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7e22ebb5eb4aeae5be3fac5706a8c096fcc94e0465c7e43595f2c109d303620a",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reserved_preparation_begin_refusal_keeps_same_lease_effect_and_original_cutoff",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3d9ad57ef827a27de6dc6b7e3553f52966ef2844e454873296ad3e07896df443",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_ends_when_the_same_movement_commit_starts",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "48b7b3405e5c0dcd36a7db2d7caa307eca94d651c3c051d28514bae1183177ec",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_observes_current_authority_and_original_root",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "1240d6f526437ad856a043b89b8344671a07d859d26996574f7cec4ddc6c3be2",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_requires_activation_but_not_decoded_ready",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "059c2cce7fa5e28180ec5ec8f6cac31367bf2f841df90f4ba76a9aa412bd98ab",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_begin_returns_exact_start_origin_without_an_authority_or_sql_alias",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3fa809101c1ec91f953450c1311843c8862d6e0738ee407596e64cb3dffd1b8f",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_full_scene_read_uses_one_complete_interval_for_target_and_existing_routes",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d423817ed5f7c3c9ddaa7572941ddd1c8dc31721805596e389dd339973de10ba",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_media_origin_busy_reread_preserves_started_capture_and_refuses_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a63870da55134632f390f9ea27d9d2cb57fa431b2cf4ba35cc072d6edd63043b",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_private_media_phases_are_ordered_once_only_and_capture_without_projection",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "07c7065ad1e0ab49b2bcbda7b943d103132c69207961f96e861512b1a1614281",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_start_has_separate_once_only_effect_and_fresh_provisional_generation_two_reads",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "0df2750fa3d597a348ff2e5b8d48e8f6e377ca4977566574406d4b04bbba7c67",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_start_refuses_changed_parameters_and_unknown_never_repeats",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "5e1db614c9c2e5ab36b05ffac4166982967380bea93e3546238e18a0caf7526f",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_start_rejects_ready_assertion_and_cleanup_after_a_possible_commit",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "b698b55b58cd7a4eb9e1b5ef743824aa1074460029181838429565edabeee9cb",
+            "naturally_joined": true,
+            "failure_location": "crates/connect-store/src/connection_control/tests/replacement_sources/start.rs:314:231",
+            "classification": "fixture ownership/setup gap",
+            "actual_failure": "Fixture mutation has no actual bound scoped Writer/SQL Unit."
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::signed_start_capture_and_replay_do_not_park_writer_on_primary_sql",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e56a9d08b4a1915481a9e94fc7c8c60423a1275d403d3313a339b31a1238dc98",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::uncertain_native_resource_start_needs_exact_local_retirement_and_cannot_settle_commit",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "13a71c92a1b1be0776f21fdafeff0f73de7d23efa089bf2a83e568a80b43b5ca",
+            "naturally_joined": true,
+            "failure_location": "crates/connect-store/src/connection_control/tests/replacement_sources/start.rs:366:231",
+            "classification": "fixture ownership/setup gap",
+            "actual_failure": "Fixture mutation has no actual bound scoped Writer/SQL Unit."
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::uncertain_private_attach_does_not_reexecute_and_exact_native_retirement_settles_only_local_resources",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "cdb18c4a2febee9cd930f918828dfdb0618d9d9373a5a3eba600dbc49b3b4d54",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_begins_once_under_independent_target_and_original_grants_without_io",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "81af084aa0b162a0cdf140f65e14c355a6bc9c73f44f790e38bee15755e7d645",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_cannot_upgrade_a_binding_only_fence_or_borrow_revoked_source",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b57ecd9436358d3fbad2801f41f4f54a02451b7fa9caab0a128ff0f1d1466e37",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_planning_contention_has_no_effect_and_begin_remains_once_only",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "db37e9642376475852e226cc8f96f2e222c2cc4feca641699158fd1811b1fd01",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_rejects_forged_target_binding_and_does_not_start_an_effect",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "580dfc17439762cc2627a894322aeb1c29338406bfbf836919580c14952981e3",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_unknown_cannot_reexecute_or_borrow_preparation_cleanup",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "94ad17f7b711da71769f4b630de411148c869a5ba0df0199e118b2ffaba04210",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_av_data_target_preserves_resources_under_the_suspended_original_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "59494139a40e1a293a08266fa5e96eb5c3a51fbacab1cece91b58dbacebbf3fb",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_av_target_preserves_video_resources_without_asserting_media_readiness",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c17c110977a1cec5bc0977e102f6931dd4c8c06817c5d33c49ed16a03a658881",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_mutation_owner_drop_restores_independent_established_packet_reads",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7a6e7d2528ac2487a7635d4c8e795a3c8a0d8e31144ce46e3028273e16224611",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_target_rejects_non_duplex_audio_unsupported_media_and_unprovisioned_video_without_effects",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a3d644744b29d9248b59c4f17de3fe43bc1be02468db80a9ae795078baa508e6",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::signed_allocation_capture_and_replay_do_not_park_writer_on_primary_sql",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c752168718cabbe8b2602d61180af095177d713ef2423b94b8fc0b04879afc3e",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::signed_allocation_capture_does_not_wait_for_another_sqlite_writer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ab11256682386f1e816682e789bfc7bfedfa57e22fd2680055b6a6019e297eb4",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_claim_crash_recovery_settles_only_original_absence_and_never_prepares_a_ticket",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3ce8820645f90e8c81b6ab4eececfcd58c3bcea1a6e1667dfbbe447ecdd0ff65",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_cancel_finishes_only_after_known_original_cleanup_without_a_ticket",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "78e2e49e06d6678c35f10da44d5d40bc8db7231d4b04b0a7eb9b783330a8667c",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_sql_contention_preserves_original_attempt_and_allows_metadata_only_retry",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ecd2ca06c3b2b97477b3ba7aedad6da63819ff5125d372db050e6a0a65622aa5",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_uncertainty_cannot_accept_operator_asserted_replacement_completion",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e2262e90670cf4303ab5d7f667a55753c9e6fe6c44db48e04a8db6b609a5a4a9",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b1156da396c4791db1eb5da583fe67f9b3a24cd07d4542c839437f705a9bbc1b",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::known_candidate_retirement_metadata_survives_revocation_without_granting_fresh_preparation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b54b373adbb2902b73c6e257e3be72fcd5af0ea382895324198e0ebf2687200e",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::ordinary_ready_binding_cannot_be_claimed_as_private_replacement_preparation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e3657bde1d6a7b85e62680f54a41428299e8e370e54839b8c282f1fd6004c76d",
+            "naturally_joined": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::pending_candidate_claim_preserves_original_receipt_and_requires_attributed_retirement_before_fresh_ticket",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "868e453687088e6317f94074a06d2d2975875a39e294f0a165c0540f144ba833",
+            "naturally_joined": true
+          }
+        ]
+      }
+    },
+    "store_failure_classification": {
+      "fixture_gaps": 6,
+      "real_production_identity_overcontention": 1,
+      "basis": "Exact baseline selectors and failure locations confirmed; classification revised from generic fixture-only attribution. Intentional unrelated Identity-reader positive remains a required success contract."
+    },
+    "new_store_reserved_begin_causal_selector": {
+      "test": "connection_control::tests::replacement_sources::custody::reserved_preparation_begin_refusal_keeps_same_lease_effect_and_original_cutoff",
+      "passed": true,
+      "limit": "Proves exact retained lease/effect/original cutoff control; does not prove mixed-scope or live telephone/target progress."
+    },
+    "new_service_reserved_begin_helpers": {
+      "passed": 2,
+      "selected": 2,
+      "existing_preflight_passed": 3,
+      "included_in_service37": true
+    },
+    "sdk_actual_controlled_signed_quic": {
+      "passed": 2,
+      "selected": 2,
+      "predicate_controls_passed": 3,
+      "included_in_sdk5": true,
+      "limit": "Actual SDK subscription over controlled post-auth QUIC; production peer preparation/actual signed provider/media remain separate."
+    },
+    "unit_driver_closure": {
+      "original_sessions": [
+        9139,
+        61451,
+        9235
+      ],
+      "naturally_joined": true,
+      "reported_by": "Root original runtime owner; each selected process receipt also records naturally_joined=true"
+    },
+    "coherent_build": {
+      "state": "Active at documentation update; production Service compilation finished, remaining Server compilation pending",
+      "original_session": 57794,
+      "completed": false
+    },
+    "private_unverified_followthrough": [
+      {
+        "manifest": ".local/gate-6/v212-replacement-reservation-mixed-scope-candidate/manifest.json",
+        "manifest_sha256": "3871ac979b1fa6c8fc4c77d8cc46e3a43e676b3b6794fb6894b2c9d06fcbcf3d",
+        "patch_sha256": "d91493e2d4212f3820492d3775b77696fea2c8c146d6d073ee65b9d7f32eab7c",
+        "source_reviews": [
+          {
+            "path": ".local/gate-6/v212-replacement-reservation-mixed-scope-candidate/independent-v207-review.json",
+            "sha256": "53e0116741f9d7b8bb30dba9d7e98f8ce2b115fac661d8e18e59043703042852"
+          }
+        ],
+        "state": "Private source-reviewed candidate only; not integrated and no runtime evidence",
+        "original_identity_reader_positive_preserved": true
+      },
+      {
+        "manifest": ".local/gate-6/v212-replacement-start-mixed-authority-candidate-v2/manifest.json",
+        "manifest_sha256": "a0ce4787b069d78809c5609b25bd21388fb2087f552c79dc6ca44d1b5c33d7e3",
+        "patch_sha256": "1cbe47c78ad1faa433711fdfc9e9462786aab50384ab55aac3fe3955bf0cf29a",
+        "source_reviews": [
+          {
+            "path": ".local/gate-6/v212-replacement-start-mixed-authority-candidate-v2/independent-v199-review.json",
+            "sha256": "dac1372fd3f55d58752a09951798f9c477ecafd7fd394d65a77e592ec265677a"
+          }
+        ],
+        "state": "Private source-reviewed candidate only; not integrated and no runtime evidence",
+        "original_identity_reader_positive_preserved": true
+      }
+    ],
+    "no_new_full_matrix_run": true
+  },
+  "verification_c": {
+    "evidence": "docs/evidence/gate-6/signed-cleanup-v212.json#verification_c",
+    "evidence_file_sha256": "8364d07fdea62e37a5e4eeca8beb6f3717d84afeb4bb133f0ed0be52bd0a9d9a",
+    "source_snapshot_sha256": "7ac5ef0242ca5ca39da598c772d41ccc2ac62bf0039d49ded04a0924c7e31a62",
+    "build": {
+      "exit_code": 0,
+      "naturally_joined": true
+    },
+    "units": {
+      "connect_client": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "connect_store": {
+        "selected": 51,
+        "completed": 51,
+        "passed": 44,
+        "failed": 7
+      },
+      "connect_service": {
+        "selected": 37,
+        "completed": 37,
+        "passed": 37,
+        "failed": 0
+      },
+      "connect_server": {
+        "selected": 4,
+        "completed": 4,
+        "passed": 4,
+        "failed": 0
+      }
+    },
+    "production_focused_signed": {
+      "passed": 15,
+      "failed": 8,
+      "selected": 23
+    },
+    "qualification": "All original selected commands joined; one stack-overflow SIGABRT is a failed child, not natural exit0. Cohorts overlap historical unit scopes. No matrix cells qualified.",
+    "classification": {
+      "store_failed": {
+        "fixture_gaps": 6,
+        "production_identity_overcontention": 1
+      },
+      "signed_remaining": [
+        "Native allocation storage-unavailable before media startup; exact substage not yet captured.",
+        "Data end helper expected immediate Completed instead of observing original operation.",
+        "Three telephone preparation checks refused before IO.",
+        "Public AI caller stack overflow at production context worker spawn; disassembly identifies large by-value future stack frames.",
+        "Provider close fault check failed earlier during initialization with authority-busy; return stage not reached.",
+        "Bad codec confirmation check timed out before first offer after repeated admission deferral."
+      ]
+    }
+  },
+  "integrated_batch_d": {
+    "status": "All eight reviewed changes integrated. Initial D compilation failed before assertions; private guard-access correction applied/reviewed; formatted/prepared coherent D2 build active, runtime unverified.",
+    "final_source_binding": {
+      "source_snapshot_sha256": "56a7cfb40a8f6656c30b8e2f371a63bb25199ddc2e154b3512cf5c79a3216112",
+      "label": "D2 frozen source; verification pending"
+    },
+    "candidates": [
+      {
+        "id": "replacement_scope",
+        "candidate_manifest_sha256": "3871ac979b1fa6c8fc4c77d8cc46e3a43e676b3b6794fb6894b2c9d06fcbcf3d",
+        "candidate_patch_sha256": "d91493e2d4212f3820492d3775b77696fea2c8c146d6d073ee65b9d7f32eab7c",
+        "status": "integrated; new unit and runtime verification pending",
+        "change": "Reservation and atomic preparation begin: preserve exact current Identity Reads, root Conversation Write and conditional enrollment-subject writes; full current/SQL coverage rederived before once-only mutation."
+      },
+      {
+        "id": "media_start_scope",
+        "candidate_manifest_sha256": "a0ce4787b069d78809c5609b25bd21388fb2087f552c79dc6ca44d1b5c33d7e3",
+        "candidate_patch_sha256": "1cbe47c78ad1faa433711fdfc9e9462786aab50384ab55aac3fe3955bf0cf29a",
+        "status": "integrated; new unit and runtime verification pending",
+        "change": "Only initial replacement-media Start ledger admission/recording uses the same exact mutation footprint; target signer and original operation owner remain distinct. Final resource activation unchanged."
+      },
+      {
+        "id": "six_fixture_repairs",
+        "candidate_manifest_sha256": "40f1a2215f845e89fded81fd34bff8c8d34eabfb06a459d99f59d6c777af800c",
+        "candidate_patch_sha256": "18107fff026935e03e3ead0bc68dc983eae7ac55716b02f945ac1f165ca7e20a",
+        "status": "integrated; new unit and runtime verification pending",
+        "change": "Six actual fixture SQL-unit/reader-lifetime gaps corrected. Original Identity-only reader reservation-success assertion remains unchanged; its failure is production overcontention, not an invalid fixture."
+      },
+      {
+        "id": "original_end_waiter",
+        "candidate_manifest_sha256": "2766565730fa4130c483223d71c9abd722943c347f1da90131d5768f1bc9d9ea",
+        "candidate_patch_sha256": "b51981ce1943bd8e26c22ee8a8e7fb6478b3d6d0e81813e3d3014727b4c2e081",
+        "status": "integrated; new unit and runtime verification pending",
+        "change": "Shared fixture observes original connection.end Preparing/Get/ACK until exact terminal result under original8s; no termination replay or accepted-as-success relaxation."
+      },
+      {
+        "id": "provider_return_failure_cleanup",
+        "candidate_manifest_sha256": "0bb9314589a37a1ed45e64d51e3a5b51635120e3dddcd7f59830727510498c55",
+        "candidate_patch_sha256": "558c42bd14d1de695dbe2af80481dd9b3f4957c24829a5d3f799096c155983e6",
+        "status": "integrated; new unit and runtime verification pending",
+        "change": "Failure-only fixture cleanup awaits original remaining owners after a return panic, explicitly aborts and joins original mock task, then resumes same original panic; does not catch process abort."
+      },
+      {
+        "id": "owned_context_spawn",
+        "candidate_manifest_sha256": "e57a823d45c7a41d4a1b3f1b67c1d31c628b465e8a15f9ca349491429cdd78ff",
+        "candidate_patch_sha256": "fa217874a677b92297f2e4bc4c0acd60d45acda1631a13e615b5f518086a6ba1",
+        "status": "integrated; new unit and runtime verification pending",
+        "change": "Production owned context task explicitly boxes before Tokio spawn by-value boundary; same original worker body/cancellation/result/cleanup/JoinHandle. No larger stack or provider IO replay."
+      },
+      {
+        "id": "allocation_diagnostic",
+        "candidate_manifest_sha256": "b70015c67b9acbe394d82d169f656e28ba1c6627bea9fd0333fd630d2027fe59",
+        "candidate_patch_sha256": "25b25c21f198408759bf9e7c3fbe95029c3625133c87d911e90498d50201a094",
+        "status": "integrated; new unit and runtime verification pending",
+        "change": "Fixed bounded Service allocation stage/code and failure-only read-only original root/effect metadata. No allocation replay or behavior fix."
+      },
+      {
+        "id": "codec_scope",
+        "candidate_manifest_sha256": "5a88f55f507f34edb5d2336e45bb38195e4b8de10e5670623fa1e7b799f7df6c",
+        "candidate_patch_sha256": "bb12f2b344bd149b9ba726f3c0032f89ba80ac4444ed3c9d00296f96425cfb7b",
+        "status": "integrated; new unit and runtime verification pending",
+        "change": "Native Session-codec reservation preserves current manager/peer/key Reads, exact batch CID Write and conditional enrollment subjects; full rederive under original5ms admission/current expiry, no IO writer or extra effect."
+      }
+    ],
+    "planned_driver_accounting": {
+      "retained_production_focused": 23,
+      "failure_cleanup_helper_unit": 1,
+      "total_driver_selected": 24,
+      "qualification": "The helper is a unit control, not a fourth production scope or a passing matrix check. New Store/Server library controls are separate."
+    },
+    "primary_stack_failure": {
+      "evidence": "Current C10 crash report identifies start_owned+2724 at production owned task spawn; no preceding fixture panic or recursion chain. Distinct from B secondary unwind overflow.",
+      "compiled_worker_future_bytes": 54784,
+      "fix_status": "Owned task boxing integrated, unverified until new controls and signed public-AI rerun.",
+      "scope_limit": "Box/helper construction still uses caller stack; no guarantee from source review alone that observed overflow is removed."
+    },
+    "provider_initializer_diagnostic": {
+      "current_leaf": "C12 provider.rs1136 ready.unwrap after context_ready returns configured initialization authority-busy. This is before return; exact initializer substage not yet logged.",
+      "topic": "connect_server::private_vapi=debug",
+      "qualification": "Existing fixed phase/code diagnostic only; no per-packet trace or inferred exact lock holder."
+    },
+    "build_followthrough": {
+      "initial_d_compile": {
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-d/build-result.json",
+        "receipt_sha256": "e8e947de0b4ada21f4fddbf9c65e870748530a8d59104ee401462f7e49f85314",
+        "exit_code": 101,
+        "elapsed_seconds": 14.307641744613647,
+        "naturally_joined": true,
+        "assertions_run": 0,
+        "failure": "New codec causal test accessed a private authority guard; Root replaced access with crate-private covers_authority proof method, independently source-reviewed. No permission weakening inferred."
+      },
+      "current_d2": {
+        "status": "Completed coherent build0/natural join; selected units and signed verification complete",
+        "source_snapshot_sha256": "56a7cfb40a8f6656c30b8e2f371a63bb25199ddc2e154b3512cf5c79a3216112",
+        "qualification": "D2 frozen checkpoint only; E working-source additions excluded and unverified.",
+        "build_receipt": ".local/gate-6/v212-final-cleanup-verification-d2/build-result.json",
+        "build_receipt_sha256": "5e76e57de7582b4d2e0d240ec2067dcd33b94e615faf15b9a2f872c05e845c9e",
+        "evidence": "docs/evidence/gate-6/signed-cleanup-v212.json#verification_d2"
+      }
+    }
+  },
+  "verification_d2": {
+    "evidence": "docs/evidence/gate-6/signed-cleanup-v212.json#verification_d2",
+    "evidence_file_sha256": "840cf9ab1467c50f484d13922f5f96260c72f90d456877c6d7f9acc7688a0c00",
+    "source_snapshot_sha256": "56a7cfb40a8f6656c30b8e2f371a63bb25199ddc2e154b3512cf5c79a3216112",
+    "build": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "8",
+        "-p",
+        "connect-client",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-server",
+        "--lib",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--test",
+        "gate6_replacement_video",
+        "--test",
+        "gate6_canonical_runtime",
+        "--features",
+        "connect-server/test-support",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 323.66662096977234,
+      "log_sha256": "2b079c6e377f04a20b0bc95e2c3e38eacdd6dfbef435676dd5060a524d901732",
+      "naturally_joined": true,
+      "receipt": ".local/gate-6/v212-final-cleanup-verification-d2/build-result.json",
+      "receipt_sha256": "5e76e57de7582b4d2e0d240ec2067dcd33b94e615faf15b9a2f872c05e845c9e"
+    },
+    "unit_summaries": {
+      "connect_store": {
+        "selected": 71,
+        "completed": 71,
+        "passed": 70,
+        "failed": 1
+      },
+      "connect_service": {
+        "selected": 37,
+        "completed": 37,
+        "passed": 37,
+        "failed": 0
+      },
+      "connect_server": {
+        "selected": 6,
+        "completed": 6,
+        "passed": 6,
+        "failed": 0
+      },
+      "connect_client_retained": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      }
+    },
+    "signed_driver_summary": {
+      "selected": 24,
+      "passed": 16,
+      "failed": 8,
+      "ignored": 0
+    },
+    "production_focused_summary": {
+      "selected": 23,
+      "passed": 15,
+      "failed": 8
+    },
+    "cleanup_helper": {
+      "selected": 1,
+      "passed": 1,
+      "failed": 0,
+      "test": "canonical_native_connections::consultation::provider::return_cleanup::failed_cleanup_does_not_prevent_following_original_task_join_or_replace_primary_panic",
+      "qualification": "Helper unit; not an additional production or matrix pass."
+    },
+    "closure": {
+      "driver_receipt": ".local/gate-6/v212-final-cleanup-verification-d2/signed-results.json",
+      "driver_receipt_sha256": "7cfafc99e4b8d65ba40fddf07c99e6d53d996545f7e576a57fea950438430573",
+      "wrappers_naturally_joined": true,
+      "selected_children_joined_reaped": true,
+      "all_children_natural_exit_zero": false,
+      "child_sigabrt": [
+        {
+          "test": "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+          "exit_code": -6,
+          "log_sha256": "c4bea35d21a2ed858e1aba430f47e729c32410aacfb8e81d0724b7b558546f53"
+        },
+        {
+          "test": "canonical_native_connections::consultation::production_private_ai_automatic_provider_close_record_outage_retries_observation_without_another_end",
+          "exit_code": -6,
+          "log_sha256": "65290e251fd4dc01d35260ea8e549aff0c57202d5d56be3c0263381c0361b579"
+        }
+      ]
+    },
+    "store_failure": {
+      "test": "connection_control::tests::replacement_sources::candidate::fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql",
+      "classification": "Obsolete fixture holds unrelated Identity Read but expects reservation exclusion; current exact-CID writer intentionally preserves that reader. E fixture correction uses actual CID Read. D2 remains a failed verdict, not retroactively passed."
+    },
+    "remaining_failures": [
+      "Native initial-mute signed control returns error instead of connection.answer; private receiver epoch control passes (1/2).",
+      "RTC current-withdrawal control fails its fixture observation; other four signed RTC controls pass (4/5).",
+      "Telephone movement original operation Get refuses storage-unavailable; cancel/no-answer controls fail before IO with native-replacement-preparation forbidden. All three remain failed.",
+      "Public-AI caller aborts with primary stack overflow (exit -6). Provider-close fault scenario first fails configured initialization, then aborts during unwind with stack overflow (exit -6). Joined/reaped is not a natural successful child exit.",
+      "Bad codec confirmation still times out before first offer after 49 authority-busy admission deferrals; other two codec controls pass. Actual conflicting holder is not identified by these logs."
+    ],
+    "followthrough_not_in_d2": {
+      "integrated_working_source_pending_runtime": [
+        "Three reviewed E fixture corrections, including actual CID reader exclusion and transient read-only observation handling.",
+        "Replacement entry snapshot cleanup, independently source-reviewed.",
+        "Codec owned-admission offload candidate d16f449d, independently source-reviewed; integrated working source after D2 freeze."
+      ],
+      "private_pending": [
+        "Live resource-changing Subscribe Core/UCTP/Service quarantine candidate and causal tests."
+      ],
+      "qualification": "E source additions are excluded from the frozen D2 checkpoint/index and have no E test pass claim."
+    },
+    "qualification": "D2 units and signed rows are separate cohorts. Retained unchanged Client5/5 is not rerun. Earlier C, failed D compilation, prior unit failures and all historical matrix verdicts remain intact; no readiness/acceptance promotion."
+  }
+}

@@ -89,7 +89,7 @@ impl Store {
     ) -> Result<()> {
         let context = &receipt.context;
         original_runtime(self, context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -121,7 +121,7 @@ impl Store {
     ) -> Result<AssistantProviderEnd> {
         let context = &created.context;
         original_runtime(self, context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -136,7 +136,7 @@ impl Store {
     pub fn native_assistant_end_uncertain(&self, end: &AssistantProviderEnd) -> Result<()> {
         let context = &end.context;
         original_runtime(self, context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -148,7 +148,7 @@ impl Store {
     pub fn record_native_assistant_closed(&self, closed: &AssistantProviderClosed) -> Result<()> {
         let context = &closed.context;
         original_runtime(self, context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -175,11 +175,11 @@ impl Store {
         if recovered_updates == limit {
             return Ok(recovered_updates);
         }
-        const TARGETS:&str="SELECT d.conversation_id FROM native_assistant_providers p JOIN context_deliveries d ON d.id=p.delivery_id WHERE p.closed_at IS NULL AND p.end_uncertain=0 AND ((p.runtime_epoch!=?2) OR (d.state='pending' AND ((p.creation_started=0 AND p.prepared_expires_at<=?1) OR (p.creation_started=1 AND p.provider_ref IS NULL AND p.creation_expires_at<=?1) OR (p.created_at IS NOT NULL AND p.export_started=0 AND p.created_at+5<=?1) OR (p.export_started=1 AND p.delivered_at IS NULL AND p.export_expires_at<=?1))) OR (p.end_started=1 AND p.end_expires_at<=?1)) ORDER BY d.sequence LIMIT ?3";
+        const TARGETS: &str = "SELECT d.conversation_id FROM native_assistant_providers p JOIN context_deliveries d ON d.id=p.delivery_id WHERE p.closed_at IS NULL AND p.end_uncertain=0 AND ((p.runtime_epoch!=?2) OR (d.state='pending' AND ((p.creation_started=0 AND p.prepared_expires_at<=?1) OR (p.creation_started=1 AND p.provider_ref IS NULL AND p.creation_expires_at<=?1) OR (p.created_at IS NOT NULL AND p.export_started=0 AND p.created_at+5<=?1) OR (p.export_started=1 AND p.delivered_at IS NULL AND p.export_expires_at<=?1))) OR (p.end_started=1 AND p.end_expires_at<=?1)) ORDER BY d.sequence LIMIT ?3";
         let now = crate::now();
         let batch = (limit - recovered_updates) as u64;
         let held = self.runtime_query_authority(TARGETS, &[&now, &self.runtime_epoch(), &batch])?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

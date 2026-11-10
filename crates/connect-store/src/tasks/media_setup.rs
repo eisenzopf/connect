@@ -46,7 +46,7 @@ impl Store {
             )?;
             Ok(vec![task.conversation_id])
         })?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

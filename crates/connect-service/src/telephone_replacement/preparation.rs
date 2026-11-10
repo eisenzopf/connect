@@ -48,6 +48,95 @@ impl Runtime {
             deadline: root.deadline.min(expiry),
         })
     }
+    // Reserve metadata under a short Writer, then obtain a fresh current IO
+    // read for that same original attempt. Neither transport work nor a second
+    // begin is performed while waiting for this post-reservation admission.
+    async fn begin_telephone_phase(
+        self: &Arc<Self>,
+        root: &Arc<PreparedReplacement>,
+        started: &Arc<media::Started>,
+        phase: Phase,
+        step: Step,
+    ) -> Result<(
+        Arc<connect_store::TelephoneReplacementPhaseAttempt>,
+        Invocation,
+    )> {
+        let selected = self.telephone_scene(root, started, phase.clone()).await?;
+        let original_until = selected.read.media().expires_at();
+        drop(selected);
+        let attempt = retry_metadata(&root.handle.cancellation(), || {
+            let sources = self
+                .media
+                .scene_origins(
+                    root.handle
+                        .prepared_binding()
+                        .appearance()
+                        .session()
+                        .as_str(),
+                )
+                .map_err(|_| Error::forbidden());
+            let store = self.media.store.clone();
+            let capture = started.capture.clone();
+            let deadline = root.deadline;
+            let step = step.clone();
+            async move {
+                let sources = sources?;
+                store_call(move || {
+                    if tokio::time::Instant::now() >= deadline
+                        || chrono::Utc::now().timestamp() >= original_until
+                    {
+                        return Err(Error::forbidden());
+                    }
+                    let read = store.try_telephone_replacement_scene_read(capture, &sources)?;
+                    store.begin_telephone_replacement_phase_before(read, step, original_until)
+                })
+                .await
+            }
+        })
+        .await?;
+        let admitted = retry_metadata(&root.handle.cancellation(), || {
+            let store = self.media.store.clone();
+            let attempt = attempt.clone();
+            let deadline = root.deadline;
+            store_call(move || {
+                if tokio::time::Instant::now() >= deadline {
+                    return Err(Error::forbidden());
+                }
+                store.try_telephone_replacement_phase_attempt_read(attempt)
+            })
+        })
+        .await
+        .and_then(|read| {
+            if self.stop.is_cancelled()
+                || root.handle.cancellation().is_cancelled()
+                || tokio::time::Instant::now() >= root.deadline
+                || !read.current()
+            {
+                return Err(Error::forbidden());
+            }
+            let expiry = tokio::time::Instant::now()
+                + Duration::from_secs(
+                    (read.media().expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
+                );
+            Ok(Invocation {
+                runtime: self.clone(),
+                root: root.clone(),
+                started: started.clone(),
+                read: Arc::new(read),
+                phase,
+                deadline: root.deadline.min(expiry),
+            })
+        });
+        match admitted {
+            Ok(invocation) => Ok((attempt, invocation)),
+            Err(error) => {
+                root.handle.cancel();
+                self.save_telephone_phase(started, attempt.uncertain())
+                    .await?;
+                Err(error)
+            }
+        }
+    }
     async fn save_telephone_phase(
         &self,
         started: &media::Started,
@@ -75,12 +164,9 @@ impl Runtime {
     ) -> Result<()> {
         {
             let _roles = self.role_projection.lock().await;
-            let i = self.telephone_scene(root, started, Phase::Attach).await?;
-            let store = self.media.store.clone();
-            let read = i.read.clone();
-            let attempt =
-                store_call(move || store.begin_telephone_replacement_phase(&read, Step::Attach))
-                    .await?;
+            let (attempt, i) = self
+                .begin_telephone_phase(root, started, Phase::Attach, Step::Attach)
+                .await?;
             let result = self
                 .core
                 .attach_staged_device_replacement_with_held(&root.handle, None, &i)
@@ -100,14 +186,9 @@ impl Runtime {
                 .core
                 .plan_staged_device_replacement_muted_activation(&root.handle)
                 .map_err(|_| Error::forbidden())?;
-            let i = self
-                .telephone_scene(root, started, Phase::Activate(plan.clone()))
+            let (attempt, i) = self
+                .begin_telephone_phase(root, started, Phase::Activate(plan.clone()), Step::Activate)
                 .await?;
-            let store = self.media.store.clone();
-            let read = i.read.clone();
-            let attempt =
-                store_call(move || store.begin_telephone_replacement_phase(&read, Step::Activate))
-                    .await?;
             let result = self
                 .core
                 .activate_staged_device_replacement_with_held(&root.handle, plan, &i)
@@ -232,20 +313,21 @@ impl Runtime {
         if !confirmed {
             return Ok(false);
         }
-        let i = self
-            .telephone_scene(root, started, Phase::Readiness)
+        let (attempt, i) = self
+            .begin_telephone_phase(root, started, Phase::Readiness, Step::Readiness)
             .await?;
-        if !preparation.has_duplex_io() || !confirmed {
-            return Ok(false);
-        }
-        let store = self.media.store.clone();
-        let read = i.read.clone();
-        let attempt =
-            store_call(move || store.begin_telephone_replacement_phase(&read, Step::Readiness))
-                .await?;
-        let capture = attempt.applied(phase_observation(&i, "readiness", true, true))?;
+        let ready = preparation.has_duplex_io() && confirmed;
+        let capture = if ready {
+            attempt.applied(phase_observation(&i, "readiness", true, true))?
+        } else {
+            attempt.uncertain()
+        };
         drop(i);
         self.save_telephone_phase(started, capture).await?;
+        if !ready {
+            root.handle.cancel();
+            return Err(Error::forbidden());
+        }
         Ok(true)
     }
 }

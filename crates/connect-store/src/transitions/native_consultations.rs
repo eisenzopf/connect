@@ -152,17 +152,31 @@ fn touch(c: &Connection, record: &str, store: &Store) -> Result<()> {
     }
     event(c, &rows::by_record(c, record)?, store)
 }
-pub(super) fn recover_one(c: &Connection, row: &rows::Saved, store: &Store) -> Result<bool> {
+pub(super) struct RecoveryDisposition {
+    started: bool,
+}
+pub(super) fn recovery_disposition(
+    c: &Connection,
+    row: &rows::Saved,
+    store: &Store,
+) -> Result<Option<RecoveryDisposition>> {
     if row.record.state.terminal() || row.record.state == OperationState::Unknown {
-        return Ok(false);
+        return Ok(None);
     }
     let (started,runtime):(bool,String)=c.query_row("SELECT started,runtime_epoch FROM native_consultation_attempts WHERE operation_record_id=?1",[&row.record.record_id],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|Error::storage())?;
     let expired = row.record.expires_at.is_none_or(|t| t <= crate::now());
     let stale = row.lease_until.is_none_or(|t| t <= crate::now())
         || (store.recover_foreign_runtime && runtime != store.runtime_epoch());
     if !expired && !stale {
-        return Ok(false);
+        return Ok(None);
     }
+    Ok(Some(RecoveryDisposition { started }))
+}
+pub(super) fn recover_one(c: &Connection, row: &rows::Saved, store: &Store) -> Result<bool> {
+    let Some(disposition) = recovery_disposition(c, row, store)? else {
+        return Ok(false);
+    };
+    let started = disposition.started;
     c.execute("UPDATE operation_effects SET state=?2 WHERE operation_record_id=?1 AND state IN ('prepared','submitting')",params![row.record.record_id,if started {"unknown"}else{"cancelled"}]).map_err(|_|Error::storage())?;
     let next = if started || rows::unsettled(c, &row.record.record_id)? {
         OperationState::Unknown
@@ -220,6 +234,7 @@ impl Store {
             },
         )?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -387,10 +402,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &receipt.record)?)
+                admission::mutation_row_scopes(&rows::by_record(&c, &receipt.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -442,10 +457,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &receipt.record)?)
+                admission::mutation_row_scopes(&rows::by_record(&c, &receipt.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -486,7 +501,7 @@ impl Store {
                 selection.scopes(self, &c, true)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -564,11 +579,26 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let cutoff = read.expires_at().min(lease.expires_at);
+        let selection = read.into_selection()?;
+        // started removes the old publication suspension. Drain the original
+        // packet readers before committing that real authority state change.
+        let remaining = std::time::Duration::from_secs((cutoff - crate::now()).max(0) as u64);
+        let held = self.stable_authority(
+            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT).bounded(remaining),
+            || {
+                let c = self.connection()?;
+                selection.scopes(self, &c, true)
+            },
+        )?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = bound(&tx, self, &lease)?;
+        if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
+            return Err(Error::forbidden());
+        }
         lease.selection.validate_revisions(&tx, &lease.plan()?)?;
         crate::private_provider::require_for_native(
             &tx,
@@ -591,6 +621,11 @@ impl Store {
             return Err(conflict());
         }
         touch(&tx, lease.record_id(), self)?;
+        // Derive the post-change view in this same transaction. The Writer is
+        // retained only through Core's prepared audience cut, then released
+        // before decoded-media waiting or historical recording.
+        let mut read = selection.read_with_authority(self, &tx, held.clone())?;
+        read.limit(cutoff)?;
         if !read.current() {
             return Err(Error::forbidden());
         }
@@ -616,10 +651,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &origin.record)?)
+                admission::mutation_row_scopes(&rows::by_record(&c, &origin.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -670,10 +705,10 @@ impl Store {
             || {
                 let c = self.connection()?;
                 let row = rows::by_record(&c, &receipt.record)?;
-                admission::row_scopes(&row)
+                admission::mutation_row_scopes(&row)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

@@ -285,7 +285,13 @@ fn replacement_preparation_begins_once_and_unknown_never_authorizes_another_atte
         .store
         .native_replacement_preparation_attempt_read(&duplicate)
         .unwrap();
+    // A second original Read cannot be held through the first Write begin.
+    drop(read);
     let attempt = begin(&f, lease);
+    let read = f
+        .store
+        .native_replacement_preparation_attempt_read(&duplicate)
+        .unwrap();
     assert!(f
         .store
         .begin_native_replacement_preparation(&duplicate, read)
@@ -441,9 +447,7 @@ fn replacement_preparation_current_policy_loss_prevents_begin_and_capture_is_not
                 f.store.revoke(&admin, &f.keys[0]).unwrap();
             }
             "endpoint" => {
-                f.store
-                    .connection()
-                    .unwrap()
+                f.change_fixture()
                     .execute(
                         "UPDATE endpoints SET verification_state='revoked' WHERE id=?1",
                         [lease.plan().unwrap()["expected_preparation"]["endpoint"]
@@ -453,13 +457,22 @@ fn replacement_preparation_current_policy_loss_prevents_begin_and_capture_is_not
                     .unwrap();
             }
             "role" => {
-                f.store.connection().unwrap().execute("UPDATE session_participants SET role='observer' WHERE session_id='session' AND participant_id=?1",[&f.pids[0]]).unwrap();
+                f.change_fixture().execute("UPDATE session_participants SET role='observer' WHERE session_id='session' AND participant_id=?1",[&f.pids[0]]).unwrap();
             }
             "candidate" => {
                 assert!(f
                     .store
                     .connection()
                     .unwrap()
+                    .execute(
+                        "UPDATE native_replacements SET candidate_connection_id='different'",
+                        []
+                    )
+                    .is_err());
+                // The same corruption must also refuse with a genuine bound
+                // Writer, so a missing SQL permit cannot mask immutability.
+                assert!(f
+                    .change_fixture()
                     .execute(
                         "UPDATE native_replacements SET candidate_connection_id='different'",
                         []
@@ -543,13 +556,53 @@ fn replacement_backup_digest_covers_reservation_and_step_state() {
     let isolated = f._dir.path().join("isolated-native-tables.sqlite3");
     std::fs::copy(&a, &isolated).unwrap();
     let copy = rusqlite::Connection::open(&isolated).unwrap();
-    copy.execute("UPDATE native_replacement_steps SET started=1", [])
-        .unwrap();
+    fn corrupt_offline_copy(copy: &rusqlite::Connection, names: &[&str], mutation: &str) {
+        let schema = || -> Vec<(String, String)> {
+            copy.prepare("SELECT name,sql FROM sqlite_schema WHERE type='trigger' ORDER BY name")
+                .unwrap()
+                .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+                .unwrap()
+                .collect::<rusqlite::Result<_>>()
+                .unwrap()
+        };
+        let before = schema();
+        let selected: Vec<_> = before
+            .iter()
+            .filter(|(name, _)| names.contains(&name.as_str()))
+            .collect();
+        assert_eq!(selected.len(), names.len());
+        // Raw external mutation remains forbidden even on a closed copy.
+        assert!(copy.execute_batch(mutation).is_err());
+        for (name, _) in &selected {
+            copy.execute_batch(&format!("DROP TRIGGER {name}")).unwrap();
+        }
+        copy.execute_batch(mutation).unwrap();
+        for (_, sql) in selected {
+            copy.execute_batch(sql).unwrap();
+        }
+        assert_eq!(
+            schema(),
+            before,
+            "restore exact trigger SQL before digest comparison"
+        );
+    }
+    corrupt_offline_copy(
+        &copy,
+        &["connect_writer_native_replacement_steps_update"],
+        "UPDATE native_replacement_steps SET started=1",
+    );
     let step_only = Store::inspect_snapshot(&isolated).unwrap();
     assert_ne!(first.digest, step_only.digest);
     // Deliberate corruption in this disposable backup copy, never the Store:
     // immutable-reservation rows must also be covered by inspection.
-    copy.execute_batch("DROP TRIGGER native_replacement_immutable; UPDATE native_replacements SET candidate_runtime_id='corrupted-backup-runtime'").unwrap();
+    corrupt_offline_copy(
+        &copy,
+        &[
+            "native_replacement_immutable",
+            "connect_writer_native_replacements_update",
+        ],
+        "UPDATE native_replacements SET candidate_runtime_id='corrupted-backup-runtime'",
+    );
     assert_ne!(
         step_only.digest,
         Store::inspect_snapshot(&isolated).unwrap().digest
@@ -856,7 +909,7 @@ fn replacement_local_stop_cannot_assert_cleanup_after_target_allocation_started(
         .unwrap();
     // Represent a later durable, possibly external step. The preparation-only
     // receipt must never be sufficient to assert that this IO was undone.
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     c.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,attempt,submission_generation) VALUES('allocation-effect',?1,'native-replacement-allocate','allocation-effect','none','prepared',0,0)", [origin.record_id()]).unwrap();
     c.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,'allocate','allocation-attempt','allocation-effect')", [origin.record_id()]).unwrap();
     c.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='allocate'", [origin.record_id()]).unwrap();
@@ -953,4 +1006,212 @@ fn reservation_writer_drains_original_packet_reads_and_does_not_pin_later_media(
     assert_eq!(record.effects.len(), 1);
     assert_eq!(record.effects[0].state, EffectState::Prepared);
     assert_eq!(record.effects[0].attempt, 0);
+}
+
+#[test]
+fn reserved_preparation_begin_refusal_keeps_same_lease_effect_and_original_cutoff() {
+    let (f, _, _, origin, sources) = setup();
+    let lease = prepare(&f, &origin, &sources);
+    let alias = f
+        .store
+        .native_replacement_preparation_attempt_read(&lease)
+        .unwrap();
+    let read = f
+        .store
+        .native_replacement_preparation_attempt_read(&lease)
+        .unwrap();
+    let until = read.expires_at();
+    let before = (
+        f.count("native_replacements"),
+        f.count("native_replacement_steps"),
+        f.count("operation_effects"),
+    );
+    assert_eq!(
+        f.store
+            .begin_native_replacement_preparation_before(&lease, read, until)
+            .err()
+            .expect("held original Read must defer begin")
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(
+        before,
+        (
+            f.count("native_replacements"),
+            f.count("native_replacement_steps"),
+            f.count("operation_effects")
+        )
+    );
+    let not_started:(bool,u64,String)=f.store.connection().unwrap().query_row("SELECT s.started,e.attempt,e.state FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1 AND s.phase='prepare'",[lease.record_id()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+    assert_eq!(not_started, (false, 0, "prepared".into()));
+    drop(alias);
+    let read = f
+        .store
+        .native_replacement_preparation_attempt_read(&lease)
+        .unwrap();
+    assert_eq!(
+        f.store
+            .begin_native_replacement_preparation_before(&lease, read, crate::now() - 1)
+            .err()
+            .expect("original cutoff cannot renew")
+            .code,
+        "forbidden"
+    );
+    let read = f
+        .store
+        .native_replacement_preparation_attempt_read(&lease)
+        .unwrap();
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_preparation_before(&lease, read, until)
+        .unwrap();
+    assert!(read.current() && read.expires_at() <= until);
+    drop(read);
+    assert_eq!(
+        before,
+        (
+            f.count("native_replacements"),
+            f.count("native_replacement_steps"),
+            f.count("operation_effects")
+        )
+    );
+    let read = f
+        .store
+        .native_replacement_preparation_attempt_read(&lease)
+        .unwrap();
+    assert!(
+        f.store
+            .begin_native_replacement_preparation_before(&lease, read, until)
+            .is_err(),
+        "successful original begin cannot be replayed"
+    );
+    f.store
+        .native_replacement_preparation_uncertain(attempt)
+        .unwrap();
+}
+
+#[test]
+fn reservation_mixed_scope_still_excludes_same_conversation_readers() {
+    let (f, key, _, origin, sources) = setup();
+    let identity = f.store.revalidate(&key).unwrap().identity_id;
+    let identity_reader = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::identity(
+            &identity,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .unwrap();
+    let conversation_reader = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let read = f
+        .store
+        .try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1],
+        )
+        .unwrap();
+    let refusal = f
+        .store
+        .prepare_native_replacement(read, request())
+        .unwrap_err();
+    assert_eq!(refusal.code, "authority-busy");
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    assert_eq!(f.count("native_replacements"), 0);
+    drop(conversation_reader);
+    // Keeping the original Identity reader is safe: only exact CID facts mutate.
+    let lease = prepare(&f, &origin, &sources);
+    let read = f
+        .store
+        .native_replacement_preparation_attempt_read(&lease)
+        .unwrap();
+    let until = read.expires_at();
+    let (attempt, writer) = f
+        .store
+        .begin_native_replacement_preparation_before(&lease, read, until)
+        .unwrap();
+    assert!(writer.current() && writer.expires_at() <= until);
+    drop(writer);
+    drop(identity_reader);
+    f.store
+        .native_replacement_preparation_uncertain(attempt)
+        .unwrap();
+}
+
+#[test]
+fn reservation_mixed_scope_retains_identity_policy_fences_and_rechecks_current_selection() {
+    let (f, key, _, origin, sources) = setup();
+    let identity = f.store.revalidate(&key).unwrap().identity_id;
+    let read = f
+        .store
+        .try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1],
+        )
+        .unwrap();
+    let selection = read.into_selection().unwrap();
+    let scopes = {
+        let c = f.store.try_connection().unwrap();
+        let mut current = selection.scopes(&f.store, &c, false).unwrap();
+        let (cid, owner, mutation) = f
+            .store
+            .native_replacement_bookkeeping_scopes(&c, origin.record_id())
+            .unwrap();
+        assert_eq!(cid, f.cid);
+        assert_eq!(owner, identity);
+        current.extend(mutation);
+        crate::AuthorityScope::merged(&current).unwrap()
+    };
+    let held = f.store.try_acquire_authority(&scopes).unwrap();
+    assert!(f.store.authority_covers(
+        &held,
+        &[
+            crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Read).unwrap(),
+            crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Write).unwrap()
+        ]
+    ));
+    assert!(!f.store.authority_covers(
+        &held,
+        &[crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write).unwrap()]
+    ));
+    // Read is still a real fence, not a dropped/replaced currentness check.
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &identity,
+                crate::AuthorityMode::Write
+            )
+            .unwrap()])
+            .err()
+            .expect("current identity Read must exclude revocation Writer")
+            .code,
+        "authority-busy"
+    );
+    drop(held);
+    let before = f.count("operation_effects");
+    let admin = f.store.revalidate(&f.admin).unwrap();
+    f.store.revoke(&admin, &key).unwrap();
+    // The immutable selection is routing metadata, never a cached permission.
+    let c = f.store.try_connection().unwrap();
+    assert!(selection.scopes(&f.store, &c, false).is_err());
+    drop(c);
+    assert!(f
+        .store
+        .try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1]
+        )
+        .is_err());
+    assert_eq!(f.count("native_replacements"), 0);
+    assert_eq!(f.count("operation_effects"), before);
 }

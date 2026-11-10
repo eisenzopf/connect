@@ -170,7 +170,7 @@ fn gate_historical_completion_cannot_revive_retired_or_successor_runtime() {
     let receipt = begin(&f, &request)
         .gates_committed(2, observation(true))
         .unwrap();
-    f.store.connection().unwrap().execute_batch("UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id='connection-native'; UPDATE connections SET state='retired',generation=generation+1,readiness_json=NULL WHERE id='connection-native'").unwrap();
+    f.change_fixture().execute_batch("UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id='connection-native'; UPDATE connections SET state='retired',generation=generation+1,readiness_json=NULL WHERE id='connection-native'").unwrap();
     let done = f.store.complete_native_stream(&receipt).unwrap();
     assert_eq!(done.state, OperationState::Completed);
     let c = f.store.connection().unwrap();
@@ -196,7 +196,7 @@ fn gate_replay_and_status_require_current_update_permission() {
         .gates_committed(2, observation(true))
         .unwrap();
     f.store.complete_native_stream(&receipt).unwrap();
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     let raw: String = c
         .query_row(
             "SELECT operations FROM credentials WHERE id=?1",

@@ -132,18 +132,35 @@ fn session_codec_policy_and_targets_commit_once_with_separate_manager_and_peer_g
     assert_ne!(read.credential_metadata().actor.credential_id, manager);
     let lease = f
         .store
-        .begin_native_session_codec(&read, "child-one", json!({"streams":[]}))
+        .begin_native_session_codec(read, "child-one", json!({"streams":[]}))
+        .unwrap();
+    let read = f
+        .store
+        .try_native_session_codec_attempt_read(&origin, &target, &lease)
         .unwrap();
     f.store
-        .validate_native_session_codec(&read, &lease)
+        .validate_native_session_codec_plan(&read, &lease, &json!({"streams":[]}))
         .unwrap();
+    drop(read);
     assert!(f
         .store
-        .begin_native_session_codec(&read, "child-one", json!({"streams":[]}))
+        .begin_native_session_codec(
+            f.store
+                .try_native_session_codec_attempt_read(&origin, &target, &lease)
+                .unwrap(),
+            "child-one",
+            json!({"streams":[]}),
+        )
         .is_err());
     assert!(f
         .store
-        .begin_native_session_codec(&read, "child-two", json!({"streams":[]}))
+        .begin_native_session_codec(
+            f.store
+                .try_native_session_codec_attempt_read(&origin, &target, &lease)
+                .unwrap(),
+            "child-two",
+            json!({"streams":[]}),
+        )
         .is_err());
     assert_eq!(f.count("operation_effects"), 2); // Original offer and this one child.
     let captured = lease
@@ -155,7 +172,6 @@ fn session_codec_policy_and_targets_commit_once_with_separate_manager_and_peer_g
         target.batch_record_id
     );
     assert_eq!(f.store.complete_native_stream(&captured).unwrap(), first);
-    drop(read);
     let done = status(&f, &manager, &receipt);
     assert_eq!(done.state, OperationState::Completed);
     assert_eq!(counts(&done).updated, 1);
@@ -180,7 +196,7 @@ fn session_codec_no_change_is_recorded_without_advancing_the_native_revision() {
     let lease = f
         .store
         .begin_native_session_codec(
-            &read,
+            read,
             "unchanged-child",
             json!({"streams":[],"resources_changed":false}),
         )
@@ -189,7 +205,6 @@ fn session_codec_no_change_is_recorded_without_advancing_the_native_revision() {
         .session_codecs_committed(1, false, observation())
         .unwrap();
     f.store.complete_native_stream(&captured).unwrap();
-    drop(read);
     let row = status(&f, &manager, &receipt);
     assert_eq!(row.state, OperationState::Completed);
     assert_eq!(counts(&row).unchanged, 1);
@@ -335,13 +350,12 @@ fn session_codec_captured_success_survives_recording_failure_and_uncertainty_wit
         .unwrap();
     let lease = f
         .store
-        .begin_native_session_codec(&read, "captured-child", json!({"streams":[]}))
+        .begin_native_session_codec(read, "captured-child", json!({"streams":[]}))
         .unwrap();
     f.store.native_stream_attempt_uncertain(&lease).unwrap();
     let captured = lease
         .session_codecs_committed(2, true, observation())
         .unwrap();
-    drop(read);
     f.store.reconcile_session_codec_jobs(8).unwrap();
     assert_eq!(
         status(&f, &manager, &receipt).state,
@@ -369,4 +383,259 @@ fn session_codec_captured_success_survives_recording_failure_and_uncertainty_wit
     assert_eq!(f.count("operation_effects"), 2);
 }
 
+#[test]
+fn session_codec_consuming_reservation_refuses_live_reader_alias_without_creating_an_attempt() {
+    let (f, origin, manager) = fixture();
+    let (_, receipt, target) = queue(&f, &manager, "reader-drain-policy");
+    let read = f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .unwrap();
+    let original_until = read.media().expires_at();
+    let alias = read.media().clone();
+    let before = (
+        f.count("operations"),
+        f.count("operation_effects"),
+        f.count("journal"),
+    );
+    assert_eq!(
+        f.store
+            .begin_native_session_codec(read, "drained-original-child", json!({"streams":[]}))
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(
+        (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("journal")
+        ),
+        before
+    );
+    assert!(alias.current());
+    assert_eq!(
+        status(&f, &manager, &receipt).state,
+        OperationState::Accepted
+    );
+    drop(alias);
+    let read = f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .unwrap();
+    let lease = f
+        .store
+        .begin_native_session_codec(read, "drained-original-child", json!({"streams":[]}))
+        .unwrap();
+    assert!(lease.expires_at() <= original_until);
+    // The returned original attempt is metadata: no Writer prevents actual
+    // current IO admission, and this read is only for the same reserved child.
+    let read = f
+        .store
+        .try_native_session_codec_attempt_read(&origin, &target, &lease)
+        .unwrap();
+    assert!(read.current());
+    f.store
+        .validate_native_session_codec_plan(&read, &lease, &json!({"streams":[]}))
+        .unwrap();
+    drop(read);
+    let captured = lease.without_effect(Error::new(
+        "codec-refused",
+        "Controlled preflight stopped before physical IO",
+    ));
+    let done = f
+        .store
+        .record_native_stream_without_effect(&captured)
+        .unwrap();
+    assert_eq!(
+        f.store
+            .record_native_stream_without_effect(&captured)
+            .unwrap(),
+        done
+    );
+    assert_eq!(f.count("operation_effects"), before.1 + 1);
+    assert!(f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .is_err());
+}
+
+#[test]
+fn session_codec_postreservation_refusal_keeps_original_no_effect_custody_after_manager_revocation()
+{
+    let (f, origin, manager) = fixture();
+    let (_, receipt, target) = queue(&f, &manager, "post-reservation-policy");
+    let read = f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .unwrap();
+    let lease = f
+        .store
+        .begin_native_session_codec(read, "post-reservation-child", json!({"streams":[]}))
+        .unwrap();
+    let effect = lease.effect_id().to_owned();
+    let child = lease.record_id().to_owned();
+    let original_until = lease.expires_at();
+    let admin = f.store.revalidate(&f.admin).unwrap();
+    f.store.revoke(&admin, &manager).unwrap();
+    assert!(f
+        .store
+        .try_native_session_codec_attempt_read(&origin, &target, &lease)
+        .is_err());
+    assert!(f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .is_err());
+    // Original reservation remains owned even though fresh IO was refused.
+    // This controlled no-effect receipt does not repeat native preparation.
+    let captured = lease.without_effect(Error::new(
+        "codec-refused",
+        "Original manager was revoked before physical IO",
+    ));
+    let done = f
+        .store
+        .record_native_stream_without_effect(&captured)
+        .unwrap();
+    assert_eq!(done.record_id, child);
+    assert_eq!(done.expires_at, Some(original_until));
+    assert_eq!(done.effects.len(), 1);
+    assert_eq!(done.effects[0].id, effect);
+    assert_eq!(done.state, OperationState::Failed);
+    assert_eq!(
+        f.store
+            .record_native_stream_without_effect(&captured)
+            .unwrap(),
+        done
+    );
+    f.store.reconcile_session_codec_jobs(8).unwrap();
+    assert_eq!(counts(&status(&f, &f.admin, &receipt)).refused, 1);
+    assert_eq!(f.count("operation_effects"), 2);
+}
+
+#[test]
+fn session_codec_fresh_attempt_read_requires_exact_original_stream_and_selected_publisher_plan() {
+    let (f, origin, manager) = fixture();
+    let (_, _, target) = queue(&f, &manager, "exact-plan-policy");
+    let descriptor = json!({"streams":[{"id":"audio","codec":"opus"}],"sources":[{"connection":"original-publisher","generation":1}],"resources_changed":true});
+    let read = f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .unwrap();
+    let lease = f
+        .store
+        .begin_native_session_codec(read, "exact-plan-child", descriptor.clone())
+        .unwrap();
+    let read = f
+        .store
+        .try_native_session_codec_attempt_read(&origin, &target, &lease)
+        .unwrap();
+    f.store
+        .validate_native_session_codec_plan(&read, &lease, &descriptor)
+        .unwrap();
+    let mut wrong_stream = descriptor.clone();
+    wrong_stream["streams"][0]["codec"] = json!("pcmu");
+    assert_eq!(
+        f.store
+            .validate_native_session_codec_plan(&read, &lease, &wrong_stream)
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
+    let mut wrong_source = descriptor.clone();
+    wrong_source["sources"][0]["generation"] = json!(2);
+    assert_eq!(
+        f.store
+            .validate_native_session_codec_plan(&read, &lease, &wrong_source)
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
+    let mut wrong_target = target.clone();
+    wrong_target.generation += 1;
+    assert!(f
+        .store
+        .try_native_session_codec_attempt_read(&origin, &wrong_target, &lease)
+        .is_err());
+    drop(read);
+    let captured = lease.without_effect(Error::new(
+        "codec-refused",
+        "Controlled changed plan was not executed",
+    ));
+    f.store
+        .record_native_stream_without_effect(&captured)
+        .unwrap();
+    assert_eq!(f.count("operation_effects"), 2);
+}
+
 mod recovery;
+
+#[test]
+fn session_codec_reservation_keeps_identity_readers_but_requires_original_conversation_drain() {
+    use crate::{AuthorityMode, AuthorityScope};
+    let (f, origin, manager) = fixture();
+    let (_, _, target) = queue(&f, &manager, "mixed-footprint-policy");
+    let actor = f.store.revalidate(&f.keys[0]).unwrap();
+    let cid_scope = AuthorityScope::conversation(&f.cid, AuthorityMode::Read).unwrap();
+    let cid_reader = f.store.try_acquire_authority(&[cid_scope]).unwrap();
+    let read = f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .unwrap();
+    let refused =
+        f.store
+            .begin_native_session_codec(read, "mixed-footprint-child", json!({"streams":[]}));
+    assert_eq!(refused.err().unwrap().code, "authority-busy");
+    assert_eq!(
+        f.count("operation_effects"),
+        1,
+        "a blocked original never reserves a child"
+    );
+    let c = f.store.connection().unwrap();
+    let state:(String,Option<String>) = c.query_row("SELECT state,native_operation_record_id FROM session_codec_targets WHERE batch_record_id=?1 AND connection_id=?2",params![target.batch_record_id,target.connection_id],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+    assert_eq!(state, ("queued".into(), None));
+    drop(c);
+    drop(cid_reader);
+    let identity = AuthorityScope::identity(&actor.identity_id, AuthorityMode::Read).unwrap();
+    let identity_reader = f.store.try_acquire_authority(&[identity.clone()]).unwrap();
+    let read = f
+        .store
+        .try_native_session_codec_read(&origin, &target)
+        .unwrap();
+    let original_until = read.media().expires_at();
+    let lease = f
+        .store
+        .begin_native_session_codec(read, "mixed-footprint-child", json!({"streams":[]}))
+        .expect("same-room ledger reservation must not exclude unrelated Identity readers");
+    assert!(f.store.authority_covers(&identity_reader, &[identity]));
+    assert!(
+        lease.expires_at() <= original_until,
+        "reservation cannot renew the original read cutoff"
+    );
+    let read = f
+        .store
+        .try_native_session_codec_attempt_read(&origin, &target, &lease)
+        .unwrap();
+    f.store
+        .validate_native_session_codec_plan(&read, &lease, &json!({"streams":[]}))
+        .unwrap();
+    assert_eq!(f.count("operation_effects"), 2);
+    drop(read);
+    drop(identity_reader);
+    let captured = lease.without_effect(Error::new(
+        "codec-refused",
+        "Controlled metadata-only reservation; no physical IO",
+    ));
+    let done = f
+        .store
+        .record_native_stream_without_effect(&captured)
+        .unwrap();
+    assert_eq!(done.effects.len(), 1);
+    assert_eq!(done.effects[0].attempt, 1);
+    assert_eq!(
+        f.store
+            .record_native_stream_without_effect(&captured)
+            .unwrap(),
+        done
+    );
+    assert_eq!(f.count("operation_effects"), 2);
+}

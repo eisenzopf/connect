@@ -59,9 +59,7 @@ fn private_sip_packets_survive_ended_controller_only_after_sealing() {
     let s = Scene::with_controller(Some("packet-lifetime"));
     let receipt = s.captured();
     assert!(s.packets().unwrap().current());
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&s.root.credential],
@@ -136,7 +134,7 @@ fn private_sip_packets_require_current_media_rights_and_physical_authority() {
                 s.f.keys[1].as_str(),
             ),
         };
-        s.f.store.connection().unwrap().execute(sql, [key]).unwrap();
+        s.change_fixture().execute(sql, [key]).unwrap();
         assert!(s.packets().is_err(), "fault {fault}");
         assert!(s.packet_pair(0).is_err(), "pair fault {fault}");
     }
@@ -188,7 +186,7 @@ fn captured_private_sip_io_requires_live_ai_provider_before_and_after_sealing() 
     s.grant_signal_permissions();
     let receipt = s.captured();
     assert!(s.packets().unwrap().current());
-    let c = s.f.store.connection().unwrap();
+    let c = s.change_fixture();
     c.execute(
         "UPDATE participants SET kind='ai' WHERE participant_id=?1",
         [&s.f.pids[2]],
@@ -207,9 +205,7 @@ fn captured_private_sip_io_requires_live_ai_provider_before_and_after_sealing() 
         .complete_native_consultation(&receipt)
         .unwrap()
         .is_none());
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE participants SET kind='human' WHERE participant_id=?1",
             [&s.f.pids[2]],
@@ -219,9 +215,7 @@ fn captured_private_sip_io_requires_live_ai_provider_before_and_after_sealing() 
         .complete_native_consultation(&receipt)
         .unwrap()
         .unwrap();
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE participants SET kind='ai' WHERE participant_id=?1",
             [&s.f.pids[2]],

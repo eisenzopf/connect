@@ -123,7 +123,19 @@ impl Store {
             ));
         }
         if own.is_none() {
-            workers::recover_one(&tx, &row, &self.transition_runtime, self)?;
+            // Expiry can cross after admission. Never perform newly required
+            // recovery under an already retained Read; retry the same Get with
+            // fresh admission after releasing it.
+            if row.native_return
+                && super::native_returns::recovery_disposition(&tx, &row, self)?.is_some()
+                && !self.authority_covers(&authority, &admission::mutation_row_scopes(&row)?)
+            {
+                return Err(Error::new(
+                    "authority-busy",
+                    "Current authority is busy; retry the same logical operation",
+                ));
+            }
+            workers::recover_one(&tx, &row, &self.transition_runtime, self, &authority)?;
             row = rows::by_record(&tx, &row.record.record_id)?;
             let result = rows::view(&tx, &actor, row)?;
             actor_from_connection(&tx, credential)?;

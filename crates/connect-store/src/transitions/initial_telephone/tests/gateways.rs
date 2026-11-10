@@ -22,8 +22,21 @@ fn endpoint_for(
     transport: &str,
     address: &str,
 ) -> InitialTelephonePolicy {
-    let c = f.store.connection().unwrap();
     let device = format!("device-{id}");
+    // Match every current trigger collision victim, including the deliberately
+    // conservative revoked address claim, before acquiring any SQL guard.
+    let writer = f.store.stable_authority(
+        &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+        || {
+            let c = f.store.connection()?;
+            let mut statement = c.prepare("SELECT identity_id FROM endpoints WHERE id=?1 OR (tenant_id='tnt_default' AND transport=?2 AND lower(address)=lower(?3)) UNION SELECT identity_id FROM devices WHERE id=?4").map_err(|_| Error::storage())?;
+            let rows = statement.query_map(params![id,transport,address,device], |row| row.get::<_,String>(0)).map_err(|_| Error::storage())?;
+            let mut scopes = vec![crate::AuthorityScope::identity(&f.ids[identity], crate::AuthorityMode::Write)?];
+            for row in rows { scopes.push(crate::AuthorityScope::identity(&row.map_err(|_| Error::storage())?, crate::AuthorityMode::Write)?); }
+            crate::AuthorityScope::merged(&scopes)
+        },
+    ).unwrap();
+    let c = f.store.connection_with_authority(&writer).unwrap();
     c.execute("INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES(?1,?2,'tnt_default','phone','isolated')",params![device,f.ids[identity]]).unwrap();
     c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) VALUES(?1,?2,'tnt_default',?3,?4,?5,'[\"audio\"]','verified','fixture',?6,'initial-trunk',?7)",params![id,f.ids[identity],device,transport,address,crate::now(),f.ids[0]]).unwrap();
     let mut policy = f.policy.clone();
@@ -159,7 +172,26 @@ fn gateway_selectors_refuse_current_credential_device_endpoint_host_and_recipien
             Some(gateway)
         };
         {
-            let c = f.store.connection().unwrap();
+            let mut scopes = vec![crate::AuthorityScope::identity(
+                if matches!(case, "route-key" | "ceiling") {
+                    &f.ids[0]
+                } else {
+                    &f.ids[1]
+                },
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()];
+            if case == "member" {
+                scopes.push(
+                    crate::AuthorityScope::conversation(
+                        &f.request.conversation_id,
+                        crate::AuthorityMode::Write,
+                    )
+                    .unwrap(),
+                );
+            }
+            let writer = f.store.try_acquire_authority(&scopes).unwrap();
+            let c = f.store.connection_with_authority(&writer).unwrap();
             match case {
                 "device" => {
                     c.execute(
@@ -248,7 +280,15 @@ fn uri_aliases_cannot_invite_one_participant_twice_or_resolve_an_outside_identit
         .unwrap()
         .id;
     {
-        let c = f.store.connection().unwrap();
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &id,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute("INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES('outside-device',?1,'tnt_default','phone','isolated')",[&id]).unwrap();
         c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) VALUES('outside-endpoint',?1,'tnt_default','outside-device','telephone','+15555550222','[\"audio\"]','verified','fixture',?2,'initial-trunk',?3)",params![id,crate::now(),f.ids[0]]).unwrap();
     }
@@ -287,7 +327,16 @@ fn original_uri_receipt_cannot_retarget_after_endpoint_revocation_and_address_re
         assert!(c
             .execute("DELETE FROM session_invitation_gateway_targets", [])
             .is_err());
-        c.execute("UPDATE endpoints SET verification_state='revoked',secret_ref=NULL,revision=revision+1 WHERE id='initial-phone'",[]).unwrap();
+        drop(c);
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &f.ids[1],
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        f.store.connection_with_authority(&writer).unwrap().execute("UPDATE endpoints SET verification_state='revoked',secret_ref=NULL,revision=revision+1 WHERE id='initial-phone'",[]).unwrap();
     }
     old.close();
     let replacement = endpoint_for(&f, "reassigned-phone", 2, "telephone", "+15555550111");
@@ -378,14 +427,24 @@ fn frozen_uri_revision_cannot_adopt_a_later_verified_endpoint_revision() {
         .unwrap();
     let original = request(&f, "old-revision", vec!["tel:+15555550111".into()]);
     let first = apply(&f, &original).unwrap();
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE endpoints SET revision=revision+1 WHERE id='initial-phone'",
-            [],
-        )
-        .unwrap();
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &f.ids[1],
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        f.store
+            .connection_with_authority(&writer)
+            .unwrap()
+            .execute(
+                "UPDATE endpoints SET revision=revision+1 WHERE id='initial-phone'",
+                [],
+            )
+            .unwrap();
+    }
     // Receipt replay is history; it cannot renew a pending physical target.
     assert_eq!(apply(&f, &original).unwrap(), first);
     assert_eq!(

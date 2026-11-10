@@ -1,0 +1,3494 @@
+{
+  "format": "connect/g6-058-signed-cleanup/1",
+  "task": "G6-058",
+  "scope": "Completed local macOS arm64 synthetic Server and signed caller verification-a; not full transport matrix or provider rehearsal qualification.",
+  "source": {
+    "base_revision": "2bd3fa447a955898fd03076dc2b0ad5001539d9d",
+    "snapshot": ".local/gate-6/v212-final-cleanup-verification-a/source.json",
+    "snapshot_sha256": "5b4184da094469fd23ba69672cf2747e1949e8d501cdda4f24aacb0e90b28f40"
+  },
+  "build": {
+    "receipt": ".local/gate-6/v212-final-cleanup-verification-a/build-result.json",
+    "receipt_sha256": "dec8880a763f14790ec0846808f78a8d0e29c3a8a0e1f5d4e7fab5ea167b6c1e",
+    "exit_code": 0,
+    "naturally_joined": true
+  },
+  "targets": {
+    "connect_server": {
+      "summary": {
+        "selected": 4,
+        "completed": 4,
+        "passed": 2,
+        "failed": 2
+      },
+      "receipt": ".local/gate-6/v212-final-cleanup-verification-a/connect_server-results.json",
+      "receipt_sha256": "26972450f4873ec6b6464decac46a521d3fbce2eb61e33ac13aa6377fe29c816",
+      "binary_sha256": "622b019f52c44560e43c566e233494e7765c5e543b91b8f3edefb7f167ddda3f",
+      "rows": [
+        {
+          "test": "canonical_provider_voice::outcome_recording_tests::provider_capture_stops_on_original_host_shutdown_or_permanent_error",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "naturally_joined": true,
+          "log_sha256": "d80e281a6c07e79fec6163881771c44c810388a7e583dacfac898fc6892a2310"
+        },
+        {
+          "test": "canonical_provider_voice::outcome_recording_tests::provider_capture_survives_temporary_metadata_pressure_without_new_io",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "naturally_joined": true,
+          "log_sha256": "c7a4ecb6fb295cd8b7d5971fe10dacb7c09d534f89eaed4b7ce9144a47081077"
+        },
+        {
+          "test": "private_vapi::record_tests::historical_record_permanent_refusal_and_stop_do_not_restart_original_capture",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "3afead562818734726917e5325f4b35ec9c977bda7f6756b2d611786d2351a6d",
+          "failure_location": "crates/connect-server/src/private_vapi/mod.rs:373:14",
+          "failure": "Fresh temporary fixture called Store::open on a nonexistent database; storage-unavailable before historical record callback."
+        },
+        {
+          "test": "private_vapi::record_tests::historical_record_retries_capacity_busy_and_storage_with_same_original_capture",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "4365d50a5b70e45037094daabf6742fe0cb49b8f6b51dd5eb244c29f15e625f4",
+          "failure_location": "crates/connect-server/src/private_vapi/mod.rs:373:14",
+          "failure": "Fresh temporary fixture called Store::open on a nonexistent database; storage-unavailable before historical record callback."
+        }
+      ]
+    },
+    "gate6_replacement_video": {
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "receipt": ".local/gate-6/v212-final-cleanup-verification-a/gate6_replacement_video-results.json",
+      "receipt_sha256": "71895800d4359dec84d83146607f269f5740a988d316aac0f5d6c0719b86dc8f",
+      "binary_sha256": "b579f7fe9e63583f79040877fbd0b6a9f37f0e84d6319ceb116a6a07e2dc45a9",
+      "rows": [
+        {
+          "test": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_dispatch_uses_exact_held_target_under_registry_contention",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "4616d44b64a62bbc2a730962d6e5b3d7880b150991ca32f3a582f12887078e28",
+          "failure_location": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery.rs:165:67",
+          "failure": "Read-only Deadline at signed replacement setup"
+        },
+        {
+          "test": "sdk_handles::replacement_video_recovery::signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "1b4ee1516d3694c142e5489994bacd19701144fd807abaa812854036cc1f2f82",
+          "failure_location": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery.rs:1300:5",
+          "failure": "Expected connection.answer, received error during signed receiver-epoch setup"
+        }
+      ]
+    },
+    "gate6_canonical_webtransport": {
+      "summary": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "receipt": ".local/gate-6/v212-final-cleanup-verification-a/gate6_canonical_webtransport-results.json",
+      "receipt_sha256": "c3e5546658cde114311748df7948d08355cc3dd75a7b6ad963c67fd2fc897dbb",
+      "binary_sha256": "194767198288e386417b5551f711036cd9f802d0ca987d2c4c6e78c0cdc9da16",
+      "rows": [
+        {
+          "test": "canonical_websocket_control::webrtc::signed_wss_quarantined_sdp_answer_progresses_under_real_domain_writer",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "naturally_joined": true,
+          "log_sha256": "3ac81d989b66d99f28011f302b0b997b281361e4b1dd82ba80176a657b5f20b7"
+        },
+        {
+          "test": "canonical_websocket_control::webrtc::signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_retirement",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "naturally_joined": true,
+          "log_sha256": "72bf04bd8193fac4027016c0ee5b0a18119c2f5df0bb6e3ded4de7222e7c33f3"
+        },
+        {
+          "test": "canonical_websocket_control::webrtc::admission::current_withdrawal_after_rtc_media_admission_retires_only_that_route",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "naturally_joined": true,
+          "log_sha256": "fce43da9276140f750bee3bb8a8f55dacb6115e8afc9890fe6f396176b126f63"
+        },
+        {
+          "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_eddsa",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "naturally_joined": true,
+          "log_sha256": "4194dee5f5debce1370b155a1565282edaf5e424528fdb6b16e7104f00cd7576"
+        },
+        {
+          "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_es256",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "naturally_joined": true,
+          "log_sha256": "3d93a4ab07473d31e6053964279f662053fc2e0c1ca90ece72d82e5afbf0a59a"
+        }
+      ]
+    },
+    "gate6_canonical_runtime": {
+      "summary": {
+        "selected": 16,
+        "completed": 16,
+        "passed": 0,
+        "failed": 16
+      },
+      "receipt": ".local/gate-6/v212-final-cleanup-verification-a/gate6_canonical_runtime-results.json",
+      "receipt_sha256": "12a62bc76e892beb6e1d413839563d31f3f2371f5cac66d3c743d720d8e12209",
+      "binary_sha256": "489fba46d9e6f9c7ce1a7f519cbf1146c8335603fc29e5f803b4c727885568f3",
+      "rows": [
+        {
+          "test": "canonical_native_connections::data::production_native_data_routes_original_messages_and_records_local_writes_without_republishing_replay",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "7dc66c960e21fa00a251ef181c834fc3f09725b65d29e31172fc2f4349019b7e",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections/data.rs:35:36",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::data::production_native_data_preflight_and_pending_replay_cannot_borrow_another_physical_peer",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "a2f4025cdf4c4d535b06669fd574601a3982e76b71b384eb636e783eb79232ec",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections/data.rs:35:36",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::data::production_native_data_writer_storage_recovery_preserves_audio_and_other_connections",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "5eb63393df610fcb483e3ce63dd89244fe7902db37c966074027edad605d2538",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "d69a3c7e157e25573937f0289360414115b9459a5a3dbfd4f141a0ca8fc15c55",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "628b3eb4cab5b772e695831aaafc07bf12ee5381bbb22e40194aa59a482be399",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::dtmf::production_native_dtmf_writer_fact_storage_failure_recovers_without_another_delivery",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "a71950b8eed471a947b690b173ef54e308a692267ba2eb0177f8545aed8014c6",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::dtmf::production_native_dtmf_partial_credit_write_records_unknown_without_replay_and_releases_control",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "bdd43709a3839064c405a3079d0e5f35730b0bf2320706821d7c09c10da658e7",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_movement_actual_pcmu_commits_once_survives_old_authority_and_retires_on_route_loss",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "504461e84a33e172fe14cf47c1717029d497f6625af16af878a3726134b49054",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_replacement_public_cancel_stops_one_call_preserves_original_and_replays_without_redial",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "da8c61e18c53ae3dbd0f66cdce20a3d881674c749cc4bce67e5a6c2fd26b53f5",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_replacement_no_answer_deadline_stops_one_call_without_changing_original_route",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "8aab76c1a679da63aeb65f95145122ce1b767dbb06a8cedf1ddde17b73de2cae",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "0953a1561c6c02b54a05800876e4278019277ec621ef4af9da4bcee93d389c0a",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::consultation::production_private_ai_automatic_creation_record_outage_retries_observation_and_closes_after_cancel_without_export",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "cbb1bded1ce196fd00ee8d3b41840ae52d09616b1dbba40d29054936d431651e",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::consultation::production_private_ai_automatic_provider_close_record_outage_retries_observation_without_another_end",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "1b80745fde61ec848b06ae423b3968934138e30ca2f3b1b6b2d3dbe895c11f2a",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::session_codecs::production_session_codec_bad_confirmation_retains_partial_unknown_and_never_resubmits",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "2606150d45104e8036045d8e1c2fa4ade2bc62a95516b6bf23cfa8e1199231e6",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::session_codecs::production_session_codec_captured_success_retries_storage_without_another_offer",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "59a1bf2675bcb8bc72036739c40413d71fdb61326739d9a5fb535f2a4b777f70",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        },
+        {
+          "test": "canonical_native_connections::session_codecs::production_session_codec_preferences_select_current_policy_switch_live_peers_preserve_fallback_routes_and_replay",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "naturally_joined": true,
+          "log_sha256": "6bed483a0775eb124fc9623a3f0723723bb71197cfc072492c5b93e0922acce4",
+          "failure_location": "crates/connect-server/tests/support/canonical_native_connections.rs:1424:17",
+          "failure": "Original stream.subscribe returned Preparing; fixture asserted immediate Completed during common setup."
+        }
+      ]
+    }
+  },
+  "all_selected_commands_naturally_joined": true,
+  "ignored": 0,
+  "retained_unit_evidence": {
+    "receipt": ".local/gate-6/v212-final-cleanup-verification-a/retained-unit-binaries.json",
+    "receipt_sha256": "fba1ab9d6d486334b1d9a9a773bbfd89bc007356b4bd61e07e4660dccd556d4f",
+    "checks": [
+      {
+        "target": "connect_store",
+        "summary": {
+          "selected": 766,
+          "completed": 766,
+          "passed": 766,
+          "failed": 0
+        },
+        "binary_sha256": "530b6237a2f5c42e6f368c6943d61888b2dc4ced551091d8d53e1f1c940d4ea5",
+        "identical_to_tested_executable": true
+      },
+      {
+        "target": "connect_service",
+        "summary": {
+          "selected": 32,
+          "completed": 32,
+          "passed": 32,
+          "failed": 0
+        },
+        "binary_sha256": "fff96a6047ee4bdee122867eab72821098144d416441f0afe760936c20cc4ab8",
+        "identical_to_tested_executable": true
+      }
+    ],
+    "store_evidence": "docs/evidence/gate-6/store-cleanup-final-v212.json",
+    "service_evidence": "docs/evidence/gate-6/service-cleanup-final-v212.json",
+    "limit": "Store766/766 and Service32/32 are retained byte-identical tested binaries, not additional reruns or full Store inventory qualification."
+  },
+  "failure_attribution": {
+    "server": "Both private_vapi historical-record controls failed before their production callback; use Store::initialize for the fresh temporary fixture. Source correction integrated, rerun pending.",
+    "native_replacement": "Two distinct signed setup failures remain failed: read-only Deadline and error instead of connection.answer. Bounded diagnostic source integrated, no passing result or resolved causal attribution inferred.",
+    "runtime": "All16 fail before the intended media/effect cases:3 in data.rs:35 and13 in common canonical_native_connections.rs:1424 assert immediate Completed on the original Preparing subscription reply. Source waiter now observes the same original record, answers offers and keeps its original deadline; integrated, rerun pending.",
+    "webtransport": "All5 selected signed RTC controls pass in the gate6_canonical_webtransport target; does not qualify browser/full-programme matrix cells."
+  },
+  "integrated_followthrough_pending_verification": [
+    "Fresh private_vapi test fixture initialization",
+    "Same-original-operation subscription completion waiter, no resubmission or deadline extension",
+    "Bounded native replacement setup diagnostics"
+  ],
+  "latest_full_matrix_unchanged": {
+    "label": "v209",
+    "cells": {
+      "passed": 0,
+      "failed": 32,
+      "blocked": 0
+    },
+    "checks": {
+      "passed": 390,
+      "failed": 42,
+      "blocked": 0
+    },
+    "required_cells": 32,
+    "required_checks": 432
+  },
+  "history_preserved": true,
+  "new_checks_run_for_this_documentation_update": false,
+  "verification_b": {
+    "scope": "Completed local macOS arm64 verification-b after initialization/subscription fixture changes; synthetic signed scopes only.",
+    "source": {
+      "base_revision": "2bd3fa447a955898fd03076dc2b0ad5001539d9d",
+      "snapshot": ".local/gate-6/v212-final-cleanup-verification-b/source.json",
+      "snapshot_sha256": "87ca7f02a5d83ae6c6b6a670db813040d26647f06b1d16ae171eb68a40f89ada"
+    },
+    "build": {
+      "receipt": ".local/gate-6/v212-final-cleanup-verification-b/build-result.json",
+      "receipt_sha256": "0d72a3e1605e07863427eba7b649e3fe98d70845f0578e433fec821e13f6e3d2",
+      "exit_code": 0
+    },
+    "targets": {
+      "connect_server": {
+        "summary": {
+          "selected": 4,
+          "completed": 4,
+          "passed": 4,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-b/connect_server-results.json",
+        "receipt_sha256": "eb9aba7a423f8e6eefceaee5c3b027d8470c00c1ecb451521cdda20e83ccef6f",
+        "binary_sha256": "ceb55b368f61b1786fc6b21f4ff92a32bf309ff047f71bb9db2750eb8109ce05",
+        "rows": [
+          {
+            "test": "canonical_provider_voice::outcome_recording_tests::provider_capture_stops_on_original_host_shutdown_or_permanent_error",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d80e281a6c07e79fec6163881771c44c810388a7e583dacfac898fc6892a2310",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_provider_voice::outcome_recording_tests::provider_capture_survives_temporary_metadata_pressure_without_new_io",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c7a4ecb6fb295cd8b7d5971fe10dacb7c09d534f89eaed4b7ce9144a47081077",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "private_vapi::record_tests::historical_record_permanent_refusal_and_stop_do_not_restart_original_capture",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9c0310aedd0f86b1219492c5ffb1589484b87ae2013a1bbcb698306b1326f9cf",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "private_vapi::record_tests::historical_record_retries_capacity_busy_and_storage_with_same_original_capture",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "5c096becf63d29334b2ab389f635b215f83fb737c02c93284856be699afea58a",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          }
+        ]
+      },
+      "gate6_replacement_video": {
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 0,
+          "failed": 2
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-b/gate6_replacement_video-results.json",
+        "receipt_sha256": "f69795d325327cd11489e101995dc59c1eb80af4f60c0b40dfb9a4630355dabc",
+        "binary_sha256": "f1611f000b95e23bf9e35e6c15f46c3cc347a63778d1304fce6d952f279f32f7",
+        "rows": [
+          {
+            "test": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_dispatch_uses_exact_held_target_under_registry_contention",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "7c4694b437790795eae78039885a8f4a47b20214cf78bd79caedd632c8110028",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery.rs:1373:5",
+            "failure": "Original replacement media expected connection.answer, received error"
+          },
+          {
+            "test": "sdk_handles::replacement_video_recovery::signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "4cc12e04f392c765a84017c1bd4454bfc88096977373ed8461a99645089a0c37",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery.rs:462:14",
+            "failure": "Original replacement phase did not settle within original10s observation deadline; authority-busy logged during preparation"
+          }
+        ]
+      },
+      "gate6_canonical_webtransport": {
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-b/gate6_canonical_webtransport-results.json",
+        "receipt_sha256": "13968d10ebf804bd9cad3334192aee41b6da4d0cd2ba1ca1a6e1da747d8cc3e5",
+        "binary_sha256": "4a25a72c0ba8bb143bb0bdff425e09c9dc003720d817e6d2ff1a255d1fa002a6",
+        "rows": [
+          {
+            "test": "canonical_websocket_control::webrtc::signed_wss_quarantined_sdp_answer_progresses_under_real_domain_writer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ef0c3ac3938d46ad1621a7fcf172313a84d18d5c102662991fb8ab8309841f6b",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_retirement",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "79de0eb9c000e824f63a064c2e3a71c8f131fe49f2733238765a483f933e3ae4",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::admission::current_withdrawal_after_rtc_media_admission_retires_only_that_route",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "eb347892fc5602f411ba30bfa706ed0facf79578a5ed10d13f416f6cfeaefe76",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_eddsa",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "71bfb0c4bc88a74a775937b55b2c988369083005bbc0135a20228f67f0e88f11",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_es256",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "4e63cdd456b6aff013765302093039839622e317c3b2cf96672c9cf0203e604a",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          }
+        ]
+      },
+      "gate6_canonical_runtime": {
+        "summary": {
+          "selected": 16,
+          "completed": 16,
+          "passed": 7,
+          "failed": 9
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-b/gate6_canonical_runtime-results.json",
+        "receipt_sha256": "2e4faae6bd98cb57fe240e7bcedf9e0d0e54850fa503fc1435f106d4ca5c5138",
+        "binary_sha256": "396c54049132387b05771e40b38ad794c4b2a0caa38d58f45eae8bf349adcf00",
+        "rows": [
+          {
+            "test": "canonical_native_connections::data::production_native_data_routes_original_messages_and_records_local_writes_without_republishing_replay",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "c9e5198f6a5b3b8b4593008d664e3393bb26a81ca3eb24537bdfdc9585dbed3f",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/canonical_native_connections/data.rs:72:5",
+            "failure": "Subscription setup progressed; original message.send Preparing was asserted immediately Completed in Data helper."
+          },
+          {
+            "test": "canonical_native_connections::data::production_native_data_preflight_and_pending_replay_cannot_borrow_another_physical_peer",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "34b0ccec5119b7ed5da5e58ea3fb9b83c94ea4f4fc4129c4ebc85c8b5a8a207f",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/canonical_native_connections/data.rs:563:5",
+            "failure": "Subscription setup progressed; exact pending-data replay Preparing was asserted immediately Completed."
+          },
+          {
+            "test": "canonical_native_connections::data::production_native_data_writer_storage_recovery_preserves_audio_and_other_connections",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "d0b8839a8e33af1d5328a34f96b89d1cf5f1edbb8322d641a38211801e1f54cf",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/canonical_native_connections/data.rs:72:5",
+            "failure": "Subscription setup progressed; original message.send Preparing was asserted immediately Completed in Data helper."
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f8c107e958d2eefd31bd5cf03b67eeb6142e2e16380fdb037a306220aa2d6d2d",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7a47e7175dd95f544b62e87e24a90e2d8b8e427d22e31f6c8db21a73538f10b8",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_writer_fact_storage_failure_recovers_without_another_delivery",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9f11f9a0756ac4146078beb9fef8960bb6e62f0aafb4bda3c78c5e1d314f525e",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_partial_credit_write_records_unknown_without_replay_and_releases_control",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f4998228125b2bc0c3222324df9417871c7ede19a81f048a302afb4070281559",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_movement_actual_pcmu_commits_once_survives_old_authority_and_retires_on_route_loss",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "dd3fc62e1b061c6f8a41563ec72784fcf999bb198e4c04ff7dadda1ef91a1b42",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs:291:27",
+            "failure": "Original replacement status Get returned storage-unavailable; no fixture completion reclassification."
+          },
+          {
+            "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_replacement_public_cancel_stops_one_call_preserves_original_and_replays_without_redial",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "1661c35b244426f4355b5f30e6963004858d33aaeb35c792922ee6106489e09e",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone.rs:864:9",
+            "failure": "Original10s callback-to-wire deadline elapsed with original record Preparing, native-replacement-prepare effect Prepared and attempt0."
+          },
+          {
+            "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_replacement_no_answer_deadline_stops_one_call_without_changing_original_route",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "14b009dbc89a03a7aff46b1a5d33575f1a98ed1507e8f2b4e265be95ab08917d",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs:291:27",
+            "failure": "Original replacement status Get returned storage-unavailable; no fixture completion reclassification."
+          },
+          {
+            "test": "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "274f4d5bcbf8bd963cf3cff7ea0d04da62a6ab967cfedb8aac173aaf1132ceeb",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/canonical_native_connections/consultation/provider/public_audio.rs:187:14",
+            "failure": "Actual PublicNativeAudio.subscribe_audio returned Protocol; SDK currently requires Completed/result on initial original Preparing response."
+          },
+          {
+            "test": "canonical_native_connections::consultation::production_private_ai_automatic_creation_record_outage_retries_observation_and_closes_after_cancel_without_export",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a2cda543e5216756cfd9a4b51f43c6b41936dae368054f0280fe0353b1a672ff",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_native_connections::consultation::production_private_ai_automatic_provider_close_record_outage_retries_observation_without_another_end",
+            "exit_code": -6,
+            "passed": 0,
+            "failed": 0,
+            "log_sha256": "59b13e19340a23438905402ac2382e676cce66ff5c9c0893813426542f76b807",
+            "joined": true,
+            "termination": "SIGABRT after test panic/stack overflow",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/canonical_native_connections/consultation.rs:1342:9"
+          },
+          {
+            "test": "canonical_native_connections::session_codecs::production_session_codec_bad_confirmation_retains_partial_unknown_and_never_resubmits",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "efdf0d7721883b404e9c9640f1b4ffe9854779a5a9bea552d0303e03c15ecde5",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": false,
+            "failure_location": "crates/connect-server/tests/support/canonical_native_connections/session_codecs.rs:284:14",
+            "failure": "Timed out8s waiting for actual first Session codec reoffer, before invalid confirmation was sent. Fixed short manager lifetime is6s; cause remains unproved, no deadline change."
+          },
+          {
+            "test": "canonical_native_connections::session_codecs::production_session_codec_captured_success_retries_storage_without_another_offer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "92aab4d2d4a9500ea6f556e89382e42fd9e2086de7a326b0e6a211b175b13942",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          },
+          {
+            "test": "canonical_native_connections::session_codecs::production_session_codec_preferences_select_current_policy_switch_live_peers_preserve_fallback_routes_and_replay",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "53301480a0d7543cbcfb64e262d5e6792f4df58c9ebc25003ef62b0b962d21ce",
+            "joined": true,
+            "termination": "natural process exit",
+            "success": true
+          }
+        ]
+      }
+    },
+    "wrapper": {
+      "joined": true,
+      "exit_code": 1,
+      "result": "Completed with failures; Root observed original wrapper40903 closure. No child abort is converted into exit0."
+    },
+    "child_termination": {
+      "selected": 27,
+      "joined_reaped": 27,
+      "natural_process_exits": 26,
+      "sigabrt": 1,
+      "sigabrt_scope": "gate6_canonical_runtime case12 private provider-close record outage"
+    },
+    "retained_units": {
+      "Store": {
+        "passed": 766,
+        "selected": 766
+      },
+      "Service": {
+        "passed": 32,
+        "selected": 32
+      },
+      "receipt": ".local/gate-6/v212-final-cleanup-verification-b/retained-unit-binaries.json",
+      "receipt_sha256": "c724ae5dc5440fb2b62d8e4bcace9753e860fe5ca581370f0818a3d5dc1e2ef2",
+      "limit": "Retained unit proofs are separate; no unit rerun or cross-freeze additive total inferred."
+    },
+    "runtime_families": {
+      "passed": {
+        "DTMF": 4,
+        "provider_creation_record_outage": 1,
+        "session_codec": 2
+      },
+      "failed": {
+        "data_initial_terminal_assumption": 3,
+        "telephone_replacement_progress_or_status": 3,
+        "public_audio_SDK_initial_terminal_assumption": 1,
+        "provider_return_progress_then_child_abort": 1,
+        "session_codec_first_reoffer_timeout": 1
+      }
+    },
+    "native_phase_comparison": {
+      "case00": "Verification-a read-only Deadline at early setup; verification-b reaches original replacement media response but receives error instead of connection.answer. Both fail.",
+      "case01": "Verification-a error instead of connection.answer; verification-b original replacement phase observer reaches its10s deadline after preparation authority-busy. Both fail.",
+      "limit": "Phase advancement is not a passing result or proof the remaining refusal causes are resolved."
+    },
+    "pending_source_followthrough": [
+      {
+        "scope": "Data test fixtures",
+        "state": "Private candidate source-reviewed; no rerun",
+        "manifest_sha256": "bc17c7408e38bebc1650b84fea47051a4bc080c0e700fb22c90f35f9b69958fb",
+        "review_sha256": "7ba0513f4f18179edd6c7f122e66c6a8e90c1cc3a137499c7878770801190475"
+      },
+      {
+        "scope": "PublicNativeAudio SDK",
+        "state": "Root implementing same-original asynchronous completion; no passing rerun inferred"
+      },
+      {
+        "scope": "Telephone reserved-unsaved preparation",
+        "state": "Production cause/fix investigation; do not mask via fixture completion polling"
+      },
+      {
+        "scope": "Private-consultation return and aborted child",
+        "state": "Actual progress and teardown failures remain open"
+      },
+      {
+        "scope": "Session codec short-manager bad-confirmation control",
+        "state": "Cause unproved; next exact selector enables existing bounded codec DEBUG diagnostics. No fixture/deadline change."
+      }
+    ],
+    "latest_full_matrix_unchanged": {
+      "label": "v209",
+      "cells": {
+        "passed": 0,
+        "failed": 32,
+        "blocked": 0
+      },
+      "checks": {
+        "passed": 390,
+        "failed": 42,
+        "blocked": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432
+    },
+    "new_checks_run_for_this_documentation_update": false
+  },
+  "latest_verification_key": "verification_d2",
+  "top_level_history": "Top-level targets and source record verification-a unchanged; its followthrough/pending notes are historical as of that attempt. verification_b records the later completed attempt separately.",
+  "verification_c": {
+    "scope": "Completed local macOS arm64 focused verification-c; synthetic signed checks, not a full matrix run.",
+    "source_snapshot_sha256": "7ac5ef0242ca5ca39da598c772d41ccc2ac62bf0039d49ded04a0924c7e31a62",
+    "build": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "8",
+        "-p",
+        "connect-client",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-server",
+        "--lib",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--test",
+        "gate6_replacement_video",
+        "--test",
+        "gate6_canonical_runtime",
+        "--features",
+        "connect-server/test-support",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1809.2437691688538,
+      "log_sha256": "a4537b459edb9cbbebbfb904e9bc9d937435c21e823a6222afd846bdb3081616",
+      "naturally_joined": true
+    },
+    "targets": {
+      "connect_client": {
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/connect_client-results.json",
+        "receipt_sha256": "c62b5271c5ac6668093dfaa84360dcc9bc4c54544364c98970adf804374bd358",
+        "binary_sha256": "46a320956be9bb86780c303c86dba8e199246e1c2918d8fd2f2aa70b5af4038a",
+        "rows": [
+          {
+            "test": "canonical::public_audio::tests::accepted_subscription_waits_for_original_completed_media_result",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e2a5297e06a6b68593f4c7a7886adfb36f2657d5e9ba60e600ea6f0ed4d915b2",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical::public_audio::tests::pending_subscription_cannot_switch_original_record_or_intent",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "80e5830f17480596092145f37b0a99bdedc962570e361bf178f582af7a40dd82",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical::public_audio::tests::public_audio_signed_preparing_get_completed_waits_for_final_ack_before_new_handle",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "06966c7214ce256497a7cf2a67df393c962ece0e627ced651750deb449684070",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical::public_audio::tests::public_audio_signed_preparing_reads_keep_original_deadline_and_close_without_publishing",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ba13882f061cfda591eeef41915c6a215740dceb6a3d63b5da48302cf157260d",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical::public_audio::tests::subscription_terminal_failure_or_foreign_media_never_completes",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "25a646a6ee7d42bc691be356ca4574ca9134c17ccffc2a557c39037cd469c1df",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "connect_store": {
+        "summary": {
+          "selected": 51,
+          "completed": 51,
+          "passed": 44,
+          "failed": 7
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/connect_store-results.json",
+        "receipt_sha256": "3a757d75ef74708c17fecc0972a24139a3babbc57bfbcedb5172836044e3d82a",
+        "binary_sha256": "c833bbb7bbe4a5a97af8004a3f5d40b18be3c406f9a7cc910ab9190c172cc08a",
+        "rows": [
+          {
+            "test": "connection_control::tests::replacement_sources::custody::endpoint_reservation_refuses_contended_sql_but_accepts_current_readers",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "b1191b0620172a3177e51dbac7bdc34e1c8eb2b87ca01f4ea0bee14aae335dd0",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_backup_digest_covers_reservation_and_step_state",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "0162f56ca4c04ae57d6c27f14162e072900d56a37164146ac29dcaaa02ff76ee",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_captured_local_stop_is_idempotent_after_cancel_or_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3936c91fa48f676fb4a82a73e486d71bffe42d43c79a6ca1320e18a3d6e5c84b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_local_stop_cannot_assert_cleanup_after_target_allocation_started",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "71888dc78a585a05c147df39619541fcfed83736d5842dc3d3294910fc90c842",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preflight_refusal_is_exact_and_cannot_close_a_reserved_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b3c3685890acd03299fc68ccdf7ce3baf0b2a8af758bc6f01266a515c24cd1af",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preflight_retry_refuses_cancelled_or_revoked_original_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e5f0df38593cbb2c3ba14c66aa1fb55d45ca837846d52177bf4c0dbe1d8f5a2b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preflight_retry_requires_the_exact_unreserved_original_and_is_read_only",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "20e0c24407996410dcab4e740a1b5d0279aa644dfdceaa92ca057caf0ead51b1",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_begins_once_and_unknown_never_authorizes_another_attempt",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "4d9d996f00872e9d7890b767cca692ae55d6e8a4474e101094a6d17267f56ee7",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_cancel_before_begin_preserves_original_and_tombstones_candidate",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "1320ee128407434f05030445745c0eb2c7eedd36a56836dc1494c971da2e6ff7",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_captured_fact_survives_cancel_and_revoke_without_media_or_role_claim",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "52250a9a0eb096096d4544067ac7277036f733e53145dc87698522cb5d9fbf04",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_current_policy_loss_prevents_begin_and_capture_is_not_execution",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "2b11b780a27c0e15572209b8fc5f6aa87289151b64ab35574530c16788d6acfc",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_refuses_forged_ticket_fields_and_ready_claims",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c6fd7538f8ee21bd65eaf0c366ef33e9768c0fcb793136d5de70f8180da83033",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_reservation_is_exact_idempotent_and_does_not_allocate_or_claim_readiness",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "8720295ff5f3f7a7eff729d30c67e6f777841d684ed40ef9db02e05ba9e819b1",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_reserved_candidate_refuses_ordinary_native_preparation_before_and_after_cancel",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ddd78b088d7011547679cf932fb1085b7d966a266a2b5bd4b7afb28b900041d4",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_restart_fences_unstarted_started_and_captured_preparation_without_reexecution",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "6df7448168acd16a0f359af7820dad006cd8328fd3761ed1a1175f278af9154a",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_telephone_reservation_requires_explicit_valid_configured_digits_without_dialing",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ff1da11fdb598c91415f1185246e72f12f4fd11ec78cc92c3b61a64fa5a788f9",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reservation_metadata_respects_a_real_queued_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b563029e5b7327db40996e353dadca07f8bf8dd2329f9f897b561ebdb9a73821",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reservation_writer_drains_original_packet_reads_and_does_not_pin_later_media",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7e22ebb5eb4aeae5be3fac5706a8c096fcc94e0465c7e43595f2c109d303620a",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reserved_preparation_begin_refusal_keeps_same_lease_effect_and_original_cutoff",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3d9ad57ef827a27de6dc6b7e3553f52966ef2844e454873296ad3e07896df443",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_ends_when_the_same_movement_commit_starts",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "48b7b3405e5c0dcd36a7db2d7caa307eca94d651c3c051d28514bae1183177ec",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_observes_current_authority_and_original_root",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "1240d6f526437ad856a043b89b8344671a07d859d26996574f7cec4ddc6c3be2",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_requires_activation_but_not_decoded_ready",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "059c2cce7fa5e28180ec5ec8f6cac31367bf2f841df90f4ba76a9aa412bd98ab",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_begin_returns_exact_start_origin_without_an_authority_or_sql_alias",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3fa809101c1ec91f953450c1311843c8862d6e0738ee407596e64cb3dffd1b8f",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_full_scene_read_uses_one_complete_interval_for_target_and_existing_routes",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d423817ed5f7c3c9ddaa7572941ddd1c8dc31721805596e389dd339973de10ba",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_media_origin_busy_reread_preserves_started_capture_and_refuses_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a63870da55134632f390f9ea27d9d2cb57fa431b2cf4ba35cc072d6edd63043b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_private_media_phases_are_ordered_once_only_and_capture_without_projection",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "07c7065ad1e0ab49b2bcbda7b943d103132c69207961f96e861512b1a1614281",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_start_has_separate_once_only_effect_and_fresh_provisional_generation_two_reads",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "0df2750fa3d597a348ff2e5b8d48e8f6e377ca4977566574406d4b04bbba7c67",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_start_refuses_changed_parameters_and_unknown_never_repeats",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "5e1db614c9c2e5ab36b05ffac4166982967380bea93e3546238e18a0caf7526f",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_start_rejects_ready_assertion_and_cleanup_after_a_possible_commit",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "b698b55b58cd7a4eb9e1b5ef743824aa1074460029181838429565edabeee9cb",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::signed_start_capture_and_replay_do_not_park_writer_on_primary_sql",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e56a9d08b4a1915481a9e94fc7c8c60423a1275d403d3313a339b31a1238dc98",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::uncertain_native_resource_start_needs_exact_local_retirement_and_cannot_settle_commit",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "13a71c92a1b1be0776f21fdafeff0f73de7d23efa089bf2a83e568a80b43b5ca",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::uncertain_private_attach_does_not_reexecute_and_exact_native_retirement_settles_only_local_resources",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "cdb18c4a2febee9cd930f918828dfdb0618d9d9373a5a3eba600dbc49b3b4d54",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_begins_once_under_independent_target_and_original_grants_without_io",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "81af084aa0b162a0cdf140f65e14c355a6bc9c73f44f790e38bee15755e7d645",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_cannot_upgrade_a_binding_only_fence_or_borrow_revoked_source",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b57ecd9436358d3fbad2801f41f4f54a02451b7fa9caab0a128ff0f1d1466e37",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_planning_contention_has_no_effect_and_begin_remains_once_only",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "db37e9642376475852e226cc8f96f2e222c2cc4feca641699158fd1811b1fd01",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_rejects_forged_target_binding_and_does_not_start_an_effect",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "580dfc17439762cc2627a894322aeb1c29338406bfbf836919580c14952981e3",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_unknown_cannot_reexecute_or_borrow_preparation_cleanup",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "94ad17f7b711da71769f4b630de411148c869a5ba0df0199e118b2ffaba04210",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_av_data_target_preserves_resources_under_the_suspended_original_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "59494139a40e1a293a08266fa5e96eb5c3a51fbacab1cece91b58dbacebbf3fb",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_av_target_preserves_video_resources_without_asserting_media_readiness",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c17c110977a1cec5bc0977e102f6931dd4c8c06817c5d33c49ed16a03a658881",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_mutation_owner_drop_restores_independent_established_packet_reads",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7a6e7d2528ac2487a7635d4c8e795a3c8a0d8e31144ce46e3028273e16224611",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_target_rejects_non_duplex_audio_unsupported_media_and_unprovisioned_video_without_effects",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a3d644744b29d9248b59c4f17de3fe43bc1be02468db80a9ae795078baa508e6",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::signed_allocation_capture_and_replay_do_not_park_writer_on_primary_sql",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c752168718cabbe8b2602d61180af095177d713ef2423b94b8fc0b04879afc3e",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::signed_allocation_capture_does_not_wait_for_another_sqlite_writer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ab11256682386f1e816682e789bfc7bfedfa57e22fd2680055b6a6019e297eb4",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_claim_crash_recovery_settles_only_original_absence_and_never_prepares_a_ticket",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3ce8820645f90e8c81b6ab4eececfcd58c3bcea1a6e1667dfbbe447ecdd0ff65",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_cancel_finishes_only_after_known_original_cleanup_without_a_ticket",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "78e2e49e06d6678c35f10da44d5d40bc8db7231d4b04b0a7eb9b783330a8667c",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_sql_contention_preserves_original_attempt_and_allows_metadata_only_retry",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ecd2ca06c3b2b97477b3ba7aedad6da63819ff5125d372db050e6a0a65622aa5",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_uncertainty_cannot_accept_operator_asserted_replacement_completion",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e2262e90670cf4303ab5d7f667a55753c9e6fe6c44db48e04a8db6b609a5a4a9",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b1156da396c4791db1eb5da583fe67f9b3a24cd07d4542c839437f705a9bbc1b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::known_candidate_retirement_metadata_survives_revocation_without_granting_fresh_preparation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b54b373adbb2902b73c6e257e3be72fcd5af0ea382895324198e0ebf2687200e",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::ordinary_ready_binding_cannot_be_claimed_as_private_replacement_preparation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e3657bde1d6a7b85e62680f54a41428299e8e370e54839b8c282f1fd6004c76d",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::pending_candidate_claim_preserves_original_receipt_and_requires_attributed_retirement_before_fresh_ticket",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "868e453687088e6317f94074a06d2d2975875a39e294f0a165c0540f144ba833",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "connect_service": {
+        "summary": {
+          "selected": 37,
+          "completed": 37,
+          "passed": 37,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/connect_service-results.json",
+        "receipt_sha256": "e12b97a904034486b9f561b530ca0bff4ab1d5780dc21e613c48901f4484a978",
+        "binary_sha256": "a7fcba610f56fca8820059e23120f067f2a07094dc475879b5189a87be333cda",
+        "rows": [
+          {
+            "test": "canonical_media::packets::tests::publication_pair_retains_both_until_io_drop_in_original_order",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a50a82be639ea5e8358617bb5a870d2dce4368af5e64ebd3bfaa360d0b18bc75",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::packets::tests::publication_pair_refusal_releases_target_and_never_admits_later_source",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "aa057da7bdb811654d7c517fcd7fd1b88496a7a1c014872e531662d84b491e45",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::route_source_key_requires_exact_owner_generation_and_credential_epoch",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "eae56699bccb2e407e24a0d4753ae46d55b6341cbe9687449f310b1996617862",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::dead_route_source_cannot_be_resurrected_by_equal_runtime_metadata",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "03dcc0ab8f249dffcf180f3f08c04133f18eb1cffe8d7b7168ee03fb72b39db5",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::packets::tests::packet_trace_clock_only_observes_existing_elapsed_event_targets",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9815900d63bb805044e0c5f14b73f87f31111d65e4d29adb66e299398b3034c3",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::native_packet_registry_writers_do_not_block_or_lend_missing_source_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "92a75604e6e8dfe13e819d2fd800960c16fd92309824daa7c34ab2f74ce58d19",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::native_packet_poisoned_registry_is_authority_failure_rather_than_retry",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "165a9a831884b317c0f0a8a87bd41ad0a9c11b5b0c9f8850f40cf1b66cc64f98",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::queued_receive_registry_contention_returns_to_the_async_packet_owner",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "5a5dec38a87437100f04c3d2581e4d14c5c333d7f384ee6b2a1543bd9bae3ae7",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::queued_source_registry_contention_returns_to_the_original_packet_owner",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2213b6e215cb5307bce794bcf389aac82a74b649006669b59e4bf4fe4583f534",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::original_ingress_reads_published_absence_while_all_writers_are_excluded",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ab2bac8b8c73a66d6218bb1cc37b99c40a16984adaa12c5fd49c3bc8d69cb5c5",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::packets::tests::publication_metadata_busy_uses_only_nonoriginal_media_retry_contract",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "8889bf9fe7d965d65806a788492b242f15c855c52065144b3102011a9daf8224",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::packets::tests::publication_retry_mapping_preserves_every_other_refusal_and_payload",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ca29d80583ad0bcac2e07c296a38f03957db42ff26301e58d3a9f853a67efc54",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::continuation_phase_key_never_borrows_ordinary_or_another_activation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3b0ed4ca7e162aa2940f2723c7034d327d87fed95cf0aa35a3ad764d58abbff0",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::eager_enrollment_defers_only_effect_free_authority_busy",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7b9b77b416b591fd22e1b49b43ef85b1ab7efc30fc762e1701eed8299c8cdb49",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::published::tests::readers_use_complete_published_map_while_writer_prepares_next_state",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "71ec1f5f01899263bedb6a9af16f09225d48753675e8cc7544ac1c551ee4addb",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::published::tests::writer_poison_never_publishes_partial_state_or_serves_old_metadata",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "47f1c9795d8ea4911311b22d3a474f6c3fece9047461caeca906740d2f734362",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::lifetime::tests::replaced_selected_lifetime_refusal_is_retryable_and_next_successor_is_observed",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e313916c4aa24e927cf8001b74c51beaf5c44bdac61b413b05c52c9f883c616a",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::lifetime::tests::unchanged_selected_lifetime_preserves_definitive_and_binding_refusals",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "596b6a05d49b700a57990f4bd5460390f209d50a923e7b7660ce71a75dbce079",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::roles::generation_tests::role_generation_racing_completion_remains_pending_without_renewed_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b2b3248a86dfdbdc42288cd573eb98624842cd2f614e1e6e0fb5356bbbbecaa3",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::roles::generation_tests::role_generation_retries_busy_and_skips_only_successfully_reconciled_state",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "4ecdf65eeedb9d13b0a2beaa01e037e4852984433b078fa5e99bd0817e8d40b9",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::cancelled_native_control_retains_running_sql_poll_through_drain",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "acfa1ca11ea361af89162a44676bee896cedfdd55a82d8358fcc37cba535c182",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::cancelled_original_store_waiter_retains_and_joins_actual_write_acquisition",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ebdd544206f249a276fdf71f97ef054abedf9b407345b0e18e61eab6a4fc21a8",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::native_control_poll_panic_remains_a_failed_drain",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c29e311ce14ef44afc1f8cb5154f2e1172c88fd3a930714de1b1833d8f474889",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::native_control_preserves_wakeups_deadline_and_nested_blocking_progress",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2b153844e63a6c187889982877bc5decb0025197bf5a9b4742d72cff5740da61",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::native_control_sql_wait_preserves_executor_progress_and_original_join",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "61eb1c81e304b77477a48582d1bad49b88aa206d2cb72cde2a4e3469675a21dd",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::original_store_call_keeps_typed_writer_until_caller_releases_it",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c193061e49dc9f8ab822c9fd68fe1ec0d23c6aac1e775717a340543afc1dc915",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::periodic_custodian_joins_completed_controls_without_new_submission_or_cancelling_pending",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e2e00dbd17430d249a22beb9087067c50ba913d7457df83bd00c4ae71e599db5",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_streams::outcome_recording_tests::temporary_recording_failures_keep_one_original_capture_until_success",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f97fceb9a68b5f9e12c5bcde0f8bb04c7226bb312ca67a1d2f9971a4e7ff3977",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_streams::outcome_recording_tests::permanent_recording_conflict_does_not_keep_an_idle_worker",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7957d8454d3405dc1fb9d3ed0403cd0177f057fb337901b0714d6b1c5f0e3e7b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_streams::outcome_recording_tests::runtime_stop_during_temporary_recording_does_not_start_another_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ed03eac27c8f1656009719314743bf695302faa4cc0d22d65052e4b94e6bfe2b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_consultation_return::return_recording_tests::original_return_capture_stays_owned_through_temporary_recording_pressure",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3e578af2d2f76e628269ad578d083ac1de79c82a9c4dff56ce5875baf2aefaf1",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_consultation_return::return_recording_tests::return_recording_stops_on_runtime_stop_or_permanent_refusal",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "31d52861befa81831180eaa1d435c1ed6ee894a40c0bb75f7fc53371f5cb324a",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::tests::a_reserved_or_effectful_original_never_repeats_preparation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "dc3ca14c5853399de82193c6a1505076661a9972d79f1e6a4f5f3f98b8d98a94",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::tests::busy_phase_reads_do_not_repeat_preparation_until_original_is_known_unstarted",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "4eb645d5097636f68262d6c22947f71e839e6436e08947d3a8db2b7521176b96",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::tests::current_refusal_propagates_and_shutdown_stops_unreadable_phase_without_replay",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "77521e96ece6f86a2240e20aaec639fcaedf225f44d85de9a25779eb1927cfd2",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::reserved_tests::original_reserved_begin_retries_without_recreating_reservation_or_holding_iteration_guards",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a06d80d6de6288660dafb856e6c794ca1b746ff56f50fdfb8bc0b9a4c508dc42",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::reserved_tests::reserved_begin_preserves_permanent_refusal_and_stops_at_original_cutoff_or_cancel",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "231d807ae684990867094fc31b2a941c56d2bc0f904eb99833fd44f4d45106eb",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "connect_server": {
+        "summary": {
+          "selected": 4,
+          "completed": 4,
+          "passed": 4,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/connect_server-results.json",
+        "receipt_sha256": "2f3bc0cb3e61f7c4d6c087934cccd96e4f872caebb7a79bea627e6c82ae59b86",
+        "binary_sha256": "c48ce1aa9a2fb010345c7c591fe59f1d075ae9d1402126bb01f361912436bba8",
+        "rows": [
+          {
+            "test": "canonical_provider_voice::outcome_recording_tests::provider_capture_stops_on_original_host_shutdown_or_permanent_error",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d80e281a6c07e79fec6163881771c44c810388a7e583dacfac898fc6892a2310",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_provider_voice::outcome_recording_tests::provider_capture_survives_temporary_metadata_pressure_without_new_io",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c7a4ecb6fb295cd8b7d5971fe10dacb7c09d534f89eaed4b7ce9144a47081077",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "private_vapi::record_tests::historical_record_permanent_refusal_and_stop_do_not_restart_original_capture",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "fdbb364c41bbd70dad4f7b2fe52879209d5407ada1424404e5c3751fc89540a9",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "private_vapi::record_tests::historical_record_retries_capacity_busy_and_storage_with_same_original_capture",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "65dcb13f1093a43f72cbb27d66334805e0b06ce60671d46c0ff0666d173e8946",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "gate6_replacement_video": {
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 1,
+          "failed": 1
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/gate6_replacement_video-results.json",
+        "receipt_sha256": "c7afbd50710bc019a91afa405d7d80eb88f16fa7e392152def4e2412eb4d1105",
+        "binary_sha256": "091fb4cec331dcdb7275402142514feee11efe766eef09e9a545197dfa0eadf7",
+        "rows": [
+          {
+            "test": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_dispatch_uses_exact_held_target_under_registry_contention",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "9c0a7dd9ae71610207c25a9bd4c3524278f4700d30f2dc8f83c77dca48835e57",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "sdk_handles::replacement_video_recovery::signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "28614aab49d0b7e5d890b5ccd764da0c94a8a52a11f7a27ac3b723bb3a273fea",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "gate6_canonical_webtransport": {
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/gate6_canonical_webtransport-results.json",
+        "receipt_sha256": "491f53178f8b19fc84934fd2e8fc3e786ccd84f72d4b4d470a626d19fb6f7238",
+        "binary_sha256": "ef7c833e8ad7e988fbacad81c00c1a5f897d044c6f6db224dfa8d39892b5196a",
+        "rows": [
+          {
+            "test": "canonical_websocket_control::webrtc::signed_wss_quarantined_sdp_answer_progresses_under_real_domain_writer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "0210a88130655063fcb61ce2b0852e32104cd25f5261f628b01319c15a2f11e2",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_retirement",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "bae08a2c874bae9fc140f58a1b3e6c50f24614491d943bdb739816cfb2228897",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::admission::current_withdrawal_after_rtc_media_admission_retires_only_that_route",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a81449f141d16c2c09533e934d7546b342152fcbf79eaf3073f3c567e1635612",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_eddsa",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2d857a8924e1075967aef7bfc4a15420b16bfd339283a39afc0615e20287b255",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_es256",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "33a5f98cc0bed3aeecabdf0bfd22df39f675f8076b3da3cba0eaaffb9c7bf9c2",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "gate6_canonical_runtime": {
+        "summary": {
+          "selected": 16,
+          "completed": 16,
+          "passed": 9,
+          "failed": 7
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/gate6_canonical_runtime-results.json",
+        "receipt_sha256": "bca67a897b178f4ac12a19a0d9a07fcc2b2423d183cfd6fbfc1dbbd81cd9c433",
+        "binary_sha256": "4d04705b19bc1b5e861aa17ce9cf741cdc8990d0a42b0d8df5edfd1635d0dc5c",
+        "rows": [
+          {
+            "test": "canonical_native_connections::data::production_native_data_routes_original_messages_and_records_local_writes_without_republishing_replay",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d2a1b19fbd7a1372806d9e7fd8f4c3ff3c4cd185c0b976ed58ad201dac9a597e",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::data::production_native_data_preflight_and_pending_replay_cannot_borrow_another_physical_peer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e9879ba96d87419ce7edce7283c28c8fe96e3a24f78f9dcfbab803e4550a2e65",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::data::production_native_data_writer_storage_recovery_preserves_audio_and_other_connections",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "0caf4fd4ab39418876ea684f5ee61acad63740bb972e28be6ade4766cd4c0338",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9ebe520dbf659430f6d2fe895a79f6f3ba65558e6f691009d8532cfd3ead511f",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2d272fc3402a699cb563439a64efa0ed94b6366d56309df1b9e123df96a9fc50",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_writer_fact_storage_failure_recovers_without_another_delivery",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "758c57c8761a0ab7ecc627c4592f47df53128c178b7d48d8bb1e7ed33ae71624",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_partial_credit_write_records_unknown_without_replay_and_releases_control",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "33ba769c7c34a434fe2d1ff127d81619d8cd81036ce26d9ea75585abd003617b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_movement_actual_pcmu_commits_once_survives_old_authority_and_retires_on_route_loss",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "a09dee2de14012e8fe4fa844052fdbf09b54e2b074734496f1d74f55e3a67a24",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_replacement_public_cancel_stops_one_call_preserves_original_and_replays_without_redial",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "ec7fd7e05859a642ecc0616762796a86d34032352a562f1e7b4460549090538c",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_replacement_no_answer_deadline_stops_one_call_without_changing_original_route",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "4319c4173e678b7946911f0f74d2ab8ff41b18a0aa80ff72316a8cc2a3d22b5d",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+            "exit_code": -6,
+            "passed": 0,
+            "failed": 0,
+            "log_sha256": "1ca0f1ecd8944b188021d9728d18e2f5524b7f7cd7adc1f49f8471b6d5911d0c",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::consultation::production_private_ai_automatic_creation_record_outage_retries_observation_and_closes_after_cancel_without_export",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "5a0c66e3cef6279a2c5270fe81cfb412b046ea383e83afc22cbd2fddd7e40a54",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::consultation::production_private_ai_automatic_provider_close_record_outage_retries_observation_without_another_end",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "dde39d7d39984defab20db3691ae75a42b9309c734b6adfda155230a3a82b32a",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::session_codecs::production_session_codec_bad_confirmation_retains_partial_unknown_and_never_resubmits",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "478c0a1720404e29a53c4dc7175ace1b1f70180dd64de1896dbeb1358574a550",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::session_codecs::production_session_codec_captured_success_retries_storage_without_another_offer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9f0c2fbedb692b070190316a33c05d9065ed0c684b0d46427eb41490b8db880b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::session_codecs::production_session_codec_preferences_select_current_policy_switch_live_peers_preserve_fallback_routes_and_replay",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "967c587cedf642ee153ed6cc7882f80f7e045d8a86a168b96abb36d51351c436",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      }
+    },
+    "signed_summary": {
+      "passed": 15,
+      "failed": 8,
+      "selected": 23
+    },
+    "remaining_failures": [
+      "Native allocation storage-unavailable before media startup; exact substage not yet captured.",
+      "Data end helper expected immediate Completed instead of observing original operation.",
+      "Three telephone preparation checks refused before IO.",
+      "Public AI caller stack overflow at production context worker spawn; disassembly identifies large by-value future stack frames.",
+      "Provider close fault check failed earlier during initialization with authority-busy; return stage not reached.",
+      "Bad codec confirmation check timed out before first offer after repeated admission deferral."
+    ],
+    "qualification": "All selected commands joined. One child aborted with stack overflow; counted as failed. Six Store fixture gaps and one real unnecessarily broad Identity writer remain in C; reviewed D changes are integrated but not verified."
+  },
+  "verification_d2": {
+    "scope": "Completed frozen D2 coherent build, selected local macOS ARM units and signed production controls; no new full matrix.",
+    "source_snapshot": ".local/gate-6/v212-final-cleanup-verification-d2/source.json",
+    "source_snapshot_sha256": "56a7cfb40a8f6656c30b8e2f371a63bb25199ddc2e154b3512cf5c79a3216112",
+    "source_file_count": 1551,
+    "build": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "8",
+        "-p",
+        "connect-client",
+        "-p",
+        "connect-store",
+        "-p",
+        "connect-service",
+        "-p",
+        "connect-server",
+        "--lib",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--test",
+        "gate6_replacement_video",
+        "--test",
+        "gate6_canonical_runtime",
+        "--features",
+        "connect-server/test-support",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 323.66662096977234,
+      "log_sha256": "2b079c6e377f04a20b0bc95e2c3e38eacdd6dfbef435676dd5060a524d901732",
+      "naturally_joined": true,
+      "receipt": ".local/gate-6/v212-final-cleanup-verification-d2/build-result.json",
+      "receipt_sha256": "5e76e57de7582b4d2e0d240ec2067dcd33b94e615faf15b9a2f872c05e845c9e"
+    },
+    "units": {
+      "connect_store": {
+        "summary": {
+          "selected": 71,
+          "completed": 71,
+          "passed": 70,
+          "failed": 1
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-d2/connect_store-results.json",
+        "receipt_sha256": "9c8f91cde7dabba97456d165047246d96017cea03871507eb96e91a029bc949d",
+        "binary_sha256": "576fee0d3b66c387bc548ea20d1abce3e7f514a97b0df05fd787d691d737c52e",
+        "rows": [
+          {
+            "test": "connection_control::tests::replacement_sources::custody::endpoint_reservation_refuses_contended_sql_but_accepts_current_readers",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "4f25304c0e31915117b3e992926745a5107074a5577154b7543e43ce773a6eb0",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_backup_digest_covers_reservation_and_step_state",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "5fecb8375a7ef3a8ff290b0cd555023da1f6b8f5b5815576721f0bb53e2555b6",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_captured_local_stop_is_idempotent_after_cancel_or_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "05abe50420106ca20d543a41a96436ab7efaff1fd85c0fba13e15cff9ca8bea9",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_local_stop_cannot_assert_cleanup_after_target_allocation_started",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ef78d88d290c40148d20b75ed0cf6390fde3dbd68f68d8c5e7f92fc51c47d19c",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preflight_refusal_is_exact_and_cannot_close_a_reserved_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "8252269983d804e5773916d893873a064adeecb8d86ccf9c0008f4b661a637b4",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preflight_retry_refuses_cancelled_or_revoked_original_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "14b9ca623d647f75b982107075a1ba4a9b5e5367ca272ec07375106610912475",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preflight_retry_requires_the_exact_unreserved_original_and_is_read_only",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "4dbed6e2e00dd42c8267ac113f0750a54b3e8a9329b3f5e2279ed67df3f9889c",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_begins_once_and_unknown_never_authorizes_another_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9fe24b0f72437e981ed977410e8772954ad81104330b0e3ae7494c2ea156c3c5",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_cancel_before_begin_preserves_original_and_tombstones_candidate",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b6bc072289b7ed8768cee63ec50a4d276d943e13f48e8bcfb846430b26b71742",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_captured_fact_survives_cancel_and_revoke_without_media_or_role_claim",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d4bb5fe4870ac63ff831f12d3ccbab37da858da3ad3afdc9232aae4edec49bde",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_current_policy_loss_prevents_begin_and_capture_is_not_execution",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "bddd9238665b3e71e43e4f9b09b075f9706a2d51d1a0c61d5743683b673cad61",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_preparation_refuses_forged_ticket_fields_and_ready_claims",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "621a20cf43c3cf9e318ee8be709829d3434ee8c2fb22e669eb507d1e3e22be0b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_reservation_is_exact_idempotent_and_does_not_allocate_or_claim_readiness",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "fb67b58caa202cf3396cb2a3a43f1a11c101e1172ff5fcaef0068677611d1a44",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_reserved_candidate_refuses_ordinary_native_preparation_before_and_after_cancel",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d54550dd6fb84365b27f33bef7f27c4addda2e3ece4586bd2a577f6cd811b033",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_restart_fences_unstarted_started_and_captured_preparation_without_reexecution",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7a19c22414e33be16f86c91834ea7a4752eaaa1f8d20bf6b259fce2616932271",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::replacement_telephone_reservation_requires_explicit_valid_configured_digits_without_dialing",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "78f00588000187f465f3cd4f81c7e46d26358b6022e3ef9adc73348847345d14",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reservation_metadata_respects_a_real_queued_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "277f91235fcd79d14725c1bf565698f6ddad04991a971ef971405070cd825de1",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reservation_mixed_scope_retains_identity_policy_fences_and_rechecks_current_selection",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "52216fd0bf96452b4153eb61ce7f19afdaed02117b306840b1a813cb6d3a5d3b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reservation_mixed_scope_still_excludes_same_conversation_readers",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ff3f9a5001090a6c5b814f5a072f4dde5411eded14c08d0e299469a07fe48d50",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reservation_writer_drains_original_packet_reads_and_does_not_pin_later_media",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "837f9e95ddc1f9196e3cf0675036f0723d895873e621f753b6e2c4cc85bb23bd",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::custody::reserved_preparation_begin_refusal_keeps_same_lease_effect_and_original_cutoff",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "0675b1c41f90f40aeacc334623ea1fe704bc7b77473875f2d626dc7cda46a943",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::mixed_authority::replacement_start_keeps_identity_readers_and_records_with_exact_conversation_writer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7de0d4b61de3654aa3c5dd00f0b7eaf4a40d57be24ae633293d17d7200fb19e7",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::mixed_authority::replacement_start_rechecks_current_credential_and_original_root_binding",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "607f8dc2006ea937227f982155ddf089604d73766c1c73e6ac592530acceabd6",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::mixed_authority::replacement_start_same_conversation_reader_blocks_without_an_attempt_then_original_succeeds",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f6d564c36dc58093e10fdc818e84b2a390d8219c8b2510fb5b30fc1280a5694d",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_ends_when_the_same_movement_commit_starts",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "365e5bdb634f8cb3169289c47f3c64f33f1e1696e42e51761673e46fade57354",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_observes_current_authority_and_original_root",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "06ff2ae0f4d004b8ab23fbede7f43e0037a072e38b0d4c1da3a04f840e5149dc",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::receiver_epoch::private_receiver_epoch_eligibility_requires_activation_but_not_decoded_ready",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b26fa70c68530c095817dd8c5482821a49907eb18282d306b86aac7ec8ab2f8d",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_begin_returns_exact_start_origin_without_an_authority_or_sql_alias",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "db19c71b1b13e04881ef99670bd0ee5d179cd662d5de2a71b3235bf353dd3c64",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_full_scene_read_uses_one_complete_interval_for_target_and_existing_routes",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "316fb71d9d711c7ea1ab72a9992914bcb154a395fabc9faa6533a52f534c2b28",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_media_origin_busy_reread_preserves_started_capture_and_refuses_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b79dd3bdbf01f8bb69c479f4974ea6dad3e6b0f5f415a792b638107a2f41b0f9",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_private_media_phases_are_ordered_once_only_and_capture_without_projection",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ecf4d2ca7e9fd40aa1fa0b472101dc57cbd0197dcd4460e7b06f275aa93032fa",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_start_has_separate_once_only_effect_and_fresh_provisional_generation_two_reads",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "501f007c80821dd2fb480ca51a9c60bf55ff7e07ab8201e0c632983bd4ba4d34",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_start_refuses_changed_parameters_and_unknown_never_repeats",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "8c8c96d6115689653e0b38c9df0b5236e0c540951c4e63cebcc379a1a868bb1f",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::replacement_start_rejects_ready_assertion_and_cleanup_after_a_possible_commit",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "5dc7704425a50ead808f7153f63db9d15264bb7617f3a215f4b1f0110522f973",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::signed_start_capture_and_replay_do_not_park_writer_on_primary_sql",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "01f6ca445776e7b84847cf743162ae566d7cc5fab1348f93e445d88cff6f9d22",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::uncertain_native_resource_start_needs_exact_local_retirement_and_cannot_settle_commit",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f57cd1266673e3b834a0a6173bd7b75fef512faf20a8f834043e298eb091cbc4",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::start::uncertain_private_attach_does_not_reexecute_and_exact_native_retirement_settles_only_local_resources",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "45605ac4951dd9c325268048462789e2458ad7acdb6f391e2c37233780766398",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_begins_once_under_independent_target_and_original_grants_without_io",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "8c8b5c008ff5c1f84147b05d892ba2b6ba92355fdd1482bf64253aba6f6d8af1",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_cannot_upgrade_a_binding_only_fence_or_borrow_revoked_source",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "274b7290fef9d4143b405a84371e59469dac40631b7025b70d7d2c8b82a1607f",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_planning_contention_has_no_effect_and_begin_remains_once_only",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c23c71325ce4866028a67a7cb224844e9e35e1ae74c353a432d7f503e910b5dc",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_rejects_forged_target_binding_and_does_not_start_an_effect",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2405563ad3603a46c32d4136cafe029a2313c4b034aa71f41b11652a73dc59b6",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_allocation_unknown_cannot_reexecute_or_borrow_preparation_cleanup",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "de2e94acadd849e70bfd695c0ee342e8ea5cbab2673959b1a98d66d45f4d9e13",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_av_data_target_preserves_resources_under_the_suspended_original_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "60a2ee5f80a6fe7edd39b2093842d7c2f1094b5265622d5eda0adbf0a28ec905",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_av_target_preserves_video_resources_without_asserting_media_readiness",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d6b4843420299ae5b2e4b72218caefb24f9d3641fd76e62ef4a79348f8abf670",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_mutation_owner_drop_restores_independent_established_packet_reads",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "16753364f7885418f175096386374f5fa8eaf2a661fc798fafad2fca574ebac6",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::replacement_target_rejects_non_duplex_audio_unsupported_media_and_unprovisioned_video_without_effects",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "0f67f2c5ad37d8b0433de229c1c5db2474d71a698d4949208f03abfb2d988e79",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::signed_allocation_capture_and_replay_do_not_park_writer_on_primary_sql",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "392694209efb7f6b6b0e421eb1829c594784da4db3cdbef7a287f5b9bd2e2271",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::allocation::signed_allocation_capture_does_not_wait_for_another_sqlite_writer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "45bb11e5aae6580bcf1aa83ee8ab84514a3e361903793d5b7851ba049ab8e72b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_claim_crash_recovery_settles_only_original_absence_and_never_prepares_a_ticket",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ca6e9ccaca8b407937f9d35f19c19fd0870c655fb465dcc9b58fecdaf37daeb1",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_cancel_finishes_only_after_known_original_cleanup_without_a_ticket",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2184445bcdf37f484de40b1c4c046d16b8283a432ac5e922b1f4fe0b747c7283",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_sql_contention_preserves_original_attempt_and_allows_metadata_only_retry",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "6a05a373a1b782300b1e9d5d5387f457772948b7f0b778179f8e44c60832028d",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::candidate_retirement_uncertainty_cannot_accept_operator_asserted_replacement_completion",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c512f6a7e7b38fe5e4380b69b74cf491835b12ad21648801d53f4b058510b65c",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "02bcaeeeb32e5127f490014c768ff3c3f161f5505f7546ac2e33303197730fe3",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::known_candidate_retirement_metadata_survives_revocation_without_granting_fresh_preparation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "dc3ae73f8daa919d4b33c412f582601275a9ee21c70f3af1d9e578e463193d1b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::ordinary_ready_binding_cannot_be_claimed_as_private_replacement_preparation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b1fc3b73861d0ccf96bf7ad518d1108cf24d7971a12aa63c37744d52ca38d644",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::replacement_sources::candidate::pending_candidate_claim_preserves_original_receipt_and_requires_attributed_retirement_before_fresh_ticket",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "7b2942ace0ecaebe21d1d852adb75ca0f942f396d804e03aa4e3a579eab721ca",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::empty_codec_reconciliation_skips_external_writer_then_settles_later_batch_once",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a917b4af0b43274e3d114a1bb5f48d2584ca672c65227d4ce2d89db7dfc001c5",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_bounded_reconciliation_prioritizes_pending_work_over_older_unknown_batches",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "093eb2c89fd994dc80ff816b73127bc52b510156a3efc5ba38c54b2074831b0e",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_cancel_stops_queued_work_and_retains_submitted_uncertainty_until_capture",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f7e93e2846713ede2c60f9ce08e07af61f218a53d5e5464333084b33845223b0",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_no_effect_capture_retries_recording_without_another_native_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "65a418e504ff6710d3f5309c7a3988c23395831c001d3020d67ff659ed728cb5",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_restart_cannot_reconstruct_old_queued_or_submitted_native_attempts",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "6310bea2d5ef78078127fe932ece25a662390d4cbd20aff8e48fb9ea7e1e4707",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_captured_success_survives_recording_failure_and_uncertainty_without_another_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "df22de97d4a141215f52633d72c9ae19fa92fd0ba5cdd344b096c05db37b710a",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_consuming_reservation_refuses_live_reader_alias_without_creating_an_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "91389ad00b280fef6005ac646681e681940567fdb3cf60194d81670f7ba0524c",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_fresh_attempt_read_requires_exact_original_stream_and_selected_publisher_plan",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "63bddfd2f3bbee98977fd96853636ae37a47cb7f37fc42b7cfbd8b708809d138",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_latest_policy_supersedes_only_unstarted_work_and_replay_keeps_original_receipt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "de2479d550e2e2cc0e88345f9d9a5a24718eedfdb90c5056b1550faeeb282a27",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_no_change_is_recorded_without_advancing_the_native_revision",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2c4917d21b99ab5ec6b3ef294498e3067a76eefa9892240e2668e117822abde6",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_policy_and_targets_commit_once_with_separate_manager_and_peer_grants",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ca38127e8087189fc96ce0757ceccd95c756a5a60bf2a991e587feffa3a36b3e",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_postreservation_refusal_keeps_original_no_effect_custody_after_manager_revocation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ccf4a735ebba3264bcbe1f1a667e9a0cb22f34bdb2c149d905e190ac7f946ba1",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_read_requires_current_manager_and_independent_actual_peer_not_idle_job_metadata",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "12f054bc0ee1134fd9fd8fbedf57c76c500041c4238b427466889f531a5f83a1",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_reservation_keeps_identity_readers_but_requires_original_conversation_drain",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "18220eeec6d0c61980e198d09bab8d1b1d3bb73b04d963e9307eac88a7fd2b34",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_storage_failure_rolls_back_policy_targets_and_native_effect_together",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "36a63119c642e642cec21895ce8775bd26db8f100aa49ac3470b9efc60fdd12a",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "connect_service": {
+        "summary": {
+          "selected": 37,
+          "completed": 37,
+          "passed": 37,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-d2/connect_service-results.json",
+        "receipt_sha256": "922286ddb58a94eafd1349ea69915491f208f0f490ec253b6b141f227cb82858",
+        "binary_sha256": "cdeadf6a86696df08cca2c248f222812c5551e4eeaa221bbf7a958aa86c730c6",
+        "rows": [
+          {
+            "test": "canonical_media::packets::tests::publication_pair_retains_both_until_io_drop_in_original_order",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a50a82be639ea5e8358617bb5a870d2dce4368af5e64ebd3bfaa360d0b18bc75",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::packets::tests::publication_pair_refusal_releases_target_and_never_admits_later_source",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "1c5f5a3fd77005aa951e35e3403fccf31595b68647d478b11041b3e54ca8351e",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::route_source_key_requires_exact_owner_generation_and_credential_epoch",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "eae56699bccb2e407e24a0d4753ae46d55b6341cbe9687449f310b1996617862",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::dead_route_source_cannot_be_resurrected_by_equal_runtime_metadata",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "03dcc0ab8f249dffcf180f3f08c04133f18eb1cffe8d7b7168ee03fb72b39db5",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::packets::tests::packet_trace_clock_only_observes_existing_elapsed_event_targets",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9815900d63bb805044e0c5f14b73f87f31111d65e4d29adb66e299398b3034c3",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::native_packet_registry_writers_do_not_block_or_lend_missing_source_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "458b95cbd73f366f7ffeb7564093a82de97a763a226cae347e03de6294fa71d8",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::native_packet_poisoned_registry_is_authority_failure_rather_than_retry",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c907629fa58edc959fdacf1e2dac1ec39a55a7d87c25f49b5588ddb72f830f7e",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::queued_receive_registry_contention_returns_to_the_async_packet_owner",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a41ef3161a10842d463ca23755e2b4bb41149be4071d3499801275dd9850b117",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::queued_source_registry_contention_returns_to_the_original_packet_owner",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ca6f63cd8afce57196989ca37489477d9718a5f209aa6daba3755fa1c733d42b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::tests::original_ingress_reads_published_absence_while_all_writers_are_excluded",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "1f5e23aa9772cdfe49bc40d4b8b0a8487cf1a3aea1ac6e00024b35e0c56ae8ff",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::packets::tests::publication_metadata_busy_uses_only_nonoriginal_media_retry_contract",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "06111c30122d12999099f7216c5f84ae69d3381f631ba5e681bf610f1d937e3b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::packets::tests::publication_retry_mapping_preserves_every_other_refusal_and_payload",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f565910c872b174c2447ae12f26f4562149a30925d5515e1166acdc805b8b8e9",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::continuation_phase_key_never_borrows_ordinary_or_another_activation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ab70f093a9ba081adcd04ef37ff47f3f99c2417737f1a421bd39599df8b5de2b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::native_snapshots::tests::eager_enrollment_defers_only_effect_free_authority_busy",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "319d84bedc4cca8cfa12dc08c3c407ffc80ea9d752a3bb3edc439753fa86c1d2",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::published::tests::readers_use_complete_published_map_while_writer_prepares_next_state",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e3f8d9683dea7e2e7150192557a6b65931edd8018b90f791a35cfc9838709b6f",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::published::tests::writer_poison_never_publishes_partial_state_or_serves_old_metadata",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f7cbb58ef95816107910bcf0c333f1fcfd53d389f6cfa0949a11b5dbdd767989",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::lifetime::tests::replaced_selected_lifetime_refusal_is_retryable_and_next_successor_is_observed",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3e33272a9a0818702d19b239ae705fd10bb4d79b0ad9eb1851ce82bce0b5e601",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::lifetime::tests::unchanged_selected_lifetime_preserves_definitive_and_binding_refusals",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "bff81f75b814bb21133435f7bb9c24fab0a586610076e612cf7a6ee7b1f91485",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::roles::generation_tests::role_generation_racing_completion_remains_pending_without_renewed_authority",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b2b3248a86dfdbdc42288cd573eb98624842cd2f614e1e6e0fb5356bbbbecaa3",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_media::roles::generation_tests::role_generation_retries_busy_and_skips_only_successfully_reconciled_state",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "cefb272e7d40c088aa39f87c042b0b36f79055f361db5d2a38a58dbc124b30f0",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::cancelled_native_control_retains_running_sql_poll_through_drain",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9fac17843a50d4f77700f668dd2cbe60a9f3e4d269aefa702864141e4759e4e2",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::cancelled_original_store_waiter_retains_and_joins_actual_write_acquisition",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "35db379563e2140cb40ab11b30c75a11941ab007300292fc8a3ecd155cfec4c3",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::native_control_poll_panic_remains_a_failed_drain",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b288c1bb9396b1862d0071bfd2aaef9db0cd61a317d4857f5d40b6c5691a3cae",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::native_control_preserves_wakeups_deadline_and_nested_blocking_progress",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "3b396dfc5d1ef47ac024e88808e22729a5c7703b64335abdf2ce01e189267abe",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::native_control_sql_wait_preserves_executor_progress_and_original_join",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c948af9e8903c6e730968a90cdfcfce7b9308f3438c0ed505fbb232d3661f587",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::original_store_call_keeps_typed_writer_until_caller_releases_it",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "c193061e49dc9f8ab822c9fd68fe1ec0d23c6aac1e775717a340543afc1dc915",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_runtime::control_work::tests::periodic_custodian_joins_completed_controls_without_new_submission_or_cancelling_pending",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "58b43a117e9a6ca336aa07e65e0599c0d9d6bc46380774400e852a3fb05a8bad",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_streams::outcome_recording_tests::temporary_recording_failures_keep_one_original_capture_until_success",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "f97fceb9a68b5f9e12c5bcde0f8bb04c7226bb312ca67a1d2f9971a4e7ff3977",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_streams::outcome_recording_tests::permanent_recording_conflict_does_not_keep_an_idle_worker",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "aa49580f4f84b54a9cf069c13d24e4ee696633b5d332bf5f2e03a6b96072a5b5",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_streams::outcome_recording_tests::runtime_stop_during_temporary_recording_does_not_start_another_attempt",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a8d80f839a2f0c82c46201400d3cea5fc34c32389f854a63987aa29b5037d087",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_consultation_return::return_recording_tests::original_return_capture_stays_owned_through_temporary_recording_pressure",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "00183e6989cb02806b344f34a5a478476a142bceb27388ac7b4cd97e855a63bc",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_consultation_return::return_recording_tests::return_recording_stops_on_runtime_stop_or_permanent_refusal",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "db3a954567d8fc9a36eb48108ea97810616f2620a9389b867105159228276404",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::tests::a_reserved_or_effectful_original_never_repeats_preparation",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2d2455ba7cfbe251eb40aac6ed6782096f3d017d65cefd27ee6391d98db9940b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::tests::busy_phase_reads_do_not_repeat_preparation_until_original_is_known_unstarted",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "4eb645d5097636f68262d6c22947f71e839e6436e08947d3a8db2b7521176b96",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::tests::current_refusal_propagates_and_shutdown_stops_unreadable_phase_without_replay",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "77521e96ece6f86a2240e20aaec639fcaedf225f44d85de9a25779eb1927cfd2",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::reserved_tests::original_reserved_begin_retries_without_recreating_reservation_or_holding_iteration_guards",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "a06d80d6de6288660dafb856e6c794ca1b746ff56f50fdfb8bc0b9a4c508dc42",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_replacement::preflight::reserved_tests::reserved_begin_preserves_permanent_refusal_and_stops_at_original_cutoff_or_cancel",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "231d807ae684990867094fc31b2a941c56d2bc0f904eb99833fd44f4d45106eb",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "connect_server": {
+        "summary": {
+          "selected": 6,
+          "completed": 6,
+          "passed": 6,
+          "failed": 0
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-d2/connect_server-results.json",
+        "receipt_sha256": "607bfbbf2b484c1cbcac21c35a1a97b231d07da6c68d1aa3487fc670688f9e56",
+        "binary_sha256": "f7e16c97eab753db4c088b9c973fda49f92eba29d6da86df160016c963c24f39",
+        "rows": [
+          {
+            "test": "canonical_provider_voice::outcome_recording_tests::provider_capture_stops_on_original_host_shutdown_or_permanent_error",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "6a5ec16e0858b96972906449b1d50078040c026cfea63957e8fe9ed7780f28fc",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_provider_voice::outcome_recording_tests::provider_capture_survives_temporary_metadata_pressure_without_new_io",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "56acd925d5cf579f91885288f042414c54726e0246477c79515057a59e205731",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "private_vapi::record_tests::historical_record_permanent_refusal_and_stop_do_not_restart_original_capture",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "1be1f8229842f7cffbe0ce25225da1d46b906d9ff4c8fc7e4cbbfff59927b5c3",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "private_vapi::record_tests::historical_record_retries_capacity_busy_and_storage_with_same_original_capture",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "cee786f90f0757017cbdde3ded0ba05a055c7db7e1bab580453c44ef13eb3167",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "assistant_vapi::owned_work_tests::owned_context_work_boxes_large_pending_future_before_spawn_and_joins_original",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d2cae2c4d6bac08571036f2fc7d9571e60fa52076eaf942bdd00d1570a69e86d",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "assistant_vapi::owned_work_tests::owned_context_work_cancellation_keeps_original_cleanup_and_result",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "04279a0a52d06b35e059077313dfcc4aa5e6882784acd77db4739f5729c6cc6a",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "connect_client_retained": {
+        "qualification": "Retained prior C 5/5, exact unchanged executable; not rerun.",
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-c/connect_client-results.json",
+        "receipt_sha256": "c62b5271c5ac6668093dfaa84360dcc9bc4c54544364c98970adf804374bd358",
+        "binary_sha256": "46a320956be9bb86780c303c86dba8e199246e1c2918d8fd2f2aa70b5af4038a",
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "retention_receipt": ".local/gate-6/v212-final-cleanup-verification-d2/connect_client-retained-results.json",
+        "retention_receipt_sha256": "692a7dd9fcab57b77f2f2e0890365c3eb332bd73fc2cb45e5fbb4afbba66fb08"
+      }
+    },
+    "targets": {
+      "gate6_replacement_video": {
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 1,
+          "failed": 1
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-d2/gate6_replacement_video-results.json",
+        "receipt_sha256": "e1fa69ae51311738c6163de0a8cf1c56c8d3dcd6feffb4f0fe6324e2d6ae2966",
+        "binary_sha256": "6d330dabd15b4cfeae59ffc9b580ea0d18f709b70932d584a90fd2c3c22a4299",
+        "rows": [
+          {
+            "test": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_dispatch_uses_exact_held_target_under_registry_contention",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "db1ffe38b96afe8e7bfee258940c01026198d43acf44fee6c60fa6a202282045",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "sdk_handles::replacement_video_recovery::signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "eabdfd165cedf027bfdc6450df7d48a55bbf151cfc8b4a402422c0ae604fb9c3",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "gate6_canonical_webtransport": {
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 4,
+          "failed": 1
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-d2/gate6_canonical_webtransport-results.json",
+        "receipt_sha256": "6f27efd7df89ee138609d288701ce0467dd64a1456dfd0f0052bba9e45275b05",
+        "binary_sha256": "889f06233b0d26dc96e5305b0dc369c5d2cf2556188b69824e70023e19a4fd53",
+        "rows": [
+          {
+            "test": "canonical_websocket_control::webrtc::signed_wss_quarantined_sdp_answer_progresses_under_real_domain_writer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "65862d5c5d7aca49806aed48b891b9254b477bc0ab4b9b4d125f4042bebc6750",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_retirement",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "89629e180e2ecf1bd638c47769320d070df9fab0edb4b79311aefe3b483e33eb",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::admission::current_withdrawal_after_rtc_media_admission_retires_only_that_route",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "36bf3fd2653346379675cbf2d1a572333f9d1e1e3c7172c4ba4eb422c7473953",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_eddsa",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e7f4ed560831ba1bba2de0a270127ae7abe0020f9cbe61c02def576c3241554c",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_es256",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "006a53af84daabfb6cf04b84e096190f9f700d9edefc8c79f70081c81164fba9",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      },
+      "gate6_canonical_runtime": {
+        "summary": {
+          "selected": 17,
+          "completed": 17,
+          "passed": 11,
+          "failed": 6
+        },
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-d2/gate6_canonical_runtime-results.json",
+        "receipt_sha256": "3af3e86f4e00317d09d1700183389eaf318cca0cb142d90963d82a1cc5038035",
+        "binary_sha256": "12d39e428aaaea4068a2c259d3f306f4e67b99ec3805434f7a4b51ade18eb46c",
+        "rows": [
+          {
+            "test": "canonical_native_connections::data::production_native_data_routes_original_messages_and_records_local_writes_without_republishing_replay",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "beed8908e629779232c44728118243f3c365539f88dc91c07e487f0e2eb02ece",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::data::production_native_data_preflight_and_pending_replay_cannot_borrow_another_physical_peer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "80438512cb736464f74cd5fd4963334f51bf3f40a05c75f4bbe04037c00783e6",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::data::production_native_data_writer_storage_recovery_preserves_audio_and_other_connections",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "b021e45aa009a71723f0b4b6171bd8d4c4f05540611cc0b4371ba46d2b668a3b",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_signed_sdk_delivery_and_replay_preserve_original_effects",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "41305bbefa5bc45e4efe0a54dda357d041e37fad99398d9f4006db6d48046da9",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_requires_named_receive_permission_without_borrowing_subscription",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d7ad2b22a1ac66b33c03f370f4556a1288af151c3882babcce4efa8b6333e9fd",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_writer_fact_storage_failure_recovers_without_another_delivery",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "d0dff43077f0fee63160846d3880f39b30a8675e6d9ba0669b0eae6ce1892870",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::dtmf::production_native_dtmf_partial_credit_write_records_unknown_without_replay_and_releases_control",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "2719651f98b8ff21ed392d6acfa4faad4fb194bcb7bdc98f42bdec51923584c0",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_movement_actual_pcmu_commits_once_survives_old_authority_and_retires_on_route_loss",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "4c86eecc9c7862834cf58cef69f75653f94472552d3d70dfe048c18f591a95d8",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_replacement_public_cancel_stops_one_call_preserves_original_and_replays_without_redial",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "e2817c426f0ef37a3ea8ed2722c4e5f03bd230f1c7a9f5fdf5c5264bbbd681f8",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_replacement_no_answer_deadline_stops_one_call_without_changing_original_route",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "23de2c28a50a259b3c3f24035d816ef91fdac293dd91cdaeeeb61bea9d79e014",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+            "exit_code": -6,
+            "passed": 0,
+            "failed": 0,
+            "log_sha256": "c4bea35d21a2ed858e1aba430f47e729c32410aacfb8e81d0724b7b558546f53",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::consultation::production_private_ai_automatic_creation_record_outage_retries_observation_and_closes_after_cancel_without_export",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "89b49f5c3e71eea08281c867ec7f4875bd6ff89992cbd3cd07a1ebc1f3057c60",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::consultation::production_private_ai_automatic_provider_close_record_outage_retries_observation_without_another_end",
+            "exit_code": -6,
+            "passed": 0,
+            "failed": 0,
+            "log_sha256": "65290e251fd4dc01d35260ea8e549aff0c57202d5d56be3c0263381c0361b579",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::session_codecs::production_session_codec_bad_confirmation_retains_partial_unknown_and_never_resubmits",
+            "exit_code": 101,
+            "passed": 0,
+            "failed": 1,
+            "log_sha256": "1d2c9b5400887faf3dfc4edb639533e024db68b464817c674f426fe7c975aa4d",
+            "naturally_joined": true,
+            "ok": false
+          },
+          {
+            "test": "canonical_native_connections::session_codecs::production_session_codec_captured_success_retries_storage_without_another_offer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e954cd84cc7f26f242270919dccd4524f5dec24586682b4b5a67e638be5bf37d",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::session_codecs::production_session_codec_preferences_select_current_policy_switch_live_peers_preserve_fallback_routes_and_replay",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ed3c886ac3bc472e3ae852c5ab88a46d6d22f59a25a967193bdb847e7d8e7657",
+            "naturally_joined": true,
+            "ok": true
+          },
+          {
+            "test": "canonical_native_connections::consultation::provider::return_cleanup::failed_cleanup_does_not_prevent_following_original_task_join_or_replace_primary_panic",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "fd1d25c19521a91a9e01b74429a9afa2829c74a20641544a52791ff4a3f3ac2d",
+            "naturally_joined": true,
+            "ok": true
+          }
+        ]
+      }
+    },
+    "signed_driver_summary": {
+      "selected": 24,
+      "passed": 16,
+      "failed": 8,
+      "ignored": 0
+    },
+    "production_focused_summary": {
+      "selected": 23,
+      "passed": 15,
+      "failed": 8
+    },
+    "cleanup_helper": {
+      "selected": 1,
+      "passed": 1,
+      "failed": 0,
+      "test": "canonical_native_connections::consultation::provider::return_cleanup::failed_cleanup_does_not_prevent_following_original_task_join_or_replace_primary_panic",
+      "qualification": "Helper unit; not an additional production or matrix pass."
+    },
+    "closure": {
+      "driver_receipt": ".local/gate-6/v212-final-cleanup-verification-d2/signed-results.json",
+      "driver_receipt_sha256": "7cfafc99e4b8d65ba40fddf07c99e6d53d996545f7e576a57fea950438430573",
+      "wrappers_naturally_joined": true,
+      "selected_children_joined_reaped": true,
+      "all_children_natural_exit_zero": false,
+      "child_sigabrt": [
+        {
+          "test": "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+          "exit_code": -6,
+          "log_sha256": "c4bea35d21a2ed858e1aba430f47e729c32410aacfb8e81d0724b7b558546f53"
+        },
+        {
+          "test": "canonical_native_connections::consultation::production_private_ai_automatic_provider_close_record_outage_retries_observation_without_another_end",
+          "exit_code": -6,
+          "log_sha256": "65290e251fd4dc01d35260ea8e549aff0c57202d5d56be3c0263381c0361b579"
+        }
+      ]
+    },
+    "store_failure": {
+      "test": "connection_control::tests::replacement_sources::candidate::fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql",
+      "classification": "Obsolete fixture holds unrelated Identity Read but expects reservation exclusion; current exact-CID writer intentionally preserves that reader. E fixture correction uses actual CID Read. D2 remains a failed verdict, not retroactively passed."
+    },
+    "remaining_failures": [
+      "Native initial-mute signed control returns error instead of connection.answer; private receiver epoch control passes (1/2).",
+      "RTC current-withdrawal control fails its fixture observation; other four signed RTC controls pass (4/5).",
+      "Telephone movement original operation Get refuses storage-unavailable; cancel/no-answer controls fail before IO with native-replacement-preparation forbidden. All three remain failed.",
+      "Public-AI caller aborts with primary stack overflow (exit -6). Provider-close fault scenario first fails configured initialization, then aborts during unwind with stack overflow (exit -6). Joined/reaped is not a natural successful child exit.",
+      "Bad codec confirmation still times out before first offer after 49 authority-busy admission deferrals; other two codec controls pass. Actual conflicting holder is not identified by these logs."
+    ],
+    "followthrough_not_in_d2": {
+      "integrated_working_source_pending_runtime": [
+        "Three reviewed E fixture corrections, including actual CID reader exclusion and transient read-only observation handling.",
+        "Replacement entry snapshot cleanup, independently source-reviewed.",
+        "Codec owned-admission offload candidate d16f449d, independently source-reviewed; integrated working source after D2 freeze."
+      ],
+      "private_pending": [
+        "Live resource-changing Subscribe Core/UCTP/Service quarantine candidate and causal tests."
+      ],
+      "qualification": "E source additions are excluded from the frozen D2 checkpoint/index and have no E test pass claim."
+    },
+    "qualification": "D2 units and signed rows are separate cohorts. Retained unchanged Client5/5 is not rerun. Earlier C, failed D compilation, prior unit failures and all historical matrix verdicts remain intact; no readiness/acceptance promotion."
+  }
+}

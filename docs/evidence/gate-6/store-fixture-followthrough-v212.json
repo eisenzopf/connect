@@ -1,0 +1,57 @@
+{
+  "scope": "Eight follow-through unit checks; not transport or matrix qualification",
+  "summary": {
+    "selected": 8,
+    "completed": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "baseline_comparison": {
+    "prior_failures_now_passing": 7,
+    "new_savepoint_control_passed": 1
+  },
+  "source_sha256": "23bab0e7b2b490f4de3c39125de8f00176813c078f67bbfe1c0b9cd08d69ce4d",
+  "receipt_sha256": "24c3432470b89f0edb9401a547a3ad58d545ccb56b4024189a11732468ba27d2",
+  "tests": [
+    {
+      "test": "authority_writer_boundary::tests::message_birth::savepoint_restore_of_old_parent_keeps_original_sql_unit_writer_pinned",
+      "passed": true,
+      "log_sha256": "f67ea227c58ce3ba8deb68e5620a6aa359a16aa98d87b520240b705b9140a153"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_callback_refuses_store_contention_immediately_and_retries_same_identity",
+      "passed": true,
+      "log_sha256": "3913e1f1dc72361b2d487c5f7db75edc0fb2b32eb12b4304c0d60602152d477d"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_requires_one_begun_original_message_and_has_no_writer_effect",
+      "passed": true,
+      "log_sha256": "d4e67b0504adc8412596042924e8ff5c7026d974feebb64ee4a61b99330fd1d4"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_held_current_check_uses_no_store_lock_and_fresh_contention_refuses",
+      "passed": true,
+      "log_sha256": "6f762dae62943b4ab16a959d5ade859a1c883ee0874e056e7c12d2473a9476c7"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_reserves_before_io_and_records_one_typed_local_fact_without_completing_queue_work",
+      "passed": true,
+      "log_sha256": "6613da816ca4bbf93d3938495b9856cf8c77f79923d9056233387c30a2f7e51c"
+    },
+    {
+      "test": "records::read::tests::source_policy_applies_subject_ceiling_and_hides_private_lineage_and_diagnostics",
+      "passed": true,
+      "log_sha256": "b38308d6698ed1abee98f7b1de2a59a46682f3118d703d732200a0cce3b36b85"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freezes_actual_observation_and_recipient_without_payload_provenance_or_an_idle_reader",
+      "passed": true,
+      "log_sha256": "237b9a109e665270acff059ec51a6d79cfcd6fef854ec4592f65f1a16652f6d2"
+    },
+    {
+      "test": "records::read::tests::bearer_record_policy_reuses_only_original_complete_owned_read_authority",
+      "passed": true,
+      "log_sha256": "7d8c45ba31b773c48bcafeefc7bad15675f9874e17b3bf39844381104680b23e"
+    }
+  ]
+}

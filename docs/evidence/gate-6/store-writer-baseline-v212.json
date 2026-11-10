@@ -1,0 +1,18 @@
+{
+  "exit_code": 101,
+  "naturally_joined": true,
+  "elapsed_seconds": 1079.4554908275604,
+  "binary_sha256": "b020012e6df502f2b34ffd6aa178cc72a0ae0a45fd38aef4dfbf2279b324ec22",
+  "log_sha256": "9377ccd00bc869018c661335c7b2358b936f497d48d56ef6539c6528b85950eb",
+  "passed": 487,
+  "failed": 1034,
+  "ignored": 4,
+  "source_revision": "2bd3fa447a955898fd03076dc2b0ad5001539d9d",
+  "selected_inventory": 1525,
+  "summary_selection": "Last top-level summary; earlier summaries belong to actual child-process controls. Initial one-off parser receipt is superseded.",
+  "format": "connect.gate6.store-baseline.v1",
+  "scope": "Full local macOS arm64 connect-store unit suite; four test threads; no provider rehearsals or matrix cells",
+  "interpretation": "487 passed, 1034 failed, 4 ignored. Failures include production SQL-unit binding and new-namespace classification defects plus direct-SQL test setups. Shared first-failure locations are not independent root causes or projected passing counts.",
+  "raw_log": ".local/gate-6/v212-cleanup-verification/store-full-baseline.log",
+  "failure_groups": ".local/gate-6/v212-cleanup-verification/store-full-final-failure-groups.json"
+}

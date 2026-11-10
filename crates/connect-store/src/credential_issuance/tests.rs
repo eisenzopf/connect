@@ -216,7 +216,11 @@ fn admission_refuses_escalation_tenant_expiry_and_unknown_authority_fields_atomi
             "{field}"
         );
     }
-    let c = f.store.connection().unwrap();
+    let writer = f
+        .store
+        .write_identity_authority(&f.request.identity_id)
+        .unwrap();
+    let c = f.store.connection_with_authority(&writer).unwrap();
     c.execute("INSERT INTO tenants(id) VALUES('other')", [])
         .unwrap();
     c.execute(
@@ -225,6 +229,7 @@ fn admission_refuses_escalation_tenant_expiry_and_unknown_authority_fields_atomi
     )
     .unwrap();
     drop(c);
+    drop(writer);
     assert!(f
         .store
         .issue_scoped_credential(&f.admin.credential_id, f.request.clone())
@@ -391,4 +396,37 @@ fn delivery_owner_blocks_supported_revocation_then_replay_refuses_current_loss()
             assert!(f.store.authenticate(&outcome.credential).is_err());
         }
     }
+}
+
+#[test]
+fn fresh_credential_namespace_keeps_current_read_and_collision_victims_protected() {
+    let f = Fixture::new();
+    let target = AuthorityScope::identity(&f.request.identity_id, AuthorityMode::Read).unwrap();
+    let read = f.store.try_acquire_authority(&[target.clone()]).unwrap();
+    let issued = f.issue();
+    assert!(issued.current());
+    assert!(!f
+        .store
+        .authority_covers(&issued._authority, &[target.write_scope()]));
+    assert!(f
+        .store
+        .authority_covers(&issued._authority, &[target.clone()]));
+    let child = issued.outcome().unwrap();
+    let before = f.counts();
+    let c = f.store.connection().unwrap();
+    for sql in [
+        "UPDATE credentials SET revoked=1 WHERE id=?1",
+        "INSERT OR REPLACE INTO credentials SELECT id,identity_id,'changed-verifier',operations,recipients,expires_at,revoked,issued_at FROM credentials WHERE id=?1",
+        "INSERT OR REPLACE INTO credentials SELECT 'fresh-colliding-verifier',identity_id,verifier,operations,recipients,expires_at,revoked,issued_at FROM credentials WHERE id=?1",
+    ] {assert!(c.execute(sql,[&child.credential_id]).is_err(),"{sql}");}
+    drop(c);
+    assert_eq!(f.counts(), before);
+    assert!(read.covers(&[target]));
+    assert_eq!(
+        f.store
+            .authenticate(&child.credential)
+            .unwrap()
+            .credential_id,
+        child.credential_id
+    );
 }

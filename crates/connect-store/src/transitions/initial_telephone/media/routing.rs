@@ -44,7 +44,7 @@ impl Store {
                 current_scopes(&c, original, true)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

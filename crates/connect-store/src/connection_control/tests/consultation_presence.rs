@@ -69,7 +69,7 @@ fn pending_native_private_custody_still_requires_original_current_physical_and_e
                     candidate.connection_id(),
                 ),
             };
-            f.store.connection().unwrap().execute(sql, [key]).unwrap();
+            f.change_fixture().execute(sql, [key]).unwrap();
             assert!(
                 f.store.try_native_connection_current(&candidate).is_err(),
                 "prepared={prepared} fault={fault}"

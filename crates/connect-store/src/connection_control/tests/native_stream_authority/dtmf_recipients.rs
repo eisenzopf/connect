@@ -39,8 +39,12 @@ pub(super) fn target(
         .store
         .native_media_origin_with_peer(&f.keys[actor], &proof, &lease)
         .unwrap();
+    // Preparation owns an actual Read. Release it before independent
+    // controlled readiness setup; retained origins/writer tokens are metadata.
+    drop(proof);
     {
-        let c = f.store.connection().unwrap();
+        let setup_writer = f.controlled_conversation_writer(actor);
+        let c = f.store.connection_with_authority(&setup_writer).unwrap();
         c.execute(
             "UPDATE operation_effects SET state='confirmed' WHERE id=?1",
             [lease.effect_id()],
@@ -284,7 +288,7 @@ fn dtmf_captured_fact_survives_revocation_and_retirement_without_reviving_io() {
     reserve(&s, &b, 0);
     let admin = s.f.store.revalidate(&s.f.admin).unwrap();
     s.f.store.revoke(&admin, &s.f.keys[1]).unwrap();
-    let c = s.f.store.connection().unwrap();
+    let c = s.f.change_fixture();
     c.execute(
         "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
         [s.targets[0].connection_id()],
@@ -551,7 +555,7 @@ fn dtmf_queued_target_cannot_borrow_removed_signal_scope_key_device_endpoint_or_
     ] {
         let s = fixture(true, 1);
         let b = freeze(&s);
-        let c = s.f.store.connection().unwrap();
+        let c = s.f.change_fixture();
         match loss {
             "source-audience"=>c.execute("DELETE FROM resource_audiences WHERE kind='session' AND participant_id=?1",[&s.f.pids[0]]),
             "target-audience"=>c.execute("DELETE FROM resource_audiences WHERE kind='session' AND participant_id=?1",[&s.f.pids[1]]),
@@ -691,7 +695,7 @@ fn dtmf_signal_only_source_and_receiver_keep_pair_ceilings_without_media_grants(
     let s = fixture(true, 2);
     let source_id = s.f.store.revalidate(&s.f.keys[0]).unwrap().identity_id;
     let target_id = s.f.store.revalidate(&s.f.keys[1]).unwrap().identity_id;
-    let c = s.f.store.connection().unwrap();
+    let c = s.f.change_fixture();
     c.execute(
         "UPDATE credentials SET operations=?2,recipients=?3 WHERE id=?1",
         params![
@@ -741,7 +745,7 @@ fn dtmf_signal_only_source_and_receiver_keep_pair_ceilings_without_media_grants(
         .try_start_native_dtmf_write(&read, "signal-only-actual-frame")
         .unwrap();
     drop(read);
-    let c = s.f.store.connection().unwrap();
+    let c = s.f.change_fixture();
     c.execute(
         "UPDATE credentials SET operations='[\"connect:control\"]' WHERE id=?1",
         [&s.f.keys[1]],
@@ -749,4 +753,50 @@ fn dtmf_signal_only_source_and_receiver_keep_pair_ceilings_without_media_grants(
     .unwrap();
     drop(c);
     assert!(s.f.store.try_native_dtmf_read(&b.targets()[0]).is_err());
+}
+
+#[test]
+fn dtmf_original_outcome_waits_for_delivery_read_then_records_after_revocation_without_another_frame(
+) {
+    let s = fixture(true, 1);
+    let batch = freeze(&s);
+    let target = &batch.targets()[0];
+    let read = s.f.store.try_native_dtmf_read(target).unwrap();
+    s.f.store
+        .try_start_native_dtmf_write(&read, "original-held-frame")
+        .unwrap();
+    let before = s.f.count("journal");
+    assert_eq!(
+        s.f.store
+            .try_record_native_dtmf_outcome(target, D::LocalSubmitted)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(s.f.count("journal"), before);
+    assert_eq!(s.f.store.connection().unwrap().query_row(
+        "SELECT count(*) FROM native_dtmf_recipients WHERE attempted=1 AND disposition IS NULL",
+        [], |row| row.get::<_, u64>(0),
+    ).unwrap(), 1);
+    drop(read);
+    let admin = s.f.store.revalidate(&s.f.admin).unwrap();
+    s.f.store.revoke(&admin, &s.f.keys[1]).unwrap();
+    assert!(s.f.store.try_native_dtmf_read(target).is_err());
+    let before_record = s.f.count("journal");
+    s.f.store
+        .try_record_native_dtmf_outcome(target, D::LocalSubmitted)
+        .unwrap();
+    assert_eq!(s.f.count("journal"), before_record + 1);
+    s.f.store
+        .try_record_native_dtmf_outcome(target, D::LocalSubmitted)
+        .unwrap();
+    assert_eq!(s.f.count("journal"), before_record + 1);
+    let done = s.f.store.finish_native_dtmf(&batch).unwrap();
+    assert_eq!(done.state, OperationState::Completed);
+    assert_eq!(
+        done.result.as_ref().unwrap()["recipients"][0]["frame_id"],
+        "original-held-frame"
+    );
+    assert_eq!(s.f.store.finish_native_dtmf(&batch).unwrap(), done);
+    assert_eq!(s.f.count("native_dtmf_recipients"), 1);
 }

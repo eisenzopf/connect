@@ -319,9 +319,7 @@ fn current_media_accepts_its_process_observation_and_refuses_another_runtime_epo
     let source = f.origin(1, "source");
     assert!(f.store.try_native_media_read(&target, None).is_ok());
     // These controlled process observations grant no physical media readiness.
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET observed_runtime_id=?2 WHERE id=?1",
             params![target.connection_id(), f.store.runtime_epoch()],
@@ -329,9 +327,7 @@ fn current_media_accepts_its_process_observation_and_refuses_another_runtime_epo
         .unwrap();
     assert!(f.store.try_native_media_read(&target, None).is_ok());
     let foreign = Fixture::new();
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET observed_runtime_id=?2 WHERE id=?1",
             params![target.connection_id(), foreign.store.runtime_epoch()],
@@ -530,15 +526,28 @@ fn native_wire_cancellation_fences_media_origin_and_held_control_without_retirin
         .store
         .native_media_read_with_peer(&target, None, &proof)
         .is_ok());
+    let cancel = connect_protocol::transitions::OperationAction::Cancel {
+        operation_id: "cancel-native".into(),
+        target_operation_id: "prepare-native".into(),
+        reason: None,
+    };
+    assert_eq!(
+        f.store
+            .execute_operation_action(&f.keys[0], cancel.clone())
+            .err()
+            .unwrap()
+            .code,
+        "authority-busy"
+    );
+    // The original held control interval must drain before the real cancel
+    // commits. This failed admission did not cancel or replay any media work.
+    assert!(f
+        .store
+        .native_media_read_with_peer(&target, None, &proof)
+        .is_ok());
+    drop(proof);
     f.store
-        .execute_operation_action(
-            &f.keys[0],
-            connect_protocol::transitions::OperationAction::Cancel {
-                operation_id: "cancel-native".into(),
-                target_operation_id: "prepare-native".into(),
-                reason: None,
-            },
-        )
+        .execute_operation_action(&f.keys[0], cancel)
         .unwrap();
     assert_eq!(
         f.store
@@ -548,22 +557,30 @@ fn native_wire_cancellation_fences_media_origin_and_held_control_without_retirin
             .code,
         "forbidden"
     );
-    assert_eq!(
-        f.store
-            .native_media_read_with_peer(&target, None, &proof)
-            .err()
-            .unwrap()
-            .code,
-        "forbidden"
-    );
-    assert_eq!(
-        f.store
-            .native_media_origin_with_peer(&f.keys[0], &proof, &lease)
-            .err()
-            .unwrap()
-            .code,
-        "forbidden"
-    );
+    match f
+        .store
+        .admit_peer_authority(&request, &crate::AuthorityWait::new(Duration::from_secs(1)))
+    {
+        Ok(fresh) => {
+            assert_eq!(
+                f.store
+                    .native_media_read_with_peer(&target, None, &fresh)
+                    .err()
+                    .unwrap()
+                    .code,
+                "forbidden"
+            );
+            assert_eq!(
+                f.store
+                    .native_media_origin_with_peer(&f.keys[0], &fresh, &lease)
+                    .err()
+                    .unwrap()
+                    .code,
+                "forbidden"
+            );
+        }
+        Err(error) => assert_eq!(error.code, "forbidden"),
+    }
     assert!(f.store.try_native_media_read(&other, None).is_ok());
     let state: String = f
         .store
@@ -654,7 +671,7 @@ fn native_packet_source_reads_keep_subscription_permission_separate_and_current(
         )
         .unwrap();
     f.store
-        .connection()
+        .connection_with_authority(&held)
         .unwrap()
         .execute(
             "UPDATE credentials SET operations=?2 WHERE id=?1",

@@ -139,7 +139,10 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        // Admission already owns the exact decision's Conversation Write.
+        // Pin that original proof to SQL; retain all source/physical/coverage
+        // checks below, and never acquire or upgrade authority in this method.
+        let mut c = self.connection_with_authority(Self::peer_scopes(peer))?;
         let tx = c.transaction().map_err(|_| Error::storage())?;
         if !physical_current() {
             return Err(Error::forbidden());

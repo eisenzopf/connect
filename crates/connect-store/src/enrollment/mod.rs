@@ -98,6 +98,69 @@ fn authorize(
 ) -> Result<(Actor, String, Vec<AuthorityScope>)> {
     credential_issuance::require(c, issuer, &issue_request(request), crate::now())
 }
+/// Claims change enrollment/key/endpoint authority only during their SQL unit.
+/// Recovery of an already completed original needs only its delivery readers.
+fn claim_authorize(
+    c: &Connection,
+    issuer: &str,
+    row: &Row,
+) -> Result<(Actor, String, Vec<AuthorityScope>)> {
+    let (actor, tenant, mut scopes) = authorize(c, issuer, &row.request)?;
+    if row.state == "pending" {
+        scopes.push(AuthorityScope::identity(
+            &actor.identity_id,
+            AuthorityMode::Write,
+        )?);
+        scopes.push(AuthorityScope::identity(
+            &row.request.identity_id,
+            AuthorityMode::Write,
+        )?);
+    }
+    Ok((actor, tenant, AuthorityScope::merged(&scopes)?))
+}
+impl Store {
+    /// A committed original survives failed reply admission. This never issues
+    /// another credential; it rechecks the same credential, key and Origin under
+    /// fresh Read custody after the mutation SQL/writer have both left.
+    fn enrollment_credential_delivery(
+        &self,
+        enrollment: &str,
+        expected: &EnrollmentCredential,
+        original_until: i64,
+        wait: &AuthorityWait,
+    ) -> Result<OwnedEnrollment<EnrollmentCredential>> {
+        let authority = self.stable_authority(wait, || {
+            let c = self.connection()?;
+            let row = load(&c, enrollment)?;
+            Ok(authorize(&c, &row.issuer, &row.request)?.2)
+        })?;
+        let mut c = self.connection()?;
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Deferred)
+            .map_err(|_| Error::storage())?;
+        let row = load(&tx, enrollment)?;
+        let (actor, _, scopes) = authorize(&tx, &row.issuer, &row.request)?;
+        if !self.authority_covers(&authority, &scopes) {
+            return Err(Error::forbidden());
+        }
+        let value = current_credential(&tx, &row)?;
+        if &value != expected {
+            return Err(conflict());
+        }
+        let until = original_until
+            .min(actor.expires_at)
+            .min(value.credential.expires_at);
+        if until <= crate::now() {
+            return Err(Error::unauthorized());
+        }
+        tx.commit().map_err(|_| Error::storage())?;
+        Ok(OwnedEnrollment {
+            value,
+            until,
+            _authority: authority,
+        })
+    }
+}
 fn secret(c: &Connection, domain: &[u8], values: &[&str]) -> Result<String> {
     let key: String = c
         .query_row(

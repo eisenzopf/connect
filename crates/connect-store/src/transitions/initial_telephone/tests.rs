@@ -16,6 +16,30 @@ struct Fixture {
     request: session_control::Request,
     policy: InitialTelephonePolicy,
 }
+// Normal fixture state changes use the same actual Writer/SQL binding as the
+// runtime. The returned SQL unit pins the proof, and dropping it releases both.
+fn change_connection<'a>(
+    f: &'a Fixture,
+    identities: &[usize],
+    conversation: bool,
+) -> crate::installation_ownership::ConnectionGuard<'a> {
+    let mut scopes = if conversation {
+        let c = f.store.connection().unwrap();
+        crate::authority_admission::conversation_scopes(
+            &c,
+            &f.request.conversation_id,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap()
+    } else {
+        vec![]
+    };
+    scopes.extend(identities.iter().map(|i| {
+        crate::AuthorityScope::identity(&f.ids[*i], crate::AuthorityMode::Write).unwrap()
+    }));
+    let writer = f.store.try_acquire_authority(&scopes).unwrap();
+    f.store.connection_with_authority(&writer).unwrap()
+}
 impl Fixture {
     fn new() -> Self {
         Self::limits(Limits::default())
@@ -86,7 +110,25 @@ impl Fixture {
             )
             .unwrap();
         {
-            let c = store.connection().unwrap();
+            // Ordinary fixture facts only. Derive the real complete parent
+            // Conversation/Identity Write set, release SQL before admission,
+            // then pin that same-Manager proof to this setup SQL unit.
+            let scopes = {
+                let c = store.connection().unwrap();
+                crate::authority_admission::conversation_scopes(
+                    &c,
+                    &room.id,
+                    crate::AuthorityMode::Write,
+                )
+                .unwrap()
+            };
+            let writer = store
+                .acquire_authority(
+                    &scopes,
+                    &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+                )
+                .unwrap();
+            let c = store.connection_with_authority(&writer).unwrap();
             c.execute("INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES('initial-phone-device',?1,'tnt_default','phone','pstn')",[&ids[1]]).unwrap();
             c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) VALUES('initial-phone',?1,'tnt_default','initial-phone-device','telephone','+15555550111','[\"audio\"]','verified','fixture',?2,'initial-trunk',?3)",params![ids[1],crate::now(),ids[0]]).unwrap();
         }
@@ -432,7 +474,11 @@ fn initial_recovery_without_signaling_can_retire_dormant_but_submission_stays_un
                 .unwrap()
                 .unwrap();
         }
-        let c = f.store.connection().unwrap();
+        let writer = f
+            .store
+            .runtime_conversation_authority(|_| Ok(vec![f.request.conversation_id.clone()]))
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute(
             "UPDATE operations SET worker_runtime='departed-runtime' WHERE record_id=?1",
             [a.origin().record_id()],
@@ -452,6 +498,7 @@ fn initial_recovery_without_signaling_can_retire_dormant_but_submission_stays_un
             }
         );
         drop(c);
+        drop(writer);
         assert_eq!(
             f.connection_state(a.origin()),
             if submitted { "unknown" } else { "retired" }
@@ -489,7 +536,15 @@ fn initial_endpoint_policy_change_cannot_derive_a_second_child_under_the_same_in
     let f = Fixture::new();
     let original = f.origin();
     {
-        let c = f.store.connection().unwrap();
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &f.ids[1],
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) VALUES('initial-phone-other',?1,'tnt_default','initial-phone-device','telephone','+15555550112','[\"audio\"]','verified','fixture',?2,'initial-trunk',?3)",params![f.ids[1],crate::now(),f.ids[0]]).unwrap();
     }
     let mut changed = f.policy.clone();
@@ -569,7 +624,11 @@ fn initial_withdrawal_after_the_submission_marker_issues_no_fresh_packet_interva
     let actor = f.store.revalidate(&f.keys[0]).unwrap();
     f.store.revoke(&actor, &f.keys[1]).unwrap();
     assert!(f.store.initial_telephone_signaling_read(&signal).is_err());
-    let c = f.store.connection().unwrap();
+    let writer = f
+        .store
+        .runtime_conversation_authority(|_| Ok(vec![f.request.conversation_id.clone()]))
+        .unwrap();
+    let c = f.store.connection_with_authority(&writer).unwrap();
     c.execute(
         "UPDATE operations SET worker_runtime='departed-runtime' WHERE record_id=?1",
         [signal.origin().record_id()],
@@ -1235,7 +1294,7 @@ fn initial_ready_activation_rechecks_endpoint_route_generation_runtime_and_membe
                     .unwrap();
             }
             mode => {
-                let c = f.store.connection().unwrap();
+                let c = change_connection(&f, &[1], true);
                 match mode {
                     "endpoint" => {
                         c.execute("UPDATE endpoints SET verification_state='unverified',revision=revision+1 WHERE id='initial-phone'",[]).unwrap();

@@ -265,7 +265,7 @@ impl Store {
                 AuthorityScope::merged(&scopes)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&_held)?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

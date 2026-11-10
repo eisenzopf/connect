@@ -3,7 +3,7 @@ use super::*;
 use crate::NativeConsultationOrigin;
 fn fixture() -> (Fixture, NativeConsultationOrigin) {
     let (f, _, _, origin) = consultation_reads::fixture();
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     c.execute("UPDATE identities SET kind='ai' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)",[&f.pids[2]]).unwrap();
     c.execute(
         "UPDATE participants SET kind='ai' WHERE participant_id=?1",
@@ -58,9 +58,7 @@ fn configured_join_commits_two_current_receipts_once_and_absorbs_only_its_own_re
             .unwrap()])
             .unwrap(),
     );
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE sessions SET topology_revision=topology_revision+1 WHERE id='session'",
             [],
@@ -217,4 +215,34 @@ fn configured_webtransport_join_requires_verified_native_endpoint_and_retains_cu
         .join_configured_native_consultant(&origin, &f.keys[2], &endpoint)
         .is_err());
     assert_eq!(f.count("native_consultation_joins"), 1);
+}
+
+#[test]
+fn configured_join_waits_for_real_conversation_reader_then_commits_both_original_receipts() {
+    let (f, origin) = fixture();
+    let scope = crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Write).unwrap();
+    let read = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .unwrap();
+    let before = (f.count("operations"), f.count("journal"));
+    let result = std::thread::scope(|threads| {
+        let worker = threads.spawn(|| join(&f, &origin));
+        crate::authority_fences::test_wait_for_writer(&f.store, &scope);
+        let while_waiting = (f.count("operations"), f.count("journal"));
+        drop(read);
+        let result = worker.join().unwrap();
+        (while_waiting, result)
+    });
+    assert_eq!(result.0, before);
+    assert!(result.1.unwrap());
+    assert_eq!(f.count("operations"), before.0 + 2);
+    assert_eq!(f.count("native_consultation_joins"), 1);
+    assert!(!join(&f, &origin).unwrap());
+    assert_eq!(f.count("operations"), before.0 + 2);
+    assert!(f.store.try_acquire_authority(&[scope]).is_ok());
 }

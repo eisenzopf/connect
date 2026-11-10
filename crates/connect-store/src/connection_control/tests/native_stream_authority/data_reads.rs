@@ -41,8 +41,12 @@ fn fixture(actor: usize, receive: bool) -> Data {
         .store
         .native_media_origin_with_peer(&f.keys[actor], &proof, &lease)
         .unwrap();
+    // Preparation owns an actual Read. Release it before independent
+    // controlled readiness setup; retained origins/writer tokens are metadata.
+    drop(proof);
     {
-        let c = f.store.connection().unwrap();
+        let setup_writer = f.controlled_conversation_writer(actor);
+        let c = f.store.connection_with_authority(&setup_writer).unwrap();
         c.execute(
             "UPDATE operation_effects SET state='confirmed' WHERE id=?1",
             [lease.effect_id()],
@@ -56,7 +60,6 @@ fn fixture(actor: usize, receive: bool) -> Data {
         c.execute("UPDATE connections SET state='ready',revision=1,observed_runtime_id=?2,readiness_json=?3 WHERE id=?1",params![target.connection_id(),f.store.runtime_epoch(),json!({"streams":["application-in"],"stream_revision":1,"participant_revision":1}).to_string()]).unwrap();
         c.execute("INSERT INTO native_connection_lifetimes(operation_record_id,connection_id,runtime_epoch,generation) VALUES(?1,?2,?3,?4)",params![lease.record_id(),lease.connection_id(),f.store.runtime_epoch(),lease.generation()]).unwrap();
     }
-    drop(proof);
     let PeerCommand::NativeStream(wire) = &mut request.command else {
         panic!()
     };
@@ -190,7 +193,7 @@ fn native_data_read_current_target_permission_presence_and_data_floor_are_indepe
         let (_, proof) = d.begin();
         drop(proof);
         assert!(d.fresh().is_ok());
-        let c = d.f.store.connection().unwrap();
+        let c = d.f.change_fixture();
         match mode {
             0 => {
                 c.execute(
@@ -245,9 +248,7 @@ fn native_data_read_cancellation_and_source_revocation_stop_queued_delivery_with
                 )
                 .unwrap();
         } else {
-            d.f.store
-                .connection()
-                .unwrap()
+            d.f.change_fixture()
                 .execute(
                     "UPDATE credentials SET revoked=1 WHERE id=?1",
                     [&d.f.keys[0]],

@@ -104,7 +104,7 @@ fn native_quality_captured_completion_recovers_storage_and_never_revives_retired
     f.store.connection().unwrap().execute_batch("CREATE TRIGGER controlled_quality_record_failure BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.operation_id')='native-quality' AND json_extract(NEW.data_json,'$.state')='completed' BEGIN SELECT RAISE(ABORT,'controlled quality recording failure'); END;").unwrap();
     assert!(f.store.complete_native_stream(&receipt).is_err());
     assert!(readiness(&f).get("quality_interval_ms").is_none());
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     // Trusted retirement fixture facts, not a claim of actual media teardown.
     c.execute(
         "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id='connection-native'",

@@ -187,7 +187,7 @@ fn private_source_rejects_uncertain_memory_and_stale_generation_before_buffer_re
             .unwrap();
         assert_eq!(page(&f, 0).observations.len(), 1);
         {
-            let c = f.store.connection().unwrap();
+            let c = f.change_fixture();
             if uncertainty {
                 c.execute(
                     "UPDATE private_provider_contexts SET export_uncertain=1 WHERE delivery_id=?1",

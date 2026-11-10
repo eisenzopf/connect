@@ -30,8 +30,12 @@ pub struct TelephoneReplacementSceneRead {
     existing: BTreeMap<(String, Option<String>), crate::NativeMediaRead>,
     pairs: BTreeSet<(String, String)>,
     revisions: BTreeMap<String, (String, u64, u64)>,
+    pub(super) sources: Vec<Arc<crate::NativeMediaOrigin>>,
 }
 impl TelephoneReplacementSceneRead {
+    pub fn expires_at(&self) -> i64 {
+        self.media.expires_at()
+    }
     pub fn current(&self) -> bool {
         self.media.current() && self.existing.values().all(crate::NativeMediaRead::current)
     }
@@ -105,6 +109,8 @@ pub struct TelephoneReplacementPhaseAttempt {
     attempt: String,
     effect: String,
     expected: String,
+    sources: Vec<Arc<crate::NativeMediaOrigin>>,
+    expires_at: i64,
 }
 pub struct TelephoneReplacementPhaseCapture {
     attempt: Arc<TelephoneReplacementPhaseAttempt>,
@@ -204,16 +210,16 @@ impl Store {
         resources_current(&c, &capture)?;
         Ok(read)
     }
-    pub fn try_telephone_replacement_scene_read(
+    pub(super) fn telephone_replacement_phase_scopes(
         &self,
-        capture: Arc<TelephoneReplacementResourcesCapture>,
+        c: &Connection,
+        capture: &TelephoneReplacementResourcesCapture,
         sources: &[Arc<crate::NativeMediaOrigin>],
-    ) -> Result<TelephoneReplacementSceneRead> {
-        let origin = capture.attempt.origin.clone();
-        let p = &origin.submitted.attempt.prepared;
-        let c = self.try_connection()?;
-        resources_current(&c, &capture)?;
-        let ctx = p.selection.context(self, &c)?;
+        write: bool,
+    ) -> Result<Vec<crate::AuthorityScope>> {
+        resources_current(c, capture)?;
+        let p = &capture.attempt.origin.submitted.attempt.prepared;
+        let ctx = p.selection.context(self, c)?;
         if ![
             &ctx.source_runtime_connection_id,
             &ctx.retained_runtime_connection_id,
@@ -226,20 +232,61 @@ impl Store {
         }) {
             return Err(Error::forbidden());
         }
-        let mut scopes = p.selection.scopes(self, &c, false)?;
+        let mut scopes = p.selection.scopes(self, c, write)?;
         scopes.extend(
-            self.native_scene_facts(&c, sources, &ctx.conversation_id, &ctx.session_id)?
+            self.native_scene_facts(c, sources, &ctx.conversation_id, &ctx.session_id)?
                 .1,
         );
-        let held = self.try_acquire_authority(&crate::AuthorityScope::merged(&scopes)?)?;
-        let (facts, scene_scopes, expiry) =
-            self.native_scene_facts(&c, sources, &ctx.conversation_id, &ctx.session_id)?;
-        if !self.authority_covers(&held, &scene_scopes) {
+        crate::AuthorityScope::merged(&scopes)
+    }
+    pub fn try_telephone_replacement_scene_read(
+        &self,
+        capture: Arc<TelephoneReplacementResourcesCapture>,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+    ) -> Result<TelephoneReplacementSceneRead> {
+        let c = self.try_connection()?;
+        let scopes = self.telephone_replacement_phase_scopes(&c, &capture, sources, false)?;
+        let held = self.try_acquire_authority(&scopes)?;
+        self.telephone_scene_read_in(&c, capture, sources, held, crate::now() + 5)
+    }
+    pub(super) fn telephone_scene_read_in(
+        &self,
+        c: &Connection,
+        capture: Arc<TelephoneReplacementResourcesCapture>,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        held: Arc<crate::AuthorityGuardSet>,
+        until: i64,
+    ) -> Result<TelephoneReplacementSceneRead> {
+        let origin = capture.attempt.origin.clone();
+        let p = &origin.submitted.attempt.prepared;
+        let ctx = p.selection.context(self, c)?;
+        if ![
+            &ctx.source_runtime_connection_id,
+            &ctx.retained_runtime_connection_id,
+        ]
+        .iter()
+        .all(|id| {
+            sources
+                .iter()
+                .any(|s| s.runtime_connection_id() == id.as_str())
+        }) {
             return Err(Error::forbidden());
         }
-        let media =
-            Arc::new(self.telephone_media_read_in(&c, origin.clone(), held.clone(), expiry)?);
-        let audio = resources_current(&c, &capture)?;
+
+        let (facts, scene_scopes, expiry) =
+            self.native_scene_facts(c, sources, &ctx.conversation_id, &ctx.session_id)?;
+        let mut required = p.selection.scopes(self, c, false)?;
+        required.extend(scene_scopes);
+        if !self.authority_covers(&held, &crate::AuthorityScope::merged(&required)?) {
+            return Err(Error::forbidden());
+        }
+        let media = Arc::new(self.telephone_media_read_in(
+            c,
+            origin.clone(),
+            held.clone(),
+            expiry.min(until),
+        )?);
+        let audio = resources_current(c, &capture)?;
         let mut pairs = BTreeSet::new();
         let old = &ctx.source_runtime_connection_id;
         let candidate = media.candidate()?.to_owned();
@@ -305,23 +352,60 @@ impl Store {
             existing,
             pairs,
             revisions,
+            sources: sources.to_vec(),
         })
     }
     pub fn begin_telephone_replacement_phase(
         &self,
-        read: &TelephoneReplacementSceneRead,
+        read: TelephoneReplacementSceneRead,
         phase: TelephoneReplacementPhase,
     ) -> Result<Arc<TelephoneReplacementPhaseAttempt>> {
-        if !read.current() {
+        let until = read.expires_at();
+        self.begin_telephone_replacement_phase_before(read, phase, until)
+    }
+    pub fn begin_telephone_replacement_phase_before(
+        &self,
+        read: TelephoneReplacementSceneRead,
+        phase: TelephoneReplacementPhase,
+        original_until: i64,
+    ) -> Result<Arc<TelephoneReplacementPhaseAttempt>> {
+        if !read.current() || !self.authority_covers(&read.media.interval, &[]) {
             return Err(Error::forbidden());
         }
-        let resources = &read.resources;
+        // Routing hints only: copy this original complete interval's IDs, then
+        // drop every Read before fresh exclusive admission. Full current scene
+        // facts are rederived and covered inside the transaction below.
+        let mutation_scopes = read.media.interval.mutation_scopes();
+        let resources = read.resources.clone();
+        let sources = read.sources.clone();
+        let revisions = read.revisions.clone();
+        let pairs = read.pairs.clone();
+        let original_descriptor = read.media.read.descriptor.clone();
+        let until = read.expires_at().min(original_until);
+        if crate::now() >= until {
+            return Err(Error::forbidden());
+        }
+        drop(read);
         let p = &resources.attempt.origin.submitted.attempt.prepared;
-        let mut c = self.connection()?;
+        // Do not spend a five-ms file-drain budget repeatedly deriving the
+        // O(N²) scene before admission. The copied IDs authorize nothing; a
+        // new/moved dependency fails current coverage before any DML.
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let held = self.acquire_authority(&mutation_scopes, &wait)?;
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        resources_current(&tx, resources)?;
+        let read =
+            self.telephone_scene_read_in(&tx, resources.clone(), &sources, held.clone(), until)?;
+        if read.revisions != revisions
+            || read.pairs != pairs
+            || read.media.read.descriptor != original_descriptor
+        {
+            return Err(conflict());
+        }
+        resources_current(&tx, &resources)?;
         if !self.authority_covers(&read.media.interval, &p.selection.scopes(self, &tx, false)?) {
             return Err(Error::forbidden());
         }
@@ -373,13 +457,48 @@ impl Store {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
+        let expires_at = read.expires_at();
+        drop(read);
+        drop(c);
+        drop(held);
         Ok(Arc::new(TelephoneReplacementPhaseAttempt {
             resources: resources.clone(),
             phase,
             attempt,
             effect,
             expected,
+            sources,
+            expires_at,
         }))
+    }
+    pub fn try_telephone_replacement_phase_attempt_read(
+        &self,
+        attempt: Arc<TelephoneReplacementPhaseAttempt>,
+    ) -> Result<TelephoneReplacementSceneRead> {
+        if crate::now() >= attempt.expires_at {
+            return Err(Error::forbidden());
+        }
+        let c = self.try_connection()?;
+        let p = &attempt.resources.attempt.origin.submitted.attempt.prepared;
+        let scopes = self.telephone_replacement_phase_scopes(
+            &c,
+            &attempt.resources,
+            &attempt.sources,
+            false,
+        )?;
+        let held = self.try_acquire_authority(&scopes)?;
+        let read = self.telephone_scene_read_in(
+            &c,
+            attempt.resources.clone(),
+            &attempt.sources,
+            held,
+            attempt.expires_at,
+        )?;
+        let exact: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM telephone_replacement_phases s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1 AND s.phase=?2 AND s.runtime_epoch=?3 AND s.attempt_id=?4 AND s.effect_id=?5 AND s.observation_json IS NULL AND e.state='submitting' AND e.observation_json=?6 AND e.attempt=1 AND e.submission_generation=1)", params![p.record,attempt.phase.name(),p.runtime,attempt.attempt,attempt.effect,attempt.expected], |r|r.get(0)).map_err(|_|Error::storage())?;
+        if !exact {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
     }
     pub fn record_telephone_replacement_phase(
         &self,
@@ -388,23 +507,18 @@ impl Store {
         let a = &capture.attempt;
         let p = &a.resources.attempt.origin.submitted.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                let row = rows::by_record(&c, &p.record)?;
-                let mut scopes = admission::row_scopes(&row)?;
-                if capture.audience.is_some() {
-                    scopes.extend(crate::authority_admission::conversation_scopes(
-                        &c,
-                        &row.record.conversation_id.ok_or_else(invalid)?,
-                        crate::AuthorityMode::Write,
-                    )?);
-                }
-                crate::AuthorityScope::merged(&scopes)
-            },
-        )?;
-        let mut c = self.connection()?;
+        let (held, mut c) = self.telephone_state_change_sql(|c| {
+            let row = rows::by_record(c, &p.record)?;
+            let mut scopes = admission::mutation_row_scopes(&row)?;
+            if capture.audience.is_some() {
+                scopes.extend(crate::authority_admission::conversation_scopes(
+                    c,
+                    &row.record.conversation_id.ok_or_else(invalid)?,
+                    crate::AuthorityMode::Write,
+                )?);
+            }
+            crate::AuthorityScope::merged(&scopes)
+        })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

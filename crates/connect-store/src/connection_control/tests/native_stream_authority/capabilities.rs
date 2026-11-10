@@ -92,7 +92,7 @@ fn native_capability_recording_is_atomic_and_delayed_receipt_cannot_revive_retir
     f.store.connection().unwrap().execute_batch("CREATE TRIGGER controlled_capability_failure BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.operation_id')='native-capabilities' AND json_extract(NEW.data_json,'$.state')='completed' BEGIN SELECT RAISE(ABORT,'controlled capability recording failure'); END;").unwrap();
     assert!(f.store.complete_native_stream(&receipt).is_err());
     assert!(readiness(&f).get("advertised_capabilities").is_none());
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     c.execute(
         "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id='connection-native'",
         [],

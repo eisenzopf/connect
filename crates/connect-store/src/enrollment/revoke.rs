@@ -17,11 +17,25 @@ fn require(
     if tenant != row.tenant {
         return Err(Error::forbidden());
     }
-    let scopes = vec![
-        AuthorityScope::identity(&actor.identity_id, AuthorityMode::Read)?,
+    let mut scopes = vec![
+        AuthorityScope::identity(&actor.identity_id, AuthorityMode::Write)?,
         AuthorityScope::identity(&row.request.identity_id, AuthorityMode::Write)?,
     ];
-    Ok((actor, tenant, scopes))
+    if let Some(credential) = &row.credential {
+        // This exact issuer credential invalidates its delegated subjects too.
+        // Match the credential trigger footprint, never a broad descendant tree.
+        let mut statement = c.prepare("SELECT DISTINCT child.identity_id FROM user_delegations d JOIN credentials child ON child.id=d.credential_id WHERE d.issuer_credential_id=?1 ORDER BY child.identity_id").map_err(|_| Error::storage())?;
+        let subjects = statement
+            .query_map([credential], |row| row.get::<_, String>(0))
+            .map_err(|_| Error::storage())?;
+        for subject in subjects {
+            scopes.push(AuthorityScope::identity(
+                &subject.map_err(|_| Error::storage())?,
+                AuthorityMode::Write,
+            )?);
+        }
+    }
+    Ok((actor, tenant, AuthorityScope::merged(&scopes)?))
 }
 impl Store {
     /// Revoke this approval/credential/key. Shared Device and Endpoint resources
@@ -34,12 +48,12 @@ impl Store {
     ) -> Result<OwnedEnrollment<EnrollmentRevocation>> {
         connect_protocol::transitions::id(enrollment_id)?;
         connect_protocol::transitions::id(operation_id)?;
-        let authority =
-            self.stable_authority(&AuthorityWait::new(Duration::from_secs(2)), || {
-                let c = self.connection()?;
-                let row = load(&c, enrollment_id)?;
-                Ok(require(&c, issuer, &row)?.2)
-            })?;
+        let wait = AuthorityWait::new(Duration::from_secs(2));
+        let authority = self.stable_authority(&wait, || {
+            let c = self.connection()?;
+            let row = load(&c, enrollment_id)?;
+            Ok(require(&c, issuer, &row)?.2)
+        })?;
         let mut c = self.connection()?;
         c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
@@ -124,9 +138,46 @@ impl Store {
             revoked: true,
         };
         tx.commit().map_err(|_| Error::storage())?;
+        let original_until = actor.expires_at;
+        drop(c);
+        drop(authority);
+        let authority = self.stable_authority(&wait, || {
+            let c = self.connection()?;
+            let row = load(&c, enrollment_id)?;
+            let scopes = require(&c, issuer, &row)?.2;
+            AuthorityScope::merged(
+                &scopes
+                    .iter()
+                    .map(AuthorityScope::read_scope)
+                    .collect::<Vec<_>>(),
+            )
+        })?;
+        let mut c = self.connection()?;
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Deferred)
+            .map_err(|_| Error::storage())?;
+        let current = load(&tx, enrollment_id)?;
+        let (actor, tenant, scopes) = require(&tx, issuer, &current)?;
+        let scopes = scopes
+            .iter()
+            .map(AuthorityScope::read_scope)
+            .collect::<Vec<_>>();
+        let recorded: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM operations WHERE tenant_id=?1 AND owner_id=?2 AND operation_id=?3 AND command_type='enrollment.revoke' AND digest=?4 AND state='completed' AND tombstoned=0)",params![tenant,actor.identity_id,operation_id,digest(&intent)],|row|row.get(0)).map_err(|_|Error::storage())?;
+        if !self.authority_covers(&authority, &scopes)
+            || !recorded
+            || current.state != "revoked"
+            || current.credential != value.credential_id
+        {
+            return Err(Error::forbidden());
+        }
+        let until = original_until.min(actor.expires_at);
+        if until <= crate::now() {
+            return Err(Error::unauthorized());
+        }
+        tx.commit().map_err(|_| Error::storage())?;
         Ok(OwnedEnrollment {
             value,
-            until: actor.expires_at,
+            until,
             _authority: authority,
         })
     }

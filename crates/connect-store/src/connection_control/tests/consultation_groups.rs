@@ -108,9 +108,7 @@ fn candidate_lookup_requires_its_current_original_root_and_exact_native_incarnat
         .store
         .native_consultation_candidate_matches(&parent, &candidate)
         .is_err());
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET generation=generation+1 WHERE id=?1",
             [candidate.connection_id()],

@@ -409,3 +409,7 @@ fn native_flow_phase_and_join_projection_preserve_permissions_but_control_mutati
     }
     drop(read);
 }
+
+mod message_birth;
+
+mod parent_birth;

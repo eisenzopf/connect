@@ -186,7 +186,12 @@ async fn record(
         let s = store.clone();
         match store_call(move || work(&s)).await {
             Ok(()) => return Ok(()),
-            Err(e) if matches!(e.code.as_str(), "authority-busy" | "storage-unavailable") => {
+            Err(e)
+                if matches!(
+                    e.code.as_str(),
+                    "authority-busy" | "storage-unavailable" | "capacity-exceeded"
+                ) =>
+            {
                 tokio::select! {_ = stop.cancelled()=>return Err(e),_=tokio::time::sleep(Duration::from_millis(20))=>{}}
             }
             Err(e) => return Err(e),
@@ -349,3 +354,103 @@ fn problem(code: &str) -> Error {
     Error::new(code, "Private provider operation could not be confirmed")
 }
 type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
+
+#[cfg(test)]
+mod record_tests {
+    use super::*;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Mutex,
+    };
+
+    fn store() -> (tempfile::TempDir, Arc<Store>) {
+        let root = tempfile::tempdir().unwrap();
+        let store = Arc::new(
+            Store::initialize(
+                &root.path().join("store.sqlite"),
+                connect_protocol::Limits::default(),
+            )
+            .unwrap(),
+        );
+        (root, store)
+    }
+
+    #[tokio::test]
+    async fn historical_record_retries_capacity_busy_and_storage_with_same_original_capture() {
+        let (_dir, store) = store();
+        let original = Arc::new("original-captured-provider-outcome".to_owned());
+        let expected = Arc::as_ptr(&original) as usize;
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let owned = original.clone();
+        let count = attempts.clone();
+        let output = seen.clone();
+        record(
+            &store,
+            move |_| {
+                output.lock().unwrap().push(Arc::as_ptr(&owned) as usize);
+                match count.fetch_add(1, Ordering::SeqCst) {
+                    0 => Err(Error::new(
+                        "capacity-exceeded",
+                        "Controlled historical journal pressure",
+                    )),
+                    1 => Err(Error::new(
+                        "authority-busy",
+                        "Controlled historical reader drain",
+                    )),
+                    2 => Err(Error::storage()),
+                    _ => Ok(()),
+                }
+            },
+            &CancellationToken::new(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(attempts.load(Ordering::SeqCst), 4);
+        assert_eq!(*seen.lock().unwrap(), vec![expected; 4]);
+        assert_eq!(Arc::strong_count(&original), 1);
+    }
+
+    #[tokio::test]
+    async fn historical_record_permanent_refusal_and_stop_do_not_restart_original_capture() {
+        let (_dir, store) = store();
+        let original = Arc::new("original-stopped-provider-capture".to_owned());
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let count = attempts.clone();
+        let owned = original.clone();
+        let error = record(
+            &store,
+            move |_| {
+                assert_eq!(owned.as_str(), "original-stopped-provider-capture");
+                count.fetch_add(1, Ordering::SeqCst);
+                Err(Error::forbidden())
+            },
+            &CancellationToken::new(),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.code, "forbidden");
+        assert_eq!(attempts.load(Ordering::SeqCst), 1);
+        let stop = CancellationToken::new();
+        stop.cancel();
+        let count = attempts.clone();
+        let owned = original.clone();
+        let error = record(
+            &store,
+            move |_| {
+                assert_eq!(owned.as_str(), "original-stopped-provider-capture");
+                count.fetch_add(1, Ordering::SeqCst);
+                Err(Error::new(
+                    "capacity-exceeded",
+                    "Controlled historical pressure after stop",
+                ))
+            },
+            &stop,
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.code, "capacity-exceeded");
+        assert_eq!(attempts.load(Ordering::SeqCst), 2);
+        assert_eq!(Arc::strong_count(&original), 1);
+    }
+}

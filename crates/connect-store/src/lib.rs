@@ -199,7 +199,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 118;
+pub const SCHEMA_VERSION: u32 = 121;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 // Compiled operation/source SQL only; never a row, transaction or grant cache.
 const OPERATION_SQL_CACHE_CAPACITY: usize = 32;
@@ -606,6 +606,18 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!(
             "../migrations/118_coordinated_authority_writers.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/119_native_control_bookkeeping.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/120_new_session_call_namespaces.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/121_failed_native_rejection_members.sql"
         ))
         .map_err(|_| Error::storage())?;
         authority_writer_boundary::schema::install(&tx)?;

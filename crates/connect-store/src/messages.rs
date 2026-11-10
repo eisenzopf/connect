@@ -134,6 +134,9 @@ fn write_members(
         .clone()
         .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let sender = audience::member(c, &actor.identity_id, cid, true)?;
+    let birth = store
+        .authority_writer_boundary
+        .new_message_birth(c, &id, cid)?;
     c.execute("INSERT INTO messages(id,conversation_id,sender,body,audience_mode,sender_participant_id,content_type,body_encoding,label,in_reply_to_msg_id,accepted_at) VALUES(?1,?2,?3,?4,'explicit',?5,?6,?7,?8,?9,?10)",params![id,cid,actor.identity_id,draft.body,sender.participant_id,draft.content_type,draft.body_encoding.as_str(),draft.label,draft.in_reply_to_msg,crate::now()]).map_err(|e|if matches!(e,rusqlite::Error::SqliteFailure(ref v,_) if v.code==rusqlite::ErrorCode::ConstraintViolation){Error::new("conflict","Message identity is unavailable")}else{Error::storage()})?;
     for member in &members {
         c.execute(
@@ -166,6 +169,10 @@ fn write_members(
         )
         .map_err(|_| Error::storage())?;
     }
+    // Namespace construction ends before provider work or the caller's
+    // transaction commit. Only this new message and its immutable children
+    // were covered; existing provider/context/permission facts were not.
+    drop(birth);
     if providers {
         crate::providers::enqueue(c, &id, cid, &actor.identity_id, &actor.credential_id, store)?;
     }

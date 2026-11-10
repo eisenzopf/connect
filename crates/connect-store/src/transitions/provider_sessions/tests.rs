@@ -110,12 +110,29 @@ impl Fixture {
             )
             .unwrap();
         {
-            let c = store.connection().unwrap();
+            // Ordinary fixture facts only. Derive the real complete parent
+            // Conversation/Identity Write set, release SQL before admission,
+            // then pin that same-Manager proof to this setup SQL unit.
+            let scopes = {
+                let c = store.connection().unwrap();
+                crate::authority_admission::conversation_scopes(
+                    &c,
+                    &room.id,
+                    crate::AuthorityMode::Write,
+                )
+                .unwrap()
+            };
+            let writer = store
+                .acquire_authority(
+                    &scopes,
+                    &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+                )
+                .unwrap();
+            let c = store.connection_with_authority(&writer).unwrap();
             c.execute("INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES('initial-phone-device',?1,'tnt_default','phone','pstn')",[&ids[1]]).unwrap();
             c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) VALUES('initial-phone',?1,'tnt_default','initial-phone-device','telephone','+15555550111','[\"audio\"]','verified','fixture',?2,'initial-trunk',?3)",params![ids[1],crate::now(),ids[0]]).unwrap();
-        }
-        {
-            let c = store.connection().unwrap();
+            // Same ordinary setup and same derived writer: both the phone
+            // and assistant identities are active members of this parent.
             c.execute("INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES('provider-assistant-device',?1,'tnt_default','ai-provider','vapi')",[&ids[0]]).unwrap();
             c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) VALUES('provider-assistant',?1,'tnt_default','provider-assistant-device','vapi-voice','12345678-1234-1234-1234-123456789012','[\"audio\"]','verified','fixture',?2,'initial-trunk',?1)",params![ids[0],crate::now()]).unwrap();
         }
@@ -338,14 +355,24 @@ fn own_endpoint_route_revision_and_policy_are_bound_to_original_invitation() {
             .code,
         "conflict"
     );
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE endpoints SET revision=revision+1 WHERE id='initial-phone'",
-            [],
-        )
-        .unwrap();
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &f._ids[1],
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        f.store
+            .connection_with_authority(&writer)
+            .unwrap()
+            .execute(
+                "UPDATE endpoints SET revision=revision+1 WHERE id='initial-phone'",
+                [],
+            )
+            .unwrap();
+    }
     assert!(f
         .store
         .begin_provider_session_voice(&w, &o, ProviderSessionVoiceAction::Start, &manifest())
@@ -755,14 +782,24 @@ fn role_change_preserves_historical_visibility_without_reusing_old_dispatch_auth
     let f = Fixture::new();
     let o = f.origin();
     let w = f.worker();
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE participants SET role='observer' WHERE participant_id=?1",
-            [&f.parts[1]],
-        )
-        .unwrap();
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                &f.request.conversation_id,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        f.store
+            .connection_with_authority(&writer)
+            .unwrap()
+            .execute(
+                "UPDATE participants SET role='observer' WHERE participant_id=?1",
+                [&f.parts[1]],
+            )
+            .unwrap();
+    }
     assert!(f
         .store
         .provider_session_voice_view(&f.keys[1], o.id())
@@ -1042,14 +1079,24 @@ fn established_provider_uses_own_credentials_and_current_assistant_endpoint() {
     f.revoke(0);
     assert!(f.store.provider_session_voice_current(&o, false).is_err());
     assert!(f.store.provider_session_voice_current(&o, true).unwrap());
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE endpoints SET revision=revision+1 WHERE id='provider-assistant'",
-            [],
-        )
-        .unwrap();
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &f._ids[0],
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        f.store
+            .connection_with_authority(&writer)
+            .unwrap()
+            .execute(
+                "UPDATE endpoints SET revision=revision+1 WHERE id='provider-assistant'",
+                [],
+            )
+            .unwrap();
+    }
     assert!(f.store.provider_session_voice_current(&o, true).is_err());
     let captured = f
         .begin(&worker, &o, ProviderSessionVoiceAction::End)
@@ -2400,4 +2447,175 @@ fn snapshot_scope_plan_preserves_provider_source_footprint() {
         item,
         connect_protocol::events::SnapshotItem::ProviderCall(_)
     )));
+}
+
+#[test]
+fn provider_start_releases_short_writer_before_io_and_records_after_revocation() {
+    let f = Fixture::new();
+    let origin = f.origin();
+    let worker = f.worker();
+    let dispatch = f.begin(&worker, &origin, ProviderSessionVoiceAction::Start);
+    let scope =
+        AuthorityScope::conversation(origin.conversation_id(), crate::AuthorityMode::Read).unwrap();
+    assert!(matches!(&dispatch.admission, DispatchAdmission::Granted(_)));
+    assert!(
+        f.store.try_acquire_authority(&[scope.clone()]).is_ok(),
+        "no Writer survives into provider IO"
+    );
+    assert!(dispatch.current());
+    assert!(
+        f.store
+            .begin_provider_session_voice(
+                &worker,
+                &origin,
+                ProviderSessionVoiceAction::Start,
+                &manifest()
+            )
+            .unwrap()
+            .is_none(),
+        "same original attempt replay must not upgrade its retained IO Read"
+    );
+    let capture = dispatch.capture(Ok(receipt(&origin, "ringing", "writer-created", false)));
+    f.revoke(0);
+    let view = f.store.record_provider_session_voice(&capture).unwrap();
+    assert_eq!(view.state, ProviderCallState::Starting);
+    // Exact resource cleanup must not ask the revoked creation caller to reauthorize.
+    let end = f.begin(&worker, &origin, ProviderSessionVoiceAction::End);
+    assert!(end.current());
+    assert!(end.existing_resource().is_ok());
+    assert!(f.store.try_acquire_authority(&[scope]).is_ok());
+    let end = end.capture(Ok(receipt(&origin, "ended", "writer-ended", false)));
+    let final_view = f.store.record_provider_session_voice(&end).unwrap();
+    assert!(final_view.closed_at.is_some());
+    assert_eq!(
+        f.store.record_provider_session_voice(&end).unwrap(),
+        final_view
+    );
+    assert_eq!(effect_states(&f).len(), 2);
+}
+
+#[test]
+fn refused_fresh_provider_admission_keeps_original_attempt_for_definite_no_effect() {
+    let f = Fixture::new();
+    let origin = f.origin();
+    let worker = f.worker();
+    let mut dispatch = f.begin(&worker, &origin, ProviderSessionVoiceAction::Start);
+    let expires = dispatch.expires_at();
+    // Exercise the SAME production post-reservation admission helper under a
+    // refusal; discard its previous Read, never re-run reservation or provider IO.
+    dispatch.admission = DispatchAdmission::OriginalResource;
+    let write = AuthorityScope::conversation(origin.conversation_id(), crate::AuthorityMode::Write)
+        .unwrap();
+    let writer = f.store.try_acquire_authority(&[write]).unwrap();
+    let refused = f.store.provider_start_dispatch_admission(
+        dispatch,
+        &AuthorityWait::new(std::time::Duration::from_millis(1)),
+    );
+    assert!(!refused.current());
+    assert_eq!(
+        refused
+            .start_request()
+            .err()
+            .expect("refused fresh read must deny start")
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(refused.expires_at(), expires);
+    assert_eq!(effect_states(&f), vec![("submitting".into(), None)]);
+    // Even an accidentally supplied success cannot convert refused authority
+    // into a provider submission. No driver was called in this control.
+    let no_effect = refused.capture(Ok(receipt(&origin, "ringing", "not-submitted", false)));
+    drop(writer);
+    let view = f.store.record_provider_session_voice(&no_effect).unwrap();
+    assert_eq!(view.state, ProviderCallState::Failed);
+    assert!(view.closed_at.is_some());
+    assert_eq!(
+        f.store.record_provider_session_voice(&no_effect).unwrap(),
+        view
+    );
+    assert!(f
+        .store
+        .begin_provider_session_voice(
+            &worker,
+            &origin,
+            ProviderSessionVoiceAction::Start,
+            &manifest()
+        )
+        .unwrap()
+        .is_none());
+    assert_eq!(effect_states(&f), vec![("failed".into(), None)]);
+}
+
+#[test]
+fn provider_historical_capture_survives_journal_capacity_rollback_once() {
+    let mut f = Fixture::new();
+    let origin = f.origin();
+    let worker = f.worker();
+    let dispatch = f.begin(&worker, &origin, ProviderSessionVoiceAction::Start);
+    let captured = dispatch.capture(Err(Failure::Rejected));
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let limit = f.store.limits.journal_events;
+    f.store.limits.journal_events = 0;
+    let result = f.store.record_provider_session_voice(&captured);
+    f.store.limits.journal_events = limit;
+    assert_eq!(result.unwrap_err().code, "capacity-exceeded");
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    let view = f.store.record_provider_session_voice(&captured).unwrap();
+    assert_eq!(view.state, ProviderCallState::Failed);
+    assert_eq!(
+        f.store.record_provider_session_voice(&captured).unwrap(),
+        view
+    );
+    assert_eq!(effect_states(&f), vec![("failed".into(), None)]);
+}
+
+#[test]
+fn fresh_provider_dispatch_caps_original_attempt_by_shortened_current_credential() {
+    let f = Fixture::new();
+    let origin = f.origin();
+    let worker = f.worker();
+    let mut dispatch = f.begin(&worker, &origin, ProviderSessionVoiceAction::Start);
+    let original_until = dispatch.expires_at();
+    dispatch.admission = DispatchAdmission::OriginalResource;
+    let shorter = original_until - 1;
+    let identity = AuthorityScope::identity(&f._ids[0], crate::AuthorityMode::Write).unwrap();
+    let writer = f.store.try_acquire_authority(&[identity]).unwrap();
+    let c = f.store.connection_with_authority(&writer).unwrap();
+    c.execute(
+        "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+        params![f.keys[0], shorter],
+    )
+    .unwrap();
+    drop(c);
+    drop(writer);
+    let dispatch = f.store.provider_start_dispatch_admission(
+        dispatch,
+        &AuthorityWait::new(std::time::Duration::from_secs(1)),
+    );
+    match &dispatch.admission {
+        DispatchAdmission::Granted(_) => {
+            assert_eq!(
+                dispatch.expires_at(),
+                shorter,
+                "fresh current authority can only shorten the original cap"
+            );
+            assert!(dispatch.expires_at() < original_until);
+        }
+        DispatchAdmission::Refused(_) => assert!(
+            !dispatch.current(),
+            "an already-expired current credential cannot dispatch"
+        ),
+        DispatchAdmission::OriginalResource => {
+            panic!("Start must acquire current admission or retain refusal")
+        }
+    }
+    let captured = dispatch.capture(Err(Failure::Rejected));
+    assert_eq!(
+        f.store
+            .record_provider_session_voice(&captured)
+            .unwrap()
+            .state,
+        ProviderCallState::Failed
+    );
+    assert_eq!(effect_states(&f), vec![("failed".into(), None)]);
 }

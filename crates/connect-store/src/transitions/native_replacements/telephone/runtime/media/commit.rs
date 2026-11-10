@@ -93,19 +93,57 @@ impl TelephoneReplacementCommitAttempt {
 impl Store {
     pub fn begin_telephone_replacement_commit(
         &self,
-        read: &TelephoneReplacementSceneRead,
-    ) -> Result<Arc<TelephoneReplacementCommitAttempt>> {
-        if !read.current() {
+        read: TelephoneReplacementSceneRead,
+    ) -> Result<(
+        Arc<TelephoneReplacementCommitAttempt>,
+        TelephoneReplacementSceneRead,
+    )> {
+        if !read.current() || !self.authority_covers(&read.media.interval, &[]) {
             return Err(Error::forbidden());
         }
-        let resources = &read.resources;
+        // Original complete scope IDs route new admission only. Every grant
+        // and source is checked again under the fresh Writer before mutation.
+        let mutation_scopes = read.media.interval.mutation_scopes();
+        let resources = read.resources.clone();
+        let sources = read.sources.clone();
+        let until = read.expires_at();
+        drop(read);
         let a = &resources.attempt.origin.submitted.attempt;
         let p = &a.prepared;
-        let mut c = self.connection()?;
+        // A completed reservation replay may refuse without entering another
+        // Writer. This immediate SQL probe grants no IO or current authority.
+        {
+            let c = self.try_connection()?;
+            let exists: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit')", [&p.record], |row| row.get(0)).map_err(|_| Error::storage())?;
+            if exists {
+                return Err(Error::new(
+                    "reconciliation-required",
+                    "Telephone movement was already attempted",
+                ));
+            }
+        }
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let held = self.acquire_authority(&mutation_scopes, &wait)?;
+        let mut c = self.try_connection()?;
+        let scopes = self.telephone_replacement_phase_scopes(&c, &resources, &sources, true)?;
+        if !self.authority_covers(&held, &scopes) {
+            return Err(Error::new(
+                "authority-busy",
+                "Telephone movement scope changed",
+            ));
+        }
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        resources_current(&tx, resources)?;
+        let scopes = self.telephone_replacement_phase_scopes(&tx, &resources, &sources, true)?;
+        if !self.authority_covers(&held, &scopes) {
+            return Err(Error::forbidden());
+        }
+        // Build the exact control view before the once-only state change.
+        // It retains this SAME Write through the already-prepared Core cut;
+        // no fresh Read can fail after the durable attempt has been reserved.
+        let read = self.telephone_scene_read_in(&tx, resources.clone(), &sources, held, until)?;
         let ctx = read.media.source().context();
         if !self.authority_covers(&read.media.interval, &p.selection.scopes(self, &tx, false)?)
             || read
@@ -202,13 +240,17 @@ impl Store {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(Arc::new(TelephoneReplacementCommitAttempt {
-            resources: resources.clone(),
-            attempt,
-            effect,
-            descriptor,
-            snapshot,
-        }))
+        drop(c);
+        Ok((
+            Arc::new(TelephoneReplacementCommitAttempt {
+                resources: resources.clone(),
+                attempt,
+                effect,
+                descriptor,
+                snapshot,
+            }),
+            read,
+        ))
     }
     pub fn record_telephone_replacement_committed(
         &self,
@@ -232,27 +274,44 @@ impl Store {
     ) -> Result<OperationRecord> {
         let p = &a.resources.attempt.origin.submitted.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                let row = rows::by_record(&c, &p.record)?;
-                let mut scopes = admission::row_scopes(&row)?;
-                if observation.is_some() {
-                    scopes.extend(crate::authority_admission::conversation_scopes(
-                        &c,
-                        &a.snapshot.conversation_id,
-                        crate::AuthorityMode::Write,
-                    )?);
-                }
-                crate::AuthorityScope::merged(&scopes)
-            },
-        )?;
-        let mut c = self.connection()?;
+        let derive = |c: &Connection| -> Result<Vec<crate::AuthorityScope>> {
+            let row = rows::by_record(c, &p.record)?;
+            let mut scopes = admission::mutation_row_scopes(&row)?;
+            if observation.is_some() {
+                scopes.extend(crate::authority_admission::conversation_scopes(
+                    c,
+                    &a.snapshot.conversation_id,
+                    crate::AuthorityMode::Write,
+                )?);
+            }
+            crate::AuthorityScope::merged(&scopes)
+        };
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let scopes = {
+            let c = self.try_connection_with_wait(&wait)?;
+            derive(&c)?
+        };
+        let held = self.acquire_authority(&scopes, &wait)?;
+        let mut c = self.try_connection()?;
+        if !self.authority_covers(&held, &derive(&c)?) {
+            return Err(Error::forbidden());
+        }
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = rows::by_record(&tx, &p.record)?;
+        let mut required = admission::mutation_row_scopes(&row)?;
+        if observation.is_some() {
+            required.extend(crate::authority_admission::conversation_scopes(
+                &tx,
+                &a.snapshot.conversation_id,
+                crate::AuthorityMode::Write,
+            )?);
+        }
+        if !self.authority_covers(&held, &crate::AuthorityScope::merged(&required)?) {
+            return Err(Error::forbidden());
+        }
         admission::require_row(self, &held, &row)?;
         let saved:Option<(Option<String>,Option<String>,String)>=tx.query_row("SELECT t.observation_json,t.audience_json,e.state FROM telephone_replacement_commits t JOIN native_replacement_steps s ON s.operation_record_id=t.operation_record_id AND s.phase='commit' AND s.attempt_id=t.attempt_id AND s.effect_id=t.effect_id AND s.started=1 JOIN operation_effects e ON e.id=t.effect_id WHERE t.operation_record_id=?1 AND t.runtime_epoch=?2 AND t.attempt_id=?3 AND t.effect_id=?4 AND t.descriptor_json=?5",params![p.record,p.runtime,a.attempt,a.effect,a.descriptor],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|_|Error::storage())?;
         let (old, audience, state) = saved.ok_or_else(Error::forbidden)?;

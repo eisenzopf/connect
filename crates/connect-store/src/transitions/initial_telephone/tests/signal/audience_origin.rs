@@ -241,7 +241,7 @@ fn initial_sip_cached_metadata_cannot_resurrect_withdrawn_physical_authority() {
                 .try_initial_telephone_media_read(origin.clone())
                 .unwrap(),
         );
-        let c = f.store.connection().unwrap();
+        let c = change_connection(&f, if fault == "route" { &[0] } else { &[1] }, true);
         let (_, binding, _) = f
             .store
             .initial_telephone_audience_facts(&c, &origin)
@@ -353,6 +353,8 @@ fn initial_sip_return_completion_requires_full_current_interval_and_named_receiv
         "dtmf.send".into(),
         "dtmf.receive".into(),
     ];
+    drop(c);
+    let c = change_connection(&f, &[1], false);
     c.execute(
         "UPDATE credentials SET operations=?2 WHERE id=?1",
         params![
@@ -361,6 +363,8 @@ fn initial_sip_return_completion_requires_full_current_interval_and_named_receiv
         ],
     )
     .unwrap();
+    drop(c);
+    let c = f.store.connection().unwrap();
     let held = f.store.try_acquire_authority(&scopes).unwrap();
     assert!(Store::recorded_sip_live(&c, &binding, f.store.runtime_epoch()).unwrap());
     assert!(f
@@ -449,7 +453,7 @@ fn initial_sip_private_slot_facts_keep_endpoint_receive_and_route_identity_separ
             .unwrap()])
             .unwrap(),
     );
-    let c = f.store.connection().unwrap();
+    let c = change_connection(&f, &[1], false);
     c.execute("UPDATE credentials SET operations='[\"connection.offer\",\"dtmf.send\",\"dtmf.receive\"]' WHERE id=?1",[binding["endpoint_credential_id"].as_str().unwrap()]).unwrap();
     assert!(f
         .store

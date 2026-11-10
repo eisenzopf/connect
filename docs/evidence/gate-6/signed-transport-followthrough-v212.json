@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-signed-transport-followthrough/1",
-  "updated": "2026-11-10T02:15:51.142192+00:00",
+  "updated": "2026-11-10T03:34:48.345508+00:00",
   "source": {
     "base": "1cd730cfc33217e673c2b46017c761f3a696b10b",
     "source_lock": "7b6d7cf3ad6ce66e2f86c37f7150a0b64f6c49a42b2c553580f69dfb21e6a156",
@@ -104,5 +104,94 @@
     "skipped": 0
   },
   "diagnosis": "Both native tests fail before the replacement scenario at initial feedback-source-select stream.subscribe. A subsequent test-only diagnostic reproduces503 storage_unavailable. Store operation_members writes lack a bound coordinated Write while the envelope owns only Read. No full matrix run or media-quality pass inferred.",
-  "diagnostic_log_sha256": "7458ebcc12cd9d3b0830e75c0724053674081247eed76dd21c207f5ef85aef2e"
+  "diagnostic_log_sha256": "7458ebcc12cd9d3b0830e75c0724053674081247eed76dd21c207f5ef85aef2e",
+  "original_attempt_scope": "Historical cleanup source: RTC3 pass/native2 fail before subscription. Preserved below; superseded only for scoped signed verification by batch3_verified, never for matrix totals.",
+  "batch3_verified": {
+    "source_sha256": "23bab0e7b2b490f4de3c39125de8f00176813c078f67bbfe1c0b9cd08d69ce4d",
+    "groups": {
+      "gate6_replacement_video": {
+        "receipt_sha256": "e41d427730a510cd0a7be88d2bebf498376d58ac5b8eb7b44cf361885f5687ac",
+        "binary_sha256": "ff3433c46d16e90f8018afc1fd6c5e635f49bc4dc160b0926674a33edfac6841",
+        "summary": {
+          "selected": 2,
+          "completed": 2,
+          "passed": 2,
+          "failed": 0
+        },
+        "tests": [
+          {
+            "test": "sdk_handles::replacement_video_recovery::signed_replacement_initial_mute_dispatch_uses_exact_held_target_under_registry_contention",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "949f7a9d0c1305b165d96ddc1854ed7a57630f40783058d5c2df7e10ef352ee6",
+            "naturally_joined": true
+          },
+          {
+            "test": "sdk_handles::replacement_video_recovery::signed_private_receiver_epoch_lookup_keeps_registry_contention_retryable",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "e1e0db1603f4941baa1a415dfe6e5abb2d46c7fab72514cfdcf338d76f41e666",
+            "naturally_joined": true
+          }
+        ]
+      },
+      "gate6_canonical_webtransport": {
+        "receipt_sha256": "13467fa0e912631b958bf348c55df70c908a51335471057e96e8817f57ea5441",
+        "binary_sha256": "b60da54733a9afbf71161d36faf5704ba8160d5d8b201437b4b5c65cbf1d81de",
+        "summary": {
+          "selected": 5,
+          "completed": 5,
+          "passed": 5,
+          "failed": 0
+        },
+        "tests": [
+          {
+            "test": "canonical_websocket_control::webrtc::signed_wss_quarantined_sdp_answer_progresses_under_real_domain_writer",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "54599948ec11f9b16fa984c51bd289fcaff65e5c42ab507c69e61cb46778ee4c",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_retirement",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "ddf27dd39750a9f881757aa8df73143f51a778e363e052254d11d0b2e4a97d3a",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::admission::current_withdrawal_after_rtc_media_admission_retires_only_that_route",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "99a5ee69f748c4eb51487b18350671e8d6fff444445688524c5a3b767f7b6a82",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_eddsa",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "04d823f2e34f734f86ad800936dff9d4892ec09ffdd2e141830b7df781b71e27",
+            "naturally_joined": true
+          },
+          {
+            "test": "canonical_websocket_control::webrtc::subscriptions::signed_rtc_ice_restart_recovery_duplex_and_current_authority_es256",
+            "exit_code": 0,
+            "passed": 1,
+            "failed": 0,
+            "log_sha256": "9d2be1ca73a5bbc35649022794a97a0d7ab780c8ae5d1f6525373cc4e087dde8",
+            "naturally_joined": true
+          }
+        ]
+      }
+    },
+    "scope": "Local macOS arm64 synthetic signed controls, native2/2 and RTC5/5 passed; every original selected command naturally joined. No provider rehearsal, decoded full-programme or32-cell qualification.",
+    "limits": "Earlier3/2 source attempt and diagnostic remain preserved. Results do not aggregate across different source freezes."
+  },
+  "latest_verification_key": "batch3_verified"
 }

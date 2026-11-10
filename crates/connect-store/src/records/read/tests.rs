@@ -20,17 +20,35 @@ impl Fixture {
             .issue(&owner, crate::Scope::operator(), crate::now() + 3600)
             .unwrap()
             .id;
-        let c = store.connection().unwrap();
-        c.execute("INSERT INTO conversations(id) VALUES('conv_record')", [])
+        {
+            // Ordinary controlled parent setup. The new CID and both existing
+            // Identity facts have exact real writers, even before the parent row
+            // exists. No reader is held; bind this proof only to the setup SQL.
+            let scopes = vec![
+                crate::AuthorityScope::conversation("conv_record", crate::AuthorityMode::Write)
+                    .unwrap(),
+                crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Write).unwrap(),
+                crate::AuthorityScope::identity(&peer, crate::AuthorityMode::Write).unwrap(),
+            ];
+            let writer = store
+                .acquire_authority(
+                    &scopes,
+                    &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+                )
+                .unwrap();
+            let c = store.connection_with_authority(&writer).unwrap();
+            c.execute("INSERT INTO conversations(id) VALUES('conv_record')", [])
+                .unwrap();
+            c.execute("INSERT INTO participants(conversation_id,identity_id,participant_id,role) VALUES('conv_record',?1,'part_a','participant'),('conv_record',?2,'part_b','participant')",params![owner,peer]).unwrap();
+            c.execute("INSERT INTO sessions(id,conversation_id,initiator_id,participant_id,state,media,created_at,updated_at) VALUES('sess_record','conv_record',?1,?2,'invited','[]',100,100)",params![owner,peer]).unwrap();
+            c.execute(
+                "UPDATE sessions SET state='cancelled' WHERE id='sess_record'",
+                [],
+            )
             .unwrap();
-        c.execute("INSERT INTO participants(conversation_id,identity_id,participant_id,role) VALUES('conv_record',?1,'part_a','participant'),('conv_record',?2,'part_b','participant')",params![owner,peer]).unwrap();
-        c.execute("INSERT INTO sessions(id,conversation_id,initiator_id,participant_id,state,media,created_at,updated_at) VALUES('sess_record','conv_record',?1,?2,'invited','[]',100,100)",params![owner,peer]).unwrap();
-        c.execute(
-            "UPDATE sessions SET state='cancelled' WHERE id='sess_record'",
-            [],
-        )
-        .unwrap();
-        drop(c);
+        }
+        // Finalization owns its own current Record/CID interval, so the setup
+        // writer must already be gone rather than self-blocking that admission.
         let uuid = store.pending_record_intents(1).unwrap().pop().unwrap();
         store.finalize_record_intent(&uuid,|intent| {
    let mut rules=vec![json!({"id":"document","metadata_retention":{"kind":"until-deleted"}}),json!({"id":"session.outcome"}),json!({"id":"session.capture"}),json!({"id":"appearance.0"}),json!({"id":"appearance.1"})];

@@ -82,7 +82,12 @@ pub(crate) fn transition_admission_scopes(
     if let Some(row) = rows::find(c, &tenant, &actor.identity_id, &request.operation_id)? {
         if row.ledger {
             authority::read(c, actor, &row)?;
-            let mut result = if replacement_row(&row)? {
+            let recover_provider = row.native_provider
+                && !row.native_consultation
+                && crate::private_provider::recovery_disposition(c, &row, store)?.is_some();
+            let recover_consultation = row.native_consultation
+                && super::native_consultations::recovery_disposition(c, &row, store)?.is_some();
+            let mut result = if replacement_row(&row)? || recover_provider || recover_consultation {
                 mutation_row_scopes(&row)?
             } else {
                 row_scopes(&row)?
@@ -161,6 +166,25 @@ impl Store {
                 let row = rows::find(&c, &tenant, &actor.identity_id, operation)?
                     .ok_or_else(Error::forbidden)?;
                 authority::read(&c, &actor, &row)?;
+                let recover_return = row.native_return
+                    && super::native_returns::recovery_disposition(&c, &row, self)?.is_some();
+                let recover_provider = row.native_provider
+                    && !row.native_consultation
+                    && crate::private_provider::recovery_disposition(&c, &row, self)?.is_some();
+                let recover_consultation = row.native_consultation
+                    && super::native_consultations::recovery_disposition(&c, &row, self)?.is_some();
+                if recover_return || recover_provider || recover_consultation {
+                    let scopes = mutation_row_scopes(&row)?;
+                    // Signed/retained readers cannot be upgraded in place. The
+                    // original caller must release them before its same Get retry.
+                    if held.is_some_and(|guard| !self.authority_covers(guard, &scopes)) {
+                        return Err(Error::new(
+                            "authority-busy",
+                            "Current authority is busy; retry the same logical operation",
+                        ));
+                    }
+                    return Ok(scopes);
+                }
                 if mutation
                     || required
                         .iter()
@@ -199,6 +223,28 @@ impl Store {
             || {
                 let c = self.connection()?;
                 let actor = actor_from_connection(&c, credential)?;
+                if let Some(row) = rows::find(
+                    &c,
+                    &authority::tenant(&c, &actor)?,
+                    &actor.identity_id,
+                    &request.operation_id,
+                )? {
+                    let recover_provider = row.native_provider
+                        && !row.native_consultation
+                        && crate::private_provider::recovery_disposition(&c, &row, self)?.is_some();
+                    let recover_consultation = row.native_consultation
+                        && super::native_consultations::recovery_disposition(&c, &row, self)?
+                            .is_some();
+                    if recover_provider || recover_consultation {
+                        let needed = mutation_row_scopes(&row)?;
+                        if held.is_some_and(|guard| !self.authority_covers(guard, &needed)) {
+                            return Err(Error::new(
+                                "authority-busy",
+                                "Current authority is busy; retry the same logical operation",
+                            ));
+                        }
+                    }
+                }
                 transition_admission_scopes(self, &c, &actor, request)
             },
         )

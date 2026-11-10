@@ -355,6 +355,25 @@ fn finish(c: &Connection, store: &Store, record: &str) -> Result<OperationRecord
 }
 
 impl Store {
+    // Historical outcome custody is independent of renewed IO permission.
+    // Derive only the original row footprint, drop SQL, then acquire its real
+    // Writer; the opaque captured source is checked again inside the caller TX.
+    fn native_dtmf_history_sql(
+        &self,
+        source: &Source,
+    ) -> Result<(
+        Arc<crate::AuthorityGuardSet>,
+        crate::installation_ownership::ConnectionGuard<'_>,
+    )> {
+        let scopes = {
+            let c = self.try_connection()?;
+            admission::mutation_row_scopes(&historical(&c, self, source)?)?
+        };
+        let held = self.try_acquire_authority(&scopes)?;
+        let c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
+        Ok((held, c))
+    }
     /// Select only currently permitted original recipients using the existing
     /// invocation interval. This returns metadata, never a queued IO grant.
     pub fn select_native_dtmf_recipients_with_peer(
@@ -620,11 +639,14 @@ impl Store {
         target: &NativeDtmfTarget,
         disposition: Disposition,
     ) -> Result<()> {
-        let mut c = self.try_connection()?;
+        let (held, mut c) = self.native_dtmf_history_sql(&target.source)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        historical(&tx, self, &target.source)?;
+        let row = historical(&tx, self, &target.source)?;
+        if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+            return Err(Error::forbidden());
+        }
         outcome(
             &tx,
             self,
@@ -636,13 +658,16 @@ impl Store {
         tx.commit().map_err(|_| Error::storage())
     }
     /// Call only after all owned recipient jobs stopped and their local facts
-    /// were durably recorded. This consumes no new authority and performs no IO.
+    /// were durably recorded. This needs no renewed IO permission and performs no IO.
     pub fn finish_native_dtmf(&self, batch: &NativeDtmfBatch) -> Result<OperationRecord> {
-        let mut c = self.try_connection()?;
+        let (held, mut c) = self.native_dtmf_history_sql(&batch.source)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        historical(&tx, self, &batch.source)?;
+        let row = historical(&tx, self, &batch.source)?;
+        if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+            return Err(Error::forbidden());
+        }
         let result = finish(&tx, self, &batch.source.record)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(result)
@@ -654,12 +679,9 @@ impl Store {
             return Err(invalid());
         }
         let owner = self.require_runtime_owner()?;
-        let mut c = self.connection()?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
-        let records = {
-            let mut q=tx.prepare("SELECT d.operation_record_id FROM native_dtmf_sources d JOIN operations o ON o.record_id=d.operation_record_id JOIN native_stream_operations n ON n.operation_record_id=o.record_id WHERE n.closed=0 AND (d.runtime_epoch!=?1 OR o.expires_at<=?2) ORDER BY d.operation_record_id LIMIT ?3").map_err(|_|Error::storage())?;
+        let (records, scopes) = {
+            let c = self.try_connection()?;
+            let mut q=c.prepare("SELECT d.operation_record_id FROM native_dtmf_sources d JOIN operations o ON o.record_id=d.operation_record_id JOIN native_stream_operations n ON n.operation_record_id=o.record_id WHERE n.closed=0 AND (d.runtime_epoch!=?1 OR o.expires_at<=?2) ORDER BY d.operation_record_id LIMIT ?3").map_err(|_|Error::storage())?;
             let rows = q
                 .query_map(params![self.runtime_epoch(), crate::now(), limit], |r| {
                     r.get::<_, String>(0)
@@ -667,9 +689,38 @@ impl Store {
                 .map_err(|_| Error::storage())?
                 .collect::<rusqlite::Result<Vec<_>>>()
                 .map_err(|_| Error::storage())?;
-            rows
+            let mut scopes = Vec::new();
+            for id in &rows {
+                scopes.extend(admission::mutation_row_scopes(&rows::by_record(&c, id)?)?);
+            }
+            (rows, scopes)
         };
+        if records.is_empty() {
+            return if owner.current() {
+                Ok(0)
+            } else {
+                Err(Error::forbidden())
+            };
+        }
+        let held = self.try_acquire_authority(&scopes)?;
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        let mut recovered = 0;
         for record in &records {
+            let row = rows::by_record(&tx, record)?;
+            if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+                return Err(Error::forbidden());
+            }
+            let eligible: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM native_dtmf_sources d JOIN operations o ON o.record_id=d.operation_record_id JOIN native_stream_operations n ON n.operation_record_id=o.record_id WHERE o.record_id=?1 AND n.closed=0 AND (d.runtime_epoch!=?2 OR o.expires_at<=?3))",
+                params![record,self.runtime_epoch(),crate::now()], |r| r.get(0),
+            ).map_err(|_| Error::storage())?;
+            if !eligible {
+                continue;
+            }
             let pending = {
                 let mut q=tx.prepare("SELECT target_record_id,attempted FROM native_dtmf_deliveries WHERE operation_record_id=?1 AND disposition IS NULL ORDER BY target_record_id").map_err(|_|Error::storage())?;
                 let rows = q
@@ -696,11 +747,12 @@ impl Store {
                 )?;
             }
             finish(&tx, self, record)?;
+            recovered += 1;
         }
         if !owner.current() {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(records.len() as u32)
+        Ok(recovered)
     }
 }

@@ -121,7 +121,7 @@ impl Store {
             crate::authority_admission::runtime::PROVIDER_JOB,
             &[&receipt.observation.mutation_id],
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -403,7 +403,7 @@ impl Store {
     ) -> Result<String> {
         let authority =
             self.runtime_query_authority(crate::authority_admission::runtime::ROUTE, &[&route_id])?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

@@ -388,10 +388,10 @@ fn native_dtmf_acceptance_cannot_lend_old_authority_to_a_later_signal_attempt() 
     ] {
         let (f, request) = fixture(true, true);
         let accepted = accept(&f, &request);
-        let proof = admit(&f, &request).unwrap();
+        drop(admit(&f, &request).unwrap());
         // Controlled current Store facts. Actual transport/key-loss IO belongs
         // to the production integration tests, not this source-custody fixture.
-        let c = f.store.connection().unwrap();
+        let c = f.change_fixture();
         match loss {
             "permission" => c.execute("UPDATE credentials SET operations='[\"connect:control\",\"connection.offer\"]' WHERE id=?1", [&f.keys[0]]),
             "credential" => c.execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[0]]),
@@ -402,12 +402,14 @@ fn native_dtmf_acceptance_cannot_lend_old_authority_to_a_later_signal_attempt() 
             _ => c.execute("UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id='connection-native'", []),
         }.unwrap();
         drop(c);
-        assert!(
-            f.store
-                .begin_native_stream_with_peer(&f.keys[0], &proof)
-                .is_err(),
-            "{loss}"
-        );
+        if let Ok(proof) = admit(&f, &request) {
+            assert!(
+                f.store
+                    .begin_native_stream_with_peer(&f.keys[0], &proof)
+                    .is_err(),
+                "{loss}"
+            );
+        }
         let c = f.store.connection().unwrap();
         let state: String = c
             .query_row(

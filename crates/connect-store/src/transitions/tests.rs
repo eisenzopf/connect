@@ -89,7 +89,22 @@ impl Fixture {
         // Trusted, isolated adapter rows. These qualify store fencing/transactions,
         // not physical media readiness; no network or provider is contacted.
         {
-            let c = store.connection().unwrap();
+            let scopes = {
+                let c = store.connection().unwrap();
+                crate::authority_admission::conversation_scopes(
+                    &c,
+                    &conv.id,
+                    crate::AuthorityMode::Write,
+                )
+                .unwrap()
+            };
+            let writer = store
+                .acquire_authority(
+                    &scopes,
+                    &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+                )
+                .unwrap();
+            let c = store.connection_with_authority(&writer).unwrap();
             for n in 0..3 {
                 let device = format!("dev-{n}");
                 let ep = format!("ep-{n}");

@@ -24,7 +24,11 @@ pub(super) fn fixture() -> (
         .unwrap()
         .id;
     let request = {
-        let c = f.store.connection().unwrap();
+        // The parent returns immutable origins, not idle Read guards. These
+        // ordinary Device/Endpoint/Session facts still require the real actor
+        // Identity and complete Conversation Write, bound to this SQL unit.
+        let writer = f.controlled_conversation_writer(1);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute("INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES('signal-phone-device',?1,'tnt_default','phone','isolated-fixture')", [&identity]).unwrap();
         c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) VALUES('signal-phone',?1,'tnt_default','signal-phone-device','telephone','+15555550111','[\"audio\"]','verified','controlled-fixture',?2,'signal-trunk',?3)",params![identity,crate::now(),route_owner]).unwrap();
         let saved = crate::operations::receipts::receipt(&c, &route_owner, "invite")
@@ -102,14 +106,14 @@ pub(super) fn fixture() -> (
     (f, native, phone)
 }
 fn operations(f: &Fixture, actor: usize, names: &[&str]) {
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE credentials SET operations=?2 WHERE id=?1",
-            params![f.keys[actor], serde_json::to_string(names).unwrap()],
-        )
-        .unwrap();
+    let identity = f.store.revalidate(&f.keys[actor]).unwrap().identity_id;
+    let writer = f.store.write_identity_authority(&identity).unwrap();
+    let c = f.store.connection_with_authority(&writer).unwrap();
+    c.execute(
+        "UPDATE credentials SET operations=?2 WHERE id=?1",
+        params![f.keys[actor], serde_json::to_string(names).unwrap()],
+    )
+    .unwrap();
 }
 
 #[test]
@@ -268,7 +272,8 @@ fn sip_native_signal_pair_rechecks_native_physical_authority_and_both_recipient_
         "native-endpoint",
     ] {
         let (f, native, phone) = fixture();
-        let c = f.store.connection().unwrap();
+        let writer = f.controlled_conversation_writer(0);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         match fault {
             "native-recipients" => c.execute("UPDATE credentials SET recipients='[]' WHERE id=?1", [&f.keys[0]]),
             "phone-recipients" => c.execute("UPDATE credentials SET recipients='[]' WHERE id=?1", [&f.keys[1]]),
@@ -281,6 +286,7 @@ fn sip_native_signal_pair_rechecks_native_physical_authority_and_both_recipient_
             _ => unreachable!(),
         }.unwrap();
         drop(c);
+        drop(writer);
         for direction in [FromTelephone, ToTelephone] {
             assert!(
                 f.store

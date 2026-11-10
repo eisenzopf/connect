@@ -87,6 +87,15 @@ struct UpdateRequest {
     operation_id: String,
     reply: oneshot::Sender<Result<String>>,
 }
+// Hand only a pinned pointer to Tokio's generic spawn boundary. The owned
+// context/media task can be large; letting spawn receive that future by value
+// adds another large construction/copy frame before Tokio boxes it itself.
+type OwnedContextWork = std::pin::Pin<Box<dyn Future<Output = Result<()>> + Send + 'static>>;
+fn owned_context_work(work: impl Future<Output = Result<()>> + Send + 'static) -> OwnedContextWork {
+    Box::pin(work)
+}
+#[cfg(test)]
+mod owned_work_tests;
 impl AssistantVapiContextSession {
     pub async fn start(
         service: Arc<Service>,
@@ -174,7 +183,7 @@ impl AssistantVapiContextSession {
             native: AtomicBool::new(audio.is_none()),
         });
         let completed = cleanup.clone();
-        let task = tokio::spawn(async move {
+        let task = tokio::spawn(owned_context_work(async move {
             let mut result = run(
                 service,
                 context,
@@ -202,7 +211,7 @@ impl AssistantVapiContextSession {
                 problem: result.as_ref().err().map(|e| e.code.clone()),
             });
             result
-        });
+        }));
         Ok(Self {
             delivery,
             cleanup,
@@ -578,9 +587,15 @@ async fn run(
     };
     // Retain the captured call and secret through cleanup even if context grants
     // or native liveness were lost. This phase can only end that original call.
-    let s = service.store.clone();
-    let p = created.clone();
-    let end = blocking(move || s.begin_native_assistant_end(&p)).await?;
+    // Only pre-reservation metadata contention retries. The existing retry
+    // owns one five-second budget and stops as soon as this original end exists.
+    // No provider command or post-reservation deadline is repeated/renewed.
+    let end = retry(|| {
+        let s = service.store.clone();
+        let p = created.clone();
+        blocking(move || s.begin_native_assistant_end(&p))
+    })
+    .await?;
     if ws.is_none() && allowed {
         ws = tokio::time::timeout(
             Duration::from_secs(2),

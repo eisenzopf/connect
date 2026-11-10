@@ -35,8 +35,12 @@ fn fixture_for(
         .native_media_origin_with_peer(&f.keys[actor], &proof, &target_lease)
         .unwrap();
     let writer = f.store.native_data_writer(&origin).unwrap();
+    // Preparation owns an actual Read. Release it before independent
+    // controlled readiness setup; retained origins/writer tokens are metadata.
+    drop(proof);
     {
-        let c = f.store.connection().unwrap();
+        let setup_writer = f.controlled_conversation_writer(actor);
+        let c = f.store.connection_with_authority(&setup_writer).unwrap();
         c.execute(
             "UPDATE operation_effects SET state='confirmed' WHERE id=?1",
             [target_lease.effect_id()],
@@ -50,7 +54,6 @@ fn fixture_for(
         c.execute("UPDATE connections SET state='ready',revision=1,observed_runtime_id=?2,readiness_json=?3 WHERE id=?1",params![origin.connection_id(),f.store.runtime_epoch(),json!({"streams":["application-in"],"stream_revision":1,"participant_revision":1}).to_string()]).unwrap();
         c.execute("INSERT INTO native_connection_lifetimes(operation_record_id,connection_id,runtime_epoch,generation) VALUES(?1,?2,?3,?4)",params![target_lease.record_id(),origin.connection_id(),f.store.runtime_epoch(),origin.generation()]).unwrap();
     }
-    drop(proof);
     let proof = admit(&f, &request).unwrap();
     f.store
         .accept_native_stream_with_peer(&f.keys[0], &proof)
@@ -192,7 +195,7 @@ fn native_data_writer_historical_fact_survives_cancel_revocation_and_retired_tar
         )
         .unwrap();
     {
-        let c = f.store.connection().unwrap();
+        let c = f.change_fixture();
         c.execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[1]])
             .unwrap();
         c.execute(

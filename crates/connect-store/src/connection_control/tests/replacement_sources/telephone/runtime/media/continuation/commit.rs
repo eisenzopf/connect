@@ -1,6 +1,44 @@
 //! Controlled journal captures; physical movement is qualified by production fixtures.
 use super::*;
 mod signal;
+// Ordinary controlled mutation uses actual coordinated scopes and the bound
+// SQL Unit. Extra keys name independent carrier principals; original fixture
+// keys remain included after membership/permission withdrawal. No test grant
+// or immutable-trigger bypass is introduced.
+fn fixture_change<'a>(
+    f: &'a Fixture,
+    extra_keys: &[&str],
+) -> crate::installation_ownership::ConnectionGuard<'a> {
+    let scopes = {
+        let c = f.store.connection().unwrap();
+        let mut scopes = crate::authority_admission::conversation_scopes(
+            &c,
+            &f.cid,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap();
+        for key in f
+            .keys
+            .iter()
+            .map(String::as_str)
+            .chain(extra_keys.iter().copied())
+        {
+            let identity: String = c
+                .query_row(
+                    "SELECT identity_id FROM credentials WHERE id=?1",
+                    [key],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            scopes.push(
+                crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write).unwrap(),
+            );
+        }
+        scopes
+    };
+    let writer = f.store.try_acquire_authority(&scopes).unwrap();
+    f.store.connection_with_authority(&writer).unwrap()
+}
 fn prepared(
     f: &Fixture,
     origin: &NativeReplacementOrigin,
@@ -15,7 +53,11 @@ fn prepared(
             .unwrap();
         let a = f
             .store
-            .begin_telephone_replacement_phase(&read, phase)
+            .begin_telephone_replacement_phase(read, phase)
+            .unwrap();
+        let read = f
+            .store
+            .try_telephone_replacement_phase_attempt_read(a.clone())
             .unwrap();
         let name = match phase {
             Step::Attach => "attach",
@@ -55,14 +97,7 @@ fn attempt(
         .store
         .try_telephone_replacement_scene_read(resources, sources)
         .unwrap();
-    let a = f.store.begin_telephone_replacement_commit(&read).unwrap();
-    assert_eq!(
-        f.store
-            .begin_telephone_replacement_commit(&read)
-            .unwrap_err()
-            .code,
-        "reconciliation-required"
-    );
+    let (a, read) = f.store.begin_telephone_replacement_commit(read).unwrap();
     let mut revisions = std::collections::BTreeMap::new();
     for source in sources {
         let before:u64=f.store.connection().unwrap().query_row("SELECT json_extract(readiness_json,'$.stream_revision') FROM connections WHERE id=?1",[source.connection_id()],|r|r.get(0)).unwrap();
@@ -77,7 +112,13 @@ fn attempt(
             read.capture_commit_revisions(revisions).unwrap(),
         )
         .unwrap();
-    drop(read);
+    assert_eq!(
+        f.store
+            .begin_telephone_replacement_commit(read)
+            .unwrap_err()
+            .code,
+        "reconciliation-required"
+    );
     (a, capture)
 }
 #[test]
@@ -90,7 +131,7 @@ fn telephone_commit_requires_confirmed_private_readiness_and_never_begins_twice(
         .unwrap();
     assert_eq!(
         f.store
-            .begin_telephone_replacement_commit(&read)
+            .begin_telephone_replacement_commit(read)
             .unwrap_err()
             .code,
         "not-ready"
@@ -143,9 +184,7 @@ fn telephone_commit_records_actual_capture_before_projection_and_established_rea
         revision
     );
     let old = caller(&f, &origin);
-    f.store
-        .connection()
-        .unwrap()
+    fixture_change(&f, &[&old])
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id IN (?1,?2)",
             params![old, f.keys[0]],
@@ -156,9 +195,7 @@ fn telephone_commit_records_actual_capture_before_projection_and_established_rea
         .try_telephone_media_read(established.clone())
         .unwrap()
         .current());
-    f.store
-        .connection()
-        .unwrap()
+    fixture_change(&f, &[&key])
         .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&key])
         .unwrap();
     assert!(f.store.try_telephone_media_read(established).is_err());
@@ -311,9 +348,7 @@ fn telephone_established_pair_requires_independent_named_subscribe_and_both_reci
     assert_eq!(pair.permits_native_receive(), native_permission);
     let logical = pair.telephone().member().identity_id.clone();
     drop(pair);
-    f.store
-        .connection()
-        .unwrap()
+    fixture_change(&f, &[&key])
         .execute(
             "UPDATE credentials SET operations='[\"sip_dial\"]' WHERE id=?1",
             [&key],
@@ -326,9 +361,7 @@ fn telephone_established_pair_requires_independent_named_subscribe_and_both_reci
     assert!(!pair.permits_telephone_receive());
     assert_eq!(pair.permits_native_receive(), native_permission);
     drop(pair);
-    f.store
-        .connection()
-        .unwrap()
+    fixture_change(&f, &[&key])
         .execute(
             "UPDATE credentials SET recipients=?2 WHERE id=?1",
             params![key, json!([logical]).to_string()],
@@ -343,9 +376,7 @@ fn telephone_established_pair_requires_independent_named_subscribe_and_both_reci
         .store
         .try_telephone_native_media_read(established.clone(), sources[1].clone())
         .is_err());
-    f.store
-        .connection()
-        .unwrap()
+    fixture_change(&f, &[&key])
         .execute(
             "UPDATE credentials SET recipients='[\"*\"]' WHERE id=?1",
             [&key],
@@ -355,9 +386,7 @@ fn telephone_established_pair_requires_independent_named_subscribe_and_both_reci
         let c = f.store.connection().unwrap();
         f.store.native_media_route_actor(&c, &sources[1]).unwrap()
     };
-    f.store
-        .connection()
-        .unwrap()
+    fixture_change(&f, &[&native_actor.credential_id])
         .execute(
             "UPDATE credentials SET recipients='[]' WHERE id=?1",
             [&native_actor.credential_id],
@@ -410,7 +439,7 @@ fn native_selection(
     request
 }
 fn grant_native_subscription(f: &Fixture) {
-    f.store.connection().unwrap().execute("UPDATE credentials SET operations=json_insert(operations,'$[#]','stream.subscribe') WHERE id=?1",[&f.keys[1]]).unwrap();
+    fixture_change(f, &[]).execute("UPDATE credentials SET operations=json_insert(operations,'$[#]','stream.subscribe') WHERE id=?1",[&f.keys[1]]).unwrap();
 }
 #[test]
 fn telephone_stream_pair_uses_exact_signed_attempt_and_independent_receive_permissions() {
@@ -424,9 +453,7 @@ fn telephone_stream_pair_uses_exact_signed_attempt_and_independent_receive_permi
         .project_telephone_replacement_committed(&capture)
         .unwrap();
     grant_native_subscription(&f);
-    f.store
-        .connection()
-        .unwrap()
+    fixture_change(&f, &[&key])
         .execute(
             "UPDATE credentials SET operations='[\"sip_dial\"]' WHERE id=?1",
             [&key],
@@ -903,4 +930,75 @@ fn telephone_role_read_retains_one_complete_interval_behind_queued_route_revocat
             s.membership_epoch
         )
         .is_err());
+}
+
+#[test]
+fn telephone_commit_consumes_planning_read_and_keeps_only_original_short_cut_writer() {
+    let (f, origin, sources, _, key) = setup_runtime(true);
+    let resources = prepared(&f, &origin, &sources, &key);
+    let alias = f
+        .store
+        .try_telephone_replacement_scene_read(resources.clone(), &sources)
+        .unwrap();
+    let planning = f
+        .store
+        .try_telephone_replacement_scene_read(resources.clone(), &sources)
+        .unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(
+        f.store
+            .begin_telephone_replacement_commit(planning)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    assert!(alias.current());
+    drop(alias);
+    let planning = f
+        .store
+        .try_telephone_replacement_scene_read(resources, &sources)
+        .unwrap();
+    let until = planning.expires_at();
+    let (attempt, cut) = f
+        .store
+        .begin_telephone_replacement_commit(planning)
+        .unwrap();
+    assert!(cut.current() && cut.expires_at() <= until);
+    let scope = crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Read).unwrap();
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[scope.clone()])
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    let row: (u64, String) = f.store.connection().unwrap().query_row("SELECT COUNT(*),e.state FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1 AND s.phase='commit'", [origin.record_id()], |row| Ok((row.get(0)?,row.get(1)?))).unwrap();
+    assert_eq!(row, (1, "submitting".into()));
+    drop(cut);
+    assert!(
+        f.store.try_acquire_authority(&[scope]).is_ok(),
+        "no Writer hidden in immutable attempt"
+    );
+    let uncertain = attempt.uncertain();
+    let sql = f.store.connection().unwrap();
+    assert_eq!(
+        f.store
+            .record_telephone_replacement_commit_uncertain(&uncertain)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(sql);
+    let recorded = f
+        .store
+        .record_telephone_replacement_commit_uncertain(&uncertain)
+        .unwrap();
+    assert_eq!(recorded.state, OperationState::Unknown);
+    assert_eq!(
+        f.store
+            .record_telephone_replacement_commit_uncertain(&uncertain)
+            .unwrap(),
+        recorded
+    );
 }

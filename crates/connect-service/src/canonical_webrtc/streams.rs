@@ -1,6 +1,7 @@
 //! Signed routing commands on the original RTC owner. No native counteroffer.
 use super::*;
 use crate::canonical_media::streams::Plan;
+use crate::canonical_native_streams::CapturedStreamOutcome;
 use connect_store::NativeStreamProjection;
 use rvoip_core::{
     ids::{ParticipantId, StreamId},
@@ -397,113 +398,118 @@ impl Runtime {
                     (lease.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64
                 ),
         );
-        let ready = self
-            .native_preflight(&a, deadline, || {
-                self.rtc_stream_source(&a, &physical, &credential)?;
-                store.validate_native_stream_attempt(&credential, proof(&a)?, &lease)?;
-                plan.clone()
-                    .map(|plan| {
-                        self.media
-                            .stream_invocation(a.clone(), plan, &lease, deadline)
-                    })
-                    .transpose()
-            })
-            .await;
-        let invocation = match ready {
-            Ok(i) => i,
-            Err(e) => {
-                let _ = tx.send(store.fail_native_stream_without_effect(lease, e).map(reply));
-                return;
-            }
-        };
-        let receipt = if let (Some(invocation), Some(plan)) = (invocation, plan) {
-            let outcome = tokio::select! {
-                biased;
-                _=self.stop.cancelled()=>Err(Error::forbidden()),
-                r=async {
-                    match plan {
-                        Plan::RtcSubscriptions(plan) => self.core.change_staged_media_subscriptions(&sid, &id, plan.expected_revision(), plan.routing().clone(), deadline, a.invocation_cancellation(), Some(invocation.as_ref())).await.map(RtcOutcome::Subscriptions).map_err(engine_error),
-                        Plan::RtcGates(plan) => {
-                            let controller = self.webrtc.get().and_then(|h| h.adapter().staged_controller(&id)).ok_or_else(Error::forbidden)?;
-                            controller.set_media_gate_with_held(plan.expected, &plan.streams, plan.action, deadline, invocation.clone()).await.map(|(revision, streams)| RtcOutcome::Gates(revision, streams)).map_err(|error| engine_error(ParticipantControlError::Media(error)))
-                        }
-                        _ => Err(Error::forbidden()),
-                    }
-                }=>r,
+        let captured = 'captured: {
+            let ready = self
+                .native_preflight(&a, deadline, || {
+                    self.rtc_stream_source(&a, &physical, &credential)?;
+                    store.validate_native_stream_attempt(&credential, proof(&a)?, &lease)?;
+                    plan.clone()
+                        .map(|plan| {
+                            self.media
+                                .stream_invocation(a.clone(), plan, &lease, deadline)
+                        })
+                        .transpose()
+                })
+                .await;
+            let invocation = match ready {
+                Ok(i) => i,
+                Err(e) => {
+                    break 'captured CapturedStreamOutcome::NoEffect(lease.without_effect(e));
+                }
             };
-            drop(invocation);
-            let observed = match outcome {
+            let receipt = if let (Some(invocation), Some(plan)) = (invocation, plan) {
+                let outcome = tokio::select! {
+                    biased;
+                    _=self.stop.cancelled()=>Err(Error::forbidden()),
+                    r=async {
+                        match plan {
+                            Plan::RtcSubscriptions(plan) => self.core.change_staged_media_subscriptions(&sid, &id, plan.expected_revision(), plan.routing().clone(), deadline, a.invocation_cancellation(), Some(invocation.as_ref())).await.map(RtcOutcome::Subscriptions).map_err(engine_error),
+                            Plan::RtcGates(plan) => {
+                                let controller = self.webrtc.get().and_then(|h| h.adapter().staged_controller(&id)).ok_or_else(Error::forbidden)?;
+                                controller.set_media_gate_with_held(plan.expected, &plan.streams, plan.action, deadline, invocation.clone()).await.map(|(revision, streams)| RtcOutcome::Gates(revision, streams)).map_err(|error| engine_error(ParticipantControlError::Media(error)))
+                            }
+                            _ => Err(Error::forbidden()),
+                        }
+                    }=>r,
+                };
+                drop(invocation);
+                let observed = match outcome {
+                    Ok(r) => r,
+                    Err(error) => {
+                        tracing::debug!(
+                            ?error,
+                            "RTC original stream effect requires reconciliation"
+                        );
+                        break 'captured CapturedStreamOutcome::Uncertain(lease);
+                    }
+                };
+                match observed {
+                    RtcOutcome::Gates(revision, streams) => {
+                        match crate::canonical_native_streams::gate_streams(
+                            &streams,
+                            lease.generation(),
+                        ) {
+                            Ok(streams) => lease.gates_committed(revision, streams),
+                            Err(error) => {
+                                tracing::debug!(
+                                    ?error,
+                                    "RTC gate observation could not be captured"
+                                );
+                                break 'captured CapturedStreamOutcome::Uncertain(lease);
+                            }
+                        }
+                    }
+                    RtcOutcome::Subscriptions(revision) => {
+                        let projection = self
+                            .webrtc
+                            .get()
+                            .and_then(|h| h.adapter().staged_controller(&id))
+                            .and_then(|c| {
+                                if c.revision() != revision {
+                                    return None;
+                                }
+                                let bindings = c.active_bindings();
+                                (c.revision() == revision)
+                                    .then(|| {
+                                        crate::canonical_native_streams::codec_bindings(&bindings)
+                                            .ok()
+                                    })
+                                    .flatten()
+                            });
+                        tracing::debug!(target: "connect_service::canonical_webrtc", revision, projection_available = projection.is_some(), "RTC subscription returned; capturing original receipt");
+                        lease.committed(revision, false, projection)
+                    }
+                }
+            } else {
+                // The lease and original RTC route remain owned across the actual
+                // close/join. Only its returned success plus confirmed absence may
+                // become an ended receipt; cancellation or timeout stays uncertain.
+                let outcome = tokio::select! { biased;
+                    _=self.stop.cancelled()=>Err(Error::forbidden()),
+                    _=tokio::time::sleep_until(deadline)=>Err(Error::new("reconciliation-required", "RTC termination is uncertain")),
+                    r=self.core.end_connection(id.clone(), EndReason::Normal)=>r.map_err(|_| Error::new("reconciliation-required", "RTC termination is uncertain")),
+                };
+                if outcome.is_err() || self.native_connection_live(&id) {
+                    break 'captured CapturedStreamOutcome::Uncertain(lease);
+                }
+                let absent = RtcAbsent {
+                    adapter: self.webrtc.get().map(|h| h.adapter()),
+                    id,
+                    generation: lease.generation(),
+                };
+                lease.ended(&absent)
+            };
+            let receipt = match receipt {
                 Ok(r) => r,
-                Err(error) => {
-                    tracing::debug!(?error, "RTC original stream effect requires reconciliation");
-                    let _ = tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
+                Err(e) => {
+                    tracing::debug!(target: "connect_service::canonical_webrtc", code = %e.code, "RTC original stream result could not be captured");
+                    let _ = tx.send(Err(e));
                     return;
                 }
             };
-            match observed {
-                RtcOutcome::Gates(revision, streams) => {
-                    match crate::canonical_native_streams::gate_streams(
-                        &streams,
-                        lease.generation(),
-                    ) {
-                        Ok(streams) => lease.gates_committed(revision, streams),
-                        Err(error) => {
-                            let _ =
-                                tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
-                            tracing::debug!(?error, "RTC gate observation could not be captured");
-                            return;
-                        }
-                    }
-                }
-                RtcOutcome::Subscriptions(revision) => {
-                    let projection = self
-                        .webrtc
-                        .get()
-                        .and_then(|h| h.adapter().staged_controller(&id))
-                        .and_then(|c| {
-                            if c.revision() != revision {
-                                return None;
-                            }
-                            let bindings = c.active_bindings();
-                            (c.revision() == revision)
-                                .then(|| {
-                                    crate::canonical_native_streams::codec_bindings(&bindings).ok()
-                                })
-                                .flatten()
-                        });
-                    tracing::debug!(target: "connect_service::canonical_webrtc", revision, projection_available = projection.is_some(), "RTC subscription returned; capturing original receipt");
-                    lease.committed(revision, false, projection)
-                }
-            }
-        } else {
-            // The lease and original RTC route remain owned across the actual
-            // close/join. Only its returned success plus confirmed absence may
-            // become an ended receipt; cancellation or timeout stays uncertain.
-            let outcome = tokio::select! { biased;
-                _=self.stop.cancelled()=>Err(Error::forbidden()),
-                _=tokio::time::sleep_until(deadline)=>Err(Error::new("reconciliation-required", "RTC termination is uncertain")),
-                r=self.core.end_connection(id.clone(), EndReason::Normal)=>r.map_err(|_| Error::new("reconciliation-required", "RTC termination is uncertain")),
-            };
-            if outcome.is_err() || self.native_connection_live(&id) {
-                let _ = tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
-                return;
-            }
-            let absent = RtcAbsent {
-                adapter: self.webrtc.get().map(|h| h.adapter()),
-                id,
-                generation: lease.generation(),
-            };
-            lease.ended(&absent)
+            CapturedStreamOutcome::Committed(receipt)
         };
-        let receipt = match receipt {
-            Ok(r) => r,
-            Err(e) => {
-                tracing::debug!(target: "connect_service::canonical_webrtc", code = %e.code, "RTC original stream result could not be captured");
-                let _ = tx.send(Err(e));
-                return;
-            }
-        };
-        match store.complete_native_stream(&receipt) {
+        match captured.record(store) {
             Ok(record) => {
                 let _ = tx.send(Ok(reply(record)));
                 return;
@@ -517,14 +523,7 @@ impl Runtime {
         drop(a);
         drop(physical);
         drop(credential);
-        loop {
-            tokio::select! { _=self.stop.cancelled()=>return, _=tokio::time::sleep(Duration::from_millis(100))=>{} }
-            match store.complete_native_stream(&receipt) {
-                Ok(_) => return,
-                Err(e) if e.code == "forbidden" => return,
-                Err(_) => (),
-            }
-        }
+        captured.settle(store, &self.stop).await;
     }
 }
 

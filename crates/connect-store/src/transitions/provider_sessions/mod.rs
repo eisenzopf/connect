@@ -94,14 +94,21 @@ pub enum ProviderSessionVoiceAction {
     ResolveQuarantine,
     End,
 }
-/// One bounded dispatch to an exact captured resource. No public constructor.
+// Only Granted retains a current creation grant. A refused fresh admission
+// still owns the original reserved attempt, and can only become no-effect.
+enum DispatchAdmission {
+    Granted(Arc<AuthorityGuardSet>),
+    Refused(Error),
+    OriginalResource,
+}
+/// One bounded attempt to an exact captured resource. No public constructor.
 pub struct ProviderSessionVoiceDispatch {
     origin: ProviderSessionVoiceOrigin,
     action: ProviderSessionVoiceAction,
     provider_id: Option<String>,
     control_url: Option<String>,
     quarantine: Option<quarantine::Ticket>,
-    _authority: Option<Arc<AuthorityGuardSet>>,
+    admission: DispatchAdmission,
     expires: i64,
     owner: Arc<InstallationOwnership>,
     manager: Arc<crate::authority_fences::Manager>,

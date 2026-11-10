@@ -37,6 +37,24 @@ fn proof(a: &AuthorizedEnvelope) -> Result<&connect_store::PeerAuthorityGuard> {
         .and_then(|a| a.peer_guard())
         .ok_or_else(Error::forbidden)
 }
+// One finite control-stage observation on the original error path. No payload,
+// identity, new admission, retry or timing budget is introduced.
+fn allocation_refused(stage: &'static str, error: Error) -> Error {
+    let code = match error.code.as_str() {
+        "authority-busy" => "authority-busy",
+        "authority-unavailable" => "authority-unavailable",
+        "storage-unavailable" => "storage-unavailable",
+        "not-ready" => "not-ready",
+        "forbidden" => "forbidden",
+        "conflict" => "conflict",
+        "capacity-exceeded" => "capacity-exceeded",
+        "reconciliation-required" => "reconciliation-required",
+        _ => "other",
+    };
+    tracing::debug!(target: "connect_service::canonical_replacement::allocation",
+        stage, code, "Original replacement allocation refused");
+    error
+}
 impl Runtime {
     pub(crate) async fn allocate_native_replacement(
         self: &Arc<Self>,
@@ -44,10 +62,14 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: &str,
     ) -> Result<Reply> {
+        tracing::debug!(target: "connect_service::canonical_replacement::allocation",
+            stage="entry", "Original replacement allocation entered");
         let authority = a
             .authority::<StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
-        physical.validate(&a, authority)?;
+        physical
+            .validate(&a, authority)
+            .map_err(|error| allocation_refused("preflight-physical", error))?;
         let intent = crate::canonical_native::intent(a.envelope())?;
         let record = intent.offer["replacement_preparation"]["operation_record_id"]
             .as_str()
@@ -59,23 +81,33 @@ impl Runtime {
         let saved = self
             .replacements
             .lock()
-            .map_err(|_| Error::storage())?
+            .map_err(|_| allocation_refused("preflight-owner-registry", Error::storage()))?
             .get(record)
             .cloned()
             .filter(|saved| saved.recorded.load(Ordering::Acquire))
-            .ok_or_else(|| Error::new("not-ready", "Original preparation is not recorded"))?;
+            .ok_or_else(|| {
+                allocation_refused(
+                    "preflight-prepared",
+                    Error::new("not-ready", "Original preparation is not recorded"),
+                )
+            })?;
         let _roles = self.role_projection.try_lock().map_err(|_| {
-            Error::new(
-                "not-ready",
-                "Replacement scene coordinator is busy before original effect",
+            allocation_refused(
+                "preflight-role",
+                Error::new(
+                    "not-ready",
+                    "Replacement scene coordinator is busy before original effect",
+                ),
             )
         })?;
-        physical.validate(&a, authority)?;
+        physical
+            .validate(&a, authority)
+            .map_err(|error| allocation_refused("preflight-physical", error))?;
         let previous = {
             saved
                 .allocated
                 .lock()
-                .map_err(|_| Error::storage())?
+                .map_err(|_| allocation_refused("preflight-owner-registry", Error::storage()))?
                 .clone()
         };
         if let Some(previous) = previous {
@@ -93,7 +125,8 @@ impl Runtime {
             // This is only exact captured metadata replay, not a Core scene cut.
             drop(_roles);
             self.record_allocated_replacement_with_peer(&previous, a.clone())
-                .await?;
+                .await
+                .map_err(|error| allocation_refused("replay-capture", error))?;
             let store = self.media.store.clone();
             let a = a.clone();
             let key = credential.to_owned();
@@ -101,7 +134,8 @@ impl Runtime {
             let record = store_call(move || {
                 store.replay_native_replacement_allocation_with_peer(&receipt, &key, proof(&a)?)
             })
-            .await?;
+            .await
+            .map_err(|error| allocation_refused("replay-read", error))?;
             return Ok(Reply {
                 record,
                 answered: false,
@@ -123,7 +157,8 @@ impl Runtime {
             store_call(move || {
                 store.native_replacement_allocation_read_with_peer(&receipt, &key, proof(&a)?)
             })
-            .await?
+            .await
+            .map_err(|error| allocation_refused("read", error))?
         };
         let rtc = read.source().context().target_transport
             == connect_protocol::provisioning::EndpointTransport::Webrtc;
@@ -156,7 +191,8 @@ impl Runtime {
                     read,
                 )
             })
-            .await?
+            .await
+            .map_err(|error| allocation_refused("begin", error))?
         };
         let context = read.source().context();
         let actor = current_member(a.principal(), read.target())?;
@@ -198,7 +234,8 @@ impl Runtime {
             store_call(move || {
                 store.native_replacement_allocation_uncertain_with_peer(attempt, proof(&a)?)
             })
-            .await?;
+            .await
+            .map_err(|error| allocation_refused("capture-uncertain", error))?;
             return Err(Error::forbidden());
         }
         // One durable begin; never retry either Core allocation or retain.
@@ -221,7 +258,8 @@ impl Runtime {
                     store_call(move || {
                         store.native_replacement_allocation_uncertain_with_peer(attempt, proof(&a)?)
                     })
-                    .await?;
+                    .await
+                    .map_err(|error| allocation_refused("capture-uncertain", error))?;
                     return Err(error);
                 }
             }
@@ -256,17 +294,23 @@ impl Runtime {
             store_call(move || {
                 store.native_replacement_allocation_uncertain_with_peer(attempt, proof(&a)?)
             })
-            .await?;
+            .await
+            .map_err(|error| allocation_refused("capture-uncertain", error))?;
             return Err(Error::new(
                 "reconciliation-required",
                 "Reserved native allocation outcome is uncertain",
             ));
         }
-        let mut observation = observed(&saved.handle, &saved.plan)?;
+        let mut observation = observed(&saved.handle, &saved.plan)
+            .map_err(|error| allocation_refused("capture-observation", error))?;
         observation["allocated"] = serde_json::json!(true);
         observation["target_operation_id"] = serde_json::json!(intent.operation_id);
         observation["target_key_id"] = serde_json::json!(proof(&a)?.key_id());
-        let receipt = Arc::new(attempt.allocated(observation)?);
+        let receipt = Arc::new(
+            attempt
+                .allocated(observation)
+                .map_err(|error| allocation_refused("capture-validation", error))?,
+        );
         let allocated = Arc::new(AllocatedReplacement {
             receipt,
             physical: Arc::downgrade(&physical),
@@ -276,10 +320,15 @@ impl Runtime {
             started: std::sync::Mutex::new(None),
             failed_start: std::sync::Mutex::new(None),
         });
-        *saved.allocated.lock().map_err(|_| Error::storage())? = Some(allocated.clone());
+        *saved
+            .allocated
+            .lock()
+            .map_err(|_| allocation_refused("capture-owner-registry", Error::storage()))? =
+            Some(allocated.clone());
         let record = self
             .record_allocated_replacement_with_peer(&allocated, a.clone())
-            .await?;
+            .await
+            .map_err(|error| allocation_refused("capture", error))?;
         Ok(Reply {
             record,
             answered: false,

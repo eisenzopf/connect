@@ -187,7 +187,7 @@ fn handoff_read_rechecks_bilateral_ceilings_and_each_intended_receiver_permissio
                 .into_selection()
                 .unwrap();
             if restriction == "recipients" {
-                let c = f.store.connection().unwrap();
+                let c = f.change_fixture();
                 c.execute(
                     "UPDATE credentials SET recipients='[]' WHERE id=?1",
                     [&f.keys[actor]],
@@ -201,7 +201,7 @@ fn handoff_read_rechecks_bilateral_ceilings_and_each_intended_receiver_permissio
                     "stream.subscribe"
                 };
                 scope.operations.retain(|op| op != removed);
-                let c = f.store.connection().unwrap();
+                let c = f.change_fixture();
                 c.execute(
                     "UPDATE credentials SET operations=?2 WHERE id=?1",
                     params![
@@ -229,7 +229,7 @@ fn handoff_read_rechecks_current_member_device_endpoint_and_physical_key_lifetim
             .unwrap()
             .into_selection()
             .unwrap();
-        let c = f.store.connection().unwrap();
+        let c = f.change_fixture();
         match change {
             "member" => {
                 c.execute(
@@ -258,6 +258,7 @@ fn handoff_read_rechecks_current_member_device_endpoint_and_physical_key_lifetim
             }
             _ => unreachable!(),
         }
+        drop(c);
         assert!(selection.read(&f.store).is_err(), "{change}");
     }
 }
@@ -265,9 +266,7 @@ fn handoff_read_rechecks_current_member_device_endpoint_and_physical_key_lifetim
 fn add_policy(f: &Fixture, actor: usize) {
     let mut scope = f.store.revalidate(&f.keys[actor]).unwrap().scope;
     scope.operations.push("session.handoff".into());
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE credentials SET operations=?2 WHERE id=?1",
             params![
@@ -318,9 +317,7 @@ fn handoff_read_applies_the_outgoing_disposition_to_every_current_source_connect
                 .is_none());
         }
         let selection = read.into_selection().unwrap();
-        f.store
-            .connection()
-            .unwrap()
+        f.change_fixture()
             .execute(
                 "UPDATE connections SET generation=generation+1 WHERE id=?1",
                 [additional.connection_id()],
@@ -425,10 +422,8 @@ fn handoff_read_requires_its_own_private_reference_and_preserves_private_ai_hist
         add_policy(&f, 0);
         add_policy(&f, 2);
         if private_ai {
-            f.store.connection().unwrap().execute("UPDATE identities SET kind='ai' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)",[&f.pids[2]]).unwrap();
-            f.store
-                .connection()
-                .unwrap()
+            f.change_fixture().execute("UPDATE identities SET kind='ai' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)",[&f.pids[2]]).unwrap();
+            f.change_fixture()
                 .execute(
                     "UPDATE participants SET kind='ai' WHERE participant_id=?1",
                     [&f.pids[2]],
@@ -498,10 +493,8 @@ fn handoff_private_reference_can_select_a_separate_public_target_in_the_original
         .unwrap();
     add_policy(&f, 0);
     add_policy(&f, 2);
-    f.store.connection().unwrap().execute("UPDATE identities SET kind='ai' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)",[&f.pids[2]]).unwrap();
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture().execute("UPDATE identities SET kind='ai' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)",[&f.pids[2]]).unwrap();
+    f.change_fixture()
         .execute(
             "UPDATE participants SET kind='ai' WHERE participant_id=?1",
             [&f.pids[2]],
@@ -553,9 +546,7 @@ fn handoff_read_refuses_incomplete_duplicate_stale_and_foreign_scene_bindings() 
     let foreign = Store::open_administration(f.store.path(), Limits::default()).unwrap();
     assert!(foreign.try_native_handoff_read(&origin, &sources).is_err());
     drop(foreign);
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET generation=generation+1 WHERE id=?1",
             [sources[2].connection_id()],

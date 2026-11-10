@@ -57,6 +57,34 @@ impl NativeSessionCodecPolicy for Policy {
                 .try_native_session_codec_read(&self.entry.origin, &self.target)
                 .map_err(|error| { tracing::debug!(target:"connect_service::canonical_session_codecs",code=%error.code,"Current codec source deferred"); DispatchError::Authority })?,
         );
+        // The temporary complete grant checks the original selected publisher
+        // set, but none of its source Reads may survive into SQL mutation.
+        let grant = runtime.media.codec_grant(
+            self.domain.clone(),
+            self.entry.clone(),
+            scope,
+            source.clone(),
+            plan,
+            operation.into(),
+            runtime.stop.child_token(),
+        )?;
+        let descriptor = grant.descriptor()?;
+        drop(grant);
+        let source = Arc::try_unwrap(source).map_err(|_| DispatchError::Authority)?;
+        let lease = runtime.media.store.begin_native_session_codec(source, operation, descriptor)
+            .map_err(|error| { tracing::debug!(target:"connect_service::canonical_session_codecs",code=%error.code,"Codec admission deferred"); DispatchError::Authority })?;
+        // Save the exact reservation BEFORE any further fallible admission.
+        // A later refusal records this same original no-effect receipt; it
+        // cannot reserve another child or replay the Core/SIP effect.
+        *attempt = Some(lease);
+        let lease = attempt.as_ref().ok_or(DispatchError::Authority)?;
+        let source = Arc::new(
+            runtime
+                .media
+                .store
+                .try_native_session_codec_attempt_read(&self.entry.origin, &self.target, lease)
+                .map_err(|_| DispatchError::Authority)?,
+        );
         let grant = runtime.media.codec_grant(
             self.domain.clone(),
             self.entry.clone(),
@@ -66,21 +94,10 @@ impl NativeSessionCodecPolicy for Policy {
             operation.into(),
             runtime.stop.child_token(),
         )?;
-        let lease = runtime
-            .media
-            .store
-            .begin_native_session_codec(grant.source.codec()?, operation, grant.descriptor()?)
-            .map_err(|error| { tracing::debug!(target:"connect_service::canonical_session_codecs",code=%error.code,"Codec admission deferred"); DispatchError::Authority })?;
-        // Preserve the owned attempt even if the final preflight fails. The
-        // executor classifies this as no effect and the job records that fact.
-        *attempt = Some(lease);
         runtime
             .media
             .store
-            .validate_native_session_codec(
-                grant.source.codec()?,
-                attempt.as_ref().ok_or(DispatchError::Authority)?,
-            )
+            .validate_native_session_codec_plan(grant.source.codec()?, lease, &grant.descriptor()?)
             .map_err(|_| DispatchError::Authority)?;
         Ok(canonical_media::reconciliation::lease(grant))
     }

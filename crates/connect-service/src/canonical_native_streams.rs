@@ -72,6 +72,66 @@ enum Observed {
     Codecs(rvoip_uctp::v2::native_negotiation::NativeOfferOutcome),
     Gates(rvoip_uctp::v2::native_control::NativeControlOutcome),
 }
+/// Original engine outcome retained by the same control worker after command
+/// readers leave. Recording these values can never invoke the engine again.
+pub(crate) enum CapturedStreamOutcome {
+    Committed(connect_store::NativeStreamCommitted),
+    NoEffect(connect_store::NativeStreamNoEffect),
+    Uncertain(connect_store::NativeStreamLease),
+}
+impl CapturedStreamOutcome {
+    pub(crate) fn record(
+        &self,
+        store: &connect_store::Store,
+    ) -> Result<connect_protocol::transitions::OperationRecord> {
+        match self {
+            Self::Committed(receipt) => store.complete_native_stream(receipt),
+            Self::NoEffect(receipt) => store.record_native_stream_without_effect(receipt),
+            Self::Uncertain(lease) => store.native_stream_attempt_uncertain(lease),
+        }
+    }
+}
+
+impl CapturedStreamOutcome {
+    /// Called only after original command readers leave. Retains the same
+    /// captured outcome in its original worker; never runs another media effect.
+    pub(crate) async fn settle(
+        &self,
+        store: &connect_store::Store,
+        stop: &tokio_util::sync::CancellationToken,
+    ) -> bool {
+        settle_stream_recording(stop, || self.record(store)).await
+    }
+}
+async fn settle_stream_recording<T>(
+    stop: &tokio_util::sync::CancellationToken,
+    mut record: impl FnMut() -> Result<T>,
+) -> bool {
+    loop {
+        if stop.is_cancelled() {
+            return false;
+        }
+        match record() {
+            Ok(_) => return true,
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    // The same historical receipt may wait for durable journal
+                    // space/reservations to recover; this never retries media IO.
+                    "authority-busy" | "storage-unavailable" | "capacity-exceeded"
+                ) => {}
+            Err(error) => {
+                tracing::debug!(code=%error.code, "Original stream outcome recording refused permanently");
+                return false;
+            }
+        }
+        tokio::select! { biased;
+            _ = stop.cancelled() => return false,
+            _ = tokio::time::sleep(Duration::from_millis(100)) => {},
+        }
+    }
+}
+
 pub(crate) fn gate_streams(
     streams: &[rvoip_core::stream_lifecycle::LogicalStream],
     connection_generation: u64,
@@ -451,240 +511,212 @@ impl Runtime {
             };
         let seconds = (lease.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
         let deadline = Instant::now() + Duration::from_secs(seconds);
-        let mut preparation_stage = "stream-invocation";
-        let ready = self
-            .native_preflight(&a, deadline, || {
-                preparation_stage = "stream-invocation";
-                let invocation = plan
-                    .clone()
-                    .map(|plan| {
-                        self.media
-                            .stream_invocation(a.clone(), plan, &lease, deadline)
-                    })
-                    .transpose()?;
-                preparation_stage = "original-attempt";
-                store.validate_native_stream_attempt(&credential, proof(&a)?, &lease)?;
-                preparation_stage = "physical-source";
-                physical.validate(
-                    &a,
-                    a.authority::<StoreInvocationAuthority>()
-                        .ok_or_else(Error::forbidden)?,
-                )?;
-                preparation_stage = "physical-lifetime";
-                if physical.lifetime.is_cancelled() || self.stop.is_cancelled() {
-                    return Err(Error::forbidden());
-                }
-                let quality_invocation = if quality {
-                    preparation_stage = "quality-invocation";
-                    Some(crate::canonical_native_quality::Invocation::prepare(
-                        &self,
-                        a.clone(),
-                        &lease,
-                        &physical,
-                        deadline,
-                    )?)
-                } else {
-                    None
-                };
-                let advertisement = if advertising {
-                    preparation_stage = "capability-invocation";
-                    Some(crate::canonical_native_capabilities::Received::prepare(
-                        &self,
-                        a.clone(),
-                        &lease,
-                        &physical,
-                        deadline,
-                    )?)
-                } else {
-                    None
-                };
-                Ok((invocation, quality_invocation, advertisement))
-            })
-            .await;
-        let (invocation, quality_invocation, advertisement) = match ready {
-            Ok(v) => v,
-            Err(e) => {
-                tracing::debug!(target: "connect_service::native_stream_preparation", stage = preparation_stage,
-                    code = %e.code, "Native stream invocation preparation refused before media IO");
-                tracing::debug!(target: "connect_service::canonical_native_streams", code=%e.code, "Native stream invocation preparation refused");
-                let result = store
-                    .fail_native_stream_without_effect(lease, e)
-                    .map(|record| crate::canonical_native::Reply {
-                        record,
-                        answered: false,
-                    });
-                let _ = tx.send(result);
-                return;
-            }
-        };
-        // Media and quality receipts capture actual returned outcomes. A
-        // capability receipt instead captures the verified declaration above;
-        // replacement is metadata, committed atomically with its operation.
-        // Possible media IO stays uncertain; definite local refusal does not.
         let mut capability = None;
-        let receipt = if let Some(received) = &advertisement {
-            if !received.current() {
-                let result = store
-                    .fail_native_stream_without_effect(lease, Error::forbidden())
-                    .map(|record| crate::canonical_native::Reply {
-                        record,
-                        answered: false,
-                    });
-                let _ = tx.send(result);
-                return;
-            }
-            match native.declare_native_capabilities(&self.core, &id, &a, received) {
-                Ok(observed) => {
-                    capability = Some((
-                        Arc::new(observed),
-                        received.entry(),
-                        lease.record_id().to_owned(),
-                    ));
-                }
-                Err(error) => {
-                    // This synchronous local metadata setter returns errors only
-                    // before commit. Interrupted calls remain uncertain instead.
-                    let problem = match error {
-                        rvoip_uctp::v2::native_negotiation::NativeOfferError::Conflict => {
-                            Error::new("conflict", "Native declaration revision conflicts")
-                        }
-                        rvoip_uctp::v2::native_negotiation::NativeOfferError::Unsupported => {
-                            Error::new(
-                                "unsupported-media-profile",
-                                "Native declaration profile is unsupported",
-                            )
-                        }
-                        rvoip_uctp::v2::native_negotiation::NativeOfferError::Capacity => {
-                            Error::new("capacity-exceeded", "Native declaration capacity exceeded")
-                        }
-                        _ => Error::forbidden(),
+        let mut response_error = None;
+        let captured = 'captured: {
+            let mut preparation_stage = "stream-invocation";
+            let ready = self
+                .native_preflight(&a, deadline, || {
+                    preparation_stage = "stream-invocation";
+                    let invocation = plan
+                        .clone()
+                        .map(|plan| {
+                            self.media
+                                .stream_invocation(a.clone(), plan, &lease, deadline)
+                        })
+                        .transpose()?;
+                    preparation_stage = "original-attempt";
+                    store.validate_native_stream_attempt(&credential, proof(&a)?, &lease)?;
+                    preparation_stage = "physical-source";
+                    physical.validate(
+                        &a,
+                        a.authority::<StoreInvocationAuthority>()
+                            .ok_or_else(Error::forbidden)?,
+                    )?;
+                    preparation_stage = "physical-lifetime";
+                    if physical.lifetime.is_cancelled() || self.stop.is_cancelled() {
+                        return Err(Error::forbidden());
+                    }
+                    let quality_invocation = if quality {
+                        preparation_stage = "quality-invocation";
+                        Some(crate::canonical_native_quality::Invocation::prepare(
+                            &self,
+                            a.clone(),
+                            &lease,
+                            &physical,
+                            deadline,
+                        )?)
+                    } else {
+                        None
                     };
-                    let result =
-                        store
-                            .fail_native_stream_without_effect(lease, problem)
-                            .map(|record| crate::canonical_native::Reply {
-                                record,
-                                answered: false,
-                            });
-                    let _ = tx.send(result);
-                    return;
-                }
-            }
-            lease.advertisement_received()
-        } else if let Some(invocation) = quality_invocation {
-            match native.configure_native_quality(&id, &a, &invocation) {
-                Ok(interval_ms) => lease.quality_configured(interval_ms),
-                Err(error) => {
-                    // Returned errors precede this synchronous local setter's
-                    // commit. A panic/interruption still leaves its attempt
-                    // uncertain rather than reconstructing or repeating it.
-                    let problem = match error {
-                        rvoip_uctp::v2::native_negotiation::NativeOfferError::Conflict => {
-                            Error::new("conflict", "Native quality revision conflicts")
-                        }
-                        _ => Error::forbidden(),
+                    let advertisement = if advertising {
+                        preparation_stage = "capability-invocation";
+                        Some(crate::canonical_native_capabilities::Received::prepare(
+                            &self,
+                            a.clone(),
+                            &lease,
+                            &physical,
+                            deadline,
+                        )?)
+                    } else {
+                        None
                     };
-                    let result =
-                        store
-                            .fail_native_stream_without_effect(lease, problem)
-                            .map(|record| crate::canonical_native::Reply {
-                                record,
-                                answered: false,
-                            });
-                    let _ = tx.send(result);
-                    return;
+                    Ok((invocation, quality_invocation, advertisement))
+                })
+                .await;
+            let (invocation, quality_invocation, advertisement) = match ready {
+                Ok(v) => v,
+                Err(e) => {
+                    tracing::debug!(target: "connect_service::native_stream_preparation", stage = preparation_stage,
+                    code = %e.code, "Native stream invocation preparation refused before media IO");
+                    tracing::debug!(target: "connect_service::canonical_native_streams", code=%e.code, "Native stream invocation preparation refused");
+                    break 'captured CapturedStreamOutcome::NoEffect(lease.without_effect(e));
                 }
-            }
-        } else if let Some(invocation) = invocation {
-            let outcome = tokio::select! {
-                r=async {
-                    if gates {native.control_native_media(&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Gates)}
-                    else if codecs {native.renegotiate_native_codecs(&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Codecs)}
-                    else {native.subscribe_native_media(&self.core,&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Streams)}
-                }=>r,
-                _=self.stop.cancelled()=>Err(rvoip_uctp::v2::native_negotiation::NativeOfferError::Cancelled),
             };
-            if outcome.is_ok() {
-                invocation.remember_confirmed_selection();
-            }
-            drop(invocation);
-            match outcome {
-                Ok(Observed::Gates(outcome)) => {
-                    match gate_streams(&outcome.streams, lease.generation()) {
-                        Ok(streams) => lease.gates_committed(outcome.revision, streams),
-                        Err(error) => {
-                            let _ = store.native_stream_attempt_uncertain(&lease);
-                            let _ = tx.send(Err(error));
-                            return;
-                        }
+            // Media and quality receipts capture actual returned outcomes. A
+            // capability receipt instead captures the verified declaration above;
+            // replacement is metadata, committed atomically with its operation.
+            // Possible media IO stays uncertain; definite local refusal does not.
+            let receipt = if let Some(received) = &advertisement {
+                if !received.current() {
+                    break 'captured CapturedStreamOutcome::NoEffect(
+                        lease.without_effect(Error::forbidden()),
+                    );
+                }
+                match native.declare_native_capabilities(&self.core, &id, &a, received) {
+                    Ok(observed) => {
+                        capability = Some((
+                            Arc::new(observed),
+                            received.entry(),
+                            lease.record_id().to_owned(),
+                        ));
+                    }
+                    Err(error) => {
+                        // This synchronous local metadata setter returns errors only
+                        // before commit. Interrupted calls remain uncertain instead.
+                        let problem = match error {
+                            rvoip_uctp::v2::native_negotiation::NativeOfferError::Conflict => {
+                                Error::new("conflict", "Native declaration revision conflicts")
+                            }
+                            rvoip_uctp::v2::native_negotiation::NativeOfferError::Unsupported => {
+                                Error::new(
+                                    "unsupported-media-profile",
+                                    "Native declaration profile is unsupported",
+                                )
+                            }
+                            rvoip_uctp::v2::native_negotiation::NativeOfferError::Capacity => {
+                                Error::new(
+                                    "capacity-exceeded",
+                                    "Native declaration capacity exceeded",
+                                )
+                            }
+                            _ => Error::forbidden(),
+                        };
+                        break 'captured CapturedStreamOutcome::NoEffect(
+                            lease.without_effect(problem),
+                        );
                     }
                 }
-                Ok(Observed::Streams(outcome)) => lease.committed(
-                    outcome.revision,
-                    outcome.resources_changed,
-                    captured_projection(&self, &id, outcome.revision),
-                ),
-                Ok(Observed::Codecs(outcome)) => match codec_bindings(&outcome.bindings) {
-                    Ok(bindings) => lease.codecs_committed(outcome.revision, bindings),
+                lease.advertisement_received()
+            } else if let Some(invocation) = quality_invocation {
+                match native.configure_native_quality(&id, &a, &invocation) {
+                    Ok(interval_ms) => lease.quality_configured(interval_ms),
                     Err(error) => {
-                        let _ = store.native_stream_attempt_uncertain(&lease);
-                        let _ = tx.send(Err(error));
-                        return;
+                        // Returned errors precede this synchronous local setter's
+                        // commit. A panic/interruption still leaves its attempt
+                        // uncertain rather than reconstructing or repeating it.
+                        let problem = match error {
+                            rvoip_uctp::v2::native_negotiation::NativeOfferError::Conflict => {
+                                Error::new("conflict", "Native quality revision conflicts")
+                            }
+                            _ => Error::forbidden(),
+                        };
+                        break 'captured CapturedStreamOutcome::NoEffect(
+                            lease.without_effect(problem),
+                        );
                     }
-                },
-                Err(error) => {
-                    tracing::debug!(?error, operation_record = %lease.record_id(),
+                }
+            } else if let Some(invocation) = invocation {
+                let outcome = tokio::select! {
+                    r=async {
+                        if gates {native.control_native_media(&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Gates)}
+                        else if codecs {native.renegotiate_native_codecs(&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Codecs)}
+                        else {native.subscribe_native_media(&self.core,&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Streams)}
+                    }=>r,
+                    _=self.stop.cancelled()=>Err(rvoip_uctp::v2::native_negotiation::NativeOfferError::Cancelled),
+                };
+                if outcome.is_ok() {
+                    invocation.remember_confirmed_selection();
+                }
+                drop(invocation);
+                match outcome {
+                    Ok(Observed::Gates(outcome)) => {
+                        match gate_streams(&outcome.streams, lease.generation()) {
+                            Ok(streams) => lease.gates_committed(outcome.revision, streams),
+                            Err(error) => {
+                                response_error = Some(error);
+                                break 'captured CapturedStreamOutcome::Uncertain(lease);
+                            }
+                        }
+                    }
+                    Ok(Observed::Streams(outcome)) => lease.committed(
+                        outcome.revision,
+                        outcome.resources_changed,
+                        captured_projection(&self, &id, outcome.revision),
+                    ),
+                    Ok(Observed::Codecs(outcome)) => match codec_bindings(&outcome.bindings) {
+                        Ok(bindings) => lease.codecs_committed(outcome.revision, bindings),
+                        Err(error) => {
+                            response_error = Some(error);
+                            break 'captured CapturedStreamOutcome::Uncertain(lease);
+                        }
+                    },
+                    Err(error) => {
+                        tracing::debug!(?error, operation_record = %lease.record_id(),
                         operation = a.envelope().scope(Scope::Operation),
                         connection = %id, command = a.envelope().kind(),
                         "Native stream engine outcome remains uncertain");
-                    let result = store.native_stream_attempt_uncertain(&lease).map(|record| {
-                        crate::canonical_native::Reply {
-                            record,
-                            answered: false,
-                        }
-                    });
-                    let _ = tx.send(result);
+                        break 'captured CapturedStreamOutcome::Uncertain(lease);
+                    }
+                }
+            } else {
+                let outcome = tokio::select! {
+                    r=self.core.end_connection(id.clone(),rvoip_core::EndReason::Normal)=>r.map_err(|_| Error::new("reconciliation-required", "Native termination is uncertain")),
+                    _=self.stop.cancelled()=>Err(Error::forbidden()),
+                    _=tokio::time::sleep_until(deadline)=>Err(Error::new("reconciliation-required", "Native termination is uncertain")),
+                };
+                if outcome.is_err() || native.is_connection_live(&id) {
+                    break 'captured CapturedStreamOutcome::Uncertain(lease);
+                }
+                let absent = crate::canonical_native::Absent {
+                    natives: self.media_adapters(),
+                    id,
+                    generation: lease.generation(),
+                };
+                lease.ended(&absent)
+            };
+            let receipt = match receipt {
+                Ok(v) => v,
+                Err(e) => {
+                    let _ = tx.send(Err(e));
                     return;
                 }
-            }
-        } else {
-            let outcome = tokio::select! {
-                r=self.core.end_connection(id.clone(),rvoip_core::EndReason::Normal)=>r.map_err(|_| Error::new("reconciliation-required", "Native termination is uncertain")),
-                _=self.stop.cancelled()=>Err(Error::forbidden()),
-                _=tokio::time::sleep_until(deadline)=>Err(Error::new("reconciliation-required", "Native termination is uncertain")),
             };
-            if outcome.is_err() || native.is_connection_live(&id) {
-                let result = store.native_stream_attempt_uncertain(&lease).map(|record| {
-                    crate::canonical_native::Reply {
-                        record,
-                        answered: false,
-                    }
-                });
-                let _ = tx.send(result);
-                return;
-            }
-            let absent = crate::canonical_native::Absent {
-                natives: self.media_adapters(),
-                id,
-                generation: lease.generation(),
-            };
-            lease.ended(&absent)
+            CapturedStreamOutcome::Committed(receipt)
         };
-        let receipt = match receipt {
-            Ok(v) => v,
-            Err(e) => {
-                let _ = tx.send(Err(e));
-                return;
-            }
-        };
-        let first = store.complete_native_stream(&receipt);
-        drop(advertisement);
+        let first = captured.record(store);
         match first {
             Ok(record) => {
-                let _ = tx.send(Ok(crate::canonical_native::Reply {
-                    record,
-                    answered: false,
-                }));
+                let response = response_error.take().map_or_else(
+                    || {
+                        Ok(crate::canonical_native::Reply {
+                            record,
+                            answered: false,
+                        })
+                    },
+                    Err,
+                );
+                let _ = tx.send(response);
                 drop(a);
                 drop(physical);
                 drop(credential);
@@ -695,28 +727,27 @@ impl Runtime {
             }
             Err(error) => {
                 tracing::debug!(code=%error.code,"Native stream outcome awaits durable recording");
-                let _ = tx.send(Ok(crate::canonical_native::Reply {
-                    record: started,
-                    answered: false,
-                }));
+                let response = response_error.take().map_or_else(
+                    || {
+                        Ok(crate::canonical_native::Reply {
+                            record: started,
+                            answered: false,
+                        })
+                    },
+                    Err,
+                );
+                let _ = tx.send(response);
             }
         }
         // Original command readers are bounded to control. This owned job now
-        // retains only the captured engine receipt while storage recovers.
+        // retains only the captured outcome while storage recovers.
+        // The same admitted worker remains owned; no second job or effect is started.
         drop(a);
         drop(physical);
         drop(credential);
-        loop {
-            tokio::select! {_=self.stop.cancelled()=>return,_=tokio::time::sleep(Duration::from_millis(100))=>{}}
-            match store.complete_native_stream(&receipt) {
-                Ok(_) => {
-                    if let Some((declaration, entry, record)) = capability.take() {
-                        self.publish_capability(declaration, entry, record).await;
-                    }
-                    return;
-                }
-                Err(e) if e.code == "forbidden" => return,
-                Err(_) => (),
+        if captured.settle(store, &self.stop).await {
+            if let Some((declaration, entry, record)) = capability.take() {
+                self.publish_capability(declaration, entry, record).await;
             }
         }
     }
@@ -740,4 +771,87 @@ pub(crate) fn captured_projection(
         return None;
     }
     codec_bindings(&bindings).ok()
+}
+
+#[cfg(test)]
+mod outcome_recording_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use tokio_util::sync::CancellationToken;
+
+    #[tokio::test]
+    async fn temporary_recording_failures_keep_one_original_capture_until_success() {
+        struct Capture(Arc<AtomicUsize>);
+        impl Drop for Capture {
+            fn drop(&mut self) {
+                self.0.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+        let dropped = Arc::new(AtomicUsize::new(0));
+        let capture = Capture(dropped.clone());
+        let original = &capture as *const Capture;
+        let stop = CancellationToken::new();
+        let mut calls = 0;
+        assert!(
+            settle_stream_recording(&stop, || {
+                assert_eq!(&capture as *const Capture, original);
+                assert_eq!(dropped.load(Ordering::SeqCst), 0);
+                calls += 1;
+                match calls {
+                    1 => Err(Error::new(
+                        "authority-busy",
+                        "Original reply still holds Read",
+                    )),
+                    2 => Err(Error::storage()),
+                    3 => Err(Error::new(
+                        "capacity-exceeded",
+                        "Durable operation journal capacity exceeded",
+                    )),
+                    _ => Ok(()),
+                }
+            })
+            .await
+        );
+        assert_eq!(calls, 4);
+        assert_eq!(dropped.load(Ordering::SeqCst), 0);
+        drop(capture);
+        assert_eq!(dropped.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn permanent_recording_conflict_does_not_keep_an_idle_worker() {
+        let stop = CancellationToken::new();
+        let mut calls = 0;
+        assert!(
+            !settle_stream_recording(&stop, || -> Result<()> {
+                calls += 1;
+                Err(Error::new(
+                    "conflict",
+                    "Original receipt cannot be recorded",
+                ))
+            })
+            .await
+        );
+        assert_eq!(calls, 1);
+    }
+
+    #[tokio::test]
+    async fn runtime_stop_during_temporary_recording_does_not_start_another_attempt() {
+        for code in ["authority-busy", "capacity-exceeded"] {
+            let stop = CancellationToken::new();
+            let mut calls = 0;
+            assert!(
+                !settle_stream_recording(&stop, || -> Result<()> {
+                    calls += 1;
+                    stop.cancel();
+                    Err(Error::new(
+                        code,
+                        "Original metadata recording is temporarily unavailable",
+                    ))
+                })
+                .await
+            );
+            assert_eq!(calls, 1, "{code}");
+        }
+    }
 }

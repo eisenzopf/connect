@@ -215,6 +215,22 @@ impl NativeConsultationSelection {
         consultation_sip::validate_revisions(c, &sips, plan)?;
         Ok(())
     }
+    pub(crate) fn read_with_authority(
+        &self,
+        store: &Store,
+        c: &Connection,
+        held: Arc<crate::AuthorityGuardSet>,
+    ) -> Result<NativeConsultationRead> {
+        store.native_consultation_scene_read_with_authority(
+            c,
+            &self.origin,
+            &self.remote,
+            &self.private,
+            &self.outside,
+            &self.outside_sip,
+            held,
+        )
+    }
     pub(crate) fn read(&self, store: &Store) -> Result<NativeConsultationRead> {
         store.try_native_consultation_scene_read(
             &self.origin,
@@ -572,6 +588,31 @@ impl Store {
         };
         let held = self.try_acquire_authority(&scopes)?;
         let c = self.try_connection()?;
+        self.native_consultation_scene_read_with_authority(
+            &c,
+            origin,
+            remote,
+            private,
+            outside,
+            outside_sip,
+            held,
+        )
+    }
+    // Same exact current views, under an already-held cut Writer. This never
+    // reacquires a nested reader or performs transport/codec preparation.
+    pub(crate) fn native_consultation_scene_read_with_authority(
+        &self,
+        c: &Connection,
+        origin: &NativeConsultationOrigin,
+        remote: &ConsultationMediaOrigin,
+        private: &[ConsultationMediaOrigin],
+        outside: &[Arc<NativeMediaOrigin>],
+        outside_sip: &[SipAudienceOrigin],
+        held: Arc<crate::AuthorityGuardSet>,
+    ) -> Result<NativeConsultationRead> {
+        if private.len() + outside.len() + outside_sip.len() + 1 > self.limits.connections {
+            return Err(Error::forbidden());
+        }
         let (current, needed, expiry) =
             selected_views(self, &c, origin, remote, private, outside, outside_sip)
                 .map_err(|e| phase_error("current views", e))?;

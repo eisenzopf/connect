@@ -220,9 +220,35 @@ async fn production_native_dtmf_requires_named_receive_permission_without_borrow
         )
         .await
         .unwrap();
-    assert_eq!(reply.state, OperationState::Failed);
-    assert_eq!(reply.problem.as_ref().unwrap()["code"], "not-recipient");
-    assert!(record(&s, "signal-no-receive").result.is_none());
+    // The public SDK defines Preparing as durable acceptance. Recover the
+    // same original operation; this refusal must never become a delivery.
+    assert!(matches!(
+        reply.state,
+        OperationState::Preparing | OperationState::Failed
+    ));
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+    let refused = loop {
+        let current = record(&s, "signal-no-receive");
+        assert_eq!(
+            Some(current.record_id.as_str()),
+            reply.record_id.as_ref().map(|id| id.as_str())
+        );
+        assert_eq!(current.operation_id, "signal-no-receive");
+        if current.state == connect_protocol::transitions::OperationState::Failed {
+            break current;
+        }
+        assert_eq!(
+            current.state,
+            connect_protocol::transitions::OperationState::Preparing
+        );
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "original signal refusal not recorded: {current:?}"
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    };
+    assert_eq!(refused.problem.as_ref().unwrap()["code"], "not-recipient");
+    assert!(refused.result.is_none());
     let db = rusqlite::Connection::open(&s.f.config.database).unwrap();
     assert_eq!(
         db.query_row("SELECT count(*) FROM native_dtmf_sources", [], |r| r

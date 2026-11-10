@@ -29,7 +29,7 @@ impl Store {
             .ok_or_else(Error::forbidden)?;
         authority::read(&tx, &actor, &row)?;
         admission::require_row(self, &authority, &row)?;
-        recover_one(&tx, &row, &self.transition_runtime, self)?;
+        recover_one(&tx, &row, &self.transition_runtime, self, &authority)?;
         row = rows::by_record(&tx, &row.record.record_id)?;
         if !row.ledger
             || (row.initial_telephone || row.native_consultation || row.native_provider) || (row.native_return || row.native_handoff || row.native_replacement || admission::candidate_row(&row)?)
@@ -166,6 +166,7 @@ impl Store {
                 &rows::by_record(&tx, &selected.id)?,
                 &self.transition_runtime,
                 self,
+                &authority,
             )? {
                 changed += 1;
             }
@@ -317,6 +318,7 @@ pub(super) fn recover_one(
     row: &rows::Saved,
     runtime: &str,
     store: &Store,
+    authority: &crate::AuthorityGuardSet,
 ) -> Result<bool> {
     if row.received_dtmf {
         return super::received_dtmf::recover_one(c, row, store);
@@ -334,9 +336,34 @@ pub(super) fn recover_one(
         return super::native_returns::recover_one(c, row, store);
     }
     if row.native_provider && !row.native_consultation {
+        if !store.authority_covers(authority, &admission::mutation_row_scopes(row)?) {
+            // A previously current Get can cross an original expiry cutoff.
+            // Never upgrade its retained Read or mutate beneath it. When no
+            // recovery is due, return without a later clock/SQL re-evaluation.
+            return if crate::private_provider::recovery_disposition(c, row, store)?.is_some() {
+                Err(Error::new(
+                    "authority-busy",
+                    "Current authority is busy; retry the same logical operation",
+                ))
+            } else {
+                Ok(false)
+            };
+        }
         return crate::private_provider::recover_one(c, row, store);
     }
     if row.native_consultation {
+        if !store.authority_covers(authority, &admission::mutation_row_scopes(row)?) {
+            // Do not upgrade a retained original Read after its lease crosses
+            // expiry. No recovery due means no second clock evaluation/DML.
+            return if super::native_consultations::recovery_disposition(c, row, store)?.is_some() {
+                Err(Error::new(
+                    "authority-busy",
+                    "Current authority is busy; retry the same logical operation",
+                ))
+            } else {
+                Ok(false)
+            };
+        }
         return super::native_consultations::recover_one(c, row, store);
     }
     if row.native_stream {

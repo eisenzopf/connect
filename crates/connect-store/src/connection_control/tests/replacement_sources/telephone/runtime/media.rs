@@ -79,18 +79,23 @@ fn telephone_media_resource_begin_once_and_exact_muted_codec_capture_cannot_clai
         .try_telephone_replacement_media_read(media.clone())
         .unwrap();
     let actual = resources(&read);
-    let a = f
+    let a = f.store.begin_telephone_replacement_resources(read).unwrap();
+    let read = f
         .store
-        .begin_telephone_replacement_resources(&read)
+        .try_telephone_replacement_resources_attempt_read(a.clone())
         .unwrap();
     read.requires_resources_attempt(&a).unwrap();
     assert_eq!(
         f.store
-            .begin_telephone_replacement_resources(&read)
+            .begin_telephone_replacement_resources(read)
             .unwrap_err()
             .code,
         "reconciliation-required"
     );
+    let read = f
+        .store
+        .try_telephone_replacement_resources_attempt_read(a.clone())
+        .unwrap();
     for change in [
         "candidate",
         "call",
@@ -146,9 +151,10 @@ fn telephone_media_resource_failure_preserves_unknown_and_late_knowledge_without
         .try_telephone_replacement_media_read(media.clone())
         .unwrap();
     let actual = resources(&read);
-    let a = f
+    let a = f.store.begin_telephone_replacement_resources(read).unwrap();
+    let read = f
         .store
-        .begin_telephone_replacement_resources(&read)
+        .try_telephone_replacement_resources_attempt_read(a.clone())
         .unwrap();
     let capture = a.prepared(actual).unwrap();
     drop(read);
@@ -225,9 +231,10 @@ fn telephone_media_resource_recording_failure_rolls_back_then_only_same_capture_
     let (_, media) = known(&f, &origin, &sources, &key);
     let read = f.store.try_telephone_replacement_media_read(media).unwrap();
     let actual = resources(&read);
-    let a = f
+    let a = f.store.begin_telephone_replacement_resources(read).unwrap();
+    let read = f
         .store
-        .begin_telephone_replacement_resources(&read)
+        .try_telephone_replacement_resources_attempt_read(a.clone())
         .unwrap();
     let capture = a.prepared(actual.clone()).unwrap();
     drop(read);
@@ -261,9 +268,10 @@ fn telephone_media_backup_digest_covers_actual_resource_capture_rows() {
     let (_, media) = known(&f, &origin, &sources, &key);
     let read = f.store.try_telephone_replacement_media_read(media).unwrap();
     let actual = resources(&read);
-    let a = f
+    let a = f.store.begin_telephone_replacement_resources(read).unwrap();
+    let read = f
         .store
-        .begin_telephone_replacement_resources(&read)
+        .try_telephone_replacement_resources_attempt_read(a.clone())
         .unwrap();
     let capture = a.prepared(actual).unwrap();
     drop(read);
@@ -278,9 +286,18 @@ fn telephone_media_backup_digest_covers_actual_resource_capture_rows() {
     // Only the backed-up resource row changes; other authoritative tables and
     // the live Store stay untouched. The snapshot digest must detect this.
     let c = rusqlite::Connection::open(&backup).unwrap();
-    c.execute_batch("DROP TRIGGER telephone_replacement_resources_immutable;")
-        .unwrap();
+    let original_triggers: Vec<String> = c.prepare("SELECT sql FROM sqlite_schema WHERE type='trigger' AND name IN ('telephone_replacement_resources_immutable','connect_writer_telephone_replacement_resources_update') ORDER BY name").unwrap().query_map([], |row| row.get(0)).unwrap().collect::<rusqlite::Result<_>>().unwrap();
+    assert_eq!(original_triggers.len(), 2);
+    assert!(c.execute("UPDATE telephone_replacement_resources SET observation_json=json_set(observation_json,'$.stream_local_id',2) WHERE operation_record_id=?1",[origin.record_id()]).is_err());
+    // Explicit isolated corruption only: restore both exact schema definitions
+    // so the digest witness measures a changed row, never a missing live guard.
+    c.execute_batch("DROP TRIGGER telephone_replacement_resources_immutable; DROP TRIGGER connect_writer_telephone_replacement_resources_update;").unwrap();
     c.execute("UPDATE telephone_replacement_resources SET observation_json=json_set(observation_json,'$.stream_local_id',2) WHERE operation_record_id=?1",[origin.record_id()]).unwrap();
+    for sql in &original_triggers {
+        c.execute_batch(sql).unwrap();
+    }
+    let restored_triggers: Vec<String> = c.prepare("SELECT sql FROM sqlite_schema WHERE type='trigger' AND name IN ('telephone_replacement_resources_immutable','connect_writer_telephone_replacement_resources_update') ORDER BY name").unwrap().query_map([], |row| row.get(0)).unwrap().collect::<rusqlite::Result<_>>().unwrap();
+    assert_eq!(restored_triggers, original_triggers);
     drop(c);
     assert_ne!(
         crate::Store::inspect_snapshot(&backup).unwrap().digest,
@@ -289,3 +306,115 @@ fn telephone_media_backup_digest_covers_actual_resource_capture_rows() {
 }
 
 mod continuation;
+
+#[test]
+fn telephone_resource_reservation_drains_original_read_then_keeps_one_attempt_across_fresh_busy() {
+    let (f, origin, sources, _, key) = setup_runtime(true);
+    let (_, media) = known(&f, &origin, &sources, &key);
+    let read = f
+        .store
+        .try_telephone_replacement_media_read(media.clone())
+        .unwrap();
+    let until = read.expires_at();
+    let alias = f.store.try_native_media_read(&sources[1], None).unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(
+        f.store
+            .begin_telephone_replacement_resources(read)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(alias.current());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    drop(alias);
+    let read = f.store.try_telephone_replacement_media_read(media).unwrap();
+    let attempt = f
+        .store
+        .begin_telephone_replacement_resources_before(read, until)
+        .unwrap();
+    let reserved = Store::inspect_snapshot(f.store.path()).unwrap();
+    let writer = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap()])
+        .unwrap();
+    assert_eq!(
+        f.store
+            .try_telephone_replacement_resources_attempt_read(attempt.clone())
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(writer);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), reserved);
+    let read = f
+        .store
+        .try_telephone_replacement_resources_attempt_read(attempt.clone())
+        .unwrap();
+    assert!(read.current());
+    assert!(read.expires_at() <= until);
+    let capture = attempt.prepared(resources(&read)).unwrap();
+    assert_eq!(
+        f.store
+            .record_telephone_replacement_resources(&capture)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), reserved);
+    drop(read);
+    f.store
+        .record_telephone_replacement_resources(&capture)
+        .unwrap();
+    let recorded = Store::inspect_snapshot(f.store.path()).unwrap();
+    f.store
+        .record_telephone_replacement_resources(&capture)
+        .unwrap();
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), recorded);
+    assert!(f
+        .store
+        .try_telephone_replacement_resources_attempt_read(attempt)
+        .is_err());
+    assert_eq!(f.count("telephone_replacement_resources"), 1);
+    assert_eq!(f.count("sip_legs"), 0);
+}
+
+#[test]
+fn telephone_abandon_drains_original_media_read_and_records_after_revocation_without_new_io() {
+    let (f, origin, sources, _, key) = setup_runtime(true);
+    let (submitted, media) = known(&f, &origin, &sources, &key);
+    let read = f
+        .store
+        .try_telephone_replacement_media_read(media.clone())
+        .unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(
+        f.store
+            .abandon_telephone_replacement(&submitted)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(read.current());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    drop(read);
+    f.store
+        .revoke(&f.store.revalidate(&f.admin).unwrap(), &key)
+        .unwrap();
+    let abandoned = f.store.abandon_telephone_replacement(&submitted).unwrap();
+    assert_eq!(abandoned.state, OperationState::Unknown);
+    assert!(abandoned.result.is_none());
+    let recorded = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(
+        f.store.abandon_telephone_replacement(&submitted).unwrap(),
+        abandoned
+    );
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), recorded);
+    assert!(f.store.try_telephone_replacement_media_read(media).is_err());
+    assert_eq!(f.count("telephone_replacement_resources"), 0);
+    assert_eq!(f.count("sip_legs"), 0);
+}

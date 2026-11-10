@@ -111,7 +111,14 @@ impl Runtime {
                 .map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-scene",?error,"Native return refused");Error::forbidden()})?;
             let sips = self.media.scene_sip_origins(&command.session_id).map_err(|_|Error::forbidden())?;
             let read = self.media.store.try_native_return_read(&origin, &sources, &sips).map_err(|error| {
-                tracing::debug!(target:"connect_service::canonical_consultation",stage="return-read",code=%error.code,"Native return planning refused");error
+                // Emit only these exact constant Store reasons, never arbitrary
+                // error text containing caller or resource details.
+                let reason = match error.message.as_str() {
+                    "Return scope derivation: Native return source set changed"
+                    | "Return current views: Native return source set changed" => error.message.as_str(),
+                    _ => "other-refusal",
+                };
+                tracing::debug!(target:"connect_service::canonical_consultation",stage="return-read",code=%error.code,reason,"Native return planning refused");error
             })?;
             let revision = self
                 .core
@@ -193,8 +200,13 @@ impl Runtime {
             Err(error) => {
                 tracing::debug!(target:"connect_service::canonical_consultation",stage="return-core",?error,"Actual native return did not complete");
                 drop(invocation);
-                let store = self.media.store.clone();
-                store_call(move || store.native_consultation_return_uncertain(attempt)).await?;
+                let attempt = Arc::new(attempt);
+                settle_return_recording(&self.stop, || {
+                    let store = self.media.store.clone();
+                    let attempt = attempt.clone();
+                    store_call(move || store.native_consultation_return_uncertain(&attempt))
+                })
+                .await?;
                 return Err(Error::new(
                     "reconciliation-required",
                     "Native restoration attempt is uncertain",
@@ -253,6 +265,92 @@ impl Runtime {
                 ));
             }
             tokio::select! {_=self.stop.cancelled()=>return Err(Error::forbidden()),_=tokio::time::sleep(Duration::from_millis(20))=>{}}
+        }
+    }
+}
+
+// Only historical metadata retries. The original worker owns the SAME attempt
+// after all cut/IO aliases leave, and never invokes another physical restore.
+async fn settle_return_recording<T, F, Fut>(
+    stop: &tokio_util::sync::CancellationToken,
+    mut record: F,
+) -> Result<T>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T>>,
+{
+    loop {
+        if stop.is_cancelled() {
+            return Err(Error::forbidden());
+        }
+        match record().await {
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "authority-busy" | "storage-unavailable" | "capacity-exceeded"
+                ) =>
+            {
+                tokio::select! { biased;
+                    _ = stop.cancelled() => return Err(error),
+                    _ = tokio::time::sleep(Duration::from_millis(100)) => {},
+                }
+            }
+            result => return result,
+        }
+    }
+}
+#[cfg(test)]
+mod return_recording_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    #[tokio::test]
+    async fn original_return_capture_stays_owned_through_temporary_recording_pressure() {
+        struct Original(Arc<AtomicUsize>);
+        impl Drop for Original {
+            fn drop(&mut self) {
+                self.0.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+        let drops = Arc::new(AtomicUsize::new(0));
+        let capture = Arc::new(Original(drops.clone()));
+        let original = capture.clone();
+        let calls = AtomicUsize::new(0);
+        settle_return_recording(&tokio_util::sync::CancellationToken::new(), || {
+            assert!(Arc::ptr_eq(&capture, &original));
+            let n = calls.fetch_add(1, Ordering::SeqCst);
+            std::future::ready(match n {
+                0 => Err(Error::new("authority-busy", "Original reader drains")),
+                1 => Err(Error::storage()),
+                2 => Err(Error::new("capacity-exceeded", "Original journal full")),
+                _ => Ok(()),
+            })
+        })
+        .await
+        .unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 4);
+        assert_eq!(drops.load(Ordering::SeqCst), 0);
+        drop(original);
+        drop(capture);
+        assert_eq!(drops.load(Ordering::SeqCst), 1);
+    }
+    #[tokio::test]
+    async fn return_recording_stops_on_runtime_stop_or_permanent_refusal() {
+        for code in [
+            "authority-busy",
+            "storage-unavailable",
+            "capacity-exceeded",
+            "forbidden",
+        ] {
+            let stop = tokio_util::sync::CancellationToken::new();
+            let calls = AtomicUsize::new(0);
+            let result: Result<()> = settle_return_recording(&stop, || {
+                calls.fetch_add(1, Ordering::SeqCst);
+                stop.cancel();
+                std::future::ready(Err(Error::new(code, "Original outcome")))
+            })
+            .await;
+            assert_eq!(result.unwrap_err().code, code);
+            assert_eq!(calls.load(Ordering::SeqCst), 1);
         }
     }
 }

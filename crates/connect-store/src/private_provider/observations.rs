@@ -15,10 +15,28 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let (held, mut c) = self.private_provider_history_sql(
+            &context.delivery,
+            &context.attempt,
+            &origin.runtime,
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_private_provider_history(
+            &tx,
+            &held,
+            &context.delivery,
+            &context.attempt,
+            &origin.runtime,
+        )?;
+        let previous: Option<bool> = tx.query_row("SELECT uncertain FROM private_provider_contexts WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3 AND started=1 AND delivered_at IS NULL", params![context.delivery,context.attempt,origin.runtime], |row| row.get(0)).optional().map_err(|_|Error::storage())?;
+        if previous == Some(true) {
+            return Ok(());
+        }
+        if previous.is_none() {
+            return Err(Error::forbidden());
+        }
         if tx.execute("UPDATE private_provider_contexts SET uncertain=1 WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3 AND started=1 AND delivered_at IS NULL",params![context.delivery,context.attempt,origin.runtime]).map_err(|_|Error::storage())?!=1{return Err(Error::forbidden());}
         tx.execute("UPDATE context_deliveries SET state='uncertain',updated_at=?2 WHERE id=?1 AND state='pending'",params![context.delivery,crate::now()]).map_err(|_|Error::storage())?;
         mark_interrupted(&tx, context.consultation_record_id(), self)?;
@@ -101,7 +119,7 @@ impl Store {
             };
             bound(self, &c, context)?;
             let facts = resolve(self, &c, context)?;
-            let mut scopes = scopes(self, &c, context, false)?;
+            let mut scopes = scopes(self, &c, context, true)?;
             for (identity, _, _) in facts.audience {
                 scopes.push(AuthorityScope::identity(&identity, AuthorityMode::Write)?);
             }
@@ -120,12 +138,13 @@ impl Store {
         } else {
             self.connection()?
         };
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         bound(self, &tx, context)?;
         let facts = resolve(self, &tx, context)?;
-        let mut needed = scopes(self, &tx, context, false)?;
+        let mut needed = scopes(self, &tx, context, true)?;
         for (identity, _, _) in &facts.audience {
             needed.push(AuthorityScope::identity(identity, AuthorityMode::Write)?);
         }
@@ -242,10 +261,21 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let (held, mut c) = self.private_provider_history_sql(
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_private_provider_history(
+            &tx,
+            &held,
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let row:Option<(String,Option<i64>)>=tx.query_row("SELECT operation_record_id,closed_at FROM private_provider_contexts WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3 AND provider_ref=?4 AND delivered_at IS NOT NULL",params![receipt.delivery,receipt.attempt,receipt.runtime,receipt.provider_ref],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?;
         let (root, closed) = row.ok_or_else(Error::forbidden)?;
         if closed.is_none() {
@@ -262,14 +292,14 @@ impl Store {
     }
 }
 
-pub(crate) fn recover_one(
+pub(crate) fn recovery_disposition(
     c: &Connection,
     row: &crate::transitions::rows::Saved,
     store: &Store,
-) -> Result<bool> {
+) -> Result<Option<connect_protocol::transitions::OperationState>> {
     use connect_protocol::transitions::OperationState;
     if row.record.state.terminal() || row.record.state == OperationState::Unknown {
-        return Ok(false);
+        return Ok(None);
     }
     let (started,runtime,credential):(bool,String,String)=c.query_row("SELECT p.started,p.runtime_epoch,l.credential_id FROM private_provider_contexts p JOIN native_consultation_legs l ON l.operation_record_id=p.operation_record_id WHERE p.operation_record_id=?1",[&row.record.record_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
     let (context_key,delegate,selection,audience,endpoint,endpoint_json):(String,String,String,String,String,String)=c.query_row("SELECT context_credential_id,delegate_credential_id,selection_json,audience_json,endpoint_id,endpoint_json FROM private_provider_contexts WHERE operation_record_id=?1",[&row.record.record_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).map_err(|_|Error::storage())?;
@@ -309,26 +339,38 @@ pub(crate) fn recover_one(
         } else {
             OperationState::Failed
         };
-        // Provider initialization starts independently of audience application.
-        // Accepted work therefore enters preparing before uncertainty is known.
-        if row.record.state == OperationState::Accepted && started {
-            c.execute(
-                "UPDATE operations SET state='preparing' WHERE record_id=?1",
-                [&row.record.record_id],
-            )
-            .map_err(|_| Error::storage())?;
-            progress(c, &row.record.record_id, store)?;
-        }
+        return Ok(Some(next));
+    }
+    Ok(None)
+}
+
+pub(crate) fn recover_one(
+    c: &Connection,
+    row: &crate::transitions::rows::Saved,
+    store: &Store,
+) -> Result<bool> {
+    use connect_protocol::transitions::OperationState;
+    let Some(next) = recovery_disposition(c, row, store)? else {
+        return Ok(false);
+    };
+    // Only an actual started attempt can yield Unknown. No SQL/file authority
+    // is renewed here, and no remote provider work can be reconstructed.
+    if row.record.state == OperationState::Accepted && next == OperationState::Unknown {
         c.execute(
-            "UPDATE operations SET state=?2 WHERE record_id=?1",
-            params![row.record.record_id, next.as_str()],
+            "UPDATE operations SET state='preparing' WHERE record_id=?1",
+            [&row.record.record_id],
         )
         .map_err(|_| Error::storage())?;
         progress(c, &row.record.record_id, store)?;
-        crate::transitions::workers::invalidate(c, &row.record.record_id)?;
-        return Ok(true);
     }
-    Ok(false)
+    c.execute(
+        "UPDATE operations SET state=?2 WHERE record_id=?1",
+        params![row.record.record_id, next.as_str()],
+    )
+    .map_err(|_| Error::storage())?;
+    progress(c, &row.record.record_id, store)?;
+    crate::transitions::workers::invalidate(c, &row.record.record_id)?;
+    Ok(true)
 }
 
 fn mark_interrupted(c: &Connection, root: &str, store: &Store) -> Result<()> {
@@ -376,10 +418,28 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let (held, mut c) = self.private_provider_history_sql(
+            &context.delivery,
+            &context.attempt,
+            &origin.runtime,
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_private_provider_history(
+            &tx,
+            &held,
+            &context.delivery,
+            &context.attempt,
+            &origin.runtime,
+        )?;
+        let previous: Option<bool> = tx.query_row("SELECT export_uncertain FROM private_provider_contexts WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3 AND provider_ref=?4 AND export_started=1 AND delivered_at IS NULL", params![context.delivery,context.attempt,origin.runtime,attempt.provider_ref], |row| row.get(0)).optional().map_err(|_|Error::storage())?;
+        if previous == Some(true) {
+            return Ok(());
+        }
+        if previous.is_none() {
+            return Err(Error::forbidden());
+        }
         if tx.execute("UPDATE private_provider_contexts SET export_uncertain=1 WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3 AND provider_ref=?4 AND export_started=1 AND delivered_at IS NULL",params![context.delivery,context.attempt,origin.runtime,attempt.provider_ref]).map_err(|_|Error::storage())?!=1{return Err(Error::forbidden());}
         tx.execute("UPDATE context_deliveries SET state='uncertain',updated_at=?2 WHERE id=?1 AND state='pending'",params![context.delivery,crate::now()]).map_err(|_|Error::storage())?;
         mark_interrupted(&tx, context.consultation_record_id(), self)?;
@@ -402,10 +462,21 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let (held, mut c) = self.private_provider_history_sql(
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_private_provider_history(
+            &tx,
+            &held,
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let row:Option<(String,Option<i64>)>=tx.query_row("SELECT operation_record_id,closed_at FROM private_provider_contexts WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3 AND provider_ref=?4 AND created_at IS NOT NULL",params![receipt.delivery,receipt.attempt,receipt.runtime,receipt.provider_ref],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?;
         let (root, closed) = row.ok_or_else(Error::forbidden)?;
         if closed.is_none() {
@@ -439,10 +510,21 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let (held, mut c) = self.private_provider_history_sql(
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_private_provider_history(
+            &tx,
+            &held,
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let row:Option<(String,bool)>=tx.query_row("SELECT operation_record_id,uncertain FROM private_provider_contexts WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3 AND started=1 AND provider_ref IS NULL AND created_at IS NULL",params![receipt.delivery,receipt.attempt,receipt.runtime],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?;
         let (root, uncertain) = row.ok_or_else(Error::forbidden)?;
         if !uncertain {

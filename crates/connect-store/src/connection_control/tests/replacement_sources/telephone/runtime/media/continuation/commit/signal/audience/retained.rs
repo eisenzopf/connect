@@ -30,9 +30,7 @@ fn retained_scene(complete: Option<&str>) {
     for key in [&f.keys[1], &f.keys[2]] {
         let mut actor = f.store.revalidate(key).unwrap();
         actor.scope.operations.push("stream.subscribe".into());
-        f.store
-            .connection()
-            .unwrap()
+        fixture_change(&f, &[])
             .execute(
                 "UPDATE credentials SET operations=?2 WHERE id=?1",
                 params![key, serde_json::to_string(&actor.scope.operations).unwrap()],
@@ -40,7 +38,7 @@ fn retained_scene(complete: Option<&str>) {
             .unwrap();
     }
     {
-        let c = f.store.connection().unwrap();
+        let c = fixture_change(&f, &[&route]);
         c.execute("UPDATE identities SET kind='human' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)",[&f.pids[2]]).unwrap();
         c.execute(
             "UPDATE participants SET kind='human' WHERE participant_id=?1",
@@ -293,7 +291,7 @@ fn retained_scene(complete: Option<&str>) {
         permissions(&f, &route, &["sip_dial", "dtmf.send", "dtmf.receive"]);
     }
     {
-        let c = f.store.connection().unwrap();
+        let c = fixture_change(&f, &[&route]);
         // Native receive ceilings name the phone Participant's Identity, not
         // the independent system Identity that owns its carrier route.
         c.execute(
@@ -320,7 +318,7 @@ fn retained_scene(complete: Option<&str>) {
         }
     }
     {
-        let c = f.store.connection().unwrap();
+        let c = fixture_change(&f, &[&route]);
         c.execute(
             "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
             [candidate.connection_id()],

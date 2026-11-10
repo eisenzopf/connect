@@ -197,9 +197,7 @@ fn native_consultation_planning_refuses_incomplete_wrong_duplicate_and_changed_n
             .try_native_consultation_read(&origin, &sources[remote], &private)
             .is_err());
     }
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET generation=generation+1 WHERE id=?1",
             [sources[2].connection_id()],

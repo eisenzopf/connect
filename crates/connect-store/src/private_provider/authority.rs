@@ -159,6 +159,9 @@ pub(super) fn scopes(
     } else {
         context.selection.scopes(store, c, write)?
     };
+    if write {
+        scopes.extend(mutation_scopes(c, context.consultation_record_id())?);
+    }
     scopes.push(AuthorityScope::identity(
         &facts.actor.identity_id,
         if write {
@@ -326,4 +329,23 @@ pub(crate) fn require_for_native(
         ));
     }
     Ok(())
+}
+
+// Same exact historical operation footprint used by transition mutation
+// admission. Do not resolve a revoked credential to record captured facts.
+pub(super) fn mutation_scopes(c: &Connection, root: &str) -> Result<Vec<AuthorityScope>> {
+    let (owner, cid): (String, Option<String>) = c
+        .query_row(
+            "SELECT owner_id,conversation_id FROM operations WHERE record_id=?1",
+            [root],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .map_err(|_| Error::storage())?
+        .ok_or_else(Error::forbidden)?;
+    let cid = cid.as_deref().ok_or_else(Error::forbidden)?;
+    Ok(vec![
+        AuthorityScope::identity(&owner, AuthorityMode::Write)?,
+        AuthorityScope::conversation(cid, AuthorityMode::Write)?,
+    ])
 }

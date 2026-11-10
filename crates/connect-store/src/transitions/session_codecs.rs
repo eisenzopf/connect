@@ -242,10 +242,23 @@ impl Store {
         unavailable: bool,
     ) -> Result<()> {
         let owner = self.require_runtime_owner()?;
+        let scopes = {
+            let c = self.try_connection()?;
+            codec_mutation_scopes(&c, &target.batch_record_id)?
+        };
+        let held = self.try_acquire_authority(&scopes)?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        if !self.authority_covers(&held, &codec_mutation_scopes(&tx, &target.batch_record_id)?) {
+            return Err(Error::forbidden());
+        }
+        let original: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM session_codec_batches b JOIN session_codec_targets t ON t.batch_record_id=b.operation_record_id JOIN operations o ON o.record_id=b.operation_record_id WHERE b.operation_record_id=?1 AND t.connection_id=?2 AND t.generation=?3 AND b.runtime_epoch=?4 AND b.expires_at=?5 AND b.codec_preferences_json=?6 AND o.state IN ('accepted','preparing') AND t.state='queued' AND t.native_operation_record_id IS NULL)", params![target.batch_record_id,target.connection_id,target.generation,self.runtime_epoch(),target.expires_at,serde_json::to_string(&target.codec_preferences).map_err(|_|Error::storage())?], |row| row.get(0)).map_err(|_|Error::storage())?;
+        if !original {
+            return Err(conflict());
+        }
         let changed=tx.execute("UPDATE session_codec_targets SET state=?4 WHERE batch_record_id=?1 AND connection_id=?2 AND generation=?3 AND state='queued' AND native_operation_record_id IS NULL AND EXISTS(SELECT 1 FROM session_codec_batches b WHERE b.operation_record_id=?1 AND b.runtime_epoch=?5)",params![target.batch_record_id,target.connection_id,target.generation,if unavailable {"unavailable"} else {"refused"},self.runtime_epoch()]).map_err(|_|Error::storage())?;
         if changed != 1 {
             return Err(conflict());
@@ -263,32 +276,59 @@ impl Store {
         if limit == 0 || limit > self.limits().connections {
             return Err(invalid());
         }
-        let mut c = self.try_connection()?;
-        // An empty read must not compete for SQLite's writer. This is only a
-        // preflight: every nonempty scan reselects current work in its write
-        // transaction, and later periodic scans see newly queued batches.
-        if reconciliation_ids(&c, 1)?.is_empty() {
-            if !owner.current() {
-                return Err(Error::forbidden());
+        // Select the exact bounded original IDs and release SQL before file
+        // admission. Newly queued batches wait for the next periodic scan.
+        let (ids, scopes) = {
+            let c = self.try_connection()?;
+            let ids = reconciliation_ids(&c, limit)?;
+            let mut scopes = Vec::new();
+            for id in &ids {
+                scopes.extend(codec_mutation_scopes(&c, id)?);
             }
-            return Ok(0);
+            (ids, scopes)
+        };
+        if ids.is_empty() {
+            return if owner.current() {
+                Ok(0)
+            } else {
+                Err(Error::forbidden())
+            };
         }
+        let held = self.try_acquire_authority(&scopes)?;
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let ids = reconciliation_ids(&tx, limit)?;
+        let mut reconciled = 0;
         for id in &ids {
+            if !self.authority_covers(&held, &codec_mutation_scopes(&tx, id)?) {
+                return Err(Error::forbidden());
+            }
+            let eligible: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id WHERE b.operation_record_id=?1 AND o.state IN ('accepted','preparing','unknown'))", [id], |row|row.get(0)).map_err(|_|Error::storage())?;
+            if !eligible {
+                continue;
+            }
             tx.execute("UPDATE session_codec_targets SET state=CASE WHEN EXISTS(SELECT 1 FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id JOIN session_control s ON s.session_id=o.session_id WHERE b.operation_record_id=?1 AND s.codec_policy_operation_id!=b.policy_operation_id) THEN 'superseded' WHEN (SELECT cancel_requested FROM operations WHERE record_id=?1)=1 THEN 'cancelled' ELSE 'unavailable' END WHERE batch_record_id=?1 AND state='queued' AND native_operation_record_id IS NULL AND (EXISTS(SELECT 1 FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id JOIN session_control s ON s.session_id=o.session_id WHERE b.operation_record_id=?1 AND (b.runtime_epoch!=?2 OR b.expires_at<=?3 OR o.cancel_requested=1 OR s.codec_policy_operation_id!=b.policy_operation_id)) OR EXISTS(SELECT 1 FROM connections c JOIN operations o ON o.record_id=?1 JOIN sessions s ON s.id=o.session_id WHERE c.id=session_codec_targets.connection_id AND (c.generation!=session_codec_targets.generation OR c.state NOT IN ('ready','active') OR s.state IN ('ended','cancelled','rejected','failed'))))",params![id,self.runtime_epoch(),crate::now()]).map_err(|_|Error::storage())?;
             tx.execute("UPDATE session_codec_targets SET state=CASE WHEN (SELECT state FROM operations WHERE record_id=native_operation_record_id)='completed' THEN CASE WHEN COALESCE((SELECT json_extract(result_json,'$.resources_changed') FROM operations WHERE record_id=native_operation_record_id),1)=1 THEN 'updated' ELSE 'unchanged' END WHEN (SELECT state FROM operations WHERE record_id=native_operation_record_id) IN ('failed','cancelled') THEN CASE WHEN (SELECT cancel_requested FROM operations WHERE record_id=?1)=1 THEN 'cancelled' ELSE 'refused' END ELSE 'unknown' END WHERE batch_record_id=?1 AND state IN ('preparing','unknown') AND native_operation_record_id IS NOT NULL AND (SELECT state FROM operations WHERE record_id=native_operation_record_id) IN ('completed','failed','cancelled','unknown','interrupted')",[id]).map_err(|_|Error::storage())?;
             settle(&tx, id, self)?;
+            reconciled += 1;
         }
         if !owner.current() {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(ids.len())
+        Ok(reconciled)
     }
 }
+fn codec_mutation_scopes(c: &Connection, id: &str) -> Result<Vec<crate::AuthorityScope>> {
+    let row = rows::by_record(c, id)?;
+    if !row.session_codecs || row.record.command_type != "session.codec-reconcile" {
+        return Err(Error::forbidden());
+    }
+    admission::mutation_row_scopes(&row)
+}
+
 fn reconciliation_ids(c: &Connection, limit: usize) -> Result<Vec<String>> {
     let mut q=c.prepare("SELECT b.operation_record_id FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id WHERE o.state IN ('accepted','preparing','unknown') ORDER BY CASE WHEN o.state='unknown' THEN 1 ELSE 0 END,o.rowid LIMIT ?1").map_err(|_|Error::storage())?;
     let ids = q

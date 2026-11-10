@@ -33,7 +33,7 @@ fn native_observation_hints_do_not_admit_media_and_current_mutation_invalidates_
         "authority-busy"
     );
     f.store
-        .connection()
+        .connection_with_authority(&write)
         .unwrap()
         .execute(
             "UPDATE connections SET state='retired' WHERE id=?1",

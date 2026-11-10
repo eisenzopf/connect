@@ -34,7 +34,7 @@ fn ai_endpoint(f: &Fixture, candidate: &Arc<NativeMediaOrigin>) -> String {
 }
 fn ai_endpoint_profile(f: &Fixture, candidate: &Arc<NativeMediaOrigin>, private: bool) -> String {
     {
-        let c = f.store.connection().unwrap();
+        let c = f.change_fixture();
         c.execute("UPDATE identities SET kind='ai' WHERE id=(SELECT identity_id FROM connections WHERE id=?1)",[candidate.connection_id()]).unwrap();
         c.execute(
             "UPDATE participants SET kind='ai' WHERE participant_id=?1",
@@ -84,7 +84,7 @@ fn ai_endpoint_profile(f: &Fixture, candidate: &Arc<NativeMediaOrigin>, private:
     else {
         panic!()
     };
-    f.store.connection().unwrap().execute("UPDATE endpoints SET verification_state='verified',verification_evidence='controlled-fixture',verified_at=?2 WHERE id=?1",params![endpoint_id,crate::now()]).unwrap();
+    f.change_fixture().execute("UPDATE endpoints SET verification_state='verified',verification_evidence='controlled-fixture',verified_at=?2 WHERE id=?1",params![endpoint_id,crate::now()]).unwrap();
     endpoint_id
 }
 fn fresh_fixture() -> (
@@ -151,9 +151,13 @@ fn created(
     assert_eq!(read.assistant_id().unwrap(), "fixture-assistant");
     assert_eq!(read.secret_ref().unwrap(), "fixture_private_vapi_key");
     assert_eq!(read.json().unwrap_err().code, "not-ready");
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_private_provider_context(context.clone(), read)
+        .unwrap();
+    let read = f
+        .store
+        .try_private_provider_creation_read(&attempt)
         .unwrap();
     assert!(read.json().is_err());
     drop(read);
@@ -165,10 +169,13 @@ fn export_attempt(f: &Fixture, context: &PrivateProviderContext) -> crate::Priva
     let read = f.store.try_private_provider_read(context).unwrap();
     assert!(read.provider_ref().is_ok());
     assert!(read.json().is_ok());
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_private_provider_export(context.clone(), read)
         .unwrap();
+    let read = f.store.try_private_provider_export_read(&attempt).unwrap();
+    assert!(read.json().is_ok());
+    assert!(read.provider_ref().is_ok());
     drop(read);
     attempt
 }
@@ -193,7 +200,7 @@ fn protected_initializer_target_is_current_original_member_metadata_without_an_i
     assert!(view.present && view.registered);
     let (other, _, _, _, _) = fresh_fixture();
     assert!(other.store.native_consultation_target(&origin).is_err());
-    f.store.connection().unwrap().execute("UPDATE session_participants SET state='invited' WHERE session_id='session' AND participant_id=?1",[candidate.participant_id()]).unwrap();
+    f.change_fixture().execute("UPDATE session_participants SET state='invited' WHERE session_id='session' AND participant_id=?1",[candidate.participant_id()]).unwrap();
     assert!(!f.store.native_consultation_target(&origin).unwrap().present);
     let admin = f.store.revalidate(&f.admin).unwrap();
     f.store.revoke(&admin, &f.keys[0]).unwrap();
@@ -446,9 +453,7 @@ fn expired_unstarted_native_preparation_keeps_unconfirmed_provider_cleanup_unkno
         )
         .unwrap()
         .unwrap();
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE operations SET lease_expires_at=?2 WHERE record_id=?1",
             params![origin.record_id(), crate::now() - 1],
@@ -499,9 +504,7 @@ fn private_provider_context_requires_current_private_source_and_verified_ai_dest
                 target = ai_endpoint_profile(&f, &candidate, false);
             }
             "unverified" => {
-                f.store
-                    .connection()
-                    .unwrap()
+                f.change_fixture()
                     .execute(
                         "UPDATE endpoints SET verification_state='unverified' WHERE id=?1",
                         [&endpoint],
@@ -520,7 +523,7 @@ fn private_provider_context_requires_current_private_source_and_verified_ai_dest
             }
             "delegate-permission" => {
                 let mut scope = f.store.revalidate(&f.keys[2]).unwrap().scope;
-                let c = f.store.connection().unwrap();
+                let c = f.change_fixture();
                 scope.operations.retain(|p| p != "context_view");
                 c.execute(
                     "UPDATE credentials SET operations=?2 WHERE id=?1",
@@ -573,11 +576,23 @@ fn private_provider_exact_selection_and_one_attempt_cannot_complete_through_gene
     assert!(read.json().is_err());
     assert!(!format!("{read:?}").contains("authorized shared history"));
     let duplicate = f.store.try_private_provider_read(&context).unwrap();
-    let (attempt, read) = f
+    assert_eq!(
+        f.store
+            .begin_private_provider_context(context.clone(), read)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(duplicate);
+    let read = f.store.try_private_provider_read(&context).unwrap();
+    let attempt = f
         .store
         .begin_private_provider_context(context.clone(), read)
         .unwrap();
-    drop(read);
+    let duplicate = f
+        .store
+        .try_private_provider_creation_read(&attempt)
+        .unwrap();
     assert!(f
         .store
         .begin_private_provider_context(context.clone(), duplicate)
@@ -590,11 +605,20 @@ fn private_provider_exact_selection_and_one_attempt_cannot_complete_through_gene
     assert!(read.json().unwrap().contains("authorized shared history"));
     assert_eq!(read.provider_ref().unwrap(), "fresh-private-memory");
     let duplicate = f.store.try_private_provider_read(&context).unwrap();
-    let (export, read) = f
+    assert_eq!(
+        f.store
+            .begin_private_provider_export(context.clone(), read)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(duplicate);
+    let read = f.store.try_private_provider_read(&context).unwrap();
+    let export = f
         .store
         .begin_private_provider_export(context.clone(), read)
         .unwrap();
-    drop(read);
+    let duplicate = f.store.try_private_provider_export_read(&export).unwrap();
     assert!(f
         .store
         .begin_private_provider_export(context.clone(), duplicate)
@@ -788,11 +812,10 @@ fn private_provider_uncertainty_reserves_the_original_context_and_never_reexport
     let (f, sources, candidate, origin, _, endpoint, _) = fixture();
     let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
     let read = f.store.try_private_provider_read(&context).unwrap();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_private_provider_context(context.clone(), read)
         .unwrap();
-    drop(read);
     f.store.private_provider_uncertain(&attempt).unwrap();
     assert!(f.store.try_private_provider_read(&context).is_err());
     assert_eq!(
@@ -886,11 +909,10 @@ fn private_provider_context_precedes_native_ai_audience_attempt_and_cancellation
         let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
         let attempt = if started {
             let read = f.store.try_private_provider_read(&context).unwrap();
-            let (attempt, read) = f
+            let attempt = f
                 .store
                 .begin_private_provider_context(context.clone(), read)
                 .unwrap();
-            drop(read);
             Some(attempt)
         } else {
             None
@@ -998,8 +1020,16 @@ fn private_provider_confirmed_initialization_allows_one_native_ai_preparation() 
         )
         .unwrap();
     let held = f.store.native_consultation_attempt_read(&lease).unwrap();
+    assert_eq!(
+        f.store
+            .record_private_provider_closed(&receipt)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(held);
     f.store.record_private_provider_closed(&receipt).unwrap();
-    assert!(f.store.begin_native_consultation(lease, held).is_err());
+    assert!(f.store.native_consultation_attempt_read(&lease).is_err());
     assert!(f
         .store
         .record_private_provider_transcript(
@@ -1020,11 +1050,10 @@ fn private_provider_context_source_loss_recovery_distinguishes_unstarted_from_po
         let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
         if started {
             let read = f.store.try_private_provider_read(&context).unwrap();
-            let (attempt, read) = f
+            let attempt = f
                 .store
                 .begin_private_provider_context(context, read)
                 .unwrap();
-            drop(read);
             drop(attempt);
         }
         let operator = f.store.revalidate(&f.admin).unwrap();
@@ -1112,15 +1141,14 @@ fn private_provider_current_export_reader_blocks_revocation_then_releases_it_wit
 fn private_provider_reused_public_memory_refuses_before_private_json_is_exportable() {
     let (f, sources, candidate, origin, _, endpoint, _) = fixture();
     let owner = f.store.revalidate(&f.keys[0]).unwrap();
-    f.store.connection().unwrap().execute("INSERT INTO context_deliveries(id,conversation_id,session_id,provider,watermark,selection_json,state,provider_ref,created_at,updated_at,sequence,owner_id) VALUES('old-public-context',?1,'session','vapi',0,'{}','delivered','public-memory',?2,?2,(SELECT COALESCE(MAX(sequence),0)+1 FROM context_deliveries),?3)",params![f.cid,crate::now(),owner.identity_id]).unwrap();
+    f.change_fixture().execute("INSERT INTO context_deliveries(id,conversation_id,session_id,provider,watermark,selection_json,state,provider_ref,created_at,updated_at,sequence,owner_id) VALUES('old-public-context',?1,'session','vapi',0,'{}','delivered','public-memory',?2,?2,(SELECT COALESCE(MAX(sequence),0)+1 FROM context_deliveries),?3)",params![f.cid,crate::now(),owner.identity_id]).unwrap();
     let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
     let read = f.store.try_private_provider_read(&context).unwrap();
     assert!(read.json().is_err());
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_private_provider_context(context.clone(), read)
         .unwrap();
-    drop(read);
     let creation = attempt.created("public-memory".into()).unwrap();
     assert_eq!(
         f.store
@@ -1191,11 +1219,10 @@ fn private_provider_lost_creation_worker_expires_as_uncertain_without_repeating_
     let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
     let read = f.store.try_private_provider_read(&context).unwrap();
     let expires = read.expires_at();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_private_provider_context(context.clone(), read)
         .unwrap();
-    drop(read);
     drop(attempt);
     assert_eq!(
         f.store
@@ -1266,16 +1293,13 @@ fn private_provider_changed_session_revision_settles_stopped_preparation_without
         let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
         if started {
             let read = f.store.try_private_provider_read(&context).unwrap();
-            let (attempt, read) = f
+            let attempt = f
                 .store
                 .begin_private_provider_context(context.clone(), read)
                 .unwrap();
-            drop(read);
             drop(attempt);
         }
-        f.store
-            .connection()
-            .unwrap()
+        f.change_fixture()
             .execute(
                 "UPDATE sessions SET topology_revision=topology_revision+1 WHERE id='session'",
                 [],
@@ -1527,9 +1551,7 @@ fn private_provider_opaque_memory_and_new_transcripts_require_current_history_re
     assert_ne!(remote, ai);
     // Controlled current-scope change: both physical private recipients remain
     // permitted, while the owner of an already-exported history source does not.
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE credentials SET recipients=?2 WHERE id=?1",
             params![
@@ -1619,38 +1641,53 @@ fn private_provider_native_policy_memo_tracks_foreign_sqlite_writes_and_clock_ex
         .unwrap()
         .is_some());
     }
-    let version_before: i64 = f
-        .store
-        .connection()
-        .unwrap()
+    // Raw SQLite cannot bypass the actual writer protocol, even from another
+    // connection. A separate administration Store performs the real change.
+    let raw = rusqlite::Connection::open(&f.store.path).unwrap();
+    assert!(raw
+        .execute("UPDATE credentials SET recipients='[]' WHERE id=?1", [&key])
+        .is_err());
+    drop(raw);
+    let other = Store::open_administration(f.store.path(), crate::Limits::default()).unwrap();
+    let scope =
+        crate::AuthorityScope::identity(&owner.identity_id, crate::AuthorityMode::Write).unwrap();
+    let version_connection = f.store.connection().unwrap();
+    let version_before: i64 = version_connection
         .query_row("PRAGMA data_version", [], |r| r.get(0))
         .unwrap();
-    let other = rusqlite::Connection::open(&f.store.path).unwrap();
-    other
-        .execute(
-            "UPDATE credentials SET recipients=?2 WHERE id=?1",
-            params![
-                key,
-                serde_json::to_string(&vec![owner.identity_id, ai]).unwrap()
-            ],
-        )
-        .unwrap();
-    let version_after: i64 = f
-        .store
-        .connection()
-        .unwrap()
+    {
+        let held = other.try_acquire_authority(&[scope.clone()]).unwrap();
+        other
+            .connection_with_authority(&held)
+            .unwrap()
+            .execute(
+                "UPDATE credentials SET recipients=?2 WHERE id=?1",
+                params![
+                    key,
+                    serde_json::to_string(&vec![owner.identity_id, ai]).unwrap()
+                ],
+            )
+            .unwrap();
+    }
+    let version_after: i64 = version_connection
         .query_row("PRAGMA data_version", [], |r| r.get(0))
         .unwrap();
+    drop(version_connection);
     assert_ne!(version_before, version_after);
     assert!(f.store.try_native_media_read(&candidate, None).is_err());
     assert!(f.store.try_native_media_read(&sources[0], None).is_ok());
     let expires = crate::now() + 2;
-    other
-        .execute(
-            "UPDATE credentials SET recipients=?3,expires_at=?2 WHERE id=?1",
-            params![key, expires, serde_json::to_string(&vec!["*"]).unwrap()],
-        )
-        .unwrap();
+    {
+        let held = other.try_acquire_authority(&[scope]).unwrap();
+        other
+            .connection_with_authority(&held)
+            .unwrap()
+            .execute(
+                "UPDATE credentials SET recipients=?3,expires_at=?2 WHERE id=?1",
+                params![key, expires, serde_json::to_string(&vec!["*"]).unwrap()],
+            )
+            .unwrap();
+    }
     let current = f.store.try_native_media_read(&candidate, None).unwrap();
     assert!(current.current());
     assert!(current.expires_at() <= expires);
@@ -1812,9 +1849,7 @@ fn private_context_receipt_keeps_original_native_generation_and_private_audience
     let applied = delivered(&f, &context);
     f.store.record_private_provider_closed(&applied).unwrap();
     let original_generation = candidate.generation();
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET generation=generation+1,state='retired' WHERE id=?1",
             [candidate.connection_id()],
@@ -1874,7 +1909,7 @@ fn private_provider_metadata_wait_rechecks_current_authority_after_sql_contentio
     for revoked in [false, true] {
         let (f, sources, candidate, origin, _, endpoint, _) = fixture();
         let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
-        let c = f.store.connection().unwrap();
+        let c = f.change_fixture();
         std::thread::scope(|threads| {
             let (started, waiting) = std::sync::mpsc::channel();
             let store = &f.store;
@@ -1934,4 +1969,331 @@ fn private_provider_metadata_cancelled_wait_cannot_start_or_export() {
         )
         .unwrap();
     assert_eq!(starts, (false, false));
+}
+
+#[test]
+fn private_provider_reservation_drains_real_reader_alias_and_releases_writer_before_phase_io() {
+    let (f, sources, candidate, origin, endpoint) = fresh_fixture();
+    let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
+    let read = f.store.try_private_provider_read(&context).unwrap();
+    let original_until = read.expires_at();
+    let alias = f.store.try_private_provider_read(&context).unwrap();
+    let before = f.count("journal");
+    assert_eq!(
+        f.store
+            .begin_private_provider_context_before(context.clone(), read, original_until)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(f.count("journal"), before);
+    assert_eq!(
+        f.store
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT started FROM private_provider_contexts WHERE delivery_id=?1",
+                [context.delivery_id()],
+                |row| row.get::<_, bool>(0)
+            )
+            .unwrap(),
+        false
+    );
+    drop(alias);
+    let read = f.store.try_private_provider_read(&context).unwrap();
+    let attempt = f
+        .store
+        .begin_private_provider_context_before(context.clone(), read, original_until)
+        .unwrap();
+    assert!(attempt.expires_at() <= original_until);
+    let io = f
+        .store
+        .try_private_provider_creation_read(&attempt)
+        .unwrap();
+    assert!(io.current());
+    assert!(io.expires_at() <= original_until);
+    assert_eq!(io.assistant_id().unwrap(), "fixture-assistant");
+    assert_eq!(io.secret_ref().unwrap(), "fixture_private_vapi_key");
+    assert_eq!(io.json().unwrap_err().code, "not-ready");
+    // Controlled receipt represents one local creation; the test does not
+    // invoke any provider, socket or private-context export.
+    let captured = attempt
+        .created("controlled-original-created-instance".into())
+        .unwrap();
+    assert_eq!(
+        f.store
+            .record_private_provider_created(&captured)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(f.count("journal"), before + 1);
+    drop(io);
+    f.store.record_private_provider_created(&captured).unwrap();
+    let after = f.count("journal");
+    f.store.record_private_provider_created(&captured).unwrap();
+    assert_eq!(f.count("journal"), after);
+    let read = f.store.try_private_provider_read(&context).unwrap();
+    assert_eq!(
+        read.provider_ref().unwrap(),
+        "controlled-original-created-instance"
+    );
+}
+
+#[test]
+fn private_provider_fresh_creation_refusal_keeps_same_attempt_uncertainty_without_provider_io() {
+    let (f, sources, candidate, origin, endpoint) = fresh_fixture();
+    let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
+    let read = f.store.try_private_provider_read(&context).unwrap();
+    let attempt = f
+        .store
+        .begin_private_provider_context(context.clone(), read)
+        .unwrap();
+    let until = attempt.expires_at();
+    let actor = f.store.revalidate(&f.admin).unwrap();
+    f.store.revoke(&actor, &f.keys[0]).unwrap();
+    assert!(f
+        .store
+        .try_private_provider_creation_read(&attempt)
+        .is_err());
+    // No creation happened: the original owner retains conservative metadata
+    // uncertainty instead of obtaining a new attempt after fresh admission loss.
+    f.store.private_provider_uncertain(&attempt).unwrap();
+    let after = f.count("journal");
+    f.store.private_provider_uncertain(&attempt).unwrap();
+    assert_eq!(f.count("journal"), after);
+    let c = f.store.connection().unwrap();
+    let row: (bool, bool, i64, Option<String>, Option<i64>, bool) = c.query_row(
+        "SELECT started,uncertain,creation_expires_at,provider_ref,created_at,export_started FROM private_provider_contexts WHERE delivery_id=?1",
+        [context.delivery_id()], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?,row.get(5)?)),
+    ).unwrap();
+    assert_eq!(row, (true, true, until, None, None, false));
+    drop(c);
+    assert!(f.store.try_private_provider_read(&context).is_err());
+    assert!(f
+        .store
+        .try_private_provider_creation_read(&attempt)
+        .is_err());
+    assert_eq!(f.count("private_provider_contexts"), 1);
+}
+
+#[test]
+fn private_provider_export_uses_same_body_reference_and_cutoff_then_drains_before_ack_history() {
+    let (f, sources, candidate, origin, endpoint) = fresh_fixture();
+    let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
+    let _created = created(&f, &context, "controlled-original-export-instance");
+    let read = f.store.try_private_provider_read(&context).unwrap();
+    let body = read.json().unwrap().to_owned();
+    let until = read.expires_at();
+    let export = f
+        .store
+        .begin_private_provider_export_before(context.clone(), read, until)
+        .unwrap();
+    assert!(export.expires_at() <= until);
+    let io = f.store.try_private_provider_export_read(&export).unwrap();
+    assert!(io.current());
+    assert!(io.expires_at() <= until);
+    assert_eq!(
+        io.provider_ref().unwrap(),
+        "controlled-original-export-instance"
+    );
+    assert_eq!(io.json().unwrap(), body);
+    let receipt = export.delivered();
+    assert_eq!(
+        f.store
+            .record_private_provider_delivered(&receipt)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(io);
+    f.store.record_private_provider_delivered(&receipt).unwrap();
+    let after = f.count("journal");
+    f.store.record_private_provider_delivered(&receipt).unwrap();
+    assert_eq!(f.count("journal"), after);
+    assert!(f.store.try_private_provider_read(&context).is_err());
+    assert_eq!(
+        f.store
+            .connection()
+            .unwrap()
+            .query_row(
+                "SELECT provider_ref FROM context_deliveries WHERE id=?1",
+                [context.delivery_id()],
+                |row| row.get::<_, String>(0)
+            )
+            .unwrap(),
+        "controlled-original-export-instance"
+    );
+}
+
+#[test]
+fn private_provider_fresh_export_refusal_keeps_original_capture_for_uncertainty_and_close() {
+    let (f, sources, candidate, origin, endpoint) = fresh_fixture();
+    let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
+    let creation = created(&f, &context, "controlled-original-cleanup-instance");
+    let read = f.store.try_private_provider_read(&context).unwrap();
+    let export = f
+        .store
+        .begin_private_provider_export(context.clone(), read)
+        .unwrap();
+    let until = export.expires_at();
+    let actor = f.store.revalidate(&f.admin).unwrap();
+    f.store.revoke(&actor, &f.keys[0]).unwrap();
+    assert!(f.store.try_private_provider_export_read(&export).is_err());
+    f.store.private_provider_export_uncertain(&export).unwrap();
+    let after = f.count("journal");
+    f.store.private_provider_export_uncertain(&export).unwrap();
+    assert_eq!(f.count("journal"), after);
+    let row: (bool, bool, i64, String, Option<i64>) = f.store.connection().unwrap().query_row(
+        "SELECT export_started,export_uncertain,export_expires_at,provider_ref,delivered_at FROM private_provider_contexts WHERE delivery_id=?1",
+        [context.delivery_id()], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?)),
+    ).unwrap();
+    assert_eq!(
+        row,
+        (
+            true,
+            true,
+            until,
+            "controlled-original-cleanup-instance".into(),
+            None
+        )
+    );
+    // Controlled fixture captures termination of the same created instance;
+    // no provider creation, export or cleanup network command is issued here.
+    f.store
+        .record_private_provider_created_closed(&creation)
+        .unwrap();
+    let after_close = f.count("journal");
+    f.store
+        .record_private_provider_created_closed(&creation)
+        .unwrap();
+    assert_eq!(f.count("journal"), after_close);
+    assert!(f.store.try_private_provider_export_read(&export).is_err());
+    assert_eq!(f.count("private_provider_contexts"), 1);
+}
+
+#[test]
+fn native_consultation_get_uses_read_until_recovery_then_drains_before_original_effect_mutation() {
+    use connect_protocol::transitions::{EffectState, OperationAction, OperationState};
+    let (f, sources, candidate, origin, endpoint) = fresh_fixture();
+    let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
+    let receipt = delivered(&f, &context);
+    let _lease = f
+        .store
+        .prepare_native_consultation(
+            read(&f, &sources, &candidate, &origin),
+            media_plan(&origin, &sources, &candidate),
+        )
+        .unwrap()
+        .unwrap();
+    let owner = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
+    let scopes = [
+        crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Read).unwrap(),
+        crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Read).unwrap(),
+    ];
+    let action = OperationAction::Get {
+        operation_id: origin.request().operation_id.clone(),
+    };
+    // A prepared private consultation installs its primary/candidate privacy
+    // floor before possible audience IO. The retained/public pair is therefore
+    // intentionally refused; this is not a replacement-handoff continuity test.
+    assert_eq!(
+        f.store
+            .try_native_media_read(&sources[0], Some(&sources[1]))
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    let packet = f.store.try_native_media_read(&sources[2], None).unwrap();
+    assert_eq!(packet.target().connection.conversation_id, f.cid);
+    assert!(!packet.target().publication_suspended);
+    assert!(packet.source().is_none());
+    let held = f.store.try_acquire_authority(&scopes).unwrap();
+    let healthy = f
+        .store
+        .execute_operation_action_with_authority(&f.keys[0], action.clone(), &held)
+        .unwrap();
+    assert_eq!(healthy.state, OperationState::Preparing);
+    assert_eq!(healthy.effects[0].state, EffectState::Prepared);
+    drop(held);
+    drop(packet);
+    f.change_fixture()
+        .execute(
+            "UPDATE operations SET lease_expires_at=?2 WHERE record_id=?1",
+            params![origin.record_id(), crate::now() - 1],
+        )
+        .unwrap();
+    assert_eq!(
+        f.store
+            .try_native_media_read(&sources[0], Some(&sources[1]))
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    let packet = f.store.try_native_media_read(&sources[2], None).unwrap();
+    let held = f.store.try_acquire_authority(&scopes).unwrap();
+    let before = f.count("journal");
+    assert_eq!(
+        f.store
+            .execute_operation_action_with_authority(&f.keys[0], action.clone(), &held)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(f.count("journal"), before);
+    // The direct proof exercised no-upgrade above. Only the actual media
+    // reader must block the ordinary recovery worker below.
+    drop(held);
+    let recovered = std::thread::scope(|scope| {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let store = &f.store;
+        let credential = f.keys[0].clone();
+        let worker = scope.spawn(move || {
+            tx.send(store.execute_operation_action(&credential, action))
+                .unwrap();
+        });
+        assert!(matches!(
+            rx.recv_timeout(std::time::Duration::from_millis(60)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout)
+        ));
+        let unchanged: String = f.store.connection().unwrap().query_row(
+            "SELECT state FROM operation_effects WHERE operation_record_id=?1 AND provider='native-consultation'",
+            [origin.record_id()], |row| row.get(0),
+        ).unwrap();
+        assert_eq!(unchanged, "prepared");
+        drop(packet);
+        let result = rx.recv_timeout(std::time::Duration::from_secs(3)).unwrap();
+        worker.join().unwrap();
+        result.unwrap()
+    });
+    assert_eq!(recovered.state, OperationState::Unknown);
+    assert_eq!(recovered.effects[0].state, EffectState::Cancelled);
+    // No audience IO started. Unconfirmed provider termination still prevents
+    // a failed/no-effect result; its original closure receipt settles that fact.
+    let packet = f.store.try_native_media_read(&sources[2], None).unwrap();
+    let again = f
+        .store
+        .execute_operation_action(
+            &f.keys[0],
+            OperationAction::Get {
+                operation_id: origin.request().operation_id.clone(),
+            },
+        )
+        .unwrap();
+    assert_eq!(again, recovered);
+    drop(packet);
+    f.store.record_private_provider_closed(&receipt).unwrap();
+    let closed = f
+        .store
+        .execute_operation_action(
+            &f.keys[0],
+            OperationAction::Get {
+                operation_id: origin.request().operation_id.clone(),
+            },
+        )
+        .unwrap();
+    assert_eq!(closed.state, OperationState::Failed);
+    assert_eq!(closed.effects[0].id, recovered.effects[0].id);
 }

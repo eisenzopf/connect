@@ -106,14 +106,14 @@ fn native_stream_metadata_snapshot_contention_and_cancel_return_no_partial_grant
         .is_ok());
     // Controlled metadata fault: a cancelled original attempt cannot supply a
     // snapshot even though its original physical/source metadata still exists.
-    f.store
-        .connection()
-        .unwrap()
+    drop(proof);
+    f.change_fixture()
         .execute(
             "UPDATE operations SET cancel_requested=1 WHERE record_id=?1",
             [lease.record_id()],
         )
         .unwrap();
+    let proof = admit(&f, &request).unwrap();
     assert_eq!(
         f.store
             .native_stream_media_reads_with_peer(&origin, &[origin.as_ref()], &proof, &lease)

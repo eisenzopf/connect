@@ -774,7 +774,19 @@ impl Store {
         let mutation = matches!(&request.command, PeerCommand::NativeConnectionOffer(intent)
             if matches!(intent.offer["replacement_preparation"]["profile"].as_str(),
                 Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1")));
-        self.admit_peer_authority_mode(request, wait, mutation)
+        // Only the original replacement-media admission opts into the existing
+        // bounded refusal-stage diagnostic. Clone the SAME wait/cancellation
+        // owner: no deadline, permission, retry or acquisition behavior changes.
+        let replacement_start = matches!(&request.command, PeerCommand::NativeConnectionOffer(intent)
+            if intent.offer["replacement_preparation"]["profile"].as_str()
+                == Some("connect-replacement-media-v1"));
+        let observed_wait = replacement_start.then(|| wait.clone().observe_projection());
+        self.admit_peer_authority_scoped(
+            request,
+            observed_wait.as_ref().unwrap_or(wait),
+            mutation,
+            replacement_start,
+        )
     }
     pub(crate) fn admit_peer_authority_mode(
         &self,
@@ -782,27 +794,51 @@ impl Store {
         wait: &AuthorityWait,
         mutation: bool,
     ) -> Result<PeerAuthorityGuard> {
+        self.admit_peer_authority_scoped(request, wait, mutation, false)
+    }
+    // Only initial replacement-media bookkeeping narrows its mutation footprint.
+    // Explicit post-resource activation and every other caller keep their mode.
+    fn admit_peer_authority_scoped(
+        &self,
+        request: &PeerAuthorityRequest,
+        wait: &AuthorityWait,
+        mutation: bool,
+        replacement_start: bool,
+    ) -> Result<PeerAuthorityGuard> {
+        let current = |c: &Connection| -> Result<_> {
+            let (metadata, key, mut scopes, expires_at) = checked(self, c, request)?;
+            if replacement_start {
+                let PeerCommand::NativeConnectionOffer(intent) = &request.command else {
+                    return Err(Error::forbidden());
+                };
+                let record = intent.offer["replacement_preparation"]["operation_record_id"]
+                    .as_str()
+                    .ok_or_else(Error::forbidden)?;
+                let (cid, _owner, required) =
+                    self.native_replacement_bookkeeping_scopes(c, record)?;
+                if intent.offer["replacement_preparation"]["profile"]
+                    != "connect-replacement-media-v1"
+                    || cid != intent.conversation_id
+                {
+                    return Err(Error::forbidden());
+                }
+                scopes.extend(required);
+                scopes = AuthorityScope::merged(&scopes)?;
+            } else if mutation {
+                scopes = scopes.iter().map(AuthorityScope::write_scope).collect();
+            }
+            Ok((metadata, key, scopes, expires_at))
+        };
         let owner = self.require_runtime_owner()?;
         loop {
             wait.check()?;
             let guard = self.stable_authority(wait, || {
-                checked(self, &*self.connection()?, request).map(|(_, _, scopes, _)| {
-                    if mutation {
-                        scopes.iter().map(AuthorityScope::write_scope).collect()
-                    } else {
-                        scopes
-                    }
-                })
+                current(&*self.connection()?).map(|(_, _, scopes, _)| scopes)
             })?;
             let mut c = self.connection()?;
             let tx = c.transaction().map_err(|_| Error::storage())?;
             self.require_runtime_owner()?;
-            let (metadata, key, scopes, expires_at) = checked(self, &tx, request)?;
-            let scopes = if mutation {
-                scopes.iter().map(AuthorityScope::write_scope).collect()
-            } else {
-                scopes
-            };
+            let (metadata, key, scopes, expires_at) = current(&tx)?;
             if !self.authority_covers(&guard, &scopes) {
                 drop(tx);
                 drop(guard);

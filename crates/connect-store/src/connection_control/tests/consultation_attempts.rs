@@ -9,17 +9,27 @@ fn fixture() -> (
     // Current custody requires a freshly registered, muted private physical leg.
     // Retire the controlled old public slot instead of adopting it as private.
     {
-        let c = f.store.connection().unwrap();
-        c.execute(
-            "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
-            [sources[2].connection_id()],
-        )
-        .unwrap();
-        c.execute(
-            "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
-            [sources[2].connection_id()],
-        )
-        .unwrap();
+        // Ordinary controlled setup; sources are metadata only. Acquire the
+        // real original actor/CID writer before changing the old slot, and pin
+        // that exact proof to SQL. No consultation/packet reader is held here.
+        let writer = f.controlled_conversation_writer(2);
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        assert_eq!(
+            c.execute(
+                "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
+                [sources[2].connection_id()],
+            )
+            .unwrap(),
+            1
+        );
+        assert_eq!(
+            c.execute(
+                "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
+                [sources[2].connection_id()],
+            )
+            .unwrap(),
+            1
+        );
     }
     sources[2] = super::consultation_audiences::candidate(&f, &origin);
     (f, sources, command, origin)
@@ -201,9 +211,7 @@ fn unstarted_settlement_keeps_no_execution_grant_and_refuses_another_store() {
         .settle_native_consultation_preparation(&proof)
         .is_err());
     // The execution credential is independent of every physical media key.
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [key])
         .unwrap();
     assert!(f.store.native_consultation_attempt_read(&lease).is_err());
@@ -674,7 +682,6 @@ fn native_consultation_cancel_before_begin_and_changed_receiver_revision_never_i
     for cancel in [true, false] {
         let (f, sources, _, origin) = fixture();
         let lease = prepare(&f, &sources, &origin);
-        let read = f.store.native_consultation_attempt_read(&lease).unwrap();
         if cancel {
             f.store
                 .execute_operation_action(
@@ -687,9 +694,13 @@ fn native_consultation_cancel_before_begin_and_changed_receiver_revision_never_i
                 )
                 .unwrap();
         } else {
-            f.store.connection().unwrap().execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',3) WHERE id=?1",[sources[2].connection_id()]).unwrap();
+            f.change_fixture().execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',3) WHERE id=?1",[sources[2].connection_id()]).unwrap();
         }
-        assert!(f.store.begin_native_consultation(lease, read).is_err());
+        // State changes happen before final current admission. An active
+        // read cannot be upgraded or used to write through its own fence.
+        if let Ok(read) = f.store.native_consultation_attempt_read(&lease) {
+            assert!(f.store.begin_native_consultation(lease, read).is_err());
+        }
         let state = status(&f);
         assert_eq!(state.effects[0].attempt, 0);
         assert_eq!(
@@ -880,9 +891,7 @@ fn native_consultation_decoded_progress_requires_applied_custody_and_records_onc
         .record_native_consultation_decoded(&receipt)
         .is_err());
     assert!(f
-        .store
-        .connection()
-        .unwrap()
+        .change_fixture()
         .execute(
             "UPDATE native_consultation_attempts SET decoded_audio_observed=0",
             []
@@ -923,4 +932,63 @@ fn native_consultation_actual_media_failure_preserves_applied_effect_and_records
         .is_err());
     let c = f.store.connection().unwrap();
     assert!(c.execute("UPDATE native_consultation_attempts SET media_failure=NULL WHERE operation_record_id=?1",[origin.record_id()]).is_err());
+}
+
+#[test]
+fn consultation_begin_drains_original_reader_and_pins_current_cut_without_extending_deadline() {
+    let (f, sources, _, origin) = fixture();
+    let lease = prepare(&f, &sources, &origin);
+    let read = f.store.native_consultation_attempt_read(&lease).unwrap();
+    let cutoff = read.expires_at();
+    let alias = f.store.native_consultation_attempt_read(&lease).unwrap();
+    let (entered, waiting) = std::sync::mpsc::channel();
+    let (result, waited, blocked) = std::thread::scope(|scope| {
+        let store = &f.store;
+        let owner = scope.spawn(move || {
+            crate::authority_fences::with_waited_lock_probe(
+                move || {
+                    let _ = entered.send(());
+                },
+                || store.begin_native_consultation(lease, read),
+            )
+        });
+        let waited = waiting
+            .recv_timeout(std::time::Duration::from_secs(1))
+            .is_ok();
+        let blocked = !owner.is_finished();
+        drop(alias);
+        (owner.join().unwrap(), waited, blocked)
+    });
+    let (attempt, read) = result.unwrap();
+    let current = read.current();
+    let bounded = read.expires_at() <= cutoff;
+    let excluded = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .err()
+        .map(|error| error.code);
+    drop(read);
+    f.store.native_consultation_uncertain(attempt).unwrap();
+    let saved = status(&f);
+    assert!(waited && blocked && current && bounded);
+    assert_eq!(excluded.as_deref(), Some("authority-busy"));
+    assert_eq!(saved.state, OperationState::Unknown);
+    assert_eq!(saved.effects[0].attempt, 1);
+    assert_eq!(saved.effects[0].state, EffectState::Unknown);
+}
+
+#[test]
+fn consultation_begin_cannot_renew_expired_original_reader_or_start_an_effect() {
+    let (f, sources, _, origin) = fixture();
+    let lease = prepare(&f, &sources, &origin);
+    let mut read = f.store.native_consultation_attempt_read(&lease).unwrap();
+    read.limit(crate::now()).unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert!(f.store.begin_native_consultation(lease, read).is_err());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    assert_eq!(status(&f).effects[0].attempt, 0);
 }

@@ -14,6 +14,22 @@ pub(crate) struct NativeAudioPeer {
     pub(crate) scope: CommandScope,
 }
 impl NativeAudioPeer {
+    // Controlled post-auth QUIC tests isolate subscription response custody;
+    // production peers still come only from the actual signed negotiation.
+    #[cfg(test)]
+    pub(in crate::canonical) fn for_controlled_subscription_test(
+        client: CanonicalClient,
+        scope: CommandScope,
+    ) -> Self {
+        Self {
+            client,
+            handle: 7,
+            stream_revision: 4,
+            sequence: 0,
+            clock: tokio::time::Instant::now(),
+            scope,
+        }
+    }
     pub(super) async fn send_dtmf(
         &mut self,
         operation_id: &str,

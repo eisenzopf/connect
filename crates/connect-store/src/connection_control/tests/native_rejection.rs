@@ -535,3 +535,71 @@ fn trusted_native_planner_can_refuse_only_an_unattempted_offer_and_rolls_back_fa
         }
     }
 }
+
+#[test]
+fn failed_native_rejection_member_is_original_history_under_read_never_an_existing_victim_or_io_grant(
+) {
+    let f = Fixture::new();
+    let (_, proof) = rejected(&f, false);
+    let scopes = [crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Read).unwrap()];
+    let read = f.store.try_acquire_authority(&scopes).unwrap();
+    let record = f
+        .store
+        .prepare_native_offer_with_peer(
+            &f.keys[0],
+            &proof,
+            Some(connect_protocol::provisioning::EndpointTransport::Quic),
+        )
+        .unwrap();
+    assert_eq!(record.state, OperationState::Failed);
+    assert!(record.connection_id.is_none() && record.effects.is_empty());
+    assert!(f.store.authority_covers(&read, &scopes));
+    let other_identity = f.store.revalidate(&f.keys[1]).unwrap().identity_id;
+    let c = f.store.connection().unwrap();
+    let original: (String, String, u64) = c.query_row("SELECT participant_id,identity_id,membership_epoch FROM operation_members WHERE operation_record_id=?1", [&record.record_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+    assert_eq!(original.0, f.pids[0]);
+    // Even an identical replacement targets a retained unique victim. It is
+    // not new history, and cannot borrow this failure-only no-collision branch.
+    assert!(c.execute("INSERT OR REPLACE INTO operation_members(operation_record_id,participant_id,identity_id,membership_epoch) VALUES(?1,?2,?3,?4)", params![record.record_id,original.0,original.1,original.2]).is_err());
+    assert!(c.execute("INSERT INTO operation_members(operation_record_id,participant_id,identity_id,membership_epoch) VALUES(?1,?2,?3,1)", params![record.record_id,f.pids[1],other_identity]).is_err());
+    let still: (String, String, u64) = c.query_row("SELECT participant_id,identity_id,membership_epoch FROM operation_members WHERE operation_record_id=?1", [&record.record_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+    assert_eq!(still, original);
+    assert_eq!(
+        c.query_row(
+            "SELECT COUNT(*) FROM operation_members WHERE operation_record_id=?1",
+            [&record.record_id],
+            |r| r.get::<_, u64>(0)
+        )
+        .unwrap(),
+        1
+    );
+    assert!(c.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state) VALUES('no-rejected-io',?1,'native-media','rejected','none','submitting')", [&record.record_id]).is_err());
+    drop(c);
+    assert_eq!(f.count("connections"), 0);
+    assert_eq!(f.count("native_offer_operations"), 0);
+    assert_eq!(f.count("operation_effects"), 0);
+    assert!(f
+        .store
+        .begin_native_offer_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .is_none());
+    drop(proof);
+    assert!(f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Write
+        )
+        .unwrap()])
+        .is_err());
+    drop(read);
+    let writer = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap()])
+        .unwrap();
+    drop(writer);
+}

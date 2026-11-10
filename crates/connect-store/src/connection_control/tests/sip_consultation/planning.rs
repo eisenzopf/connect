@@ -25,6 +25,38 @@ struct Scene {
     signal: Arc<crate::InitialTelephoneSignaling>,
 }
 impl Scene {
+    // Ordinary fixture state changes use the same scoped Writer/SQL boundary
+    // as production. This setup helper covers only this Scene's conversation
+    // and its original physical/controller principals, and pins custody until
+    // the returned SQL guard is dropped. It grants no media admission.
+    fn change_fixture(&self) -> crate::installation_ownership::ConnectionGuard<'_> {
+        let scopes = {
+            let c = self.f.store.connection().unwrap();
+            let mut scopes = crate::authority_admission::conversation_scopes(
+                &c,
+                &self.f.cid,
+                AuthorityMode::Write,
+            )
+            .unwrap();
+            for key in [
+                &self.root.credential,
+                &self.policy.endpoint_credential_id,
+                &self.policy.route_credential_id,
+            ] {
+                let identity: String = c
+                    .query_row(
+                        "SELECT identity_id FROM credentials WHERE id=?1",
+                        [key],
+                        |r| r.get(0),
+                    )
+                    .unwrap();
+                scopes.push(AuthorityScope::identity(&identity, AuthorityMode::Write).unwrap());
+            }
+            scopes
+        };
+        let writer = self.f.store.try_acquire_authority(&scopes).unwrap();
+        self.f.store.connection_with_authority(&writer).unwrap()
+    }
     fn new() -> Self {
         Self::with_controller(None)
     }
@@ -68,13 +100,20 @@ impl Scene {
                 .store
                 .native_consultation_origin(&controller.id, command)
                 .unwrap();
-            let c = f.store.connection().unwrap();
-            c.execute("UPDATE identities SET kind='human' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)", [&f.pids[2]]).unwrap();
-            c.execute(
-                "UPDATE participants SET kind='human' WHERE participant_id=?1",
-                [&f.pids[2]],
-            )
-            .unwrap();
+            // The new origin and physical-source Arcs are metadata, not
+            // idle Read guards. Finish ordinary kind setup under the real
+            // target Identity/Conversation writer before private leg control.
+            let writer = f.controlled_conversation_writer(2);
+            let c = f.store.connection_with_authority(&writer).unwrap();
+            assert_eq!(c.execute("UPDATE identities SET kind='human' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)", [&f.pids[2]]).unwrap(), 1);
+            assert_eq!(
+                c.execute(
+                    "UPDATE participants SET kind='human' WHERE participant_id=?1",
+                    [&f.pids[2]],
+                )
+                .unwrap(),
+                1
+            );
         }
         let reservation = f
             .store
@@ -299,7 +338,39 @@ fn private_sip_selection_rechecks_execution_physical_sources_and_both_recipient_
                 s.native[0].connection_id(),
             ),
         };
-        s.f.store.connection().unwrap().execute(sql, [key]).unwrap();
+        {
+            let scope = {
+                let c = s.f.store.connection().unwrap();
+                match fault {
+                    0 | 2..=6 => crate::AuthorityScope::identity(
+                        &crate::identity::actor_from_connection(&c, key)
+                            .unwrap()
+                            .identity_id,
+                        crate::AuthorityMode::Write,
+                    )
+                    .unwrap(),
+                    8 => {
+                        let identity: String = c
+                            .query_row(
+                                "SELECT identity_id FROM endpoints WHERE id=?1",
+                                [key],
+                                |r| r.get(0),
+                            )
+                            .unwrap();
+                        crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write)
+                            .unwrap()
+                    }
+                    _ => crate::AuthorityScope::conversation(&s.f.cid, crate::AuthorityMode::Write)
+                        .unwrap(),
+                }
+            };
+            let writer = s.f.store.try_acquire_authority(&[scope]).unwrap();
+            s.f.store
+                .connection_with_authority(&writer)
+                .unwrap()
+                .execute(sql, [key])
+                .unwrap();
+        }
         assert!(s.read().is_err(), "fault {fault}");
     }
 }

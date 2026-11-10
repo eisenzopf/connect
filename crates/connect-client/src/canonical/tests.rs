@@ -6,6 +6,7 @@ use tokio::sync::Notify;
 mod auth_refresh;
 pub(super) mod native_media;
 mod owned_signaling;
+mod public_audio_subscription;
 mod sdk_administration;
 mod sdk_capabilities;
 mod sdk_compatibility;
@@ -73,6 +74,7 @@ fn canonical_cursor_facts_bind_outer_resources_to_the_authoritative_journal_even
 
 #[derive(Clone, Copy)]
 pub(super) enum Fault {
+    PublicAudioSubscription(bool),
     SdkWorker(sdk_worker::Traffic),
     SdkRaw,
     SdkAdministration(sdk_administration::Case),
@@ -148,6 +150,21 @@ pub(super) async fn controlled(
         let mut bytes = vec![0; u32::from_be_bytes(prefix) as usize];
         reader.read_exact(&mut bytes).await.unwrap();
         let request = Envelope::parse(&bytes).unwrap();
+        if let Fault::PublicAudioSubscription(stall) = fault {
+            public_audio_subscription::emit(
+                stall,
+                &connection,
+                request,
+                &mut writer,
+                &mut reader,
+                &signer,
+                &signal,
+            )
+            .await;
+            connection.closed().await;
+            server.close(0u32.into(), b"public audio subscription fixture complete");
+            return;
+        }
         if let Fault::NativeVideoRecovery(loss) = fault {
             super::native_video::io::tests::emit_recovery(
                 &connection,

@@ -339,58 +339,82 @@ fn cleanup_settlement_fences_both_target_owner_and_repair_receipt_owner() {
 // Historical isolated state, with real admission/source validation and frozen
 // membership. Only the clock/runtime provenance is synthesized. No providers run.
 fn historical_workers(f: &Fixture, count: usize) -> Vec<String> {
-    let mut c = f.store.connection().unwrap();
-    let tx = c.transaction().unwrap();
-    let actor = actor_from_connection(&tx, &f.keys[0]).unwrap();
     let mut records = vec![];
-    for n in 0..count {
-        let cid = format!("bulk-conversation-{n:04}");
-        let sid = format!("bulk-session-{n:04}");
-        let conn = format!("bulk-connection-{n:04}");
-        tx.execute("INSERT INTO conversations(id) VALUES(?1)", [&cid])
+    // This historical graph is fixture setup, still an actual coordinated
+    // mutation. Chunk new namespaces below the real 64-scope admission bound;
+    // never hold SQL while waiting for their original identity/CID Writers.
+    for first in (0..count).step_by(60) {
+        let end = count.min(first + 60);
+        let mut scopes = f
+            .ids
+            .iter()
+            .map(|id| AuthorityScope::identity(id, AuthorityMode::Write).unwrap())
+            .collect::<Vec<_>>();
+        for n in first..end {
+            scopes.push(
+                AuthorityScope::conversation(
+                    &format!("bulk-conversation-{n:04}"),
+                    AuthorityMode::Write,
+                )
+                .unwrap(),
+            );
+        }
+        let writer = f.store.try_acquire_authority(&scopes).unwrap();
+        let mut c = f.store.connection_with_authority(&writer).unwrap();
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Immediate)
             .unwrap();
-        let mut parts = vec![];
-        for (index, identity) in f.ids.iter().enumerate() {
-            let part = format!("bulk-participant-{n:04}-{index}");
-            tx.execute("INSERT INTO participants(conversation_id,identity_id,participant_id) VALUES(?1,?2,?3)", params![cid,identity,part]).unwrap();
-            parts.push(part);
+        let actor = actor_from_connection(&tx, &f.keys[0]).unwrap();
+        for n in first..end {
+            let cid = format!("bulk-conversation-{n:04}");
+            let sid = format!("bulk-session-{n:04}");
+            let conn = format!("bulk-connection-{n:04}");
+            tx.execute("INSERT INTO conversations(id) VALUES(?1)", [&cid])
+                .unwrap();
+            let mut parts = vec![];
+            for (index, identity) in f.ids.iter().enumerate() {
+                let part = format!("bulk-participant-{n:04}-{index}");
+                tx.execute("INSERT INTO participants(conversation_id,identity_id,participant_id) VALUES(?1,?2,?3)", params![cid,identity,part]).unwrap();
+                parts.push(part);
+            }
+            tx.execute("INSERT INTO sessions(id,conversation_id,initiator_id,participant_id,state,media,created_at,updated_at) VALUES(?1,?2,?3,?4,'active','[\"audio\"]',?5,?5)", params![sid,cid,f.ids[0],f.ids[1],crate::now()]).unwrap();
+            for part in &parts {
+                tx.execute("INSERT INTO session_participants(session_id,conversation_id,tenant_id,participant_id,membership_epoch,role,state) VALUES(?1,?2,'tnt_default',?3,1,'participant','present') ON CONFLICT(session_id,participant_id,membership_epoch) DO UPDATE SET role=excluded.role,state=excluded.state", params![sid,cid,part]).unwrap();
+            }
+            tx.execute("INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,state,observed_runtime_id,observed_at,readiness_json) VALUES(?1,?2,?3,1,?4,'tnt_default','ep-1',1,'active',?5,?6,'{\"ingress\":true,\"egress\":true}')", params![conn,sid,parts[1],f.ids[1],f.store.runtime_epoch(),crate::now()]).unwrap();
+            let request = TransitionRequest {
+                payload_extensions: Default::default(),
+                operation_id: format!("bulk-operation-{n:04}"),
+                conversation_id: cid.clone(),
+                session_id: sid.clone(),
+                connection_id: None,
+                expected_revision: 0,
+                expires_at: crate::now() + 300,
+                intent: TransitionIntent::Consult {
+                    retained_connid: conn.clone(),
+                    private_participants: vec![parts[0].clone(), parts[2].clone()],
+                    hold_treatment: HoldTreatment::Silence,
+                },
+            };
+            let sources =
+                super::super::authority::admission(&tx, &actor, &request, &f.store).unwrap();
+            let mut value = serde_json::to_value(&request).unwrap();
+            value.as_object_mut().unwrap().remove("operation_id");
+            let (hash, intent) = digest(&value).unwrap();
+            let record = format!("bulk-record-{n:04}");
+            tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,expected_revision,intent_json,state,created_at,updated_at,expires_at,ledger_version,lease_owner,lease_expires_at,worker_runtime,worker_generation) VALUES(?1,'tnt_default',?2,?3,?4,'session.consult',?5,?6,0,?7,'preparing',?8,?8,?9,1,'historical-worker',?9,'historical-runtime',1)", params![record,f.ids[0],request.operation_id,hash,cid,sid,intent,crate::now(),request.expires_at]).unwrap();
+            super::super::authority::freeze(&tx, &record, &sources).unwrap();
+            for (kind, resource) in [("session", &sid), ("connection", &conn)] {
+                tx.execute(
+                    "INSERT INTO operation_resources VALUES(?1,'tnt_default',?2,?3,1)",
+                    params![record, kind, resource],
+                )
+                .unwrap();
+            }
+            records.push(record);
         }
-        tx.execute("INSERT INTO sessions(id,conversation_id,initiator_id,participant_id,state,media,created_at,updated_at) VALUES(?1,?2,?3,?4,'active','[\"audio\"]',?5,?5)", params![sid,cid,f.ids[0],f.ids[1],crate::now()]).unwrap();
-        for part in &parts {
-            tx.execute("INSERT INTO session_participants(session_id,conversation_id,tenant_id,participant_id,membership_epoch,role,state) VALUES(?1,?2,'tnt_default',?3,1,'participant','present') ON CONFLICT(session_id,participant_id,membership_epoch) DO UPDATE SET role=excluded.role,state=excluded.state", params![sid,cid,part]).unwrap();
-        }
-        tx.execute("INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,state,observed_runtime_id,observed_at,readiness_json) VALUES(?1,?2,?3,1,?4,'tnt_default','ep-1',1,'active',?5,?6,'{\"ingress\":true,\"egress\":true}')", params![conn,sid,parts[1],f.ids[1],f.store.runtime_epoch(),crate::now()]).unwrap();
-        let request = TransitionRequest {
-            payload_extensions: Default::default(),
-            operation_id: format!("bulk-operation-{n:04}"),
-            conversation_id: cid.clone(),
-            session_id: sid.clone(),
-            connection_id: None,
-            expected_revision: 0,
-            expires_at: crate::now() + 300,
-            intent: TransitionIntent::Consult {
-                retained_connid: conn.clone(),
-                private_participants: vec![parts[0].clone(), parts[2].clone()],
-                hold_treatment: HoldTreatment::Silence,
-            },
-        };
-        let sources = super::super::authority::admission(&tx, &actor, &request, &f.store).unwrap();
-        let mut value = serde_json::to_value(&request).unwrap();
-        value.as_object_mut().unwrap().remove("operation_id");
-        let (hash, intent) = digest(&value).unwrap();
-        let record = format!("bulk-record-{n:04}");
-        tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,expected_revision,intent_json,state,created_at,updated_at,expires_at,ledger_version,lease_owner,lease_expires_at,worker_runtime,worker_generation) VALUES(?1,'tnt_default',?2,?3,?4,'session.consult',?5,?6,0,?7,'preparing',?8,?8,?9,1,'historical-worker',?9,'historical-runtime',1)", params![record,f.ids[0],request.operation_id,hash,cid,sid,intent,crate::now(),request.expires_at]).unwrap();
-        super::super::authority::freeze(&tx, &record, &sources).unwrap();
-        for (kind, resource) in [("session", &sid), ("connection", &conn)] {
-            tx.execute(
-                "INSERT INTO operation_resources VALUES(?1,'tnt_default',?2,?3,1)",
-                params![record, kind, resource],
-            )
-            .unwrap();
-        }
-        records.push(record);
+        tx.commit().unwrap();
     }
-    tx.commit().unwrap();
     records
 }
 
@@ -399,7 +423,15 @@ fn bounded_worker_batches_drain_large_valid_state_on_open_and_preserve_unknown_e
     let mut f = Fixture::new();
     let records = historical_workers(&f, 1030);
     {
-        let c = f.store.connection().unwrap();
+        let writer = f
+            .store
+            .try_acquire_authority(&[
+                owner(&f, AuthorityMode::Write),
+                AuthorityScope::conversation("bulk-conversation-0000", AuthorityMode::Write)
+                    .unwrap(),
+            ])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,attempt,submission_generation) VALUES('bulk-effect',?1,'fixture','bulk-effect','none','submitting',1,1)", [&records[0]]).unwrap();
     }
     let (ids, guard) = f
@@ -481,20 +513,37 @@ fn administration_recovery_skips_live_foreign_workers_and_rechecks_exact_batch_i
     let f = Fixture::new();
     let records = historical_workers(&f, 70);
     let admin = Store::open_administration(f.store.path(), Limits::default()).unwrap();
-    admin
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE operations SET lease_expires_at=0 WHERE record_id=?1",
-            [&records[69]],
-        )
-        .unwrap();
+    {
+        let writer = admin
+            .try_acquire_authority(&[
+                owner(&f, AuthorityMode::Write),
+                AuthorityScope::conversation("bulk-conversation-0069", AuthorityMode::Write)
+                    .unwrap(),
+            ])
+            .unwrap();
+        admin
+            .connection_with_authority(&writer)
+            .unwrap()
+            .execute(
+                "UPDATE operations SET lease_expires_at=0 WHERE record_id=?1",
+                [&records[69]],
+            )
+            .unwrap();
+    }
     // Live foreign workers must not fill the prefix and starve the expired row.
     let kind = super::super::admission::BatchKind::Recover;
     let (ids, guard) = admin.transition_batch_authority(kind, 1000).unwrap();
     assert_eq!(ids, vec![records[69].clone()]);
     {
-        let mut c = admin.connection().unwrap();
+        // The selected original batch already owns the shared owner Identity
+        // and CID69 Writer. Add only CID0 immediately, before SQL, to make a
+        // later row eligible without reacquiring that same owner in place.
+        let extra_scope =
+            AuthorityScope::conversation("bulk-conversation-0000", AuthorityMode::Write).unwrap();
+        let extra = admin.try_acquire_authority(&[extra_scope.clone()]).unwrap();
+        let mut c = admin.connection_with_authority(&guard).unwrap();
+        c.bind_mutation_authority(&admin, &extra, &[extra_scope])
+            .unwrap();
         c.execute(
             "UPDATE operations SET lease_expires_at=0 WHERE record_id=?1",
             [&records[0]],
@@ -512,7 +561,8 @@ fn administration_recovery_skips_live_foreign_workers_and_rechecks_exact_batch_i
             &tx,
             &rows::by_record(&tx, &selected[0].id).unwrap(),
             &admin.transition_runtime,
-            &admin
+            &admin,
+            &guard
         )
         .unwrap());
         tx.commit().unwrap();
@@ -536,17 +586,46 @@ fn administration_recovery_skips_live_foreign_workers_and_rechecks_exact_batch_i
 fn purge_batches_skip_unsettled_old_rows_and_wait_for_current_delivery() {
     let f = Fixture::new();
     let records = historical_workers(&f, 70);
-    {
+    let cids = {
         let c = f.store.connection().unwrap();
-        c.execute(
-            "UPDATE operations SET state='failed',revision=revision+1,updated_at=0 WHERE ledger_version=1",
-            [],
-        )
-        .unwrap();
-        c.execute("UPDATE conversations SET closed=1", []).unwrap();
-        c.execute("UPDATE conversations SET closed_at=0", [])
+        let mut query = c
+            .prepare("SELECT id FROM conversations ORDER BY id")
             .unwrap();
-        c.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,attempt,submission_generation) VALUES('unsettled',?1,'fixture','unsettled','none','confirmed',1,1)", [&records[0]]).unwrap();
+        let rows = query
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        rows
+    };
+    for cids in cids.chunks(60) {
+        let mut scopes = f
+            .ids
+            .iter()
+            .map(|id| AuthorityScope::identity(id, AuthorityMode::Write).unwrap())
+            .collect::<Vec<_>>();
+        scopes.extend(
+            cids.iter()
+                .map(|cid| AuthorityScope::conversation(cid, AuthorityMode::Write).unwrap()),
+        );
+        let writer = f.store.try_acquire_authority(&scopes).unwrap();
+        let mut c = f.store.connection_with_authority(&writer).unwrap();
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .unwrap();
+        for cid in cids {
+            tx.execute("UPDATE operations SET state='failed',revision=revision+1,updated_at=0 WHERE ledger_version=1 AND conversation_id=?1",[cid]).unwrap();
+            tx.execute("UPDATE conversations SET closed=1 WHERE id=?1", [cid])
+                .unwrap();
+            // Preserve the original separate step: conversation_close_time
+            // fires on the closed transition and sets the current timestamp.
+            tx.execute("UPDATE conversations SET closed_at=0 WHERE id=?1", [cid])
+                .unwrap();
+            if cid == "bulk-conversation-0000" {
+                tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,attempt,submission_generation) VALUES('unsettled',?1,'fixture','unsettled','none','confirmed',1,1)", [&records[0]]).unwrap();
+            }
+        }
+        tx.commit().unwrap();
     }
     assert_eq!(
         blocked(&f, owner(&f, AuthorityMode::Read), || f

@@ -117,9 +117,7 @@ fn native_media_positive_memo_rederives_at_original_expiry_without_renewing_hits
     let clock = crate::test_clock::Clock::at(base);
     let (f, origins) = origins();
     let _occupied = occupy_except(&f, 0);
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",
             params![f.keys[0], base + 3],
@@ -143,9 +141,7 @@ fn native_media_positive_memo_rederives_at_original_expiry_without_renewing_hits
     assert!(f.store.try_native_media_read(&origins[0], None).is_err());
     assert!(counts(&f, &origins[0], false)[0] > before[0]);
     // Only a real updated credential and fresh derivation may extend validity.
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",
             params![f.keys[0], base + 60],
@@ -183,8 +179,15 @@ fn native_media_positive_memo_refuses_actual_credential_expiry_and_revocation() 
             );
             let before = counts(&f, &origins[0], true);
             let external = rusqlite::Connection::open(f.store.path()).unwrap();
+            assert!(external
+                .execute(
+                    "UPDATE credentials SET revoked=1 WHERE id=?1",
+                    [&f.keys[actor]]
+                )
+                .is_err());
+            drop(external);
             if revoke {
-                external
+                f.change_fixture()
                     .execute(
                         "UPDATE credentials SET revoked=1 WHERE id=?1",
                         [&f.keys[actor]],
@@ -195,7 +198,7 @@ fn native_media_positive_memo_refuses_actual_credential_expiry_and_revocation() 
                     .try_native_media_read(&origins[0], Some(&origins[1]))
                     .is_err());
             } else {
-                external
+                f.change_fixture()
                     .execute(
                         "UPDATE credentials SET expires_at=?2 WHERE id=?1",
                         params![f.keys[actor], base + 2],
@@ -249,7 +252,12 @@ fn native_media_positive_memo_rechecks_external_state_schema_and_current_recipie
     limited
         .operations
         .retain(|operation| operation != "stream.subscribe");
-    external
+    assert!(external
+        .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[0]])
+        .is_err());
+    assert!(held.current());
+    drop(held);
+    f.change_fixture()
         .execute(
             "UPDATE credentials SET operations=?2 WHERE id=?1",
             params![
@@ -275,16 +283,14 @@ fn native_media_positive_memo_rechecks_external_state_schema_and_current_recipie
     );
     assert!(counts(&f, &origins[0], true)[0] > source_before[0]);
     drop(different);
-    // Uncooperative external SQL is still detected under the original live
-    // file custody. Revocation is terminal; no credential is revived.
-    external
+    // The raw external writer still cannot bypass coordinated authority.
+    assert!(external
+        .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[0]])
+        .is_err());
+    f.change_fixture()
         .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[0]])
         .unwrap();
-    assert!(f
-        .store
-        .try_native_media_read_under(&origins[0], &origins[1], &held)
-        .is_err());
-    drop(held);
+    assert!(read().is_err());
 }
 
 #[test]
@@ -416,7 +422,10 @@ fn six_directed_media_reads_cross_clock_steps_with_current_background_reads() {
         );
     }
     let external = rusqlite::Connection::open(f.store.path()).unwrap();
-    external
+    assert!(external
+        .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[1]])
+        .is_err());
+    f.change_fixture()
         .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[1]])
         .unwrap();
     assert!(f

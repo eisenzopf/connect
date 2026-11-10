@@ -243,9 +243,67 @@ fn preparation_refused(stage: &'static str, error: Error) -> Error {
     error
 }
 impl Store {
+    /// Exact persisted ledger footprint, not a current execution/IO grant.
+    /// Callers retain/rederive their separate current selection Read facts.
+    /// No identity/key/member row changes with these operation-local writes.
+    pub(crate) fn native_replacement_bookkeeping_scopes(
+        &self,
+        c: &Connection,
+        record: &str,
+    ) -> Result<(String, String, Vec<crate::AuthorityScope>)> {
+        let row = rows::by_record(c, record)?;
+        let request = rows::request(&row)?;
+        if !row.ledger
+            || row.record.command_type != "connection.replace"
+            || !matches!(request.intent, TransitionIntent::Replace { .. })
+            || row.record.conversation_id.as_deref() != Some(request.conversation_id.as_str())
+        {
+            return Err(Error::forbidden());
+        }
+        let cid = request.conversation_id;
+        let mut scopes = vec![
+            crate::AuthorityScope::identity(&row.owner, crate::AuthorityMode::Read)?,
+            crate::AuthorityScope::conversation(&cid, crate::AuthorityMode::Write)?,
+        ];
+        // Same transitive footprint as the persistent operations trigger. A
+        // matching enrollment can depend on this exact operation even though
+        // its subject is not a member of this Conversation. Usually empty for
+        // replacement, but never silently omit a present dependent subject.
+        let mut query = c.prepare_cached(
+            "SELECT e.identity_id FROM client_enrollments e JOIN operations o ON o.tenant_id=e.tenant_id AND o.owner_id=e.issuer_identity_id AND o.operation_id=e.complete_operation_id WHERE o.record_id=?1"
+        ).map_err(|_| Error::storage())?;
+        let subjects = query
+            .query_map([record], |r| r.get::<_, String>(0))
+            .map_err(|_| Error::storage())?;
+        for subject in subjects {
+            scopes.push(crate::AuthorityScope::identity(
+                &subject.map_err(|_| Error::storage())?,
+                crate::AuthorityMode::Write,
+            )?);
+        }
+        Ok((cid, row.owner, crate::AuthorityScope::merged(&scopes)?))
+    }
+    fn native_replacement_reservation_scopes(
+        &self,
+        c: &Connection,
+        selection: &NativeReplacementSelection,
+    ) -> Result<Vec<crate::AuthorityScope>> {
+        // resolve remains the exact current actor/key/endpoint/source/retained
+        // check, with all original Identity Reads. Only actual ledger changes
+        // gain Write; no conversation-member Identity is blindly promoted.
+        let mut scopes = selection.scopes(self, c, false)?;
+        let (cid, _, mutation) =
+            self.native_replacement_bookkeeping_scopes(c, selection.origin.record_id())?;
+        if cid != selection.origin.request.conversation_id {
+            return Err(Error::forbidden());
+        }
+        scopes.extend(mutation);
+        crate::AuthorityScope::merged(&scopes)
+    }
     /// Reserve IDs and a single managed-preparation effect before Core is
-    /// called. Source authority stays read-only: reservation changes no live
-    /// binding, participant, role, capability or authorization.
+    /// called. Current Identity facts retain Read; the exact Conversation
+    /// Writer drains lineage-dependent IO before candidate metadata changes.
+    /// No binding, participant, role, key or capability row changes here.
     pub fn prepare_native_replacement(
         &self,
         read: NativeReplacementPreparationRead,
@@ -260,7 +318,7 @@ impl Store {
         // codec preparation, and does not grant candidate IO.
         let scopes = {
             let c = self.try_connection()?;
-            selection.scopes(self, &c, true)?
+            self.native_replacement_reservation_scopes(&c, &selection)?
         };
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(250));
         let held = self
@@ -290,7 +348,10 @@ impl Store {
                 tracing::debug!(target:"connect_store::native_candidate",stage="reservation-transaction",sqlite_code=?error.sqlite_error_code(),"Replacement metadata deferred");
                 Error::new("authority-busy", "Replacement reservation metadata is busy")
             })?;
-        if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
+        if !self.authority_covers(
+            &held,
+            &self.native_replacement_reservation_scopes(&tx, &selection)?,
+        ) {
             return Err(Error::forbidden());
         }
         let origin = &selection.origin;
@@ -400,12 +461,27 @@ impl Store {
     pub fn begin_native_replacement_preparation(
         &self,
         lease: &NativeReplacementPreparationLease,
-        mut read: NativeReplacementPreparationRead,
+        read: NativeReplacementPreparationRead,
     ) -> Result<(
         NativeReplacementPreparationAttempt,
         NativeReplacementPreparationRead,
     )> {
-        read.limit(lease.expires)
+        let until = read.expires_at();
+        self.begin_native_replacement_preparation_before(lease, read, until)
+    }
+    /// Retry admission for this SAME reserved, not-yet-begun attempt. The
+    /// original caller's interval can only shorten the fresh read; a committed
+    /// begun phase still refuses replay before Core may be invoked again.
+    pub fn begin_native_replacement_preparation_before(
+        &self,
+        lease: &NativeReplacementPreparationLease,
+        mut read: NativeReplacementPreparationRead,
+        original_until: i64,
+    ) -> Result<(
+        NativeReplacementPreparationAttempt,
+        NativeReplacementPreparationRead,
+    )> {
+        read.limit(lease.expires.min(original_until))
             .map_err(|e| preparation_refused("begin-interval", e))?;
         if read.selection().snapshot() != lease.selection.snapshot()
             || read.selection().origin.record != lease.selection.origin.record
@@ -420,7 +496,7 @@ impl Store {
         let selection = read.into_selection()?;
         let scopes = {
             let c = self.try_connection()?;
-            selection.scopes(self, &c, true)?
+            self.native_replacement_reservation_scopes(&c, &selection)?
         };
         let remaining =
             std::time::Duration::from_secs(expires.saturating_sub(crate::now()).max(0) as u64);
@@ -428,15 +504,19 @@ impl Store {
         let held = self.acquire_authority(&scopes, &wait)?;
         let mut c = self.try_connection_with_wait(&wait)?;
         c.bind_available_mutation_authority(self, &held)?;
-        // All fallible current selection/expiry reconstruction is BEFORE the
-        // once-only started mutation, so refusal cannot discard an attempt.
-        let read = selection.read_with_connection(self, &c, held.clone(), expires)?;
-        if !self.authority_covers(&held, &selection.scopes(self, &c, true)?) {
-            return Err(Error::forbidden());
-        }
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        // All fallible current selection/expiry and exact mutation footprints
+        // are rederived in this transaction BEFORE the once-only started
+        // mutation, so refusal cannot discard an attempt.
+        let read = selection.read_with_connection(self, &tx, held.clone(), expires)?;
+        if !self.authority_covers(
+            &held,
+            &self.native_replacement_reservation_scopes(&tx, &selection)?,
+        ) {
+            return Err(Error::forbidden());
+        }
         let row =
             bound(&tx, self, &lease).map_err(|e| preparation_refused("begin-reservation", e))?;
         lease

@@ -35,11 +35,31 @@ fn allocated(
         .store
         .telephone_replacement_allocation_read(prepared, key, &policy())
         .unwrap();
-    let (attempt, read) = f
-        .store
-        .begin_telephone_replacement_allocation(read)
-        .unwrap();
+    let original_cutoff = read.expires_at();
     drop(read);
+    // Same pre-reservation contract as the real owner: a retryable admission
+    // miss has no returned attempt. Never renew the original cutoff or retry
+    // after custody exists, and never swallow a permanent refusal.
+    let attempt = loop {
+        let admitted = f
+            .store
+            .telephone_replacement_allocation_read(prepared, key, &policy())
+            .and_then(|mut read| {
+                read.limit(original_cutoff)?;
+                f.store.begin_telephone_replacement_allocation(read)
+            });
+        match admitted {
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "authority-busy" | "storage-unavailable"
+                ) && crate::now() < original_cutoff =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            other => break other.unwrap(),
+        }
+    };
     let captured = Arc::new(allocation_capture(&attempt, "controlled-call@loopback").unwrap());
     f.store
         .record_telephone_replacement_allocated(&captured)
@@ -113,11 +133,10 @@ fn telephone_runtime_allocation_must_be_recorded_before_once_only_submission() {
         .store
         .telephone_replacement_allocation_read(&p, &route_key, &policy())
         .unwrap();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_telephone_replacement_allocation(read)
         .unwrap();
-    drop(read);
     let allocated = Arc::new(allocation_capture(&attempt, "controlled-call@loopback").unwrap());
     assert!(f
         .store
@@ -150,11 +169,17 @@ fn telephone_runtime_allocation_must_be_recorded_before_once_only_submission() {
         .store
         .telephone_replacement_submission_read(allocated.clone())
         .unwrap();
-    let (submission, read) = f
+    let submission_cutoff = read.expires_at();
+    let submission = f
         .store
         .begin_telephone_replacement_submission(read)
         .unwrap();
+    let read = f
+        .store
+        .telephone_replacement_submission_begun_read(submission.clone())
+        .unwrap();
     assert!(read.current());
+    assert!(read.expires_at() <= submission_cutoff);
     drop(read);
     let correlation: String = f.store.connection().unwrap().query_row(
         "SELECT e.correlation_key FROM operation_effects e JOIN native_replacement_steps s ON s.effect_id=e.id WHERE s.operation_record_id=?1 AND s.phase='start'",[origin.record_id()],|r|r.get(0)).unwrap();
@@ -206,11 +231,10 @@ fn telephone_runtime_unknown_allocation_can_record_late_knowledge_but_never_redi
         .store
         .telephone_replacement_allocation_read(&p, &route_key, &policy())
         .unwrap();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_telephone_replacement_allocation(read)
         .unwrap();
-    drop(read);
     let uncertain = attempt.uncertain();
     let unknown = f
         .store
@@ -261,11 +285,10 @@ fn telephone_runtime_unknown_submission_keeps_call_id_and_never_restores_root_st
         .store
         .telephone_replacement_submission_read(a.clone())
         .unwrap();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_telephone_replacement_submission(read)
         .unwrap();
-    drop(read);
     let uncertain = attempt.uncertain();
     assert_eq!(
         f.store
@@ -335,11 +358,10 @@ fn telephone_runtime_revocation_after_allocation_cannot_erase_capture_or_authori
         .store
         .telephone_replacement_allocation_read(&p, &route_key, &policy())
         .unwrap();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_telephone_replacement_allocation(read)
         .unwrap();
-    drop(read);
     let receipt =
         Arc::new(allocation_capture(&attempt, "captured-before-revocation@loopback").unwrap());
     f.store
@@ -365,11 +387,10 @@ fn telephone_runtime_cancelled_root_records_known_allocation_without_revival() {
         .store
         .telephone_replacement_allocation_read(&p, &route_key, &policy())
         .unwrap();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_telephone_replacement_allocation(read)
         .unwrap();
-    drop(read);
     let receipt =
         Arc::new(allocation_capture(&attempt, "captured-before-cancel@loopback").unwrap());
     f.store
@@ -415,11 +436,10 @@ fn telephone_runtime_submission_restart_keeps_exact_correlation_and_no_second_at
             .store
             .telephone_replacement_submission_read(a.clone())
             .unwrap();
-        let (attempt, read) = f
+        let attempt = f
             .store
             .begin_telephone_replacement_submission(read)
             .unwrap();
-        drop(read);
         let receipt = attempt
             .submitted(attempt.expected_observation().clone())
             .unwrap();
@@ -481,11 +501,10 @@ fn telephone_runtime_wrong_phase_and_call_reference_cannot_create_a_new_effect()
         .store
         .telephone_replacement_allocation_read(&p, &route_key, &policy())
         .unwrap();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_telephone_replacement_allocation(read)
         .unwrap();
-    drop(read);
     assert!(allocation_capture(&attempt, "bad\r\nCall-ID").is_err());
     assert!(attempt
         .submitted(attempt.expected_observation().clone())
@@ -563,11 +582,10 @@ fn telephone_runtime_current_endpoint_and_operator_are_required_after_allocation
             .store
             .telephone_replacement_allocation_read(&p, &route_key, &policy())
             .unwrap();
-        let (attempt, read) = f
+        let attempt = f
             .store
             .begin_telephone_replacement_allocation(read)
             .unwrap();
-        drop(read);
         let receipt =
             Arc::new(allocation_capture(&attempt, "known-before-current-loss@loopback").unwrap());
         if revoked == "endpoint" {
@@ -613,11 +631,10 @@ fn submission_attempt(
         .store
         .telephone_replacement_submission_read(captured)
         .unwrap();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_telephone_replacement_submission(read)
         .unwrap();
-    drop(read);
     attempt
 }
 
@@ -629,11 +646,10 @@ fn telephone_runtime_each_physical_write_reacquires_exact_begun_submission_autho
         .store
         .telephone_replacement_allocation_read(&p, &key, &policy())
         .unwrap();
-    let (allocation, read) = f
+    let allocation = f
         .store
         .begin_telephone_replacement_allocation(read)
         .unwrap();
-    drop(read);
     assert!(f
         .store
         .telephone_replacement_submission_write_read(allocation.clone())
@@ -646,11 +662,10 @@ fn telephone_runtime_each_physical_write_reacquires_exact_begun_submission_autho
         .store
         .telephone_replacement_submission_read(captured)
         .unwrap();
-    let (attempt, read) = f
+    let attempt = f
         .store
         .begin_telephone_replacement_submission(read)
         .unwrap();
-    drop(read);
     let write = f
         .store
         .telephone_replacement_submission_write_read(attempt.clone())
@@ -893,3 +908,279 @@ fn telephone_runtime_start_control_waits_for_sql_but_releases_authority_before_r
 }
 
 mod media;
+
+#[test]
+fn telephone_begin_releases_own_read_but_waits_for_real_alias_before_one_writer_step() {
+    let (f, origin, sources, _, key) = setup_runtime(true);
+    let prepared = prepared(&f, &origin, &sources);
+    let read = f
+        .store
+        .telephone_replacement_allocation_read(&prepared, &key, &policy())
+        .unwrap();
+    let alias = f.store.try_native_media_read(&sources[1], None).unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(
+        f.store
+            .begin_telephone_replacement_allocation(read)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(alias.current());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    drop(alias);
+    let read = f
+        .store
+        .telephone_replacement_allocation_read(&prepared, &key, &policy())
+        .unwrap();
+    let original_cutoff = read.expires_at();
+    let attempt = f
+        .store
+        .begin_telephone_replacement_allocation(read)
+        .unwrap();
+    // No writer survived the return or entered the IO grant: ordinary media
+    // remains available and the original attempt separately reacquires a Read.
+    assert!(f
+        .store
+        .try_native_media_read(&sources[1], None)
+        .unwrap()
+        .current());
+    let read = f
+        .store
+        .telephone_replacement_allocation_begun_read(attempt.clone())
+        .unwrap();
+    assert!(read.current());
+    assert!(read.expires_at() <= original_cutoff);
+    let captured = allocation_capture(&attempt, "writer-drain@loopback").unwrap();
+    let before_record = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(
+        f.store
+            .record_telephone_replacement_allocated(&captured)
+            .unwrap_err()
+            .code,
+        "authority-busy",
+        "historical phase mutation must drain the active original IO read"
+    );
+    assert_eq!(
+        Store::inspect_snapshot(f.store.path()).unwrap(),
+        before_record
+    );
+    drop(read);
+    let first = f
+        .store
+        .record_telephone_replacement_allocated(&captured)
+        .unwrap();
+    assert_eq!(
+        f.store
+            .record_telephone_replacement_allocated(&captured)
+            .unwrap(),
+        first
+    );
+    assert_eq!(f.count("native_replacement_steps"), 2);
+}
+#[test]
+fn telephone_begun_attempt_survives_fresh_read_contention_without_repeating_begin_or_cutoff() {
+    let (f, origin, sources, _, key) = setup_runtime(true);
+    let prepared = prepared(&f, &origin, &sources);
+    let read = f
+        .store
+        .telephone_replacement_allocation_read(&prepared, &key, &policy())
+        .unwrap();
+    let original_cutoff = read.expires_at();
+    let attempt = f
+        .store
+        .begin_telephone_replacement_allocation(read)
+        .unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let writer = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap()])
+        .unwrap();
+    assert_eq!(
+        f.store
+            .telephone_replacement_allocation_begun_read(attempt.clone())
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(writer);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    let fresh = f
+        .store
+        .telephone_replacement_allocation_begun_read(attempt.clone())
+        .unwrap();
+    assert!(fresh.current());
+    assert!(fresh.expires_at() <= original_cutoff);
+    drop(fresh);
+    let read = f
+        .store
+        .telephone_replacement_allocation_read(&prepared, &key, &policy())
+        .unwrap();
+    assert_eq!(
+        f.store
+            .begin_telephone_replacement_allocation(read)
+            .unwrap_err()
+            .code,
+        "reconciliation-required"
+    );
+    assert_eq!(f.count("native_replacement_steps"), 2);
+    let unknown = attempt.uncertain();
+    assert_eq!(
+        f.store
+            .record_telephone_replacement_uncertain(&unknown)
+            .unwrap()
+            .state,
+        OperationState::Unknown
+    );
+    assert!(f
+        .store
+        .telephone_replacement_allocation_begun_read(attempt)
+        .is_err());
+    assert_eq!(f.count("sip_legs"), 0);
+}
+
+#[test]
+fn telephone_begin_retries_brief_real_packet_drain_and_reserves_exactly_one_original_step() {
+    let (f, origin, sources, _, key) = setup_runtime(true);
+    let prepared = prepared(&f, &origin, &sources);
+    let original = f
+        .store
+        .telephone_replacement_allocation_read(&prepared, &key, &policy())
+        .unwrap();
+    let cutoff = original.expires_at();
+    drop(original);
+    let packet = f.store.try_native_media_read(&sources[1], None).unwrap();
+    let f = Arc::new(f);
+    let worker = f.clone();
+    let attempts = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let calls = attempts.clone();
+    let (busy_tx, busy_rx) = std::sync::mpsc::channel();
+    let task = std::thread::spawn(move || loop {
+        calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let result = worker
+            .store
+            .telephone_replacement_allocation_read(&prepared, &key, &policy())
+            .and_then(|mut read| {
+                read.limit(cutoff)?;
+                worker.store.begin_telephone_replacement_allocation(read)
+            });
+        match result {
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "authority-busy" | "storage-unavailable"
+                ) && crate::now() < cutoff =>
+            {
+                let _ = busy_tx.send(());
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            other => break other,
+        }
+    });
+    let first_busy = busy_rx.recv_timeout(std::time::Duration::from_secs(2));
+    let packet_stayed_current = packet.current();
+    drop(packet);
+    let attempt = task.join().unwrap();
+    assert!(
+        first_busy.is_ok(),
+        "real packet reader must force at least one deferred writer"
+    );
+    assert!(packet_stayed_current);
+    let attempt = attempt.unwrap();
+    assert!(attempts.load(std::sync::atomic::Ordering::Relaxed) >= 2);
+    assert_eq!(f.count("native_replacement_steps"), 2);
+    assert_eq!(f.count("sip_legs"), 0);
+    let read = f
+        .store
+        .telephone_replacement_allocation_begun_read(attempt)
+        .unwrap();
+    assert!(read.current());
+    assert!(read.expires_at() <= cutoff);
+}
+
+#[test]
+fn telephone_submission_scope_hints_drain_original_scene_but_preserve_independent_route_read() {
+    let (f, origin, sources, _, key) = setup_runtime(true);
+    let p = prepared(&f, &origin, &sources);
+    let captured = allocated(&f, &p, &key);
+    let read = f
+        .store
+        .telephone_replacement_submission_read(captured.clone())
+        .unwrap();
+    let until = read.expires_at();
+    let route_scope = crate::AuthorityScope::identity(
+        &read.route_actor().identity_id,
+        crate::AuthorityMode::Read,
+    )
+    .unwrap();
+    let carrier = f
+        .store
+        .try_acquire_authority(&[route_scope.clone()])
+        .unwrap();
+    let scene_scope =
+        crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Read).unwrap();
+    let scene = f
+        .store
+        .try_acquire_authority(&[scene_scope.clone()])
+        .unwrap();
+    let before = (
+        f.count("operation_effects"),
+        f.count("native_replacement_steps"),
+    );
+    let refused = f
+        .store
+        .begin_telephone_replacement_submission(read)
+        .err()
+        .expect("original scene reader must defer the state change");
+    assert_eq!(refused.code, "authority-busy");
+    assert_eq!(
+        before,
+        (
+            f.count("operation_effects"),
+            f.count("native_replacement_steps")
+        )
+    );
+    drop(scene);
+    let mut read = f
+        .store
+        .telephone_replacement_submission_read(captured.clone())
+        .unwrap();
+    read.limit(until).unwrap();
+    let attempt = f
+        .store
+        .begin_telephone_replacement_submission(read)
+        .unwrap();
+    // The external carrier is a current dependency, not part of the original
+    // metadata mutation footprint; a blanket Read->Write promotion deadlocks.
+    assert!(f.store.authority_covers(&carrier, &[route_scope]));
+    assert!(
+        f.store.try_acquire_authority(&[scene_scope]).is_ok(),
+        "returned attempt retains no scene Writer"
+    );
+    let write = f
+        .store
+        .telephone_replacement_submission_write_read(attempt.clone())
+        .unwrap();
+    assert!(write.current());
+    drop(write);
+    let mut repeated = f
+        .store
+        .telephone_replacement_submission_read(captured)
+        .unwrap();
+    repeated.limit(until).unwrap();
+    assert_eq!(
+        f.store
+            .begin_telephone_replacement_submission(repeated)
+            .err()
+            .expect("original durable submission remains once only")
+            .code,
+        "reconciliation-required"
+    );
+    assert_eq!(f.count("operation_effects"), before.0 + 1);
+    assert_eq!(f.count("native_replacement_steps"), before.1 + 1);
+    drop(carrier);
+}

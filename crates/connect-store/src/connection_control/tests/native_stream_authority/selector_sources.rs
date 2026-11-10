@@ -76,7 +76,8 @@ fn selector_preflight_does_not_reuse_a_foreign_credential_or_stale_named_permiss
             .code,
         "forbidden"
     );
-    let c = f.store.connection().unwrap();
+    drop(proof);
+    let c = f.change_fixture();
     let raw: String = c
         .query_row(
             "SELECT operations FROM credentials WHERE id=?1",
@@ -92,11 +93,5 @@ fn selector_preflight_does_not_reuse_a_foreign_credential_or_stale_named_permiss
     )
     .unwrap();
     drop(c);
-    assert_eq!(
-        f.store
-            .validate_native_subscription_sources_with_peer(&f.keys[0], &proof, &["audio".into()])
-            .unwrap_err()
-            .code,
-        "forbidden"
-    );
+    assert_eq!(admit(&f, &request).err().unwrap().code, "forbidden");
 }

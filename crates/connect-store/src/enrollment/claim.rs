@@ -32,19 +32,20 @@ impl Store {
         actual_origin: Option<&str>,
     ) -> Result<OwnedEnrollment<EnrollmentCredential>> {
         connect_protocol::transitions::id(&claim.enrollment_id)?;
-        let authority =
-            self.stable_authority(&AuthorityWait::new(Duration::from_secs(2)), || {
-                let c = self.connection()?;
-                let row = load(&c, &claim.enrollment_id)?;
-                Ok(authorize(&c, &row.issuer, &row.request)?.2)
-            })?;
+        let wait = AuthorityWait::new(Duration::from_secs(2));
+        let authority = self.stable_authority(&wait, || {
+            let c = self.connection()?;
+            let row = load(&c, &claim.enrollment_id)?;
+            Ok(claim_authorize(&c, &row.issuer, &row)?.2)
+        })?;
         let mut c = self.connection()?;
         c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = load(&tx, &claim.enrollment_id)?;
-        let (actor, tenant, scopes) = authorize(&tx, &row.issuer, &row.request)?;
+        let (actor, tenant, scopes) = claim_authorize(&tx, &row.issuer, &row)?;
+        let mutating = row.state == "pending";
         if actor.identity_id != row.issuer_identity
             || tenant != row.tenant
             || !self.authority_covers(&authority, &scopes)
@@ -136,10 +137,18 @@ impl Store {
             return Err(Error::unauthorized());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(OwnedEnrollment {
-            value,
-            until,
-            _authority: authority,
-        })
+        if !mutating {
+            return Ok(OwnedEnrollment {
+                value,
+                until,
+                _authority: authority,
+            });
+        }
+        // SQLUnit pins the original writer through its complete outcome. Drop
+        // both owners before reacquiring response readers; no in-place upgrade
+        // or response-long writer, and no renewed authority admission budget.
+        drop(c);
+        drop(authority);
+        self.enrollment_credential_delivery(&row.id, &value, until, &wait)
     }
 }

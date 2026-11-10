@@ -176,6 +176,70 @@ fn same_original_key(connection: &Connection, table: &str) -> Result<String> {
 fn initial_slot(record: &str) -> String {
     format!("EXISTS(SELECT 1 FROM operations birth_op JOIN connections birth_conn ON birth_conn.id=birth_op.connection_id WHERE birth_op.record_id={record} AND birth_op.command_type='connection.offer' AND birth_conn.state='preparing' AND birth_conn.generation=1 AND birth_conn.revision=0 AND birth_conn.observed_runtime_id IS NULL AND birth_conn.readiness_json IS NULL AND NOT EXISTS(SELECT 1 FROM native_connection_lifetimes prior WHERE prior.connection_id=birth_conn.id) AND NOT EXISTS(SELECT 1 FROM telephone_connection_lifetimes prior WHERE prior.connection_id=birth_conn.id))")
 }
+
+/// A separate unstarted native control namespace supplies no earlier grant.
+/// Its original parent, credential and physical generation stay immutable; the
+/// existing native_stream_binding trigger validates those facts at insertion.
+fn native_stream_namespace(record: &str) -> String {
+    format!("EXISTS(SELECT 1 FROM operations sub JOIN native_stream_operations ns ON ns.operation_record_id=sub.record_id JOIN native_admission_sources parent ON parent.operation_record_id=ns.parent_record_id WHERE sub.record_id={record} AND sub.command_type IN ('stream.subscribe','stream.unsubscribe','connection.end','message.send','stream.reconcile','connection.update','capability.advertise','dtmf.send') AND sub.ledger_version=0 AND sub.owner_id=parent.owner_id AND sub.tenant_id=parent.tenant_id AND sub.conversation_id=parent.conversation_id AND sub.session_id=parent.session_id AND sub.connection_id=parent.connection_id AND ns.generation=parent.generation AND ns.participant_id=parent.participant_id AND ns.membership_epoch=parent.membership_epoch)")
+}
+fn native_stream_birth(record: &str) -> String {
+    format!("{} AND EXISTS(SELECT 1 FROM operations sub JOIN native_stream_operations ns ON ns.operation_record_id=sub.record_id WHERE sub.record_id={record} AND sub.state='accepted' AND sub.revision=0 AND sub.cancel_requested=0 AND sub.tombstoned=0 AND ns.effect_started=0 AND ns.closed=0 AND ns.effect_id IS NULL AND ns.attempt_id IS NULL AND ns.attempt_runtime IS NULL)", native_stream_namespace(record))
+}
+fn same_columns(columns: &[&str]) -> String {
+    columns
+        .iter()
+        .map(|column| format!("OLD.{column} IS NEW.{column}"))
+        .collect::<Vec<_>>()
+        .join(" AND ")
+}
+fn native_stream_begin_update() -> String {
+    let immutable = same_columns(&[
+        "record_id",
+        "tenant_id",
+        "owner_id",
+        "operation_id",
+        "digest",
+        "command_type",
+        "conversation_id",
+        "session_id",
+        "connection_id",
+        "expected_revision",
+        "intent_json",
+        "result_json",
+        "tombstoned",
+        "created_at",
+        "expires_at",
+        "ledger_version",
+        "worker_cleanup",
+        "cancel_requested",
+    ]);
+    let same_worker = same_columns(&[
+        "worker_generation",
+        "lease_owner",
+        "lease_expires_at",
+        "worker_runtime",
+    ]);
+    // This original Accepted namespace has never authorized a stream attempt.
+    // Permit only its one worker birth and transition into Preparing. Later
+    // effect/outcome, cancellation and observation writes retain actual Write.
+    let birth = format!("OLD.state='accepted' AND NEW.cancel_requested=0 AND NEW.tombstoned=0 AND OLD.problem_json IS NEW.problem_json AND NEW.worker_generation=1 AND OLD.worker_generation IN (0,1) AND ((NEW.state='accepted' AND NEW.revision=OLD.revision) OR (NEW.state='preparing' AND NEW.revision=OLD.revision+1)) AND NEW.lease_expires_at IS NEW.expires_at AND EXISTS(SELECT 1 FROM native_stream_operations ns JOIN operation_effects e ON e.id=ns.effect_id AND e.operation_record_id=ns.operation_record_id WHERE ns.operation_record_id=NEW.record_id AND ns.effect_started=1 AND ns.closed=0 AND NEW.lease_owner IS ns.attempt_id AND NEW.worker_runtime IS ns.attempt_runtime AND e.state='submitting' AND e.provider='native-stream' AND e.attempt=1 AND e.submission_generation=1)");
+    // A definitive pre-effect refusal also cannot withdraw an earlier grant:
+    // no effect/attempt has existed, and no positive stream lease can name it.
+    let refusal = format!("{} AND ({same_worker}) AND ((NEW.state='accepted' AND NEW.revision=OLD.revision) OR (NEW.state='failed' AND NEW.revision=OLD.revision+1)) AND (OLD.problem_json IS NEW.problem_json OR OLD.problem_json IS NULL)", native_stream_birth("OLD.record_id"));
+    format!(
+        "COALESCE((({immutable}) AND {} AND (({birth}) OR ({refusal}))),0)",
+        native_stream_namespace("OLD.record_id")
+    )
+}
+
+// The immutable rejection marker is installed only after the exact original
+// preparation failed. Its sole attributed member is historical, and can never
+// name a physical native slot, attempt, effect or media permission.
+fn rejected_native_member_birth() -> &'static str {
+    "EXISTS(SELECT 1 FROM native_offer_rejections rejected JOIN operations wire ON wire.record_id=rejected.operation_record_id JOIN operations preparation ON preparation.record_id=rejected.preparation_record_id JOIN operation_control_receipts receipt ON receipt.operation_record_id=preparation.record_id WHERE wire.record_id=NEW.operation_record_id AND wire.ledger_version=0 AND wire.command_type='connection.offer' AND wire.state='failed' AND wire.connection_id IS NULL AND wire.result_json IS NULL AND wire.problem_json IS NOT NULL AND preparation.command_type='connection.prepare' AND preparation.state='failed' AND preparation.result_json IS NULL AND preparation.problem_json=wire.problem_json AND wire.owner_id=preparation.owner_id AND wire.tenant_id=preparation.tenant_id AND wire.conversation_id=preparation.conversation_id AND wire.session_id=preparation.session_id AND receipt.actor_authority='member' AND NEW.participant_id=receipt.actor_participant_id AND NEW.membership_epoch=receipt.actor_membership_epoch AND NEW.identity_id=wire.owner_id AND NOT EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=wire.record_id) AND NOT EXISTS(SELECT 1 FROM operation_effects effect WHERE effect.operation_record_id=wire.record_id))"
+}
+
 fn dormant(table: &str, action: &str, collisions: &str) -> String {
     if action == "insert" {
         let no_collision =
@@ -183,17 +247,51 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
         let condition = match table {
             // No earlier positive grant can name a nonexistent unique namespace
             // or operation. This creates no reusable new-ID permit after commit.
-            "identities" | "conversations" | "operations" => "1".to_owned(),
+            "identities" | "conversations" | "operations" | "credentials" => "1".to_owned(),
+            // A fresh pending approval has no credential and cannot be named by
+            // an earlier authenticated enrollment/media grant. Reserving a key
+            // that already exists is not birth; all unique victims stay guarded.
+            "client_enrollments" => "NEW.state='pending' AND NEW.attempts=0 AND NEW.credential_id IS NULL AND NEW.issued_at IS NULL AND NOT EXISTS(SELECT 1 FROM peer_signing_keys key WHERE key.key_id=NEW.key_id)".into(),
+            // The private permit is bound to this exact primary Unit and live
+            // transaction; COMMIT refuses it and rollback invalidates its nonce.
+            "messages" => format!("{MESSAGE_BIRTH_FUNCTION}(NEW.id,NEW.conversation_id)"),
+            "message_audiences" | "message_attachments" => format!("{MESSAGE_BIRTH_FUNCTION}(NEW.message_id,NEW.conversation_id) AND EXISTS(SELECT 1 FROM messages message WHERE message.id=NEW.message_id AND message.conversation_id=NEW.conversation_id)"),
+            "audience_resources" => format!("(NEW.kind='message' AND {MESSAGE_BIRTH_FUNCTION}(NEW.id,NEW.conversation_id) AND EXISTS(SELECT 1 FROM messages message WHERE message.id=NEW.id AND message.conversation_id=NEW.conversation_id AND message.sender=NEW.owner_id)) OR (NEW.kind='call' AND {PARENT_BIRTH_FUNCTION}('call',NEW.id,NEW.conversation_id) AND EXISTS(SELECT 1 FROM voice_calls born JOIN credentials credential ON credential.id=born.credential_id WHERE born.id=NEW.id AND born.conversation_id=NEW.conversation_id AND born.state='pending' AND born.state_revision=0 AND born.provider_id IS NULL AND born.control_url IS NULL AND born.ended_reason IS NULL AND born.end_requested=0 AND credential.identity_id=NEW.owner_id)) OR (NEW.kind='session' AND {PARENT_BIRTH_FUNCTION}('invited-session',NEW.id,NEW.conversation_id) AND EXISTS(SELECT 1 FROM sessions born WHERE born.id=NEW.id AND born.conversation_id=NEW.conversation_id AND born.state='invited' AND born.state_revision=0 AND born.initiator_id=NEW.owner_id))"),
+            "resource_audiences" => format!("(NEW.kind='call' AND {PARENT_BIRTH_FUNCTION}('call',NEW.id,NEW.conversation_id) AND EXISTS(SELECT 1 FROM voice_calls born JOIN participants viewer ON viewer.conversation_id=born.conversation_id WHERE born.id=NEW.id AND born.conversation_id=NEW.conversation_id AND born.state='pending' AND born.state_revision=0 AND born.provider_id IS NULL AND born.control_url IS NULL AND born.ended_reason IS NULL AND born.end_requested=0 AND viewer.participant_id=NEW.participant_id AND viewer.membership_epoch=NEW.membership_epoch AND viewer.active=1)) OR (NEW.kind='session' AND {PARENT_BIRTH_FUNCTION}('invited-session',NEW.id,NEW.conversation_id) AND EXISTS(SELECT 1 FROM sessions born JOIN participants viewer ON viewer.conversation_id=born.conversation_id WHERE born.id=NEW.id AND born.conversation_id=NEW.conversation_id AND born.state='invited' AND born.state_revision=0 AND viewer.identity_id IN (born.initiator_id,born.participant_id) AND viewer.participant_id=NEW.participant_id AND viewer.membership_epoch=NEW.membership_epoch AND viewer.active=1))"),
+            "sessions" => format!("{PARENT_BIRTH_FUNCTION}('invited-session',NEW.id,NEW.conversation_id) AND NEW.state='invited' AND NEW.state_revision=0 AND NEW.topology_revision=0 AND NEW.audience_mode='participants' AND NEW.ended_reason IS NULL AND NEW.terminal_reason_code IS NULL"),
+            "session_participants" => format!("{PARENT_BIRTH_FUNCTION}('invited-session',NEW.session_id,NEW.conversation_id) AND NEW.role='participant' AND EXISTS(SELECT 1 FROM sessions born JOIN participants viewer ON viewer.conversation_id=born.conversation_id WHERE born.id=NEW.session_id AND born.conversation_id=NEW.conversation_id AND born.state='invited' AND born.state_revision=0 AND viewer.identity_id IN (born.initiator_id,born.participant_id) AND viewer.participant_id=NEW.participant_id AND viewer.membership_epoch=NEW.membership_epoch AND viewer.tenant_id=NEW.tenant_id AND viewer.active=1 AND NEW.state=CASE WHEN viewer.identity_id=born.initiator_id THEN 'present' ELSE 'invited' END)"),
             "connections" => "NEW.state='preparing' AND NEW.generation=1 AND NEW.revision=0 AND NEW.observed_runtime_id IS NULL AND NEW.readiness_json IS NULL".into(),
             "connection_offers" => "EXISTS(SELECT 1 FROM connections c WHERE c.id=NEW.connection_id AND c.state='preparing' AND c.generation=1 AND c.revision=0 AND c.observed_runtime_id IS NULL AND c.readiness_json IS NULL)".into(),
             "native_offer_operations" => format!("NEW.effect_started=0 AND {}", initial_slot("NEW.operation_record_id")),
-            "operation_members" | "operation_endpoints" | "operation_effects" => format!("{} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)", initial_slot("NEW.operation_record_id")),
+            "operation_members" => format!("({} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)) OR ({}) OR ({} AND EXISTS(SELECT 1 FROM native_stream_operations ns JOIN operations sub ON sub.record_id=ns.operation_record_id WHERE sub.record_id=NEW.operation_record_id AND NEW.participant_id=ns.participant_id AND NEW.identity_id=sub.owner_id AND NEW.membership_epoch=ns.membership_epoch))", initial_slot("NEW.operation_record_id"), rejected_native_member_birth(), native_stream_birth("NEW.operation_record_id")),
+            "operation_effects" => format!("({} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)) OR ({} AND NEW.provider='native-stream' AND NEW.correlation_key=NEW.operation_record_id AND NEW.idempotency_mode='none' AND NEW.state='submitting' AND NEW.attempt=1 AND NEW.submission_generation=1 AND NEW.provider_ref IS NULL AND NEW.observation_json IS NULL AND NEW.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM operation_effects prior WHERE prior.operation_record_id=NEW.operation_record_id))", initial_slot("NEW.operation_record_id"), native_stream_birth("NEW.operation_record_id")),
+            "operation_endpoints" => format!("{} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)", initial_slot("NEW.operation_record_id")),
             // The receipt and its unique original operation are created in one
             // SQL transaction before any native invocation can be constructed.
             "operation_control_receipts" => "NOT EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.preparation_record_id=NEW.operation_record_id)".into(),
             _ => "0".into(),
         };
         return format!("({no_collision}) AND ({condition})");
+    }
+    if action == "update" && table == "messages" {
+        // explicit_message_metadata performs a same-value UPDATE after INSERT.
+        // The production writer already supplied both metadata fields. Permit
+        // only that exact no-op while the original new-message permit is live.
+        let same = same_columns(&[
+            "sequence",
+            "id",
+            "conversation_id",
+            "sender",
+            "body",
+            "sender_participant_id",
+            "content_type",
+            "body_encoding",
+            "label",
+            "in_reply_to_msg_id",
+            "accepted_at",
+            "audience_mode",
+        ]);
+        return format!("({same}) AND {MESSAGE_BIRTH_FUNCTION}(OLD.id,OLD.conversation_id)");
     }
     if action == "update" && table == "sessions" {
         // Actual flow observations change the UI phase/revision, not native IO
@@ -253,7 +351,8 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
         // The original Accepted offer has never satisfied current(): that
         // requires Preparing plus the exact submitting effect/worker lease.
         // Permit only that one birth, never a later Preparing mutation.
-        return format!("({immutable}) AND OLD.command_type='connection.offer' AND OLD.state='accepted' AND NEW.cancel_requested=0 AND NEW.worker_generation=1 AND OLD.worker_generation IN (0,1) AND ((NEW.state='accepted' AND NEW.revision=OLD.revision) OR (NEW.state='preparing' AND NEW.revision=OLD.revision+1)) AND NEW.lease_expires_at IS NEW.expires_at AND {} AND EXISTS(SELECT 1 FROM native_offer_operations n JOIN operation_effects e ON e.id=n.effect_id AND e.operation_record_id=n.operation_record_id WHERE n.operation_record_id=NEW.record_id AND n.effect_started=1 AND e.state='submitting' AND NEW.lease_owner IS n.attempt_id AND NEW.worker_runtime IS n.attempt_runtime)", initial_slot("NEW.record_id"));
+        let initial_offer = format!("({immutable}) AND OLD.command_type='connection.offer' AND OLD.state='accepted' AND NEW.cancel_requested=0 AND NEW.worker_generation=1 AND OLD.worker_generation IN (0,1) AND ((NEW.state='accepted' AND NEW.revision=OLD.revision) OR (NEW.state='preparing' AND NEW.revision=OLD.revision+1)) AND NEW.lease_expires_at IS NEW.expires_at AND {} AND EXISTS(SELECT 1 FROM native_offer_operations n JOIN operation_effects e ON e.id=n.effect_id AND e.operation_record_id=n.operation_record_id WHERE n.operation_record_id=NEW.record_id AND n.effect_started=1 AND e.state='submitting' AND NEW.lease_owner IS n.attempt_id AND NEW.worker_runtime IS n.attempt_runtime)", initial_slot("NEW.record_id"));
+        return format!("({initial_offer}) OR ({})", native_stream_begin_update());
     }
     if action == "update" && table == "native_offer_operations" {
         // Exactly the initial one-way effect birth. Every OLD=1 mutation, even

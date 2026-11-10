@@ -447,14 +447,12 @@ impl Runtime {
                 .telephone_replacement_media_origin(submitted.clone())
         })
         .await?;
-        let read = Arc::new(
-            retry_metadata(&root.handle.cancellation(), || async {
-                self.media
-                    .store
-                    .try_telephone_replacement_media_read(origin.clone())
-            })
-            .await?,
-        );
+        let read = retry_metadata(&root.handle.cancellation(), || async {
+            self.media
+                .store
+                .try_telephone_replacement_media_read(origin.clone())
+        })
+        .await?;
         let codec = leg.context.negotiated_audio_codec().map_err(|_| {
             Error::new(
                 "unsupported-media-profile",
@@ -472,7 +470,7 @@ impl Runtime {
             runtime: Arc::downgrade(self),
             root: Arc::downgrade(root),
             leg: Arc::downgrade(leg),
-            origin,
+            origin: origin.clone(),
             codec,
             pending: root.handle.prepared_binding(),
             proof: Mutex::new(None),
@@ -484,16 +482,45 @@ impl Runtime {
         self.media
             .register_telephone_target(&policy)
             .map_err(|_| Error::forbidden())?;
-        let store = self.media.store.clone();
-        let held = read.clone();
-        let attempt =
-            store_call(move || store.begin_telephone_replacement_resources(&held)).await?;
-        let i = Arc::new(Invocation {
-            policy: policy.clone(),
-            read,
-            attempt: attempt.clone(),
-        });
+        let original_until = read.expires_at();
+        drop(read);
+        // Retry only before reservation. Every fresh admission is clipped to
+        // the original interval; begin consumes it before acquiring its Writer.
+        let attempt = retry_metadata(&root.handle.cancellation(), || {
+            let store = self.media.store.clone();
+            let origin = origin.clone();
+            let deadline = root.deadline;
+            store_call(move || {
+                if tokio::time::Instant::now() >= deadline
+                    || chrono::Utc::now().timestamp() >= original_until
+                {
+                    return Err(Error::forbidden());
+                }
+                let read = store.try_telephone_replacement_media_read(origin)?;
+                store.begin_telephone_replacement_resources_before(read, original_until)
+            })
+        })
+        .await?;
+        // Once reserved, all failures remain attached to this exact attempt.
+        // Fresh IO admission never repeats begin or any transport/codec work.
         let result = async {
+            let read = retry_metadata(&root.handle.cancellation(), || {
+                let store = self.media.store.clone();
+                let attempt = attempt.clone();
+                let deadline = root.deadline;
+                store_call(move || {
+                    if tokio::time::Instant::now() >= deadline {
+                        return Err(Error::forbidden());
+                    }
+                    store.try_telephone_replacement_resources_attempt_read(attempt)
+                })
+            })
+            .await?;
+            let i = Arc::new(Invocation {
+                policy: policy.clone(),
+                read: Arc::new(read),
+                attempt: attempt.clone(),
+            });
             let controller = leg
                 .context
                 .prepare_media_controller(self.media.clone(), 4, i.as_ref())
@@ -563,7 +590,6 @@ impl Runtime {
             Ok((controller, capture))
         }
         .await;
-        drop(i);
         match result {
             Ok((controller, capture)) => {
                 policy

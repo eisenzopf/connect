@@ -95,7 +95,7 @@ fn native_codec_permission_is_separate_from_creating_the_connection_and_is_curre
     let lease = begin(&f, &request);
     let receipt = lease.codecs_committed(2, observation()).unwrap();
     f.store.complete_native_stream(&receipt).unwrap();
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     let raw: String = c
         .query_row(
             "SELECT operations FROM credentials WHERE id=?1",
@@ -145,7 +145,7 @@ fn native_codec_captured_result_records_after_journal_failure_cancellation_and_a
             },
         )
         .unwrap();
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     // Controlled native retirement attribution, not actual termination evidence.
     c.execute(
         "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id='connection-native'",

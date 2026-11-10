@@ -11,6 +11,7 @@ pub struct AssistantProviderUpdate {
 pub struct AssistantProviderUpdateExport {
     update: AssistantProviderUpdate,
     json: String,
+    expires_at: i64,
 }
 pub struct AssistantProviderUpdateApplied {
     update: AssistantProviderUpdate,
@@ -47,6 +48,9 @@ impl AssistantProviderUpdate {
     }
 }
 impl AssistantProviderUpdateExport {
+    pub fn instance(&self) -> &AssistantProviderContext {
+        &self.update.context
+    }
     pub fn acknowledged(&self, body: &str) -> Result<AssistantProviderUpdateApplied> {
         if body != self.json {
             return Err(Error::new(
@@ -226,7 +230,7 @@ impl Store {
         let held = self.runtime_conversation_authority(|_| {
             Ok(vec![context.origin.conversation_id().into()])
         })?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -354,11 +358,13 @@ impl Store {
         read.update = Some(update.delivery.clone());
         Ok(read)
     }
+    /// Reserve this exact update under a short mutation interval. Return
+    /// original export custody before reacquiring permission for provider IO.
     pub fn begin_native_assistant_update(
         &self,
         update: &AssistantProviderUpdate,
         read: AssistantProviderRead,
-    ) -> Result<(AssistantProviderUpdateExport, AssistantProviderRead)> {
+    ) -> Result<AssistantProviderUpdateExport> {
         if !read.current()
             || read.update.as_deref() != Some(update.delivery.as_str())
             || read.context.delivery != update.context.delivery
@@ -368,23 +374,125 @@ impl Store {
             return Err(Error::forbidden());
         }
         let json = read.context_json()?.to_owned();
-        let mut c = self.connection()?;
+        let original_until = read.expires_at();
+        drop(read);
+        original_runtime(self, &update.context)?;
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let derive = |c: &Connection| -> Result<Vec<crate::AuthorityScope>> {
+            bind(c, update)?;
+            let facts = resolve(
+                self,
+                c,
+                &update.context.origin,
+                &update.context.credential,
+                &update.context.endpoint,
+            )?;
+            let mut scopes = facts.scopes;
+            scopes.push(crate::AuthorityScope::conversation(
+                update.context.origin.conversation_id(),
+                crate::AuthorityMode::Write,
+            )?);
+            crate::AuthorityScope::merged(&scopes)
+        };
+        let scopes = {
+            let c = self.try_connection_with_wait(&wait)?;
+            derive(&c)?
+        };
+        let held = self.acquire_authority(&scopes, &wait)?;
+        let mut c = self.try_connection()?;
+        let scopes = derive(&c)?;
+        if !self.authority_covers(&held, &scopes) {
+            return Err(Error::new(
+                "authority-busy",
+                "Assistant update mutation scope changed",
+            ));
+        }
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         bind(&tx, update)?;
-        if tx.execute("UPDATE native_assistant_context_updates SET export_started=1,export_expires_at=?2 WHERE delivery_id=?1 AND export_started=0 AND delivered_at IS NULL AND rejected_at IS NULL AND uncertain=0 AND EXISTS(SELECT 1 FROM native_assistant_providers p WHERE p.delivery_id=instance_delivery_id AND p.provider_ref=?3 AND p.delivered_at IS NOT NULL AND p.uncertain=0 AND p.end_started=0 AND p.closed_at IS NULL)",params![update.delivery,read.expires_at(),update.reference]).map_err(|_|Error::storage())?!=1{return Err(Error::new("reconciliation-required","Context update was already attempted"));}
-        if !read.current() {
+        let facts = resolve(
+            self,
+            &tx,
+            &update.context.origin,
+            &update.context.credential,
+            &update.context.endpoint,
+        )?;
+        if !self.authority_covers(&held, &facts.scopes) {
+            return Err(Error::forbidden());
+        }
+        let (root_json, endpoint, audience): (String, String, String) = tx.query_row(
+            "SELECT d.selection_json,p.endpoint_json,p.audience_json FROM native_assistant_providers p JOIN context_deliveries d ON d.id=p.delivery_id WHERE p.delivery_id=?1 AND p.provider_ref=?2 AND p.delivered_at IS NOT NULL AND p.uncertain=0 AND p.rejected_at IS NULL AND p.end_started=0 AND p.closed_at IS NULL AND d.state='delivered'",
+            params![update.context.delivery, update.reference], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        ).map_err(|_| Error::forbidden())?;
+        if endpoint != crate::provisioning::canonical_json(&facts.endpoint)?
+            || audience != serde_json::to_string(&facts.audience).map_err(|_| Error::storage())?
+        {
+            return Err(Error::forbidden());
+        }
+        validate_saved(self, &tx, &facts, &update.context, &root_json)?;
+        if validate_rows(self, &tx, &facts, &update.context, Some(&update.delivery))?.as_deref()
+            != Some(json.as_str())
+        {
+            return Err(Error::forbidden());
+        }
+        let expires_at = original_until.min(facts.expires);
+        if crate::now() >= expires_at {
+            return Err(Error::forbidden());
+        }
+        if tx.execute("UPDATE native_assistant_context_updates SET export_started=1,export_expires_at=?2 WHERE delivery_id=?1 AND export_started=0 AND delivered_at IS NULL AND rejected_at IS NULL AND uncertain=0 AND EXISTS(SELECT 1 FROM native_assistant_providers p WHERE p.delivery_id=instance_delivery_id AND p.provider_ref=?3 AND p.delivered_at IS NOT NULL AND p.uncertain=0 AND p.end_started=0 AND p.closed_at IS NULL)",params![update.delivery,expires_at,update.reference]).map_err(|_|Error::storage())?!=1{return Err(Error::new("reconciliation-required","Context update was already attempted"));}
+        if crate::now() >= expires_at {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok((
-            AssistantProviderUpdateExport {
-                update: update.clone(),
-                json,
-            },
-            read,
-        ))
+        drop(c);
+        drop(held);
+        Ok(AssistantProviderUpdateExport {
+            update: update.clone(),
+            json,
+            expires_at,
+        })
+    }
+    /// Fresh read for this original reserved export only. Busy admission never
+    /// repeats begin, and the old cutoff cannot be renewed by another read.
+    pub fn try_native_assistant_begun_update_read(
+        &self,
+        export: &AssistantProviderUpdateExport,
+    ) -> Result<AssistantProviderRead> {
+        let update = &export.update;
+        original_runtime(self, &update.context)?;
+        if crate::now() >= export.expires_at {
+            return Err(Error::forbidden());
+        }
+        let mut read = self.native_assistant_provider_read(
+            &update.context,
+            Some(&update.reference),
+            Some(&update.delivery),
+        )?;
+        let c = self.try_connection()?;
+        bind(&c, update)?;
+        let exact: bool = c.query_row(
+            "SELECT EXISTS(SELECT 1 FROM native_assistant_context_updates u JOIN context_deliveries d ON d.id=u.delivery_id WHERE u.delivery_id=?1 AND u.export_started=1 AND u.export_expires_at=?2 AND u.delivered_at IS NULL AND u.rejected_at IS NULL AND u.uncertain=0 AND d.state='pending' AND d.selection_json=?3)",
+            params![update.delivery, export.expires_at, export.json], |r| r.get(0),
+        ).map_err(|_| Error::storage())?;
+        if !exact {
+            return Err(Error::forbidden());
+        }
+        drop(c);
+        let json = self
+            .validate_assistant_updates(&update.context, &read.read, Some(&update.delivery))?
+            .ok_or_else(Error::forbidden)?;
+        if json != export.json {
+            return Err(Error::forbidden());
+        }
+        read.read.json = json;
+        read.read.native.expires_at = read.read.native.expires_at.min(export.expires_at);
+        read.update = Some(update.delivery.clone());
+        if !read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
     }
     pub fn record_native_assistant_update_delivered(
         &self,
@@ -392,7 +500,7 @@ impl Store {
     ) -> Result<()> {
         let update = &applied.update;
         original_runtime(self, &update.context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(&update.context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -416,7 +524,7 @@ impl Store {
     ) -> Result<()> {
         let update = &rejected.update;
         original_runtime(self, &update.context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(&update.context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -453,7 +561,7 @@ impl Store {
     ) -> Result<()> {
         let update = &export.update;
         original_runtime(self, &update.context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(&update.context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -468,11 +576,11 @@ impl Store {
         tx.commit().map_err(|_| Error::storage())
     }
     pub(super) fn recover_native_assistant_context_updates(&self, limit: usize) -> Result<usize> {
-        const TARGETS:&str="SELECT d.conversation_id FROM native_assistant_context_updates u JOIN native_assistant_providers p ON p.delivery_id=u.instance_delivery_id JOIN context_deliveries d ON d.id=u.delivery_id WHERE d.state='pending' AND (p.runtime_epoch!=?2 OR (u.export_started=0 AND u.prepared_expires_at<=?1) OR (u.export_started=1 AND u.export_expires_at<=?1)) ORDER BY d.sequence LIMIT ?3";
+        const TARGETS: &str = "SELECT d.conversation_id FROM native_assistant_context_updates u JOIN native_assistant_providers p ON p.delivery_id=u.instance_delivery_id JOIN context_deliveries d ON d.id=u.delivery_id WHERE d.state='pending' AND (p.runtime_epoch!=?2 OR (u.export_started=0 AND u.prepared_expires_at<=?1) OR (u.export_started=1 AND u.export_expires_at<=?1)) ORDER BY d.sequence LIMIT ?3";
         let now = crate::now();
         let limit = limit as u64;
         let held = self.runtime_query_authority(TARGETS, &[&now, &self.runtime_epoch(), &limit])?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

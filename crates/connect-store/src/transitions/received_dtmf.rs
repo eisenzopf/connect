@@ -428,7 +428,50 @@ pub(super) fn recover_one(c: &Connection, row: &rows::Saved, store: &Store) -> R
     finish(c, store, &row.record.record_id)?;
     Ok(true)
 }
+// The observation/recipient set is rederived after file admission. Only the
+// operation owner's Identity and original Conversation are mutation scopes;
+// independent recipient/provider facts retain their existing Read footprint.
+fn reservation_scopes(
+    store: &Store,
+    c: &Connection,
+    phone: &SipSignalOrigin,
+    candidates: &[NativeDtmfRecipient],
+) -> Result<Vec<AuthorityScope>> {
+    let mut required = phone.scopes(store, c)?;
+    for target in candidates {
+        match phone.pair_scopes(store, c, &target.origin) {
+            Ok(scopes) => required.extend(scopes),
+            Err(e) if matches!(e.code.as_str(), "forbidden" | "not-recipient") => (),
+            Err(e) => return Err(e),
+        }
+    }
+    required.extend(admission::scopes(
+        phone.identity_id(),
+        Some(phone.conversation_id()),
+    )?);
+    AuthorityScope::merged(&required)
+}
 impl Store {
+    fn received_dtmf_history_sql<'a>(
+        &'a self,
+        source: &Source,
+    ) -> Result<(
+        Arc<crate::AuthorityGuardSet>,
+        crate::installation_ownership::ConnectionGuard<'a>,
+    )> {
+        // Immutable original IDs route admission, never grant a new delivery.
+        // Historical metadata is checked again in the transaction below.
+        let scopes = admission::scopes(
+            source.phone.identity_id(),
+            Some(source.phone.conversation_id()),
+        )?;
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let held = self.acquire_authority(&scopes, &wait)?;
+        // Never park the acquired Writer behind the primary SQL mutex.
+        let c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
+        Ok((held, c))
+    }
     /// Trusted actual source composition only. Success freezes immutable input
     /// and current exact recipients; no reader or IO grant is queued.
     pub fn prepare_received_dtmf(
@@ -442,30 +485,37 @@ impl Store {
             return Err(invalid());
         }
         let source_read = self.try_sip_signal_read(&phone, FromTelephone)?;
+        let original_until = source_read.expires_at();
         let operation = logical_id(&phone, &observation);
         let required = {
             let c = self.try_connection()?;
-            let mut required = phone.scopes(self, &c)?;
-            for target in &candidates {
-                match phone.pair_scopes(self, &c, &target.origin) {
-                    Ok(scopes) => required.extend(scopes),
-                    Err(e) if matches!(e.code.as_str(), "forbidden" | "not-recipient") => (),
-                    Err(e) => return Err(e),
-                }
-            }
-            AuthorityScope::merged(&required)?
+            reservation_scopes(self, &c, &phone, &candidates)?
         };
         drop(source_read);
-        let interval = self.try_acquire_authority(&required)?;
+        // No incoming IO Read survives this short state-change reservation.
+        // The same source owner retries busy before any batch is returned.
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let interval = self.acquire_authority(&required, &wait)?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &interval)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        if !self.authority_covers(
+            &interval,
+            &reservation_scopes(self, &tx, &phone, &candidates)?,
+        ) {
+            return Err(Error::new(
+                "authority-busy",
+                "Received signal mutation scope changed",
+            ));
+        }
         let until = observation
             .received_at
             .timestamp()
             .checked_add(40)
-            .ok_or_else(invalid)?;
+            .ok_or_else(invalid)?
+            .min(original_until);
         if observation.received_at.timestamp() > crate::now() || until <= crate::now() {
             return Err(Error::forbidden());
         }
@@ -620,11 +670,14 @@ impl Store {
         target: &ReceivedDtmfTarget,
         disposition: Disposition,
     ) -> Result<()> {
-        let mut c = self.try_connection()?;
+        let (held, mut c) = self.received_dtmf_history_sql(&target.source)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        historical(&tx, self, &target.source)?;
+        let row = historical(&tx, self, &target.source)?;
+        if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+            return Err(Error::forbidden());
+        }
         outcome(
             &tx,
             self,
@@ -636,11 +689,14 @@ impl Store {
         tx.commit().map_err(|_| Error::storage())
     }
     pub fn finish_received_dtmf(&self, batch: &ReceivedDtmfBatch) -> Result<OperationRecord> {
-        let mut c = self.try_connection()?;
+        let (held, mut c) = self.received_dtmf_history_sql(&batch.source)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        historical(&tx, self, &batch.source)?;
+        let row = historical(&tx, self, &batch.source)?;
+        if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+            return Err(Error::forbidden());
+        }
         let result = finish(&tx, self, &batch.source.record)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(result)
@@ -670,15 +726,17 @@ impl Store {
                 &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
                 || {
                     let c = self.connection()?;
-                    admission::row_scopes(&rows::by_record(&c, &record)?)
+                    admission::mutation_row_scopes(&rows::by_record(&c, &record)?)
                 },
             )?;
-            let mut c = self.connection()?;
+            let mut c = self.connection_with_authority(&authority)?;
             let tx = c
                 .transaction_with_behavior(TransactionBehavior::Immediate)
                 .map_err(|_| Error::storage())?;
             let row = rows::by_record(&tx, &record)?;
-            admission::require_row(self, &authority, &row)?;
+            if !self.authority_covers(&authority, &admission::mutation_row_scopes(&row)?) {
+                return Err(Error::forbidden());
+            }
             if recover_one(&tx, &row, self)? {
                 changed += 1;
             }

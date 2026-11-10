@@ -37,7 +37,7 @@ fn session_codec_cancel_stops_queued_work_and_retains_submitted_uncertainty_unti
         .unwrap();
     let lease = f
         .store
-        .begin_native_session_codec(&read, "cancel-active-child", json!({"streams":[]}))
+        .begin_native_session_codec(read, "cancel-active-child", json!({"streams":[]}))
         .unwrap();
     f.store
         .execute_operation_action(
@@ -56,12 +56,11 @@ fn session_codec_cancel_stops_queued_work_and_retains_submitted_uncertainty_unti
         .unwrap();
     assert!(f
         .store
-        .validate_native_session_codec(&read, &lease)
+        .try_native_session_codec_attempt_read(&origin, &target, &lease)
         .is_err());
     let captured = lease
         .session_codecs_committed(2, true, observation())
         .unwrap();
-    drop(read);
     assert_eq!(status(&f, &manager, &active).state, OperationState::Unknown);
     assert!(f
         .store
@@ -87,7 +86,7 @@ fn session_codec_restart_cannot_reconstruct_old_queued_or_submitted_native_attem
                 .unwrap();
             let lease = f
                 .store
-                .begin_native_session_codec(&read, "restart-child", json!({"streams":[]}))
+                .begin_native_session_codec(read, "restart-child", json!({"streams":[]}))
                 .unwrap();
             Some(
                 lease
@@ -152,9 +151,8 @@ fn session_codec_no_effect_capture_retries_recording_without_another_native_atte
         .unwrap();
     let lease = f
         .store
-        .begin_native_session_codec(&read, "no-effect-child", json!({"streams":[]}))
+        .begin_native_session_codec(read, "no-effect-child", json!({"streams":[]}))
         .unwrap();
-    drop(read);
     let captured =
         lease.without_effect(Error::new("codec-refused", "Controlled preflight refusal"));
     f.store.connection().unwrap().execute_batch("CREATE TRIGGER reject_codec_no_effect BEFORE UPDATE OF state ON operations WHEN NEW.state='failed' BEGIN SELECT RAISE(ABORT,'fixture'); END;").unwrap();
@@ -203,18 +201,15 @@ fn session_codec_bounded_reconciliation_prioritizes_pending_work_over_older_unkn
         .unwrap();
     let lease = f
         .store
-        .begin_native_session_codec(&read, "older-unknown-child", json!({"streams":[]}))
+        .begin_native_session_codec(read, "older-unknown-child", json!({"streams":[]}))
         .unwrap();
-    drop(read);
     f.store.native_stream_attempt_uncertain(&lease).unwrap();
     f.store.reconcile_session_codec_jobs(1).unwrap();
     assert_eq!(status(&f, &manager, &older).state, OperationState::Unknown);
     let (_, newer, _) = queue(&f, &manager, "newer-pending-policy");
     // Controlled physical retirement in this Store-only fixture. The scan
     // must reach the queued target with its one-batch budget; it grants no IO.
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET state='retired' WHERE id=?1",
             [origin.connection_id()],
@@ -263,9 +258,7 @@ fn empty_codec_reconciliation_skips_external_writer_then_settles_later_batch_onc
     assert_eq!(target.batch_record_id, original.record_id);
     // Controlled retirement in this Store-only fixture makes queued work
     // settle without fabricating a native effect or changing its identity.
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET state='retired' WHERE id=?1",
             [origin.connection_id()],

@@ -77,20 +77,23 @@ fn original_flow_fact_is_immutable_and_recapture_does_not_create_effects_or_rewr
     assert!(foreign
         .record_native_connection_flow(&origin, &read, &first)
         .is_err());
-    // SQL state fixture bypasses ordinary writer fencing deliberately: the
-    // method must also resolve current generation, not merely trust its reader.
-    f.store
+    assert!(f
+        .store
         .connection()
         .unwrap()
         .execute(
             "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
             [origin.connection_id()],
         )
-        .unwrap();
-    assert!(f
-        .store
-        .record_native_connection_flow(&origin, &read, &first)
         .is_err());
+    drop(read);
+    f.change_fixture()
+        .execute(
+            "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
+            [origin.connection_id()],
+        )
+        .unwrap();
+    assert!(f.store.try_native_media_read(&origin, None).is_err());
     assert_eq!(f.count("native_connection_flow_facts"), 1);
 }
 #[test]
@@ -208,18 +211,14 @@ fn session_start_failure_rolls_back_readiness_phase_and_journal_then_recovers_on
         .unwrap()
         .execute("UPDATE session_started_facts SET fact_json=fact_json", [])
         .is_err());
-    f.store
-        .connection()
-        .unwrap()
+    drop(read);
+    f.change_fixture()
         .execute(
             "UPDATE sessions SET state='ended',ended_reason='fixture-ended' WHERE id=?1",
             [origin.session_id()],
         )
         .unwrap();
-    assert!(f
-        .store
-        .record_native_connection_flow(&origin, &read, &first)
-        .is_err());
+    assert!(f.store.try_native_media_read(&origin, None).is_err());
     assert_eq!(
         f.store
             .session_started_template(origin.conversation_id(), origin.session_id())
@@ -283,7 +282,8 @@ fn participant_join_failure_is_atomic_and_original_facts_survive_role_changes_an
         .record_native_connection_flow(&origin, &read, &fact)
         .unwrap();
     assert_eq!(f.count("session_participant_facts"), 1);
-    let mut c = f.store.connection().unwrap();
+    drop(read);
+    let mut c = f.change_fixture();
     c.execute("UPDATE session_participants SET role='changed-after-join' WHERE session_id=?1 AND participant_id=?2",params![origin.session_id(),origin.participant_id()]).unwrap();
     c.execute(
         "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
@@ -355,7 +355,7 @@ fn participant_departure_keeps_owner_correlation_and_original_removed_recipient_
         .unwrap();
     drop(read);
     let owner = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
-    let mut c = f.store.connection().unwrap();
+    let mut c = f.change_fixture();
     let member = crate::audience::member(&c, &owner, origin.conversation_id(), true).unwrap();
     let tx = c.transaction().unwrap();
     tx.execute(
@@ -402,20 +402,43 @@ fn lifecycle_hint_metadata_poll_does_not_take_the_foreground_connection_mutex() 
     });
 }
 
+// Reconnect tests below mutate ordinary established state only after their
+// actual packet/peer readers have dropped. Bind the exact fixture Conversation
+// and original issuer Writes for one short SQL unit, never across later reads.
+fn reconnect_fixture_change<T>(f: &Fixture, change: impl FnOnce(&rusqlite::Connection) -> T) -> T {
+    let scopes = {
+        let c = f.store.connection().unwrap();
+        let identity: String = c
+            .query_row(
+                "SELECT identity_id FROM credentials WHERE id=?1",
+                [&f.keys[0]],
+                |row| row.get(0),
+            )
+            .unwrap();
+        vec![
+            crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Write).unwrap(),
+            crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write).unwrap(),
+        ]
+    };
+    let writer = f.store.try_acquire_authority(&scopes).unwrap();
+    let c = f.store.connection_with_authority(&writer).unwrap();
+    change(&c)
+}
 fn grace_loss(f: &Fixture, origin: &crate::NativeMediaOrigin, expired: bool) {
-    let c = f.store.connection().unwrap();
-    c.execute(
-        "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
-        [origin.connection_id()],
-    )
-    .unwrap();
-    crate::session_reconnect::observe_loss(
-        &c,
-        &f.store,
-        origin.session_id(),
-        chrono::Utc::now().timestamp_millis() - if expired { 31_000 } else { 0 },
-    )
-    .unwrap();
+    reconnect_fixture_change(f, |c| {
+        c.execute(
+            "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
+            [origin.connection_id()],
+        )
+        .unwrap();
+        crate::session_reconnect::observe_loss(
+            c,
+            &f.store,
+            origin.session_id(),
+            chrono::Utc::now().timestamp_millis() - if expired { 31_000 } else { 0 },
+        )
+        .unwrap();
+    });
 }
 fn started_fixture() -> (
     Fixture,
@@ -434,7 +457,9 @@ fn started_fixture() -> (
     drop(read);
     // Controlled prior departures leave this established fixture with one
     // remaining live Connection for the last-Connection grace tests.
-    f.store.connection().unwrap().execute("UPDATE connections SET state='retired',generation=generation+1 WHERE session_id='session' AND id!=?1",[origin.connection_id()]).unwrap();
+    reconnect_fixture_change(&f, |c| {
+        c.execute("UPDATE connections SET state='retired',generation=generation+1 WHERE session_id='session' AND id!=?1",[origin.connection_id()]).unwrap();
+    });
     (f, request, origin)
 }
 fn pending_offer(f: &Fixture, request: &crate::PeerAuthorityRequest) -> String {
@@ -463,39 +488,39 @@ fn reconnect_policy_defaults_to_thirty_seconds_and_freezes_at_invitation() {
     let (f, _, origin) = started_fixture();
     f.store.configure_session_reconnect_grace(1).unwrap();
     grace_loss(&f, &origin, false);
-    let c = f.store.connection().unwrap();
-    let (seconds,delta):(u32,i64)=c.query_row("SELECT grace_seconds,deadline_millis-lost_at_millis FROM session_reconnect_boundaries WHERE session_id=?1",[origin.session_id()],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
-    assert_eq!((seconds, delta), (30, 30_000));
-    let deadline: i64 = c
-        .query_row(
-            "SELECT deadline_millis FROM session_reconnect_boundaries WHERE session_id=?1",
-            [origin.session_id()],
-            |r| r.get(0),
+    reconnect_fixture_change(&f, |c| {
+        let (seconds,delta):(u32,i64)=c.query_row("SELECT grace_seconds,deadline_millis-lost_at_millis FROM session_reconnect_boundaries WHERE session_id=?1",[origin.session_id()],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+        assert_eq!((seconds, delta), (30, 30_000));
+        let deadline: i64 = c
+            .query_row(
+                "SELECT deadline_millis FROM session_reconnect_boundaries WHERE session_id=?1",
+                [origin.session_id()],
+                |r| r.get(0),
+            )
+            .unwrap();
+        crate::session_reconnect::observe_loss(
+            c,
+            &f.store,
+            origin.session_id(),
+            chrono::Utc::now().timestamp_millis() + 10_000,
         )
         .unwrap();
-    crate::session_reconnect::observe_loss(
-        &c,
-        &f.store,
-        origin.session_id(),
-        chrono::Utc::now().timestamp_millis() + 10_000,
-    )
-    .unwrap();
-    assert_eq!(
-        c.query_row(
-            "SELECT deadline_millis FROM session_reconnect_boundaries WHERE session_id=?1",
-            [origin.session_id()],
-            |r| r.get::<_, i64>(0)
-        )
-        .unwrap(),
-        deadline
-    );
-    assert!(c
-        .execute(
-            "UPDATE session_reconnect_boundaries SET grace_seconds=1",
-            []
-        )
-        .is_err());
-    drop(c);
+        assert_eq!(
+            c.query_row(
+                "SELECT deadline_millis FROM session_reconnect_boundaries WHERE session_id=?1",
+                [origin.session_id()],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+            deadline
+        );
+        assert!(c
+            .execute(
+                "UPDATE session_reconnect_boundaries SET grace_seconds=1",
+                []
+            )
+            .is_err());
+    });
     f.store
         .reconcile_session_reconnect(origin.conversation_id(), origin.session_id())
         .unwrap();
@@ -571,7 +596,9 @@ fn idle_connected_reconnect_reconciliation_does_not_queue_a_writer_behind_live_m
 fn connected_reconnect_boundary_clearing_still_waits_for_original_media_readers() {
     let (f, _, origin) = started_fixture();
     let at = chrono::Utc::now().timestamp_millis() - 40_000;
-    f.store.connection().unwrap().execute("UPDATE session_reconnect_boundaries SET lost_at_millis=?2,deadline_millis=?2+grace_seconds*1000 WHERE session_id=?1", params![origin.session_id(), at]).unwrap();
+    reconnect_fixture_change(&f, |c| {
+        c.execute("UPDATE session_reconnect_boundaries SET lost_at_millis=?2,deadline_millis=?2+grace_seconds*1000 WHERE session_id=?1", params![origin.session_id(), at]).unwrap();
+    });
     let held = f.store.try_native_media_read(&origin, None).unwrap();
     let store = &f.store;
     let (send, receive) = std::sync::mpsc::sync_channel(1);
@@ -607,14 +634,13 @@ fn reconnect_current_pending_offer_preserves_session_after_grace_until_permissio
         .reconcile_session_reconnect(origin.conversation_id(), origin.session_id())
         .unwrap();
     assert_eq!(state(&f, &origin), "active");
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    reconnect_fixture_change(&f, |c| {
+        c.execute(
             "UPDATE peer_signing_keys SET revoked=1 WHERE key_id=?1",
             [&request.key_id],
         )
         .unwrap();
+    });
     f.store
         .reconcile_session_reconnect(origin.conversation_id(), origin.session_id())
         .unwrap();
@@ -627,47 +653,37 @@ fn reconnect_revoked_credential_ceiling_endpoint_and_stale_runtime_cannot_extend
         let (mut f, request, origin) = started_fixture();
         pending_offer(&f, &request);
         grace_loss(&f, &origin, true);
-        match change {
-            0 => {
-                f.store
-                    .connection()
-                    .unwrap()
-                    .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[0]])
-                    .unwrap();
-            }
-            1 => {
-                f.store
-                    .connection()
-                    .unwrap()
-                    .execute(
+        if change < 4 {
+            reconnect_fixture_change(&f, |c| match change {
+                0 => {
+                    c.execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[0]])
+                        .unwrap();
+                }
+                1 => {
+                    c.execute(
                         "UPDATE credentials SET recipients='[]' WHERE id=?1",
                         [&f.keys[0]],
                     )
                     .unwrap();
-            }
-            2 => {
-                f.store
-                    .connection()
-                    .unwrap()
-                    .execute(
+                }
+                2 => {
+                    c.execute(
                         "UPDATE endpoints SET verification_state='revoked' WHERE id=?1",
                         [&f.endpoints[0]],
                     )
                     .unwrap();
-            }
-            3 => {
-                f.store
-                    .connection()
-                    .unwrap()
-                    .execute(
+                }
+                3 => {
+                    c.execute(
                         "UPDATE credentials SET operations='[\"session_get\"]' WHERE id=?1",
                         [&f.keys[0]],
                     )
                     .unwrap();
-            }
-            _ => {
-                f.store.runtime_epoch = "controlled-new-runtime".into();
-            }
+                }
+                _ => unreachable!(),
+            });
+        } else {
+            f.store.runtime_epoch = "controlled-new-runtime".into();
         }
         f.store
             .reconcile_session_reconnect(origin.conversation_id(), origin.session_id())
@@ -692,19 +708,19 @@ fn reconnect_failed_pending_offer_ends_once_and_blocks_new_offers_after_deadline
     let (f, request, origin) = started_fixture();
     let pending = pending_offer(&f, &request);
     grace_loss(&f, &origin, true);
-    let c = f.store.connection().unwrap();
-    c.execute(
-        "UPDATE operations SET state='failed' WHERE record_id=?1",
-        [pending],
-    )
-    .unwrap();
-    assert_eq!(
-        crate::session_reconnect::permit_offer(&c, &f.store, origin.session_id())
-            .unwrap_err()
-            .code,
-        "conflict"
-    );
-    drop(c);
+    reconnect_fixture_change(&f, |c| {
+        c.execute(
+            "UPDATE operations SET state='failed' WHERE record_id=?1",
+            [pending],
+        )
+        .unwrap();
+        assert_eq!(
+            crate::session_reconnect::permit_offer(c, &f.store, origin.session_id())
+                .unwrap_err()
+                .code,
+            "conflict"
+        );
+    });
     for _ in 0..2 {
         f.store
             .reconcile_session_reconnect(origin.conversation_id(), origin.session_id())
@@ -767,61 +783,53 @@ fn terminal_native_hint_uses_original_fact_and_current_captured_epoch_and_ceilin
     assert_eq!(fact.reason_code, 408);
     assert!(fact.by_participant.is_none());
     drop(proof);
-    let c = f.store.connection().unwrap();
-    c.execute(
-        "UPDATE sessions SET ended_reason='later mutable metadata' WHERE id=?1",
-        [origin.session_id()],
-    )
-    .unwrap();
-    drop(c);
+    reconnect_fixture_change(&f, |c| {
+        c.execute(
+            "UPDATE sessions SET ended_reason='later mutable metadata' WHERE id=?1",
+            [origin.session_id()],
+        )
+        .unwrap();
+    });
     let proof = f.admit(&request);
     assert_eq!(
         f.store.session_ended_with_peer(&f.keys[0], &proof).unwrap(),
         fact
     );
     drop(proof);
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    reconnect_fixture_change(&f, |c| {
+        c.execute(
             "UPDATE credentials SET recipients='[]' WHERE id=?1",
             [&f.keys[0]],
         )
         .unwrap();
+    });
     assert!(admit(&f, &request).is_err());
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    reconnect_fixture_change(&f, |c| {
+        c.execute(
             "UPDATE credentials SET recipients='[\"*\"]' WHERE id=?1",
             [&f.keys[0]],
         )
         .unwrap();
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    });
+    reconnect_fixture_change(&f, |c| {
+        c.execute(
             "UPDATE participants SET active=0 WHERE participant_id=?1",
             [origin.participant_id()],
         )
         .unwrap();
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE participants SET active=1,membership_epoch=membership_epoch+1 WHERE participant_id=?1",
-            [origin.participant_id()],
-        )
-        .unwrap();
+    });
+    reconnect_fixture_change(&f, |c| {
+        c.execute("UPDATE participants SET active=1,membership_epoch=membership_epoch+1 WHERE participant_id=?1", [origin.participant_id()]).unwrap();
+    });
     assert!(admit(&f, &request).is_err());
 }
 
 #[test]
 fn reconnect_connected_native_activation_preserves_started_session_without_requiring_new_packets() {
     let (f, request, origin) = started_fixture();
-    let mut c = f.store.connection().unwrap();
-    c.execute("UPDATE session_reconnect_boundaries SET lost_at_millis=?2,deadline_millis=?2+30000 WHERE session_id=?1",params![origin.session_id(),chrono::Utc::now().timestamp_millis()-31_000]).unwrap();
-    drop(c);
+    reconnect_fixture_change(&f, |c| {
+        c.execute("UPDATE session_reconnect_boundaries SET lost_at_millis=?2,deadline_millis=?2+30000 WHERE session_id=?1",params![origin.session_id(),chrono::Utc::now().timestamp_millis()-31_000]).unwrap();
+    });
     // The actual activation was independently committed by the sealed adapter.
     // Historical flow is not re-inferred from packet arrival or packet silence.
     f.store

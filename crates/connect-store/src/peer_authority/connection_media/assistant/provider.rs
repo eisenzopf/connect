@@ -107,6 +107,14 @@ impl AssistantProviderRead {
     pub fn expires_at(&self) -> i64 {
         self.read.expires_at()
     }
+    /// Narrow a fresh read to an already-owned control cutoff; never renew it.
+    pub fn limit(&mut self, expires_at: i64) -> Result<()> {
+        self.read.native.expires_at = self.read.native.expires_at.min(expires_at);
+        if !self.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(())
+    }
     pub fn provider_endpoint(&self) -> Result<&Value> {
         self.read.provider_endpoint()
     }
@@ -209,6 +217,56 @@ fn original_runtime(store: &Store, context: &AssistantProviderContext) -> Result
         return Err(Error::forbidden());
     }
     Ok(())
+}
+// Historical receipt capture changes current delivery metadata, but does not
+// reauthorize the old caller or repeat provider IO. Its scope is the immutable
+// original parent only; an exact bound context must still exist in this runtime.
+fn assistant_recording_scopes(
+    c: &Connection,
+    context: &AssistantProviderContext,
+) -> Result<Vec<crate::AuthorityScope>> {
+    bound(c, context)?;
+    let cid: String = c
+        .query_row(
+            "SELECT conversation_id FROM context_deliveries WHERE id=?1",
+            [&context.delivery],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|_| Error::storage())?
+        .ok_or_else(Error::forbidden)?;
+    if cid != context.origin.conversation_id() {
+        return Err(Error::forbidden());
+    }
+    Ok(vec![crate::AuthorityScope::conversation(
+        &cid,
+        crate::AuthorityMode::Write,
+    )?])
+}
+impl Store {
+    fn try_assistant_recording_connection<'a>(
+        &'a self,
+        context: &AssistantProviderContext,
+    ) -> Result<(
+        Arc<crate::AuthorityGuardSet>,
+        crate::installation_ownership::ConnectionGuard<'a>,
+    )> {
+        original_runtime(self, context)?;
+        let needed = {
+            let c = self.try_connection()?;
+            assistant_recording_scopes(&c, context)?
+        };
+        // A caller retaining the original IO Read must defer immediately, not
+        // park a writer behind itself. Custody retains the same receipt to retry.
+        let held = self.try_acquire_authority(&needed)?;
+        let c = self.try_connection()?;
+        c.bind_mutation_authority(self, &held, &needed)?;
+        let current = assistant_recording_scopes(&c, context)?;
+        if !self.authority_covers(&held, &current) {
+            return Err(Error::forbidden());
+        }
+        Ok((held, c))
+    }
 }
 fn memory_deadline(c: &Connection, context: &AssistantProviderContext) -> Result<Option<i64>> {
     let mut q=c.prepare("SELECT d.selection_json FROM context_deliveries d WHERE d.id=?1 UNION ALL SELECT d.selection_json FROM native_assistant_context_updates u JOIN context_deliveries d ON d.id=u.delivery_id WHERE u.instance_delivery_id=?1 AND u.export_started=1").map_err(|_|Error::storage())?;
@@ -330,7 +388,7 @@ impl Store {
         drop(read);
         let held =
             self.runtime_conversation_authority(|_| Ok(vec![origin.conversation_id().into()]))?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -554,8 +612,7 @@ impl Store {
         receipt: &AssistantProviderCreated,
     ) -> Result<()> {
         let context = &receipt.context;
-        original_runtime(self, context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -620,8 +677,7 @@ impl Store {
         receipt: &AssistantProviderApplied,
     ) -> Result<()> {
         let context = &receipt.context;
-        original_runtime(self, context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -661,8 +717,7 @@ impl Store {
         context: &AssistantProviderContext,
         problem: &str,
     ) -> Result<()> {
-        original_runtime(self, context)?;
-        let mut c = self.connection()?;
+        let (_held, mut c) = self.try_assistant_recording_connection(context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

@@ -10,6 +10,7 @@ mod media_clock;
 mod media_snapshot;
 mod received_dtmf;
 mod sip_signal;
+mod subscription_bookkeeping;
 
 fn parent(granted: bool, completed: bool) -> (Fixture, PeerAuthorityRequest, String) {
     parent_scoped(granted, completed, false)
@@ -231,14 +232,17 @@ fn current_native_stream_source_binds_parent_and_reads_without_effect_or_receipt
     );
     // Expiring the historical full operation result must not erase the
     // immutable offer/source mapping for a still-current native lifetime.
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    drop(proof);
+    {
+        let writer = f.controlled_conversation_writer(0);
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        c.execute(
             "UPDATE operations SET intent_json=NULL,tombstoned=1 WHERE record_id=?1",
             [&record],
         )
         .unwrap();
+    }
+    let proof = admit(&f, &request).unwrap();
     assert_eq!(
         f.store
             .project_native_stream_with_peer(&f.keys[0], &proof)
@@ -481,8 +485,10 @@ fn native_stream_cancellation_distinguishes_no_attempt_and_uncertain_attempt() {
         } else {
             None
         };
+        drop(proof);
         let decision = cancel(&f);
         assert_eq!(cancel(&f), decision);
+        let proof = admit(&f, &request).unwrap();
         let status = operation(&f);
         assert_eq!(
             status.state,
@@ -580,7 +586,7 @@ fn native_stream_status_survives_parent_retirement_but_live_execution_does_not()
         .unwrap();
     drop(proof);
     {
-        let c = f.store.connection().unwrap();
+        let c = f.change_fixture();
         c.execute(
             "UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=?1",
             [&parent],
@@ -605,6 +611,7 @@ fn native_stream_status_survives_parent_retirement_but_live_execution_does_not()
         .begin_native_stream_with_peer(&f.keys[0], &proof)
         .is_err());
     assert_eq!(f.count("operation_effects"), 1);
+    drop(proof);
     cancel(&f);
     assert_eq!(operation(&f).state, OperationState::Cancelled);
 }
@@ -638,6 +645,7 @@ fn native_stream_journal_and_receipt_reservations_protect_cancellation_at_capaci
             f.store.execute(&f.keys[0], &denied).unwrap_err().code,
             "capacity-exceeded"
         );
+        drop(proof);
         cancel(&f);
         assert_eq!(f.count("operations"), operations + 2);
         assert_eq!(
@@ -664,9 +672,8 @@ fn native_stream_expired_attempt_becomes_unknown_and_keeps_its_effect_identity()
         .begin_native_stream_with_peer(&f.keys[0], &proof)
         .unwrap()
         .unwrap();
-    f.store
-        .connection()
-        .unwrap()
+    drop(proof);
+    f.change_fixture()
         .execute(
             "UPDATE operations SET lease_expires_at=?2 WHERE record_id=?1",
             params![lease.record_id(), crate::now() - 1],
@@ -674,6 +681,7 @@ fn native_stream_expired_attempt_becomes_unknown_and_keeps_its_effect_identity()
         .unwrap();
     assert_eq!(f.store.recover_native_streams(1).unwrap(), 1);
     assert_eq!(f.store.recover_native_streams(1).unwrap(), 0);
+    let proof = admit(&f, &request).unwrap();
     let status = operation(&f);
     assert_eq!(status.state, OperationState::Unknown);
     assert_eq!(status.expires_at, started.expires_at);
@@ -874,10 +882,14 @@ fn captured_native_stream_outcome_records_once_after_cancel_and_never_revives_a_
             .begin_native_stream_with_peer(&f.keys[0], &proof)
             .unwrap()
             .unwrap();
+        // The captured lease retains no initiating authority. Release the
+        // original read before the real cancellation/retirement writers.
+        drop(proof);
         cancel(&f);
         assert_eq!(operation(&f).state, OperationState::Unknown);
         if retired {
-            let c = f.store.connection().unwrap();
+            let writer = f.controlled_conversation_writer(0);
+            let c = f.store.connection_with_authority(&writer).unwrap();
             c.execute(
                 "UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=?1",
                 [&parent],
@@ -919,6 +931,7 @@ fn owned_job_can_prove_it_stopped_before_entering_engine_without_retiring_the_pa
         .begin_native_stream_with_peer(&f.keys[0], &proof)
         .unwrap()
         .unwrap();
+    drop(proof);
     let failed = f
         .store
         .fail_native_stream_without_effect(
@@ -943,6 +956,7 @@ fn owned_job_can_prove_it_stopped_before_entering_engine_without_retiring_the_pa
             .unwrap(),
         "ready"
     );
+    let proof = admit(&f, &request).unwrap();
     assert!(f
         .store
         .begin_native_stream_with_peer(&f.keys[0], &proof)
@@ -1081,12 +1095,13 @@ fn captured_native_connection_end_records_after_storage_failure_and_cancel_witho
         generation: lease.generation(),
     };
     let receipt = lease.ended(&observation).unwrap();
+    drop(proof);
     cancel(&f);
     assert_eq!(
         operation(&f).state,
         connect_protocol::transitions::OperationState::Unknown
     );
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     c.execute(
         "UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=?1",
         [&parent],
@@ -1117,6 +1132,7 @@ fn captured_native_connection_end_records_after_storage_failure_and_cancel_witho
     assert_eq!(completed.effects[0].id, started.effects[0].id);
     assert!(completed.cancel_requested);
     assert_eq!(f.store.complete_native_stream(&receipt).unwrap(), completed);
+    let proof = admit(&f, &request).unwrap();
     assert_eq!(
         f.store
             .accept_native_stream_with_peer(&f.keys[0], &proof)
@@ -1266,9 +1282,9 @@ fn native_data_source_rechecks_message_label_actor_audience_and_revision() {
 fn native_data_source_rechecks_every_profile_floor_and_observed_label_before_no_effect_planning() {
     for floor in 0..5 {
         let (f, request, _) = data_request(true);
-        let proof = admit(&f, &request).unwrap();
+        drop(admit(&f, &request).unwrap());
         {
-            let c = f.store.connection().unwrap();
+            let c = f.change_fixture();
             match floor {
                 0=>c.execute(r#"UPDATE sessions SET media='["audio"]' WHERE id='session'"#,[]),
                 1=>c.execute("UPDATE endpoints SET verification_state='revoked' WHERE id=?1",[&f.endpoints[0]]),
@@ -1277,12 +1293,14 @@ fn native_data_source_rechecks_every_profile_floor_and_observed_label_before_no_
                 _=>c.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.streams',json('[]')) WHERE id='connection-native'",[]),
             }.unwrap();
         }
-        assert!(
-            f.store
-                .project_native_data_with_peer(&f.keys[0], &proof)
-                .is_err(),
-            "{floor}"
-        );
+        if let Ok(proof) = admit(&f, &request) {
+            assert!(
+                f.store
+                    .project_native_data_with_peer(&f.keys[0], &proof)
+                    .is_err(),
+                "{floor}"
+            );
+        }
         assert_eq!(f.count("operation_effects"), 1);
     }
 }
@@ -1300,10 +1318,12 @@ fn native_data_source_all_audience_is_current_present_epochs_and_refuses_a_left_
         .project_native_data_with_peer(&f.keys[0], &proof)
         .unwrap();
     assert_eq!(all.recipients.len(), 4);
+    drop(proof);
     {
-        let c = f.store.connection().unwrap();
+        let c = f.change_fixture();
         c.execute("UPDATE session_participants SET state='left' WHERE session_id='session' AND participant_id=?1",[&f.pids[1]]).unwrap();
     }
+    let proof = admit(&f, &request).unwrap();
     assert_eq!(
         f.store
             .project_native_data_with_peer(&f.keys[0], &proof)
@@ -1395,9 +1415,8 @@ fn empty_native_recovery_skips_external_writer_then_recovers_later_original_atte
         .begin_native_stream_with_peer(&f.keys[0], &proof)
         .unwrap()
         .unwrap();
-    f.store
-        .connection()
-        .unwrap()
+    drop(proof);
+    f.change_fixture()
         .execute(
             "UPDATE operations SET lease_expires_at=?2 WHERE record_id=?1",
             params![lease.record_id(), crate::now() - 1],
@@ -1431,6 +1450,7 @@ fn empty_native_recovery_skips_external_writer_then_recovers_later_original_atte
         started.effects[0].submission_generation
     );
     assert_eq!(f.count("operation_effects"), effects);
+    let proof = admit(&f, &request).unwrap();
     assert!(f
         .store
         .begin_native_stream_with_peer(&f.keys[0], &proof)

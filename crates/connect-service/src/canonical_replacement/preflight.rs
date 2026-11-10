@@ -52,6 +52,45 @@ where
     }
 }
 
+// The outer preflight runner deliberately refuses replay once a reservation
+// exists. This narrower loop owns that SAME original opaque reservation and
+// retries only its current resolution/atomic not-yet-begun Store admission.
+// The caller puts Core preparation strictly AFTER this returns success.
+pub(super) async fn reserved<T, F, P>(
+    stop: &CancellationToken,
+    deadline: tokio::time::Instant,
+    mut begin: F,
+) -> Result<T>
+where
+    F: FnMut() -> P,
+    P: Future<Output = Result<T>>,
+{
+    loop {
+        if stop.is_cancelled() {
+            return Err(Error::forbidden());
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return Err(Error::new(
+                "authority-busy",
+                "Original replacement begin cutoff expired",
+            ));
+        }
+        let error = match begin().await {
+            Ok(value) => return Ok(value),
+            Err(error) if transient(&error) => error,
+            Err(error) => return Err(error),
+        };
+        tokio::select! {
+            biased;
+            _ = stop.cancelled() => return Err(Error::forbidden()),
+            _ = tokio::time::sleep_until(deadline.min(tokio::time::Instant::now()+Duration::from_millis(20))) => {}
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return Err(error);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,6 +177,102 @@ mod tests {
         );
         let (result, ()) = tokio::join!(work, cancelling);
         assert_eq!(result.unwrap_err().code, "forbidden");
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+    }
+}
+
+#[cfg(test)]
+mod reserved_tests {
+    use super::*;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+    #[tokio::test]
+    async fn original_reserved_begin_retries_without_recreating_reservation_or_holding_iteration_guards(
+    ) {
+        struct Interval(Arc<AtomicUsize>);
+        impl Drop for Interval {
+            fn drop(&mut self) {
+                self.0.fetch_sub(1, Ordering::SeqCst);
+            }
+        }
+        let reservation = Arc::new("one-original-reservation");
+        let identity = Arc::as_ptr(&reservation);
+        let held = Arc::new(AtomicUsize::new(0));
+        let calls = AtomicUsize::new(0);
+        let actual = reserved(
+            &CancellationToken::new(),
+            tokio::time::Instant::now() + Duration::from_secs(1),
+            || async {
+                assert_eq!(Arc::as_ptr(&reservation), identity);
+                assert_eq!(
+                    held.fetch_add(1, Ordering::SeqCst),
+                    0,
+                    "previous refused Read/coordinator must drop before retry"
+                );
+                let _interval = Interval(held.clone());
+                match calls.fetch_add(1, Ordering::SeqCst) {
+                    0 => Err(Error::new(
+                        "authority-busy",
+                        "original reserved begin blocked",
+                    )),
+                    1 => Err(Error::storage()),
+                    _ => Ok("same-original-attempt"),
+                }
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(actual, "same-original-attempt");
+        assert_eq!(calls.load(Ordering::SeqCst), 3);
+        assert_eq!(held.load(Ordering::SeqCst), 0);
+        assert_eq!(Arc::strong_count(&reservation), 1);
+    }
+    #[tokio::test]
+    async fn reserved_begin_preserves_permanent_refusal_and_stops_at_original_cutoff_or_cancel() {
+        let calls = AtomicUsize::new(0);
+        let error = reserved(
+            &CancellationToken::new(),
+            tokio::time::Instant::now() + Duration::from_secs(1),
+            || async {
+                calls.fetch_add(1, Ordering::SeqCst);
+                Err::<(), _>(Error::forbidden())
+            },
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.code, "forbidden");
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        let error = reserved(
+            &CancellationToken::new(),
+            tokio::time::Instant::now(),
+            || async {
+                calls.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.code, "authority-busy");
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            1,
+            "expired cutoff must not call begin"
+        );
+        let stop = CancellationToken::new();
+        let error = reserved(
+            &stop,
+            tokio::time::Instant::now() + Duration::from_secs(1),
+            || async {
+                calls.fetch_add(1, Ordering::SeqCst);
+                stop.cancel();
+                Err::<(), _>(Error::new("authority-busy", "same original blocked"))
+            },
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.code, "forbidden");
         assert_eq!(calls.load(Ordering::SeqCst), 2);
     }
 }

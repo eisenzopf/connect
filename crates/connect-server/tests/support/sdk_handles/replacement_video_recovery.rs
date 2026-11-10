@@ -1279,16 +1279,36 @@ async fn exercise(mode: u8) {
             .unwrap()
             .push(json!({"name":"pcma","params":{"sample_rate":8000,"channels":1}}));
     }
-    replacement
+    let allocation = replacement
         .allocate_native_replacement_target(
             &command,
             &root,
             serde_json::from_value(offer.clone()).unwrap(),
         )
-        .await
-        .unwrap();
+        .await;
+    if allocation.is_err() {
+        // Preserve the exact original SDK error even if diagnostic observation
+        // itself refuses or panics. Never resend an uncertain allocation.
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let diagnostic = json!({
+                "stage":"replacement-allocate",
+                "concurrent_observation":readiness::original_root_state(&f,&command,&root),
+                "read_only":true,"auth_data_or_payloads":false,
+                "limits":{"effects":8,"busy_wait_ms":0,"sql_vm_ops":100000,"cooperative_sql_wall_ms":100,"output_bytes":8192},
+                "limitations":"State after original refusal; no exact holder or atomic commit-outcome claim."
+            }).to_string();
+            if diagnostic.len() <= 8192 {
+                eprintln!("original replacement allocation refusal: {diagnostic}");
+            } else {
+                eprintln!(
+                    "original replacement allocation refusal: {{\"unavailable\":\"output_cap\"}}"
+                );
+            }
+        }));
+    }
+    allocation.unwrap();
     eprintln!("production replacement phase: replacement-native-negotiation");
-    let (_, scope) = replacement
+    let (original_media_request, scope) = replacement
         .begin_native_replacement_media(
             &command,
             &root,
@@ -1297,6 +1317,29 @@ async fn exercise(mode: u8) {
         .await
         .unwrap();
     let answer = replacement.receive().await.unwrap();
+    if answer.kind() != "connection.answer" {
+        // Diagnostic failure must never replace this original wire refusal.
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let history = readiness::original_root_state(&f, &command, &root);
+            let value = answer.original();
+            let diagnostic = json!({
+                "kind":answer.kind(),
+                "matches_original_request":value["in_reply_to"].as_str()==Some(original_media_request.as_str()),
+                "code":value["payload"]["code"].as_u64(),
+                "category":value["payload"]["category"].as_str().map(|text|text.chars().take(64).collect::<String>()),
+                "reason":value["payload"]["reason"].as_str().map(|text|text.chars().take(128).collect::<String>()),
+                "concurrent_observation":history,
+                "limits":{"effects":8,"busy_wait_ms":0,"sql_vm_ops":100000,"cooperative_sql_wall_ms":100,"output_bytes":8192},
+                "read_only":true,"auth_data_or_payloads":false,
+                "limitations":"State after original refusal; statements may observe different commits; no causal holder claim. VM budget excludes filesystem open latency.",
+            }).to_string();
+            if diagnostic.len() <= 8192 {
+                eprintln!("original replacement media refusal: {diagnostic}");
+            } else {
+                eprintln!("original replacement media refusal: {{\"unavailable\":\"output_cap\"}}");
+            }
+        }));
+    }
     assert_eq!(answer.kind(), "connection.answer");
     let callback = replacement.receive().await.unwrap();
     assert_eq!(callback.kind(), "connection.offer");

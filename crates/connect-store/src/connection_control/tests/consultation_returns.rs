@@ -215,7 +215,8 @@ fn native_return_known_original_remote_departure_is_admitted_as_intent_without_c
     let (f, command, key, _) = fixture();
     let remote = command.intent.retained();
     {
-        let c = f.store.connection().unwrap();
+        let writer = f.controlled_conversation_writer(0);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute(
             "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
             [remote],
@@ -238,7 +239,8 @@ fn native_return_primary_departure_requires_original_retirement_observation_befo
     for observed in [false, true] {
         let (f, command, key, _) = fixture();
         let primary = command.connection_id.clone().unwrap();
-        let c = f.store.connection().unwrap();
+        let writer = f.controlled_conversation_writer(0);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute(
             "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
             [&primary],
@@ -252,6 +254,7 @@ fn native_return_primary_departure_requires_original_retirement_observation_befo
             .unwrap();
         }
         drop(c);
+        drop(writer);
         let before = f.count("operations");
         let result = f.store.admit_transition_command(&key, command);
         if observed {
@@ -484,7 +487,8 @@ fn native_return_single_attempt_and_captured_recording_lifts_only_primary_floor_
         .unwrap()
         .is_none());
     {
-        let c = f.store.connection().unwrap();
+        let writer = f.controlled_conversation_writer(0);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute(
             "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
             [sources[3].connection_id()],
@@ -533,7 +537,7 @@ fn native_return_uncertainty_and_cancel_never_lift_private_floor_or_allow_second
         .unwrap();
     drop(read);
     f.store
-        .native_consultation_return_uncertain(attempt)
+        .native_consultation_return_uncertain(&attempt)
         .unwrap();
     let replay = f.store.admit_transition_command(&key, command).unwrap();
     assert_eq!(replay.state, OperationState::Unknown);
@@ -607,7 +611,8 @@ fn return_after_source_departure(index: usize) {
         .unwrap();
     let remote = sources.remove(index);
     {
-        let c = f.store.connection().unwrap();
+        let writer = f.controlled_conversation_writer(0);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute(
             "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
             [remote.connection_id()],
@@ -657,7 +662,8 @@ fn return_after_source_departure(index: usize) {
         .unwrap();
     let candidate = sources.last().unwrap();
     {
-        let c = f.store.connection().unwrap();
+        let writer = f.controlled_conversation_writer(0);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute(
             "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
             [candidate.connection_id()],
@@ -801,4 +807,190 @@ fn native_return_restart_preserves_private_floor_and_never_reuses_predecessor_re
         drop(successor);
         drop(_dir);
     }
+}
+
+#[test]
+fn native_return_cut_consumes_reads_and_preserves_same_unknown_attempt_through_metadata_pressure() {
+    let (mut f, command, key, _parent, sources) = fixture_full();
+    let (lease, origin) = prepared(&f, command.clone(), &key, &sources);
+    let original_until = lease.expires_at();
+    let plan = lease.plan().unwrap();
+    let alias = f
+        .store
+        .native_consultation_return_attempt_read(&lease)
+        .unwrap();
+    let selected = f
+        .store
+        .native_consultation_return_attempt_read(&lease)
+        .unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    assert_eq!(
+        f.store
+            .begin_native_consultation_return(lease, selected)
+            .err()
+            .expect("retained read must defer cut Writer")
+            .code,
+        "authority-busy"
+    );
+    assert!(alias.current());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    drop(alias);
+    // Recover only the same durable, not-started reservation under fresh current
+    // authority, without another logical command, effect, Core call or budget.
+    let lease = f
+        .store
+        .prepare_native_consultation_return(
+            f.store
+                .try_native_return_read(&origin, &sources, &[])
+                .unwrap(),
+            plan,
+        )
+        .unwrap()
+        .unwrap();
+    assert!(lease.expires_at() <= original_until);
+    let selected = f
+        .store
+        .native_consultation_return_attempt_read(&lease)
+        .unwrap();
+    let (attempt, cut) = f
+        .store
+        .begin_native_consultation_return(lease, selected)
+        .unwrap();
+    assert!(cut.current() && cut.expires_at() <= original_until);
+    let read_scope =
+        crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Read).unwrap();
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[read_scope.clone()])
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    let exact: (bool,u64,String) = f.store.connection().unwrap().query_row(
+        "SELECT n.started,e.attempt,e.state FROM native_consultation_returns n JOIN operation_effects e ON e.id=n.effect_id WHERE n.operation_record_id=?1",
+        [origin.record_id()], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?)),
+    ).unwrap();
+    assert_eq!(exact, (true, 1, "submitting".into()));
+    drop(cut);
+    assert!(
+        f.store.try_acquire_authority(&[read_scope]).is_ok(),
+        "opaque attempt retains no cut Writer"
+    );
+    f.store
+        .revoke(&f.store.revalidate(&f.admin).unwrap(), &key)
+        .unwrap();
+    let sql = f.store.connection().unwrap();
+    assert_eq!(
+        f.store
+            .native_consultation_return_uncertain(&attempt)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(sql);
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let limit = f.store.limits.journal_events;
+    f.store.limits.journal_events = 0;
+    let refused = f.store.native_consultation_return_uncertain(&attempt);
+    f.store.limits.journal_events = limit;
+    assert_eq!(refused.unwrap_err().code, "capacity-exceeded");
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    f.store
+        .native_consultation_return_uncertain(&attempt)
+        .unwrap();
+    let recorded = Store::inspect_snapshot(f.store.path()).unwrap();
+    f.store
+        .native_consultation_return_uncertain(&attempt)
+        .unwrap();
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), recorded);
+    let state: (String,u64,String) = f.store.connection().unwrap().query_row(
+        "SELECT o.state,e.attempt,e.state FROM native_consultation_returns n JOIN operations o ON o.record_id=n.operation_record_id JOIN operation_effects e ON e.id=n.effect_id WHERE n.operation_record_id=?1",
+        [origin.record_id()], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?)),
+    ).unwrap();
+    assert_eq!(state, ("unknown".into(), 1, "unknown".into()));
+}
+
+#[test]
+fn native_return_get_recovers_only_under_fresh_writer_and_keeps_current_and_terminal_get_read_only()
+{
+    let (f, command, key, _, sources) = fixture_full();
+    let (lease, _) = prepared(&f, command.clone(), &key, &sources);
+    let owner = f.store.revalidate(&key).unwrap().identity_id;
+    let scopes = [
+        crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Read).unwrap(),
+        crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Read).unwrap(),
+    ];
+    let get = OperationAction::Get {
+        operation_id: command.operation_id.clone(),
+    };
+    let read = f.store.try_acquire_authority(&scopes).unwrap();
+    let current = f
+        .store
+        .execute_operation_action_with_authority(&key, get.clone(), &read)
+        .unwrap();
+    assert_eq!(current.state, OperationState::Preparing);
+    drop(read);
+    f.change_fixture()
+        .execute(
+            "UPDATE operations SET lease_expires_at=?2 WHERE record_id=?1",
+            params![lease.record_id(), crate::now() - 1],
+        )
+        .unwrap();
+    let read = f.store.try_acquire_authority(&scopes).unwrap();
+    let before = (
+        f.count("operations"),
+        f.count("operation_effects"),
+        f.count("journal"),
+    );
+    let refused = f
+        .store
+        .execute_operation_action_with_authority(&key, get.clone(), &read)
+        .unwrap_err();
+    assert_eq!(refused.code, "authority-busy");
+    assert_eq!(
+        before,
+        (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("journal")
+        )
+    );
+    let state: String = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT state FROM operations WHERE record_id=?1",
+            [lease.record_id()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(state, "preparing");
+    drop(read);
+    let recovered = f.store.execute_operation_action(&key, get.clone()).unwrap();
+    assert_eq!(recovered.record_id, lease.record_id());
+    assert_eq!(recovered.state, OperationState::Failed);
+    assert_eq!(recovered.effects.len(), 1);
+    assert_eq!(recovered.effects[0].id, current.effects[0].id);
+    assert_eq!(recovered.effects[0].attempt, current.effects[0].attempt);
+    let read = f.store.try_acquire_authority(&scopes).unwrap();
+    let after = (
+        f.count("operations"),
+        f.count("operation_effects"),
+        f.count("journal"),
+    );
+    assert_eq!(
+        f.store
+            .execute_operation_action_with_authority(&key, get, &read)
+            .unwrap(),
+        recovered
+    );
+    assert_eq!(
+        after,
+        (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("journal")
+        )
+    );
 }

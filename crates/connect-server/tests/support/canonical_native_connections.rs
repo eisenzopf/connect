@@ -1384,6 +1384,7 @@ async fn stream_control_state(
     input: serde_json::Value,
     expected_state: &str,
 ) -> Option<Envelope> {
+    let until = tokio::time::Instant::now() + Duration::from_secs(8);
     let scope = CommandScope {
         conversation_id: Some(cid.into()),
         session_id: Some("native-session".into()),
@@ -1391,15 +1392,54 @@ async fn stream_control_state(
         operation_id: Some(operation.into()),
         expected_revision: Some(revision),
     };
-    let requested = input.clone();
-    let request_id = client.send_value(kind, input, scope.clone()).await.unwrap();
-    let mut callback = None;
-    let mut failed = false;
-    loop {
-        let frame = tokio::time::timeout(Duration::from_secs(8), client.receive_control())
+    let request_id =
+        tokio::time::timeout_at(until, client.send_value(kind, input.clone(), scope.clone()))
             .await
             .unwrap()
             .unwrap();
+    finish_original_control(
+        client, scope, request_id, kind, input, expected_state,
+        Some(json!({"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"max_streams_per_connection":8,"identity_assurance_offered":"identified"})),
+        until,
+    ).await.0
+}
+
+// A Preparing reply/ACK is original durable acceptance. Keep answering any
+// expected reoffers while observing only the same journal operation; a Get is
+// never a command resubmission or a new media effect. Return the actual final
+// signed record alongside the optional original parameter request.
+async fn finish_original_control(
+    client: &mut CanonicalClient,
+    scope: CommandScope,
+    request_id: String,
+    kind: &str,
+    requested: Value,
+    expected_state: &str,
+    capabilities: Option<Value>,
+    until: tokio::time::Instant,
+) -> (Option<Envelope>, Envelope) {
+    let operation = scope.operation_id.as_deref().unwrap();
+    let mut callback = None;
+    let mut final_update = None;
+    let mut record = None::<String>;
+    let mut original_revision = None::<Value>;
+    let mut last_revision = None::<u64>;
+    let mut matched_state = false;
+    let mut failed = false;
+    let mut reply_to = request_id.clone();
+    loop {
+        assert!(
+            tokio::time::Instant::now() < until,
+            "original operation deadline: {operation}"
+        );
+        let frame = tokio::time::timeout_at(until, client.receive_control())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            tokio::time::Instant::now() < until,
+            "original operation deadline: {operation}"
+        );
         if let Some(path) = std::env::var_os("CONNECT_G6_SUBSCRIPTION_SAMPLES") {
             use std::io::Write;
             let mut file = std::fs::OpenOptions::new()
@@ -1407,34 +1447,117 @@ async fn stream_control_state(
                 .append(true)
                 .open(path)
                 .unwrap();
-            writeln!(file, "{}", json!({"command":kind,"payload":requested,"operation_id":operation,"expected_revision":revision,"frame":frame.original()})).unwrap();
+            writeln!(file, "{}", json!({"command":kind,"payload":requested,"operation_id":operation,"expected_revision":scope.expected_revision,"read_only_observation":reply_to!=request_id,"frame":frame.original()})).unwrap();
         }
         match frame.kind() {
             "connection.offer" => {
+                let capabilities = capabilities
+                    .as_ref()
+                    .expect("command must not prepare another media effect");
                 let p = &frame.original()["payload"];
                 let streams=p["substrate_setup"]["streams"].as_array().unwrap().iter().map(|s|json!({"id":s["strm_id"],"kind":s["kind"],"direction":match s["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":s["codec"]})).collect::<Vec<_>>();
-                let answer=serde_json::from_value(json!({"by_participant":p["by_participant"],"substrate":"quic","capabilities":{"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"max_streams_per_connection":8,"identity_assurance_offered":"identified"},"streams_answered":streams,"substrate_setup":p["substrate_setup"]})).unwrap();
-                client
-                    .answer_connection_offer(&frame, answer, &scope)
-                    .await
-                    .unwrap();
+                let answer=serde_json::from_value(json!({"by_participant":p["by_participant"],"substrate":"quic","capabilities":capabilities,"streams_answered":streams,"substrate_setup":p["substrate_setup"]})).unwrap();
+                tokio::time::timeout_at(
+                    until,
+                    client.answer_connection_offer(&frame, answer, &scope),
+                )
+                .await
+                .unwrap()
+                .unwrap();
                 callback = Some(frame);
             }
             "operation.updated" => {
+                assert_eq!(frame.original()["in_reply_to"], reply_to);
+                let payload = &frame.original()["payload"];
                 assert_eq!(
-                    frame.original()["payload"]["state"],
-                    expected_state,
-                    "{:?}",
-                    frame.original()
+                    payload["operation_id"], operation,
+                    "changed original operation"
                 );
-                failed = expected_state == "failed";
+                assert_eq!(payload["command_type"], kind, "changed original command");
+                let observed = payload["record_id"]
+                    .as_str()
+                    .filter(|id| !id.is_empty())
+                    .unwrap();
+                if let Some(original) = record.as_deref() {
+                    assert_eq!(observed, original, "changed original operation record");
+                } else {
+                    record = Some(observed.to_owned());
+                }
+                if let Some(revision) = original_revision.as_ref() {
+                    assert_eq!(
+                        payload.get("expected_revision"),
+                        Some(revision),
+                        "changed original expected revision"
+                    );
+                } else {
+                    assert_eq!(
+                        payload.get("expected_revision"),
+                        Some(&json!(scope.expected_revision)),
+                        "original receipt changed submitted expected revision"
+                    );
+                    original_revision = Some(payload.get("expected_revision").unwrap().clone());
+                }
+                let revision = payload["revision"].as_u64().unwrap();
+                assert!(
+                    last_revision.is_none_or(|last| revision >= last),
+                    "original operation revision went backwards"
+                );
+                last_revision = Some(revision);
+                let state = payload["state"].as_str().unwrap();
+                if expected_state == "completed" {
+                    assert!(
+                        matches!(
+                            state,
+                            "accepted" | "preparing" | "ready" | "committing" | "completed"
+                        ),
+                        "original operation failed before completion: {:?}",
+                        frame.original()
+                    );
+                    matched_state = state == "completed";
+                } else {
+                    assert_eq!(state, expected_state, "{:?}", frame.original());
+                    matched_state = true;
+                }
+                failed = state == "failed";
+                final_update = Some(frame);
             }
             "ack" => {
+                assert_eq!(frame.original()["in_reply_to"], reply_to);
                 assert!(
                     !(kind == "stream.subscribe" && expected_state == "failed"),
                     "definitive subscription refusals must terminate with correlated 404/488"
                 );
-                break;
+                assert!(record.is_some(), "ACK without original operation receipt");
+                if matched_state {
+                    return (callback, final_update.take().unwrap());
+                }
+                assert_eq!(expected_state, "completed");
+                // The same absolute original deadline includes every Get and
+                // offer answer. Read scope carries no new logical mutation ID.
+                tokio::time::sleep_until(
+                    (tokio::time::Instant::now() + Duration::from_millis(20)).min(until),
+                )
+                .await;
+                assert!(
+                    tokio::time::Instant::now() < until,
+                    "original operation deadline: {operation}"
+                );
+                let read_scope = CommandScope {
+                    operation_id: None,
+                    expected_revision: None,
+                    ..scope.clone()
+                };
+                reply_to = tokio::time::timeout_at(
+                    until,
+                    client.send_value(
+                        "operation.get",
+                        json!({"operation_id":operation}),
+                        read_scope,
+                    ),
+                )
+                .await
+                .unwrap()
+                .unwrap();
             }
             "error" if kind == "stream.subscribe" && expected_state == "failed" => {
                 assert!(
@@ -1450,13 +1573,13 @@ async fn stream_control_state(
                     frame.original()["payload"]["code"].as_u64(),
                     Some(404 | 488)
                 ));
-                break;
+                return (callback, final_update.take().unwrap());
             }
             _ => panic!("unexpected native control reply: {:?}", frame.original()),
         }
     }
-    callback
 }
+
 #[tokio::test]
 async fn production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect(
 ) {
@@ -2689,43 +2812,40 @@ async fn end_native_connection(
     revision: Option<u64>,
     state: &str,
 ) -> Value {
-    client
-        .send_value(
-            "connection.end",
-            json!({"reason_code":1000,"reason":"finished","future":{"keep":true}}),
-            CommandScope {
-                conversation_id: Some(cid.into()),
-                session_id: Some("native-session".into()),
-                connection_id: Some(conn.into()),
-                operation_id: Some(operation.into()),
-                expected_revision: revision,
-            },
-        )
-        .await
-        .unwrap();
-    let mut updated = None;
-    loop {
-        let frame = tokio::time::timeout(Duration::from_secs(8), client.receive_control())
-            .await
-            .unwrap()
-            .unwrap();
-        match frame.kind() {
-            "operation.updated" => {
-                assert_eq!(
-                    frame.original()["payload"]["state"],
-                    state,
-                    "{:?}",
-                    frame.original()
-                );
-                updated = Some(frame.original()["payload"].clone());
-            }
-            "ack" => return updated.unwrap(),
-            _ => panic!(
-                "Unexpected native termination reply: {:?}",
-                frame.original()
-            ),
-        }
-    }
+    // Termination acknowledgement is acceptance, not completed retirement.
+    // Keep the original helper's eight-second budget as one absolute cutoff.
+    let until = tokio::time::Instant::now() + Duration::from_secs(8);
+    let scope = CommandScope {
+        conversation_id: Some(cid.into()),
+        session_id: Some("native-session".into()),
+        connection_id: Some(conn.into()),
+        operation_id: Some(operation.into()),
+        expected_revision: revision,
+    };
+    let input = json!({"reason_code":1000,"reason":"finished","future":{"keep":true}});
+    let request = tokio::time::timeout_at(
+        until,
+        client.send_value("connection.end", input.clone(), scope.clone()),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    let (offer, updated) = finish_original_control(
+        client,
+        scope,
+        request,
+        "connection.end",
+        input,
+        state,
+        None,
+        until,
+    )
+    .await;
+    assert!(
+        offer.is_none(),
+        "connection termination must not allocate media"
+    );
+    updated.original()["payload"].clone()
 }
 
 #[tokio::test]

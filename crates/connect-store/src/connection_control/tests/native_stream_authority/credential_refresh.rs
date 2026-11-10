@@ -435,7 +435,7 @@ fn credential_refresh_does_not_strand_an_original_pending_native_control() {
 #[test]
 fn credential_refresh_signal_only_epoch_does_not_need_or_restore_media_permission() {
     let (f, request, origin, next) = setup();
-    let c = f.store.connection().unwrap();
+    let c = f.change_fixture();
     for credential in &request.credentials {
         c.execute(
             "UPDATE credentials SET operations='[\"connect:control\",\"dtmf.send\"]' WHERE id=?1",

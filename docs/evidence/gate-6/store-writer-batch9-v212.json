@@ -1,0 +1,992 @@
+{
+  "task": "G6-058",
+  "scope": "Local macOS ARM focused Store cleanup units; not a transport matrix run",
+  "source_snapshot_sha256": "ad393fd507d1730783ebf268747d4fdd55163f1953f721588c7c860fe800eaca",
+  "base_revision": "2bd3fa447a955898fd03076dc2b0ad5001539d9d",
+  "summary": {
+    "selected": 162,
+    "completed": 162,
+    "passed": 162,
+    "failed": 0
+  },
+  "binary_sha256": "ae9d1fb3c7a8a6963a666bd45bbc070ffd9ce6cc2bd116d08fb6d0f93f5a8050",
+  "results_sha256": "7ac687f87162a6f756260ef9df59ed74250faef2c246eb1616da6b9d668edd8a",
+  "all_selected_naturally_joined": true,
+  "rows": [
+    {
+      "test": "connection_control::tests::consultation_joins::configured_join_commits_two_current_receipts_once_and_absorbs_only_its_own_revision_delta",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5d6a5cb416f8fc3e82595286bd787af217adb9892f0972b9796520798a677bc2"
+    },
+    {
+      "test": "connection_control::tests::consultation_joins::configured_join_record_failure_rolls_back_invitation_consent_and_both_receipts",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9fe2f8d6d337045d8347a11e77f1e4d654cd8d29b4a52e9b8a2ce0b80248bbae"
+    },
+    {
+      "test": "connection_control::tests::consultation_joins::configured_join_rejects_foreign_kernel_wrong_endpoint_and_revoked_delegate",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c36f59f9908d2e50a19f02ef2a9d0949dcd20b414c5bbc77ba9aa5fe3329b653"
+    },
+    {
+      "test": "connection_control::tests::consultation_joins::configured_join_waits_for_real_conversation_reader_then_commits_both_original_receipts",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "76ee5802a10ecc630c771f14d495341486c041276438998e985146d239cf2190"
+    },
+    {
+      "test": "connection_control::tests::consultation_joins::configured_webtransport_join_requires_verified_native_endpoint_and_retains_current_delegate_authority",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b098b63b7d86627cf8f3037a6d9f68275bd14fe5980a646f7697442c5366b2ee"
+    },
+    {
+      "test": "connection_control::tests::consultation_joins::configured_join_cannot_borrow_invite_accept_or_recipient_authority",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5565eb95881dd65e66195cc9724d27c62468ab75868c6ef1ce4a2b82c9455085"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_cancelled_before_submission_keeps_private_floor_and_current_authority_on_replay",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "076a5845da2a2e355b951192743c3158ce8ff49ab053cdca128a73cf35e9b251"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_cut_consumes_reads_and_preserves_same_unknown_attempt_through_metadata_pressure",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "eab3834b0644a529c5cf9ec838ce9457780970f3b248b5a6bdc403e4dec5824f"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_get_recovers_only_under_fresh_writer_and_keeps_current_and_terminal_get_read_only",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9048aa56a15143dc03e3b6b2c71be3e5cd8ff4031a53d71058d5d858eb4069a7"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_known_original_remote_departure_is_admitted_as_intent_without_claiming_a_live_call",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9fd1a664fb7bfb4a06e3abd679be2e1c495a3a90f94f65872f237debae17e797"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_new_current_permission_and_exact_original_context_precede_zero_io_intention",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "471d95153efebfffdc06bbbe7bb4cf4b42c98e32cb3f11d3446970062af77031"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_original_primary_departure_after_admission_uses_only_surviving_physical_authority",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0d20e13c8841077b153faef243c41f15f1f651d8a99d42483c932a01f6f20307"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_changed_primary_context_revision_and_original_epoch_refuse_before_reservation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "433811ab3054d218ea7e1e46753649d1383e4c72eb887a8763e51eaca33a1af0"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_original_remote_departure_after_admission_uses_only_surviving_physical_authority",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "565f500cc746b6c15018390246817b8e00580ccef09209efe96b3a4079c180cd"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_duplicate_private_ports_and_changed_plan_revisions_refuse_before_effect",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "48d9e705e3a0acb35cd37a24b427d1f22ef64056269a2db2b4bbad55d1917979"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_reservation_refuses_contended_sql_or_authority_without_effect",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ae0e3f5eb761d836e2fc0a2d740686ca7560287137a304f0fc0e457dcd0aaf7c"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_primary_departure_requires_original_retirement_observation_before_reservation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3a4f4fefc701194f2225e28920b2b9d57d9584fe7c6db2f36f344687c1cedde9"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_single_attempt_and_captured_recording_lifts_only_primary_floor_after_revocation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6e6e28aad251eb8bdba19cbab6e4a062abc5a4b9bd33846e88d2af987b83828f"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::credential_refresh::session_codecs::session_codec_child_uses_the_observed_current_credential_epoch_and_never_the_original_one",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c8e967b1e4df5c4b13eb8da9ce6593f50be1b140317fc003ede9cd7a43dfcffa"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_uncertainty_and_cancel_never_lift_private_floor_or_allow_second_attempt",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "66382bcca478d89635aaaa405c3db1a7efd5d090f98814d6690a0bdf741faad0"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_actual_signal_read_holds_both_current_identity_intervals_and_refuses_a_queued_writer",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e4f8e63d1bff35479211259d6a1d2b7ea8ab29801354e317a8e9e55734d6b547"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_captured_fact_survives_revocation_and_retirement_without_reviving_io",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "46a35801231e62579a612bf5d59237129412fb237737d00c9cade471d6e80e04"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freeze_capacity_failure_leaves_no_half_source_or_recipient_set",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "155e285823b8fa9d47dc5fe26295f479bbec6067bc6797c91f34e393ab37a695"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_freezes_actual_observation_and_recipient_without_payload_provenance_or_an_idle_reader",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "38d7f3d4f9e61f590eccae4dd011ac6c53d22f0f28201d445a36a00ca5f109bb"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_current_source_and_recipient_signal_rights_are_rechecked_after_queueing",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "fd7db673390f6b529e918be99a6d2912fa10922573eb2b8dc4cd7c8d83a5cd03"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_original_outcome_waits_for_delivery_read_then_records_after_revocation_without_another_frame",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b8aa1e4489460871533ae81c8fe1898f34adb140899620ce64d2420174feb4fc"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_outcome_storage_failure_rolls_back_its_fact_and_original_token_recovers_without_io",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "45486870afcad529e208e4a9a05e45c2182bd6133d5cdd9f3214a81762b49f63"
+    },
+    {
+      "test": "connection_control::tests::consultation_returns::native_return_restart_preserves_private_floor_and_never_reuses_predecessor_restore_custody",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "578f6eeecfce3c707193bac3de12574cc61ab52676059430ce3fb182eaeb99be"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_requires_separate_named_receive_permission_before_freezing_any_work",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "33e4dd62a654fc5c7777ce76dd3737380b8d4035a5f4845adf83ac20a6f25ea5"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_partial_known_submission_and_cancelled_no_effect_have_truthful_distinct_outcomes",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "65c77a30d00466d6ebb5a249082b9d02311adfce007773cac6f20888bc2caefa"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserved_outcome_and_final_state_can_finish_at_the_exact_shared_journal_capacity",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c11799a08654564ac19c35efc1e8f0965727c24fb5377edd54dfc85e6a7f1b7c"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_reserves_one_actual_output_frame_and_records_immutable_local_submission_once",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8106d501737ed365ad447639c53ce6d0a46862d2dbf9564779718136a8fbbaad"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_recipient_selection_uses_held_named_grants_without_freezing_or_retaining_readers",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "596db36be5b6625c42f8f1afc2f6e4b95b6db59d51791be541e406964457c9a2"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_signal_only_source_and_receiver_keep_pair_ceilings_without_media_grants",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "70a070429820561ae33947fe38d27d92de83b9fe8243b1f8c6d1adb21adcd337"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_source_and_sealed_recipient_binding_reject_changed_observation_and_late_targets",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e3a5a59ccc18f9075c11e1d0207e423bdb47211f8fe01e484322fb623a188b49"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_storage_contention_refuses_before_a_frame_is_reserved_and_preserves_original_work",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0e24e0c58dd111623172908a12f6fac9a2df28867cfdfdbe658b5dfdd752bd9d"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_unknown_local_outcome_preserves_identity_and_frees_only_stopped_control_work",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9424ba0d02e7e73fb65fd791bf45b4810a193ade005c92576abc28bb183aa52b"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_successor_recovers_reserved_frames_as_unknown_and_unstarted_recipients_without_replay",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "741dd18f162d83efe8c57b2aebd29047e6b255c1264b2a2dfa2df224323f2a61"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::native_stream_expired_attempt_becomes_unknown_and_keeps_its_effect_identity",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "64b3720fc418dff960a5b55b54564c2d8c59afb8d72df2c6a6dcb52b2e7ea654"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::data_admission_waits_without_a_message_or_effect_then_accepts_the_original_audience_once",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "07fe65c80b1734ae5751d978f95acca451d8d7d50b3c01c6a0f9a5f04bf76d79"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_cancellation_cannot_create_a_second_attempt_or_invent_a_failed_commit",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "be403d6b88a52b502e5a50aeaa1a716d99c21bca6b21febd77bb38b13c4b4704"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_fresh_source_keeps_subscription_permission_separate_and_fences_generation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8701a460441a788f7721eabefbfb551ec52b44cadf90c82d67a7840e32b8273f"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_cannot_enter_through_a_signed_peer_command_or_borrow_another_kernel",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "af8bca2d61a8fa6bc0cb6bdcea319c126947be7813a19d2a749c7edb92900fac"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_requires_completed_selector_and_current_exact_original_source",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e3ccf41c86067250d7e05dad467d98168a73f8fc617639819af83903bcf7812a"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_storage_rollback_preserves_the_original_id_and_explicit_plan",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "768c54be57ca0ef0108b10f997ed909ec306a68f856d726c9c19f836156f2450"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::native_reconciliation_successor_keeps_unknown_custody_and_refuses_old_origins_and_receipts",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "88dbb4522f9a14e8c30bef700ba05b4ec040e68feb98979411468ddf00cfcfa0"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::dtmf_recipients::dtmf_queued_target_cannot_borrow_removed_signal_scope_key_device_endpoint_or_member_epoch",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "46093e0ac611f69b35134e6a03e133902c3ef6606082ccc25b201e616390a518"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::routing_hint_cannot_revive_an_old_physical_origin_after_store_succession",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4bb37dd948dabf48203d8dec0b17647958ed62187ae4f23e07070f53c98bd2df"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::routing_hint_does_not_relabel_a_resource_replacement_as_a_metadata_only_change",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "bbd8f9bccb49f25392b39750da7a3b8a2277bd84cc7a858a4a12588efbed1b66"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::original_no_effect_recording_releases_managed_admission_only_after_its_commit",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b9bc0f2e167163e78734182e9ebfc1824333c6b9e863ab481376b168ef8f5c2a"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::routing_hint_requires_durable_completed_original_selector_and_exposes_no_capture",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "db16c94dda862d08fb0b8d892181f19aab8480aa710f5bc069de2dbb7adc7216"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::terminal_admission_keeps_competing_peer_controls_and_changed_intents_as_conflicts",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f1222ded1d57736828bb78709315f5cc29d515c7b5f988170d0d8bcdcc1e0b19"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::empty_codec_reconciliation_skips_external_writer_then_settles_later_batch_once",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4cf137384e412e20384a7922cad3d8d01ad76a40ac925f152282b6accf909488"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::reconciliation::terminal_admission_waits_only_for_managed_reconciliation_without_creating_an_effect",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ae7a06c3e082b277fdd303fd18138b294847a0add22fdbaa99dc690d4d1fc44b"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_bounded_reconciliation_prioritizes_pending_work_over_older_unknown_batches",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "37e21f2971ac578361c8ceb721d6398d9410e8833e9f8f627699229fcfc1618c"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_no_effect_capture_retries_recording_without_another_native_attempt",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "2a7a5c093ae14af6401e7c0696286597b611e92e6468bcbe87dad8dd07ef45b0"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_cancel_stops_queued_work_and_retains_submitted_uncertainty_until_capture",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "66a2b8851d4399805d6d6a0ab9cbfadfd611facf35111b66842f0cd245c614b6"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_captured_success_survives_recording_failure_and_uncertainty_without_another_attempt",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0df73e45a190ebf894ff04a1391c0e20b50cfb448b3883fefe9a871c506d6096"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_consuming_reservation_refuses_live_reader_alias_without_creating_an_attempt",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3cfd5d69fdbbf24a76e977964bd0126d9793b1057d581629f93358d78bda8cae"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_fresh_attempt_read_requires_exact_original_stream_and_selected_publisher_plan",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "41fb03767292df0ec860e1aeca701a08e96f89e2e02081ff33fc04d6d4738271"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::recovery::session_codec_restart_cannot_reconstruct_old_queued_or_submitted_native_attempts",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "210eaa10b2bcbd1486e88f85ee71b712b0ef3c396229d34588ee12f56a2a3d0e"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_latest_policy_supersedes_only_unstarted_work_and_replay_keeps_original_receipt",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "38c992768fdaf305527d42fbf4068f9aba47eec5bf24328607aeffb08ed1ea78"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_no_change_is_recorded_without_advancing_the_native_revision",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "01f6c95a772bea01b84eba83670147485aababc1039825d2737348a287bc2405"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_policy_and_targets_commit_once_with_separate_manager_and_peer_grants",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "87e53db3d3b34931a44daa430cfd906e77a6005a4876a607337cc001239c2a9f"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_postreservation_refusal_keeps_original_no_effect_custody_after_manager_revocation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "54d05d91f4c03cd38b08e1dcd3db1c5fb258abe21c2f061b8482e9d94f44eb85"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_read_requires_current_manager_and_independent_actual_peer_not_idle_job_metadata",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3819f951ad2cc95fa400c0f78c24b9af74a79ea4719207ceb1b6312fb463c553"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::session_codecs::session_codec_storage_failure_rolls_back_policy_targets_and_native_effect_together",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ccddd4b35decd874cf7860ccc513bf4260518ce03652daf791e123fcec4bcdd6"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_audience_captured_revision_never_rebinds_call_or_rewrites_later_state",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "baf1e97690022e6ab8cf230ae7ad282fee796686eb38079743e50f996f4b46eb"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_audience_requires_complete_current_nonduplicated_scene",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c1a7520550ab04aae6c0e7bb163fc9727e985aa0216f6c5e0b3edb348a13e95f"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_audience_uses_current_route_without_retired_native_credentials",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c2ea3ae8e104447fad6b7b4dfeae5f1fbd7ed7a5724f4e6d95f8f41801c3384f"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_captured_origin_keeps_route_authority_separate_and_owns_no_idle_reader",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "57802f8081ff83fe231949a2513ade78bb8f086b4e14ec19a20950e4fe8eee5b"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::established_sip_captured_origin_refuses_foreign_dialog_and_retired_generation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f787a187cea0e193bd266bc49090dd3121b230d1fc7957165622535d7c7f3d9f"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_captured_audience_records_its_generation_and_establishes_current_typed_context",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d0cf43a9f6dfe15ed1013a47f1bf8275e50592f02b613daf2335fc31d0e4b911"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_plan_cannot_activate_the_phone_or_give_private_audio_to_the_retained_remote",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4387915a0b555277611bf3768aacc182b76530bade8d32beaa4353ac5e8aee7b"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_fresh_packet_pair_grants_only_its_current_registered_native_connection",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "39d672347c9da4316028b6219b139a466eee96868b3309f93c3e0d57d3cf9931"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_dtmf_does_not_require_offer_subscribe_or_codec_permissions",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "69b005583b1de014ab07baf248ff763975ec2d738041e48aaad8bdeb467f8fef"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_dtmf_pairs_use_only_the_exact_registered_consultant",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d729138cc5cacecd75c114c55db93cfd901f386be4a2e66d065d727350ebeb4d"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_grants_cannot_be_borrowed_by_a_public_sibling_of_the_consultant",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "52adc5991e07d451efae2d5a2d0a22802964f8dcc86931f62e85b43f4730de43"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_private_dtmf_rechecks_independent_current_named_signal_permissions",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "71d9d456f3ed2a8b2a5b5bc011aadb8be3b2499c38130318049939a88c5db0cc"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_read_owns_only_typed_private_edges_and_releases_all_idle_readers",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "468d6baaff7a885fa2c779a2b708df26756bd75153718319f2a47f9dd575c14f"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_read_refuses_incomplete_duplicated_and_borrowed_private_sets",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b56a955a4fb1cfd389c6de0e447d072783c16b20cbaf1dceb962828d93ac0008"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_read_requires_current_named_receive_and_reciprocal_participant_ceilings",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d82e5a728fb99bf51b08075a85eec778b78998b336976875f317052e294bdf63"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_received_private_dtmf_freezes_only_its_physical_partner_and_rechecks_on_write",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "a0bb066e4a815319295403aabc89cc6af7cc539d82d4030384a2d5cd3fd24ac4"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::private_primary::sip_primary_return_grants_restore_only_the_original_call_and_exclude_the_consultant",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f573e36f87149462c072b9542ae2be82edd89c0e2710fce90e62a00a671dd07f"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_return_completion_does_not_confuse_withdrawn_receive_right_with_departure",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "2cd31a0302b52e72258988c5f3e01cf310cdcb6cb368a83dbc310d53c254445d"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_return_completion_keeps_original_call_and_replays_once",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "719902a330613bda2dec83c99bf31cadacc9b430d732952589d0b0ef0d9f97a6"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_return_completion_uses_phone_identity_and_current_route_recipient_ceiling",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9f5b5346fa2c410bc2e666d61416b4d1ca54fc12d8be69645e0f40157b0aa329"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::audience::retained::retained_established_sip_scene_records_its_own_revision_and_current_private_lifetime",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "62de41c1fcedd5abb7b5b445ce742303eaf61d4a088a00f465d1c1d7fcb6b1c0"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_pair_holds_one_bounded_interval_and_refuses_fresh_read_after_route_revocation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "821003572fed7c1901211bec927169a177e7b34294c24c1fe9020c65e685f8c4"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_pair_rejects_same_participant_native_connection",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "467fddcf5f57b88eb64842d773d423a2e6e69386b8e87f41e3c8d1f7de0ca50f"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_pair_requires_opposite_native_direction_and_both_recipient_ceilings",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "840fd0db45be5ae11df304f210f8021134f0d3ebf8fcc1d983fd12d9d5ab4899"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_requires_independent_named_directions_without_codec_or_media_permission",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "63d8f083b89fa235bfec2a6036ccdf4ed8f28a7b21ded96d96180416ebc4df18"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_current_rights_refuse_queued_work_but_captured_outcome_survives",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d8a43c1c26e062be7fc25b99a81c97d8b1d52475aa68687cd8f590496d637f14"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_failed_reservation_rolls_back_and_retries_original_schedule_only",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4e0b9614319598dd9f0b5e1360e2d25f106ea0ca96d1ea810914b08ddb02ecea"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_freezes_actual_committed_generation_without_initial_or_native_surrogate",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "2ac3af2a41bdc36728037df082c3bb84e79102b15bf5a8c6563c685e22f88bb5"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_schema_refuses_wrong_call_generation_route_or_borrowed_native_facts",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c7a8522c52faa63a125ad93997a2226f6ad5dfa0f0bf4db2ec8c31500d40f01a"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_snapshot_digest_includes_recipient_only_reservation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "009e10533fe2183e634d0de77b1143f4b52527a0cb17917b0c3c190689d30cf1"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_directions_are_independent_and_known_output_survives_route_revocation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f57667befb03051ca85fd28646bc30a72fe6a685c086a7eb791ad5e0b229d87d"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::gateways::established_gateway_dtmf_recovery_preserves_original_reserved_uncertainty_and_never_replays",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7d036545e2042f34979f5a345f6f275c475c5a581c3b196caf144bac4e217ece"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_original_input_replay_rechecks_route_ceiling_without_recapturing_audience",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "522a6c70b5814cc6aa84c9736be9c35d7f9c339261ea57c8aafc72d8c5fbca33"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_owns_logical_member_and_real_call_without_borrowing_retired_credentials",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "cff2598f4d7be8b8c90bcb37d4959e3e468462a96833c2c5e0fad0df8325168f"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_single_current_interval_blocks_revocation_without_queued_readers",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ac87115cb41a174bb730b2606f8d7a2315825ab897221336705d58736ebf4117"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_snapshot_detects_recipient_reservation_and_sql_origin_kind_is_immutable",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7b89597096cb17792bfa7f9e19a0960a427c942a539e5da697b1ec908d380d40"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::refresh::dtmf_refresh_native_source_and_native_recipient_use_applied_epoch_without_changing_lineage",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "90080cbf354a30c69e3f3d0281df4e9d9cb7af5b5337382108544be7e11d1ab9"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::refresh::dtmf_refresh_received_queued_recipient_keeps_original_epoch_and_fresh_input_uses_current_view",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4b8bf2715ff97415c1af894501818af20a3c65b42a27cbd703fa450f6939a3c2"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::received::established_received_dtmf_successor_preserves_reserved_unknown_and_never_replays_input",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5ca67246eff117cb4aa1304e7eb8ee42a39894a39c78a518723b3499e2879b8a"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_consumes_planning_read_and_keeps_only_original_short_cut_writer",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5519b0668e7fc7aba2d581b8836237d15322268c2f102f1e2bf13a4c5df733b8"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_records_actual_capture_before_projection_and_established_read_ignores_old_credentials",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f5252662d119b0eca4e985803076525b3a4a002d88024c3b4ee363debdb903f9"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_requires_confirmed_private_readiness_and_never_begins_twice",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c67c4c13800db47954fe95d772c7ea2120151c98726f4ea36088466b15865fc9"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_commit_uncertainty_late_known_result_and_projection_rollback_never_reexecute",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7d6d13f4182446881aa076805f7e7c4987039d3a31be9bd4ff1b0afac9a9f6db"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_established_cleanup_requires_exact_absence_preserves_retained_and_is_idempotent",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "da5dfa6538da9d023b9f4486e95449d5ba4eb95bd433e26499a580d02fca819d"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_established_pair_requires_independent_named_subscribe_and_both_recipient_ceilings",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7799d592be0da225e7884fc6cd8b85bbe279474fcbf6c193605122dad004ac56"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_role_read_requires_complete_current_native_and_phone_sources_without_surrogate",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "fa8d367b306e1ba76dc20afb696a871f6bf7ce8ae3e5d9933870471254ce304c"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_role_read_retains_one_complete_interval_behind_queued_route_revocation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "21ad66f0f6ff5be003172984a41e8738994e9d7d52179c8dbcf8c74d3f7e5433"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_source_native_replacement_uses_independent_current_origin_and_generation_three",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "06a3bbd22084cf7605debe5fb97620975493d54b10766b56628c4142e4d9f045"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::signal::established_signal_rechecks_actual_call_route_device_and_membership_lifetime",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e39632b3ebbda294dac17e1670afaf9742e192b77e33ddfe86ec35ead74885b9"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_stream_pair_reuses_complete_original_interval_behind_a_queued_route_writer",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ed30a43b87daf6b96f43f727418a8b3436132da077f72a3ee3b552c6433f22d3"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::telephone_stream_pair_uses_exact_signed_attempt_and_independent_receive_permissions",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d95f2e6bc0f8ad95d61140ef69abc7bfd25cb6eceff45a0ca01f3ac4c7cbb89a"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_begun_phase_revocation_refuses_fresh_io_but_records_original_uncertainty",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3896bee9c83cd744474fb8c1661a885820cdbdd8a79acf816e17a751ba5dd462"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_capture_rollback_retries_same_fact_and_immutable_phase_is_retained",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d8f6bb9ba24afb62fc6009f2695d8e818e099244d213a76620ef6fff2818a855"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_phase_returns_original_custody_before_fresh_read_and_historical_writer",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d1d17403d5e35edc6f0f5bf41f6711bab374873210acd2ca48cb207caad31e49"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_scene_requires_all_native_origins_and_fences_route_writer_without_fake_peer",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3a5b04b9c4923ea6b25badba316897cfb85f0b7ed3f0932a126afe0886a325be"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_phases_are_ordered_once_and_actual_audience_revisions_are_required",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "63f902e75b483b6ba0e5ab7bcae47d57e137595b424285d389fb6f1429154231"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::telephone_private_unknown_then_late_capture_preserves_knowledge_without_restarting",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4111aad7978343b4ce0a7b23daca48f3bc90e3a0566d5710f028d7591837adbc"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_abandon_drains_original_media_read_and_records_after_revocation_without_new_io",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "aef63cac19816cd8c560255c1b80e509044f7bdf5277397dc4bac63be9bcdcad"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_known_activation_has_current_independent_route_not_native_target_or_readiness",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "758ccf278b0f730ba3f04d68139cdf6dae97c3e1818bfc08340761e22c034961"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_backup_digest_covers_actual_resource_capture_rows",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "14b3fd1709ca8d9ac0a54bbd4cabf681560a1096ea727adb709f80c82fa29236"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_resource_begin_once_and_exact_muted_codec_capture_cannot_claim_duplex",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4071fc75c224c3f9fef45c42a2908badf1e8ba77789171fae750ee8f29b51790"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_resource_failure_preserves_unknown_and_late_knowledge_without_reexecution",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3192f95b3ba7d6e3326c019dd6578d5a8874c89e508ea5b3ac0e53de916c5fab"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_resource_recording_failure_rolls_back_then_only_same_capture_retries",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "a04bd78edd60163aae646c8055bca31c345b95ce8bf08b776fd9fff33e19744a"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_resource_reservation_drains_original_read_then_keeps_one_attempt_across_fresh_busy",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "624eb2889e0635a2729cf24bf1021b7b396c99be947a39b09e1fb2dbf702e69c"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_begin_retries_brief_real_packet_drain_and_reserves_exactly_one_original_step",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "21624fef1205d410ee9f2610b77168e20d9523b0f2f29bf791265f3920a45775"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_begin_releases_own_read_but_waits_for_real_alias_before_one_writer_step",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "57fdb821c8186805b97c31c92a8dca5d4f3ba1b51be18bb1c8fc709de3c4f66c"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_begun_attempt_survives_fresh_read_contention_without_repeating_begin_or_cutoff",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8bdd63bd45d04d8a8d470fbf5937b56269471d7a4b47390e771c6b72a636c879"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_preparation_unstarted_refusal_settles_exact_reservation_without_core_or_callback",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "898dfbe710725136a452fff48a17a3b51d823557f9d8e24859843767f6b3a361"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_preparation_begun_attempt_cannot_be_reclassified_as_unstarted_or_begun_twice",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b808e7e7f01fe1e0d4412695d2f10a4f2ccbaa7587e259f27471540c3505d394"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::media::telephone_media_revocation_refuses_new_resource_read_but_known_submission_can_be_abandoned",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7bee77c5a73f597cbf4c9ff944e5ee930aec99b70887c7adccefe0f6bde70583"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_allocation_must_be_recorded_before_once_only_submission",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6b216f3656babb38dc4694a315b03f6c9c530d44fda7a4396ce1f8caf6df3728"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_cancelled_root_records_known_allocation_without_revival",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e15f259695a4580280ad69406e85c1e6572003704b8198f6fe6d474263f275da"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_current_reader_binds_independent_credential_and_verified_route",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4de00b5863e54f55b546b7f86d2096d603546c1ede84116cb3e6e17ca1ba72f3"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_current_route_fence_blocks_revocation_and_requires_fresh_authority",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e635a469cec3058b0d8a745dbda697e191829fc5aba8a9ab33143095f03c6f5d"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_current_endpoint_and_operator_are_required_after_allocation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6ba5eb02c7ccfce0bb4a299b0b495ca9424a89d837cd6c2dc5f236cc497b1bb8"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_each_physical_write_reacquires_exact_begun_submission_authority",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d1c3b5aa144001a2d2b96fcfa76b2ffaaccff5ebc9da55aa0bd431c4d80b6a9e"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_new_write_interval_refuses_revoked_route_credential",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "40f2169bffec96843f52345ed5b9d67c89bf44d57ae54a8dd410f9a74269422c"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_revocation_after_allocation_cannot_erase_capture_or_authorize_submission",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "de605b1856e00c62743e8044d8d7ef96a78c6ef11baeb573076bd4c81862b270"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_route_credential_requires_its_own_dial_and_recipient_permissions",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "1f8680a6b1577dc49f55b66711c65fc5e81144f66b7076b598760ee80ef556f7"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_start_control_waits_for_sql_but_releases_authority_before_ring",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9590324bc5f0fd413b57451faeab8b2cb334a465d8389f4e1d6265aa365fe76d"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_expired_route_interval_refuses_begin_without_an_effect",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3a8a273f78fd7dda0b915dfeb62f4d8487ae99653d3fd09358a6dc4e9b9dc0d5"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_unknown_allocation_can_record_late_knowledge_but_never_redial",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9e7ce5ff6eaa0f1f3564aa864c88626c2a53bfd4a81ec9c2359aacd00a67502a"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_submission_restart_keeps_exact_correlation_and_no_second_attempt",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "1575395c858a82d62077369d85bb7f5b5ff4e2d33d496d39c4d3f8d59046c9f1"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_wrong_phase_and_call_reference_cannot_create_a_new_effect",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f1f293154933286a643ade49753363437ca1ddec7993be5fd530fa95fb9bc303"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_unknown_submission_keeps_call_id_and_never_restores_root_state",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "05ddb0d2a0c03a2f87ca756d36aa9c334242d3099c4f6f085ea63abd95ef2e28"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_runtime_terminal_or_uncertain_submission_cannot_lend_another_write_interval",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e166a5e707ce801fa24288b4641cd18d8bb63216aaf6bec1a42d5471ccdce6b5"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::telephone_replacement_policy_rejects_ambiguous_routing_and_confirmation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ffa9002cb8d87af4836b944829ee5244989d9afe73145bcb1c7ef2d8b0d1baee"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::runtime::telephone_submission_scope_hints_drain_original_scene_but_preserve_independent_route_read",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "300bf363017cc649559df668dd9e78f051933e619d80ec71a5a637f7d8405f26"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::telephone_replacement_policy_cannot_be_applied_to_a_native_endpoint",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "485ec01061012873ed2f42b7e5ed999b9b1817271abf0b247b570fdde47c9310"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::telephone_replacement_policy_binds_verified_destination_trunk_and_configured_confirmation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "03e2bb96623c929533ba878c4f62e953b86e9155e2624623d09b63c3721f7db7"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::telephone_replacement_preparation_rejects_changed_policy_and_revoked_endpoint",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "595d597e329179527cded221c3566bc21280bba5a6b96a4ebbcaea1497ef0a26"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::telephone_replacement_rejects_missing_policy_and_cross_trunk_without_effects",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "a3e9d90d181c308cd79455cd326723fdf581bda80ebf9c66511d9d063b6b81b4"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::telephone_replacement_requires_independent_current_dial_permission",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f4cfa7b4f4d5035ed98a0f54b94ff711424c55bde80ba62950081066b2b91454"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::telephone_replacement_route_owner_is_fenced_and_rechecked_before_begin",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b46639237912f2fad52f3e7c2adb6766046dd3feb57df61773392ed420bb73cd"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::telephone::telephone_replacement_unknown_preparation_cannot_reenter_or_claim_a_call",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d644f86e257cff9ef6e3a827f58937b95d4e3cc494acb6a620f2620d4d3a0bc6"
+    }
+  ],
+  "prior_batch8_failures_now_pass": 17,
+  "prior_batch8_passes_now_fail": 0,
+  "initial_compile_correction": "Initial batch9 compile failed on nonexistent read_scopes; corrected to existing fallible snapshot_read_scopes, independently checked, then batch9a compiled and all162 tests naturally passed."
+}

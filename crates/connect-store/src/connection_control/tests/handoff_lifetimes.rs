@@ -91,9 +91,7 @@ fn handoff_lifetime_current_permissions_do_not_retire_a_healthy_retained_peer() 
             };
             scope.operations.retain(|s| s != op);
         }
-        f.store
-            .connection()
-            .unwrap()
+        f.change_fixture()
             .execute(
                 "UPDATE credentials SET operations=?2,recipients=?3 WHERE id=?1",
                 params![
@@ -179,9 +177,7 @@ fn handoff_lifetime_promotes_only_current_human_audio_and_keeps_private_provenan
     for index in [0, 2] {
         let mut scope = f.store.revalidate(&f.keys[index]).unwrap().scope;
         scope.operations.push("session.handoff".into());
-        f.store
-            .connection()
-            .unwrap()
+        f.change_fixture()
             .execute(
                 "UPDATE credentials SET operations=?2 WHERE id=?1",
                 params![
@@ -223,9 +219,7 @@ fn handoff_lifetime_promotes_only_current_human_audio_and_keeps_private_provenan
     let origin = f.store.native_handoff_origin(&f.keys[0], command).unwrap();
     let receipt = handoff_roles::capture(&f, &sources, &origin, OutgoingDisposition::Leave);
     f.store.complete_native_handoff(&receipt).unwrap().unwrap();
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE participants SET active=0 WHERE participant_id=?1",
             [&f.pids[0]],

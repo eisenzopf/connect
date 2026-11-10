@@ -233,6 +233,7 @@ pub struct TelephoneReplacementResourcesAttempt {
     generation: u64,
     accepted: serde_json::Value,
     offered: serde_json::Value,
+    expires_at: i64,
 }
 pub struct TelephoneReplacementResourcesCapture {
     attempt: Arc<TelephoneReplacementResourcesAttempt>,
@@ -330,7 +331,15 @@ impl TelephoneReplacementMediaRead {
 impl Store {
     pub fn begin_telephone_replacement_resources(
         &self,
-        read: &TelephoneReplacementMediaRead,
+        read: TelephoneReplacementMediaRead,
+    ) -> Result<Arc<TelephoneReplacementResourcesAttempt>> {
+        let until = read.expires_at();
+        self.begin_telephone_replacement_resources_before(read, until)
+    }
+    pub fn begin_telephone_replacement_resources_before(
+        &self,
+        read: TelephoneReplacementMediaRead,
+        original_until: i64,
     ) -> Result<Arc<TelephoneReplacementResourcesAttempt>> {
         if !read.current() {
             return Err(Error::forbidden());
@@ -345,12 +354,35 @@ impl Store {
             .capabilities_offer
             .clone()
             .ok_or_else(invalid)?;
-        let origin = &read.origin;
+        let origin = read.origin.clone();
+        let original_descriptor = read.read.descriptor.clone();
+        let until = read.expires_at().min(original_until);
+        if crate::now() >= until {
+            return Err(Error::forbidden());
+        }
+        drop(read);
         let p = &origin.submitted.attempt.prepared;
-        let mut c = self.connection()?;
+        let (held, mut c) =
+            self.telephone_state_change_sql(|c| p.selection.scopes(self, c, true))?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let read = self.telephone_media_read_in(&tx, origin.clone(), held.clone(), until)?;
+        if read.read.descriptor != original_descriptor
+            || read.candidate()? != candidate
+            || read.generation()? != generation
+            || read.source().source().accepted_capabilities() != &accepted
+            || read
+                .source()
+                .source()
+                .session()
+                .session
+                .capabilities_offer
+                .as_ref()
+                != Some(&offered)
+        {
+            return Err(conflict());
+        }
         let (_, _, descriptor) = facts(
             self,
             &tx,
@@ -380,6 +412,10 @@ impl Store {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
+        let expires_at = read.expires_at();
+        drop(read);
+        drop(c);
+        drop(held);
         Ok(Arc::new(TelephoneReplacementResourcesAttempt {
             origin: origin.clone(),
             attempt,
@@ -389,7 +425,38 @@ impl Store {
             generation,
             accepted,
             offered,
+            expires_at,
         }))
+    }
+    pub fn try_telephone_replacement_resources_attempt_read(
+        &self,
+        attempt: Arc<TelephoneReplacementResourcesAttempt>,
+    ) -> Result<TelephoneReplacementMediaRead> {
+        if crate::now() >= attempt.expires_at {
+            return Err(Error::forbidden());
+        }
+        let c = self.try_connection()?;
+        let p = &attempt.origin.submitted.attempt.prepared;
+        let scopes = p.selection.scopes(self, &c, false)?;
+        let held = self.try_acquire_authority(&scopes)?;
+        let read =
+            self.telephone_media_read_in(&c, attempt.origin.clone(), held, attempt.expires_at)?;
+        read.requires_resources_attempt(&attempt)?;
+        let exact: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM telephone_replacement_resources r JOIN operation_effects e ON e.id=r.effect_id WHERE r.operation_record_id=?1 AND r.runtime_epoch=?2 AND r.attempt_id=?3 AND r.effect_id=?4 AND r.descriptor_json=?5 AND r.observation_json IS NULL AND e.state='submitting' AND e.observation_json=?5 AND e.attempt=1 AND e.submission_generation=1)", params![p.record,p.runtime,attempt.attempt,attempt.effect,attempt.descriptor], |r| r.get(0)).map_err(|_|Error::storage())?;
+        if !exact
+            || read.source().source().accepted_capabilities() != &attempt.accepted
+            || read
+                .source()
+                .source()
+                .session()
+                .session
+                .capabilities_offer
+                .as_ref()
+                != Some(&attempt.offered)
+        {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
     }
     pub fn record_telephone_replacement_resources(
         &self,
@@ -398,14 +465,9 @@ impl Store {
         let a = &capture.attempt;
         let p = &a.origin.submitted.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &p.record)?)
-            },
-        )?;
-        let mut c = self.connection()?;
+        let (held, mut c) = self.telephone_state_change_sql(|c| {
+            admission::mutation_row_scopes(&rows::by_record(c, &p.record)?)
+        })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -468,14 +530,9 @@ impl Store {
     ) -> Result<OperationRecord> {
         let p = &submitted.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &p.record)?)
-            },
-        )?;
-        let mut c = self.connection()?;
+        let (held, mut c) = self.telephone_state_change_sql(|c| {
+            admission::mutation_row_scopes(&rows::by_record(c, &p.record)?)
+        })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

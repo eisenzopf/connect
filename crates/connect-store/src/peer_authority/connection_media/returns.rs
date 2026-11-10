@@ -25,6 +25,8 @@ pub struct NativeReturnRead {
     sip_reads: BTreeMap<String, Arc<SipAudienceRead>>,
     sip_send: BTreeSet<(String, String)>,
     candidate: String,
+    interval: Arc<AuthorityGuardSet>,
+    mutation_routing: Vec<AuthorityScope>,
 }
 impl NativeReturnRead {
     pub(crate) fn limit(&mut self, deadline: i64) -> Result<()> {
@@ -95,6 +97,21 @@ impl NativeReturnRead {
         self.reads
             .get(&(target.into(), source.map(str::to_owned)))
             .map(Arc::as_ref)
+    }
+    pub(crate) fn into_mutation_selection(
+        self,
+        store: &Store,
+    ) -> Result<(NativeReturnSelection, Vec<AuthorityScope>, i64)> {
+        if !self.current() || !store.authority_covers(&self.interval, &[]) {
+            return Err(Error::forbidden());
+        }
+        // Scope metadata routes fresh admission only. Dropping this consumed
+        // value releases every old Read before the caller acquires Write.
+        Ok((
+            self.selection.clone(),
+            self.mutation_routing.clone(),
+            self.expires_at,
+        ))
     }
     pub(crate) fn into_selection(self) -> Result<NativeReturnSelection> {
         if !self.current() {
@@ -483,11 +500,31 @@ impl Store {
         };
         let held = self.try_acquire_authority(&scopes)?;
         let c = self.try_connection()?;
+        self.native_return_read_in(&c, selection, held, i64::MAX)
+    }
+    pub(crate) fn native_return_read_in(
+        &self,
+        c: &Connection,
+        selection: NativeReturnSelection,
+        held: Arc<AuthorityGuardSet>,
+        until: i64,
+    ) -> Result<NativeReturnRead> {
+        let origin = &selection.origin;
+        let sources = &selection.sources;
+        let sips = &selection.sips;
         let (views, current, expires_at) =
-            resolve(self, &c, &selection).map_err(|e| phase_error("current views", e))?;
+            resolve(self, c, &selection).map_err(|e| phase_error("current views", e))?;
+        let expires_at = expires_at.min(until);
         if !self.authority_covers(&held, &current) || crate::now() >= expires_at {
             return Err(Error::forbidden());
         }
+        let mut mutation_routing = current.clone();
+        mutation_routing.extend(crate::authority_admission::conversation_scopes(
+            c,
+            &origin.request.conversation_id,
+            AuthorityMode::Write,
+        )?);
+        let mutation_routing = AuthorityScope::merged(&mutation_routing)?;
         let owner = self.require_runtime_owner()?;
         let mut reads = views
             .into_iter()
@@ -526,6 +563,8 @@ impl Store {
             reads,
             expires_at,
             sip_reads,
+            interval: held,
+            mutation_routing,
         })
     }
 }

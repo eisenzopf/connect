@@ -260,7 +260,7 @@ impl Store {
                     "Operation result expired; this ID cannot execute again",
                 ));
             }
-            workers::recover_one(&tx, &old, &self.transition_runtime, self)?;
+            workers::recover_one(&tx, &old, &self.transition_runtime, self, &authority)?;
             let result = rows::view(&tx, &actor, rows::by_record(&tx, &old.record.record_id)?)?;
             actor_from_connection(&tx, credential)?;
             if let Some(peer) = peer {

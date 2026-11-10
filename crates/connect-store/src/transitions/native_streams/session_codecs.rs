@@ -4,18 +4,91 @@ use super::*;
 use crate::NativeSessionCodecRead;
 
 impl Store {
+    // Keep current manager/peer/key facts as Reads. Only this Conversation's
+    // ledger changes; unrelated work for either actor needs no Identity drain.
+    fn native_session_codec_mutation_scopes(
+        &self,
+        c: &Connection,
+        source: &NativeSessionCodecRead,
+        child_operation: &str,
+    ) -> Result<Vec<AuthorityScope>> {
+        let batch = rows::by_record(c, &source.batch)?;
+        let cid = batch
+            .record
+            .conversation_id
+            .as_deref()
+            .ok_or_else(Error::forbidden)?;
+        if !batch.session_codecs || cid != source.origin.conversation_id() {
+            return Err(Error::forbidden());
+        }
+        let mut scopes =
+            self.native_session_codec_scopes(c, &source.origin, &source.target, None)?;
+        scopes.push(AuthorityScope::conversation(cid, AuthorityMode::Write)?);
+        // Exact transitive operations-trigger footprint, both the existing
+        // batch and prospective child. A dependent enrollment subject normally
+        // is absent, but an actual match still requires that subject's Write.
+        let mut query = c.prepare_cached(
+            "SELECT e.identity_id FROM client_enrollments e JOIN operations batch ON batch.record_id=?1 AND batch.tenant_id=e.tenant_id AND batch.owner_id=e.issuer_identity_id AND batch.operation_id=e.complete_operation_id UNION SELECT e.identity_id FROM client_enrollments e WHERE e.tenant_id=?2 AND e.issuer_identity_id=?3 AND e.complete_operation_id=?4"
+        ).map_err(|_| Error::storage())?;
+        let subjects = query
+            .query_map(
+                params![
+                    source.batch,
+                    source.credential_metadata().tenant_id,
+                    source.credential_metadata().actor.identity_id,
+                    child_operation
+                ],
+                |r| r.get::<_, String>(0),
+            )
+            .map_err(|_| Error::storage())?;
+        for subject in subjects {
+            scopes.push(AuthorityScope::identity(
+                &subject.map_err(|_| Error::storage())?,
+                AuthorityMode::Write,
+            )?);
+        }
+        AuthorityScope::merged(&scopes)
+    }
     pub fn begin_native_session_codec(
         &self,
-        source: &NativeSessionCodecRead,
+        source: NativeSessionCodecRead,
         operation: &str,
         plan: serde_json::Value,
     ) -> Result<NativeStreamLease> {
         source.require(self)?;
-        let view = source.media.target();
+        let origin = source.origin.clone();
+        let target = source.target.clone();
+        let original_until = source.expires_at;
+        let original_revision = source.revision;
+        // Derivation happens before the bounded file-drain budget. These
+        // original IDs route admission only; all facts are rederived below.
+        let scopes = {
+            let c = self.try_connection()?;
+            self.native_session_codec_mutation_scopes(&c, &source, operation)?
+        };
+        drop(source);
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let held = self.acquire_authority(&scopes, &wait)?;
         let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let source =
+            self.native_session_codec_read_in(&tx, &origin, &target, held, original_until, None)?;
+        if !source.covers_authority(
+            self,
+            &self.native_session_codec_mutation_scopes(&tx, &source, operation)?,
+        ) {
+            return Err(Error::new(
+                "authority-busy",
+                "Session codec mutation scope changed",
+            ));
+        }
+        if source.revision != original_revision {
+            return Err(conflict());
+        }
+        let view = source.media.target();
         let preferences:String=tx.query_row("SELECT codec_preferences_json FROM session_codec_batches WHERE operation_record_id=?1",[&source.batch],|r|r.get(0)).map_err(|_|Error::storage())?;
         let wire = Intent {
             operation_id: operation.into(),
@@ -25,7 +98,7 @@ impl Store {
             expected_revision: Some(source.revision),
             by_participant: None,
             command: Command::Update,
-            payload: serde_json::json!({"action":"codec-renegotiate","codec_preferences":serde_json::from_str::<serde_json::Value>(&preferences).map_err(|_|Error::storage())?,"session_codec_batch":source.batch,"plan":plan}),
+            payload: serde_json::json!({"action":"codec-renegotiate","codec_preferences":serde_json::from_str::<serde_json::Value>(&preferences).map_err(|_|Error::storage())?,"session_codec_batch":source.batch,"session_codec_credential_epoch":source.credential_epoch,"plan":plan}),
         };
         wire.validate()?;
         if wire.payload["plan"]
@@ -122,7 +195,9 @@ impl Store {
         let c = self.try_connection()?;
         let row = outcomes::exact(&c, self, lease)?;
         let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM session_codec_targets t JOIN session_codec_batches b ON b.operation_record_id=t.batch_record_id JOIN operations batch ON batch.record_id=b.operation_record_id JOIN session_control s ON s.session_id=batch.session_id WHERE t.batch_record_id=?1 AND t.native_operation_record_id=?2 AND t.connection_id=?3 AND t.generation=?4 AND t.state='preparing' AND s.codec_policy_operation_id=b.policy_operation_id AND b.runtime_epoch=?5 AND b.expires_at>?6 AND batch.cancel_requested=0)",params![source.batch,lease.record,lease.connection,lease.generation,self.runtime_epoch(),crate::now()],|r|r.get(0)).map_err(|_|Error::storage())?;
+        let binding: bool = c.query_row("SELECT EXISTS(SELECT 1 FROM native_stream_operations n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.credential_id=?2 AND n.key_id=?3 AND n.device_id=?4 AND n.closed=0 AND json_extract(o.intent_json,'$.payload.session_codec_batch')=?5 AND json_extract(o.intent_json,'$.payload.session_codec_credential_epoch')=?6)", params![lease.record,source.credential,source.key,source.device,source.batch,source.credential_epoch], |row| row.get(0)).map_err(|_| Error::storage())?;
         if !exact
+            || !binding
             || lease.command != Command::Update
             || row.record.state != OperationState::Preparing
             || row.record.cancel_requested
@@ -132,6 +207,24 @@ impl Store {
             || lease.core_connection != source.media.target().runtime_connection_id
         {
             return Err(Error::forbidden());
+        }
+        source.require(self)
+    }
+    /// The actual fresh selected-source grant must match the original reserved
+    /// descriptor exactly. State changes never substitute a different plan.
+    pub fn validate_native_session_codec_plan(
+        &self,
+        source: &NativeSessionCodecRead,
+        lease: &NativeStreamLease,
+        plan: &serde_json::Value,
+    ) -> Result<()> {
+        self.validate_native_session_codec(source, lease)?;
+        let c = self.try_connection()?;
+        let encoded: String = c.query_row("SELECT json_extract(intent_json,'$.payload.plan') FROM operations WHERE record_id=?1", [lease.record_id()], |row| row.get(0)).map_err(|_| Error::storage())?;
+        let original: serde_json::Value =
+            serde_json::from_str(&encoded).map_err(|_| Error::storage())?;
+        if original != *plan {
+            return Err(conflict());
         }
         source.require(self)
     }

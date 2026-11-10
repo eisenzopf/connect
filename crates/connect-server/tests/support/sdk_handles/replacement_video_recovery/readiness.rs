@@ -1,6 +1,8 @@
 //! Actual original private decoding and unchanged decoder/epoch through commit.
 //! The later cold-start recovery deliberately owns a fresh application decoder.
 use super::*;
+#[path = "readiness/failure_diagnostics.rs"]
+mod failure_diagnostics;
 use connect_client::{
     canonical::{NativeDecodedVideoReadiness, NativeReplacementReadiness, NativeReplacementReady},
     ClientError, NativeVideoFrame, NativeVideoPacket, VideoFrameAssembler,
@@ -9,6 +11,14 @@ use futures_util::FutureExt;
 use sha2::{Digest, Sha256};
 use std::{io::Read, panic::AssertUnwindSafe};
 use tokio::time::{timeout_at, Instant};
+
+pub(super) fn original_root_state(
+    f: &Fixture,
+    command: &TransitionCommand,
+    root: &connect_client::canonical::payloads::OperationUpdated,
+) -> Value {
+    failure_diagnostics::original_root_state(f, command, root)
+}
 
 pub(super) fn file_sha256(path: &Path) -> String {
     let mut input = std::fs::File::open(path).unwrap();
@@ -435,7 +445,18 @@ pub(super) async fn activate(
             // receiver registry row and mint a different decoder revision.
             assert!(!io.take_keyframe_request(camera,0x74657374).unwrap(),"no cached publisher hint may qualify");
             raw_publish(io,camera,&key,1,target_sequence);
-            let (uplink,uplink_epoch)=receive(publisher_receiver,1).await;
+            let uplink=AssertUnwindSafe(receive(publisher_receiver,1)).catch_unwind().await;
+            let (uplink,uplink_epoch)=match uplink {
+                Ok(value)=>value,
+                Err(original)=>{
+                    // Diagnostics cannot replace the original receive failure or
+                    // bypass the outer decoder's original natural cleanup.
+                    let _=std::panic::catch_unwind(AssertUnwindSafe(||
+                        failure_diagnostics::public_uplink(f,command,root,
+                            preparation.connection_id().unwrap(),publisher_receiver)));
+                    std::panic::resume_unwind(original)
+                }
+            };
             assert_eq!(uplink,key);decode(f.temp.path(),&uplink,1).await;
             // An actually received PLI must match the target's current SIGNED
             // publisher notice; remote decode alone cannot prove that notice.

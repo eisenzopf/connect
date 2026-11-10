@@ -63,6 +63,7 @@ struct Profile {
     speaker: String,
     target: String,
     automatic_outbound: bool,
+    recording_stop: CancellationToken,
 }
 type Key = (String, String, String);
 struct State {
@@ -164,6 +165,7 @@ impl Worker {
                 "Invalid provider voice host capacity",
             ));
         }
+        let recording_stop = CancellationToken::new();
         let mut profiles = vec![];
         let mut unique = BTreeSet::new();
         for route in routes {
@@ -198,6 +200,7 @@ impl Worker {
                 speaker,
                 target,
                 automatic_outbound: route.automatic_outbound,
+                recording_stop: recording_stop.clone(),
             }));
         }
         if ingress.len() > store.limits().connections {
@@ -243,7 +246,7 @@ impl Worker {
             capacity: store.limits().connections,
             store,
             profiles,
-            stop: CancellationToken::new(),
+            stop: recording_stop,
             state: Mutex::new(State {
                 closed: false,
                 failed: false,
@@ -620,8 +623,40 @@ async fn attempt(
                 .unwrap_or(Err(connect_connector_api::Failure::Uncertain))
         }
     };
-    let capture = dispatch.capture(result);
-    database(move || store.record_provider_session_voice(&capture)).await
+    let capture = Arc::new(dispatch.capture(result));
+    settle_provider_recording(&profile.recording_stop, || {
+        let store = store.clone();
+        let capture = capture.clone();
+        database(move || store.record_provider_session_voice(&capture))
+    })
+    .await
+}
+async fn settle_provider_recording<T, F, Fut>(stop: &CancellationToken, mut record: F) -> Result<T>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T>>,
+{
+    loop {
+        match record().await {
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "authority-busy" | "storage-unavailable" | "capacity-exceeded"
+                ) =>
+            {
+                // The original host job retains its SAME capture across metadata
+                // pressure. Neither cancellation nor retry invokes the provider.
+                if stop.is_cancelled() {
+                    return Err(error);
+                }
+                tokio::select! { biased;
+                    _ = stop.cancelled() => return Err(error),
+                    _ = tokio::time::sleep(Duration::from_millis(100)) => {},
+                }
+            }
+            result => return result,
+        }
+    }
 }
 async fn refresh(
     store: Arc<Store>,
@@ -944,5 +979,64 @@ async fn scan_loop(
             }
         }
         tokio::select! {biased;_=stop.cancelled()=>return Ok(()),_=tokio::time::sleep(Duration::from_secs(2))=>()}
+    }
+}
+
+#[cfg(test)]
+mod outcome_recording_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    struct Original(Arc<AtomicUsize>);
+    impl Drop for Original {
+        fn drop(&mut self) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    #[tokio::test]
+    async fn provider_capture_survives_temporary_metadata_pressure_without_new_io() {
+        let drops = Arc::new(AtomicUsize::new(0));
+        let capture = Arc::new(Original(drops.clone()));
+        let original = capture.clone();
+        let calls = AtomicUsize::new(0);
+        let stop = CancellationToken::new();
+        let result = settle_provider_recording(&stop, || {
+            assert!(Arc::ptr_eq(&capture, &original));
+            let call = calls.fetch_add(1, Ordering::SeqCst);
+            std::future::ready(match call {
+                0 => Err(Error::new("authority-busy", "Original snapshot draining")),
+                1 => Err(Error::storage()),
+                2 => Err(Error::new("capacity-exceeded", "Original journal full")),
+                _ => Ok(7),
+            })
+        })
+        .await
+        .unwrap();
+        assert_eq!(result, 7);
+        assert_eq!(calls.load(Ordering::SeqCst), 4);
+        assert_eq!(drops.load(Ordering::SeqCst), 0);
+        drop(original);
+        drop(capture);
+        assert_eq!(drops.load(Ordering::SeqCst), 1);
+    }
+    #[tokio::test]
+    async fn provider_capture_stops_on_original_host_shutdown_or_permanent_error() {
+        for code in [
+            "authority-busy",
+            "storage-unavailable",
+            "capacity-exceeded",
+            "forbidden",
+        ] {
+            let stop = CancellationToken::new();
+            let calls = AtomicUsize::new(0);
+            let result: Result<()> = settle_provider_recording(&stop, || {
+                calls.fetch_add(1, Ordering::SeqCst);
+                stop.cancel();
+                std::future::ready(Err(Error::new(code, "Original recording outcome")))
+            })
+            .await;
+            assert_eq!(result.unwrap_err().code, code);
+            assert_eq!(calls.load(Ordering::SeqCst), 1);
+        }
     }
 }

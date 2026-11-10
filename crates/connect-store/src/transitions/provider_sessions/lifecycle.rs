@@ -2,6 +2,37 @@ use super::*;
 pub(super) fn encoded<T: Serialize>(value: &T) -> Result<String> {
     serde_json::to_string(value).map_err(|_| Error::storage())
 }
+fn provider_effect_scopes(
+    c: &Connection,
+    origin: &ProviderSessionVoiceOrigin,
+) -> Result<Vec<AuthorityScope>> {
+    exact(c, origin)?;
+    let conversation: String = c.query_row(
+        "SELECT o.conversation_id FROM provider_session_voice p JOIN operations o ON o.record_id=p.invitation_record_id WHERE p.id=?1 AND p.invitation_record_id=?2",
+        params![origin.id, origin.invitation_record_id()], |row| row.get(0),
+    ).map_err(|_| Error::forbidden())?;
+    if conversation != origin.conversation_id() {
+        return Err(Error::forbidden());
+    }
+    Ok(vec![AuthorityScope::conversation(
+        &conversation,
+        crate::AuthorityMode::Write,
+    )?])
+}
+fn recovery_effect_scopes(c: &Connection) -> Result<Vec<AuthorityScope>> {
+    let mut statement = c.prepare("SELECT DISTINCT o.conversation_id FROM provider_session_voice p JOIN operations o ON o.record_id=p.invitation_record_id WHERE p.create_started=1 AND p.closed_at IS NULL AND (EXISTS(SELECT 1 FROM operation_effects e WHERE e.id=p.create_effect_id AND e.state='submitting') OR EXISTS(SELECT 1 FROM operation_effects e WHERE e.id=p.end_effect_id AND e.state='submitting'))").map_err(|_| Error::storage())?;
+    let rows = statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|_| Error::storage())?;
+    let mut scopes = Vec::new();
+    for row in rows {
+        scopes.push(AuthorityScope::conversation(
+            &row.map_err(|_| Error::storage())?,
+            crate::AuthorityMode::Write,
+        )?);
+    }
+    AuthorityScope::merged(&scopes)
+}
 fn projection(c: &Connection, id: &str) -> Result<Projection> {
     let raw: String = c
         .query_row(
@@ -84,12 +115,20 @@ impl ProviderSessionVoiceDispatch {
         self.origin.id()
     }
     pub fn current(&self) -> bool {
-        crate::now() < self.expires && self.owner.current() && self.worker.current()
+        let admitted = match &self.admission {
+            DispatchAdmission::Granted(_guard) => true,
+            DispatchAdmission::Refused(_) => false,
+            DispatchAdmission::OriginalResource => self.action != ProviderSessionVoiceAction::Start,
+        };
+        admitted && crate::now() < self.expires && self.owner.current() && self.worker.current()
     }
     pub fn expires_at(&self) -> i64 {
         self.expires
     }
     pub fn start_request(&self) -> Result<VoiceStart> {
+        if let DispatchAdmission::Refused(error) = &self.admission {
+            return Err(error.clone());
+        }
         if self.action != ProviderSessionVoiceAction::Start || !self.current() {
             return Err(Error::forbidden());
         }
@@ -135,6 +174,12 @@ impl ProviderSessionVoiceDispatch {
         self,
         result: std::result::Result<VoiceReceipt, Failure>,
     ) -> ProviderSessionVoiceCapture {
+        // A refused post-reservation admission never authorized a submission.
+        let result = if matches!(&self.admission, DispatchAdmission::Refused(_)) {
+            Err(Failure::Rejected)
+        } else {
+            result
+        };
         let result = result.and_then(|receipt| {
             let valid_id =
                 |v: &str| !v.is_empty() && v.len() <= 256 && !v.chars().any(char::is_control);
@@ -250,24 +295,63 @@ impl Store {
             ));
         }
         origin.lifetime(self)?;
-        let authority = if action == ProviderSessionVoiceAction::Start {
-            Some(self.stable_authority(
-                &AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-                || {
-                    let c = self.connection()?;
+        let wait = AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT);
+        // Replay while the first dispatch owns its Read cannot reacquire Write.
+        // This read grants no IO; a fresh attempt is rechecked under Write below.
+        {
+            let c = self.connection()?;
+            exact(&c, origin)?;
+            if action == ProviderSessionVoiceAction::Start {
+                origin.current(self, &c)?;
+            }
+            let (started, ending, closed): (bool, bool, bool) = c.query_row(
+                "SELECT create_started,end_started,closed_at IS NOT NULL FROM provider_session_voice WHERE id=?1",
+                [&origin.id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            ).map_err(|_| Error::storage())?;
+            if closed
+                || (action == ProviderSessionVoiceAction::Start && started)
+                || (action == ProviderSessionVoiceAction::End && ending)
+            {
+                return Ok(None);
+            }
+        }
+        let writer = if matches!(
+            action,
+            ProviderSessionVoiceAction::Start | ProviderSessionVoiceAction::End
+        ) {
+            Some(self.stable_authority(&wait, || {
+                let c = self.connection()?;
+                exact(&c, origin)?;
+                if action == ProviderSessionVoiceAction::Start {
                     origin.current(self, &c)?;
-                    scopes(&origin.source)
-                },
-            )?)
+                    let mut scopes = scopes(&origin.source)?;
+                    scopes.push(AuthorityScope::conversation(
+                        origin.conversation_id(),
+                        crate::AuthorityMode::Write,
+                    )?);
+                    AuthorityScope::merged(&scopes)
+                } else {
+                    // Cleanup owns its exact old resource, not a new caller grant.
+                    provider_effect_scopes(&c, origin)
+                }
+            })?)
         } else {
             None
         };
         let owner = self.require_runtime_owner()?;
-        let mut c = self.connection()?;
+        let mut c = match &writer {
+            Some(writer) => self.connection_with_authority(writer)?,
+            None => self.connection()?,
+        };
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         exact(&tx, origin)?;
+        if let Some(writer) = &writer {
+            if !self.authority_covers(writer, &provider_effect_scopes(&tx, origin)?) {
+                return Err(Error::forbidden());
+            }
+        }
         let (started,end_started,create_effect,provider_id,control_url,closed):(bool,bool,Option<String>,Option<String>,Option<String>,Option<i64>)=tx.query_row("SELECT create_started,end_started,create_effect_id,provider_id,control_url,closed_at FROM provider_session_voice WHERE id=?1",[&origin.id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).map_err(|_|Error::storage())?;
         if closed.is_some() {
             return Ok(None);
@@ -342,18 +426,59 @@ impl Store {
             }
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(Some(ProviderSessionVoiceDispatch {
+        drop(c);
+        drop(writer);
+        let dispatch = ProviderSessionVoiceDispatch {
             origin: origin.clone(),
             action,
             provider_id,
             control_url,
             quarantine,
-            _authority: authority,
+            admission: DispatchAdmission::OriginalResource,
             expires,
             owner,
             manager: self.authority.clone(),
             worker: worker.clone(),
+        };
+        Ok(Some(if action == ProviderSessionVoiceAction::Start {
+            self.provider_start_dispatch_admission(dispatch, &wait)
+        } else {
+            dispatch
         }))
+    }
+    // A failed fresh read must not discard an already-reserved original attempt.
+    // Refused is deliberately not an IO capability; the same owner captures
+    // Failure::Rejected and records that definite no-effect after this returns.
+    pub(super) fn provider_start_dispatch_admission(
+        &self,
+        mut dispatch: ProviderSessionVoiceDispatch,
+        wait: &AuthorityWait,
+    ) -> ProviderSessionVoiceDispatch {
+        let admitted = (|| {
+            let authority = self.stable_authority(wait, || {
+                let c = self.connection()?;
+                dispatch.origin.current(self, &c)?;
+                scopes(&dispatch.origin.source)
+            })?;
+            let c = self.connection()?;
+            let until = dispatch.origin.current(self, &c)?.min(dispatch.expires);
+            if !self.authority_covers(&authority, &scopes(&dispatch.origin.source)?)
+                || !dispatch.owner.current()
+                || !dispatch.worker.current()
+                || crate::now() >= until
+            {
+                return Err(Error::forbidden());
+            }
+            Ok((authority, until))
+        })();
+        dispatch.admission = match admitted {
+            Ok((authority, until)) => {
+                dispatch.expires = until;
+                DispatchAdmission::Granted(authority)
+            }
+            Err(error) => DispatchAdmission::Refused(error),
+        };
+        dispatch
     }
     /// Persist an admitted historical response after its transport reader drops.
     /// This updates effects only; it grants no acceptance, media or fresh dispatch.
@@ -368,11 +493,21 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let writer = self.stable_authority(
+            &AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+            || {
+                let c = self.connection()?;
+                provider_effect_scopes(&c, origin)
+            },
+        )?;
+        let mut c = self.connection_with_authority(&writer)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         exact(&tx, origin)?;
+        if !self.authority_covers(&writer, &provider_effect_scopes(&tx, origin)?) {
+            return Err(Error::forbidden());
+        }
         let (create_effect,end_effect,provider_id,attempt_runtime,end_runtime):(String,Option<String>,Option<String>,String,Option<String>)=tx.query_row("SELECT create_effect_id,end_effect_id,provider_id,attempt_runtime,end_runtime FROM provider_session_voice WHERE id=?1 AND create_started=1",[&origin.id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).map_err(|_|Error::forbidden())?;
         if (captured.action == ProviderSessionVoiceAction::Start
             && attempt_runtime != origin.runtime)
@@ -554,10 +689,20 @@ impl Store {
         worker: &ProviderSessionVoiceWorker,
     ) -> Result<usize> {
         let mut exclusive = worker.require_recovery(self)?;
-        let mut c = self.connection()?;
+        let writer = self.stable_authority(
+            &AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+            || {
+                let c = self.connection()?;
+                recovery_effect_scopes(&c)
+            },
+        )?;
+        let mut c = self.connection_with_authority(&writer)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        if !self.authority_covers(&writer, &recovery_effect_scopes(&tx)?) {
+            return Err(Error::forbidden());
+        }
         let mut q=tx.prepare("SELECT id,invitation_record_id,create_effect_id,end_effect_id FROM provider_session_voice WHERE create_started=1 AND closed_at IS NULL AND (EXISTS(SELECT 1 FROM operation_effects e WHERE e.id=create_effect_id AND e.state='submitting') OR EXISTS(SELECT 1 FROM operation_effects e WHERE e.id=end_effect_id AND e.state='submitting'))").map_err(|_|Error::storage())?;
         let rows = q
             .query_map([], |r| {

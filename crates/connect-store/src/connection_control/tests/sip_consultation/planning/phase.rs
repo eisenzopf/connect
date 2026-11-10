@@ -33,9 +33,7 @@ fn private_sip_phase_tracks_original_claim_application_and_sealed_lifetime_witho
         .complete_native_consultation(&receipt)
         .unwrap()
         .unwrap();
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&s.root.credential],
@@ -62,9 +60,7 @@ fn private_sip_phase_keeps_presence_after_media_withdrawal_but_current_route_sti
     for key in [&s.f.keys[0], &s.policy.endpoint_credential_id] {
         let mut operations = s.f.store.revalidate(key).unwrap().scope.operations;
         operations.retain(|p| p != "connection.offer" && p != "stream.subscribe");
-        s.f.store
-            .connection()
-            .unwrap()
+        s.change_fixture()
             .execute(
                 "UPDATE credentials SET operations=?2 WHERE id=?1",
                 params![key, serde_json::to_string(&operations).unwrap()],
@@ -73,9 +69,7 @@ fn private_sip_phase_keeps_presence_after_media_withdrawal_but_current_route_sti
     }
     assert!(s.packets().is_err());
     assert_eq!(s.phase().unwrap(), Established);
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&s.policy.route_credential_id],
@@ -118,7 +112,7 @@ fn private_sip_phase_rechecks_original_physical_authority_and_pending_controller
                     s.f.pids[2].as_str(),
                 ),
             };
-            s.f.store.connection().unwrap().execute(sql, [key]).unwrap();
+            s.change_fixture().execute(sql, [key]).unwrap();
             assert_eq!(
                 s.phase().is_ok(),
                 sealed && fault == 0,
@@ -155,9 +149,7 @@ fn answered_private_sip_can_finish_quarantined_admission_before_connected_record
     drop(admission);
     assert!(s.packets().is_err());
     assert!(s.read().is_err());
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&s.policy.route_credential_id],

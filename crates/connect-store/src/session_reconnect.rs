@@ -193,7 +193,7 @@ impl Store {
             }
         }
         let _authority = self.runtime_conversation_authority(|_| Ok(vec![cid.to_owned()]))?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&_authority)?;
         let tx = c
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

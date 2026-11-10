@@ -1,0 +1,41 @@
+{
+  "scope": "Store regression subset; not matrix qualification",
+  "source_sha256": "0c27488db29ee41dccc0b9a276d96dcb683d60f1dec2118daa702984f7b4eefa",
+  "new_causal_checks": {
+    "selected": 13,
+    "completed": 13,
+    "passed": 13,
+    "failed": 0
+  },
+  "affected_checks": {
+    "selected": 70,
+    "completed": 70,
+    "passed": 26,
+    "failed": 44
+  },
+  "baseline_comparison": [
+    {
+      "baseline": "new-or-not-parsed",
+      "after": "pass",
+      "count": 13
+    },
+    {
+      "baseline": "FAILED",
+      "after": "fail",
+      "count": 44
+    },
+    {
+      "baseline": "ok",
+      "after": "pass",
+      "count": 5
+    },
+    {
+      "baseline": "FAILED",
+      "after": "pass",
+      "count": 8
+    }
+  ],
+  "affected_receipt_sha256": "99f36d49ae5d7685eacb0ea89bef68c28fc85b03eceb4d65ab4ab26cda7d3b46",
+  "causal_receipt_sha256": "3f2c3c68e80f6f305a28f2d7b4aeee02a6da70655bb3827d1620238554b0ba50",
+  "limits": "Causal13 overlap with affected70. Remaining failures are open. No passing matrix cells claimed."
+}

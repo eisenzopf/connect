@@ -116,14 +116,14 @@ fn handoff_custody_prepares_one_exact_plan_without_execution_and_excludes_generi
         .unwrap()
         .is_none());
     assert_eq!(format!("{lease:?}"), "NativeHandoffLease(redacted)");
+    // An unrelated planning reader must not be kept across the actual writer
+    // cut. Duplicate custody still cannot obtain a second post-start admission.
     let duplicate_read = f.store.native_handoff_attempt_read(&duplicate).unwrap();
+    drop(duplicate_read);
     let read = f.store.native_handoff_attempt_read(&lease).unwrap();
     let (_attempt, read) = f.store.begin_native_handoff(lease, read).unwrap();
     drop(read);
-    assert!(f
-        .store
-        .begin_native_handoff(duplicate, duplicate_read)
-        .is_err());
+    assert!(f.store.native_handoff_attempt_read(&duplicate).is_err());
     assert_eq!(status(&f, &origin).effects[0].attempt, 1);
 }
 #[test]
@@ -248,11 +248,13 @@ fn handoff_custody_rechecks_target_permission_and_role_changes_before_begin() {
                 f.store.revoke(&admin, &f.keys[2]).unwrap();
             }
             "source-role" => {
-                f.store.connection().unwrap().execute("UPDATE session_participants SET role='supervisor' WHERE participant_id=?1 AND session_id='session'",[&f.pids[0]]).unwrap();
+                let writer = f.controlled_conversation_writer(0);
+                f.store.connection_with_authority(&writer).unwrap().execute("UPDATE session_participants SET role='supervisor' WHERE participant_id=?1 AND session_id='session'",[&f.pids[0]]).unwrap();
             }
             "target-generation" => {
+                let writer = f.controlled_conversation_writer(0);
                 f.store
-                    .connection()
+                    .connection_with_authority(&writer)
                     .unwrap()
                     .execute(
                         "UPDATE connections SET generation=generation+1 WHERE id=?1",
@@ -440,4 +442,135 @@ fn handoff_custody_rejects_unattributed_role_epochs_and_media_results() {
             EffectState::Submitting
         );
     }
+}
+
+#[test]
+fn handoff_begin_drains_original_packet_epoch_and_pins_one_current_control_writer() {
+    use std::time::{Duration, Instant};
+    let (f, sources, origin) = fixture(OutgoingDisposition::Observe);
+    let lease = prepare(&f, &sources, &origin, OutgoingDisposition::Observe);
+    let read = f.store.native_handoff_attempt_read(&lease).unwrap();
+    let cutoff = read.expires_at();
+    let store = Arc::new(f.store);
+    let weak = Arc::downgrade(&store);
+    let source = sources[0].clone();
+    let captured = source.clone();
+    let snapshot = store
+        .register_native_media_snapshot_for(&source, None, move || {
+            weak.upgrade()
+                .ok_or_else(Error::forbidden)?
+                .try_native_media_read(&captured, None)
+        })
+        .unwrap();
+    let registry = store.media_authorization_registry();
+    let mut watcher = registry.start_watcher(Duration::from_millis(1)).unwrap();
+    registry.enable_after_writer_boundary().unwrap();
+    let until = Instant::now() + Duration::from_secs(1);
+    let packet = loop {
+        if let Ok(packet) = snapshot.admit() {
+            break packet;
+        }
+        assert!(Instant::now() < until, "original source never published");
+        std::thread::sleep(Duration::from_millis(1));
+    };
+    let epoch = packet.packet_epoch().unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let worker_store = store.clone();
+    let worker = std::thread::spawn(move || {
+        let result = worker_store.begin_native_handoff(lease, read);
+        tx.send(result).unwrap();
+    });
+    // Writer intent invalidates an old epoch before its in-flight admission
+    // drains. The exact original packet must keep the actual cut excluded.
+    let until = Instant::now() + Duration::from_secs(1);
+    while epoch.current() && Instant::now() < until {
+        std::thread::sleep(Duration::from_millis(1));
+    }
+    let invalidated = !epoch.current();
+    let first = rx.try_recv();
+    let blocked = matches!(&first, Err(std::sync::mpsc::TryRecvError::Empty));
+    drop(packet);
+    let result = match first {
+        Ok(result) => Ok(result),
+        Err(std::sync::mpsc::TryRecvError::Empty) => rx.recv_timeout(Duration::from_secs(3)),
+        Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected)
+        }
+    };
+    worker.join().unwrap();
+    let (attempt, held) = match result {
+        Ok(Ok(value)) => value,
+        failed => {
+            watcher.shutdown().unwrap();
+            let error = match failed {
+                Ok(Err(error)) => error.code,
+                Err(error) => error.to_string(),
+                Ok(Ok(_)) => unreachable!(),
+            };
+            panic!("original writer admission failed: {error}");
+        }
+    };
+    let fresh_current = held.current();
+    let bounded = held.expires_at() <= cutoff;
+    let excluded = store
+        .try_native_media_read(&source, None)
+        .err()
+        .map(|error| error.code);
+    // The semantic pending check can reject before fence acquisition. Probe
+    // the exact Conversation Read separately to prove the cut Writer is held.
+    let writer_excluded = store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            source.conversation_id(),
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .err()
+        .map(|error| error.code);
+    let exact: (bool, u64) = store.connection().unwrap().query_row(
+        "SELECT n.started,e.attempt FROM native_handoffs n JOIN operation_effects e ON e.id=n.effect_id WHERE n.operation_record_id=?1",
+        [attempt.record_id()], |row| Ok((row.get(0)?, row.get(1)?))).unwrap();
+    drop(held);
+    // No Core effect was invoked by this Store-only control. Preserve the
+    // admitted original uncertainty rather than replaying an attempt.
+    store.native_handoff_uncertain(attempt).unwrap();
+    watcher.shutdown().unwrap();
+    assert!(
+        invalidated && blocked,
+        "start must drain the real original packet admission"
+    );
+    assert!(
+        fresh_current && bounded,
+        "held control proof must remain current without renewing cutoff"
+    );
+    assert_eq!(excluded.as_deref(), Some("handoff-pending"));
+    assert_eq!(writer_excluded.as_deref(), Some("authority-busy"));
+    assert_eq!(exact, (true, 1));
+    assert!(
+        !epoch.current(),
+        "the original queued packet epoch cannot be revived"
+    );
+}
+
+#[test]
+fn handoff_begin_refuses_expired_original_control_without_started_effect() {
+    let (f, sources, origin) = fixture(OutgoingDisposition::Observe);
+    let lease = prepare(&f, &sources, &origin, OutgoingDisposition::Observe);
+    let mut read = f.store.native_handoff_attempt_read(&lease).unwrap();
+    assert!(read.limit(crate::now()).is_err());
+    assert!(f.store.begin_native_handoff(lease, read).is_err());
+    let record = status(&f, &origin);
+    assert_eq!(record.state, OperationState::Preparing);
+    assert_eq!(record.effects[0].state, EffectState::Prepared);
+    assert_eq!(record.effects[0].attempt, 0);
+    let started: bool = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT started FROM native_handoffs WHERE operation_record_id=?1",
+            [origin.record_id()],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(!started);
 }

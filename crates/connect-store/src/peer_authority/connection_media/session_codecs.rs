@@ -5,6 +5,8 @@ use crate::SessionCodecTarget;
 
 pub struct NativeSessionCodecRead {
     pub(crate) media: NativeMediaRead,
+    pub(crate) origin: NativeMediaOrigin,
+    pub(crate) target: SessionCodecTarget,
     pub(crate) batch: String,
     pub(crate) parent: String,
     pub(crate) credential: String,
@@ -42,9 +44,15 @@ impl NativeSessionCodecRead {
     pub fn peer_device(&self) -> &crate::PeerDeviceClaim {
         &self.peer_device
     }
+    pub(crate) fn covers_authority(&self, store: &Store, scopes: &[AuthorityScope]) -> bool {
+        store.authority_covers(&self.media._scopes, scopes)
+    }
     pub(crate) fn require(&self, store: &Store) -> Result<()> {
         let owner = store.require_runtime_owner()?;
-        if !Arc::ptr_eq(&owner, &self.media.owner) || !self.current() {
+        if !Arc::ptr_eq(&owner, &self.media.owner)
+            || !store.authority_covers(&self.media._scopes, &[])
+            || !self.current()
+        {
             return Err(Error::forbidden());
         }
         Ok(())
@@ -58,16 +66,20 @@ fn policy_facts(
     store: &Store,
     c: &Connection,
     target: &SessionCodecTarget,
+    child: Option<&str>,
 ) -> Result<(Vec<AuthorityScope>, i64)> {
-    let (credential,owner,policy,runtime,expires,session,conversation,preferences,generation,state,latest,cancelled):(String,String,String,String,i64,String,String,String,u64,String,Option<String>,bool)=c.query_row(
-        "SELECT b.manager_credential_id,o.owner_id,b.policy_operation_id,b.runtime_epoch,b.expires_at,o.session_id,o.conversation_id,b.codec_preferences_json,t.generation,t.state,s.codec_policy_operation_id,o.cancel_requested FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id JOIN session_codec_targets t ON t.batch_record_id=b.operation_record_id JOIN session_control s ON s.session_id=o.session_id WHERE b.operation_record_id=?1 AND t.connection_id=?2 AND o.state IN ('accepted','preparing')",
-        params![target.batch_record_id,target.connection_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?,r.get(8)?,r.get(9)?,r.get(10)?,r.get(11)?))
+    let (credential,owner,policy,runtime,expires,session,conversation,preferences,generation,state,latest,cancelled,native_child):(String,String,String,String,i64,String,String,String,u64,String,Option<String>,bool,Option<String>)=c.query_row(
+        "SELECT b.manager_credential_id,o.owner_id,b.policy_operation_id,b.runtime_epoch,b.expires_at,o.session_id,o.conversation_id,b.codec_preferences_json,t.generation,t.state,s.codec_policy_operation_id,o.cancel_requested,t.native_operation_record_id FROM session_codec_batches b JOIN operations o ON o.record_id=b.operation_record_id JOIN session_codec_targets t ON t.batch_record_id=b.operation_record_id JOIN session_control s ON s.session_id=o.session_id WHERE b.operation_record_id=?1 AND t.connection_id=?2 AND o.state IN ('accepted','preparing')",
+        params![target.batch_record_id,target.connection_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?,r.get(8)?,r.get(9)?,r.get(10)?,r.get(11)?,r.get(12)?))
     ).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
     if runtime != store.runtime_epoch()
         || expires <= crate::now()
         || target.expires_at != expires
         || generation != target.generation
-        || state != "queued"
+        || match child {
+            None => state != "queued" || native_child.is_some(),
+            Some(child) => state != "preparing" || native_child.as_deref() != Some(child),
+        }
         || cancelled
         || latest.as_deref() != Some(&policy)
         || serde_json::from_str::<Vec<String>>(&preferences).map_err(|_| Error::storage())?
@@ -122,24 +134,70 @@ impl Store {
         origin: &NativeMediaOrigin,
         target: &SessionCodecTarget,
     ) -> Result<NativeSessionCodecRead> {
+        let scopes = {
+            let c = self.try_connection()?;
+            self.native_session_codec_scopes(&c, origin, target, None)?
+        };
+        let held = self.try_acquire_authority(&scopes)?;
+        let c = self.try_connection()?;
+        self.native_session_codec_read_in(&c, origin, target, held, i64::MAX, None)
+    }
+    /// Fresh IO authority belongs only to this original already-reserved child.
+    /// A queued job, new credential epoch or another child cannot borrow it.
+    pub fn try_native_session_codec_attempt_read(
+        &self,
+        origin: &NativeMediaOrigin,
+        target: &SessionCodecTarget,
+        lease: &crate::NativeStreamLease,
+    ) -> Result<NativeSessionCodecRead> {
+        let scopes = {
+            let c = self.try_connection()?;
+            self.native_session_codec_scopes(&c, origin, target, Some(lease.record_id()))?
+        };
+        let held = self.try_acquire_authority(&scopes)?;
+        let c = self.try_connection()?;
+        let result = self.native_session_codec_read_in(
+            &c,
+            origin,
+            target,
+            held,
+            lease.expires_at(),
+            Some(lease.record_id()),
+        )?;
+        drop(c);
+        self.validate_native_session_codec(&result, lease)?;
+        Ok(result)
+    }
+    pub(crate) fn native_session_codec_scopes(
+        &self,
+        c: &Connection,
+        origin: &NativeMediaOrigin,
+        target: &SessionCodecTarget,
+        child: Option<&str>,
+    ) -> Result<Vec<AuthorityScope>> {
         if origin.connection_id() != target.connection_id
             || origin.generation() != target.generation
         {
             return Err(Error::forbidden());
         }
-        let scopes = {
-            let c = self.try_connection()?;
-            let mut scopes = facts(self, &c, origin)?.1;
-            scopes.extend(policy_facts(self, &c, target)?.0);
-            scopes.extend(checked(self, &c, &origin.binding)?.2);
-            AuthorityScope::merged(&scopes)?
-        };
-        let held = self.try_acquire_authority(&scopes)?;
-        let c = self.try_connection()?;
-        let (view, mut required, expires) = facts(self, &c, origin)?;
-        let (policy_scopes, policy_expires) = policy_facts(self, &c, target)?;
+        let mut scopes = facts(self, c, origin)?.1;
+        scopes.extend(policy_facts(self, c, target, child)?.0);
+        scopes.extend(checked(self, c, &origin.binding)?.2);
+        AuthorityScope::merged(&scopes)
+    }
+    pub(crate) fn native_session_codec_read_in(
+        &self,
+        c: &Connection,
+        origin: &NativeMediaOrigin,
+        target: &SessionCodecTarget,
+        held: Arc<AuthorityGuardSet>,
+        until: i64,
+        child: Option<&str>,
+    ) -> Result<NativeSessionCodecRead> {
+        let (view, mut required, expires) = facts(self, c, origin)?;
+        let (policy_scopes, policy_expires) = policy_facts(self, c, target, child)?;
         required.extend(policy_scopes);
-        let (metadata, signing_key, key_scopes, _) = checked(self, &c, &origin.binding)?;
+        let (metadata, signing_key, key_scopes, _) = checked(self, c, &origin.binding)?;
         required.extend(key_scopes);
         if !self.authority_covers(&held, &required)
             || view.connection.connection_id != target.connection_id
@@ -151,8 +209,10 @@ impl Store {
         if revision == 0 || revision >= 9_007_199_254_740_991 {
             return Err(Error::forbidden());
         }
-        let expires_at = expires.min(policy_expires);
+        let expires_at = expires.min(policy_expires).min(until);
         let result = NativeSessionCodecRead {
+            origin: origin.clone(),
+            target: target.clone(),
             media: NativeMediaRead {
                 _live: None,
                 _source_live: None,
@@ -161,7 +221,7 @@ impl Store {
                 _scopes: held,
                 owner: current_owner(self, origin)?,
                 expires_at,
-                may_subscribe: subscription_permission(&c, origin)?,
+                may_subscribe: subscription_permission(c, origin)?,
             },
             batch: target.batch_record_id.clone(),
             parent: origin.attempt.record_id().into(),

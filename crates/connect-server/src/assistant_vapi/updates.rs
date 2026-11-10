@@ -117,10 +117,30 @@ async fn apply(
             return not_exported(service, &update, error).await;
         }
     };
-    let s = service.clone();
-    let u = update.clone();
-    let admitted = blocking(move || s.begin_assistant_update(&u, selected)).await;
-    let (export, selected) = match admitted {
+    let original_cutoff = selected.expires_at();
+    drop(selected);
+    // Retry only pre-reservation admission, under the same original cutoff.
+    // Once begin returns its original export, leave this loop permanently.
+    let admitted = retry(|| {
+        let s = service.clone();
+        let u = update.clone();
+        let p = applied.clone();
+        let expected = content.clone();
+        let stop = stop.clone();
+        blocking(move || {
+            if stop.is_cancelled() || chrono::Utc::now().timestamp() >= original_cutoff {
+                return Err(Error::forbidden());
+            }
+            let mut selected = s.try_assistant_update_read(&u, &p)?;
+            selected.limit(original_cutoff)?;
+            if selected.context_json()? != expected {
+                return Err(Error::forbidden());
+            }
+            s.begin_assistant_update(&u, selected)
+        })
+    })
+    .await;
+    let export = match admitted {
         Ok(admitted) => admitted,
         Err(error) => {
             let s = service.store.clone();
@@ -130,6 +150,28 @@ async fn apply(
                 Ok(state) if !state.export_started => not_exported(service, &update, error).await,
                 _ => (Err(error), true),
             };
+        }
+    };
+    let export = Arc::new(export);
+    let selected = retry(|| {
+        let s = service.clone();
+        let e = export.clone();
+        blocking(move || s.try_assistant_begun_update_read(&e))
+    })
+    .await;
+    let selected = match selected {
+        Ok(read) => read,
+        Err(error) => {
+            // Original begin is durable but no socket write occurred. Retain
+            // the same export receipt; never call begin or export again.
+            let rejected = Arc::new(export.rejected(AssistantContextFailure::Incomplete));
+            let recorded = retry(|| {
+                let s = service.store.clone();
+                let r = rejected.clone();
+                blocking(move || s.record_native_assistant_update_rejected(&r))
+            })
+            .await;
+            return (Err(recorded.err().unwrap_or(error)), true);
         }
     };
     status.send_replace(AssistantVapiStatus::Updating {
@@ -167,7 +209,7 @@ async fn apply(
                 })
                 .await
             } else if *ended {
-                let export = Arc::new(export);
+                let export = export.clone();
                 retry(|| {
                     let s = service.store.clone();
                     let p = export.clone();
@@ -175,7 +217,7 @@ async fn apply(
                 })
                 .await
             } else {
-                let export = Arc::new(export);
+                let export = export.clone();
                 retry(|| {
                     let s = service.store.clone();
                     let p = export.clone();

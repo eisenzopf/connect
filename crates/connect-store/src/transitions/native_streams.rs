@@ -667,7 +667,7 @@ impl Store {
                 .map_err(|_| Error::storage())?;
             let mut scopes = vec![];
             for id in &ids {
-                scopes.extend(admission::row_scopes(&rows::by_record(&c, id)?)?);
+                scopes.extend(admission::mutation_row_scopes(&rows::by_record(&c, id)?)?);
             }
             (ids, scopes)
         };
@@ -683,14 +683,16 @@ impl Store {
             &scopes,
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let mut count = 0;
         for id in ids {
             let row = rows::by_record(&tx, &id)?;
-            admission::require_row(self, &held, &row)?;
+            if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+                return Err(Error::forbidden());
+            }
             let before = row.record.revision;
             recover_one(&tx, &row, self)?;
             if rows::by_record(&tx, &id)?.record.revision != before {

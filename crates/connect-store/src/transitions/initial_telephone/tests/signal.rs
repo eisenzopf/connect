@@ -33,9 +33,7 @@ fn connected(f: &Fixture) -> Arc<InitialTelephoneMediaOrigin> {
     origin
 }
 fn permissions(f: &Fixture, names: &[&str]) {
-    f.store
-        .connection()
-        .unwrap()
+    change_connection(f, &[1], false)
         .execute(
             "UPDATE credentials SET operations=?2 WHERE id=?1",
             params![f.keys[1], serde_json::to_string(names).unwrap()],
@@ -94,7 +92,7 @@ fn initial_signal_codec_change_does_not_supply_or_remove_named_signal_permission
     let origin = connected(&f);
     // Changing current audio preferences can invalidate the old media codec.
     // It neither grants nor revokes this existing call's independent signal.
-    f.store.connection().unwrap().execute(
+    change_connection(&f, &[], true).execute(
         "UPDATE session_presence_capabilities SET capabilities_json=?3 WHERE session_id=?1 AND participant_id=?2",
         params![f.request.session_id, f.parts[1], json!({"audio":["g.711-a"]}).to_string()],
     ).unwrap();
@@ -150,7 +148,7 @@ fn initial_signal_rechecks_physical_endpoint_route_and_participant_lifetime() {
     ] {
         let f = Fixture::new();
         let origin = connected(&f);
-        let c = f.store.connection().unwrap();
+        let c = change_connection(&f, if fault == "route" { &[0] } else { &[1] }, true);
         match fault {
             "device" => c.execute("UPDATE devices SET revoked=1 WHERE id='initial-phone-device'", []),
             "endpoint" => c.execute("UPDATE endpoints SET revision=revision+1 WHERE id='initial-phone'", []),
@@ -302,7 +300,7 @@ fn initial_sip_audience_captured_revision_never_revives_retired_or_overwrites_ne
             }),
         )
         .unwrap();
-    let c = f.store.connection().unwrap();
+    let c = change_connection(&f, &[], true);
     let (_, snapshot, _) = f
         .store
         .initial_telephone_audience_facts(&c, &origin)

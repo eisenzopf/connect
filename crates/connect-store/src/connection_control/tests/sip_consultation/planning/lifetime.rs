@@ -135,9 +135,7 @@ fn private_sip_lifetime_outlives_separate_execution_credential_without_reopening
             } else {
                 "UPDATE credentials SET expires_at=0 WHERE id=?1"
             };
-            s.f.store
-                .connection()
-                .unwrap()
+            s.change_fixture()
                 .execute(sql, [&s.root.credential])
                 .unwrap();
             let done =
@@ -240,7 +238,7 @@ fn private_sip_sealed_lifetime_rechecks_current_physical_and_private_recipient_a
                 s.policy.endpoint_credential_id.as_str(),
             ),
         };
-        s.f.store.connection().unwrap().execute(sql, [key]).unwrap();
+        s.change_fixture().execute(sql, [key]).unwrap();
         assert!(s.current().is_err(), "fault {fault}");
         // Replaying historical completion never recreates current authority.
         assert_eq!(
@@ -376,7 +374,7 @@ fn private_sip_lifetime_sql_checks_typed_binding_even_when_attempt_and_lifetime_
             5 => phone["membership_epoch"] = json!(999),
             _ => (),
         }
-        let c = s.f.store.connection().unwrap();
+        let c = s.change_fixture();
         // Isolate the SQL consistency boundary: model captured flags directly,
         // with equal attempt/lifetime JSON, so equality alone cannot reject it.
         c.execute(

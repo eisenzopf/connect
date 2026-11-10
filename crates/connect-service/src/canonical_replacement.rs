@@ -317,69 +317,77 @@ impl Runtime {
         };
         let lease = Arc::new(lease);
         let plan = lease.plan()?;
-        // Serialize the scene before taking any input Read/fresh begin Write.
-        // No domain writer waits behind this async coordinator, and no transport
-        // or codec preparation runs while the scene interval is owned.
-        let roles = self.role_projection.lock().await;
-        let resolved: Result<_> = async {
-            let (read, entries) = retry_metadata(&self.stop, || async {
-                let read = self.media.store.native_replacement_preparation_attempt_read(&lease)?;
-                let entries = self.media.replacement_preparation_entries(&read)?;
-                // A refused lookup drops this attempt's read before the next
-                // bounded metadata retry. Begin/engine effects are still ahead.
-                Ok((read, entries))
-            })
-            .await?;
-            let actor = self.media.store.revalidate(&credential).map_err(|error| {
-                tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-credential",code=%error.code,"Replacement preparation authority refused");
-                error
-            })?;
-            let principal = StoreValidator::canonical(self.media.store.clone())
-                .principal(actor)
-                .map_err(|_| {
-                    tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-principal","Replacement preparation authority refused");
-                    Error::forbidden()
-                })?;
-            if principal.subject != read.caller().actor.identity_id {
-                tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-subject","Replacement preparation authority refused");
-                return Err(Error::forbidden());
-            }
-            let telephone_target = if let Some(route) = &telephone_route {
-                let old = self
-                    .media
-                    .replacement_source_owner_with_entries(&read, &entries)
-                    .map_err(|_| Error::forbidden())?;
-                Some(Arc::new(crate::telephone_replacement::authority::target(
-                    self,
-                    &read,
-                    route,
-                    &text(&plan["telephone_route"], "destination")?,
-                    &old.member,
-                )?))
-            } else {
-                None
-            };
-            Ok((read, entries, principal, telephone_target))
-        }
-        .await;
-        let (read, entries, principal, telephone_target) = match resolved {
-            Ok(value) => value,
-            Err(error) => {
-                drop(roles);
-                self.abort_unstarted_replacement(lease.clone(), &error.code)
-                    .await;
-                return Err(error);
-            }
-        };
+        // The original reservation already exists. Keep that SAME lease in
+        // this worker across temporary pre-begin refusal; never re-run whole
+        // preparation or create another reservation/effect/Core ticket.
         let expires = lease.expires_at();
-        let store = self.media.store.clone();
-        let begun = lease.clone();
-        let result =
-            store_call(move || store.begin_native_replacement_preparation(&begun, read)).await;
-        let (attempt, read) = match result {
+        let begin_deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+        let begin_until = std::sync::atomic::AtomicI64::new(expires);
+        let begun = preflight::reserved(&self.stop, begin_deadline, || async {
+            // A coordinator wait owns no source proof. Every refused iteration
+            // drops coordinator/read aliases before the helper's bounded pause.
+            let roles = tokio::select! {
+                biased;
+                _ = self.stop.cancelled() => return Err(Error::forbidden()),
+                _ = tokio::time::sleep_until(begin_deadline) => return Err(Error::new("authority-busy", "Original replacement begin cutoff expired")),
+                roles = self.role_projection.lock() => roles,
+            };
+            let resolved: Result<_> = (|| {
+                let read = self.media.store.native_replacement_preparation_attempt_read(&lease)?;
+                // Capture even a Read whose later registry/credential resolution
+                // refuses. Subsequent reads may only shorten this first cutoff.
+                begin_until.fetch_min(read.expires_at(), Ordering::AcqRel);
+                let entries = self.media.replacement_preparation_entries(&read)?;
+                let actor = self.media.store.revalidate(&credential).map_err(|error| {
+                    tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-credential",code=%error.code,"Replacement preparation authority refused");
+                    error
+                })?;
+                let principal = StoreValidator::canonical(self.media.store.clone())
+                    .principal(actor)
+                    .map_err(|_| {
+                        tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-principal","Replacement preparation authority refused");
+                        Error::forbidden()
+                    })?;
+                if principal.subject != read.caller().actor.identity_id {
+                    tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-subject","Replacement preparation authority refused");
+                    return Err(Error::forbidden());
+                }
+                let telephone_target = if let Some(route) = &telephone_route {
+                    let old = self
+                        .media
+                        .replacement_source_owner_with_entries(&read, &entries)
+                        .map_err(|_| Error::forbidden())?;
+                    Some(Arc::new(crate::telephone_replacement::authority::target(
+                        self,
+                        &read,
+                        route,
+                        &text(&plan["telephone_route"], "destination")?,
+                        &old.member,
+                    )?))
+                } else {
+                    None
+                };
+                Ok((read, entries, principal, telephone_target))
+            })();
+            let (read, entries, principal, telephone_target) = match resolved {
+                Ok(value) => value,
+                Err(error) => { drop(roles); return Err(error); }
+            };
+            // Invocation-local scalar only: fresh current reads may shorten,
+            // never renew the first actual Read's original absolute cutoff.
+            let until = begin_until.fetch_min(read.expires_at(), Ordering::AcqRel)
+                .min(read.expires_at());
+            let store = self.media.store.clone();
+            let lease = lease.clone();
+            let result = store_call(move || store.begin_native_replacement_preparation_before(&lease, read, until)).await;
+            match result {
+                Ok((attempt, read)) => Ok((attempt, read, entries, principal, telephone_target, roles)),
+                Err(error) => { drop(roles); Err(error) }
+            }
+        }).await;
+        let (attempt, read, entries, principal, telephone_target, roles) = match begun {
             Ok(value) => value,
             Err(error) => {
-                drop(roles);
                 self.abort_unstarted_replacement(lease, &error.code).await;
                 return Err(error);
             }
@@ -398,7 +406,8 @@ impl Runtime {
         };
         #[cfg(feature = "test-support")]
         invocation.probe_registry_for_test(&command.operation_id);
-        // Begin is never retried. Core owns only a capacity/binding ticket here;
+        // Only this successful original begin may invoke Core, once. Core owns
+        // only a capacity/binding ticket here;
         // all allocation/target IO phases remain independently default-denied.
         let actual = self.core.prepare_staged_device_replacement_with_held(
             &sid,

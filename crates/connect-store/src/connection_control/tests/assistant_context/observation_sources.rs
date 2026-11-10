@@ -294,9 +294,13 @@ fn uncertain_update_blocks_observation_reads_even_when_initial_receipt_stays_del
         .store
         .try_native_assistant_update_read(&update, &applied)
         .unwrap();
-    let (export, read) = f
+    let export = f
         .store
         .begin_native_assistant_update(&update, read)
+        .unwrap();
+    let read = f
+        .store
+        .try_native_assistant_begun_update_read(&export)
         .unwrap();
     drop(read);
     f.store.native_assistant_update_uncertain(&export).unwrap();
@@ -316,6 +320,49 @@ fn original_memory_interval_publishes_without_reentering_behind_a_waiting_writer
         .store
         .try_native_assistant_memory_read(&context, &applied)
         .unwrap();
+    let before = f.store.authority.test_admission_attempts();
+    let appended = f
+        .store
+        .execute(
+            &f.keys[0],
+            &connect_protocol::Operation::Send {
+                request_id: "new-tail-under-original-memory".into(),
+                conversation_id: f.cid.clone(),
+                message: MessageDraft::text_all(
+                    "later content outside the original captured prefix",
+                ),
+            },
+        )
+        .unwrap();
+    assert!(matches!(appended, Outcome::Accepted { .. }));
+    assert_eq!(
+        f.store.authority.test_admission_attempts(),
+        before,
+        "new message append must not invalidate or queue behind original memory"
+    );
+    assert!(read.current());
+    {
+        let c = f.store.connection().unwrap();
+        let original: String = c
+            .query_row(
+                "SELECT id FROM messages WHERE conversation_id=?1 ORDER BY sequence LIMIT 1",
+                [&f.cid],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(c
+            .execute(
+                "UPDATE messages SET body='changed captured body' WHERE id=?1",
+                [&original]
+            )
+            .is_err());
+        assert!(c
+            .execute(
+                "DELETE FROM message_audiences WHERE message_id=?1",
+                [&original]
+            )
+            .is_err());
+    }
     let write = crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Write).unwrap();
     std::thread::scope(|threads| {
         let writer = threads.spawn(|| {

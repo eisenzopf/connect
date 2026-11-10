@@ -55,6 +55,34 @@ fn fixture() -> Signal {
         lease,
     }
 }
+// This fixture also mutates the independent SIP route administrator. Include
+// that actual principal with the original participants before acquiring SQL.
+fn change_signal_fixture(s: &Signal) -> crate::installation_ownership::ConnectionGuard<'_> {
+    let scopes = {
+        let c = s.f.store.connection().unwrap();
+        let mut scopes = crate::authority_admission::conversation_scopes(
+            &c,
+            &s.f.cid,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap();
+        for key in s.f.keys.iter().chain(std::iter::once(&s.f.admin)) {
+            let identity: String = c
+                .query_row(
+                    "SELECT identity_id FROM credentials WHERE id=?1",
+                    [key],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            scopes.push(
+                crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write).unwrap(),
+            );
+        }
+        scopes
+    };
+    let writer = s.f.store.try_acquire_authority(&scopes).unwrap();
+    s.f.store.connection_with_authority(&writer).unwrap()
+}
 fn candidates(s: &Signal) -> Vec<NativeDtmfGatewayRecipient> {
     vec![NativeDtmfGatewayRecipient {
         origin: crate::SipSignalOrigin::Initial(s.phone.clone()),
@@ -284,7 +312,7 @@ fn native_gateway_dtmf_queue_rechecks_independent_source_recipient_and_route_aut
     ] {
         let s = fixture();
         let b = freeze(&s);
-        let c = s.f.store.connection().unwrap();
+        let c = change_signal_fixture(&s);
         match fault {
             "source-scope" => c.execute(
                 "UPDATE credentials SET operations='[]' WHERE id=?1",
@@ -358,9 +386,7 @@ fn native_gateway_dtmf_captured_outcome_survives_revocation_without_new_signal_a
     let s = fixture();
     let b = freeze(&s);
     reserve(&s, &b);
-    s.f.store
-        .connection()
-        .unwrap()
+    s.f.change_fixture()
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&s.f.keys[1]],
@@ -431,7 +457,7 @@ fn native_gateway_dtmf_selected_pair_does_not_require_unrelated_session_recipien
     let s = fixture();
     let source = s.f.store.revalidate(&s.f.keys[0]).unwrap().identity_id;
     let phone = s.f.store.revalidate(&s.f.keys[1]).unwrap().identity_id;
-    let c = s.f.store.connection().unwrap();
+    let c = change_signal_fixture(&s);
     c.execute(
         "UPDATE credentials SET recipients=?2 WHERE id=?1",
         params![s.f.keys[0], json!([source, phone]).to_string()],

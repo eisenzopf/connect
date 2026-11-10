@@ -299,9 +299,7 @@ fn handoff_source_replay_rechecks_generation_membership_cancellation_and_worker_
             .unwrap();
         match change {
             "generation" => {
-                f.store
-                    .connection()
-                    .unwrap()
+                f.change_fixture()
                     .execute(
                         "UPDATE connections SET generation=generation+1 WHERE id=?1",
                         [sources[2].connection_id()],
@@ -309,9 +307,7 @@ fn handoff_source_replay_rechecks_generation_membership_cancellation_and_worker_
                     .unwrap();
             }
             "membership" => {
-                f.store
-                    .connection()
-                    .unwrap()
+                f.change_fixture()
                     .execute(
                         "UPDATE participants SET active=0 WHERE participant_id=?1",
                         [&f.pids[2]],
@@ -417,9 +413,7 @@ fn handoff_source_resolves_its_original_private_pair_without_borrowing_old_execu
         context.consultation_record_id.as_deref(),
         Some(private.record_id())
     );
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET generation=generation+1 WHERE id=?1",
             [sources[2].connection_id()],

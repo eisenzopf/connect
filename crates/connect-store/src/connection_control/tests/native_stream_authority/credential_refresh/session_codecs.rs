@@ -63,11 +63,17 @@ fn session_codec_child_uses_the_observed_current_credential_epoch_and_never_the_
     assert_eq!(read.credential_metadata().actor.credential_id, next);
     let lease = f
         .store
-        .begin_native_session_codec(&read, "rotated-codec-child", json!({"streams":[]}))
+        .begin_native_session_codec(read, "rotated-codec-child", json!({"streams":[]}))
         .unwrap();
+    let read = f
+        .store
+        .try_native_session_codec_attempt_read(&renewed, &target, &lease)
+        .unwrap();
+    assert_eq!(read.credential_metadata().actor.credential_id, next);
     f.store
         .validate_native_session_codec(&read, &lease)
         .unwrap();
+    drop(read);
     f.store
         .fail_native_stream_without_effect(
             lease,
@@ -77,7 +83,6 @@ fn session_codec_child_uses_the_observed_current_credential_epoch_and_never_the_
             ),
         )
         .unwrap();
-    drop(read);
     f.store.reconcile_session_codec_jobs(8).unwrap();
     assert!(f.store.pending_session_codec_targets(8).unwrap().is_empty());
 }

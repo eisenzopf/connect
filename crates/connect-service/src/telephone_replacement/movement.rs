@@ -1,5 +1,5 @@
 //! Actual managed telephone movement, retained capture and independent lifetime.
-use super::continuation::Phase;
+use super::continuation::{Invocation, Phase};
 use super::*;
 use crate::{
     canonical_consultation::{retry_metadata, store_call},
@@ -32,9 +32,28 @@ impl Runtime {
             .policy
             .owner(i.read.media())
             .map_err(|_| Error::forbidden())?;
+        let Invocation {
+            runtime,
+            started: invocation_started,
+            read,
+            root: invocation_root,
+            phase,
+            deadline,
+        } = i;
+        // Unique planning custody must leave before the short state-change
+        // Writer is acquired; owner above is immutable Core metadata only.
+        let read = Arc::try_unwrap(read).map_err(|_| Error::forbidden())?;
         let store = self.media.store.clone();
-        let read = i.read.clone();
-        let attempt = store_call(move || store.begin_telephone_replacement_commit(&read)).await?;
+        let (attempt, read) =
+            store_call(move || store.begin_telephone_replacement_commit(read)).await?;
+        let i = Invocation {
+            runtime,
+            started: invocation_started,
+            read: Arc::new(read),
+            root: invocation_root,
+            phase,
+            deadline,
+        };
         let result = self
             .core
             .commit_staged_device_replacement_with_held(plan, &i)

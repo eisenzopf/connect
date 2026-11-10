@@ -31,7 +31,12 @@ fn completed_request(
         .store
         .native_media_origin_with_peer(&f.keys[actor], &proof, &lease)
         .unwrap();
-    let mut c = f.store.connection().unwrap();
+    // The original preparation proof owns a Read interval. Its immutable
+    // captured origin/lease carry no reader; release the proof before this
+    // independent controlled readiness mutation acquires the actual writer.
+    drop(proof);
+    let writer = f.controlled_conversation_writer(actor);
+    let mut c = f.store.connection_with_authority(&writer).unwrap();
     let tx = c
         .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
         .unwrap();
@@ -137,7 +142,7 @@ fn session_activation_excludes_retired_foreign_runtime_and_revoked_ready_sources
         record(&f, &origin);
         record(&f, &peers[0]);
         record(&f, &peers[1]);
-        let c = f.store.connection().unwrap();
+        let c = f.change_fixture();
         match mode {
             "retired" => {
                 c.execute(
@@ -212,9 +217,7 @@ fn session_activation_does_not_require_expired_parent_intent_or_reconstruct_an_o
         .collect::<Vec<_>>();
     record(&f, &origin);
     assert_eq!(
-        f.store
-            .connection()
-            .unwrap()
+        f.change_fixture()
             .execute(
                 "UPDATE operations SET intent_json=NULL,tombstoned=1 WHERE record_id=?1",
                 [parent_record]

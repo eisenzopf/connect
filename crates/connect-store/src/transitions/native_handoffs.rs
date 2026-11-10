@@ -283,7 +283,7 @@ impl Store {
                 crate::AuthorityScope::merged(&scopes)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -528,7 +528,7 @@ impl Store {
                 selection.scopes(self, &c, true)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -597,12 +597,32 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let cutoff = read.expires_at().min(lease.expires_at);
+        // started/submitting closes ordinary packet authority until attribution.
+        // Drop EVERY old planning reader before acquiring the actual cut Writer.
+        let selection = read.into_selection()?;
+        let remaining = std::time::Duration::from_secs((cutoff - crate::now()).max(0) as u64);
+        let held = self.stable_authority(
+            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT).bounded(remaining),
+            || {
+                let c = self.connection()?;
+                selection.scopes(self, &c, true)
+            },
+        )?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = bound(&tx, self, &lease)?;
+        if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
+            return Err(Error::forbidden());
+        }
         lease.selection.validate_plan(self, &tx, &lease.plan()?)?;
+        // Derive the exact fresh purpose view before its own pending boundary
+        // becomes visible. The same Writer pins it through the bounded Core cut;
+        // no adapter preparation or transport negotiation runs in that cut.
+        let mut read = self.native_handoff_read_with_authority(&tx, selection, held.clone())?;
+        read.limit(cutoff)?;
         if row.record.state != OperationState::Preparing {
             return Err(conflict());
         }
@@ -648,10 +668,10 @@ impl Store {
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
                 let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &origin.record)?)
+                admission::mutation_row_scopes(&rows::by_record(&c, &origin.record)?)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -702,10 +722,10 @@ impl Store {
             || {
                 let c = self.connection()?;
                 let row = rows::by_record(&c, &receipt.record)?;
-                admission::row_scopes(&row)
+                admission::mutation_row_scopes(&row)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

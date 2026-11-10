@@ -38,6 +38,36 @@ struct Fixture {
     cid: String,
 }
 impl Fixture {
+    // Controlled fixture DML uses the same actual Writer/SQL boundary as
+    // production. Include original principals after membership withdrawal;
+    // this does not grant media permission or bypass immutable SQL guards.
+    fn change_fixture(&self) -> crate::installation_ownership::ConnectionGuard<'_> {
+        let scopes = {
+            let c = self.store.connection().unwrap();
+            let mut scopes = crate::authority_admission::conversation_scopes(
+                &c,
+                &self.cid,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap();
+            for key in &self.keys {
+                let identity: String = c
+                    .query_row(
+                        "SELECT identity_id FROM credentials WHERE id=?1",
+                        [key],
+                        |row| row.get(0),
+                    )
+                    .unwrap();
+                scopes.push(
+                    crate::AuthorityScope::identity(&identity, crate::AuthorityMode::Write)
+                        .unwrap(),
+                );
+            }
+            scopes
+        };
+        let writer = self.store.try_acquire_authority(&scopes).unwrap();
+        self.store.connection_with_authority(&writer).unwrap()
+    }
     // Controlled fixture DML is still an actual coordinated mutation. This
     // supplies no runtime readiness observation and no raw SQL bypass.
     fn controlled_conversation_writer(
@@ -799,24 +829,49 @@ fn native_connection_projection_rechecks_slot_generation_instead_of_replaying_re
         .store
         .project_connection_with_peer(&f.keys[0], &proof)
         .is_ok());
-    // Controlled backend state change; this checks projection fencing only,
-    // not actual physical retirement or negotiated media readiness.
-    f.store
+    let sql = "UPDATE connections SET state='retiring',generation=generation+1 WHERE id=?1";
+    assert!(f
+        .store
         .connection()
         .unwrap()
-        .execute(
-            "UPDATE connections SET state='retiring',generation=generation+1 WHERE id=?1",
-            [&intent.connection_id],
-        )
-        .unwrap();
+        .execute(sql, [&intent.connection_id])
+        .is_err());
     assert_eq!(
         f.store
-            .project_connection_with_peer(&f.keys[0], &proof)
+            .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                &f.cid,
+                crate::AuthorityMode::Write
+            )
+            .unwrap()])
             .err()
             .unwrap()
             .code,
-        "forbidden"
+        "authority-busy"
     );
+    assert!(f
+        .store
+        .project_connection_with_peer(&f.keys[0], &proof)
+        .is_ok());
+    drop(proof);
+    // Controlled backend state change after the original interval drains;
+    // no physical retirement or negotiated readiness is inferred.
+    f.change_fixture()
+        .execute(sql, [&intent.connection_id])
+        .unwrap();
+    match f.store.admit_peer_authority(
+        &request,
+        &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+    ) {
+        Ok(fresh) => assert_eq!(
+            f.store
+                .project_connection_with_peer(&f.keys[0], &fresh)
+                .err()
+                .unwrap()
+                .code,
+            "forbidden"
+        ),
+        Err(error) => assert_eq!(error.code, "forbidden"),
+    }
 }
 
 mod media_authority;

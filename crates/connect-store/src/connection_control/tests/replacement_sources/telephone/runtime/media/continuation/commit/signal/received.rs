@@ -90,7 +90,7 @@ fn established_received_dtmf_owns_logical_member_and_real_call_without_borrowing
     let batch = freeze(&s, observed.clone());
     assert_eq!(batch.targets().len(), 1);
     assert_eq!(batch.observation(), &observed);
-    let c = s.f.store.connection().unwrap();
+    let c = fixture_change(&s.f, &[&s.route]);
     let (owner,parent,kind,source):(String,String,String,String)=c.query_row("SELECT o.owner_id,s.parent_record_id,s.parent_kind,s.source_json FROM received_dtmf_sources s JOIN operations o ON o.record_id=s.operation_record_id WHERE s.operation_record_id=?1",[batch.record_id()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
     assert_eq!(owner, s.phone.snapshot().identity_id);
     assert_ne!(owner, s.phone.snapshot().route_owner_id);
@@ -171,7 +171,7 @@ fn established_received_dtmf_original_input_replay_rechecks_route_ceiling_withou
     let mut changed = original.clone();
     changed.digits = "9".into();
     assert_eq!(prepare(&s, changed).unwrap_err().code, "conflict");
-    let c = s.f.store.connection().unwrap();
+    let c = fixture_change(&s.f, &[&s.route]);
     c.execute(
         "UPDATE credentials SET recipients=?2 WHERE id=?1",
         params![s.route, json!([s.phone.snapshot().identity_id]).to_string()],
@@ -179,9 +179,7 @@ fn established_received_dtmf_original_input_replay_rechecks_route_ceiling_withou
     .unwrap();
     drop(c);
     assert!(prepare(&s, original.clone()).is_err());
-    s.f.store
-        .connection()
-        .unwrap()
+    fixture_change(&s.f, &[&s.route])
         .execute(
             "UPDATE credentials SET recipients=?2 WHERE id=?1",
             params![s.route, json!(["*"]).to_string()],
@@ -358,7 +356,7 @@ fn established_received_dtmf_snapshot_detects_recipient_reservation_and_sql_orig
         before.digest,
         Store::inspect_snapshot(s.f.store.path()).unwrap().digest
     );
-    let c = s.f.store.connection().unwrap();
+    let c = fixture_change(&s.f, &[&s.route]);
     assert!(c.execute("UPDATE received_dtmf_sources SET parent_kind='sip-initial' WHERE operation_record_id=?1",[batch.record_id()]).is_err());
     assert!(c
         .execute(

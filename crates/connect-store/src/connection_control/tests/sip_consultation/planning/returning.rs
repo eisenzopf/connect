@@ -33,10 +33,7 @@ impl Returning {
             .unwrap()
             .unwrap();
         scene
-            .f
-            .store
-            .connection()
-            .unwrap()
+            .change_fixture()
             .execute(
                 "UPDATE credentials SET revoked=1 WHERE id=?1",
                 [&scene.root.credential],
@@ -229,9 +226,7 @@ fn private_sip_return_has_only_original_closure_control_and_restored_native_edge
             .unwrap()
             .scope;
     scope.operations.retain(|p| p != "stream.subscribe");
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE credentials SET operations=?2 WHERE id=?1",
             params![
@@ -337,9 +332,7 @@ fn private_sip_return_closure_survives_candidate_media_withdrawal_without_packet
                 .unwrap()
                 .scope;
         scope.operations.retain(|p| !removed.contains(&p.as_str()));
-        s.f.store
-            .connection()
-            .unwrap()
+        s.change_fixture()
             .execute(
                 "UPDATE credentials SET operations=?2 WHERE id=?1",
                 params![
@@ -363,7 +356,7 @@ fn private_sip_return_closure_survives_candidate_media_withdrawal_without_packet
         drop(phone);
         drop(read);
         // Withdrawal of codec preferences cannot obstruct closure either.
-        s.f.store.connection().unwrap().execute("UPDATE session_presence_capabilities SET capabilities_json=?2 WHERE participant_id=?1", params![s.f.pids[2], json!({"audio":["g.711-a"]}).to_string()]).unwrap();
+        s.change_fixture().execute("UPDATE session_presence_capabilities SET capabilities_json=?2 WHERE participant_id=?1", params![s.f.pids[2], json!({"audio":["g.711-a"]}).to_string()]).unwrap();
         assert!(r.read(true).unwrap().current());
         let receipt = r.applied(true);
         s.f.store
@@ -384,9 +377,7 @@ fn private_sip_return_closure_survives_candidate_media_withdrawal_without_packet
 fn private_sip_return_accepts_exact_previously_observed_departure_without_current_route_loan() {
     let r = Returning::new(true);
     let s = &r.scene;
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&s.policy.route_credential_id],
@@ -475,9 +466,7 @@ fn private_sip_return_refuses_missing_duplicate_foreign_sources_and_changed_plan
             .unwrap(),
         0
     );
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&r.key])
         .unwrap();
     assert!(r.read(true).is_err());
@@ -504,7 +493,7 @@ fn private_sip_return_uncertainty_is_once_only_and_keeps_both_original_private_f
         .begin_native_consultation_return(duplicate, r.read(true).unwrap())
         .is_err());
     s.f.store
-        .native_consultation_return_uncertain(attempt)
+        .native_consultation_return_uncertain(&attempt)
         .unwrap();
     assert!(r.read(true).is_err());
     let c = s.f.store.connection().unwrap();
@@ -534,9 +523,7 @@ fn private_sip_return_recording_survives_ended_return_grant_and_foreign_runtime_
     let r = Returning::new(false);
     let s = &r.scene;
     let receipt = r.applied(true);
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&r.key])
         .unwrap();
     s.f.store
@@ -592,9 +579,7 @@ fn restored_private_sip_candidate_loses_signal_context_before_physical_cleanup()
         crate::PrivateInitialTelephonePhase::Closed
     );
     // Cleanup attribution survives route withdrawal; it grants no new IO.
-    s.f.store
-        .connection()
-        .unwrap()
+    s.change_fixture()
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&s.policy.route_credential_id],

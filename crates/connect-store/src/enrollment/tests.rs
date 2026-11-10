@@ -561,7 +561,24 @@ fn original_recovery_refuses_revoked_issuer_child_key_endpoint_and_tombstone() {
                     .unwrap();
             }
             _ => {
-                f.store.connection().unwrap().execute("UPDATE operations SET tombstoned=1,intent_json=NULL,result_json=NULL WHERE operation_id=?1",[&f.request.completion_operation_id]).unwrap();
+                // This exact enrollment completion is issuer-owned and its
+                // credential metadata is read under the enrolled subject too.
+                let writer = f
+                    .store
+                    .acquire_authority(
+                        &[
+                            AuthorityScope::identity(&f.admin.identity_id, AuthorityMode::Write)
+                                .unwrap(),
+                            AuthorityScope::identity(&f.request.identity_id, AuthorityMode::Write)
+                                .unwrap(),
+                        ],
+                        &AuthorityWait::new(Duration::from_secs(1)),
+                    )
+                    .unwrap();
+                let c = f.store.connection_with_authority(&writer).unwrap();
+                c.execute("UPDATE operations SET tombstoned=1,intent_json=NULL,result_json=NULL WHERE owner_id=?1 AND operation_id=?2",params![f.admin.identity_id,f.request.completion_operation_id]).unwrap();
+                drop(c);
+                drop(writer);
             }
         }
         let before = f.counts();
@@ -953,4 +970,293 @@ fn native_task_bearer_cannot_bypass_the_enrolled_parent_origin_ceiling() {
         .store
         .check_unbound_enrollment_bearer(grant.expose_secret())
         .is_err());
+}
+
+#[test]
+fn pending_approval_birth_preserves_read_then_claim_releases_writer_before_delivery() {
+    let f = Fixture::new(SigningAlgorithm::EdDSA, EnrollmentTransport::Quic);
+    let scope = AuthorityScope::identity(&f.request.identity_id, AuthorityMode::Read).unwrap();
+    let read = f.store.try_acquire_authority(&[scope.clone()]).unwrap();
+    let approved = f
+        .store
+        .approve_enrollment(&f.admin.credential_id, f.request.clone())
+        .unwrap();
+    assert!(!f
+        .store
+        .authority_covers(&approved._authority, &[scope.write_scope()]));
+    let offer = approved.outcome().unwrap().clone();
+    drop(approved);
+    let claim = f.claim(&offer);
+    let store = f.store.clone();
+    let owner = std::thread::spawn(move || store.claim_enrollment(claim, None));
+    crate::authority_fences::test_wait_for_writer(&f.store, &scope.write_scope());
+    assert!(read.covers(&[scope.clone()]));
+    drop(read);
+    let delivered = owner.join().unwrap().unwrap();
+    assert!(f
+        .store
+        .authority_covers(&delivered._authority, &[scope.clone()]));
+    assert!(!f
+        .store
+        .authority_covers(&delivered._authority, &[scope.write_scope()]));
+    assert!(
+        f.store.try_acquire_authority(&[scope.clone()]).is_ok(),
+        "response may retain Read, never the mutation Writer"
+    );
+    let original = delivered.outcome().unwrap().clone();
+    let before = f.counts();
+    // Recovery while the first physical response is still owned must stay Read.
+    let replay = f.store.claim_enrollment(f.claim(&offer), None).unwrap();
+    assert_eq!(replay.outcome().unwrap(), &original);
+    assert_eq!(f.counts(), before);
+}
+
+#[test]
+fn committed_enrollment_survives_failed_reply_read_without_reissue_or_validity_renewal() {
+    let f = Fixture::new(SigningAlgorithm::ES256, EnrollmentTransport::WssWebrtc);
+    let offer = f.offer();
+    let value = f.complete(&offer);
+    let before = f.counts();
+    let write = AuthorityScope::identity(&f.request.identity_id, AuthorityMode::Write).unwrap();
+    let writer = f.store.try_acquire_authority(&[write]).unwrap();
+    let error = f
+        .store
+        .enrollment_credential_delivery(
+            &offer.enrollment_id,
+            &value,
+            value.credential.expires_at,
+            &AuthorityWait::new(Duration::from_millis(1)),
+        )
+        .unwrap_err();
+    assert_eq!(error.code, "authority-busy");
+    drop(writer);
+    assert_eq!(f.counts(), before);
+    let recovered = f
+        .store
+        .enrollment_credential_delivery(
+            &offer.enrollment_id,
+            &value,
+            value.credential.expires_at,
+            &AuthorityWait::new(Duration::from_secs(1)),
+        )
+        .unwrap();
+    assert_eq!(recovered.outcome().unwrap(), &value);
+    assert!(recovered.expires_at() <= value.credential.expires_at);
+    drop(recovered);
+    f.store
+        .revoke(&f.admin, &value.credential.credential_id)
+        .unwrap();
+    assert!(f
+        .store
+        .enrollment_credential_delivery(
+            &offer.enrollment_id,
+            &value,
+            value.credential.expires_at,
+            &AuthorityWait::new(Duration::from_secs(1))
+        )
+        .is_err());
+    let c = f.store.connection().unwrap();
+    let original:(String,String)=c.query_row("SELECT state,json_extract(result_json,'$.credential_id') FROM operations WHERE owner_id=?1 AND operation_id=?2",params![f.admin.identity_id,f.request.completion_operation_id],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+    assert_eq!(
+        original,
+        ("completed".into(), value.credential.credential_id)
+    );
+    drop(c);
+    assert_eq!(f.counts(), before);
+}
+
+#[test]
+fn pending_enrollment_birth_cannot_bind_existing_credential_or_forge_completed_origin() {
+    let f = Fixture::new(SigningAlgorithm::EdDSA, EnrollmentTransport::Quic);
+    let offer = f.offer();
+    let before = f.counts();
+    let c = f.store.connection().unwrap();
+    assert!(c.execute("UPDATE client_enrollments SET state='completed',credential_id=?2,issued_at=?3 WHERE id=?1",params![offer.enrollment_id,f.admin.credential_id,crate::now()]).is_err());
+    assert!(c.execute("INSERT OR REPLACE INTO client_enrollments SELECT id,tenant_id,issuer_identity_id,issuer_credential_id,identity_id,device_id,key_id,endpoint_id,approve_operation_id,complete_operation_id,request_json,intent_digest,challenge_hash,challenge_expires_at,credential_expires_at,state,attempts,credential_id,issued_at FROM client_enrollments WHERE id=?1",[&offer.enrollment_id]).is_err(),"REPLACE collision victims still need their exact writer");
+    drop(c);
+    assert_eq!(f.counts(), before);
+    let value = f.complete(&offer);
+    let held = f
+        .store
+        .revoke_enrollment(
+            &f.admin.credential_id,
+            &offer.enrollment_id,
+            "revoke-with-read-delivery",
+        )
+        .unwrap();
+    let target = AuthorityScope::identity(&f.request.identity_id, AuthorityMode::Read).unwrap();
+    assert!(f
+        .store
+        .authority_covers(&held._authority, &[target.clone()]));
+    assert!(!f
+        .store
+        .authority_covers(&held._authority, &[target.write_scope()]));
+    assert!(f.store.try_acquire_authority(&[target]).is_ok());
+    assert_eq!(
+        held.outcome().unwrap().credential_id.as_ref(),
+        Some(&value.credential.credential_id)
+    );
+}
+
+#[test]
+fn human_consent_issuance_and_issuer_revocation_drain_exact_subject_readers() {
+    let f = Fixture::new(SigningAlgorithm::EdDSA, EnrollmentTransport::Quic);
+    let child = f.store.create_identity("delegated-subject").unwrap().id;
+    // Consent authority comes only from legitimate human/operator issuance;
+    // Enrollment intentionally cannot grant credential.delegate.
+    let issuer = f.admin.credential_id.clone();
+    let request = connect_protocol::user_delegation::UserDelegationRequest {
+        operation_id: "original-human-consent".into(),
+        identity_id: child.clone(),
+        operations: vec!["send".into(), "operation.get".into()],
+        recipients: vec![f.request.recipients[0].clone()],
+        expires_at: f.request.credential_expires_at,
+    };
+    let issuer_scope = AuthorityScope::identity(&f.admin.identity_id, AuthorityMode::Read).unwrap();
+    let issuer_read = f
+        .store
+        .try_acquire_authority(&[issuer_scope.clone()])
+        .unwrap();
+    let store = f.store.clone();
+    let issuer_for_worker = issuer.clone();
+    let original_request = request.clone();
+    let (entered, waiting) = std::sync::mpsc::channel();
+    let owner = std::thread::spawn(move || {
+        crate::authority_fences::with_waited_lock_probe(
+            move || {
+                let _ = entered.send(());
+            },
+            || store.issue_user_delegation(&issuer_for_worker, original_request),
+        )
+    });
+    let waited = waiting.recv_timeout(Duration::from_millis(500)).is_ok();
+    let blocked = !owner.is_finished();
+    drop(issuer_read);
+    let issued = owner.join().unwrap();
+    assert!(
+        waited && blocked,
+        "real consent must acquire issuer Write before SQL"
+    );
+    let issued = issued.unwrap();
+    // No authority guard escapes this API; replay recovers the original receipt.
+    assert!(f.store.try_acquire_authority(&[issuer_scope]).is_ok());
+    let replay = f.store.issue_user_delegation(&issuer, request).unwrap();
+    assert_eq!(replay.credential.id, issued.credential.id);
+    assert_eq!(replay.credential.token, issued.credential.token);
+    assert_eq!(replay.expires_at, issued.expires_at);
+    assert!(f.store.authenticate(&issued.credential.token).is_ok());
+
+    let child_scope = AuthorityScope::identity(&child, AuthorityMode::Read).unwrap();
+    let child_read = f
+        .store
+        .try_acquire_authority(&[child_scope.clone()])
+        .unwrap();
+    let store = f.store.clone();
+    let admin = f.admin.clone();
+    let original_issuer = issuer.clone();
+    let (entered, waiting) = std::sync::mpsc::channel();
+    let owner = std::thread::spawn(move || {
+        crate::authority_fences::with_waited_lock_probe(
+            move || {
+                let _ = entered.send(());
+            },
+            || store.revoke(&admin, &original_issuer),
+        )
+    });
+    let waited = waiting.recv_timeout(Duration::from_millis(500)).is_ok();
+    let blocked = !owner.is_finished();
+    drop(child_read);
+    let revoked = owner.join().unwrap();
+    assert!(
+        waited && blocked,
+        "issuer revocation must drain actual delegated-subject IO"
+    );
+    revoked.unwrap();
+    assert!(f.store.try_acquire_authority(&[child_scope]).is_ok());
+    assert!(f.store.authenticate(&issued.credential.token).is_err());
+    assert!(f.store.revalidate(&issuer).is_err());
+    let c = f.store.connection().unwrap();
+    let count: u64 = c
+        .query_row(
+            "SELECT COUNT(*) FROM user_delegations WHERE issuer_credential_id=?1",
+            [&issuer],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        count, 1,
+        "original consent is never replayed as another grant"
+    );
+}
+
+#[test]
+fn enrollment_cannot_create_a_delegating_issuer_and_revokes_only_its_original_credential() {
+    let mut f = Fixture::new(SigningAlgorithm::EdDSA, EnrollmentTransport::Quic);
+    let before = f.counts();
+    f.request.operations.push("credential.delegate".into());
+    let error = f
+        .store
+        .approve_enrollment(&f.admin.credential_id, f.request.clone())
+        .unwrap_err();
+    assert_eq!(error.code, "invalid-request");
+    assert_eq!(
+        f.counts(),
+        before,
+        "unsupported delegation approval must not create partial state"
+    );
+    f.request
+        .operations
+        .retain(|operation| operation != "credential.delegate");
+    let offer = f.offer();
+    let enrolled = f.complete(&offer);
+    let child = f.store.create_identity("unrelated-subject").unwrap().id;
+    let request = connect_protocol::user_delegation::UserDelegationRequest {
+        operation_id: "enrollment-cannot-consent".into(),
+        identity_id: child.clone(),
+        operations: vec!["send".into()],
+        recipients: f.request.recipients.clone(),
+        expires_at: f.request.credential_expires_at,
+    };
+    let error = f
+        .store
+        .issue_user_delegation(&enrolled.credential.credential_id, request)
+        .unwrap_err();
+    assert_eq!(error.code, "forbidden");
+    let child_scope = AuthorityScope::identity(&child, AuthorityMode::Read).unwrap();
+    let unrelated = f
+        .store
+        .try_acquire_authority(&[child_scope.clone()])
+        .unwrap();
+    let revoked = f
+        .store
+        .revoke_enrollment(
+            &f.admin.credential_id,
+            &offer.enrollment_id,
+            "revoke-nondelegating-enrollment",
+        )
+        .unwrap();
+    assert!(revoked.outcome().unwrap().revoked);
+    assert!(!f
+        .store
+        .authority_covers(&revoked._authority, &[child_scope]));
+    drop(unrelated);
+    drop(revoked);
+    assert!(f
+        .store
+        .authenticate(&enrolled.credential.credential)
+        .is_err());
+    let count: u64 = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT COUNT(*) FROM user_delegations WHERE issuer_credential_id=?1",
+            [&enrolled.credential.credential_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        count, 0,
+        "no valid enrolled issuer can create this descendant"
+    );
 }

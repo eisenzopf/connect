@@ -98,6 +98,11 @@ pub(crate) fn invite(
         updated_at: timestamp,
         ended_reason: None,
     };
+    let birth = store.authority_writer_boundary.new_invited_session_birth(
+        c,
+        &session.id,
+        conversation_id,
+    )?;
     c.execute(
         "INSERT INTO sessions(id,conversation_id,initiator_id,participant_id,state,media,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",
         params![session.id, session.conversation_id, session.initiator_id, session.participant_id, session.state, serde_json::to_string(&session.media).map_err(|_| Error::storage())?, timestamp, timestamp],
@@ -116,6 +121,7 @@ pub(crate) fn invite(
         ).map_err(|_| Error::storage())?;
     }
     emit(c, recipients, &session, "session_invited")?;
+    drop(birth);
     Ok(session)
 }
 

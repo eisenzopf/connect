@@ -18,10 +18,7 @@ impl Groups {
             .complete_native_consultation(&receipt)
             .unwrap()
             .unwrap();
-        old.f
-            .store
-            .connection()
-            .unwrap()
+        old.change_fixture()
             .execute(
                 "UPDATE credentials SET revoked=1 WHERE id=?1",
                 [&old.root.credential],
@@ -350,10 +347,7 @@ fn another_root_cannot_lend_execution_or_route_to_a_private_sip_outsider() {
         .unwrap());
     assert!(s.read().unwrap().current());
     s.old
-        .f
-        .store
-        .connection()
-        .unwrap()
+        .change_fixture()
         .execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&s.old.policy.route_credential_id],
@@ -473,7 +467,7 @@ fn sip_candidate_match_keeps_immutable_binding_and_rechecks_original_incarnation
             2 => "UPDATE credentials SET revoked=1 WHERE id=(SELECT credential_id FROM consultation_candidate_bindings)",
             _ => "UPDATE credentials SET revoked=1 WHERE id=(SELECT json_extract(policy_json,'$.route_credential_id') FROM sip_consultation_reservations)",
         };
-        s.f.store.connection().unwrap().execute(sql, []).unwrap();
+        s.change_fixture().execute(sql, []).unwrap();
         assert!(
             s.f.store
                 .sip_consultation_candidate_matches(&s.root, &candidate)

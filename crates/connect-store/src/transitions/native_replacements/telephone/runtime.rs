@@ -47,6 +47,11 @@ impl TelephoneReplacementRead {
     pub fn current(&self) -> bool {
         self.source.current() && crate::now() < self.route_actor.expires_at
     }
+    /// Retry may shorten a fresh interval to the original begin cutoff, never
+    /// renew it. This carries no permission beyond the existing current read.
+    pub fn limit(&mut self, expires_at: i64) -> Result<()> {
+        self.source.limit(expires_at)
+    }
     pub fn source(&self) -> &NativeReplacementPreparationRead {
         &self.source
     }
@@ -111,6 +116,9 @@ pub struct TelephoneReplacementAttempt {
     effect: String,
     expected: serde_json::Value,
     allocated: Option<Arc<TelephoneReplacementAllocated>>,
+    // The original admission interval bounds reacquiring the allocation IO read.
+    // Later separately authorized physical SIP writes retain their own bounds.
+    begin_expires_at: i64,
 }
 pub struct TelephoneReplacementAllocated {
     attempt: Arc<TelephoneReplacementAttempt>,
@@ -286,15 +294,22 @@ fn allocated_current(
         Err(Error::forbidden())
     }
 }
-fn exact_submission(
+fn exact_begun(
     c: &Connection,
     attempt: &TelephoneReplacementAttempt,
     read: &TelephoneReplacementRead,
 ) -> Result<()> {
-    let allocated = attempt.allocated.as_ref().ok_or_else(Error::forbidden)?;
+    let correlation = match attempt.phase {
+        Phase::Allocate => attempt.attempt.as_str(),
+        Phase::Submit => attempt
+            .allocated
+            .as_ref()
+            .ok_or_else(Error::forbidden)?
+            .call_id(),
+    };
     let exact: bool = c.query_row(
-        "SELECT EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1 AND s.phase='start' AND s.attempt_id=?2 AND s.effect_id=?3 AND s.started=1 AND s.observation_json IS NULL AND e.state='submitting' AND e.provider=?4 AND e.correlation_key=?5 AND e.observation_json=?6 AND e.attempt=1 AND e.submission_generation=1)",
-        params![attempt.prepared.record,attempt.attempt,attempt.effect,attempt.phase.provider(),allocated.call_id(),attempt.descriptor], |r| r.get(0),
+        "SELECT EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1 AND s.phase=?7 AND s.attempt_id=?2 AND s.effect_id=?3 AND s.started=1 AND s.observation_json IS NULL AND e.state='submitting' AND e.provider=?4 AND e.correlation_key=?5 AND e.observation_json=?6 AND e.attempt=1 AND e.submission_generation=1)",
+        params![attempt.prepared.record,attempt.attempt,attempt.effect,attempt.phase.provider(),correlation,attempt.descriptor,attempt.phase.name()], |r| r.get(0),
     ).map_err(|_| Error::storage())?;
     if !exact || read.descriptor != attempt.descriptor || !read.current() {
         return Err(Error::forbidden());
@@ -302,6 +317,32 @@ fn exact_submission(
     Ok(())
 }
 impl Store {
+    fn telephone_state_change_sql<'a>(
+        &'a self,
+        derive: impl Fn(&Connection) -> Result<Vec<crate::AuthorityScope>>,
+    ) -> Result<(
+        Arc<crate::AuthorityGuardSet>,
+        crate::installation_ownership::ConnectionGuard<'a>,
+    )> {
+        // Same bounded five-ms pattern as replacement capture projection:
+        // derive without file guards, announce/drain, immediate SQL reacquire.
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let needed = {
+            let c = self.try_connection_with_wait(&wait)?;
+            derive(&c)?
+        };
+        let held = self.acquire_authority(&needed, &wait)?;
+        let c = self.try_connection()?;
+        let current = derive(&c)?;
+        if !self.authority_covers(&held, &current) {
+            return Err(Error::new(
+                "authority-busy",
+                "Original telephone mutation scope changed",
+            ));
+        }
+        c.bind_available_mutation_authority(self, &held)?;
+        Ok((held, c))
+    }
     /// Fresh merged original-call and independent route-credential authority.
     /// Host configuration selects the credential and policy; never wire data.
     pub fn telephone_replacement_allocation_read(
@@ -355,22 +396,41 @@ impl Store {
         &self,
         attempt: Arc<TelephoneReplacementAttempt>,
     ) -> Result<TelephoneReplacementWriteRead> {
-        self.telephone_replacement_begun_read(attempt, false)
-    }
-    fn telephone_replacement_begun_read(
-        &self,
-        attempt: Arc<TelephoneReplacementAttempt>,
-        immediate: bool,
-    ) -> Result<TelephoneReplacementWriteRead> {
         if attempt.phase != Phase::Submit {
             return Err(Error::forbidden());
         }
-        let allocated = attempt
-            .allocated
-            .as_ref()
-            .ok_or_else(Error::forbidden)?
-            .clone();
-        let a = &allocated.attempt;
+        let read = self.telephone_replacement_begun_read(&attempt, false)?;
+        Ok(TelephoneReplacementWriteRead { read, attempt })
+    }
+    /// The original begun allocation is retained independently of this fresh
+    /// IO read. A busy read never authorizes reissuing the once-only begin.
+    pub fn telephone_replacement_allocation_begun_read(
+        &self,
+        attempt: Arc<TelephoneReplacementAttempt>,
+    ) -> Result<TelephoneReplacementRead> {
+        if attempt.phase != Phase::Allocate || crate::now() >= attempt.begin_expires_at {
+            return Err(Error::forbidden());
+        }
+        self.telephone_replacement_begun_read(&attempt, true)
+    }
+    /// Initial start admission follows the original begin cutoff; subsequent
+    /// separately authorized physical writes keep their own unchanged intervals.
+    pub fn telephone_replacement_submission_begun_read(
+        &self,
+        attempt: Arc<TelephoneReplacementAttempt>,
+    ) -> Result<TelephoneReplacementWriteRead> {
+        if attempt.phase != Phase::Submit || crate::now() >= attempt.begin_expires_at {
+            return Err(Error::forbidden());
+        }
+        let mut read = self.telephone_replacement_begun_read(&attempt, true)?;
+        read.limit(attempt.begin_expires_at)?;
+        Ok(TelephoneReplacementWriteRead { read, attempt })
+    }
+    fn telephone_replacement_begun_read(
+        &self,
+        attempt: &Arc<TelephoneReplacementAttempt>,
+        immediate: bool,
+    ) -> Result<TelephoneReplacementRead> {
         let sql = || {
             if immediate {
                 self.try_connection()
@@ -380,36 +440,45 @@ impl Store {
         };
         let scopes = {
             let c = sql()?;
-            a.prepared.selection.scopes(self, &c, false)?
+            attempt.prepared.selection.scopes(self, &c, false)?
         };
         let held = self.try_acquire_authority(&scopes)?;
         let c = sql()?;
-        let mut source =
-            a.prepared
-                .selection
-                .read_with_connection(self, &c, held, crate::now() + 5)?;
+        let until = if attempt.phase == Phase::Allocate {
+            attempt.begin_expires_at.min(crate::now() + 5)
+        } else {
+            crate::now() + 5
+        };
+        let mut source = attempt
+            .prepared
+            .selection
+            .read_with_connection(self, &c, held, until)?;
         let (route_actor, target, descriptor) = facts(
             self,
             &c,
-            &a.prepared,
+            &attempt.prepared,
             &source,
-            &a.route_credential,
-            &a.policy,
+            &attempt.route_credential,
+            &attempt.policy,
         )?;
         source.limit(route_actor.expires_at)?;
-        allocated_current(self, &c, &allocated)?;
+        if let Some(allocated) = &attempt.allocated {
+            allocated_current(self, &c, allocated)?;
+        } else if attempt.phase == Phase::Submit {
+            return Err(Error::forbidden());
+        }
         let read = TelephoneReplacementRead {
-            prepared: a.prepared.clone(),
+            prepared: attempt.prepared.clone(),
             source,
             route_actor,
             target,
-            policy: a.policy.clone(),
+            policy: attempt.policy.clone(),
             descriptor,
-            phase: Phase::Submit,
-            allocated: Some(allocated),
+            phase: attempt.phase,
+            allocated: attempt.allocated.clone(),
         };
-        exact_submission(&c, &attempt, &read)?;
-        Ok(TelephoneReplacementWriteRead { read, attempt })
+        exact_begun(&c, attempt, &read)?;
+        Ok(read)
     }
     /// Reacquire current authority for this exact durable submission attempt.
     /// Planning/allocation receipts alone cannot authorize physical INVITE IO.
@@ -418,12 +487,16 @@ impl Store {
         &self,
         attempt: Arc<TelephoneReplacementAttempt>,
     ) -> Result<TelephoneReplacementWriteRead> {
-        self.telephone_replacement_begun_read(attempt, true)
+        if attempt.phase != Phase::Submit {
+            return Err(Error::forbidden());
+        }
+        let read = self.telephone_replacement_begun_read(&attempt, true)?;
+        Ok(TelephoneReplacementWriteRead { read, attempt })
     }
     pub fn begin_telephone_replacement_allocation(
         &self,
         read: TelephoneReplacementRead,
-    ) -> Result<(Arc<TelephoneReplacementAttempt>, TelephoneReplacementRead)> {
+    ) -> Result<Arc<TelephoneReplacementAttempt>> {
         if read.phase != Phase::Allocate {
             return Err(Error::forbidden());
         }
@@ -432,7 +505,7 @@ impl Store {
     pub fn begin_telephone_replacement_submission(
         &self,
         read: TelephoneReplacementRead,
-    ) -> Result<(Arc<TelephoneReplacementAttempt>, TelephoneReplacementRead)> {
+    ) -> Result<Arc<TelephoneReplacementAttempt>> {
         if read.phase != Phase::Submit {
             return Err(Error::forbidden());
         }
@@ -441,32 +514,69 @@ impl Store {
     fn begin_telephone_replacement(
         &self,
         read: TelephoneReplacementRead,
-    ) -> Result<(Arc<TelephoneReplacementAttempt>, TelephoneReplacementRead)> {
+    ) -> Result<Arc<TelephoneReplacementAttempt>> {
         if !read.current() {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let interval = read.source.retained().interval();
+        if !self.authority_covers(interval, &[]) {
+            return Err(Error::forbidden());
+        }
+        // Immutable routing hints only. Preserve independent source/carrier
+        // Reads; add only the existing mutation's caller/member/CID Writers.
+        // Do not spend the five-ms drain budget resolving all source facts
+        // before file admission; they are fully rederived below under Writer.
+        let mutation_scopes = {
+            let c = self.try_connection()?;
+            let mut scopes = interval.snapshot_read_scopes()?;
+            scopes.push(crate::AuthorityScope::identity(
+                &read.source.caller().actor.identity_id,
+                crate::AuthorityMode::Write,
+            )?);
+            scopes.extend(crate::authority_admission::conversation_scopes(
+                &c,
+                &read.source.context().conversation_id,
+                crate::AuthorityMode::Write,
+            )?);
+            crate::AuthorityScope::merged(&scopes)?
+        };
+        let begin_expires_at = read.expires_at();
+        let prepared = read.prepared.clone();
+        let route_credential = read.route_actor.credential_id.clone();
+        let policy = read.policy.clone();
+        let descriptor = read.descriptor.clone();
+        let phase = read.phase;
+        let allocated = read.allocated.clone();
+        drop(read);
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let held = self.acquire_authority(&mutation_scopes, &wait)?;
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let (_, _, descriptor) = facts(
-            self,
-            &tx,
-            &read.prepared,
-            &read.source,
-            &read.route_actor.credential_id,
-            &read.policy,
-        )?;
-        if descriptor != read.descriptor {
+        let current = prepared.selection.scopes(self, &tx, true)?;
+        if !self.authority_covers(&held, &current) {
+            return Err(Error::forbidden());
+        }
+        // This temporary resolver is control-only under the writer. Drop it
+        // before returning; no Write interval is ever lent to Core/SIP IO.
+        let source =
+            prepared
+                .selection
+                .read_with_connection(self, &tx, held.clone(), begin_expires_at)?;
+        let (_, _, current_descriptor) =
+            facts(self, &tx, &prepared, &source, &route_credential, &policy)?;
+        if current_descriptor != descriptor {
             return Err(conflict());
         }
-        if let Some(allocated) = &read.allocated {
+        if let Some(allocated) = &allocated {
             allocated_current(self, &tx, allocated)?;
         }
-        let phase = read.phase.name();
+        let phase_name = phase.name();
         let exists: bool = tx.query_row(
             "SELECT EXISTS(SELECT 1 FROM native_replacement_steps WHERE operation_record_id=?1 AND phase=?2)",
-            params![read.prepared.record,phase], |r| r.get(0),
+            params![prepared.record,phase_name], |r| r.get(0),
         ).map_err(|_| Error::storage())?;
         if exists {
             return Err(Error::new(
@@ -476,47 +586,49 @@ impl Store {
         }
         let attempt = format!("tra_{}", uuid::Uuid::new_v4());
         let effect = format!("tre_{}", uuid::Uuid::new_v4());
-        let expected = match read.phase {
+        let expected = match phase {
             Phase::Allocate => {
-                let saved = allocation::current_prepared(self, &tx, &read.prepared)?;
+                let saved = allocation::current_prepared(self, &tx, &prepared)?;
                 let mut expected = saved["expected_preparation"].clone();
                 expected["allocated"] = serde_json::json!(true);
                 expected["transport"] = serde_json::json!("sip");
                 expected
             }
             Phase::Submit => {
-                serde_json::json!({"submitted":true,"call_reference":{"kind":"sip.call-id","value":read.allocated.as_ref().ok_or_else(Error::forbidden)?.call_id}})
+                serde_json::json!({"submitted":true,"call_reference":{"kind":"sip.call-id","value":allocated.as_ref().ok_or_else(Error::forbidden)?.call_id}})
             }
         };
-        let correlation = read
-            .allocated
+        let correlation = allocated
             .as_ref()
             .map_or_else(|| attempt.clone(), |a| a.call_id.clone());
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,?3,?4,'none','prepared',?5)",
-            params![effect,read.prepared.record,read.phase.provider(),correlation,read.descriptor]).map_err(|_| Error::storage())?;
+            params![effect,prepared.record,phase.provider(),correlation,descriptor]).map_err(|_| Error::storage())?;
         tx.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,?2,?3,?4)",
-            params![read.prepared.record,phase,attempt,effect]).map_err(|_| Error::storage())?;
-        tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase=?2", params![read.prepared.record,phase]).map_err(|_| Error::storage())?;
+            params![prepared.record,phase_name,attempt,effect]).map_err(|_| Error::storage())?;
+        tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase=?2", params![prepared.record,phase_name]).map_err(|_| Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_| Error::storage())?;
-        native_handoffs::touch(&tx, &read.prepared.record, self)?;
-        if !read.current() {
+        native_handoffs::touch(&tx, &prepared.record, self)?;
+        if !source.current() {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok((
-            Arc::new(TelephoneReplacementAttempt {
-                prepared: read.prepared.clone(),
-                route_credential: read.route_actor.credential_id.clone(),
-                policy: read.policy.clone(),
-                descriptor: read.descriptor.clone(),
-                phase: read.phase,
-                attempt,
-                effect,
-                expected,
-                allocated: read.allocated.clone(),
-            }),
-            read,
-        ))
+        drop(source);
+        drop(c);
+        drop(held);
+        // Return original custody before any new Read acquisition. A later
+        // busy/error can only retry this attempt, never repeat this transition.
+        Ok(Arc::new(TelephoneReplacementAttempt {
+            prepared,
+            route_credential,
+            policy,
+            descriptor,
+            phase,
+            attempt,
+            effect,
+            expected,
+            allocated,
+            begin_expires_at,
+        }))
     }
     pub fn record_telephone_replacement_allocated(
         &self,
@@ -543,14 +655,9 @@ impl Store {
     ) -> Result<OperationRecord> {
         let prepared = &attempt.prepared;
         local_owner(self, &prepared.owner, &prepared.runtime)?;
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                admission::row_scopes(&rows::by_record(&c, &prepared.record)?)
-            },
-        )?;
-        let mut c = self.connection()?;
+        let (held, mut c) = self.telephone_state_change_sql(|c| {
+            admission::mutation_row_scopes(&rows::by_record(c, &prepared.record)?)
+        })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

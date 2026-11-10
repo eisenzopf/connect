@@ -1,6 +1,7 @@
 //! Original physical restart custody. Wire dispatch remains separately gated.
 use super::*;
 use crate::canonical_media::Policy;
+use crate::canonical_native_streams::CapturedStreamOutcome;
 use connect_store::{
     AuthorityWait, NativeIceOrigin, NativeStreamCommitted, NativeStreamLease, PeerAuthorityGuard,
 };
@@ -360,10 +361,11 @@ impl Restart {
             .store
             .complete_native_stream(self.receipt.as_ref().ok_or_else(Error::forbidden)?)
     }
-    pub(super) fn uncertain(&self) -> Result<connect_protocol::transitions::OperationRecord> {
-        self.policy
-            .store
-            .native_stream_attempt_uncertain(self.lease()?)
+    fn into_uncertain(mut self) -> Result<CapturedStreamOutcome> {
+        self.release_slot();
+        Ok(CapturedStreamOutcome::Uncertain(
+            self.lease.take().ok_or_else(Error::forbidden)?,
+        ))
     }
     pub(super) fn submitted(&self) -> bool {
         self.submitted
@@ -392,16 +394,17 @@ impl Restart {
             })
     }
     /// Definitive refusal is possible only before calling the physical engine.
-    pub(super) fn refuse(
-        self,
-        error: Error,
-    ) -> Result<connect_protocol::transitions::OperationRecord> {
+    fn into_refusal(mut self, error: Error) -> Result<CapturedStreamOutcome> {
         if self.submitted {
             return Err(Error::forbidden());
         }
-        self.policy
-            .store
-            .fail_native_stream_without_effect(self.lease.ok_or_else(Error::forbidden)?, error)
+        self.release_slot();
+        Ok(CapturedStreamOutcome::NoEffect(
+            self.lease
+                .take()
+                .ok_or_else(Error::forbidden)?
+                .without_effect(error),
+        ))
     }
 }
 
@@ -478,10 +481,10 @@ impl Runtime {
             let _ = tx.send(Ok(reply(accepted)));
             return;
         }
-        let lease = match original_proof(&a)
+        let (lease, started) = match original_proof(&a)
             .and_then(|p| store.begin_native_stream_with_peer(&credential, p))
         {
-            Ok(Some((lease, _))) => lease,
+            Ok(Some(value)) => value,
             Ok(None) => {
                 let _ = tx.send(
                     original_proof(&a)
@@ -517,12 +520,16 @@ impl Runtime {
         ) {
             Ok(attempt) => attempt,
             Err((error, lease)) => {
-                let result = if error.code == "reconciliation-required" {
-                    store.native_stream_attempt_uncertain(&lease)
+                let captured = if error.code == "reconciliation-required" {
+                    CapturedStreamOutcome::Uncertain(lease)
                 } else {
-                    store.fail_native_stream_without_effect(lease, error)
+                    CapturedStreamOutcome::NoEffect(lease.without_effect(error))
                 };
-                let _ = tx.send(result.map(reply));
+                let _ = tx.send(Ok(reply(started)));
+                drop(a);
+                drop(physical);
+                drop(credential);
+                captured.settle(store, &self.stop).await;
                 return;
             }
         };
@@ -548,12 +555,30 @@ impl Runtime {
         if let Err(error) = outcome {
             attempt.diagnostic("negotiate", Some(&error));
             if !attempt.submitted() {
-                let _ = tx.send(attempt.refuse(error).map(reply));
+                let captured = attempt.into_refusal(error);
+                let response = captured
+                    .as_ref()
+                    .map(|_| reply(started))
+                    .map_err(Clone::clone);
+                let _ = tx.send(response);
+                drop(a);
+                drop(physical);
+                drop(credential);
+                if let Ok(captured) = captured {
+                    captured.settle(store, &self.stop).await;
+                }
                 return;
             }
-            let _ = tx.send(attempt.uncertain().map(reply));
+            let _ = tx.send(Ok(reply(started)));
             drop(a);
+            // Close the same physical attempt before waiting on journal access.
             let _ = attempt.close_original().await;
+            let captured = attempt.into_uncertain();
+            drop(physical);
+            drop(credential);
+            if let Ok(captured) = captured {
+                captured.settle(store, &self.stop).await;
+            }
             return;
         }
         let response = original_proof(&a)
@@ -583,11 +608,18 @@ impl Runtime {
                         loop {
                             match attempt.complete() {
                                 Ok(_) => return,
-                                Err(e) if e.code == "forbidden" => {
+                                Err(e)
+                                    if matches!(
+                                        e.code.as_str(),
+                                        "authority-busy" | "storage-unavailable"
+                                    ) =>
+                                {
+                                    ()
+                                }
+                                Err(e) => {
                                     attempt.diagnostic("complete", Some(&e));
                                     return;
                                 }
-                                Err(_) => (),
                             }
                             tokio::select! { biased;
                                 _ = self.stop.cancelled() => return,
@@ -612,8 +644,13 @@ impl Runtime {
             }
         }
         attempt.diagnostic(if finished { "retire" } else { "reply-wait" }, None);
-        let _ = attempt.uncertain();
         let _ = attempt.close_original().await;
+        let captured = attempt.into_uncertain();
+        drop(physical);
+        drop(credential);
+        if let Ok(captured) = captured {
+            captured.settle(store, &self.stop).await;
+        }
         // The original parent custodian observes this actual joined close and
         // records its own attributed lifetime retirement. ICE stays Unknown.
     }

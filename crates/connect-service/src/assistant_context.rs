@@ -155,6 +155,14 @@ impl AssistantProviderContextRead {
     pub fn expires_at(&self) -> i64 {
         self.inner.expires_at()
     }
+    /// Preserve an original control cutoff while rechecking current authority.
+    pub fn limit(&mut self, expires_at: i64) -> Result<()> {
+        self.inner.limit(expires_at)?;
+        if !self.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(())
+    }
     pub fn context_json(&self) -> Result<&str> {
         if !self.current() {
             return Err(Error::forbidden());
@@ -347,23 +355,18 @@ impl Service {
         &self,
         update: &connect_store::AssistantProviderUpdate,
         read: AssistantProviderContextRead,
-    ) -> Result<(
-        connect_store::AssistantProviderUpdateExport,
-        AssistantProviderContextRead,
-    )> {
+    ) -> Result<connect_store::AssistantProviderUpdateExport> {
         if !read.current() {
             return Err(Error::forbidden());
         }
-        let (export, inner) = self
-            .store
-            .begin_native_assistant_update(update, read.inner)?;
-        Ok((
-            export,
-            AssistantProviderContextRead {
-                inner,
-                runtime: read.runtime,
-                entry: read.entry,
-            },
-        ))
+        self.store.begin_native_assistant_update(update, read.inner)
+    }
+    pub fn try_assistant_begun_update_read(
+        &self,
+        export: &connect_store::AssistantProviderUpdateExport,
+    ) -> Result<AssistantProviderContextRead> {
+        self.assistant_read_using(export.instance(), |s| {
+            s.try_native_assistant_begun_update_read(export)
+        })
     }
 }

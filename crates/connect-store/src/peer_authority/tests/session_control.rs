@@ -429,13 +429,22 @@ fn owned_invitation_reject_is_atomic_and_storage_recovery_retains_one_original_d
         original
     );
     drop(proof);
-    let c = f.store.connection().unwrap();
-    c.execute(
-        "UPDATE peer_signing_keys SET revoked=1 WHERE key_id='key'",
-        [],
-    )
-    .unwrap();
-    drop(c);
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &f.identity,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        c.execute(
+            "UPDATE peer_signing_keys SET revoked=1 WHERE key_id='key'",
+            [],
+        )
+        .unwrap();
+    }
     assert_eq!(f.admit(&request).unwrap_err().code, "forbidden");
 }
 #[test]

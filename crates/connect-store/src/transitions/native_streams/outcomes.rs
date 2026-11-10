@@ -264,6 +264,34 @@ pub(super) fn exact(
     rows::by_record(c, &lease.record)
 }
 impl Store {
+    /// Captured outcomes are historical metadata, not another initiating grant.
+    /// Derive the immutable original row footprint under short SQL, release SQL,
+    /// then try its writer without waiting beneath a caller's retained readers.
+    /// The caller rederives the footprint inside its bound SQL transaction.
+    fn native_stream_outcome_authority(
+        &self,
+        lease: &NativeStreamLease,
+    ) -> Result<std::sync::Arc<crate::AuthorityGuardSet>> {
+        let scopes = {
+            let c = self.try_connection()?;
+            let row = exact(&c, self, lease)?;
+            admission::mutation_row_scopes(&row)?
+        };
+        self.try_acquire_authority(&scopes)
+    }
+    fn require_native_stream_outcome_authority(
+        &self,
+        authority: &crate::AuthorityGuardSet,
+        row: &rows::Saved,
+    ) -> Result<()> {
+        if !self.authority_covers(authority, &admission::mutation_row_scopes(row)?) {
+            return Err(Error::new(
+                "authority-busy",
+                "Native stream outcome footprint changed",
+            ));
+        }
+        Ok(())
+    }
     /// The effect may have committed. This retains its original identity and
     /// keeps the control reserved; it makes no claim about historical media.
     pub fn native_stream_attempt_uncertain(
@@ -271,11 +299,14 @@ impl Store {
         lease: &NativeStreamLease,
     ) -> Result<OperationRecord> {
         let owner = self.require_runtime_owner()?;
-        let mut c = self.connection()?;
+        let authority = self.native_stream_outcome_authority(lease)?;
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = exact(&tx, self, lease)?;
+        self.require_native_stream_outcome_authority(&authority, &row)?;
         if !row.record.state.terminal() && row.record.state != OperationState::Unknown {
             if row.record.state != OperationState::Preparing {
                 return Err(conflict());
@@ -304,11 +335,14 @@ impl Store {
     ) -> Result<OperationRecord> {
         let lease = &receipt.lease;
         let owner = self.require_runtime_owner()?;
-        let mut c = self.connection()?;
+        let authority = self.native_stream_outcome_authority(lease)?;
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = exact(&tx, self, lease)?;
+        self.require_native_stream_outcome_authority(&authority, &row)?;
         let mut result = match &receipt.outcome {
             CommittedOutcome::Gates { revision, streams } => {
                 serde_json::json!({"connection_id":lease.connection,"connection_generation":lease.generation,"stream_revision":revision,"resources_changed":false,"action":lease.gate_payload.as_ref().ok_or_else(conflict)?["action"],"gate_streams":streams})
@@ -519,11 +553,14 @@ impl Store {
         let lease = &receipt.lease;
         let problem = &receipt.problem;
         let owner = self.require_runtime_owner()?;
-        let mut c = self.connection()?;
+        let authority = self.native_stream_outcome_authority(lease)?;
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         let row = exact(&tx, self, lease)?;
+        self.require_native_stream_outcome_authority(&authority, &row)?;
         if lease.command == Command::Dtmf {
             let frozen: bool = tx
                 .query_row(

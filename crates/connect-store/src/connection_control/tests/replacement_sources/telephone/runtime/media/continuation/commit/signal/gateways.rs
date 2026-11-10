@@ -108,7 +108,7 @@ fn established_gateway_dtmf_freezes_actual_committed_generation_without_initial_
         target.origin().sip_call_id(),
         s.phone.snapshot().media.call_id
     );
-    let c = s.f.store.connection().unwrap();
+    let c = fixture_change(&s.f, &[&s.route]);
     let (kind,json):(String,String) = c.query_row("SELECT target_kind,target_json FROM native_dtmf_deliveries WHERE operation_record_id=?1",[s.lease.record_id()],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
     assert_eq!(kind, "sip-established");
     let snapshot: serde_json::Value = serde_json::from_str(&json).unwrap();
@@ -209,9 +209,7 @@ fn established_gateway_dtmf_current_rights_refuse_queued_work_but_captured_outco
         .try_start_native_dtmf_gateway_write(&read, "original-established-schedule")
         .unwrap();
     drop(read);
-    s.f.store
-        .connection()
-        .unwrap()
+    fixture_change(&s.f, &[&s.route])
         .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&s.route])
         .unwrap();
     assert!(s.f.store.try_native_dtmf_gateway_read(target).is_err());
@@ -315,7 +313,7 @@ fn established_gateway_dtmf_snapshot_digest_includes_recipient_only_reservation(
 #[test]
 fn established_gateway_dtmf_schema_refuses_wrong_call_generation_route_or_borrowed_native_facts() {
     let s = fixture();
-    let c = s.f.store.connection().unwrap();
+    let c = fixture_change(&s.f, &[&s.route]);
     c.execute("INSERT INTO native_dtmf_sources(operation_record_id,runtime_epoch,observation_json) VALUES(?1,?2,?3)",params![s.lease.record_id(),s.f.store.runtime_epoch(),serde_json::to_string(&observation(&s)).unwrap()]).unwrap();
     let p = s.phone.snapshot();
     let exact = json!({"connection_id":p.connection_id,"runtime_connection_id":p.runtime_connection_id,"sip_call_id":p.media.call_id,"participant_id":p.participant_id,"membership_epoch":p.membership_epoch,"generation":p.generation,"identity_id":p.identity_id,"endpoint_id":p.endpoint_id,"device_id":p.device_id,"route_credential_id":p.route_credential_id,"route_owner_id":p.route_owner_id});

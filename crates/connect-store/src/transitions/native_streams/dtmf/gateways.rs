@@ -221,11 +221,14 @@ impl Store {
         target: &NativeDtmfGatewayTarget,
         disposition: Disposition,
     ) -> Result<()> {
-        let mut c = self.try_connection()?;
+        let (held, mut c) = self.native_dtmf_history_sql(&target.source)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        historical(&tx, self, &target.source)?;
+        let row = historical(&tx, self, &target.source)?;
+        if !self.authority_covers(&held, &admission::mutation_row_scopes(&row)?) {
+            return Err(Error::forbidden());
+        }
         outcome(
             &tx,
             self,

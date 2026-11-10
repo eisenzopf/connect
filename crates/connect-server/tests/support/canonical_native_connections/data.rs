@@ -9,6 +9,9 @@ async fn select_protocol(
     protocol: &str,
     selection: Value,
 ) {
+    // This target uses Fixture.client's existing five-second SDK budget.
+    // Polling the same original record never renews that initial deadline.
+    let until = tokio::time::Instant::now() + Duration::from_secs(5);
     let scope = CommandScope {
         conversation_id: Some(cid.into()),
         session_id: Some("native-session".into()),
@@ -16,33 +19,27 @@ async fn select_protocol(
         operation_id: Some("data-subscribe".into()),
         expected_revision: Some(1),
     };
-    target
-        .send_value(
-            "stream.subscribe",
-            json!({"subscriptions":[selection]}),
-            scope.clone(),
-        )
-        .await
-        .unwrap();
-    loop {
-        let e = target.receive_control().await.unwrap();
-        match e.kind() {
-            "connection.offer" => {
-                let p = &e.original()["payload"];
-                let streams=p["substrate_setup"]["streams"].as_array().unwrap().iter().map(|s|json!({"id":s["strm_id"],"kind":s["kind"],"direction":match s["direction"].as_str().unwrap(){"sendonly"=>"recvonly","recvonly"=>"sendonly",_=>"sendrecv"},"codec":s["codec"]})).collect::<Vec<_>>();
-                target.answer_connection_offer(&e,serde_json::from_value(json!({"by_participant":p["by_participant"],"substrate":"quic","capabilities":capabilities_for(protocol),"streams_answered":streams,"substrate_setup":p["substrate_setup"]})).unwrap(),&scope).await.unwrap();
-            }
-            "operation.updated" => assert_eq!(
-                e.original()["payload"]["state"],
-                "completed",
-                "{:?}",
-                e.original()
-            ),
-            "ack" => return,
-            _ => panic!("unexpected data subscription reply: {:?}", e.original()),
-        }
-    }
+    let input = json!({"subscriptions":[selection]});
+    let request = tokio::time::timeout_at(
+        until,
+        target.send_value("stream.subscribe", input.clone(), scope.clone()),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    finish_original_control(
+        target,
+        scope,
+        request,
+        "stream.subscribe",
+        input,
+        "completed",
+        Some(capabilities_for(protocol)),
+        until,
+    )
+    .await;
 }
+
 async fn publish(
     source: &mut CanonicalClient,
     cid: &str,
@@ -62,21 +59,52 @@ async fn publish_state(
     body: &str,
     state: &str,
 ) -> Envelope {
-    source.send_value("message.send",json!({"msg_id":message,"label":"application","to":[to],"content_type":"application/json","body":body,"reliability":{"mode":"reliable_ordered"}}),CommandScope{conversation_id:Some(cid.into()),session_id:Some("native-session".into()),connection_id:Some("data-source".into()),operation_id:Some(operation.into()),expected_revision:None}).await.unwrap();
-    let reply = source.receive_control().await.unwrap();
-    assert_eq!(reply.kind(), "operation.updated", "{:?}", reply.original());
-    let payload = &reply.original()["payload"];
-    // The physical consumer must be able to prove the same original command
-    // from the initial signed reply and a later read-only journal observation.
-    assert_eq!(payload["operation_id"], operation);
-    assert_eq!(payload["command_type"], "message.send");
-    assert_eq!(payload.get("expected_revision"), Some(&Value::Null));
-    assert!(payload["record_id"].as_str().is_some());
-    assert_eq!(
-        reply.original()["payload"]["state"],
+    send_data_state(
+        source,
+        cid,
+        operation,
+        json!({"msg_id":message,"label":"application","to":[to],"content_type":"application/json","body":body,"reliability":{"mode":"reliable_ordered"}}),
         state,
-        "{:?}",
-        reply.original()
+    ).await
+}
+async fn send_data_state(
+    source: &mut CanonicalClient,
+    cid: &str,
+    operation: &str,
+    input: Value,
+    state: &str,
+) -> Envelope {
+    // The source is the original party client (timeout_ms=10_000). Acceptance,
+    // read-only observations and the final ACK share that one original budget.
+    let until = tokio::time::Instant::now() + Duration::from_secs(10);
+    let scope = CommandScope {
+        conversation_id: Some(cid.into()),
+        session_id: Some("native-session".into()),
+        connection_id: Some("data-source".into()),
+        operation_id: Some(operation.into()),
+        expected_revision: None,
+    };
+    let request = tokio::time::timeout_at(
+        until,
+        source.send_value("message.send", input.clone(), scope.clone()),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    let (offer, reply) = finish_original_control(
+        source,
+        scope,
+        request,
+        "message.send",
+        input,
+        state,
+        None,
+        until,
+    )
+    .await;
+    assert!(
+        offer.is_none(),
+        "data submission must not allocate another media route"
     );
     if state == "completed" {
         assert_eq!(
@@ -84,9 +112,9 @@ async fn publish_state(
             true
         );
     }
-    assert_eq!(source.receive_control().await.unwrap().kind(), "ack");
     reply
 }
+
 struct Running {
     f: Fixture,
     source: CanonicalClient,
@@ -561,15 +589,13 @@ async fn production_native_data_preflight_and_pending_replay_cannot_borrow_anoth
     );
     c.execute_batch("DROP TRIGGER data_begin_fault").unwrap();
     // Replay the exact intent, including omission of the optional reliability.
-    source.send_value("message.send",json!({"msg_id":"pending-message","label":"application","to":[pid],"content_type":"application/json","body":"{}"}),CommandScope{conversation_id:Some(cid.clone()),session_id:Some("native-session".into()),connection_id:Some("data-source".into()),operation_id:Some("pending-data".into()),expected_revision:None}).await.unwrap();
-    let e = source.receive_control().await.unwrap();
-    assert_eq!(
-        e.original()["payload"]["state"],
+    send_data_state(
+        &mut source,
+        &cid,
+        "pending-data",
+        json!({"msg_id":"pending-message","label":"application","to":[pid],"content_type":"application/json","body":"{}"}),
         "completed",
-        "{:?}",
-        e.original()
-    );
-    assert_eq!(source.receive_control().await.unwrap().kind(), "ack");
+    ).await;
     assert_eq!(
         target.receive_control().await.unwrap().original()["payload"]["msg_id"],
         "pending-message"
@@ -678,15 +704,13 @@ async fn production_native_text_and_binary_data_preserve_exact_encodings_and_loc
             pid,
             ..
         } = setup_protocol(false, protocol).await;
-        source.send_value("message.send",json!({"msg_id":"format-message","label":"application","to":[pid],"content_type":mime,"body":body,"body_encoding":encoding}),CommandScope{conversation_id:Some(cid),session_id:Some("native-session".into()),connection_id:Some("data-source".into()),operation_id:Some("format-operation".into()),expected_revision:None}).await.unwrap();
-        let result = source.receive_control().await.unwrap();
-        assert_eq!(
-            result.original()["payload"]["state"],
+        send_data_state(
+            &mut source,
+            &cid,
+            "format-operation",
+            json!({"msg_id":"format-message","label":"application","to":[pid],"content_type":mime,"body":body,"body_encoding":encoding}),
             "completed",
-            "{:?}",
-            result.original()
-        );
-        assert_eq!(source.receive_control().await.unwrap().kind(), "ack");
+        ).await;
         let e = target.receive_control().await.unwrap();
         assert_eq!(e.kind(), "message.send");
         assert_eq!(e.original()["payload"]["msg_id"], "format-message");

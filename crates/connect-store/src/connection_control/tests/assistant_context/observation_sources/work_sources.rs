@@ -344,14 +344,25 @@ fn current_task_inspection_revocation_hides_labels_and_prevents_rebinding_after_
     assert_eq!(page(&f).observations.len(), 1);
     let mut scope = f.store.revalidate(&publisher).unwrap().scope;
     scope.operations.retain(|op| op != "task_effect_get");
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE credentials SET operations=?2 WHERE id=?1",
-            rusqlite::params![publisher, serde_json::to_string(&scope.operations).unwrap()],
-        )
-        .unwrap();
+    {
+        let identity = f.store.revalidate(&publisher).unwrap().identity_id;
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &identity,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        f.store
+            .connection_with_authority(&writer)
+            .unwrap()
+            .execute(
+                "UPDATE credentials SET operations=?2 WHERE id=?1",
+                rusqlite::params![publisher, serde_json::to_string(&scope.operations).unwrap()],
+            )
+            .unwrap();
+    }
     assert!(page(&f).observations.is_empty());
     assert_eq!(
         f.store

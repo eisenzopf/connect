@@ -176,9 +176,7 @@ fn received_dtmf_current_source_and_recipient_named_permissions_are_independent_
         let (f, n, p) = sip_signal::fixture();
         let b = freeze(&f, &n, &p, observed());
         let actor = if fault == "source" { 1 } else { 0 };
-        f.store
-            .connection()
-            .unwrap()
+        f.change_fixture()
             .execute(
                 "UPDATE credentials SET operations=?2 WHERE id=?1",
                 params![f.keys[actor], "[\"stream.subscribe\",\"connection.offer\"]"],
@@ -199,9 +197,7 @@ fn received_dtmf_current_source_and_recipient_named_permissions_are_independent_
     }
     let (f, n, p) = sip_signal::fixture();
     for (i, names) in [(0, "[\"dtmf.receive\"]"), (1, "[\"dtmf.send\"]")] {
-        f.store
-            .connection()
-            .unwrap()
+        f.change_fixture()
             .execute(
                 "UPDATE credentials SET operations=?2 WHERE id=?1",
                 params![f.keys[i], names],
@@ -339,19 +335,29 @@ fn received_dtmf_successor_records_reserved_uncertainty_without_replaying_input(
 #[test]
 fn received_dtmf_recovery_waits_for_physical_read_release_before_settling_expiry() {
     let (f, n, p) = sip_signal::fixture();
-    let b = freeze(&f, &n, &p, observed());
+    let mut observation = observed();
+    observation.received_at -= chrono::Duration::seconds(38);
+    let b = freeze(&f, &n, &p, observation);
     let r = f.store.try_received_dtmf_read(&b.targets()[0]).unwrap();
     f.store
         .try_start_received_dtmf_write(&r, "original-frame")
         .unwrap();
-    f.store
+    // A live reader cannot be bypassed by a fixture SQL expiry change.
+    assert!(f
+        .store
         .connection()
         .unwrap()
         .execute(
             "UPDATE operations SET expires_at=?2 WHERE record_id=?1",
             params![b.record_id(), crate::now() - 1],
         )
-        .unwrap();
+        .is_err());
+    // Let the original bounded observation actually expire while retaining
+    // its physical Read owner, then prove recovery still drains that owner.
+    while crate::now() < b.expires_at() {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(!r.current());
     std::thread::scope(|scope| {
         let (tx, rx) = std::sync::mpsc::channel();
         let s = &f.store;
@@ -402,9 +408,22 @@ fn received_dtmf_snapshot_digest_covers_original_source_observation() {
     let c = rusqlite::Connection::open(&path).unwrap();
     // Adversarial offline copy only: live source custody remains immutable.
     // Logical row digests must detect changed contents even in such a copy.
-    c.execute_batch("DROP TRIGGER received_dtmf_source_immutable;
-        UPDATE received_dtmf_sources SET observation_json=json_set(observation_json,'$.digits','9');")
-        .unwrap();
+    let mutation = "UPDATE received_dtmf_sources SET observation_json=json_set(observation_json,'$.digits','9')";
+    assert!(c.execute(mutation, []).is_err());
+    let triggers = c.prepare("SELECT name,sql FROM sqlite_schema WHERE type='trigger' AND tbl_name='received_dtmf_sources' ORDER BY name").unwrap()
+        .query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))).unwrap()
+        .collect::<rusqlite::Result<Vec<_>>>().unwrap();
+    assert!(!triggers.is_empty());
+    for (name, _) in &triggers {
+        c.execute_batch(&format!("DROP TRIGGER \"{}\"", name.replace('"', "\"\"")))
+            .unwrap();
+    }
+    c.execute(mutation, []).unwrap();
+    // Restore the exact schema: this tests row digest coverage, not a missing
+    // guard. The live Store and all production guard rules are untouched.
+    for (_, sql) in &triggers {
+        c.execute_batch(sql).unwrap();
+    }
     drop(c);
     let changed = crate::Store::inspect_snapshot(&path).unwrap();
     assert_eq!(changed.schema, original.schema);
@@ -429,4 +448,167 @@ fn received_dtmf_snapshot_digest_covers_recipient_write_reservation() {
     assert_eq!(before.schema, after.schema);
     assert_eq!(before.installation_id, after.installation_id);
     assert_ne!(before.digest, after.digest);
+}
+
+#[test]
+fn received_dtmf_original_writer_drains_before_once_only_reservation() {
+    let (f, n, p) = sip_signal::fixture();
+    let observation = observed();
+    let source = crate::SipSignalOrigin::Initial(p.clone());
+    let held = f
+        .store
+        .try_sip_signal_read(&source, crate::TelephoneSignalDirection::FromTelephone)
+        .unwrap();
+    let recipients = || {
+        vec![NativeDtmfRecipient {
+            origin: n.clone(),
+            registration_id: "original-registration".into(),
+        }]
+    };
+    // A real original reader prevents the mutation, not just the SQL DML.
+    let error = f
+        .store
+        .prepare_received_dtmf(source.clone(), observation.clone(), recipients())
+        .unwrap_err();
+    assert_eq!(error.code, "authority-busy");
+    {
+        let c = f.store.connection().unwrap();
+        assert_eq!(
+            c.query_row("SELECT count(*) FROM received_dtmf_sources", [], |row| row
+                .get::<_, u32>(
+                0
+            ))
+            .unwrap(),
+            0
+        );
+        assert_eq!(
+            c.query_row(
+                "SELECT count(*) FROM operation_effects WHERE provider='received-dtmf'",
+                [],
+                |row| row.get::<_, u32>(0)
+            )
+            .unwrap(),
+            0
+        );
+    }
+    assert!(held.current());
+    drop(held);
+    let batch = freeze(&f, &n, &p, observation.clone());
+    assert!(batch.expires_at() <= observation.received_at.timestamp() + 40);
+    // A queued metadata batch retains no reservation Writer or IO Read.
+    drop(
+        f.store
+            .try_sip_signal_read(&source, crate::TelephoneSignalDirection::FromTelephone)
+            .unwrap(),
+    );
+    drop(f.store.try_received_dtmf_read(&batch.targets()[0]).unwrap());
+    let ReceivedDtmfPreparation::Replay(replay) = f
+        .store
+        .prepare_received_dtmf(source, observation, recipients())
+        .unwrap()
+    else {
+        panic!("same original input must replay its one reservation")
+    };
+    assert_eq!(replay.record_id, batch.record_id());
+    assert_eq!(replay.expires_at, Some(batch.expires_at()));
+    assert_eq!(replay.state, OperationState::Preparing);
+    let c = f.store.connection().unwrap();
+    assert_eq!(
+        c.query_row("SELECT count(*) FROM received_dtmf_sources", [], |row| row
+            .get::<_, u32>(
+            0
+        ))
+        .unwrap(),
+        1
+    );
+    assert_eq!(
+        c.query_row(
+            "SELECT count(*) FROM operation_effects WHERE provider='received-dtmf'",
+            [],
+            |row| row.get::<_, u32>(0)
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(c.query_row("SELECT count(*) FROM received_dtmf_recipients WHERE attempted!=0 OR frame_id IS NOT NULL OR disposition IS NOT NULL", [], |row| row.get::<_, u32>(0)).unwrap(), 0);
+}
+
+#[test]
+fn received_dtmf_historical_outcome_drains_actual_frame_read_and_survives_cancel_without_replay() {
+    let (f, n, p) = sip_signal::fixture();
+    let batch = freeze(&f, &n, &p, observed());
+    let target = &batch.targets()[0];
+    let read = f.store.try_received_dtmf_read(target).unwrap();
+    // Controlled Store fixture records the original physical write marker;
+    // no claim is made that this unit test performs SIP or native network IO.
+    f.store
+        .try_start_received_dtmf_write(&read, "actual-original-frame")
+        .unwrap();
+    f.store
+        .try_start_received_dtmf_write(&read, "actual-original-frame")
+        .unwrap();
+    assert_eq!(
+        f.store
+            .try_start_received_dtmf_write(&read, "replacement-frame")
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
+    assert_eq!(
+        f.store
+            .try_record_received_dtmf_outcome(target, D::LocalSubmitted)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(read.current());
+    {
+        let c = f.store.connection().unwrap();
+        let (attempted, frame, disposition): (bool, String, Option<String>) = c.query_row(
+            "SELECT attempted,frame_id,disposition FROM received_dtmf_recipients WHERE operation_record_id=?1",
+            [batch.record_id()], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        ).unwrap();
+        assert!(attempted);
+        assert_eq!(frame, "actual-original-frame");
+        assert_eq!(disposition, None);
+    }
+    drop(read);
+    f.store
+        .execute_operation_action(
+            &f.keys[1],
+            OperationAction::Cancel {
+                operation_id: "cancel-original-received-after-write".into(),
+                target_operation_id: batch.operation_id().into(),
+                reason: None,
+            },
+        )
+        .unwrap();
+    assert!(f.store.try_received_dtmf_read(target).is_err());
+    // The captured original local outcome remains recordable after cancel,
+    // while no subsequent original or replacement physical write can admit.
+    f.store
+        .try_record_received_dtmf_outcome(target, D::LocalSubmitted)
+        .unwrap();
+    f.store
+        .try_record_received_dtmf_outcome(target, D::LocalSubmitted)
+        .unwrap();
+    let result = f.store.finish_received_dtmf(&batch).unwrap();
+    assert_eq!(result.state, OperationState::Completed);
+    assert_eq!(f.store.finish_received_dtmf(&batch).unwrap(), result);
+    assert!(f.store.try_received_dtmf_read(target).is_err());
+    assert_eq!(
+        result.result.as_ref().unwrap()["recipients"][0]["frame_id"],
+        "actual-original-frame"
+    );
+    let c = f.store.connection().unwrap();
+    assert_eq!(c.query_row("SELECT count(*) FROM operation_effects WHERE operation_record_id=?1 AND provider='received-dtmf' AND attempt=1 AND submission_generation=1", [batch.record_id()], |row| row.get::<_, u32>(0)).unwrap(), 1);
+    assert_eq!(
+        c.query_row(
+            "SELECT count(*) FROM received_dtmf_recipients WHERE operation_record_id=?1",
+            [batch.record_id()],
+            |row| row.get::<_, u32>(0)
+        )
+        .unwrap(),
+        1
+    );
 }

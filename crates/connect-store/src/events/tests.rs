@@ -1452,12 +1452,25 @@ fn committed_conversation_closure_is_original_immutable_and_scoped_for_each_reci
     assert!(c
         .execute("UPDATE conversations SET closed=0 WHERE id=?1", [&f.cid])
         .is_err());
-    c.execute(
-        "UPDATE credentials SET operations='[\"conversation.subscribe\"]' WHERE id=?1",
-        [&f.keys[1]],
-    )
-    .unwrap();
     drop(c);
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &f.ids[1],
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        f.store
+            .connection_with_authority(&writer)
+            .unwrap()
+            .execute(
+                "UPDATE credentials SET operations='[\"conversation.subscribe\"]' WHERE id=?1",
+                [&f.keys[1]],
+            )
+            .unwrap();
+    }
     match f.store.conversation_events(
         &f.keys[1],
         &f.cid,
@@ -1559,4 +1572,93 @@ fn source_scope_planning_keeps_the_snapshot_byte_bound_without_rendering_childre
             assert_eq!(captured.unwrap_err().code, "capacity-exceeded");
         }
     }
+}
+
+#[test]
+fn idle_expiry_drains_original_read_and_commits_one_closure_without_touching_persistent_room() {
+    let f = Fixture::new();
+    let mut request =
+        connect_protocol::conversations::CreateRequest::persistent(f.ids[1..].to_vec());
+    request.policy = connect_protocol::conversations::ConversationPolicy::Ephemeral;
+    request.idle_close_secs = Some(1);
+    let Outcome::Conversation(room) = f
+        .store
+        .execute(
+            &f.keys[0],
+            &Operation::Create {
+                request_id: "idle-boundary".into(),
+                request,
+            },
+        )
+        .unwrap()
+    else {
+        panic!("conversation");
+    };
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::conversation(
+                &room.id,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        f.store
+            .connection_with_authority(&writer)
+            .unwrap()
+            .execute(
+                "UPDATE conversations SET opened_at=?2 WHERE id=?1",
+                rusqlite::params![room.id, crate::now() - 10],
+            )
+            .unwrap();
+    }
+    let read = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &room.id,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .unwrap();
+    let (entered, waiting) = std::sync::mpsc::channel();
+    std::thread::scope(|scope| {
+        let store = &f.store;
+        let owner = scope.spawn(move || {
+            crate::authority_fences::with_waited_lock_probe(
+                move || {
+                    let _ = entered.send(());
+                },
+                || store.expire_idle_conversations(1),
+            )
+        });
+        let waited = waiting
+            .recv_timeout(std::time::Duration::from_secs(1))
+            .is_ok();
+        let blocked = !owner.is_finished();
+        drop(read);
+        let result = owner.join().unwrap();
+        assert!(
+            waited && blocked,
+            "idle policy must drain the original conversation reader"
+        );
+        assert_eq!(result.unwrap(), 1);
+    });
+    assert_eq!(f.store.expire_idle_conversations(1).unwrap(), 0);
+    let c = f.store.connection().unwrap();
+    let facts: u64 = c
+        .query_row(
+            "SELECT COUNT(*) FROM conversation_closure_facts WHERE conversation_id=?1",
+            [&room.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(facts, 1);
+    let persistent_closed: bool = c
+        .query_row(
+            "SELECT closed FROM conversations WHERE id=?1",
+            [&f.cid],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(!persistent_closed);
 }

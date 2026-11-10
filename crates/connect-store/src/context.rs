@@ -451,10 +451,31 @@ impl Store {
         {
             return Err(Error::new("invalid-request", "Invalid context delivery"));
         }
-        let mut connection = self.connection()?;
+        let held = self.runtime_conversation_authority(|c| {
+            let actor = crate::identity::actor_from_connection(c, credential_id)?;
+            actor.require("context_view")?;
+            let cid: String = c
+                .query_row(
+                    "SELECT conversation_id FROM sessions WHERE id=?1",
+                    [session_id],
+                    |r| r.get(0),
+                )
+                .map_err(|_| Error::forbidden())?;
+            if cid != selection.conversation_id {
+                return Err(Error::forbidden());
+            }
+            crate::conversations::authorized_conversation(c, &actor, &cid)?;
+            Ok(vec![cid])
+        })?;
+        let mut connection = self.connection_with_authority(&held)?;
         let c = connection
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_conversations(
+            &c,
+            &held,
+            std::slice::from_ref(&selection.conversation_id),
+        )?;
         crate::connection_control::private_consultation::require_connection_context(
             &c, session_id,
         )?;
@@ -624,19 +645,24 @@ impl Store {
                 "Invalid context delivery outcome",
             ));
         }
-        let changed = self
-            .connection()?
-            .execute(
-                "UPDATE context_deliveries SET state=?1,provider_ref=?2,updated_at=?3 WHERE id=?4 AND state='pending'",
-                params![state, provider_ref, crate::now(), delivery_id],
-            )
+        const TARGET: &str = "SELECT conversation_id FROM context_deliveries WHERE id=?1";
+        let held = self.runtime_query_authority(TARGET, &[&delivery_id])?;
+        let mut connection = self.connection_with_authority(&held)?;
+        let tx = connection
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_runtime_query(&tx, &held, TARGET, &[&delivery_id])?;
+        let changed = tx.execute(
+            "UPDATE context_deliveries SET state=?1,provider_ref=?2,updated_at=?3 WHERE id=?4 AND state='pending'",
+            params![state, provider_ref, crate::now(), delivery_id],
+        ).map_err(|_| Error::storage())?;
         if changed != 1 {
             return Err(Error::new(
                 "conflict",
                 "Context delivery is already terminal",
             ));
         }
+        tx.commit().map_err(|_| Error::storage())?;
         Ok(())
     }
 }

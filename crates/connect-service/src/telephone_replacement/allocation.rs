@@ -90,9 +90,50 @@ impl Runtime {
             )
             .map_err(|_| Error::forbidden())?;
         let signals = context.take_signals().map_err(|_| Error::forbidden())?;
-        let store = self.media.store.clone();
-        let (attempt, read) =
-            store_call(move || store.begin_telephone_replacement_allocation(read)).await?;
+        let begin_cutoff = read.expires_at();
+        drop(read);
+        // PRE-reservation contention has no effect to replay. Re-derive only
+        // within the original cutoff; once an attempt returns, leave this loop.
+        let attempt = retry_metadata(&root.handle.cancellation(), || {
+            let store = self.media.store.clone();
+            let prepared = root.receipt.clone();
+            let route = route.clone();
+            store_call(move || {
+                if chrono::Utc::now().timestamp() >= begin_cutoff {
+                    return Err(Error::forbidden());
+                }
+                let mut read = store.telephone_replacement_allocation_read(
+                    &prepared,
+                    &route.credential_id,
+                    &route.policy,
+                )?;
+                read.limit(begin_cutoff)?;
+                store.begin_telephone_replacement_allocation(read)
+            })
+        })
+        .await?;
+        // Custody is returned before a fresh IO interval can contend. Retain
+        // and retry only this original attempt; never repeat begin or Core work.
+        let read = match retry_metadata(&root.handle.cancellation(), || {
+            let store = self.media.store.clone();
+            let attempt = attempt.clone();
+            store_call(move || store.telephone_replacement_allocation_begun_read(attempt))
+        })
+        .await
+        {
+            Ok(read) => read,
+            Err(error) => {
+                root.handle.cancel();
+                let capture = Arc::new(attempt.uncertain());
+                retry_metadata(&self.stop, || {
+                    let store = self.media.store.clone();
+                    let capture = capture.clone();
+                    store_call(move || store.record_telephone_replacement_uncertain(&capture))
+                })
+                .await?;
+                return Err(error);
+            }
+        };
         let invocation = control::Invocation {
             runtime: self.clone(),
             root: root.clone(),
@@ -169,10 +210,21 @@ impl Runtime {
                 .telephone_replacement_submission_read(leg.receipt.clone())
         })
         .await?;
-        let store = self.media.store.clone();
-        let (attempt, read) =
-            store_call(move || store.begin_telephone_replacement_submission(read)).await?;
+        let begin_cutoff = read.expires_at();
         drop(read);
+        let attempt = retry_metadata(&root.handle.cancellation(), || {
+            let store = self.media.store.clone();
+            let receipt = leg.receipt.clone();
+            store_call(move || {
+                if chrono::Utc::now().timestamp() >= begin_cutoff {
+                    return Err(Error::forbidden());
+                }
+                let mut read = store.telephone_replacement_submission_read(receipt)?;
+                read.limit(begin_cutoff)?;
+                store.begin_telephone_replacement_submission(read)
+            })
+        })
+        .await?;
         leg.submission
             .set(attempt.clone())
             .map_err(|_| Error::forbidden())?;
@@ -180,6 +232,21 @@ impl Runtime {
             .attempt
             .set(attempt.clone())
             .map_err(|_| Error::forbidden())?;
+        let ready = retry_metadata(&root.handle.cancellation(), || {
+            let store = self.media.store.clone();
+            let attempt = attempt.clone();
+            store_call(move || store.telephone_replacement_submission_begun_read(attempt))
+        })
+        .await;
+        match ready {
+            Ok(read) => drop(read),
+            Err(error) => {
+                tracing::debug!(code=%error.code, "Original telephone start admission deferred until its cutoff");
+                return self
+                    .uncertain_telephone_submission(root, leg, &attempt)
+                    .await;
+            }
+        }
         let invocation = control::Invocation {
             runtime: self.clone(),
             root: root.clone(),

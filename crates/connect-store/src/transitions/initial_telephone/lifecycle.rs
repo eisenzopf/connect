@@ -41,7 +41,7 @@ impl Store {
                 private::allocation_scopes(self, &c, origin, true)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&_guard)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -85,7 +85,7 @@ impl Store {
                 private::allocation_scopes(self, &c, &attempt.origin, true)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&_guard)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -113,7 +113,7 @@ impl Store {
                 private::allocation_scopes(self, &c, &attempt.origin, true)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.connection_with_authority(&_guard)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

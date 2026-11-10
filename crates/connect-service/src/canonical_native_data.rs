@@ -1,4 +1,5 @@
 //! Exact signed native data publication with one owned attempt and queue receipt.
+use crate::canonical_native_streams::CapturedStreamOutcome;
 use crate::{
     canonical_runtime::{Physical, Runtime},
     StoreInvocationAuthority,
@@ -248,46 +249,47 @@ impl Runtime {
             };
         let seconds = (lease.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
         let deadline = tokio::time::Instant::now() + Duration::from_secs(seconds);
-        let invocation = match data_metadata(
-            deadline.min(tokio::time::Instant::now() + Duration::from_millis(200)),
-            &self.stop,
-            &invocation_cancelled,
-            &physical.lifetime,
-            // This performs the complete exact attempt/source/message capture
-            // under the original signed command's current interval. Initial
-            // physical/format preflight preceded acceptance; the single actual
-            // adapter call below rechecks its current physical peer and binding.
-            || self.media.data_invocation(a.clone(), &lease, deadline),
-        )
-        .await
-        {
-            Ok(v) => v,
-            Err(e) => {
-                failure("data-invocation", &e);
-                let _ = tx.send(store.fail_native_stream_without_effect(lease, e).map(reply));
-                return;
+        let captured = 'captured: {
+            let invocation = match data_metadata(
+                deadline.min(tokio::time::Instant::now() + Duration::from_millis(200)),
+                &self.stop,
+                &invocation_cancelled,
+                &physical.lifetime,
+                // This performs the complete exact attempt/source/message capture
+                // under the original signed command's current interval. Initial
+                // physical/format preflight preceded acceptance; the single actual
+                // adapter call below rechecks its current physical peer and binding.
+                || self.media.data_invocation(a.clone(), &lease, deadline),
+            )
+            .await
+            {
+                Ok(v) => v,
+                Err(e) => {
+                    failure("data-invocation", &e);
+                    break 'captured CapturedStreamOutcome::NoEffect(lease.without_effect(e));
+                }
+            };
+            // One Core call only. Its success is queue admission, not a writer ACK.
+            checkpoint("core-publication-started");
+            let outcome = native.publish_data(&id, &a);
+            drop(invocation);
+            if let Err(error) = outcome {
+                tracing::debug!(target: "connect_service::canonical_native_data", stage="core-publication", code="adapter-error", origin="native-adapter", "Native data did not complete");
+                tracing::debug!(?error, "Native data queue admission remains uncertain");
+                break 'captured CapturedStreamOutcome::Uncertain(lease);
             }
+            checkpoint("core-publication-admitted");
+            let receipt = match lease.queued() {
+                Ok(v) => v,
+                Err(e) => {
+                    failure("queue-receipt", &e);
+                    let _ = tx.send(Err(e));
+                    return;
+                }
+            };
+            CapturedStreamOutcome::Committed(receipt)
         };
-        // One Core call only. Its success is queue admission, not a writer ACK.
-        checkpoint("core-publication-started");
-        let outcome = native.publish_data(&id, &a);
-        drop(invocation);
-        if let Err(error) = outcome {
-            tracing::debug!(target: "connect_service::canonical_native_data", stage="core-publication", code="adapter-error", origin="native-adapter", "Native data did not complete");
-            tracing::debug!(?error, "Native data queue admission remains uncertain");
-            let _ = tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
-            return;
-        }
-        checkpoint("core-publication-admitted");
-        let receipt = match lease.queued() {
-            Ok(v) => v,
-            Err(e) => {
-                failure("queue-receipt", &e);
-                let _ = tx.send(Err(e));
-                return;
-            }
-        };
-        match store.complete_native_stream(&receipt) {
+        match captured.record(store) {
             Ok(record) => {
                 checkpoint("receipt-recorded");
                 let _ = tx.send(Ok(reply(record)));
@@ -302,14 +304,7 @@ impl Runtime {
         drop(a);
         drop(physical);
         drop(credential);
-        loop {
-            tokio::select! {_=self.stop.cancelled()=>return,_=tokio::time::sleep(Duration::from_millis(100))=>{}}
-            match store.complete_native_stream(&receipt) {
-                Ok(_) => return,
-                Err(e) if e.code == "forbidden" => return,
-                Err(_) => (),
-            }
-        }
+        captured.settle(store, &self.stop).await;
     }
 }
 

@@ -76,19 +76,32 @@ fn native_packet_pair_owned_file_custody_cannot_supply_target_named_permission()
         .try_native_media_read_under(&target, &source, &held)
         .unwrap()
         .permits_subscriptions());
-    // Deliberate SQL bypass tests fresh policy, not supported writer behavior.
-    // Real waiting-writer custody is verified by the separate test above.
-    f.store
+    let sql = "UPDATE credentials SET operations=?2 WHERE id=?1";
+    let narrowed_operations =
+        serde_json::to_string(&Scope::collaboration(vec!["*".into()]).operations).unwrap();
+    // Raw mutation cannot bypass a live packet interval. After the real
+    // interval ends, change policy with its actual Writer and re-admit.
+    assert!(f
+        .store
         .connection()
         .unwrap()
-        .execute(
-            "UPDATE credentials SET operations=?2 WHERE id=?1",
-            params![
-                f.keys[0],
-                serde_json::to_string(&Scope::collaboration(vec!["*".into()]).operations).unwrap()
-            ],
-        )
+        .execute(sql, params![f.keys[0], narrowed_operations])
+        .is_err());
+    let writer_scope = AuthorityScope::identity(&actor.identity_id, AuthorityMode::Write).unwrap();
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[writer_scope])
+            .err()
+            .unwrap()
+            .code,
+        "authority-busy"
+    );
+    assert!(held.current());
+    drop(held);
+    f.change_fixture()
+        .execute(sql, params![f.keys[0], narrowed_operations])
         .unwrap();
+    let held = f.store.try_native_media_read(&source, None).unwrap();
     let narrowed = f
         .store
         .try_native_media_read_under(&target, &source, &held)
@@ -99,14 +112,24 @@ fn native_packet_pair_owned_file_custody_cannot_supply_target_named_permission()
         held.current(),
         "live source custody is not the target permission"
     );
-    f.store
+    assert!(f
+        .store
         .connection()
         .unwrap()
         .execute(
             "UPDATE connections SET state='retired' WHERE id=?1",
             [target.connection_id()],
         )
+        .is_err());
+    drop(narrowed);
+    drop(held);
+    f.change_fixture()
+        .execute(
+            "UPDATE connections SET state='retired' WHERE id=?1",
+            [target.connection_id()],
+        )
         .unwrap();
+    let held = f.store.try_native_media_read(&source, None).unwrap();
     assert!(f
         .store
         .try_native_media_read_under(&target, &source, &held)
@@ -220,32 +243,49 @@ fn native_packet_source_custody_rederives_mutated_facts_and_refuses_retirement()
     let source = f.origin(1, "publisher");
     let held = f.store.try_native_media_read(&source, None).unwrap();
     let previous_role = held.target().presence_role.clone();
-    // Deliberately bypass the supported writer fences to test fresh SQL seals.
-    f.store
+    let sql = "UPDATE session_participants SET role='observer' WHERE participant_id=?1";
+    assert!(f
+        .store
         .connection()
         .unwrap()
-        .execute(
-            "UPDATE session_participants SET role='observer' WHERE participant_id=?1",
-            [&f.pids[1]],
-        )
-        .unwrap();
+        .execute(sql, [&f.pids[1]])
+        .is_err());
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[
+                AuthorityScope::conversation(&f.cid, AuthorityMode::Write).unwrap()
+            ])
+            .err()
+            .unwrap()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(held.target().presence_role, previous_role);
+    drop(held);
+    f.change_fixture().execute(sql, [&f.pids[1]]).unwrap();
+    let held = f.store.try_native_media_read(&source, None).unwrap();
     let changed = f
         .store
         .try_native_media_source_read_under(&source, &held)
         .unwrap();
     assert_eq!(changed.target().presence_role, "observer");
-    assert_eq!(held.target().presence_role, previous_role);
-    drop(changed);
-    f.store
+    assert_ne!(previous_role, "observer");
+    assert!(f
+        .store
         .connection()
         .unwrap()
         .execute(
             "UPDATE connections SET state='retired' WHERE id=?1",
             [source.connection_id()],
         )
-        .unwrap();
-    assert!(f
-        .store
-        .try_native_media_source_read_under(&source, &held)
         .is_err());
+    drop(changed);
+    drop(held);
+    f.change_fixture()
+        .execute(
+            "UPDATE connections SET state='retired' WHERE id=?1",
+            [source.connection_id()],
+        )
+        .unwrap();
+    assert!(f.store.try_native_media_read(&source, None).is_err());
 }

@@ -22,9 +22,7 @@ impl Scene {
         for key in [&f.keys[1], &f.keys[2]] {
             let mut actor = f.store.revalidate(key).unwrap();
             actor.scope.operations.push("stream.subscribe".into());
-            f.store
-                .connection()
-                .unwrap()
+            fixture_change(&f, &[])
                 .execute(
                     "UPDATE credentials SET operations=?2 WHERE id=?1",
                     params![key, serde_json::to_string(&actor.scope.operations).unwrap()],
@@ -32,7 +30,7 @@ impl Scene {
                 .unwrap();
         }
         {
-            let c = f.store.connection().unwrap();
+            let c = fixture_change(&f, &[]);
             c.execute("UPDATE identities SET kind='human' WHERE id=(SELECT identity_id FROM participants WHERE participant_id=?1)",[&f.pids[2]]).unwrap();
             c.execute(
                 "UPDATE participants SET kind='human' WHERE participant_id=?1",
@@ -291,7 +289,7 @@ fn sip_primary_read_requires_current_named_receive_and_reciprocal_participant_ce
         &["sip_dial", "stream.subscribe", "dtmf.send", "dtmf.receive"],
     );
     {
-        let c = s.f.store.connection().unwrap();
+        let c = fixture_change(&s.f, &[&s.route]);
         c.execute(
             "UPDATE credentials SET recipients=?2 WHERE id=?1",
             params![
@@ -313,9 +311,7 @@ fn sip_primary_read_requires_current_named_receive_and_reciprocal_participant_ce
             &[]
         )
         .is_err());
-    s.f.store
-        .connection()
-        .unwrap()
+    fixture_change(&s.f, &[&s.route])
         .execute(
             "UPDATE credentials SET recipients='[\"*\"]' WHERE id=?1",
             [&s.route],
@@ -796,7 +792,7 @@ fn sip_primary_private_dtmf_does_not_require_offer_subscribe_or_codec_permission
     s.establish();
     permissions(&s.f, &s.f.keys[2], &["dtmf.send", "dtmf.receive"]);
     permissions(&s.f, &s.route, &["sip_dial", "dtmf.send", "dtmf.receive"]);
-    s.f.store.connection().unwrap().execute(
+    fixture_change(&s.f, &[&s.route]).execute(
         "UPDATE session_presence_capabilities SET capabilities_json=?3 WHERE session_id=?1 AND participant_id=?2",
         params![s.phone.snapshot().session_id, s.phone.snapshot().participant_id,
             json!({"audio":["g.711-a"]}).to_string()]).unwrap();

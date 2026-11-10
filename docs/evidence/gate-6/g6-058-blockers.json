@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T02:15:51.142192+00:00",
-  "run_status": "Full v209 completed on 054cbe2f: all 32 cells ran; 0 passed, 32 failed and 0 blocked. All 432 requirements were evaluated: 390 passed and 42 failed. Failures overlap across 32 media, 8 resource and 2 replacement requirements. Original processes, leases and source guards closed naturally. The next reviewed batch is integrated for focused regression verification; no new matrix pass is claimed.",
+  "updated": "2026-11-10T07:42:04.327715+00:00",
+  "run_status": "G6-058 remains open. D2 completed Store70/71, Service37/37, Server6/6 and retained unchanged Client5/5. Signed16/24 includes15/23 production controls plus cleanup helper1. One obsolete Store fixture, native/RTC/telephone/codec failures and two provider aborts remain recorded. E working-source fixes are unverified. Latest full matrix v209 remains0/32 cells,390/432 requirements passed; no acceptance promotion.",
   "blockers": [
     {
       "id": "B01",
@@ -1329,18 +1329,18 @@
     {
       "id": "B162",
       "title": "State-change authorization has not replaced per-delivery SQL/fence checks",
-      "status": "STORE65/65 and SERVICE15/15 PASS; transport qualification pending",
+      "status": "SCOPED STORE/SERVICE AND SIGNED CHECKS PASS; full transport qualification pending",
       "change": "Publish immutable live authorization on state changes; delivery uses atomic revocation/generation and original expiry. Preserve cross-process writer/IO drain ordering and reject uncoordinated authorization writes.",
-      "evidence": "Latest Store65/65 includes all writer-boundary, snapshot/lifetime, same-generation role stamp, cross-process invalidation/drain and original replacement controls. All five prior failures fixed: coordinated test setup, exact offline backup corruption and required installation projection before Completed. Three nonparking controls and effect-free planning regression pass. Service immutable publication, lifetime race, generation reconciliation and original worker custody all pass (15/15).",
+      "evidence": "Latest Store65/65 includes all writer-boundary, snapshot/lifetime, same-generation role stamp, cross-process invalidation/drain and original replacement controls. All five prior failures fixed: coordinated test setup, exact offline backup corruption and required installation projection before Completed. Three nonparking controls and effect-free planning regression pass. Service immutable publication, lifetime race, generation reconciliation and original worker custody all pass (15/15). Batch3 source23bab0e7 now verifies Service30/30, native2/2 and RTC5/5 with natural joins; this is a scoped synthetic selection.",
       "next": "Verify actual signed transports and complete local Mac/ARM Linux matrix."
     },
     {
       "id": "B163",
       "title": "Quarantined transport and codec preparation retains domain authority",
-      "status": "SIGNED NATIVE15/15 PASS; Core6 passed; actual RTC verification pending",
+      "status": "C signed RTC5/5 and native1/2; complete transport matrix open",
       "change": "Prepare bounded transport/codecs independently of live conversation authorization; consume exact prepared candidate at a fresh authorized activation boundary, initially muted.",
-      "evidence": "Original two reader-release failures now pass unchanged in full15 signed answer suite on source-lock384. Four actual native startup/flow and two prepared-publication controls also pass. Resource-only scope refusals and original ordinary reply custody preserved.",
-      "next": "Verify actual signed RTC preparation under domain writer, denial/cancellation cleanup, and complete Service integration before matrix qualification."
+      "evidence": "Original two reader-release failures now pass unchanged in full15 signed answer suite on source-lock384. Four actual native startup/flow and two prepared-publication controls also pass. Resource-only scope refusals and original ordinary reply custody preserved. Current batch3 RTC5/5 includes signed quarantine under actual domain writer, original-scope answer/RTC join, withdrawal, EdDSA and ES256 duplex/ICE/current-authority controls. All original selected commands joined naturally. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b.",
+      "next": "Retain scoped evidence and verify actual complete local Mac/ARM Linux32-cell workload after full Store repair."
     },
     {
       "id": "B164",
@@ -1353,18 +1353,58 @@
     {
       "id": "B165",
       "title": "Unnecessary packet allocations and broad cross-process invalidation",
-      "status": "UNIT VERIFIED97/97; signed RTC3/3 pass; native initial admission blocked byB166",
+      "status": "Cleanup units retained; C signed15/23 with current failures open",
       "change": "Use fixed two-publication custody, allocation-free source keys with exact Weak owner validation, direct immutable registry lookups and tracing-enabled timing. Use shared atomic registry availability on packet admission/epochs and scope-local cross-process busy invalidation; retain global hard-fault refusal and shared Conversation dependencies.",
-      "evidence": "Current-source70/70 Store and27/27 Service tests pass. Covers exact cross-process disjoint scope isolation, revoked/expired packet refusal, hard-fault withdrawal, fixed publication lifetime/drop order, source owner/generation/epoch, trace filters, immutable registry reads and retained replacement/credential lifecycle controls. Initial invalid fixture alias corrected before the final passing rerun. Evidence:docs/evidence/gate-6/hotpath-cleanup-v212.json.",
-      "next": "Fix separately reproduced native subscription writer boundary B166, then signed native and complete local32 matrix."
+      "evidence": "Current-source70/70 Store and27/27 Service tests pass. Covers exact cross-process disjoint scope isolation, revoked/expired packet refusal, hard-fault withdrawal, fixed publication lifetime/drop order, source owner/generation/epoch, trace filters, immutable registry reads and retained replacement/credential lifecycle controls. Initial invalid fixture alias corrected before the final passing rerun. Evidence:docs/evidence/gate-6/hotpath-cleanup-v212.json. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b.",
+      "next": "Complete broader Store writer repair and current source verification before fresh shipping/full32; earlier cleanup and new batch3 source selections remain separately recorded."
     },
     {
       "id": "B166",
       "title": "Native subscription journal mutation lacks coordinated writer",
-      "status": "REPRODUCED:2/2 signed native scenarios fail at initial subscription; fix in progress",
-      "change": "Prepare short typed Write boundaries for control journal acceptance/effect/result mutations, releasing invocation Read before acquiring Write; preserve fresh source binding and avoid holding conversation Write through codec/media IO. No SQL guard exemption or acceptance weakening.",
-      "evidence": "Signed native mode25 and18 both fail before replacement at feedback-source-select. Diagnostic reproduces503 storage_unavailable. Source audit identifies Read-scoped NativeStream invocation and unbound accept_native_stream transaction at guarded operation_members insert. Signed RTC3/3 and cleanup97/97 units pass independently. Evidence:docs/evidence/gate-6/signed-transport-followthrough-v212.json.",
-      "next": "Add exact writer-boundary regression, implement phase-safe short writer custody, then rerun both original signed native controls before full matrix."
+      "status": "C Data00/01 pass; shared original-end waiter integrated for later Data02 failure, unverified",
+      "change": "Classify only proven original-operation namespace birth, keeping later readiness changes under exact historical Write custody. Retain immutable media outcomes in the original worker, release command Read aliases, then record under a short writer; never hold Conversation Write across codec/media IO.",
+      "evidence": "Schema119 exact original native-operation namespace rules and actual historical outcome writers integrated.13/13 new native/message tests pass, including every native command family start, once-only effect, Read-release recording, post-revocation refusal and exact transaction/Unit isolation. Same-worker Service outcomes integrated; compilation and signed checks pending. Evidence:docs/evidence/gate-6/store-writer-followthrough-v212.json. Current Service30/30 focused checks pass, including3 new captured-outcome custody controls. Evidence:docs/evidence/gate-6/service-outcome-followthrough-v212.json. Batch3 exact formerly failing native controls now pass2/2; RTC suite passes5/5. All original commands naturally joined on source23bab0e7. The earlier initial503 attempt remains preserved in signed-transport-followthrough-v212.json. Later verification-a is separate: native replacement0/2, WebTransport5/5, runtime0/16 (common Preparing-versus-Completed setup assertion). Historical batch3 passes remain preserved, not current full-matrix qualification. See signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Verification-b Data completion assumptions have an integrated same-original-operation waiter (manifest bc17c740); no production Data delivery fix or later physical pass claimed. See signed-blocker-fixes-v212.json. Current c new reserved-begin Store causal and Service retry helpers pass; selected Store footprint failure remains and signed-c reruns await Server build. No live replacement-progress pass inferred. C Data02 progresses through message capture/storage but later shared connection.end sees Preparing; D fixture manifest27665657 observes same original end and ACK under original8s, without another termination.",
+      "next": "Complete wider Store regression repair and verify full decoded workload; no matrix cell is qualified by these synthetic controls."
+    },
+    {
+      "id": "B167",
+      "title": "Full Store regression coverage for coordinated SQL writers",
+      "status": "D2 Store70/71, Service37/37, Server6/6; signed15/23; full matrix open",
+      "change": "Finite short writer/attempt-custody repairs and ordinary fixture changes are integrated. Retain original attempts and deadlines; no writer across provider/media IO. Current subscription fixtures now wait on the same original operation rather than treating acceptance as completion; fresh private_vapi fixture uses initialization.",
+      "evidence": "Full Store baseline487pass/1034fail/4ignored remains unchanged. Batch4 actual frozen Store image: causal28pass/5fail of33, affected47pass/23fail of70, retained195pass/199fail of394; all selected test commands naturally joined with0 ignored. Cohorts overlap. Three retained roots account for144/199 failures: telephone mixed-scope binding65, private initial telephone Writer binding41, initial telephone allocation Writer binding38. Reviewed followthrough is integrated for those roots, later assistant recorders, reconnect/provider ordinary fixtures, provider claim/resolution, and narrow causal-fixture corrections; none inherits a pass from source review. Evidence:docs/evidence/gate-6/store-writer-batch4-v212.json. Batch5 union deduplicated415:270pass/145fail, all naturally joined.61 prior retained failures now pass; no prior passing test regressed. The invalid enrolled-delegation fixture was split into a supported human-consent positive and enrollment-delegation negative. Actual later consultation/SIP mutation boundaries remain. Evidence:docs/evidence/gate-6/store-writer-batch5-v212.json. Batch7 deduplicated429:340pass/89fail, all naturally joined; evidence:docs/evidence/gate-6/store-writer-batch7-v212.json. Complete batch7 inventory1575:1092pass/479fail/4ignored. Evidence:docs/evidence/gate-6/store-full-followthrough-v212.json. Batch8:679/731; batch9a focused followthrough:162/162 pass, all natural joins. Evidence:docs/evidence/gate-6/store-writer-batch9-v212.json. Final coherent cleanup units: Store766/766 and Service32/32 pass; verification-a retains those exact executable bytes. Server2/4, native replacement0/2, WebTransport5/5 and runtime0/16 completed with natural joins. Runtime16 stops at the same subscription setup assertion; private_vapi2 fails fresh Store initialization before callback. Evidence:docs/evidence/gate-6/signed-cleanup-v212.json. Later verification-b: Server4/4, native replacement0/2, signed RTC5/5, runtime7/16. All4 DTMF controls pass;3 Data cases reach later async-result assertions. Telephone progress/status, public-audio SDK, private-return progress/child abort and codec first-offer timeout remain open. Case12 exits-6 after panic/stack overflow; joined is not exit0. Evidence:signed-cleanup-v212.json#verification_b. Verification-c same frozen source: SDK5/5, Service37/37, Store44/51; new reserved-begin Store causal and2 Service retry/cutoff helpers pass. Exact7 Store failures reclassified as6 fixture ownership gaps and1 real Identity overcontention. Preserve original positive held-Identity-reader expectation. Three unit sessions naturally joined; Server build active. Mixed reservation/start candidates3871ac97/a0ce4787 are private source-reviewed only. See signed-blocker-fixes-v212.json#completed_units_c. D2 checkpoint: D2 exact frozen build passes. Selected Store70/71 has one obsolete Identity-reader exclusion fixture; retain the failed verdict pending E actual-CID fixture. Service37/37 and Server6/6 pass; Client5/5 retained only on exact unchanged executable. Signed driver16/24 =production15/23 plus cleanup helper1; native1/2, RTC4/5, runtime11/17 includes helper. Both provider children exit-6 and are joined/reaped, not successful natural exits. Evidence:signed-cleanup-v212.json#verification_d2.",
+      "next": "Verify integrated D six genuine fixture fixes and real Identity-overcontention fixes, preserving original positive/negative controls. Keep C51 source-bound failures, all earlier full Store inventories and v209 matrix history."
+    },
+    {
+      "id": "B168",
+      "title": "Reserved replacement preparation loses its pre-begin continuation",
+      "status": "D2 bounded controls pass; actual native/telephone progress still fails",
+      "change": "Retry only fresh current resolution and atomic not-yet-begun admission for the SAME opaque lease in the same worker. Release per-attempt Read/coordinator before pause; first Read expiry only shortens; once-only Core call stays after successful begin.",
+      "evidence": "Telephone verification-b retains original root Preparing revision1 with effect Prepared attempt0; native preparation also defers with authority-busy; source commits reservation before begin and exits without saved runtime preparation. Exact historical busy stage/holder unproved. Candidate8405022a/patch0cec9ee5 independently source-reviewed. See signed-blocker-fixes-v212.json. C new actual same-reservation control passes; complete Service37/37 includes new bounded retry controls. Signed telephone/native progress remains separate; D exact-scope changes still unverified. D2 checkpoint: D2 retains native initial-mute error and telephone Get storage refusal/callback forbidden before IO; no exact holder attribution or progress success inferred from units. Reviewed E fixture/entry cleanup remains unverified.",
+      "next": "Run actual retained-Read/same-lease Store control, Service bounded retry/cancel controls, then original signed native and telephone scopes. No operation/Core replay or deadline renewal."
+    },
+    {
+      "id": "B169",
+      "title": "Public-audio SDK assumes immediate subscription completion",
+      "status": "D2 unchanged Client5/5 retained; provider stack failure remains",
+      "change": "Drain each original reply ACK, then issue only read-only Get for the same original record/operation with exact scopes and monotonic revision. Update local handle/revision only after validated Completed result AND final ACK; original outer deadline/close-on-error retained.",
+      "evidence": "Verification-b actual public-audio SDK failure and source audit identify immediate Completed requirement. Frozen SDK source a34cef61; controlled signed SDK candidate af335246 retains preparation-independent scope and original timeout. See signed-blocker-fixes-v212.json. C verifies all3 receipt predicates and both controlled signed SDK cases. Current public-AI primary stack overflow occurs in production context spawn after SDK progression; no full provider or decoded-media qualification. D2 checkpoint: D2 retains exact C Client executable and five passing controls without rerun. Public-AI still aborts; controlled SDK receipt correctness does not qualify complete provider flow.",
+      "next": "Retain SDK controls; verify D production context stack boundary and actual signed public/provider workload. No new handles before original Completed and final ACK."
+    },
+    {
+      "id": "B170",
+      "title": "Operation-local writes unnecessarily exclude Identity readers",
+      "status": "D2 narrowed-writer causal controls pass; codec runtime admission still fails",
+      "change": "Keep all current Identity Read facts; acquire exact root Conversation Write and only actual conditional enrollment-subject writes for replacement reservation/begin, initial media Start and Session-codec child reservation. Recheck current policy and persisted scope in the transaction. Final activation and unrelated graph authority unchanged.",
+      "evidence": "C original Identity-only reader reservation positive fails. Actual ledger mutation footprints require CID Write, not every room Identity Writer. Six other Store failures are genuine fixture gaps. C codec logs49 pre-effect admission deferrals; exact historical holder/substage not proven. D manifests3871ac97/a0ce4787/5a88f55f independently reviewed, not yet executed. See signed-blocker-fixes-v212.json. D2 checkpoint: D2 mixed-scope causal controls pass and original Identity-reader coexistence stays required. Sole Store failure is an obsolete fixture expecting that unrelated reader to exclude reservation; actual CID-reader correction is E only. Codec bad-confirmation still times out before offer after49 busy deferrals; actual holder unproved. New owned offload is integrated only in E working source and untested.",
+      "next": "Original Identity-reader coexistence, same-CID exclusion, revocation/current policy, original attempt/deadline and signed native/telephone/codec tests must pass; never change a positive to normalize oversized scope."
+    },
+    {
+      "id": "B171",
+      "title": "Production public-context startup overflows task-construction stack",
+      "status": "D2 Server6/6 includes owned-work controls; actual public-AI still aborts",
+      "change": "Explicitly pin/box the original owned context task before Tokio generic spawn receives its argument, preserving task body, cancellation, cleanup, result and original JoinHandle. No stack-size increase.",
+      "evidence": "C public-AI aborts without preceding fixture panic; actual crash/disassembly identifies start_owned+2724 at spawn. Compiled worker future54784 bytes passes by value before Tokio internal boxing. D e57a823d/fa217874 has byte-identical worker body and2 unexecuted size/poll/cancel/join controls. This primary failure differs from historical B unwind overflow. D2 checkpoint: Both new owned-work size/poll/cancel/join controls pass within Server6/6, but D2 actual primary public-AI child still stack-overflows and exits-6. Provider-close initializer fails before return then overflows during unwind; preserve distinct stages. No full stack issue closure inferred.",
+      "next": "Old concrete-future size positive must fail, final controls pass, then same signed public-AI test must complete; boxing review alone is not proof the observed stack failure is removed."
     }
   ],
   "workplan_tasks": [
@@ -2145,7 +2185,7 @@
       "dependencies": [],
       "code_paths": [],
       "solution": "Dispatch the exact held startup policy before unrelated metadata registries, preserving all current authorization, scope, generation, original deadline and single-effect checks.",
-      "status": "OPEN; narrow held-invocation fix in source review",
+      "status": "Held-invocation fix historical source; current signed native replacement2/2 fail setup; bounded diagnostics integrated, rerun pending",
       "completion": "Actual held-registry gate-dispatch causal regression plus foreign/current/expired controls; no whole-start replay.",
       "completion_status": "verification-pending"
     },
@@ -2156,7 +2196,7 @@
       "dependencies": [],
       "code_paths": [],
       "solution": "Identify and remove the actual control delay without extending the original completion budget or replaying the operation.",
-      "status": "OPEN; precise delay attribution unresolved",
+      "status": "OPEN; current native setup has read-only Deadline and error instead of connection.answer; diagnostics integrated, cause not qualified",
       "completion": "SQL-before-derive53 refusals and file-admission4 refusals observed; Data unmute ended89.8ms before capture and did not overlap. Actual SQL holder remains unknown.",
       "completion_status": "verification-pending"
     },
@@ -2178,7 +2218,7 @@
       "dependencies": [],
       "code_paths": [],
       "solution": "Prepare bounded transport/codecs independently of live conversation authorization; consume exact prepared candidate at a fresh authorized activation boundary, initially muted.",
-      "status": "SIGNED NATIVE15/15 PASS; original reader-release defect fixed; actual RTC pending",
+      "status": "Verification-b signed RTC5/5; native replacement0/2 remains failed at distinct later phases",
       "completion": "Detach resource-only exchange proof throughout original handler/worker/broker ownership, reacquire original command authority once for activation, and verify cancellation/denial cleanup and old-media continuity.",
       "completion_status": "verification-pending"
     },
@@ -2207,7 +2247,7 @@
         "crates/connect-service/src/canonical_media/native_snapshots.rs"
       ],
       "solution": "Use fixed two-publication custody, allocation-free source keys with exact Weak owner validation, direct immutable registry lookups and tracing-enabled timing. Use shared atomic registry availability on packet admission/epochs and scope-local cross-process busy invalidation; retain global hard-fault refusal and shared Conversation dependencies.",
-      "status": "Unit verified97/97; signed transport verification running",
+      "status": "Historical cleanup retained; current verification-b runtime7/16/native0/2, actual full media/matrix pending",
       "completion": "Verify unchanged authority/expiry and original-source boundaries, disjoint writer isolation, hard-fault refusal and original publication custody.",
       "completion_status": "verification-pending"
     },
@@ -2222,9 +2262,210 @@
         "crates/connect-store/src/transitions/native_streams.rs",
         "crates/connect-service/src/canonical_native_streams.rs"
       ],
-      "solution": "Prepare short typed Write boundaries for control journal acceptance/effect/result mutations, releasing invocation Read before acquiring Write; preserve fresh source binding and avoid holding conversation Write through codec/media IO. No SQL guard exemption or acceptance weakening.",
-      "status": "Reproduced503; fix in progress",
+      "solution": "Classify only proven original-operation namespace birth, keeping later readiness changes under exact historical Write custody. Retain immutable media outcomes in the original worker, release command Read aliases, then record under a short writer; never hold Conversation Write across codec/media IO.",
+      "status": "Reserved-begin causal1 and Service helpers2 pass; SDK5/5 current; Data and signed runtime reruns pending coherent Server build",
       "completion": "Original signed initial subscription and replacement controls pass with strict writer guards; no long-lived conversation writer across preparation/media.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S54",
+      "title": "Complete full Store writer-boundary regression assessment",
+      "owner": "Root with parallel source review",
+      "dependencies": [
+        "S52"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/authority_writer_boundary",
+        "crates/connect-store/src/connection_control/tests"
+      ],
+      "solution": "Expand verification beyond the focused cleanup selection. Separate direct-SQL fixture mutations from production writer-binding and metadata-classification failures; repair shared causes with real scoped custody and retain negative writer-guard controls.",
+      "status": "Current c selected Store44/51:6 fixture gaps +1 real Identity overcontention; old reader-positive preserved; private corrections unverified",
+      "completion": "Complete baseline and documented grouped fixes, with production and fixture failures separately attributed.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S55",
+      "title": "Bind existing writers and repair new-parent creation",
+      "owner": "Root with parallel implementation and review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-service/src"
+      ],
+      "solution": "Attach existing exact writers to SQL; new Session/Call/credential namespaces need no existing-media invalidation, while later authority changes retain real writers.",
+      "status": "Batch4 creation/enrollment controls partly verified; later Writer/fixture followthrough integrated, verification pending",
+      "completion": "Existing shared regressions pass with old-parent/collision/revocation negatives retained.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S56",
+      "title": "Repair handoff activation state-change boundary",
+      "owner": "Root with parallel implementation and review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-service/src"
+      ],
+      "solution": "Starting a handoff withdraws current packet grants. Consume original Read, rederive under exact Write, retain it only through the already-prepared atomic Core cut, then release before historical capture.",
+      "status": "Batch4 causal assertion failed; exact expectation followthrough integrated, rerun pending",
+      "completion": "Old packet grants drain/invalidate, held control view stays current, once-only attempt and cancellation/expiry negatives pass; signed media rerun.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S57",
+      "title": "Preserve telephone attempt custody across writer transition",
+      "owner": "Root with parallel implementation and review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-service/src"
+      ],
+      "solution": "Release prior Read before short writer reservation; keep the exact original attempt while fresh IO authorization is retried. Historical results get short original-scope writers; no writer spans allocation or SIP IO.",
+      "status": "Batch4 three new telephone controls failed; mixed-scope SQL binding correction integrated, rerun pending",
+      "completion": "Read contention before/after reservation never loses the attempt or repeats allocation/signaling; original cutoff and recovery controls pass.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S58",
+      "title": "Record captured assistant outcomes under original-scope writer",
+      "owner": "Root with parallel implementation and review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-service/src"
+      ],
+      "solution": "Use immediate original-CID writer after old IO readers leave, bound to SQL and rederived from original context. Retry captured data without repeating provider IO or restoring revoked permission.",
+      "status": "Batch4 initial historical control passed; later rejected/end/update Writer followthrough integrated, verification pending",
+      "completion": "Real own-reader and foreign-SQL contention, unchanged capture retry, once-only recording and post-revocation controls pass.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S59",
+      "title": "Separate provider reservation Writer from fresh dispatch Read",
+      "owner": "Root with independent Store/Service review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src/transitions/provider_sessions",
+        "crates/connect-server/src/canonical_provider_voice.rs"
+      ],
+      "solution": "Record one original attempt under short exact Write, release SQL and Writer before bounded fresh current Read. Refused admission retains original no-effect custody; historical recording and End cleanup use original resource scopes. Keep the same host worker/capture through temporary metadata pressure.",
+      "status": "Batch4 new provider controls passed; retained claim/resolution/fixture failures remain; followthrough integrated, verification pending",
+      "completion": "Fresh expiry shortening, refused admission/no provider IO, creator-revoked cleanup, once-only/idempotent recording and exact capacity rollback/recovery controls pass; no provider rehearsal inferred.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S60",
+      "title": "Retain original reserved preparation through transient pre-begin refusal",
+      "owner": "Root with independent implementation/source review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-service/src",
+        "crates/connect-client/src",
+        "crates/connect-server/tests/support"
+      ],
+      "solution": "Retry only fresh current resolution and atomic not-yet-begun admission for the SAME opaque lease in the same worker. Release per-attempt Read/coordinator before pause; first Read expiry only shortens; once-only Core call stays after successful begin.",
+      "status": "C new Store/preflight controls pass; D mixed-scope signed verification pending",
+      "completion": "Real retained-reader refusal then same original begin succeeds; expiry, cancellation and duplicate-begin controls pass before signed native/telephone rerun.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S61",
+      "title": "Observe original asynchronous public-audio subscription",
+      "owner": "Root with independent implementation/source review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-service/src",
+        "crates/connect-client/src",
+        "crates/connect-server/tests/support"
+      ],
+      "solution": "Drain each original reply ACK, then issue only read-only Get for the same original record/operation with exact scopes and monotonic revision. Update local handle/revision only after validated Completed result AND final ACK; original outer deadline/close-on-error retained.",
+      "status": "C SDK5/5 passes; later production context stack failure remains",
+      "completion": "Receipt identity/revision negatives and two signed SDK controls pass with original deadline and ACK before publication, then actual runtime.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S62",
+      "title": "Wait for exact original Data outcome in signed fixtures",
+      "owner": "Root with independent implementation/source review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-service/src",
+        "crates/connect-client/src",
+        "crates/connect-server/tests/support"
+      ],
+      "solution": "Observe the same original message operation after its correlated ACK under its original absolute deadline; no message replay, parameter offer or relaxed queue/delivery assertions.",
+      "status": "C Data00/01 pass; later original-end fixture correction integrated, D verification pending",
+      "completion": "Original signed Data receipt, Core queue admission and physical local-write/replay controls pass without a second message mutation.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S63",
+      "title": "Restrict metadata writers to actual persisted dependencies",
+      "owner": "Root with independent source review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-server/src",
+        "crates/connect-server/tests/support"
+      ],
+      "solution": "Keep all current Identity Read facts; acquire exact root Conversation Write and only actual conditional enrollment-subject writes for replacement reservation/begin, initial media Start and Session-codec child reservation. Recheck current policy and persisted scope in the transaction. Final activation and unrelated graph authority unchanged.",
+      "status": "D integrated; new unit/runtime verification pending",
+      "completion": "Original Identity-reader coexistence, same-CID exclusion, revocation/current policy, original attempt/deadline and signed native/telephone/codec tests must pass; never change a positive to normalize oversized scope.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S64",
+      "title": "Bound owned context task spawn argument",
+      "owner": "Root with independent source review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-server/src",
+        "crates/connect-server/tests/support"
+      ],
+      "solution": "Explicitly pin/box the original owned context task before Tokio generic spawn receives its argument, preserving task body, cancellation, cleanup, result and original JoinHandle. No stack-size increase.",
+      "status": "D integrated; new unit/runtime verification pending",
+      "completion": "Old concrete-future size positive must fail, final controls pass, then same signed public-AI test must complete; boxing review alone is not proof the observed stack failure is removed.",
+      "completion_status": "verification-pending"
+    },
+    {
+      "id": "S65",
+      "title": "Observe original end and preserve failed-return cleanup custody",
+      "owner": "Root with independent source review",
+      "dependencies": [
+        "S54"
+      ],
+      "code_paths": [
+        "crates/connect-store/src",
+        "crates/connect-server/src",
+        "crates/connect-server/tests/support"
+      ],
+      "solution": "Wait only for the same end receipt/Get/ACK under original8s; failure-only provider cleanup joins original owners and resumes same panic. Neither path replays physical IO.",
+      "status": "D integrated; new unit/runtime verification pending",
+      "completion": "Exact signed Data end/result/replay controls and failure-cleanup helper pass; helper is reported separately from23 production-focused driver checks.",
       "completion_status": "verification-pending"
     }
   ],
@@ -4612,10 +4853,10 @@
     "status_url": "../../.local/gate-6/full-matrix-v209/status.html"
   },
   "current_focused_verification": {
-    "passed": 97,
-    "planned": 97,
-    "scope": "Current hotpath cleanup:70 Store and27 Service unit checks. Earlier200 component baseline overlaps; no additive total or matrix qualification inferred.",
-    "next": "SignedRTC3/3passed; both native scenarios expose initial subscription503 (B166). Fix and retest before full local matrix."
+    "passed": 86,
+    "planned": 93,
+    "scope": "Same frozen verification-c selected units: SDK5/5, Service37/37, Store44/51. Includes2 actual controlled SDK signed QUIC cases, not a full media/cell run. Prior766/32 and verification-b are separate source-bound history.",
+    "next": "Resolve6 exact fixture gaps and1 real Identity overcontention without weakening held-reader contract; complete original Server build then signed verification. Private candidate source review is not runtime qualification."
   },
   "current_workplan_tasks": [
     "S39",
@@ -4632,7 +4873,19 @@
     "S50",
     "S51",
     "S52",
-    "S53"
+    "S53",
+    "S54",
+    "S55",
+    "S56",
+    "S57",
+    "S58",
+    "S59",
+    "S60",
+    "S61",
+    "S62",
+    "S63",
+    "S64",
+    "S65"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -5890,5 +6143,540 @@
     "receipt_sha256": "c496b7f5d1d9b8dcbf179d29d31b1bc02aaa8390b422d94965686a652e4cb1b2",
     "scope": "Standalone locked/offline default features: datagram send/receive, bounded overflow/metadata and terminal drop/queue diagnostics.",
     "evidence": "docs/evidence/gate-6/state-change-components-v211.json"
+  },
+  "v212_batch3_signed_verified": {
+    "source_sha256": "23bab0e7b2b490f4de3c39125de8f00176813c078f67bbfe1c0b9cd08d69ce4d",
+    "native_summary": {
+      "selected": 2,
+      "completed": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "rtc_summary": {
+      "selected": 5,
+      "completed": 5,
+      "passed": 5,
+      "failed": 0
+    },
+    "service_summary": {
+      "selected": 30,
+      "completed": 30,
+      "passed": 30,
+      "failed": 0
+    },
+    "all_original_commands_naturally_joined": true,
+    "signed_evidence": "docs/evidence/gate-6/signed-transport-followthrough-v212.json",
+    "service_evidence": "docs/evidence/gate-6/service-outcome-followthrough-v212.json"
+  },
+  "v212_next_writer_batch": {
+    "status": "Original13-candidate source executed in partial batch4; subsequent reviewed followthrough integrated, new frozen verification pending",
+    "plan_sha256": "f74ae6dbceef8bf9981b886446024cddca9699f591dea6276b55615c035ebf43",
+    "candidates": [
+      {
+        "name": "v212-runtime-unit-bindings-candidate",
+        "manifest_sha256": "765e91cd8f16dd7e3bb40b7e6a82f1a2e0115ee900d98a1b7bc615915f65d91e",
+        "patch_sha256": "f2e6bd3f8682816fc90a6e9e6ac3e6c83e8a47776ec097e027bfe1abcdbd7675"
+      },
+      {
+        "name": "v212-consultation-leg-unit-binding-candidate",
+        "manifest_sha256": "34928d26a51b3a47f6fd10eba79d7e92d603b84d7585eaf5fd6e14b7dbb3bf18",
+        "patch_sha256": "498f845b5db5c43d7205bf3362b84128ee6bab8d35f3180c170ee549bf50c801"
+      },
+      {
+        "name": "v212-assistant-historical-writer-candidate",
+        "manifest_sha256": "09ad226e37633aa5d2d82d79f0f8c76cf3f7911504a9e2a63c78fe70425d4247",
+        "patch_sha256": "b70e97271f0b1a16130582cf980b2e9d28a7674f37267cc56b8e15b4d7878228"
+      },
+      {
+        "name": "v212-session-call-birth-candidate",
+        "manifest_sha256": "9454165bdd0dc264c9b1169a6b127a68567fbf428478e127aa177d120b6e333b",
+        "patch_sha256": "b41c3f511c50bda8ddca82eb6ce205791e7f670d964e5c5fb573667751575907"
+      },
+      {
+        "name": "v212-credential-enrollment-birth-candidate",
+        "manifest_sha256": "25e4065aa18bf7adab2dd229af942515eceddd451547d0b6233c451915b8d29f",
+        "patch_sha256": "13b313115d607d529b6ba701a34d960e4a3b7f1498b4dd608b0b34d1eb857f62"
+      },
+      {
+        "name": "v212-transition-parent-fixture-candidate",
+        "manifest_sha256": "78e92656e9f9184d1e5128819b3e928b82c0e0ee867232aa90f3fd5d25ef2380",
+        "patch_sha256": "c63ba740bfc597e9de39a9e0c19e56d303b3144889458ad858ba46e586237204"
+      },
+      {
+        "name": "v212-handoff-writer-boundary-candidate",
+        "manifest_sha256": "717c0156811d92c33f9af192f7865c60f13b2378b22781b421a19ad85f2dfe94",
+        "patch_sha256": "eca60a8dba3c80677d52a4b61664219ffc728b1fd2b019255259fd93a53f7982"
+      },
+      {
+        "name": "v212-retained-signed-outcome-controls",
+        "manifest_sha256": "e3299eb13222530e34e12a184c396dc45e52c06bff475f081162a2b3d4e0a070",
+        "patch_sha256": "245c31484160ee15b3b27969e0ddb16edff3ff65eb6264e3f4f9c887be5627e8"
+      },
+      {
+        "name": "v212-enrollment-delegation-writer-additive-candidate",
+        "manifest_sha256": "e16eb2b6d6d1ac5bbc3a71b9aed41c540d3a8ef8ef60610256f8cf3733b01463",
+        "patch_sha256": "bde7a201b0f3b430b418cdd2800928e5f100f23ef47bcfe99ba908dca6314d48"
+      },
+      {
+        "name": "v212-telephone-begin-writer-candidate",
+        "manifest_sha256": "561b057d882025207b450cc57c30c4857e18d564cc08beab66e932a0ef2c12d4",
+        "patch_sha256": "69c65c823b662462b3148b23a6de62ad722d6a50e103cce54b6a813c933b099f"
+      },
+      {
+        "name": "v212-stream-outcome-capacity-retry-candidate",
+        "manifest_sha256": "3055365d2a87d320f7147d46aa00dd45d387bb14eda69fd7bbde3e5d3f48c7bb",
+        "patch_sha256": "c7be8b9076713ee874f82f875977689d256f752b4aea5dd5a3a6d3533417993e"
+      },
+      {
+        "name": "v212-provider-voice-writer-candidate-v2",
+        "manifest_sha256": "e0db7776408b90da7e5338f5d3ed2663c1dc1696cf3a0f0aa777b23c2954efbd",
+        "patch_sha256": "aeade42d7913e47425e6538c5a96debfc995c44745ec8d37a071df1ec509607d"
+      },
+      {
+        "name": "v212-provider-ingress-unit-additive-candidate",
+        "manifest_sha256": "e695cc47852439392fac7b3882aab0ebc3f82defe2d160202aa93fd0472ad4d0",
+        "patch_sha256": "a4b51997e7d8eb4335f453d21c7a5190306b6d8b289f005b212512535a291e52"
+      }
+    ],
+    "provider_review": "Main provider v2 and separate ingress bind source reviews passed; runtime remains pending. Fresh dispatch expiry correction is included, original b65ca seal retained separately.",
+    "actual_evidence": "docs/evidence/gate-6/store-writer-batch4-v212.json"
+  },
+  "v212_batch4_store_actual": {
+    "evidence": "docs/evidence/gate-6/store-writer-batch4-v212.json",
+    "evidence_sha256": "879c0389e7162b634255861afc95fc2436619427ece7d4b2cf7e3a3ce133c717",
+    "source_freeze": {
+      "base_revision": "2bd3fa447a955898fd03076dc2b0ad5001539d9d",
+      "source_receipt_sha256": "93192daf7f900f88d1ed0b21603553e5fe5e29e75145ce1796480dc16e656ce3",
+      "frozen_file_count": 1386,
+      "libtest_executable_sha256": "069f3cf9ef21876cd7638fb4633e036bb57bd066eccfe29ee487194cf75ab528",
+      "source_file_count_is_not_test_count": true
+    },
+    "cohorts": {
+      "causal": {
+        "selected": 33,
+        "completed": 33,
+        "passed": 28,
+        "failed": 5,
+        "ignored": 0,
+        "all_test_commands_naturally_joined": true,
+        "result_sha256": "d9069daafeddcf719533e240bc9c9d406fa22b7a6e4f9dcd42df0b2dd59ab29a"
+      },
+      "affected": {
+        "selected": 70,
+        "completed": 70,
+        "passed": 47,
+        "failed": 23,
+        "ignored": 0,
+        "all_test_commands_naturally_joined": true,
+        "result_sha256": "b98089a78da29d654a54a55aecbac0a63187262fb5bfb2380013a5f7ef8b2499"
+      },
+      "retained": {
+        "selected": 394,
+        "completed": 394,
+        "passed": 195,
+        "failed": 199,
+        "ignored": 0,
+        "all_test_commands_naturally_joined": true,
+        "result_sha256": "eedc856affd4470dc581a17fc30729970100f614b8ded8c6d65d93cd886499cf"
+      }
+    },
+    "top_three_retained_root_failures": 144,
+    "followthrough_status": "Integrated, runtime verification pending; original failures retained"
+  },
+  "v212_batch5_store_actual": {
+    "scope": "Local macOS ARM Store cleanup followthrough; not a transport matrix run",
+    "source_snapshot_sha256": "d8cef9228041cb7b241c8566f92d3a120b0e00c1a47858ff30ae30ab1cd47c7b",
+    "summary": {
+      "selected": 415,
+      "completed": 415,
+      "passed": 270,
+      "failed": 145
+    },
+    "prior_retained_failures_now_pass": 61,
+    "prior_passes_now_fail": 0,
+    "full_matrix_passes_inferred": false,
+    "evidence": "docs/evidence/gate-6/store-writer-batch5-v212.json"
+  },
+  "v212_batch7_store_actual": {
+    "scope": "Local macOS ARM Store cleanup units; not a transport matrix run",
+    "source_snapshot_sha256": "b5ed9220487d126d8c5e076be4b782a112e79055b4e7e5062968e00e36eb04c9",
+    "summary": {
+      "selected": 429,
+      "completed": 429,
+      "passed": 340,
+      "failed": 89
+    },
+    "prior_batch5_failures_now_pass": 59,
+    "prior_batch5_passes_now_fail": 0,
+    "full_matrix_passes_inferred": false,
+    "evidence": "docs/evidence/gate-6/store-writer-batch7-v212.json"
+  },
+  "v212_full_store_followthrough": {
+    "task": "G6-058",
+    "scope": "All nonignored local macOS ARM Store unit tests; not transport qualification",
+    "source_snapshot_sha256": "b5ed9220487d126d8c5e076be4b782a112e79055b4e7e5062968e00e36eb04c9",
+    "summary": {
+      "inventory": 1575,
+      "run": 1571,
+      "passed": 1092,
+      "failed": 479,
+      "ignored": 4
+    },
+    "ignored_tests": [
+      "authority_fences::tests::admissions::idle_descriptor_process",
+      "authority_fences::tests::process_worker",
+      "installation_ownership::tests::process_worker",
+      "transitions::tests::crash_worker"
+    ],
+    "prior_full_baseline_failed_now_pass": 558,
+    "prior_full_baseline_pass_now_fail": 0,
+    "all_started_naturally_joined": true,
+    "binary_sha256": "5a43eb05d8f02b139996c375cc18103cd31900ab39b444894a80d5d242092715",
+    "evidence": "docs/evidence/gate-6/store-full-followthrough-v212.json"
+  },
+  "v212_batch8_implementation": {
+    "verification": "All identified fixes integrated; focused nonprovider162/162, provider43/44 plus final corrected-reader2/2. Final formatted-source combined build running; signed caller checks pending. No matrix pass inferred.",
+    "integrated": [
+      "Telephone phase/commit admission reuses original scope IDs only as routing hints, then validates current facts under a new short Writer",
+      "Received/native DTMF captured outcomes and recovery bind actual original mutation custody; physical frame markers unchanged",
+      "Native consultation return consumes planning reads before its current cut Writer; same original uncertain outcome retained across metadata pressure",
+      "Native stream recovery uses actual mutation scopes and keeps empty scans read-only",
+      "Ordinary fixture state changes use real writer ownership; illegal raw changes under a live reader now explicitly refuse",
+      "Session codec reservation consumes preparation reads and reauthorizes original attempt before IO",
+      "Native consultation join and due-return recovery bind current mutation ownership",
+      "Private-provider reservation/current phase read/historical recording and exact server caller chain, with original attempt retained across metadata pressure"
+    ],
+    "in_progress": [],
+    "completed_test_run": "docs/evidence/gate-6/store-full-followthrough-v212.json"
+  },
+  "v212_batch8_store_actual": {
+    "summary": {
+      "selected": 731,
+      "completed": 731,
+      "passed": 679,
+      "failed": 52
+    },
+    "evidence": "docs/evidence/gate-6/store-writer-batch8-v212.json",
+    "status": "Completed with 52 failures; subsequent fixes being integrated; no new matrix run",
+    "remaining_groups": [
+      "Private-provider reservation, phase and historical writer custody",
+      "Consultant join and conditional native-return recovery",
+      "Telephone initial reservation pre-admission derivation budget",
+      "Ordinary fixture writes and retained reader aliases in reconciliation/native signaling"
+    ]
+  },
+  "v212_batch9_store_actual": {
+    "summary": {
+      "selected": 162,
+      "completed": 162,
+      "passed": 162,
+      "failed": 0
+    },
+    "evidence": "docs/evidence/gate-6/store-writer-batch9-v212.json",
+    "previous_failures_now_pass": 17,
+    "status": "All focused nonprovider cleanup units passed; remaining private-provider changes in progress; coherent signed verification pending; no new matrix run"
+  },
+  "v212_mac_browser_pin": {
+    "status": "Verified frozen local Mac ARM Chrome runtime; pin updated for prospective qualification only",
+    "version": "157.0.8103.39",
+    "executable_sha256": "96832d133a25d835dfae36b6312de100e4d4cbe2f5e4eb0d2eac170da54672ad",
+    "contract": "contracts/gate6-transport-matrix.json",
+    "other_matrix_requirements_unchanged": true,
+    "browser_tests_run": false,
+    "matrix_tests_run": false
+  },
+  "v212_provider_store_actual": {
+    "last_full_cohort": {
+      "selected": 44,
+      "completed": 44,
+      "passed": 43,
+      "failed": 1
+    },
+    "final_correction": {
+      "selected": 2,
+      "completed": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "evidence": "docs/evidence/gate-6/store-provider-followthrough-v212.json",
+    "next": "No remaining focused failure; combined final-source verification building"
+  },
+  "v212_final_store_cleanup": {
+    "summary": {
+      "selected": 766,
+      "completed": 766,
+      "passed": 766,
+      "failed": 0
+    },
+    "evidence": "docs/evidence/gate-6/store-cleanup-final-v212.json",
+    "scope": "Final-source local macOS ARM Store cleanup cohort; not full Store inventory or transport matrix qualification",
+    "state": "All766 selected Store cleanup units passed; retained executable is byte-identical in verification-a. Signed caller outcomes are separately recorded; full Store inventory remains unqualified."
+  },
+  "v212_final_service_cleanup": {
+    "summary": {
+      "selected": 32,
+      "completed": 32,
+      "passed": 32,
+      "failed": 0
+    },
+    "evidence": "docs/evidence/gate-6/service-cleanup-final-v212.json",
+    "source_binary_unchanged": true
+  },
+  "v212_final_signed_cleanup": {
+    "evidence": "docs/evidence/gate-6/signed-cleanup-v212.json",
+    "source_snapshot_sha256": "5b4184da094469fd23ba69672cf2747e1949e8d501cdda4f24aacb0e90b28f40",
+    "summaries": {
+      "connect_server": {
+        "selected": 4,
+        "completed": 4,
+        "passed": 2,
+        "failed": 2
+      },
+      "gate6_replacement_video": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "gate6_canonical_webtransport": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "gate6_canonical_runtime": {
+        "selected": 16,
+        "completed": 16,
+        "passed": 0,
+        "failed": 16
+      }
+    },
+    "all_selected_commands_naturally_joined": true,
+    "followthrough": "Integrated source corrections/diagnostics await rerun; original failed verdicts unchanged."
+  },
+  "v212_final_signed_cleanup_b": {
+    "evidence": "docs/evidence/gate-6/signed-cleanup-v212.json#verification_b",
+    "source_snapshot_sha256": "87ca7f02a5d83ae6c6b6a670db813040d26647f06b1d16ae171eb68a40f89ada",
+    "summaries": {
+      "connect_server": {
+        "selected": 4,
+        "completed": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      "gate6_replacement_video": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "gate6_canonical_webtransport": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "gate6_canonical_runtime": {
+        "selected": 16,
+        "completed": 16,
+        "passed": 7,
+        "failed": 9
+      }
+    },
+    "wrapper_joined_exit_code": 1,
+    "children_joined_reaped": 27,
+    "child_sigabrt": 1,
+    "all_children_natural_exit_zero": false,
+    "followthrough": "Source-reviewed Data candidate, SDK/preflight fixes and further diagnostics are unverified; original failed/aborted outcomes preserved."
+  },
+  "v212_integrated_signed_blocker_fixes": {
+    "evidence": "docs/evidence/gate-6/signed-blocker-fixes-v212.json",
+    "evidence_sha256": "ecbf34979d3324ccd45e83e8b972a31c94cba253a1091f0aee44ea8323576f9f",
+    "status": "C scoped results recorded; D eight reviewed candidates integrated, verification pending",
+    "source_snapshot_sha256": "7ac5ef0242ca5ca39da598c772d41ccc2ac62bf0039d49ded04a0924c7e31a62",
+    "candidate_manifests": {
+      "reserved_preparation_begin": "8405022ada5a1794f20ec61e0432533fdf7c27eed2f4ab67001c547565bc296d",
+      "public_audio_original_subscription_receipt": "808944cbd7eedd58889a7d685fb96546ad2703d8fce9edcbd7757489e1353e99",
+      "data_original_operation_observation": "bc17c7408e38bebc1650b84fea47051a4bc080c0e700fb22c90f35f9b69958fb",
+      "replacement_admission_diagnostic": "815b15803a72653c3547b705dd6cca2bc55a7df9c3a7983762ef0cb90314dd60",
+      "return_read_reason_diagnostic": "e20a41b360a4e431711cf674e945be80eeffc3b843aa41cc229e10c7e7152aa3",
+      "public_audio_signed_controlled_tests": "af3352464844dac9988eb9cbcd93c2bfc0ac46cee5f8e598a7b8649e237123fc"
+    },
+    "pre_unit_progress_evidence_sha256": "3fee06ca4bf36b17e78cec0a56a6fa3888ffc1774d2cb604465cc9abe1f0e62e"
+  },
+  "v212_signed_blocker_completed_units_c": {
+    "evidence": "docs/evidence/gate-6/signed-blocker-fixes-v212.json#completed_units_c",
+    "source_snapshot_sha256": "7ac5ef0242ca5ca39da598c772d41ccc2ac62bf0039d49ded04a0924c7e31a62",
+    "summaries": {
+      "connect_client": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "connect_service": {
+        "selected": 37,
+        "completed": 37,
+        "passed": 37,
+        "failed": 0
+      },
+      "connect_store": {
+        "selected": 51,
+        "completed": 51,
+        "passed": 44,
+        "failed": 7
+      }
+    },
+    "store_failures": {
+      "fixture_gaps": 6,
+      "real_identity_overcontention": 1
+    },
+    "new_reserved_begin_causal_pass": true,
+    "unit_sessions_naturally_joined": true,
+    "server_build_complete": false,
+    "private_mixed_scope_candidates_integrated": false,
+    "full_matrix_qualified_cells": 0
+  },
+  "v212_final_signed_cleanup_c": {
+    "evidence": "docs/evidence/gate-6/signed-cleanup-v212.json#verification_c",
+    "signed_passed": 15,
+    "signed_failed": 8,
+    "signed_selected": 23,
+    "unit_results": {
+      "connect_client": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "connect_store": {
+        "selected": 51,
+        "completed": 51,
+        "passed": 44,
+        "failed": 7
+      },
+      "connect_service": {
+        "selected": 37,
+        "completed": 37,
+        "passed": 37,
+        "failed": 0
+      },
+      "connect_server": {
+        "selected": 4,
+        "completed": 4,
+        "passed": 4,
+        "failed": 0
+      }
+    },
+    "full_matrix_unchanged": "v209: 0/32 complete; 390/432 checks passed, 42 failed, 0 blocked",
+    "next": "Finish D batch fixes and causal units, then signed rerun. No full32 claim."
+  },
+  "v212_integrated_batch_d": {
+    "evidence": "docs/evidence/gate-6/signed-blocker-fixes-v212.json#integrated_batch_d",
+    "status": "Initial D compile101 before assertions; corrected/reviewed D2 build active; new unit/runtime verification pending",
+    "candidate_manifests": {
+      "replacement_scope": "3871ac979b1fa6c8fc4c77d8cc46e3a43e676b3b6794fb6894b2c9d06fcbcf3d",
+      "media_start_scope": "a0ce4787b069d78809c5609b25bd21388fb2087f552c79dc6ca44d1b5c33d7e3",
+      "six_fixture_repairs": "40f1a2215f845e89fded81fd34bff8c8d34eabfb06a459d99f59d6c777af800c",
+      "original_end_waiter": "2766565730fa4130c483223d71c9abd722943c347f1da90131d5768f1bc9d9ea",
+      "provider_return_failure_cleanup": "0bb9314589a37a1ed45e64d51e3a5b51635120e3dddcd7f59830727510498c55",
+      "owned_context_spawn": "e57a823d45c7a41d4a1b3f1b67c1d31c628b465e8a15f9ca349491429cdd78ff",
+      "allocation_diagnostic": "b70015c67b9acbe394d82d169f656e28ba1c6627bea9fd0333fd630d2027fe59",
+      "codec_scope": "5a88f55f507f34edb5d2336e45bb38195e4b8de10e5670623fa1e7b799f7df6c"
+    },
+    "production_driver_planned": 23,
+    "helper_unit_planned": 1,
+    "driver_total_planned": 24,
+    "build_followthrough": {
+      "initial_d_compile": {
+        "receipt": ".local/gate-6/v212-final-cleanup-verification-d/build-result.json",
+        "receipt_sha256": "e8e947de0b4ada21f4fddbf9c65e870748530a8d59104ee401462f7e49f85314",
+        "exit_code": 101,
+        "elapsed_seconds": 14.307641744613647,
+        "naturally_joined": true,
+        "assertions_run": 0,
+        "failure": "New codec causal test accessed a private authority guard; Root replaced access with crate-private covers_authority proof method, independently source-reviewed. No permission weakening inferred."
+      },
+      "current_d2": {
+        "status": "coherent build active; new unit/runtime results pending",
+        "source_snapshot_sha256": "56a7cfb40a8f6656c30b8e2f371a63bb25199ddc2e154b3512cf5c79a3216112",
+        "qualification": "Source freeze is bound, not a successful build/runtime result."
+      }
+    }
+  },
+  "v212_final_signed_cleanup_d2": {
+    "evidence": "docs/evidence/gate-6/signed-cleanup-v212.json#verification_d2",
+    "evidence_sha256": "840cf9ab1467c50f484d13922f5f96260c72f90d456877c6d7f9acc7688a0c00",
+    "source_snapshot_sha256": "56a7cfb40a8f6656c30b8e2f371a63bb25199ddc2e154b3512cf5c79a3216112",
+    "unit_summaries": {
+      "connect_store": {
+        "selected": 71,
+        "completed": 71,
+        "passed": 70,
+        "failed": 1
+      },
+      "connect_service": {
+        "selected": 37,
+        "completed": 37,
+        "passed": 37,
+        "failed": 0
+      },
+      "connect_server": {
+        "selected": 6,
+        "completed": 6,
+        "passed": 6,
+        "failed": 0
+      },
+      "connect_client_retained": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      }
+    },
+    "signed_driver_summary": {
+      "selected": 24,
+      "passed": 16,
+      "failed": 8,
+      "ignored": 0
+    },
+    "production_focused_summary": {
+      "selected": 23,
+      "passed": 15,
+      "failed": 8
+    },
+    "cleanup_helper": {
+      "selected": 1,
+      "passed": 1,
+      "failed": 0,
+      "test": "canonical_native_connections::consultation::provider::return_cleanup::failed_cleanup_does_not_prevent_following_original_task_join_or_replace_primary_panic",
+      "qualification": "Helper unit; not an additional production or matrix pass."
+    },
+    "all_wrappers_naturally_joined": true,
+    "children_joined_reaped": true,
+    "child_sigabrt": [
+      {
+        "test": "canonical_native_connections::consultation::production_private_ai_automatic_ai_caller_uses_own_context_grant_and_independent_owner_return",
+        "exit_code": -6,
+        "log_sha256": "c4bea35d21a2ed858e1aba430f47e729c32410aacfb8e81d0724b7b558546f53"
+      },
+      {
+        "test": "canonical_native_connections::consultation::production_private_ai_automatic_provider_close_record_outage_retries_observation_without_another_end",
+        "exit_code": -6,
+        "log_sha256": "65290e251fd4dc01d35260ea8e549aff0c57202d5d56be3c0263381c0361b579"
+      }
+    ],
+    "followthrough_not_in_d2": {
+      "integrated_working_source_pending_runtime": [
+        "Three reviewed E fixture corrections, including actual CID reader exclusion and transient read-only observation handling.",
+        "Replacement entry snapshot cleanup, independently source-reviewed.",
+        "Codec owned-admission offload candidate d16f449d, independently source-reviewed; integrated working source after D2 freeze."
+      ],
+      "private_pending": [
+        "Live resource-changing Subscribe Core/UCTP/Service quarantine candidate and causal tests."
+      ],
+      "qualification": "E source additions are excluded from the frozen D2 checkpoint/index and have no E test pass claim."
+    },
+    "full_matrix_unchanged": true
   }
 }

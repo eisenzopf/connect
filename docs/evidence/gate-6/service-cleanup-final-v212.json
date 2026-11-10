@@ -1,0 +1,207 @@
+{
+  "task": "G6-058",
+  "scope": "Final-source local macOS ARM Service cleanup unit cohort; signed media caller verification separate",
+  "summary": {
+    "selected": 32,
+    "completed": 32,
+    "passed": 32,
+    "failed": 0
+  },
+  "source_snapshot_sha256": "77fb356ce4fce194e91c41e8f3c6f58984a6f4d7e219c99ced3c1d4bd7744b08",
+  "binary_sha256": "fff96a6047ee4bdee122867eab72821098144d416441f0afe760936c20cc4ab8",
+  "source_and_binary_unchanged_after_tests": true,
+  "rows": [
+    {
+      "test": "canonical_media::packets::tests::publication_pair_retains_both_until_io_drop_in_original_order",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "868acfca69cf27ed968968677c63f84e73108ff0a92d69e9e36641b761e135fb"
+    },
+    {
+      "test": "canonical_media::packets::tests::publication_pair_refusal_releases_target_and_never_admits_later_source",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "948749a3dbf5f4c5b3461c272647e9e4c49bc9a68d735b4c4bcc25337763ef85"
+    },
+    {
+      "test": "canonical_media::native_snapshots::tests::route_source_key_requires_exact_owner_generation_and_credential_epoch",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e5bc6392cf2ce66e2cc312a27d2f8f629a2f0a95ede12e3716c6614bfeac8135"
+    },
+    {
+      "test": "canonical_media::native_snapshots::tests::dead_route_source_cannot_be_resurrected_by_equal_runtime_metadata",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "a9d48d9b55d2b741d2a8f07264a862e9a295121bcabb9dd87c5c9306d7f63dfc"
+    },
+    {
+      "test": "canonical_media::packets::tests::packet_trace_clock_only_observes_existing_elapsed_event_targets",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d9d48f465a44c9a20ec59cf406bdbaa8f883a1885610914e17563eaeb83ea876"
+    },
+    {
+      "test": "canonical_media::tests::native_packet_registry_writers_do_not_block_or_lend_missing_source_authority",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "513858c077f23e0e52945d3040301c3b508117a840884a784c747f98a19cc68e"
+    },
+    {
+      "test": "canonical_media::tests::native_packet_poisoned_registry_is_authority_failure_rather_than_retry",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b071d891a25c23154a4911ad8f70b22f2f17c62645285997aeecf91047fa3a84"
+    },
+    {
+      "test": "canonical_media::tests::queued_receive_registry_contention_returns_to_the_async_packet_owner",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f9259c1836ce90d243108b4e3ce3b9f37e5dbabdf24f86bfd93054c495631069"
+    },
+    {
+      "test": "canonical_media::tests::queued_source_registry_contention_returns_to_the_original_packet_owner",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "eeef0288a9e2352a7bd987b081fb6288cd56b25c1228776abc9c143b2611a3f4"
+    },
+    {
+      "test": "canonical_media::tests::original_ingress_reads_published_absence_while_all_writers_are_excluded",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ac729b9b1fd875726a2485a27f63e1c7ebda21c11018ebbab20d2af0e4c75bba"
+    },
+    {
+      "test": "canonical_media::packets::tests::publication_metadata_busy_uses_only_nonoriginal_media_retry_contract",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6a8c788ad566aba91f0b6d3daeb1f7bd4476fcb2901b40fc0642f7f5cc2b20a7"
+    },
+    {
+      "test": "canonical_media::packets::tests::publication_retry_mapping_preserves_every_other_refusal_and_payload",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "af64a0a9303ff7a36ff0e90ce90cd2c634e6434e0698fc25e187ebad66bd29ee"
+    },
+    {
+      "test": "canonical_media::native_snapshots::tests::continuation_phase_key_never_borrows_ordinary_or_another_activation",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ccb6aa58d82b792916a0d63cac4d35add406693ad05756cc66a62c4ba4fadd29"
+    },
+    {
+      "test": "canonical_media::native_snapshots::tests::eager_enrollment_defers_only_effect_free_authority_busy",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "13b392061723bdd847db352ab0dcb8d4990c586bf063a2d98e758663b35cf040"
+    },
+    {
+      "test": "canonical_media::published::tests::readers_use_complete_published_map_while_writer_prepares_next_state",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "14ed6598f16887dd5e8803fa2653941f3ccbc6505083f77d116dd9d4b0fee330"
+    },
+    {
+      "test": "canonical_media::published::tests::writer_poison_never_publishes_partial_state_or_serves_old_metadata",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e243863d0bf4ce7a0ca7bb0af52fd5772ef4d66496d5c3ebacd56d2f172236d8"
+    },
+    {
+      "test": "canonical_media::lifetime::tests::replaced_selected_lifetime_refusal_is_retryable_and_next_successor_is_observed",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e2e6468130db10c7c1b4fcc700cb83e140e530a0aa26e4ecd70e45b522a1734f"
+    },
+    {
+      "test": "canonical_media::lifetime::tests::unchanged_selected_lifetime_preserves_definitive_and_binding_refusals",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6dbf5101cf670813fd44eda2ac3cb5583d5c8dd31fd47cefc23f05cb79758c3b"
+    },
+    {
+      "test": "canonical_media::roles::generation_tests::role_generation_racing_completion_remains_pending_without_renewed_authority",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d5c6f05e8e6233d62033dc8c987c8259be3fe71787ca4502e89a4872d8ac1a42"
+    },
+    {
+      "test": "canonical_media::roles::generation_tests::role_generation_retries_busy_and_skips_only_successfully_reconciled_state",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "94083016833464add5246201658a7368e10d96768f646239d5dbf4edda3255d8"
+    },
+    {
+      "test": "canonical_runtime::control_work::tests::cancelled_native_control_retains_running_sql_poll_through_drain",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0e540e288f69b0acbf17a13636691e9fdc6d384c4fd6f2a5c9d683cc0948f500"
+    },
+    {
+      "test": "canonical_runtime::control_work::tests::cancelled_original_store_waiter_retains_and_joins_actual_write_acquisition",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "572e1c02010cedba061ba5b6596fdbc7271ab17f0ee589fbc077a8066393be10"
+    },
+    {
+      "test": "canonical_runtime::control_work::tests::native_control_poll_panic_remains_a_failed_drain",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "05a963982ae031f2f6ce961d4ff8bcde9f277dcc5e9786dfef4d33a3fca492b8"
+    },
+    {
+      "test": "canonical_runtime::control_work::tests::native_control_preserves_wakeups_deadline_and_nested_blocking_progress",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "1fb2ef1886c8122333604da5d2ef6c3f9f7cc9575d3e3051a58501e2acece2e8"
+    },
+    {
+      "test": "canonical_runtime::control_work::tests::native_control_sql_wait_preserves_executor_progress_and_original_join",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "63e715c90afdf99804e0a1101be9491751091f3aa020edca48e8d2f79d64947b"
+    },
+    {
+      "test": "canonical_runtime::control_work::tests::original_store_call_keeps_typed_writer_until_caller_releases_it",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "597be4dac86ab235ea6f241a1da81db4b3995cfd4aa704e1c4322be6716603be"
+    },
+    {
+      "test": "canonical_runtime::control_work::tests::periodic_custodian_joins_completed_controls_without_new_submission_or_cancelling_pending",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "294c395f5791176d773b23a2fe54915dc6ffb116c1fe45a1d2d80c90f3e5fc7d"
+    },
+    {
+      "test": "canonical_native_streams::outcome_recording_tests::temporary_recording_failures_keep_one_original_capture_until_success",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e8de41431742ec6904a6c5b2466b70b88ea47d9ab9a73ff39240a75da35ca19a"
+    },
+    {
+      "test": "canonical_native_streams::outcome_recording_tests::permanent_recording_conflict_does_not_keep_an_idle_worker",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "a1757e2ecc7bd6b513058fba3f824aeb715bcad0b0c2e396fd1d98e930848db5"
+    },
+    {
+      "test": "canonical_native_streams::outcome_recording_tests::runtime_stop_during_temporary_recording_does_not_start_another_attempt",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "75a3ec6f72991b722026df14f78abace7ba1af2ab1986f7e9673e542038ef3cb"
+    },
+    {
+      "test": "canonical_consultation_return::return_recording_tests::original_return_capture_stays_owned_through_temporary_recording_pressure",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d639b5d83d5e63639923fc59314b4f2cadcefa63dbfdbb60aace313d115782a5"
+    },
+    {
+      "test": "canonical_consultation_return::return_recording_tests::return_recording_stops_on_runtime_stop_or_permanent_refusal",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "489097ad5a3376275afe40996e5e436508a1664527923823ae35602432b7abdb"
+    }
+  ]
+}

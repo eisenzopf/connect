@@ -190,9 +190,18 @@ fn a_reused_provider_id_with_different_caller_is_held_without_rebinding() {
     let w = f.worker();
     let a = incoming_policy(&f, &w, "first");
     let first = incoming_import(&f, &w, &a, "reused-resource", "in-progress");
-    let c = f.store.connection().unwrap();
-    c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) SELECT 'other-phone',identity_id,tenant_id,device_id,transport,'+15555550112',capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id FROM endpoints WHERE id='initial-phone'",[]).unwrap();
-    drop(c);
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &f._ids[1],
+                crate::AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) SELECT 'other-phone',identity_id,tenant_id,device_id,transport,'+15555550112',capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id FROM endpoints WHERE id='initial-phone'",[]).unwrap();
+    }
     let mut b = ProviderVoiceIngressPolicy {
         id: "other-caller".into(),
         conversation_id: a.conversation_id.clone(),
@@ -351,19 +360,29 @@ fn configured_account_cannot_acquire_another_owner_even_after_original_policy_wi
     let original = incoming_policy(&f, &w, "first");
     // A separate valid Endpoint pair has another owner and different caller,
     // but cannot claim the retained original configured provider account.
-    let c = f.store.connection().unwrap();
-    for (old, new, address) in [
-        ("initial-phone", "new-phone", "+15555550112"),
-        (
-            "provider-assistant",
-            "new-assistant",
-            "12345678-1234-1234-1234-123456789014",
-        ),
-    ] {
-        c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) SELECT ?1,identity_id,tenant_id,device_id,transport,?2,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,?3 FROM endpoints WHERE id=?4",params![new,address,f._ids[1],old]).unwrap();
+    {
+        // Both existing endpoint owners are copied/withdrawn, including the
+        // original assistant. Changing route_owner_id does not change row owner.
+        let writer = f
+            .store
+            .try_acquire_authority(&[
+                crate::AuthorityScope::identity(&f._ids[0], crate::AuthorityMode::Write).unwrap(),
+                crate::AuthorityScope::identity(&f._ids[1], crate::AuthorityMode::Write).unwrap(),
+            ])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        for (old, new, address) in [
+            ("initial-phone", "new-phone", "+15555550112"),
+            (
+                "provider-assistant",
+                "new-assistant",
+                "12345678-1234-1234-1234-123456789014",
+            ),
+        ] {
+            c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,route_owner_id) SELECT ?1,identity_id,tenant_id,device_id,transport,?2,capabilities_json,verification_state,verification_evidence,verified_at,secret_ref,?3 FROM endpoints WHERE id=?4",params![new,address,f._ids[1],old]).unwrap();
+        }
+        c.execute("UPDATE endpoints SET verification_state='revoked',revision=revision+1 WHERE id IN ('initial-phone','provider-assistant')",[]).unwrap();
     }
-    c.execute("UPDATE endpoints SET verification_state='revoked',revision=revision+1 WHERE id IN ('initial-phone','provider-assistant')",[]).unwrap();
-    drop(c);
     let mut replacement = original.clone();
     replacement.id = "new-owner".into();
     replacement.policy.route_credential_id = f.keys[1].clone();

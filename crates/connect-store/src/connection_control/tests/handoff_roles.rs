@@ -130,7 +130,7 @@ fn handoff_captured_projection_commits_scope_and_disposition_once_without_changi
                 )
                 .unwrap();
             {
-                let c = f.store.connection().unwrap();
+                let c = f.change_fixture();
                 c.execute("UPDATE session_participants SET role=CASE WHEN participant_id=?1 THEN 'agent' ELSE 'observer' END WHERE session_id='session' AND participant_id IN (?1,?2)",params![f.pids[0],f.pids[2]]).unwrap();
                 c.execute("UPDATE participants SET role=CASE WHEN participant_id=?1 THEN 'agent' ELSE 'observer' END WHERE participant_id IN (?1,?2)",params![f.pids[0],f.pids[2]]).unwrap();
             }
@@ -295,7 +295,7 @@ fn handoff_captured_leave_projects_after_exact_native_source_retirement_without_
         let receipt = capture(&f, &sources, &origin, disposition);
         let original = &sources[0];
         {
-            let c = f.store.connection().unwrap();
+            let c = f.change_fixture();
             // Controlled equivalent of settle_native_offer_cleanup's durable
             // physical observation; no engine IO is performed by this fixture.
             if change != "missing-retirement" {
@@ -377,7 +377,7 @@ fn handoff_captured_projection_never_overwrites_newer_topology_conversation_or_m
         let origin = change_scope(&f, &origin, RoleScope::Conversation);
         let receipt = capture(&f, &sources, &origin, OutgoingDisposition::Observe);
         {
-            let c = f.store.connection().unwrap();
+            let c = f.change_fixture();
             match change {
                 "session" => {
                     c.execute("UPDATE sessions SET topology_revision=topology_revision+1 WHERE id='session'",[]).unwrap();

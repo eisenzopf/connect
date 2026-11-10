@@ -12,6 +12,7 @@ use axum::{
 };
 use base64::Engine;
 use connect_server::private_vapi::*;
+use futures_util::FutureExt;
 use sha2::Digest;
 use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -32,6 +33,8 @@ mod public_audio;
 mod public_context;
 #[path = "provider/restart_followup.rs"]
 mod restart_followup;
+#[path = "provider/return_cleanup.rs"]
+mod return_cleanup;
 #[cfg(unix)]
 #[path = "provider/write_custody.rs"]
 mod write_custody;
@@ -1679,15 +1682,38 @@ pub(super) async fn case(
         if mode == Case::AutomaticPrimaryEof {
             retired.insert(0, "codec-target");
         }
-        let returned = perform_return(
+        // Keep all original owners alive outside the caught future. A return
+        // assertion must not bypass their explicit shutdown/drain paths.
+        let returned = std::panic::AssertUnwindSafe(perform_return(
             &f,
             &cid,
             record_id.as_str(),
             revision,
             !matches!(mode, Case::AutomaticRemoteEof | Case::AutomaticPrimaryEof),
             retired,
-        )
+        ))
+        .catch_unwind()
         .await;
+        let returned = match returned {
+            Ok(value) => value,
+            Err(original) => {
+                // Preserve the primary failure even when a cleanup returns an
+                // error or panics; continue joining every remaining owner.
+                return_cleanup::observe("bridge", bridge.shutdown()).await;
+                return_cleanup::observe("public-peer", public.shutdown()).await;
+                for client in clients {
+                    return_cleanup::observe("native-peer", client.shutdown()).await;
+                }
+                return_cleanup::observe("canonical-server", f.server.shutdown()).await;
+                // This existing mock has no graceful stop API. Request its
+                // original abort and await that exact task, rather than detach.
+                server.abort();
+                let joined = server.await;
+                eprintln!("provider return failure cleanup: owner=mock-server abort_requested=true joined=true result={}",
+                    match joined { Ok(()) => "ok", Err(error) if error.is_cancelled() => "cancelled", Err(_) => "panic" });
+                std::panic::resume_unwind(original)
+            }
+        };
         if mode == Case::AutomaticAiCaller {
             followup_revision = Some(returned["result"]["session_revision"].as_u64().unwrap());
         }

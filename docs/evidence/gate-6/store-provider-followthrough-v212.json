@@ -1,0 +1,566 @@
+{
+  "task": "G6-058",
+  "scope": "Local macOS ARM private-provider unit followthrough; synthetic captured receipts only, no provider calls or matrix run",
+  "runs": [
+    {
+      "name": "provider-a",
+      "summary": {
+        "selected": 40,
+        "completed": 40,
+        "passed": 34,
+        "failed": 6
+      },
+      "source_snapshot_sha256": "487caa5dd623ba74035980c37023b3e028f9bf001524d1196be6b9f9425eb6aa",
+      "binary_sha256": "9f9903de81e909b1899138dac055267d471c40001abbc619cb18c25fb527f4cc",
+      "all_selected_naturally_joined": true,
+      "rows": [
+        {
+          "test": "connection_control::tests::private_provider::expired_unstarted_native_preparation_keeps_unconfirmed_provider_cleanup_unknown",
+          "passed": false,
+          "exit_code": 101,
+          "log_sha256": "a44b70b758105a2a4ddf246bbe18d4fc9b1c2a0251d51f45e9b7907fcb25799f"
+        },
+        {
+          "test": "connection_control::tests::private_provider::ai_owned_private_context_requires_every_private_listener_for_all_sources",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "f188497f0018658a233fe2a73e9ef42d8bff8cd38192318206e8385aef3ac345"
+        },
+        {
+          "test": "connection_control::tests::private_provider::initialization_failure_receipt_survives_source_revocation_and_rolls_back_recording_failure",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "8fbac404d0733ab92527e170e58a49e14216e5f031c4fbc6d7f09b53166be28a"
+        },
+        {
+          "test": "connection_control::tests::private_provider::initialization_cancellation_settles_only_after_captured_provider_close_without_native_io",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "72e446440047e382f909fdf888494168f4b235ec9ba60fcddb90b2e07b8d729b"
+        },
+        {
+          "test": "connection_control::tests::private_provider::a_fresh_private_context_recalls_authorized_private_history_without_exporting_it_to_public_memory",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "e15bddccce9bef880ab68e581052022b17a835ea82810be26e1fc87a6d1896c3"
+        },
+        {
+          "test": "connection_control::tests::private_provider::captured_initialization_failure_records_only_an_exact_zero_io_intention",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "a7352da8fd2acb2d9b0594ca2fad45924909f5b78bf550ab9844ff77661b05a4"
+        },
+        {
+          "test": "connection_control::tests::private_provider::native_consultation_cannot_turn_an_existing_public_context_into_a_private_attempt",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "b4a8b7f2f356f97390765bd8573c829779fdf90b8bf9b2dd35c24e2a1f7e2cfe"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::final_callback_try_does_not_queue_writer_behind_current_media_interval",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "83d0e74c696f72710713974975f17f83a1716995c92cecea8e6f8e9c50cbbe8b"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::captured_private_source_keeps_exact_pair_and_closes_without_retiring_native_metadata",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "bdb8a76b32f48c593435b5d4619188688e1559c0176fa9fc4df4fbd047cec8f5"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::final_callback_try_refuses_foreign_sql_writer_without_holding_process_sql_mutex",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "d2d32a57eebddd65b0f7804e29ead57846605d1a9f6ca001375a6d4ddd751949"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::private_buffer_is_hidden_when_original_human_listener_loses_exported_history",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "7f79a00da54fcbc998ca7c738a19e285dd18d85a0eb334140153ef468c909717"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_ai_completion_requires_independent_context_and_decoded_audio_then_follows_current_physical_grants",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "39ce1bb5838b88348c88bee48b91e682def420b8733311e1d435e24237ff76c4"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::private_source_rejects_uncertain_memory_and_stale_generation_before_buffer_replay",
+          "passed": false,
+          "exit_code": 101,
+          "log_sha256": "3fc50a549c4e08ce328d5153c40d3f012f991cb9167af93acb7c2b56ed43e8f0"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_context_receipt_keeps_original_native_generation_and_private_audience",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "dfc24c2ed170596e947ba3855835b3f88a8270b07f6f1323a7a2c6f8f57abbf7"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::private_source_requires_committed_exact_receipt_and_reuses_interval_before_waiting_writer",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "61fb1400f83b0d170df5af65548d4357cb2ec0e6a40f01644a95425cd792d61c"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_capture_rolls_back_recording_failure_then_records_exact_result_once",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "0c207421a80c48ac7fb6e9935f4d5fac0b40eb95c0b99e267a410cde6c03a829"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_captured_delivery_survives_revocation_but_cannot_authorize_new_transcripts",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "3243e8434a002b82879e3266381052a235e6cf4d85c717b8b70d2bf1f3913c06"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_changed_session_revision_settles_stopped_preparation_without_claiming_provider_cleanup",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "b7317352391709982c1df8547517861005ae8d96125b4f8d89aba74804d6258d"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_confirmed_initialization_allows_one_native_ai_preparation",
+          "passed": false,
+          "exit_code": 101,
+          "log_sha256": "3f9f30bbb6658bbef3a3bc530cd447800e2b27e449e0fa0bd9697a813ecf4117"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_context_precedes_native_ai_audience_attempt_and_cancellation_preserves_uncertainty",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "1f322e0d565c72824da97f93cc8d160c85781a123069536ff9fe7774a6287a59"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_context_source_loss_recovery_distinguishes_unstarted_from_possible_creation",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "a9c00a23020cf396a7f0fe7905213d5e6f10ad4a6800b0d6c66d9ae1d5aae9e7"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_current_export_reader_blocks_revocation_then_releases_it_without_idle_grants",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "add8d2cdac6f41a14aa3f56b7f9af063d6430305fffaeb93b28d93012399cbc5"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_export_uses_same_body_reference_and_cutoff_then_drains_before_ack_history",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "81984f0adc6118245761b85e468f9a5fe5f8dc1c4d9a0031c08a39f1fc4c6b07"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_exact_selection_and_one_attempt_cannot_complete_through_generic_context_api",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "e2adc224b369788958c8bdcf42bd77c0dedaa85e1491f5c36f3cf069e9792e22"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_context_requires_current_private_source_and_verified_ai_destination_before_reservation",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "3af41c3a77eb949b99ae320ca0ae4342ad81fd645e804ef83ff02b6d08d079ba"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_final_transcripts_keep_original_audience_and_never_enter_public_provider_memory",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "b87898fea9f5e08819020798cddc3e07f1fe34b35849b1894e1f92e3f5060ed0"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_fresh_creation_refusal_keeps_same_attempt_uncertainty_without_provider_io",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "eab71b923725bc44d8c8ba2023380c6ba5eb18027491e86e9d1d028e09edaed8"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_fresh_export_refusal_keeps_original_capture_for_uncertainty_and_close",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "ae4e05a138d290c4d77c243e81d812e066ebe97cbb8f977fec4868db9f2266f5"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_metadata_cancelled_wait_cannot_start_or_export",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "4f40f61df6d5b8f5a66d90e6f41f0ad7b739b26c38f9a0702cb296752bcb8364"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_late_export_ack_records_only_the_original_reserved_instance_after_uncertainty",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "139c1a9123952aedb9b0bbbc25608c59a5498216ea53551ce73f6d354986c725"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_metadata_wait_rechecks_current_authority_after_sql_contention",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "e0e3b0affb373b3129008e51879000e46427bb9b04b94664a64d746b7a72ceda"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_native_policy_memo_tracks_foreign_sqlite_writes_and_clock_expiry",
+          "passed": false,
+          "exit_code": 101,
+          "log_sha256": "766c6153b16895ba44d5b25f0e8b39b4675969a909a792198114c305a4fcf130"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_opaque_memory_and_new_transcripts_require_current_history_recipient_policy",
+          "passed": false,
+          "exit_code": 101,
+          "log_sha256": "f2433ac103cf092ba566b49dc5397de81b59c4b58a37d8856f46d2fded1e85c2"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_reservation_drains_real_reader_alias_and_releases_writer_before_phase_io",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "dff29f938d169e00d49ea51f881082f9fb7ed21a4255a6afc4d7f91bd5e1a239"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_reused_public_memory_refuses_before_private_json_is_exportable",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "68ea4537ee2ac1f69ee2116cad8629f3423e3752c6f2744dfd97823ae9f19343"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_uncertainty_reserves_the_original_context_and_never_reexports",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "18cb78b5151346a9bed46544d55f8bfa3f38107baa4e7f311b5d4d21c360ea3f"
+        },
+        {
+          "test": "transitions::tests::authority_tests::administration_recovery_skips_live_foreign_workers_and_rechecks_exact_batch_ids",
+          "passed": false,
+          "exit_code": 101,
+          "log_sha256": "c5d9209e253cfa28c9b1a53c33db2e24212595b976f6b079ddd2d4d31785665a"
+        },
+        {
+          "test": "connection_control::tests::private_provider::protected_initializer_target_is_current_original_member_metadata_without_an_idle_grant",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "1f031e02225beeb2e592615e8168bf0bf382a6c69872000d6cba9a6a2780228c"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_lost_creation_worker_expires_as_uncertain_without_repeating_creation",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "7e4f6720be35d0db8d532c1c9603d3292f8b808a28996dfb809d2d2f60d2119c"
+        },
+        {
+          "test": "connection_control::tests::private_provider::stopped_native_preparation_keeps_provider_uncertainty_until_actual_captured_termination",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "21a82fe5ef1093e3435d1f64ba223f36aba0dcf3c246596399b01ba5aa082896"
+        }
+      ]
+    },
+    {
+      "name": "provider-b",
+      "summary": {
+        "selected": 44,
+        "completed": 44,
+        "passed": 43,
+        "failed": 1
+      },
+      "source_snapshot_sha256": "28c24bb574ab56fabb6049f310de6d1dbec3047bc0bf638b84489a67b206045a",
+      "binary_sha256": "c6b6e988bed51d31b8e6f88fbc8166aa010766013626d9df5b707a2609d54697",
+      "all_selected_naturally_joined": true,
+      "rows": [
+        {
+          "test": "connection_control::tests::private_provider::expired_unstarted_native_preparation_keeps_unconfirmed_provider_cleanup_unknown",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "c63b1600a98cd52814ff3f8f8ea6b95f0c4ee4f7b6ad5c9f9b1aca90ea29653a"
+        },
+        {
+          "test": "connection_control::tests::private_provider::ai_owned_private_context_requires_every_private_listener_for_all_sources",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "841780413308531113e41c7028577fe07834f87d079912494cf58749d8475d51"
+        },
+        {
+          "test": "connection_control::tests::private_provider::initialization_failure_receipt_survives_source_revocation_and_rolls_back_recording_failure",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "f68c92db1f5bd57c0bd11198fca7a84b9f29b365e5f0666b1d5929abab330bbe"
+        },
+        {
+          "test": "connection_control::tests::private_provider::initialization_cancellation_settles_only_after_captured_provider_close_without_native_io",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "68cf5f0ed049c86544eef217668434652400af00c26ac2e2d69d9305f9d6a4ec"
+        },
+        {
+          "test": "connection_control::tests::private_provider::a_fresh_private_context_recalls_authorized_private_history_without_exporting_it_to_public_memory",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "9795acbcabd6a3e2ea60df7c4b22b55d53f0b3429eb9a99d8c7e32cac38e1006"
+        },
+        {
+          "test": "connection_control::tests::private_provider::captured_initialization_failure_records_only_an_exact_zero_io_intention",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "ab3bdbb1240e53065e180b30e4aa5e778c5c5813d19ee2cff101f930c2a9f8ba"
+        },
+        {
+          "test": "connection_control::tests::private_provider::native_consultation_cannot_turn_an_existing_public_context_into_a_private_attempt",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "f55e9de9deb32f7d5d64f20d661b9b0b33f55427a6a0557e587585964b5b2259"
+        },
+        {
+          "test": "connection_control::tests::private_provider::native_consultation_get_uses_read_until_recovery_then_drains_before_original_effect_mutation",
+          "passed": false,
+          "exit_code": 101,
+          "log_sha256": "df6d17f83f580e7c9b6e4a2f6052feb27ae0f788a76588b9f470fbd3b041ea0f"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::captured_private_source_keeps_exact_pair_and_closes_without_retiring_native_metadata",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "1c60593e9d446ba4cf430dacfdd941831b3449499b487b8f34dd9275b86138f5"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::final_callback_try_does_not_queue_writer_behind_current_media_interval",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "1ce958f7d3fd15234446163d09617f7dc28adc315ff64f4b3cdf69016b7408a0"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::final_callback_try_refuses_foreign_sql_writer_without_holding_process_sql_mutex",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "d130cb14fed13a994729fe94e0dcddfd7dd5d44840dc911b7cc64869be4cfe42"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_ai_completion_requires_independent_context_and_decoded_audio_then_follows_current_physical_grants",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "11bba5de1ffd8d4a3f0496bab53b402df8acc274b6ee9e9972a4e566bb496218"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::private_buffer_is_hidden_when_original_human_listener_loses_exported_history",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "fbb85743bf143aed1fd8c170817254923e2cb5f4dfc12d98aa451f6181e23f35"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_context_receipt_keeps_original_native_generation_and_private_audience",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "d564fa55487bd1f801435cdf7edceb649ff0c4b0cc7378480947ada3a6e54107"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::private_source_requires_committed_exact_receipt_and_reuses_interval_before_waiting_writer",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "b586a237d81545ab55f21460a7362f671ab6b73ffb9bc652eda159d72f2f00d9"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_capture_rolls_back_recording_failure_then_records_exact_result_once",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "d6e87949dc7dcb2d08ce591bcffa6bbbff026efb44e07025388325dbd0885d7c"
+        },
+        {
+          "test": "connection_control::tests::private_provider::observation_sources::private_source_rejects_uncertain_memory_and_stale_generation_before_buffer_replay",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "2efe12b218eb43501bec201e8c95899177223f922ed6347cb58ddd9f5e0b7ef8"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_captured_delivery_survives_revocation_but_cannot_authorize_new_transcripts",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "6173595877f91d412733959cb593e757df02f9d015daf8eacd4c977ae1bfbce9"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_changed_session_revision_settles_stopped_preparation_without_claiming_provider_cleanup",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "1a98c739472b9769146dfdc1a382317a8596d737468e3c86d991c802bfb29b07"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_confirmed_initialization_allows_one_native_ai_preparation",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "f1eafc59adcc5551e54e9596f9e8a9a99c8d8084d90521f20b8303aede8bea82"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_context_precedes_native_ai_audience_attempt_and_cancellation_preserves_uncertainty",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "13079855a6b23f5930d8391cea55899fb398d18329c7c4b54930324fa28f0212"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_context_source_loss_recovery_distinguishes_unstarted_from_possible_creation",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "c549ba0aa9ad162d04df07f56e9de931498ed962e621d4bd1641f1d2c8aad891"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_current_export_reader_blocks_revocation_then_releases_it_without_idle_grants",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "f01a41d9cb27e933bea8f21e4dc1ef99da5fc06d082b2764a8c3462896af7121"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_export_uses_same_body_reference_and_cutoff_then_drains_before_ack_history",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "6b32c48b0dd5c8361f680cad396637467a08159be6c20cd8a1da72c0334ab3de"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_final_transcripts_keep_original_audience_and_never_enter_public_provider_memory",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "7a2c047fc862ad636644573818eb775745d230a410d3e8bc16a4fdbd12932415"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_exact_selection_and_one_attempt_cannot_complete_through_generic_context_api",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "c69f6b683424b4641087adff1c5e1426ff30e18991912008a91f47c34ec45f34"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_fresh_creation_refusal_keeps_same_attempt_uncertainty_without_provider_io",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "55a4b9080a808781a26ede4435fde1f33290b44118e61bb67f9c5655b53b639e"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_context_requires_current_private_source_and_verified_ai_destination_before_reservation",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "cd893ff3916214976a919ec85c01a308c08140648bff1a8e142a11482c844740"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_metadata_cancelled_wait_cannot_start_or_export",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "c98df08eca84dd01fc373f142ef33b3ac1e10f8d9fc437eecdd60572f0258d11"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_fresh_export_refusal_keeps_original_capture_for_uncertainty_and_close",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "c5d40e94232a20b2047be5eef9f02ff1e5b67a45d6f9aae2737579f9e234eedd"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_late_export_ack_records_only_the_original_reserved_instance_after_uncertainty",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "7f3789a7c517b7d27d5106fc6b738e05d851cafbe517eba8d5730c9185f2e306"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_metadata_wait_rechecks_current_authority_after_sql_contention",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "32cff8a1a0f06d36ecbc29f2c2e1d68b3438b8fa9bd1b185c983b537f73db225"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_opaque_memory_and_new_transcripts_require_current_history_recipient_policy",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "c1926d2e7238a8c237b590502a5e8ea17e023573441c377f3f63bad58b04362c"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_native_policy_memo_tracks_foreign_sqlite_writes_and_clock_expiry",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "89857fbdca963827dbe87dde3ebbe88e82b997811b75162f02637a6b4752fa96"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_reused_public_memory_refuses_before_private_json_is_exportable",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "638fb2d2d1d905deb8ec75dd375c958a978c861559c64910b43574d50380f21d"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_reservation_drains_real_reader_alias_and_releases_writer_before_phase_io",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "c3ef9b78411bd12c5ad8a13ec2130d1b46a1c7ec9017eb909ad8955c4a5b1f64"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_lost_creation_worker_expires_as_uncertain_without_repeating_creation",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "d4925e192900c81924f7ad3f75e00ea7f54d63d356a919f8d9b2e929f2e13c43"
+        },
+        {
+          "test": "connection_control::tests::private_provider::private_provider_uncertainty_reserves_the_original_context_and_never_reexports",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "6337a1225affd1b8c1a1a1d0adf703029e3f29ef9144e49a49b1018513425738"
+        },
+        {
+          "test": "connection_control::tests::private_provider::protected_initializer_target_is_current_original_member_metadata_without_an_idle_grant",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "d1a6cdba95cca8274882a9f3858d0f02352e50044bd68b26a1c5467070a29a9a"
+        },
+        {
+          "test": "transitions::tests::authority_tests::administration_recovery_skips_live_foreign_workers_and_rechecks_exact_batch_ids",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "4f75a4b76407ab2a92f09610c98c13783ba99309261742e2bc9c727449054cd9"
+        },
+        {
+          "test": "transitions::tests::authority_tests::changed_decision_target_conflicts_without_borrowing_another_conversation_fence",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "8696272c4297854bf2af36bf305fab9ea8466266a2f39db760794df7bff19481"
+        },
+        {
+          "test": "transitions::tests::authority_tests::purge_batches_skip_unsettled_old_rows_and_wait_for_current_delivery",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "9e7e3f6244c45a5b8567d381d228027e7e4c9ab54327e260a2742d295b258521"
+        },
+        {
+          "test": "connection_control::tests::private_provider::stopped_native_preparation_keeps_provider_uncertainty_until_actual_captured_termination",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "e033fa411a0cb3983505e15f2d5c86f90bcccb1f13a64692275e5d69d90882a7"
+        },
+        {
+          "test": "transitions::tests::authority_tests::bounded_worker_batches_drain_large_valid_state_on_open_and_preserve_unknown_effects",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "64ce72129878fbff84a4a1bdd54314f71a48879e3d9bd7729870efabc12fd2c7"
+        }
+      ]
+    },
+    {
+      "name": "provider-d-focused",
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "source_snapshot_sha256": "35ef69cd9dee2ecad10aa2319c5bf20ae67e560cd992e324b2f607f97f83f206",
+      "binary_sha256": "e1ebbe7f3d0e86d89eaca308b155d3ea166bd9c766451fe4006f4153dc9a2ac0",
+      "all_selected_naturally_joined": true,
+      "rows": [
+        {
+          "test": "connection_control::tests::private_provider::expired_unstarted_native_preparation_keeps_unconfirmed_provider_cleanup_unknown",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "663d075685a479353a0bced0522e3a483573f6f2ca7a3d77f234eab2f36fb1b4"
+        },
+        {
+          "test": "connection_control::tests::private_provider::native_consultation_get_uses_read_until_recovery_then_drains_before_original_effect_mutation",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "ca58235af734353c278253dcbe580c184c032f24d51f8ce91bafc00d002dca9d"
+        }
+      ]
+    }
+  ],
+  "remaining": "No remaining failure in the focused provider cohort: provider-b43/44 followed by corrected-reader focused2/2. Combined final-source Store/Service/Server verification is running; these component runs do not qualify matrix cells.",
+  "reader_scope_note": "Private-consultation preparation intentionally installs its privacy floor before possible audience IO. The recovery regression preserves explicit primary/retained pair refusal and uses an unfloored original same-conversation media reader. The direct no-upgrade proof is dropped before ordinary Get so only the actual media reader blocks recovery. No replacement-handoff continuity requirement or production privacy policy changed."
+}

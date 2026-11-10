@@ -132,8 +132,12 @@ pub(crate) fn start(
             "Durable call event capacity exceeded",
         ));
     }
+    let birth = store
+        .authority_writer_boundary
+        .new_call_birth(c, &call.id, conversation)?;
     c.execute("INSERT INTO voice_calls(id,conversation_id,route_id,credential_id,destination) VALUES(?1,?2,?3,?4,?5)", params![call.id,conversation,route_id,credential,destination]).map_err(|_| Error::storage())?;
     event(c, &call, store)?;
+    drop(birth);
     Ok(Outcome::Call(call))
 }
 pub(crate) fn end(

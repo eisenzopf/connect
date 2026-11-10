@@ -152,7 +152,7 @@ fn handoff_preparation_denies_all_peer_routes_and_loses_own_media_when_its_grant
         )
         .unwrap();
     f.store
-        .connection()
+        .connection_with_authority(&_writer)
         .unwrap()
         .execute(
             "UPDATE credentials SET operations='[\"connection.offer\"]' WHERE id=?1",

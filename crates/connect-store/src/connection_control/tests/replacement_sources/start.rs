@@ -3,6 +3,7 @@ use super::*;
 use super::{allocation::prepared_target_scene, custody::cancel};
 use connect_protocol::transitions::{EffectState, OperationState};
 use std::sync::Arc;
+mod mixed_authority;
 mod receiver_epoch;
 
 fn fixture() -> (
@@ -303,7 +304,7 @@ fn replacement_start_rejects_ready_assertion_and_cleanup_after_a_possible_commit
             f.store
                 .record_native_replacement_started(&captured)
                 .unwrap();
-            let c = f.store.connection().unwrap();
+            let c = f.change_fixture();
             let record: String = c
                 .query_row(
                     "SELECT operation_record_id FROM native_replacements",
@@ -355,7 +356,12 @@ fn uncertain_native_resource_start_needs_exact_local_retirement_and_cannot_settl
         let uncertain = attempt.uncertain();
         drop(read);
         if committing {
-            let c = f.store.connection().unwrap();
+            // The original signed mutation proof is already a real scene
+            // Writer. Reuse it instead of re-entering the same lock footprint.
+            let c = f
+                .store
+                .connection_with_authority(Store::peer_scopes(&proof))
+                .unwrap();
             let record: String = c
                 .query_row(
                     "SELECT operation_record_id FROM native_replacements",

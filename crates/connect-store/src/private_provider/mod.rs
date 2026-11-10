@@ -16,7 +16,7 @@ pub(crate) use cache::{ready_until, Cache};
 mod media;
 pub use media::PrivateProviderMediaRead;
 mod observations;
-pub(crate) use observations::recover_one;
+pub(crate) use observations::{recover_one, recovery_disposition};
 
 #[derive(Clone)]
 pub struct PrivateProviderContext {
@@ -37,6 +37,7 @@ pub struct PrivateProviderRead {
 }
 pub struct PrivateProviderAttempt {
     context: PrivateProviderContext,
+    expires_at: i64,
 }
 pub struct PrivateProviderCreated {
     owner: Weak<InstallationOwnership>,
@@ -48,6 +49,7 @@ pub struct PrivateProviderCreated {
 pub struct PrivateProviderExport {
     context: PrivateProviderContext,
     provider_ref: String,
+    expires_at: i64,
 }
 pub struct PrivateProviderApplied {
     owner: Weak<InstallationOwnership>,
@@ -121,6 +123,9 @@ impl PrivateProviderRead {
     }
 }
 impl PrivateProviderAttempt {
+    pub fn expires_at(&self) -> i64 {
+        self.expires_at
+    }
     /// Only after actual fresh provider creation, before any private export.
     pub fn created(self, provider_ref: String) -> Result<PrivateProviderCreated> {
         if provider_ref.is_empty()
@@ -143,6 +148,9 @@ impl PrivateProviderAttempt {
     }
 }
 impl PrivateProviderExport {
+    pub fn expires_at(&self) -> i64 {
+        self.expires_at
+    }
     /// Actual successful export to the already captured fresh provider instance.
     /// No caller-selected reference can redirect this observation.
     pub fn delivered(self) -> PrivateProviderApplied {
@@ -156,7 +164,54 @@ impl PrivateProviderExport {
         }
     }
 }
+#[derive(Clone, Copy)]
+enum ReadPhase {
+    Planning,
+    Creation { until: i64 },
+    Export { until: i64 },
+}
+impl ReadPhase {
+    fn until(self) -> i64 {
+        match self {
+            Self::Planning => i64::MAX,
+            Self::Creation { until } | Self::Export { until } => until,
+        }
+    }
+}
 impl Store {
+    fn private_provider_history_sql<'a>(
+        &'a self,
+        delivery: &str,
+        attempt: &str,
+        runtime: &str,
+    ) -> Result<(
+        Arc<AuthorityGuardSet>,
+        crate::installation_ownership::ConnectionGuard<'a>,
+    )> {
+        let needed = {
+            let c = self.try_connection()?;
+            let root: String = c.query_row("SELECT operation_record_id FROM private_provider_contexts WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3", params![delivery, attempt, runtime], |row| row.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+            mutation_scopes(&c, &root)?
+        };
+        let held = self.try_acquire_authority(&needed)?;
+        let c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
+        Ok((held, c))
+    }
+    fn require_private_provider_history(
+        &self,
+        c: &Connection,
+        held: &AuthorityGuardSet,
+        delivery: &str,
+        attempt: &str,
+        runtime: &str,
+    ) -> Result<()> {
+        let root: String = c.query_row("SELECT operation_record_id FROM private_provider_contexts WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3", params![delivery, attempt, runtime], |row| row.get(0)).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+        if !self.authority_covers(held, &mutation_scopes(c, &root)?) {
+            return Err(Error::forbidden());
+        }
+        Ok(())
+    }
     /// Persist the exact private selection and configured verified Vapi target
     /// before provider IO. The consumed media planning reader is dropped before
     /// metadata writers are acquired. This operation does not contact a provider.
@@ -182,6 +237,7 @@ impl Store {
             },
         )?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -235,7 +291,7 @@ impl Store {
         };
         let held = self.try_acquire_authority(&needed)?;
         let c = self.try_connection()?;
-        self.private_provider_read_at(&c, context, held)
+        self.private_provider_read_at(&c, context, held, ReadPhase::Planning)
     }
     /// Bounded metadata admission on a blocking host worker. Unlike packet
     /// policy this queues for SQL and authority, then repeats every current
@@ -254,7 +310,7 @@ impl Store {
         })?;
         let c = self.connection()?;
         wait.check()?;
-        let read = self.private_provider_read_at(&c, context, held)?;
+        let read = self.private_provider_read_at(&c, context, held, ReadPhase::Planning)?;
         wait.check()?;
         Ok(read)
     }
@@ -263,18 +319,31 @@ impl Store {
         c: &Connection,
         context: &PrivateProviderContext,
         held: Arc<AuthorityGuardSet>,
+        phase: ReadPhase,
     ) -> Result<PrivateProviderRead> {
         bound(self, c, context)?;
         if !self.authority_covers(&held, &scopes(self, c, context, false)?) {
             return Err(Error::forbidden());
         }
         let facts = resolve(self, c, context)?;
-        let (encoded,provider_ref):(String,Option<String>) = c
-            .query_row(
-                "SELECT d.selection_json,p.provider_ref FROM context_deliveries d JOIN private_provider_contexts p ON p.delivery_id=d.id WHERE d.id=?1 AND d.state='pending' AND p.uncertain=0 AND p.export_started=0 AND p.closed_at IS NULL AND (p.started=0 OR p.created_at IS NOT NULL)",
-                [&context.delivery],
-                |r| Ok((r.get(0)?,r.get(1)?)),
-            )
+        let phase_predicate = match phase {
+            ReadPhase::Planning => "p.export_started=0 AND (p.started=0 OR p.created_at IS NOT NULL)",
+            ReadPhase::Creation { .. } => "p.started=1 AND p.provider_ref IS NULL AND p.created_at IS NULL AND p.export_started=0 AND p.creation_expires_at=?2 AND p.creation_expires_at>?3",
+            ReadPhase::Export { .. } => "p.started=1 AND p.provider_ref IS NOT NULL AND p.created_at IS NOT NULL AND p.export_started=1 AND p.export_uncertain=0 AND p.delivered_at IS NULL AND p.export_expires_at=?2 AND p.export_expires_at>?3",
+        };
+        let query = format!("SELECT d.selection_json,p.provider_ref FROM context_deliveries d JOIN private_provider_contexts p ON p.delivery_id=d.id WHERE d.id=?1 AND d.state='pending' AND p.uncertain=0 AND p.closed_at IS NULL AND ({phase_predicate})");
+        let (encoded, provider_ref): (String, Option<String>) =
+            if matches!(phase, ReadPhase::Planning) {
+                c.query_row(&query, [&context.delivery], |row| {
+                    Ok((row.get(0)?, row.get(1)?))
+                })
+            } else {
+                c.query_row(
+                    &query,
+                    params![context.delivery, phase.until(), crate::now()],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+            }
             .map_err(|_| Error::forbidden())?;
         let view: ContextView = serde_json::from_str(&encoded).map_err(|_| Error::storage())?;
         let current = crate::context::view_for_private_scope_at(
@@ -307,7 +376,8 @@ impl Store {
         let owner = self.require_runtime_owner()?;
         let expires_at = crate::records::context::deadline(&view)
             .map_or(facts.expires_at, |until| facts.expires_at.min(until))
-            .min(crate::now() + 5);
+            .min(crate::now() + 5)
+            .min(phase.until());
         if crate::now() >= expires_at {
             return Err(Error::forbidden());
         }
@@ -325,32 +395,129 @@ impl Store {
         &self,
         context: PrivateProviderContext,
         read: PrivateProviderRead,
-    ) -> Result<(PrivateProviderAttempt, PrivateProviderRead)> {
+    ) -> Result<PrivateProviderAttempt> {
+        self.begin_private_provider_context_before(context, read, i64::MAX)
+    }
+    pub fn begin_private_provider_context_before(
+        &self,
+        context: PrivateProviderContext,
+        read: PrivateProviderRead,
+        original_until: i64,
+    ) -> Result<PrivateProviderAttempt> {
         if !read.current()
+            || !self.authority_covers(&read._held, &[])
             || read.provider_ref.is_some()
             || read.context.delivery != context.delivery
             || read.context.attempt != context.attempt
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let until = read.expires_at.min(original_until);
+        let encoded = read.json.clone();
+        let endpoint = read.endpoint.clone();
+        drop(read);
+        let (held, mut c) = self.private_provider_reservation_sql(&context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        bound(self, &tx, &context)?;
-        resolve(self, &tx, &context)?;
-        if tx.execute("UPDATE private_provider_contexts SET started=1,creation_expires_at=?2 WHERE delivery_id=?1 AND started=0 AND uncertain=0 AND delivered_at IS NULL",params![context.delivery,read.expires_at]).map_err(|_|Error::storage())?!=1{return Err(Error::new("reconciliation-required","Private provider initialization already attempted"));}
+        if !self.authority_covers(&held, &scopes(self, &tx, &context, true)?) {
+            return Err(Error::new(
+                "authority-busy",
+                "Private provider mutation scope changed",
+            ));
+        }
+        let current = self.private_provider_read_at(&tx, &context, held, ReadPhase::Planning)?;
+        if current.provider_ref.is_some()
+            || current.json != encoded
+            || current.endpoint != endpoint
+            || crate::now() >= until
+        {
+            return Err(Error::forbidden());
+        }
+        let until = until.min(current.expires_at);
+        if tx.execute("UPDATE private_provider_contexts SET started=1,creation_expires_at=?2 WHERE delivery_id=?1 AND started=0 AND uncertain=0 AND delivered_at IS NULL",params![context.delivery,until]).map_err(|_|Error::storage())?!=1{return Err(Error::new("reconciliation-required","Private provider initialization already attempted"));}
         tx.execute(
             "UPDATE operations SET state='preparing' WHERE record_id=?1 AND state='accepted'",
             [context.consultation_record_id()],
         )
         .map_err(|_| Error::storage())?;
         progress(&tx, context.consultation_record_id(), self)?;
-        if !read.current() {
+        if !current.current() || crate::now() >= until {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok((PrivateProviderAttempt { context }, read))
+        Ok(PrivateProviderAttempt {
+            context,
+            expires_at: until,
+        })
+    }
+    pub fn try_private_provider_creation_read(
+        &self,
+        attempt: &PrivateProviderAttempt,
+    ) -> Result<PrivateProviderRead> {
+        self.private_provider_phase_read(
+            &attempt.context,
+            ReadPhase::Creation {
+                until: attempt.expires_at,
+            },
+        )
+    }
+    pub fn try_private_provider_export_read(
+        &self,
+        attempt: &PrivateProviderExport,
+    ) -> Result<PrivateProviderRead> {
+        let read = self.private_provider_phase_read(
+            &attempt.context,
+            ReadPhase::Export {
+                until: attempt.expires_at,
+            },
+        )?;
+        if read.provider_ref.as_deref() != Some(attempt.provider_ref.as_str()) {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
+    }
+    fn private_provider_phase_read(
+        &self,
+        context: &PrivateProviderContext,
+        phase: ReadPhase,
+    ) -> Result<PrivateProviderRead> {
+        if crate::now() >= phase.until() {
+            return Err(Error::forbidden());
+        }
+        let needed = {
+            let c = self.try_connection()?;
+            bound(self, &c, context)?;
+            scopes(self, &c, context, false)?
+        };
+        let held = self.try_acquire_authority(&needed)?;
+        let c = self.try_connection()?;
+        self.private_provider_read_at(&c, context, held, phase)
+    }
+    fn private_provider_reservation_sql<'a>(
+        &'a self,
+        context: &PrivateProviderContext,
+    ) -> Result<(
+        Arc<AuthorityGuardSet>,
+        crate::installation_ownership::ConnectionGuard<'a>,
+    )> {
+        let needed = {
+            let c = self.try_connection()?;
+            bound(self, &c, context)?;
+            scopes(self, &c, context, true)?
+        };
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
+        let held = self.acquire_authority(&needed, &wait)?;
+        let c = self.try_connection()?;
+        let current = scopes(self, &c, context, true)?;
+        if !self.authority_covers(&held, &current) {
+            return Err(Error::new(
+                "authority-busy",
+                "Private provider mutation scope changed",
+            ));
+        }
+        c.bind_available_mutation_authority(self, &held)?;
+        Ok((held, c))
     }
     /// A fresh provider reference is durably reserved before private JSON can
     /// be exported. Metadata recording never creates or resumes a provider call.
@@ -365,10 +532,21 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let (held, mut c) = self.private_provider_history_sql(
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_private_provider_history(
+            &tx,
+            &held,
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let row:Option<(String,Option<String>)>=tx.query_row("SELECT operation_record_id,provider_ref FROM private_provider_contexts WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3 AND started=1",params![receipt.delivery,receipt.attempt,receipt.runtime],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?;
         let (root, existing) = row.ok_or_else(Error::forbidden)?;
         if let Some(existing) = existing {
@@ -396,33 +574,57 @@ impl Store {
         &self,
         context: PrivateProviderContext,
         read: PrivateProviderRead,
-    ) -> Result<(PrivateProviderExport, PrivateProviderRead)> {
+    ) -> Result<PrivateProviderExport> {
+        self.begin_private_provider_export_before(context, read, i64::MAX)
+    }
+    pub fn begin_private_provider_export_before(
+        &self,
+        context: PrivateProviderContext,
+        read: PrivateProviderRead,
+        original_until: i64,
+    ) -> Result<PrivateProviderExport> {
         if !read.current()
+            || !self.authority_covers(&read._held, &[])
             || read.context.delivery != context.delivery
             || read.context.attempt != context.attempt
         {
             return Err(Error::forbidden());
         }
         let provider_ref = read.provider_ref.clone().ok_or_else(Error::forbidden)?;
-        let mut c = self.connection()?;
+        let until = read.expires_at.min(original_until);
+        let encoded = read.json.clone();
+        let endpoint = read.endpoint.clone();
+        drop(read);
+        let (held, mut c) = self.private_provider_reservation_sql(&context)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        bound(self, &tx, &context)?;
-        resolve(self, &tx, &context)?;
-        if tx.execute("UPDATE private_provider_contexts SET export_started=1,export_expires_at=?3 WHERE delivery_id=?1 AND started=1 AND provider_ref=?2 AND created_at IS NOT NULL AND export_started=0 AND export_uncertain=0 AND uncertain=0 AND closed_at IS NULL AND delivered_at IS NULL",params![context.delivery,provider_ref,read.expires_at]).map_err(|_|Error::storage())?!=1{return Err(Error::new("reconciliation-required","Private provider export already attempted"));}
+        if !self.authority_covers(&held, &scopes(self, &tx, &context, true)?) {
+            return Err(Error::new(
+                "authority-busy",
+                "Private provider mutation scope changed",
+            ));
+        }
+        let current = self.private_provider_read_at(&tx, &context, held, ReadPhase::Planning)?;
+        if current.provider_ref.as_deref() != Some(provider_ref.as_str())
+            || current.json != encoded
+            || current.endpoint != endpoint
+            || crate::now() >= until
+        {
+            return Err(Error::forbidden());
+        }
+        let until = until.min(current.expires_at);
+        if tx.execute("UPDATE private_provider_contexts SET export_started=1,export_expires_at=?3 WHERE delivery_id=?1 AND started=1 AND provider_ref=?2 AND created_at IS NOT NULL AND export_started=0 AND export_uncertain=0 AND uncertain=0 AND closed_at IS NULL AND delivered_at IS NULL",params![context.delivery,provider_ref,until]).map_err(|_|Error::storage())?!=1{return Err(Error::new("reconciliation-required","Private provider export already attempted"));}
         progress(&tx, context.consultation_record_id(), self)?;
-        if !read.current() {
+        if !current.current() || crate::now() >= until {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok((
-            PrivateProviderExport {
-                context,
-                provider_ref,
-            },
-            read,
-        ))
+        Ok(PrivateProviderExport {
+            context,
+            provider_ref,
+            expires_at: until,
+        })
     }
     /// Record an actual context ACK after dropping export readers. This token
     /// cannot attach media, export a body or change its captured provider target.
@@ -440,10 +642,21 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        let (held, mut c) = self.private_provider_history_sql(
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        self.require_private_provider_history(
+            &tx,
+            &held,
+            &receipt.delivery,
+            &receipt.attempt,
+            &receipt.runtime,
+        )?;
         let row:Option<(String,Option<i64>)>=tx.query_row("SELECT operation_record_id,delivered_at FROM private_provider_contexts WHERE delivery_id=?1 AND attempt_id=?2 AND runtime_epoch=?3 AND started=1 AND export_started=1 AND provider_ref=?4 AND created_at IS NOT NULL",params![receipt.delivery,receipt.attempt,receipt.runtime,receipt.provider_ref],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|Error::storage())?;
         let (root, delivered) = row.ok_or_else(Error::forbidden)?;
         if delivered.is_some() {
