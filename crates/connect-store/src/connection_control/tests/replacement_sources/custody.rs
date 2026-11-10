@@ -1215,3 +1215,87 @@ fn reservation_mixed_scope_retains_identity_policy_fences_and_rechecks_current_s
     assert_eq!(f.count("native_replacements"), 0);
     assert_eq!(f.count("operation_effects"), before);
 }
+
+#[test]
+fn replacement_status_recovery_releases_original_read_before_exact_writer() {
+    for started in [false, true] {
+        let (f, key, command, origin, sources) = setup();
+        let input = f
+            .store
+            .try_native_replacement_preparation_read(
+                &origin,
+                &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+                &sources[1],
+            )
+            .unwrap();
+        let mut request = request();
+        request.timeout_seconds = 2;
+        let lease = f
+            .store
+            .prepare_native_replacement(input, request)
+            .unwrap()
+            .unwrap();
+        let expires = lease.expires_at();
+        let _attempt = started.then(|| begin(&f, lease));
+        let owner = f.store.revalidate(&key).unwrap().identity_id;
+        let scopes = [
+            crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Read).unwrap(),
+            crate::AuthorityScope::conversation(&f.cid, crate::AuthorityMode::Read).unwrap(),
+        ];
+        // A current Get must stay read-only and coexist with the existing route.
+        let read = f.store.try_acquire_authority(&scopes).unwrap();
+        assert_eq!(status(&f, &key, &command).state, OperationState::Preparing);
+        drop(read);
+        // Let this actual bounded reservation expire. Immutable admission and
+        // plan cutoffs, effect IDs and attempt IDs are never rewritten.
+        while crate::now() < expires {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        let read = f.store.try_acquire_authority(&scopes).unwrap();
+        let action = OperationAction::Get {
+            operation_id: command.operation_id.clone(),
+        };
+        let error = f
+            .store
+            .execute_operation_action_with_authority(&key, action.clone(), &read)
+            .err()
+            .expect("expired Get must refuse its retained Read");
+        assert_eq!(error.code, "authority-busy");
+        {
+            let c = f.store.connection().unwrap();
+            let state: String = c
+                .query_row(
+                    "SELECT state FROM operations WHERE operation_id=?1 AND owner_id=?2",
+                    params![command.operation_id, owner],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(state, "preparing");
+        }
+        drop(read);
+        // Historical recovery does not need to revoke the unrelated actor's
+        // Identity Read. The source Conversation is still excluded by Writer.
+        let identity_read = f.store.try_acquire_authority(&scopes[..1]).unwrap();
+        let recovered = f.store.execute_operation_action(&key, action).unwrap();
+        assert_eq!(
+            recovered.state,
+            if started {
+                OperationState::Unknown
+            } else {
+                OperationState::Failed
+            }
+        );
+        assert_eq!(recovered.effects.len(), 1);
+        assert_eq!(recovered.effects[0].attempt, u64::from(started));
+        assert_eq!(
+            recovered.effects[0].state,
+            if started {
+                EffectState::Unknown
+            } else {
+                EffectState::Cancelled
+            }
+        );
+        assert_eq!(status(&f, &key, &command), recovered);
+        drop(identity_read);
+    }
+}

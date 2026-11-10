@@ -211,26 +211,60 @@ impl Store {
         credential: &str,
         proof: &PeerAuthorityGuard,
     ) -> Result<NativeReplacementStartRead> {
-        let (member, descriptor, saved) = {
-            let c = self.try_connection()?;
-            let saved = allocated_current(self, &c, allocated)?;
-            let (member, descriptor) = target_facts_for_profile(
-                self,
-                &c,
-                &allocated.attempt.prepared,
-                credential,
-                proof,
-                &saved,
-                "connect-replacement-media-v1",
-            )?;
-            same_target(allocated, &descriptor)?;
-            (member, descriptor, saved)
-        };
-        let source = allocated
-            .attempt
-            .prepared
-            .selection
-            .read_with_peer(self, proof)?;
+        let c = self.try_connection()?;
+        self.native_replacement_start_read_in(&c, allocated, credential, proof)
+    }
+    /// Effect-free original planning read. Wait only for primary SQL admission;
+    /// never retry a SQL statement, current-policy refusal or any start effect.
+    pub fn native_replacement_start_read_with_peer_wait(
+        &self,
+        allocated: &Arc<NativeReplacementAllocated>,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+        wait: &crate::AuthorityWait,
+    ) -> Result<NativeReplacementStartRead> {
+        if !proof.current() {
+            return Err(Error::forbidden());
+        }
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (proof.expires_at() - crate::now()).max(0) as u64,
+        ));
+        let c = self.try_connection_with_wait(&wait)?;
+        let read = self.native_replacement_start_read_in(&c, allocated, credential, proof)?;
+        wait.check()?;
+        if !proof.current() || !read.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(read)
+    }
+    fn native_replacement_start_read_in(
+        &self,
+        c: &Connection,
+        allocated: &Arc<NativeReplacementAllocated>,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+    ) -> Result<NativeReplacementStartRead> {
+        if !proof.current() {
+            return Err(Error::forbidden());
+        }
+        let saved = allocated_current(self, c, allocated)?;
+        let (member, descriptor) = target_facts_for_profile(
+            self,
+            c,
+            &allocated.attempt.prepared,
+            credential,
+            proof,
+            &saved,
+            "connect-replacement-media-v1",
+        )?;
+        same_target(allocated, &descriptor)?;
+        // Resolve both target and source using the SAME admitted SQL owner.
+        let source = allocated.attempt.prepared.selection.read_with_connection(
+            self,
+            c,
+            Store::peer_scopes(proof).clone(),
+            proof.expires_at(),
+        )?;
         let target = projection(&source, member, &saved, &descriptor)?;
         Ok(NativeReplacementStartRead {
             source,

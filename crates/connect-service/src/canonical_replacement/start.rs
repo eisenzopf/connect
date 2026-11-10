@@ -120,27 +120,83 @@ impl Runtime {
                 "Original native allocation capture is not yet recorded",
             ));
         }
-        // Before begin, a temporary metadata refusal has no phase/Core effect.
-        // Do not retain the signed mutation writer through five-second retries.
-        let (read, entries) = {
+        // This phase has no start effect. Release the role coordinator before
+        // waiting on metadata; the existing begin path reacquires it and checks
+        // the exact current target/plan again before the once-only mutation.
+        drop(roles);
+        let root_cancel = saved.handle.cancellation();
+        let invocation_cancel = a.invocation_cancellation();
+        let read_until = saved.deadline.min(
+            tokio::time::Instant::now()
+                + Duration::from_secs(
+                    (proof(&a)?.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
+                ),
+        );
+        if self.stop.is_cancelled()
+            || physical.lifetime.is_cancelled()
+            || root_cancel.is_cancelled()
+            || invocation_cancel.is_cancelled()
+            || tokio::time::Instant::now() >= read_until
+        {
+            return Err(Error::forbidden());
+        }
+        let read = {
+            let wait = connect_store::AuthorityWait::new(
+                read_until.saturating_duration_since(tokio::time::Instant::now()),
+            );
+            let _cancel_wait = wait.cancel_on_drop();
             let store = self.media.store.clone();
-            let a = a.clone();
+            let original = a.clone();
             let receipt = allocated.receipt.clone();
             let key = credential.to_owned();
-            let read = store_call(move || {
-                store.native_replacement_start_read_with_peer(&receipt, &key, proof(&a)?)
-            })
-            .await
-            .map_err(|error| start_refused("start-read", error))?;
-            // Capture exact metadata owners before the once-only start effect.
-            // A busy lookup drops this read and refuses before any once-only
-            // begin; negotiation and mute have not started yet.
-            let entries = self
-                .media
-                .replacement_preparation_entries(read.source())
-                .map_err(|error| start_refused("start-entries", error))?;
-            (read, entries)
+            let read_wait = wait.clone();
+            let read_call = self.owned_store_call(move || {
+                store.native_replacement_start_read_with_peer_wait(
+                    &receipt,
+                    &key,
+                    proof(&original)?,
+                    &read_wait,
+                )
+            });
+            tokio::pin!(read_call);
+            let read = tokio::select! { biased;
+                _ = self.stop.cancelled() => None,
+                _ = physical.lifetime.cancelled() => None,
+                _ = root_cancel.cancelled() => None,
+                _ = invocation_cancel.cancelled() => None,
+                _ = tokio::time::sleep_until(read_until) => None,
+                result = &mut read_call => Some(result),
+            };
+            let read = match read {
+                Some(result) => result.map_err(|error| start_refused("start-read", error))?,
+                None => {
+                    wait.cancel();
+                    // Join the SAME original blocking owner; a late read is dropped
+                    // here, never detached or allowed to begin after cancellation.
+                    drop(read_call.await);
+                    return Err(start_refused("start-read", Error::forbidden()));
+                }
+            };
+            read
         };
+        if self.stop.is_cancelled()
+            || physical.lifetime.is_cancelled()
+            || root_cancel.is_cancelled()
+            || invocation_cancel.is_cancelled()
+            || tokio::time::Instant::now() >= read_until
+            || !read.current()
+        {
+            return Err(Error::forbidden());
+        }
+        physical.validate(
+            &a,
+            a.authority::<StoreInvocationAuthority>()
+                .ok_or_else(Error::forbidden)?,
+        )?;
+        let entries = self
+            .media
+            .replacement_preparation_entries(read.source())
+            .map_err(|error| start_refused("start-entries", error))?;
         if crate::canonical_runtime::core_transport(&read.target().endpoint_transport)?
             != physical.binding.transport()
         {
@@ -156,7 +212,7 @@ impl Runtime {
                     )
                 },
             )?;
-        let deadline = saved.deadline.min(
+        let deadline = read_until.min(
             tokio::time::Instant::now()
                 + Duration::from_secs(
                     (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64
@@ -180,7 +236,6 @@ impl Runtime {
         // bounded parameter-exchange capability; it cannot authorize media.
         drop(read);
         drop(entries);
-        drop(roles);
         let original = Arc::try_unwrap(a).map_err(|_| {
             Error::new(
                 "conflict",
@@ -199,7 +254,6 @@ impl Runtime {
                 )
                 .map_err(|_| Error::forbidden())?,
         );
-        let root_cancel = saved.handle.cancellation();
         let (attempt, read, start_origin, entries, admission, roles) = loop {
             if self.stop.is_cancelled()
                 || physical.lifetime.is_cancelled()

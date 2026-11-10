@@ -2362,3 +2362,139 @@ fn private_provider_lifecycle_preserves_unrelated_identity_readers_and_exact_cid
         drop(identity_reader);
     }
 }
+
+#[test]
+fn private_provider_current_read_uses_one_full_fact_capture_per_sql_interval() {
+    use rusqlite::hooks::{AuthAction, AuthContext, Authorization};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    for original_first in [false, true] {
+        let (f, sources, candidate, origin, endpoint) = fresh_fixture();
+        let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
+        let before = Store::inspect_snapshot(f.store.path()).unwrap();
+        // Warm both real paths before observing, then check both orders. This
+        // cannot credit one path merely because its neighbor warmed a memo.
+        drop(f.store.try_private_provider_read(&context).unwrap());
+        drop(
+            f.store
+                .private_provider_original_repeated_read_for_test(&context)
+                .unwrap(),
+        );
+        let mut counts = [0, 0];
+        let mut metadata = Vec::new();
+        for original in [original_first, !original_first] {
+            let predicates = Arc::new(AtomicUsize::new(0));
+            let counted = predicates.clone();
+            {
+                let c = f.store.connection().unwrap();
+                c.flush_prepared_statement_cache();
+                c.authorizer(Some(move |action: AuthContext<'_>| {
+                    if matches!(
+                        action.action,
+                        AuthAction::Read {
+                            table_name: "private_provider_contexts",
+                            column_name: "closed_at"
+                        }
+                    ) {
+                        counted.fetch_add(1, Ordering::SeqCst);
+                    }
+                    // Observer only: actual Write triggers and Units remain.
+                    Authorization::Allow
+                }));
+            }
+            let (read, captures) = f
+                .store
+                .private_provider_counted_read_for_test(&context, original);
+            counts[usize::from(original)] = predicates.load(Ordering::SeqCst);
+            {
+                let c = f.store.connection().unwrap();
+                c.authorizer(None::<fn(AuthContext<'_>) -> Authorization>);
+            }
+            let read = read.unwrap();
+            if original {
+                assert!(
+                    captures > 2,
+                    "original repeated scaffold did not measure repeated full captures"
+                );
+            } else {
+                assert_eq!(
+                    captures, 2,
+                    "public optimized read must capture facts once before and once after admission"
+                );
+            }
+            assert!(read.current());
+            metadata.push((
+                read.assistant_id().unwrap().to_owned(),
+                read.secret_ref().unwrap().to_owned(),
+            ));
+            assert_eq!(read.json().unwrap_err().code, "not-ready");
+            drop(read);
+        }
+        assert_eq!(metadata[0], metadata[1], "authorization result changed");
+        assert_eq!(metadata[0].0, "fixture-assistant");
+        // Nested source/currentness predicates also touch closed_at. Compare
+        // actual original work rather than guessing a flat absolute count.
+        assert!(counts[0] > 0);
+        assert!(
+            counts[0] < counts[1],
+            "single capture did not reduce original SQL dependency work: optimized={} repeated={}",
+            counts[0],
+            counts[1]
+        );
+        assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    }
+}
+
+#[test]
+fn private_provider_hinted_begin_sql_refusal_releases_writer_and_keeps_original_unstarted() {
+    let (f, sources, candidate, origin, endpoint) = fresh_fixture();
+    let context = prepared(&f, &sources, &candidate, &origin, &endpoint);
+    let read = f.store.try_private_provider_read(&context).unwrap();
+    let original_until = read.expires_at();
+    let before = f.count("journal");
+    // The original metadata read is consumed before Writer admission. This
+    // primary SQL owner carries no authority proof and must not park a Writer.
+    let sql = f.store.connection().unwrap();
+    let error = f
+        .store
+        .begin_private_provider_context_before(context.clone(), read, original_until)
+        .unwrap_err();
+    assert_eq!(error.code, "authority-busy");
+    assert!(!sql
+        .query_row(
+            "SELECT started OR export_started FROM private_provider_contexts WHERE delivery_id=?1",
+            [context.delivery_id()],
+            |row| row.get::<_, bool>(0)
+        )
+        .unwrap());
+    let fresh = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::conversation(
+            &f.cid,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .expect("failed SQL reacquire parked the original mutation Writer");
+    drop(fresh);
+    drop(sql);
+    assert_eq!(f.count("journal"), before);
+    let current = f.store.try_private_provider_read(&context).unwrap();
+    let original = f
+        .store
+        .begin_private_provider_context_before(context.clone(), current, original_until)
+        .unwrap();
+    assert!(original.expires_at() <= original_until);
+    let io = f
+        .store
+        .try_private_provider_creation_read(&original)
+        .unwrap();
+    assert!(io.current());
+    assert_eq!(io.assistant_id().unwrap(), "fixture-assistant");
+    assert!(io.expires_at() <= original_until);
+    drop(io);
+    assert_eq!(f.count("journal"), before + 1);
+    let sql = f.store.connection().unwrap();
+    assert!(sql.query_row(
+        "SELECT started=1 AND export_started=0 AND provider_ref IS NULL FROM private_provider_contexts WHERE delivery_id=?1",
+        [context.delivery_id()], |row| row.get::<_, bool>(0)).unwrap());
+    // No external provider call or export is performed by this controlled test.
+}

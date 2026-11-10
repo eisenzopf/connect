@@ -1,0 +1,154 @@
+{
+  "format": "connect/gate6-cleanup-batch/1",
+  "updated": "2026-11-10T11:07:07.399623+00:00",
+  "batch": "v212-G",
+  "source_base": "ab551083",
+  "source_lock_sha256": "9c8e2357bf778dc0be1f9a0772f329168528a56d3942e012924f9ca9ec0d1b81",
+  "status": "All cleanup controls passed:189 Connect controls plus43 unchanged upstream controls (232 total). Corrected performance regression passed. Focused signed followthrough next; full matrix unchanged.",
+  "new_regressions": 7,
+  "candidates": [
+    {
+      "name": "v212-native-start-read-wait-candidate",
+      "manifest_sha256": "9e40b11a5e055a26fa8b0486da72784cf62ca95d2f6417647d1f0405c87795a6",
+      "patch_sha256": "e9b2fa60d556bd8394d42f3aceed4c698a7b523dd0123bf258117e24de553fbe",
+      "root_review_sha256": "d436a9f45cff7ff757474e5cc1cfb8cb952adfc618594716fd4cb712e8a8425d",
+      "files": [
+        "crates/connect-service/src/canonical_replacement/start.rs",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/start/initial_read.rs",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/start.rs",
+        "crates/connect-store/src/transitions/native_replacements/allocation/start.rs"
+      ]
+    },
+    {
+      "name": "v212-provider-admission-facts-candidate",
+      "manifest_sha256": "addffb6d68f0b1d11aa4c8b618620f94611bc2fff519523e3e24d271ece7c685",
+      "patch_sha256": "f4095969c0c88f73abaca57c7bb621ef612ab95fbc3ab75cabf5b89474a9b028",
+      "root_review_sha256": "8e53f8abab68fc05454339b84b56ba8709ccd6c0631585a469df673a0a0b1798",
+      "files": [
+        "crates/connect-store/src/connection_control/tests/private_provider.rs",
+        "crates/connect-store/src/private_provider/authority.rs",
+        "crates/connect-store/src/private_provider/mod.rs"
+      ]
+    },
+    {
+      "name": "v212-native-replacement-recovery-writer-candidate",
+      "manifest_sha256": "b5b227b56ae043d382037f510e6b085d69d440395b3a052f381aba2f675bc54b",
+      "patch_sha256": "e19b818626bc09a5890973aa2ccec56bb6517b5393d43486a36d018cad1bba63",
+      "root_review_sha256": "585d43952f7f2b0eec8e51c216b9d03f15f27e64ff195c77bd29591b3ae46421",
+      "files": [
+        "crates/connect-store/src/connection_control/tests/replacement_sources/custody.rs",
+        "crates/connect-store/src/transitions/admission.rs",
+        "crates/connect-store/src/transitions/native_replacements.rs",
+        "crates/connect-store/src/transitions/workers.rs"
+      ]
+    }
+  ],
+  "acceptance_changes": false,
+  "previous_focused": {
+    "batch": "F2",
+    "passed": 19,
+    "failed": 7,
+    "selected": 26
+  },
+  "last_full_matrix": "v2090/32 complete,390/432 requirement checks passed",
+  "limits": [
+    "Initial native busy log lacks precise historical holder attribution.",
+    "Provider duplicate fact resolution is proven from source; residual contention outcome needs runtime verification.",
+    "Replacement Get recovery writer bug is distinct from earlier telephone preparation delay."
+  ],
+  "unit_results": [
+    {
+      "group": "connect_store",
+      "summary": {
+        "selected": 132,
+        "completed": 132,
+        "passed": 131,
+        "failed": 1
+      },
+      "receipt_sha256": "ccd5d03b9d806a3b321d477ff9b0069aa08f16b46efae65880934cd5357c00ba",
+      "binary_sha256": "8cd8990ff870d4692ce35a975de2b3da51c6833b1e0f63688b6b9f045f82ef05",
+      "failed": [
+        {
+          "test": "connection_control::tests::private_provider::private_provider_current_read_uses_one_full_fact_capture_per_sql_interval",
+          "log_sha256": "bd9d4c7979a866676b25a88e7e1f0afbae083fe74e10a3e0874f24fca16d848c"
+        }
+      ]
+    },
+    {
+      "group": "connect_service",
+      "summary": {
+        "selected": 43,
+        "completed": 43,
+        "passed": 43,
+        "failed": 0
+      },
+      "receipt_sha256": "9b68651d5b9438e9fa45e14d68d211e63f1237509baa6a17b0cbefb8c8a4ff45",
+      "binary_sha256": "cad58e7cb9af3cb9a3493e128fc1d0eb58c059f4c2ed9854f4cc989d6bad1b22",
+      "failed": []
+    },
+    {
+      "group": "connect_server",
+      "summary": {
+        "selected": 7,
+        "completed": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "receipt_sha256": "186a9ab4daff6fb35f0f8a3f3c4bb6dd02e9977bce6419616713f5d70d2dcfa3",
+      "binary_sha256": "3c2b2b1f9ae881fcc55ffe95325743aea02029bf1ada773a1ef86c953a3c7264",
+      "failed": []
+    }
+  ],
+  "coherent_build": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "-p",
+      "connect-client",
+      "-p",
+      "connect-store",
+      "-p",
+      "connect-service",
+      "-p",
+      "connect-server",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--test",
+      "gate6_replacement_video",
+      "--test",
+      "gate6_canonical_runtime",
+      "--features",
+      "connect-server/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 315.33808493614197,
+    "log_sha256": "0071f063d02016e807b1d517491dcfec3fda8e6e85ed00d018d02c12b7b1dd3f",
+    "naturally_joined": true
+  },
+  "corrected_measurement": {
+    "summary": {
+      "selected": 1,
+      "completed": 1,
+      "passed": 1,
+      "failed": 0
+    },
+    "receipt_sha256": "f98bf1b0a95ce827904334d40aee19767f776b0a1768936efcdf2c3eb73266b8",
+    "log_sha256": "7222a86f368dc5414362627294a0ce76393b909e7c33e62520fdce698c3127d3",
+    "candidate_manifest_sha256": "3dc0f65f784016d50068d4553de36dc211fa668ae8d077fc4abbcbe647f6d17f",
+    "assertion": "Exactly two full context-specific policy captures on actual public read in both warm execution orders; lower actual SQL dependency count than repeated baseline; same current metadata and no effects",
+    "scope": "test-only correction; G131 otherStore,43Service,7Server,5Client,2fixture passes retained"
+  },
+  "verified_controls": {
+    "Connect": 189,
+    "unchanged_upstream_units": 35,
+    "unchanged_upstream_signed": 8,
+    "total": 232
+  }
+}

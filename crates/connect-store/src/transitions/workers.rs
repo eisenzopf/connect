@@ -327,6 +327,21 @@ pub(super) fn recover_one(
         return super::initial_telephone::recover_one(c, row, store);
     }
     if row.native_replacement {
+        // A current Get stays read-only, with one due check and no writer
+        // footprint work. Expiry is reconsidered in this actual transaction.
+        if super::native_replacements::recovery_disposition(c, row, store)?.is_none() {
+            return Ok(false);
+        }
+        let (_, _, scopes) =
+            store.native_replacement_bookkeeping_scopes(c, &row.record.record_id)?;
+        if !store.authority_covers(authority, &scopes) {
+            // Admission may have preceded the original expiry. Do not mutate
+            // beneath that retained Read or upgrade it while the SQL Unit lives.
+            return Err(Error::new(
+                "authority-busy",
+                "Current authority is busy; retry the same logical operation",
+            ));
+        }
         return super::native_replacements::recover_one(c, row, store);
     }
     if row.native_handoff {

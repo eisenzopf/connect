@@ -9,12 +9,16 @@ pub(super) struct Facts {
     pub audience_json: String,
     pub endpoint: Value,
     pub expires_at: i64,
+    scopes: Vec<AuthorityScope>,
+    selected_json: Option<String>,
 }
 pub(super) fn resolve(
     store: &Store,
     c: &Connection,
     context: &PrivateProviderContext,
 ) -> Result<Facts> {
+    #[cfg(test)]
+    resolve_probe::entered(context);
     let origin = &context.selection.origin;
     let closed:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM private_provider_contexts WHERE delivery_id=?1 AND closed_at IS NOT NULL)",[&context.delivery],|r|r.get(0)).map_err(|_|Error::storage())?;
     if closed {
@@ -91,7 +95,7 @@ pub(super) fn resolve(
             |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
-    let source_expiry = if state == "completed" {
+    let (source_expiry, selected_scopes, selected_json) = if state == "completed" {
         let current:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_private_lifetimes l JOIN native_consultation_attempts n ON n.operation_record_id=l.operation_record_id JOIN operation_effects e ON e.id=n.effect_id AND e.state='confirmed' WHERE l.operation_record_id=?1 AND l.restored_at IS NULL AND n.applied_json IS NOT NULL)",[origin.record_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
         if !current {
             return Err(Error::forbidden());
@@ -104,18 +108,22 @@ pub(super) fn resolve(
         {
             return Err(Error::forbidden());
         }
-        crate::connection_control::private_consultation::active::validate(
+        let active = crate::connection_control::private_consultation::active::validate(
             store,
             c,
             origin.record_id(),
             &selected,
             &audience_json,
-        )?
-        .expires_at
+        )?;
+        (active.expires_at, active.scopes, Some(selected))
     } else {
-        context.selection.scopes(store, c, false)?;
+        let scopes = context.selection.scopes(store, c, false)?;
         let (source, _) = origin.require(store, c)?;
-        source.expires_at.min(origin.request.expires_at)
+        (
+            source.expires_at.min(origin.request.expires_at),
+            scopes,
+            None,
+        )
     };
     let expires_at = source_expiry
         .min(crate::now() + 5)
@@ -131,6 +139,8 @@ pub(super) fn resolve(
         audience_json,
         endpoint,
         expires_at,
+        scopes: selected_scopes,
+        selected_json,
     })
 }
 pub(super) fn scopes(
@@ -140,24 +150,36 @@ pub(super) fn scopes(
     write: bool,
 ) -> Result<Vec<AuthorityScope>> {
     let facts = resolve(store, c, context)?;
-    let state: String = c
-        .query_row(
-            "SELECT state FROM operations WHERE record_id=?1",
-            [context.consultation_record_id()],
-            |r| r.get(0),
-        )
-        .map_err(|_| Error::storage())?;
-    let mut scopes = if state == "completed" {
-        crate::connection_control::private_consultation::active::validate(
-            store,
-            c,
-            context.consultation_record_id(),
-            &crate::provisioning::canonical_json(&context.selection.snapshot())?,
-            &facts.audience_json,
-        )?
-        .scopes
+    scopes_for_facts(store, c, context, &facts, write)
+}
+// These facts are local to this exact held SQL interval. Never reuse them across
+// SQL release, file admission, a transaction boundary, or external provider IO.
+pub(super) fn scopes_for_facts(
+    store: &Store,
+    c: &Connection,
+    context: &PrivateProviderContext,
+    facts: &Facts,
+    write: bool,
+) -> Result<Vec<AuthorityScope>> {
+    // resolve historically validates the stored committed selection, whereas
+    // scopes validates the original selection. Reuse only exact equal bytes;
+    // retain the second original validation for every differing representation.
+    let mut scopes = if let Some(selected) = &facts.selected_json {
+        let original = crate::provisioning::canonical_json(&context.selection.snapshot())?;
+        if *selected == original {
+            facts.scopes.clone()
+        } else {
+            crate::connection_control::private_consultation::active::validate(
+                store,
+                c,
+                context.consultation_record_id(),
+                &original,
+                &facts.audience_json,
+            )?
+            .scopes
+        }
     } else {
-        context.selection.scopes(store, c, false)?
+        facts.scopes.clone()
     };
     if write {
         scopes.extend(mutation_scopes(c, context.consultation_record_id())?);
@@ -174,11 +196,29 @@ pub(super) fn scopes(
 }
 pub(super) fn bound(store: &Store, c: &Connection, context: &PrivateProviderContext) -> Result<()> {
     let facts = resolve(store, c, context)?;
+    bound_facts(store, c, context, &facts)
+}
+pub(super) fn bound_facts(
+    store: &Store,
+    c: &Connection,
+    context: &PrivateProviderContext,
+    facts: &Facts,
+) -> Result<()> {
     let matched:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM private_provider_contexts WHERE delivery_id=?1 AND operation_record_id=?2 AND attempt_id=?3 AND context_credential_id=?4 AND endpoint_id=?5 AND runtime_epoch=?6 AND endpoint_json=?7 AND selection_json=?8 AND source_digest=?9 AND delegate_credential_id=?10 AND audience_json=?11)",params![context.delivery,context.consultation_record_id(),context.attempt,context.context_credential,context.endpoint,store.runtime_epoch(),crate::provisioning::canonical_json(&facts.endpoint)?,crate::provisioning::canonical_json(&context.selection.snapshot())?,context.selection.origin.digest,facts.delegate.credential_id,facts.audience_json],|r|r.get(0)).map_err(|_|Error::storage())?;
     if !matched {
         return Err(Error::forbidden());
     }
     Ok(())
+}
+pub(super) fn bound_scopes(
+    store: &Store,
+    c: &Connection,
+    context: &PrivateProviderContext,
+    write: bool,
+) -> Result<Vec<AuthorityScope>> {
+    let facts = resolve(store, c, context)?;
+    bound_facts(store, c, context, &facts)?;
+    scopes_for_facts(store, c, context, &facts, write)
 }
 pub(super) fn progress(c: &Connection, root: &str, store: &Store) -> Result<()> {
     if !crate::conversations::capacity(c, 1, 0, store)? {
@@ -360,4 +400,61 @@ pub(super) fn mutation_scopes(c: &Connection, root: &str) -> Result<Vec<Authorit
         )?);
     }
     AuthorityScope::merged(&scopes)
+}
+
+// Invocation-local test observation only. No field, branch or synchronization
+// remains in production; match only this requested immutable delivery identity.
+#[cfg(test)]
+mod resolve_probe {
+    use super::*;
+    use std::{
+        cell::{Cell, RefCell},
+        rc::Rc,
+    };
+    struct Probe {
+        delivery: String,
+        calls: Rc<Cell<usize>>,
+    }
+    thread_local! { static CURRENT: RefCell<Option<Probe>> = const { RefCell::new(None) }; }
+    struct Restore(Option<Probe>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            CURRENT.with(|current| {
+                current.replace(self.0.take());
+            });
+        }
+    }
+    pub(super) fn counted<T>(
+        context: &PrivateProviderContext,
+        work: impl FnOnce() -> T,
+    ) -> (T, usize) {
+        let calls = Rc::new(Cell::new(0));
+        let previous = CURRENT.with(|current| {
+            current.replace(Some(Probe {
+                delivery: context.delivery.clone(),
+                calls: calls.clone(),
+            }))
+        });
+        let _restore = Restore(previous);
+        let value = work();
+        (value, calls.get())
+    }
+    pub(super) fn entered(context: &PrivateProviderContext) {
+        CURRENT.with(|current| {
+            if let Some(probe) = current
+                .borrow()
+                .as_ref()
+                .filter(|probe| probe.delivery == context.delivery)
+            {
+                probe.calls.set(probe.calls.get() + 1);
+            }
+        });
+    }
+}
+#[cfg(test)]
+pub(super) fn counted_resolves<T>(
+    context: &PrivateProviderContext,
+    work: impl FnOnce() -> T,
+) -> (T, usize) {
+    resolve_probe::counted(context, work)
 }

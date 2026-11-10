@@ -447,7 +447,9 @@ impl Store {
         lease: &NativeReplacementPreparationLease,
     ) -> Result<NativeReplacementPreparationRead> {
         {
-            let c = self.try_connection()?;
+            let c = self
+                .try_connection()
+                .map_err(|e| preparation_refused("read-sql", e))?;
             bound(&c, self, lease).map_err(|e| preparation_refused("read-reservation", e))?;
         }
         let mut read = lease
@@ -495,22 +497,32 @@ impl Store {
         // synchronous Core capacity preparation, before transport/codec IO.
         let selection = read.into_selection()?;
         let scopes = {
-            let c = self.try_connection()?;
-            self.native_replacement_reservation_scopes(&c, &selection)?
+            let c = self
+                .try_connection()
+                .map_err(|e| preparation_refused("begin-scope-sql", e))?;
+            self.native_replacement_reservation_scopes(&c, &selection)
+                .map_err(|e| preparation_refused("begin-scopes", e))?
         };
         let remaining =
             std::time::Duration::from_secs(expires.saturating_sub(crate::now()).max(0) as u64);
         let wait = crate::AuthorityWait::new(remaining.min(std::time::Duration::from_millis(250)));
-        let held = self.acquire_authority(&scopes, &wait)?;
-        let mut c = self.try_connection_with_wait(&wait)?;
-        c.bind_available_mutation_authority(self, &held)?;
+        let held = self
+            .acquire_authority(&scopes, &wait)
+            .map_err(|e| preparation_refused("begin-authority", e))?;
+        let mut c = self
+            .try_connection_with_wait(&wait)
+            .map_err(|e| preparation_refused("begin-sql", e))?;
+        c.bind_available_mutation_authority(self, &held)
+            .map_err(|e| preparation_refused("begin-bind", e))?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+            .map_err(|_| preparation_refused("begin-transaction", Error::storage()))?;
         // All fallible current selection/expiry and exact mutation footprints
         // are rederived in this transaction BEFORE the once-only started
         // mutation, so refusal cannot discard an attempt.
-        let read = selection.read_with_connection(self, &tx, held.clone(), expires)?;
+        let read = selection
+            .read_with_connection(self, &tx, held.clone(), expires)
+            .map_err(|e| preparation_refused("begin-current-selection", e))?;
         if !self.authority_covers(
             &held,
             &self.native_replacement_reservation_scopes(&tx, &selection)?,
@@ -722,15 +734,25 @@ impl Store {
         Ok(result)
     }
 }
-pub(super) fn recover_one(c: &Connection, row: &rows::Saved, store: &Store) -> Result<bool> {
+// The caller may inspect this before acquiring authority and again under its
+// SQL transaction. A due result never authorizes DML without the exact Writer.
+pub(super) fn recovery_disposition(
+    c: &Connection,
+    row: &rows::Saved,
+    store: &Store,
+) -> Result<Option<bool>> {
     if row.record.state.terminal() || row.record.state == OperationState::Unknown {
-        return Ok(false);
+        return Ok(None);
     }
     let (runtime,expires,started):(String,i64,bool)=c.query_row("SELECT n.runtime_epoch,n.expires_at,EXISTS(SELECT 1 FROM native_replacement_steps s WHERE s.operation_record_id=n.operation_record_id AND s.started=1) FROM native_replacements n WHERE n.operation_record_id=?1",[&row.record.record_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
-    if expires <= crate::now()
-        || row.record.expires_at.is_none_or(|t| t <= crate::now())
-        || (store.recover_foreign_runtime && runtime != store.runtime_epoch())
-    {
+    let now = crate::now();
+    Ok((expires <= now
+        || row.record.expires_at.is_none_or(|t| t <= now)
+        || (store.recover_foreign_runtime && runtime != store.runtime_epoch()))
+    .then_some(started))
+}
+pub(super) fn recover_one(c: &Connection, row: &rows::Saved, store: &Store) -> Result<bool> {
+    if let Some(started) = recovery_disposition(c, row, store)? {
         c.execute("UPDATE operation_effects SET state=?2 WHERE operation_record_id=?1 AND state IN ('prepared','submitting')",params![row.record.record_id,if started{"unknown"}else{"cancelled"}]).map_err(|_|Error::storage())?;
         c.execute(
             "UPDATE operations SET state=?2 WHERE record_id=?1",

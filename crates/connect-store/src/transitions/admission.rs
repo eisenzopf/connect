@@ -166,6 +166,21 @@ impl Store {
                 let row = rows::find(&c, &tenant, &actor.identity_id, operation)?
                     .ok_or_else(Error::forbidden)?;
                 authority::read(&c, &actor, &row)?;
+                if row.native_replacement
+                    && super::native_replacements::recovery_disposition(&c, &row, self)?.is_some()
+                    && !mutation
+                    && required.iter().all(|scope| *scope == "operation.get")
+                {
+                    let (_, _, scopes) =
+                        self.native_replacement_bookkeeping_scopes(&c, &row.record.record_id)?;
+                    if held.is_some_and(|guard| !self.authority_covers(guard, &scopes)) {
+                        return Err(Error::new(
+                            "authority-busy",
+                            "Current authority is busy; retry the same logical operation",
+                        ));
+                    }
+                    return Ok(scopes);
+                }
                 let recover_return = row.native_return
                     && super::native_returns::recovery_disposition(&c, &row, self)?.is_some();
                 let recover_provider = row.native_provider

@@ -29,6 +29,7 @@ pub struct PrivateProviderContext {
 pub struct PrivateProviderRead {
     context: PrivateProviderContext,
     _held: Arc<AuthorityGuardSet>,
+    mutation_hint: Vec<AuthorityScope>,
     owner: Arc<InstallationOwnership>,
     json: String,
     endpoint: Value,
@@ -178,6 +179,21 @@ impl ReadPhase {
         }
     }
 }
+// Bounded static diagnostics distinguish file admission, primary SQL and fresh
+// policy work without logging credentials, payloads, resource IDs or SQL text.
+fn admission_stage<T>(
+    phase: &'static str,
+    stage: &'static str,
+    work: impl FnOnce() -> Result<T>,
+) -> Result<T> {
+    let started = std::time::Instant::now();
+    let result = work();
+    tracing::debug!(target: "connect_store::private_provider::admission", phase, stage,
+        elapsed_us = started.elapsed().as_micros() as u64,
+        code = result.as_ref().err().map_or("ok", |error| error.code.as_str()),
+        "Private provider admission stage completed");
+    result
+}
 impl Store {
     fn private_provider_history_sql<'a>(
         &'a self,
@@ -285,12 +301,53 @@ impl Store {
         context: &PrivateProviderContext,
     ) -> Result<PrivateProviderRead> {
         let needed = {
+            let c = admission_stage("planning", "read-initial-sql", || self.try_connection())?;
+            admission_stage("planning", "read-initial-scopes", || {
+                bound_scopes(self, &c, context, false)
+            })?
+        };
+        let held = admission_stage("planning", "read-file-admission", || {
+            self.try_acquire_authority(&needed)
+        })?;
+        let c = admission_stage("planning", "read-sql-reacquire", || self.try_connection())?;
+        self.private_provider_read_at(&c, context, held, ReadPhase::Planning)
+    }
+    #[cfg(test)]
+    pub(crate) fn private_provider_counted_read_for_test(
+        &self,
+        context: &PrivateProviderContext,
+        original_repeated: bool,
+    ) -> (Result<PrivateProviderRead>, usize) {
+        authority::counted_resolves(context, || {
+            if original_repeated {
+                self.private_provider_original_repeated_read_for_test(context)
+            } else {
+                self.try_private_provider_read(context)
+            }
+        })
+    }
+    // Reconstruct the original outer bound+scopes / bound+scopes+resolve
+    // read pipeline for an actual-SQL dependency comparison. Test-only and
+    // read-only: the same real current policy, fences and phase validation run.
+    #[cfg(test)]
+    pub(crate) fn private_provider_original_repeated_read_for_test(
+        &self,
+        context: &PrivateProviderContext,
+    ) -> Result<PrivateProviderRead> {
+        let needed = {
             let c = self.try_connection()?;
             bound(self, &c, context)?;
             scopes(self, &c, context, false)?
         };
         let held = self.try_acquire_authority(&needed)?;
         let c = self.try_connection()?;
+        bound(self, &c, context)?;
+        if !self.authority_covers(&held, &scopes(self, &c, context, false)?) {
+            return Err(Error::forbidden());
+        }
+        // The current leaf resolves fresh facts and preserves the original
+        // current ContextView/phase checks. Prefixes above add back the actual
+        // original repeated bound/scopes traversals, not synthetic SQL loops.
         self.private_provider_read_at(&c, context, held, ReadPhase::Planning)
     }
     /// Bounded metadata admission on a blocking host worker. Unlike packet
@@ -303,12 +360,13 @@ impl Store {
     ) -> Result<PrivateProviderRead> {
         wait.check()?;
         let held = self.stable_authority(wait, || {
-            let c = self.connection()?;
+            let c = admission_stage("planning", "read-wait-sql", || self.connection())?;
             wait.check()?;
-            bound(self, &c, context)?;
-            scopes(self, &c, context, false)
+            admission_stage("planning", "read-wait-scopes", || {
+                bound_scopes(self, &c, context, false)
+            })
         })?;
-        let c = self.connection()?;
+        let c = admission_stage("planning", "read-wait-final-sql", || self.connection())?;
         wait.check()?;
         let read = self.private_provider_read_at(&c, context, held, ReadPhase::Planning)?;
         wait.check()?;
@@ -321,11 +379,33 @@ impl Store {
         held: Arc<AuthorityGuardSet>,
         phase: ReadPhase,
     ) -> Result<PrivateProviderRead> {
-        bound(self, c, context)?;
-        if !self.authority_covers(&held, &scopes(self, c, context, false)?) {
-            return Err(Error::forbidden());
+        self.private_provider_read_at_for(c, context, held, phase, false)
+    }
+    fn private_provider_read_at_for(
+        &self,
+        c: &Connection,
+        context: &PrivateProviderContext,
+        held: Arc<AuthorityGuardSet>,
+        phase: ReadPhase,
+        mutation: bool,
+    ) -> Result<PrivateProviderRead> {
+        let label = match phase {
+            ReadPhase::Planning => "planning",
+            ReadPhase::Creation { .. } => "creation-current",
+            ReadPhase::Export { .. } => "export-current",
+        };
+        let facts = admission_stage(label, "read-current-facts", || resolve(self, c, context))?;
+        bound_facts(self, c, context, &facts)?;
+        if !self.authority_covers(
+            &held,
+            &scopes_for_facts(self, c, context, &facts, mutation)?,
+        ) {
+            return Err(if mutation {
+                Error::new("authority-busy", "Private provider mutation scope changed")
+            } else {
+                Error::forbidden()
+            });
         }
-        let facts = resolve(self, c, context)?;
         let phase_predicate = match phase {
             ReadPhase::Planning => "p.export_started=0 AND (p.started=0 OR p.created_at IS NOT NULL)",
             ReadPhase::Creation { .. } => "p.started=1 AND p.provider_ref IS NULL AND p.created_at IS NULL AND p.export_started=0 AND p.creation_expires_at=?2 AND p.creation_expires_at>?3",
@@ -381,8 +461,10 @@ impl Store {
         if crate::now() >= expires_at {
             return Err(Error::forbidden());
         }
+        let mutation_hint = scopes_for_facts(self, c, context, &facts, true)?;
         Ok(PrivateProviderRead {
             context: context.clone(),
+            mutation_hint,
             _held: held,
             owner,
             json: encoded,
@@ -415,18 +497,17 @@ impl Store {
         let until = read.expires_at.min(original_until);
         let encoded = read.json.clone();
         let endpoint = read.endpoint.clone();
+        // Scope names only: no grant survives this original reader's release.
+        let hint = read.mutation_hint.clone();
         drop(read);
-        let (held, mut c) = self.private_provider_reservation_sql(&context)?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
-        if !self.authority_covers(&held, &scopes(self, &tx, &context, true)?) {
-            return Err(Error::new(
-                "authority-busy",
-                "Private provider mutation scope changed",
-            ));
-        }
-        let current = self.private_provider_read_at(&tx, &context, held, ReadPhase::Planning)?;
+        let (held, mut c) = self.private_provider_reservation_sql(&context, &hint, "creation")?;
+        let tx = admission_stage("creation", "begin-immediate", || {
+            c.transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(|_| Error::storage())
+        })?;
+        let current = admission_stage("creation", "transaction-current", || {
+            self.private_provider_read_at_for(&tx, &context, held, ReadPhase::Planning, true)
+        })?;
         if current.provider_ref.is_some()
             || current.json != encoded
             || current.endpoint != endpoint
@@ -487,8 +568,7 @@ impl Store {
         }
         let needed = {
             let c = self.try_connection()?;
-            bound(self, &c, context)?;
-            scopes(self, &c, context, false)?
+            bound_scopes(self, &c, context, false)?
         };
         let held = self.try_acquire_authority(&needed)?;
         let c = self.try_connection()?;
@@ -497,19 +577,22 @@ impl Store {
     fn private_provider_reservation_sql<'a>(
         &'a self,
         context: &PrivateProviderContext,
+        hint: &[AuthorityScope],
+        phase: &'static str,
     ) -> Result<(
         Arc<AuthorityGuardSet>,
         crate::installation_ownership::ConnectionGuard<'a>,
     )> {
-        let needed = {
-            let c = self.try_connection()?;
-            bound(self, &c, context)?;
-            scopes(self, &c, context, true)?
-        };
+        // The original read validated these names. They route admission only;
+        // fresh complete facts/footprint below and inside TX remain mandatory.
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(5));
-        let held = self.acquire_authority(&needed, &wait)?;
-        let c = self.try_connection()?;
-        let current = scopes(self, &c, context, true)?;
+        let held = admission_stage(phase, "file-admission", || {
+            self.acquire_authority(hint, &wait)
+        })?;
+        let c = admission_stage(phase, "sql-reacquire", || self.try_connection())?;
+        let current = admission_stage(phase, "scope-rederive", || {
+            bound_scopes(self, &c, context, true)
+        })?;
         if !self.authority_covers(&held, &current) {
             return Err(Error::new(
                 "authority-busy",
@@ -594,18 +677,16 @@ impl Store {
         let until = read.expires_at.min(original_until);
         let encoded = read.json.clone();
         let endpoint = read.endpoint.clone();
+        let hint = read.mutation_hint.clone();
         drop(read);
-        let (held, mut c) = self.private_provider_reservation_sql(&context)?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
-        if !self.authority_covers(&held, &scopes(self, &tx, &context, true)?) {
-            return Err(Error::new(
-                "authority-busy",
-                "Private provider mutation scope changed",
-            ));
-        }
-        let current = self.private_provider_read_at(&tx, &context, held, ReadPhase::Planning)?;
+        let (held, mut c) = self.private_provider_reservation_sql(&context, &hint, "export")?;
+        let tx = admission_stage("export", "begin-immediate", || {
+            c.transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(|_| Error::storage())
+        })?;
+        let current = admission_stage("export", "transaction-current", || {
+            self.private_provider_read_at_for(&tx, &context, held, ReadPhase::Planning, true)
+        })?;
         if current.provider_ref.as_deref() != Some(provider_ref.as_str())
             || current.json != encoded
             || current.endpoint != endpoint
