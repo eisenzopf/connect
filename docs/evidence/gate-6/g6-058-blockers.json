@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T23:37:39.909419+00:00",
-  "run_status": "Full v214 remains 0/32 cells, 288/432 checks pass. Recovery batch: 22 Rust and 55 browser component checks pass after reproducing obsolete-partial recovery failures. SQL custody fix independently reviewed; runtime verification next. Both earlier representative cadence cases remain failed until the combined retest.",
+  "updated": "2026-11-10T23:40:27.084761+00:00",
+  "run_status": "Full v214 remains 0/32 cells, 288/432 checks pass. Recovery batch: 22 Rust and 55 browser controls pass. SQL custody: both old publication-stall regressions reproduced; all 8 fixed Store controls pass. Combined signed cadence retest is next.",
   "blockers": [
     {
       "id": "B01",
@@ -1497,10 +1497,10 @@
     {
       "id": "B183",
       "title": "Replacement preparation holds authority Writer while waiting for primary SQL",
-      "status": "Source-reviewed fix and tests-only counterexamples ready; runtime verification pending.",
+      "status": "Both old regressions reproduced; all eight fixed Store controls pass. Combined signed cadence and full matrix pending.",
       "change": "Release the entire Writer proof on primary SQL mutex refusal before waiting. Reacquire current scopes within the original 250ms budget, before any transaction or mutation.",
-      "evidence": "Independent review 08ce1a5fab434585f12bb02382e43b9e9391430a78659fc2a59dc12df1c32af3; private bounded candidate retained.",
-      "next": "Reproduce reserve/begin publication stalls on old code, apply fix, run both regressions and preserved authorization/effect controls."
+      "evidence": "docs/evidence/gate-6/replacement-sql-custody-v215.json",
+      "next": "Combined signed preparation and six-source cadence retest, then full32 qualification."
     }
   ],
   "workplan_tasks": [
@@ -16905,5 +16905,9 @@
       "full_matrix_passed": 0,
       "full_matrix_required": 32
     }
+  },
+  "v215_replacement_sql_custody": {
+    "public_evidence": "docs/evidence/gate-6/replacement-sql-custody-v215.json",
+    "status": "Both old regressions reproduced; all eight fixed Store controls pass. Combined signed cadence and full matrix pending."
   }
 }

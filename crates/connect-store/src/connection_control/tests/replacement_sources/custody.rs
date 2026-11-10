@@ -1509,3 +1509,150 @@ fn reserved_control_first_facts_cutoff_survives_failed_file_admission() {
     drop(read);
     assert_eq!(f.count("native_replacement_steps"), 1);
 }
+
+// The race starts after real file admission. A primary SQL owner acquired
+// earlier would prevent the initial scope derivation and miss this boundary.
+fn preparation_sql_race_republishes_old_source<T: Send>(
+    store: &std::sync::Arc<Store>,
+    source: &std::sync::Arc<crate::NativeMediaOrigin>,
+    prepare: impl FnOnce() -> crate::Result<T> + Send,
+) -> T {
+    use std::time::{Duration, Instant};
+    let mut watcher = store.start_media_authorization_watcher().unwrap();
+    let weak = std::sync::Arc::downgrade(store);
+    let original = source.clone();
+    let snapshot = store
+        .register_native_media_snapshot_for(source, None, move || {
+            weak.upgrade()
+                .ok_or_else(crate::Error::forbidden)?
+                .try_native_media_read(&original, None)
+        })
+        .unwrap();
+    let until = Instant::now() + Duration::from_secs(2);
+    let first = loop {
+        match snapshot.admit() {
+            Ok(io) => break io,
+            Err(error) if error.code == "authority-busy" && Instant::now() < until => {
+                std::thread::sleep(Duration::from_millis(1))
+            }
+            Err(error) => panic!("original source publication setup refused: {error}"),
+        }
+    };
+    let old_stamp = first.snapshot_stamp().unwrap();
+    let old_epoch = first.packet_epoch().unwrap();
+    drop(first);
+    let before = Store::inspect_snapshot(store.path()).unwrap();
+    let (entered, ready) = std::sync::mpsc::sync_channel(1);
+    let (release, resume) = std::sync::mpsc::sync_channel(1);
+    let (writer_entered, same_state, fresh_current, old_refused, result) =
+        std::thread::scope(|workers| {
+            let worker = workers.spawn(move || {
+                crate::authority_admission::with_passive_admission_probe(
+                    move |admitted| {
+                        let _ = entered.send(admitted);
+                        let _ = resume.recv_timeout(Duration::from_secs(1));
+                    },
+                    prepare,
+                )
+            });
+            let writer_entered = ready.recv_timeout(Duration::from_secs(1)) == Ok(true);
+            let primary = store.connection().unwrap();
+            let _ = release.send(());
+            // Inspect while the exact caller cannot enter its durable transaction.
+            // Published IO uses independent observer SQL; this primary owner is
+            // therefore no reason to withhold an otherwise current old route.
+            let until = Instant::now() + Duration::from_millis(100);
+            let fresh_current = loop {
+                match snapshot.admit() {
+                    Ok(io) => break io.current(),
+                    Err(error) if error.code == "authority-busy" && Instant::now() < until => {
+                        std::thread::sleep(Duration::from_millis(1))
+                    }
+                    Err(_) => break false,
+                }
+            };
+            let old_refused = !old_epoch.current() && snapshot.admit_original(old_stamp).is_err();
+            let same_state =
+                Store::inspect_snapshot(store.path()).is_ok_and(|state| state == before);
+            drop(primary);
+            let result = worker.join().unwrap();
+            (
+                writer_entered,
+                same_state,
+                fresh_current,
+                old_refused,
+                result,
+            )
+        });
+    drop(snapshot);
+    watcher.shutdown().unwrap();
+    assert!(
+        writer_entered,
+        "probe must hold the actual acquired Conversation Writer"
+    );
+    assert!(
+        same_state,
+        "blocked primary custody cannot start a reservation/effect"
+    );
+    assert!(
+        old_refused,
+        "a fresh publication cannot revive the withdrawn original epoch"
+    );
+    assert!(
+        fresh_current,
+        "preparation kept the old route unavailable while waiting on primary SQL"
+    );
+    result.unwrap_or_else(|error| panic!("same preparation failed after SQL release: {error}"))
+}
+
+fn preparation_effect_state(store: &Store, record: &str) -> (u64, u64, u64) {
+    store.connection().unwrap().query_row(
+        "SELECT count(*),COALESCE(sum(s.started),0),COALESCE(sum(e.attempt),0) FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1 AND s.phase='prepare'",
+        [record], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?))
+    ).unwrap()
+}
+
+#[test]
+fn preparation_reservation_releases_writer_during_primary_sql_reacquire() {
+    let (f, _, _, origin, sources) = setup();
+    let read = f
+        .store
+        .try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1],
+        )
+        .unwrap();
+    let store = std::sync::Arc::new(f.store);
+    let lease = preparation_sql_race_republishes_old_source(&store, &sources[0], || {
+        store.prepare_native_replacement(read, request())
+    })
+    .unwrap();
+    assert_eq!(lease.record_id(), origin.record_id());
+    assert_eq!(
+        preparation_effect_state(&store, origin.record_id()),
+        (1, 0, 0)
+    );
+}
+
+#[test]
+fn preparation_begin_releases_writer_during_primary_sql_reacquire() {
+    let (f, _, _, origin, sources) = setup();
+    let lease = prepare(&f, &origin, &sources);
+    let read = f
+        .store
+        .native_replacement_preparation_attempt_read(&lease)
+        .unwrap();
+    let cutoff = read.expires_at();
+    let store = std::sync::Arc::new(f.store);
+    let (_attempt, read) = preparation_sql_race_republishes_old_source(&store, &sources[0], || {
+        store.begin_native_replacement_preparation_before(&lease, read, cutoff)
+    });
+    assert!(read.current());
+    assert!(read.expires_at() <= cutoff);
+    drop(read);
+    assert_eq!(
+        preparation_effect_state(&store, origin.record_id()),
+        (1, 1, 1)
+    );
+}

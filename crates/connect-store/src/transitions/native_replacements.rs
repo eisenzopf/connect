@@ -300,6 +300,48 @@ impl Store {
         scopes.extend(mutation);
         crate::AuthorityScope::merged(&scopes)
     }
+    /// Wait for the primary SQL owner without holding file authority. If the
+    /// mutex is taken again between scope derivation and file admission, drop
+    /// the complete Writer before waiting for the same original request.
+    /// This helper returns before BEGIN IMMEDIATE and cannot retry a mutation.
+    fn native_replacement_mutation_sql<'a>(
+        &'a self,
+        selection: &NativeReplacementSelection,
+        wait: &crate::AuthorityWait,
+        authority_stage: &'static str,
+        sql_stage: &'static str,
+    ) -> Result<(
+        Arc<crate::AuthorityGuardSet>,
+        crate::installation_ownership::ConnectionGuard<'a>,
+    )> {
+        loop {
+            let scopes = {
+                let c = self
+                    .try_connection_with_wait(wait)
+                    .map_err(|error| preparation_refused(sql_stage, error))?;
+                self.native_replacement_reservation_scopes(&c, selection)?
+            };
+            let held = self
+                .acquire_authority(&scopes, wait)
+                .map_err(|error| preparation_refused(authority_stage, error))?;
+            #[cfg(test)]
+            crate::authority_admission::observe_passive_admission(true);
+            let c = match self.try_connection() {
+                Err(error)
+                    if error.code == "authority-busy"
+                        && error.message == "Current state is busy" =>
+                {
+                    drop(held);
+                    continue;
+                }
+                result => result.map_err(|error| preparation_refused(sql_stage, error))?,
+            };
+            wait.check()?;
+            c.bind_available_mutation_authority(self, &held)?;
+            return Ok((held, c));
+        }
+    }
+
     /// Reserve IDs and a single managed-preparation effect before Core is
     /// called. Current Identity facts retain Read; the exact Conversation
     /// Writer drains lineage-dependent IO before candidate metadata changes.
@@ -316,32 +358,13 @@ impl Store {
         // floor facts even before Core commit; never upgrade a retained reader.
         // This writer ends at the reservation transaction, before transport or
         // codec preparation, and does not grant candidate IO.
-        let scopes = {
-            let c = self.try_connection()?;
-            self.native_replacement_reservation_scopes(&c, &selection)?
-        };
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(250));
-        let held = self
-            .acquire_authority(&scopes, &wait)
-            .map_err(|error| {
-                tracing::debug!(target:"connect_store::native_candidate",stage="reservation-authority",code=%error.code,detail=%error.message,"Replacement metadata deferred");
-                error
-            })?;
-        // Reacquire SQL only after file admission, then resolve every current
-        // scope/fact again before the once-only durable reservation below.
-        // Both admission and SQL use the same original bounded wait; no
-        // deadline, physical preparation or IO is repeated.
-        let mut c = loop {
-            wait.check()?;
-            match self.try_connection() {
-                Ok(connection) => break connection,
-                Err(error) if error.code == "authority-busy" => {
-                    std::thread::sleep(std::time::Duration::from_millis(1));
-                }
-                Err(error) => return Err(error),
-            }
-        };
-        c.bind_available_mutation_authority(self, &held)?;
+        let (held, mut c) = self.native_replacement_mutation_sql(
+            &selection,
+            &wait,
+            "reservation-authority",
+            "reservation-sql",
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| {
@@ -516,24 +539,15 @@ impl Store {
         // returned writer-backed read is control-only: callers drop it after
         // synchronous Core capacity preparation, before transport/codec IO.
         let selection = read.into_selection()?;
-        let scopes = {
-            let c = self
-                .try_connection()
-                .map_err(|e| preparation_refused("begin-scope-sql", e))?;
-            self.native_replacement_reservation_scopes(&c, &selection)
-                .map_err(|e| preparation_refused("begin-scopes", e))?
-        };
         let remaining =
             std::time::Duration::from_secs(expires.saturating_sub(crate::now()).max(0) as u64);
         let wait = crate::AuthorityWait::new(remaining.min(std::time::Duration::from_millis(250)));
-        let held = self
-            .acquire_authority(&scopes, &wait)
-            .map_err(|e| preparation_refused("begin-authority", e))?;
-        let mut c = self
-            .try_connection_with_wait(&wait)
-            .map_err(|e| preparation_refused("begin-sql", e))?;
-        c.bind_available_mutation_authority(self, &held)
-            .map_err(|e| preparation_refused("begin-bind", e))?;
+        let (held, mut c) = self.native_replacement_mutation_sql(
+            &selection,
+            &wait,
+            "begin-authority",
+            "begin-sql",
+        )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| preparation_refused("begin-transaction", Error::storage()))?;
