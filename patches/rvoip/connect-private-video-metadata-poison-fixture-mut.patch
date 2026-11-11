@@ -1,0 +1,11 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/metadata_boundaries.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/metadata_boundaries.rs
+@@ -260,7 +260,7 @@
+ #[tokio::test]
+ async fn poisoned_private_metadata_is_terminal_and_ordinary_original_stamp_keeps_its_contract() {
+     for leaf in LEAVES {
+-        let f = Preroll::new().await;
++        let mut f = Preroll::new().await;
+         let old = f.movement.room.nodes["alice"].controller.clone();
+         let target = f.movement.room.nodes["device"].controller.clone();
+         let revision = target.revision();

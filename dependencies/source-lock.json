@@ -2148,6 +2148,16 @@
     {
       "path": "patches/rvoip/connect-private-video-publisher-validation-busy.patch",
       "sha256": "b399a83d6a3bae8e42d82f41b15935515420e4d8f957e5c84c971a370afb545a"
+    },
+    {
+      "path": "patches/rvoip/connect-private-video-prepublication-metadata-locks.patch",
+      "sha256": "67f2d549d56d5e236b60b5103ac9fd8329242175e1836adff92f37ea9814c9cc"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-private-video-metadata-poison-fixture-mut.patch",
+      "sha256": "54fc3af1bf32ca06759c5311ea1a1fdc2467273b8e5ded82a7ce8481d9d92b54",
+      "source": "Test-only compiler correction E0596: poison fixture receiver try_recv needs mutable fixture binding. No production logic or assertions changed."
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T16:32:24.254348+00:00",
-  "run_status": "Store20 passed106/106 with unchanged source/binary and all original groups joined, including all4retired-source regressions. Ready401/Core402 source-reviewed, additional prepublication lock controls in review before final combined run. Source17 remains127/130; full matrix unchanged v2150/32 cells,287passed101failed44blocked.",
+  "updated": "2026-11-11T17:03:23.096512+00:00",
+  "run_status": "Store20 passed106/106 and Core22 passed19/19, source/binaries unchanged and all original groups joined. Core7privateprepublicationlockcontrols and oldpublisherrecovery are verified; Ready401Service/UCTP/signedRTC followthrough and ordinaryinitialAVfaultcase precede finalexpandedcombinedrun/full62quality. All3WTsetupfailures arestream.subscribe after6completedoffers. Latestcompletecombined17 remains127/130; matrix215 remains0/32cells,287passed101failed44blocked.",
   "blockers": [
     {
       "id": "B01",
@@ -1584,11 +1584,11 @@
     },
     {
       "id": "B194",
-      "title": "Browser setup subscription authority refusal under broad media-offers stage",
-      "status": "Held for plan review; not matrix-verified. Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed.",
-      "change": "Original terminal DBs show all6offers completed before selected stream.subscribe becameUNKNOWN. Reuse bounded same-prepared B190 fix; no unsupported initial-offer retry.",
-      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
-      "next": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect."
+      "title": "Setup subscription authority refusal hidden by broad media-offers phase",
+      "status": "All3 exact originalstream.subscribe roots and one native-stream effect each proven; all6offers completed. ExactBusy versuspermanentinnerleaf remains unlogged.",
+      "change": "ExistingB190 completefreshscene Busyfactory handles the transient path without effect replay. Add true ordinaryinitialAV two-real-fault regression; no initial native_start retry proposed.",
+      "evidence": "g6-058-v216-wt-subscription-diagnosis.json: MacremoteES256cycle2 select1, ARMremoteES256cycle3 select0, ARMremoteEdDSAcycle3 select3; archive/member/hash-onlyID and durableeffect proofs.",
+      "next": "Run actual ordinaryAV currentWriter+sceneSQLfault case with decodedunaffectedmedia and originaljoins; preserve allpermanent/currentnegativecontrols."
     },
     {
       "id": "B195",
@@ -1633,10 +1633,10 @@
     {
       "id": "B200",
       "title": "Unpublished direct-route validation treats contention as permanent Backpressure",
-      "status": "Old production counterexample reproduced exact publisher-lock Backpressure before publication. Core402 typed recovery integrated and independently source-reviewed; fixed controls unrun.",
+      "status": "Core22passed19/19including all7privateprepublicationlockboundaries, publisherlockrecovery and permanentnegativecontrols; source/binary/originalgroupsstable. Actualfull62return/qualitypending.",
       "change": "Private typed publisher-validation exclusion mapped ONLY at unpublished preroll boundary to existing MetadataBusy recovery. Ordinary subscriptions retain Backpressure, all permanent errors remain terminal.",
       "evidence": "g6-058-v216-components17.json and g6-058-v216-publisher-counterexample.json; causal held-lock counter failed at original prepare with Backpressure, source/binary stable and original process group joined.",
-      "next": "Execute15Core regressions and full62programme; require actual4handoffs and evaluated public quality. No pass from aborted workload."
+      "next": "CompleteinitialAVregressionandReadycontrols inexpandedcombinedbatch; require4actualhandoffs and evaluatedfull62quality beforeall32."
     }
   ],
   "workplan_tasks": [
@@ -5782,7 +5782,7 @@
     "passed": 127,
     "planned": 130,
     "scope": "Source17:102Store,10Service,5UCTP,6purefixture,1RTC,1signedData,2shortnative pass.2RTCReady and1native return fail.",
-    "next": "Implement narrow grant-free Ready wait/revalidation; diagnose missing return receiver and actual Writer fallback, then verify/batch retest beforefull32."
+    "next": "Latestcompletecombined17 remains127/130. SupplementaryStore20 106/106 andCore22 19/19pass. OrdinaryinitialAVfaultregression+Ready401Service/UCTP/11signedRTC/full62 stillpending; matrixverdictunchanged."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17350,6 +17350,18 @@
   "v216_store20": {
     "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json",
     "passed": 106,
+    "failed": 0,
+    "matrix_result": false
+  },
+  "v216_wt_setup_diagnosis": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-wt-subscription-diagnosis.json",
+    "all_three_are_original_subscriptions": true,
+    "exact_inner_leaf": "unknown",
+    "runtime_fix_verdict": "pending"
+  },
+  "v216_core22": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-core22-verification.json",
+    "passed": 19,
     "failed": 0,
     "matrix_result": false
   }

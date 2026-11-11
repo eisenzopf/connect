@@ -1,0 +1,201 @@
+{
+  "format": "connect/g6-058-core22-verification/1",
+  "created_at": "2026-11-11T17:03:23.096512+00:00",
+  "scope": "19exactCore controls, including4new tests that loop7actual private prepublication lock boundaries. Ordinary/Core media tests only; no fullprogramme or matrixquality qualification.",
+  "summary": {
+    "completed": 19,
+    "passed": 19,
+    "failed": 0
+  },
+  "workspace_sha256": "e74fbcf72192a85546e903fcb17e4a2080975d55ea820ec0e2f7443db021d1ad",
+  "source_lock_sha256": "f9ccb9b8a87608e3b0ca5031fb8e319f1bf5229a2cfed4a922c2fc0b0f955e0b",
+  "binary_sha256": "a5ebbde45f131fb4d6e22680a6678e1cedf13b49ec04512fc1f7820662e6a63e",
+  "build_owner": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "--manifest-path",
+      ".deps/rvoip/crates/foundation/rvoip-core/Cargo.toml",
+      "-p",
+      "rvoip-core",
+      "--lib",
+      "--features",
+      "test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "pid": 86427,
+    "pgid": 86427,
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 53.509832167008426,
+    "source_unchanged": true
+  },
+  "source_unchanged": true,
+  "binary_unchanged": true,
+  "all_original_groups_joined": true,
+  "core403_manifest_sha256": "da033ec86d307b85743ac17bdcebbd335ade0b59819638cd9f191177f36be34e",
+  "core403_independent_review_sha256": "aa8d70d1b643e7325b52e259d20f9de47722cb6a900585f775feb2f502313eb4",
+  "core404_test_only_correction_review_sha256": "b547d166c09a87094259b954c76b7f05de48ca2caf74164edf751c616faa3328",
+  "raw_results_sha256": "f69e65be4acde9481fec991ff1758131d3fd43ee0510539a9d5a514abeb527af",
+  "rows": [
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::unpublished_private_metadata_leaves_release_all_custody_and_recover_same_capture_with_fresh_proof",
+      "ok": true,
+      "elapsed_seconds": 0.032476708001922816,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "3507e483ac672335a1131591a87899df91d1675612ec09b1a20233048d66547f"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::unpublished_private_metadata_cannot_extend_original_expiry_or_bypass_cancellation",
+      "ok": true,
+      "elapsed_seconds": 1.495932833000552,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "cc797f2ea1cf31573e731b650d35ddb7b0a3ce4cb6b490b94ef3d67f227369a1"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::unpublished_private_metadata_preserves_current_policy_revision_and_selection_refusals",
+      "ok": true,
+      "elapsed_seconds": 0.056240915961097926,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "93f3a57a40fb315a85af2a55e19b89ca2df1baa26e73676fe2bb23e93b852b32"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::poisoned_private_metadata_is_terminal_and_ordinary_original_stamp_keeps_its_contract",
+      "ok": true,
+      "elapsed_seconds": 0.024800041981507093,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "eb0c42a070b33ce14120f54c51fb33135170eeaf111876560c081cccc6b25f8e"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_audio_old_and_new_lock_collisions_preserve_plan_and_old_pcm",
+      "ok": true,
+      "elapsed_seconds": 0.010753083042800426,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "69ffd3de8d8bdd115af6c01623bdcb6c56b4149848061bea6fba6f923de4c9ed"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_capture_preserves_original_sequence_on_each_scene_lock",
+      "ok": true,
+      "elapsed_seconds": 0.009847375040408224,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "ec13f069343e8f7890ea2c6ec907dbdf25c0712262827a45b42bf9fc5c89359d"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_observation_does_not_consume_event_at_capture_or_final_scene_check",
+      "ok": true,
+      "elapsed_seconds": 0.014413499971851707,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "3d01940b0553841e61c6650252e3071feb7c062ec354bf8d06de4016f5fcbd28"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_original_pre_media_and_sequence_gap_refusals_remain",
+      "ok": true,
+      "elapsed_seconds": 0.009775749989785254,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "7eefa3f200190db2b0510d9e1e9551c729255ea4adef8e2ae7fe52117ab8d0b6"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_poisoned_state_is_refused_without_retry_or_old_retirement",
+      "ok": true,
+      "elapsed_seconds": 0.009905000042635947,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "73b92709cc2b5f52ece36f9fe728ec5d0b854317c2a472b83c128f4b916535fb"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_readiness_deferral_preserves_full_and_partial_confirmation",
+      "ok": true,
+      "elapsed_seconds": 0.011605000006966293,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "71bd33adfeb0ac910bc1cf3cca5cf54696ebe03e7327c4677fc48c002854e412"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_real_revision_and_binding_refusals_are_never_busy",
+      "ok": true,
+      "elapsed_seconds": 0.014567666978109628,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "2d44328ef27aeb9202117beef7f2e41e259e1ba6d85fb4043c0c6650cdd2d8ac"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_video_old_and_new_lock_collisions_preserve_intent",
+      "ok": true,
+      "elapsed_seconds": 0.01166754198493436,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "d4608532c9c903a4718934c9db535e6a043de050ae120466ae78a9b267f7d9a7"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::replacement_metadata_collision_retries_original_plan_and_preserves_refusals",
+      "ok": true,
+      "elapsed_seconds": 0.031228541978634894,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "a6a57ff039d0e05cae5605e97f5c7735d21af8f1c894394a22713a2aed21e81a"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_defers_before_routes_and_same_capture_recovers",
+      "ok": true,
+      "elapsed_seconds": 0.011401958006899804,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "aa4f84ca73b452f5f799586e531c7666cb358d48c00236596fcc1e9df92898f8"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_does_not_bypass_cancel_revocation_or_expected_revision",
+      "ok": true,
+      "elapsed_seconds": 0.015316792007070035,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "ee888dc5b0fc68ef09a123911c34f46d5f13747ee8e32bfe4057b8f172781878"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_poisoned_metadata_and_invalid_mapping_are_terminal_before_routes",
+      "ok": true,
+      "elapsed_seconds": 0.015093917027115822,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "024cbead1b8fe7846336b6064825df92d863eeb429242c84317de11f66a50044"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_exclusion_does_not_bypass_cancel_revocation_or_expected_revision",
+      "ok": true,
+      "elapsed_seconds": 0.015141790965572,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "18ac0d47903a0047a55c7a7f2154c737878db8a6afae70ccaf1a0ac6b8710de5"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_exclusion_is_unpublished_preserves_ordinary_mapping_and_recovers",
+      "ok": true,
+      "elapsed_seconds": 0.010734417010098696,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "51dbd761b307b42dafd61a3090fd09b10d795eb139f1e6c4bceb7db439e68ce8"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_poison_and_original_expiry_remain_terminal_before_routes",
+      "ok": true,
+      "elapsed_seconds": 0.21745066699804738,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "a0d28c59d6b9532fdc0ae01c9b5670e66de9073eb84cb3ac3e975dd4112af2de"
+    }
+  ]
+}

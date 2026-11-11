@@ -1,0 +1,12 @@
+{
+  "format": "connect/g6-058-core403-source-review/1",
+  "created_at": "2026-11-11T16:58:34.966117+00:00",
+  "manifest_sha256": "da033ec86d307b85743ac17bdcebbd335ade0b59819638cd9f191177f36be34e",
+  "patch_sha256": "67f2d549d56d5e236b60b5103ac9fd8329242175e1836adff92f37ea9814c9cc",
+  "independent_v198_review_sha256": "aa8d70d1b643e7325b52e259d20f9de47722cb6a900585f775feb2f502313eb4",
+  "coordinator_review_sha256": "7750d1e5c1b084c627c522ca1a2aad5a0cf692ccc3e5c45c20672a910938e31b",
+  "scope": "Seven exact private unpublished metadata lock boundaries. DefiniteWouldBlock only returns Busy, drops all local custody, existing same-original fresh authority loop retains original bound. Ordinary APIs/permanent refusals preserved. Four controls loop all7leaves.",
+  "normal_dependency_preparation": "403 verified;4169 identical-content/mode source mtimes preserved; original402 preserved",
+  "runtime": "Core22passed19/19onrecorded404(test-onlymutbindingcorrection), source/binaryunchanged alloriginalgroupsjoined; decodedfull62/matrixpending",
+  "runtime_evidence": "docs/evidence/gate-6/g6-058-v216-core22-verification.json"
+}

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-11T16:32:24.254348+00:00",
-  "revision": 16,
+  "updated_at": "2026-11-11T17:03:23.096512+00:00",
+  "revision": 18,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 16,
-    "verified_at": "2026-11-11T16:32:58.958Z",
+    "content_revision": 18,
+    "verified_at": "2026-11-11T17:05:34.181Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -293,7 +293,7 @@
     {
       "id": "P2.2",
       "plan_id": "P2",
-      "title": "Explain and repair initial media-offer refusals",
+      "title": "Trace and repair setup subscription refusals",
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
@@ -301,9 +301,9 @@
         "B194"
       ],
       "depends_on": [],
-      "status": "in-progress",
-      "implementation_state": "root-cause-unresolved",
-      "proposed_fix": "Trace original 503 phase through existing bounded offer admission; fix exact leaf rather than indiscriminately replaying offers.",
+      "status": "cause-confirmed",
+      "implementation_state": "All3WTmissingprogrammes failed originalstream.subscribe after6completedoffers, oneeffecteach. Exactunavailableleafunlogged; existingcomplete-sceneBusyrecovery covers transientpath. OrdinaryinitialAVtwo-faultregressionpending.",
+      "proposed_fix": "Retain same prepared subscription across definite complete-scene Busy after all fresh proofs drop; preserve permanent refusals, original deadline and one activation. No initial offer retry or mutation resubmission.",
       "required_evidence": "All three WT missing-programme cases linked to original commands; causal regression for each distinct cause, original-effect recovery and no duplicate media admission.",
       "coordinator_review": {
         "status": "pending",
@@ -315,7 +315,13 @@
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-wt-subscription-diagnosis.json",
+          "result": "Exact original command/effect phase established; innerleaf and fixedAVruntimepending",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
       "updated_at": "2026-11-11T10:09:15.345780+00:00",
@@ -625,8 +631,8 @@
       "depends_on": [
         "P3.1"
       ],
-      "status": "independent-source-reviewed",
-      "implementation_state": "Core402 integrated; old publisher-lock failure reproduced;15Core tests and actual full62 media evaluation pending.",
+      "status": "component-verified",
+      "implementation_state": "Core22passed19/19including4controlsloop7actualprivateprepublicationlockleaves; oldpublishercounterreproduced; normal404prepared. Genuinefull62FPS/gaps/identity/End/matrixremainpending.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -653,6 +659,16 @@
         {
           "evidence_scope": "Integrated fix batch after source17; old-condition counterexamples reproduced. Fixed source unverified; Store19 compile stopped before tests.",
           "result": "pending-fixed-verification",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-core21-compilation.json",
+          "result": "Compile stopped before19tests; test-only correctionpending",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-core22-verification.json",
+          "result": "19/19passed; actualoldandprivatevideo path, custody/deadline/currentnegativecontrols; nofullQoEclaim",
           "matrix_result": false
         }
       ],

@@ -1,4 +1,4 @@
-//! Retry only Core's typed, definitely unpublished VideoPlan exclusion.
+//! Retry only Core's typed, definitely unpublished metadata exclusion.
 use super::*;
 use rvoip_core::staged_streams::device_replacement::{
     ReplacementVideoRequest, VideoReplacementPreparation, VideoReplacementPreparationAttempt,

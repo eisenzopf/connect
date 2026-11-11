@@ -1,10 +1,10 @@
 {
   "format": "connect/g6-058-reassessment-plan/1",
-  "updated": "2026-11-11T09:43:35.170197+00:00",
-  "status": "awaiting-owner-review; implementation and test runs held",
+  "updated": "2026-11-11T17:03:23.096512+00:00",
+  "status": "Owner approved implementation; tracked work in progress. Matrix qualification remains open.",
   "baseline": "v215",
   "baseline_evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
-  "latest_committed_revision": "a52c30b8d38708cdbcdb0bb7eaa0ac7908f7b587",
+  "latest_committed_revision": "c421bdaec056d60aacb85c73d7ecbb3dab9d001a",
   "objective": "All 32 cells and all 432 required checks pass on one frozen, locally tested source; no weakened acceptance or inherited passes.",
   "limitation": "Complete check classification is not complete causal proof. No honest guarantee of 32/32 exists before verification. Remaining hypotheses must pass counterexamples and actual concurrent workload regressions.",
   "architecture": [
@@ -31,7 +31,7 @@
         "Exercise credential rotation, pending-control release, lifecycle fallback, cross-Unit/rollback/nonce and forbidden SQL mutations."
       ],
       "exit": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced.",
-      "state": "Draft applied, unformatted/uncompiled/untested. Six regressions drafted; credential-refresh/control-slot proof and direct regression still required.",
+      "state": "Store20 106/106 pass with unchangedsource/binary and originalgroupsjoined, including exact old-source retirement and permission negatives. Combined decoded-media followthrough remains pending.",
       "assigned_tasks": [
         "P1.1",
         "P1.2"
@@ -54,7 +54,7 @@
         "Cover initial offers and WebRTC target preparation with request-bound phase evidence; prove each specific refusing leaf before changing it."
       ],
       "exit": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect.",
-      "state": "Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed.",
+      "state": "Prepared subscription recovery component-verified for signedAV+Data; archived3setup503cases are originalsubscriptions after6completedoffers, exactinnerleafunlogged. OrdinaryinitialAVfaultregressionpending. No initialofferretry proposed.",
       "assigned_tasks": [
         "P2.1",
         "P2.2"
@@ -77,7 +77,7 @@
         "Actual signed/native and browser make-before-break workload: usable audio and decoded keyframe before commit, old playback through preparation, exact original retirement receipts after commit."
       ],
       "exit": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains.",
-      "state": "Latency measured; complete root cause not established. Root started an untested authority-only source-walk draft to eliminate public causal-page rendering. No proven deadline fix yet.",
+      "state": "Source17 127/130; typedStart controls verified but two laterReadySQLfailures remain. Ready401grant-freecurrentadmission/once-onlycapture source-reviewed; combinedsignedRTC verification pending. Full62retirementdeadline stillopen.",
       "assigned_tasks": [
         "P3.1",
         "P3.2"
@@ -122,7 +122,7 @@
         "Repeat the complete programme through all three cycles, including handoff windows and the final retirement window; diagnostics must attribute any remaining failure to a stage."
       ],
       "exit": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun.",
-      "state": "Measured failures and candidate causes documented; additional fixes are required. No media-quality pass claimed for the current drafts.",
+      "state": "Core22passed19/19including7actualunpublishedlockboundaries/publisherrecovery and permanentnegatives. Test-only404mutbindingcorrection recorded; production403unchanged. Source13realdecodedFPSdeficits and full62quality/End/matrixremainopen.",
       "assigned_tasks": [
         "P5.1",
         "P5.2"
@@ -144,7 +144,7 @@
         "Verify natural-owner and retained-owner end deadlines separately; incomplete cycles never count as resource passes."
       ],
       "exit": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff.",
-      "state": "Classification corrected; existing successful capacity checks do not close the composite requirement.",
+      "state": "Originalgroupsjoined in17 but programmeaborted48s with2/4moves. No complete62s or three-cycleOS/owner/resourcequalification claimed.",
       "assigned_tasks": [
         "P6.1",
         "P6.2"
@@ -167,7 +167,7 @@
         "Commit and push the verified batch with CI skipped; freeze sources; execute all32 cells/all432 checks with original3-cycle requirements, including local remote-profile fixtures."
       ],
       "exit": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
-      "state": "Plan only. No new build, focused workload or matrix launch after the owner requested review.",
+      "state": "Owner approved execution; latestcompletecombined17 127/130, supplementaryStore20 106/106. Allfixes/source reviews andexpandedunit/11signedRTC/full62batch precede freshall32/all432. No newmatrix launched.",
       "assigned_tasks": [
         "P7.1",
         "P7.2",

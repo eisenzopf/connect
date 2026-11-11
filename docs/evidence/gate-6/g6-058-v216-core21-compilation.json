@@ -1,0 +1,40 @@
+{
+  "format": "connect/g6-058-core21-compilation/1",
+  "created_at": "2026-11-11T16:58:34.966117+00:00",
+  "tests_executed": 0,
+  "planned_core_tests": 19,
+  "owner": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "--manifest-path",
+      ".deps/rvoip/crates/foundation/rvoip-core/Cargo.toml",
+      "-p",
+      "rvoip-core",
+      "--lib",
+      "--features",
+      "test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "pid": 78535,
+    "pgid": 78535,
+    "exit_code": 101,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 429.1290194580215,
+    "source_unchanged": true
+  },
+  "log_sha256": "10ebce38cf518c69cf255b27f9899aac0683049ec8b9c0e8dc7860254289f294",
+  "source_lock_sha256": "2e6b68062d9f55bf0ac537b98afc38b0b1ed61a030bd49509d574338f7319a12",
+  "compiler_error": "E0596: metadata_boundaries poison test calls target_output.try_recv through immutable fixture binding at line263; requires let mut f. Production libraries compiled; libtest did not.",
+  "correction": "404 additive test-only mut-binding patch independently source-approved and normal prepared; production/assertions unchanged; Core22 retry pending.",
+  "runtime_result": "not run",
+  "subsequent_retry": "Core22passed19/19; originalCore21compilefailure/zero-runtimeverdict retained",
+  "retry_evidence": "docs/evidence/gate-6/g6-058-v216-core22-verification.json"
+}

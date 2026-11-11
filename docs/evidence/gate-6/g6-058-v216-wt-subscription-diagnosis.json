@@ -1,0 +1,233 @@
+{
+  "format": "connect/v215-original-wt-setup-subscription-diagnosis/1",
+  "read_only": true,
+  "source_revision": "1170d846a6f3d1af3c6e17eac8486a6ac27e6fb2",
+  "conclusion": "ALL THREE missing programmes failed during an original stream.subscribe, after six completed ordinary connection offers. No initial connection.offer or read-only refresh failure in these three cases.",
+  "cases": [
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "cycle": 2,
+      "original_phase": "six-browser-media-offers",
+      "exact_failed_command": "stream.subscribe",
+      "fixture_event": "select-1",
+      "journal_line": 207,
+      "journal_member_sha256": "f2d1dc18717830a2bb02e659a8c5929e502042879b4bb015cecdc8ac19e3615f",
+      "operation_id_sha256": "7c9e0ae9de768d0080e9f3ef0b52c27d9db00a006686f0e7fb7b1d58a5dac1e4",
+      "record_id_sha256": "78ce3de9b106316e7fb536b6d55d86843207c4ef10bd52aab766dcc41fc21d04",
+      "connection_id_sha256": "231ce947448ec7ffc9f358718a0e1f12d1c0911f80f46916c8a2a94b51bfbd89",
+      "state": "unknown",
+      "result_absent": true,
+      "problem_absent": true,
+      "effects": [
+        {
+          "provider": "native-stream",
+          "state": "unknown",
+          "attempt": 1,
+          "submission_generation": 1,
+          "observation_present": 0
+        }
+      ],
+      "completed_offers": [
+        "offer-0",
+        "offer-1",
+        "offer-2",
+        "offer-3",
+        "offer-4",
+        "offer-5"
+      ],
+      "completed_selections": [
+        "select-0"
+      ],
+      "archive_sha256": "4fb014037c2464c312f0e65a3b52e95099eb35e5cc59d0e3e9b2996de22c87e6",
+      "archive_bytes": 254278084,
+      "selected_members": [
+        {
+          "name": "private/browser/original-operations.jsonl",
+          "bytes": 197023,
+          "sha256": "f2d1dc18717830a2bb02e659a8c5929e502042879b4bb015cecdc8ac19e3615f"
+        },
+        {
+          "name": "private/instance/state/state.sqlite3",
+          "bytes": 4665344,
+          "sha256": "16110821b9f20d033f84d0a1f0e3cc46fed86dd0ec2ad462bc389c3aeaa7f279"
+        },
+        {
+          "name": "private/instance/state/state.sqlite3-shm",
+          "bytes": 32768,
+          "sha256": "88426ea19e0851e62cba3eb8cccf28a3aac5e862975f1c783ae089708318887a"
+        },
+        {
+          "name": "private/instance/state/state.sqlite3-wal",
+          "bytes": 4190072,
+          "sha256": "931c871cef9d8995e5d1b2175921f208ebe31f09dc85b0a5f9a60a92212ceea7"
+        }
+      ],
+      "component_summary_sha256": "6bfe74aaf9564e1a83c70c0e17afacd026a507d4e8dcf5dfe38b4ac0ded2fb8f",
+      "scalar_report_sha256": "bb7182db92f1299a9fbf54a34f855a3ec961005161e47ec077ae99510d6bc5f4"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "cycle": 3,
+      "original_phase": "six-browser-media-offers",
+      "exact_failed_command": "stream.subscribe",
+      "fixture_event": "select-0",
+      "journal_line": 331,
+      "journal_member_sha256": "2b30f2e5bdaad939f064cdf5db9fe0a92ddd2be4e53e5f9a5ef62542dea781c1",
+      "operation_id_sha256": "e518201dad577f93f896fef92cc7051a64811ba7675cfb3823e7252a02723773",
+      "record_id_sha256": "34dc75707fec1305a26842f7726c5469a4d62fe2184181c27faf852e038795ee",
+      "connection_id_sha256": "6046456b1c99c72d77adb0b1cd2b36c59f9b53849659c19ce91c83a0f828e925",
+      "state": "unknown",
+      "result_absent": true,
+      "problem_absent": true,
+      "effects": [
+        {
+          "provider": "native-stream",
+          "state": "unknown",
+          "attempt": 1,
+          "submission_generation": 1,
+          "observation_present": 0
+        }
+      ],
+      "completed_offers": [
+        "offer-0",
+        "offer-1",
+        "offer-2",
+        "offer-3",
+        "offer-4",
+        "offer-5"
+      ],
+      "completed_selections": [],
+      "archive_sha256": "063555ef19343ff06bcbd3b13ef3d5567d38eed6e95aea6b29c5a2a647c4ef08",
+      "archive_bytes": 273041021,
+      "selected_members": [
+        {
+          "name": "private/browser/original-operations.jsonl",
+          "bytes": 195365,
+          "sha256": "2b30f2e5bdaad939f064cdf5db9fe0a92ddd2be4e53e5f9a5ef62542dea781c1"
+        },
+        {
+          "name": "private/instance/state/state.sqlite3",
+          "bytes": 4599808,
+          "sha256": "26e2fb7a5b6773de29bbcf6b49570c29b9cc5011f44b3d7a1521c63f90b1ccb4"
+        },
+        {
+          "name": "private/instance/state/state.sqlite3-shm",
+          "bytes": 32768,
+          "sha256": "787d817fbd44cb30ea01eccb3e8cab0c2a113e75b5d299a49a159a351e521182"
+        },
+        {
+          "name": "private/instance/state/state.sqlite3-wal",
+          "bytes": 4173592,
+          "sha256": "602c8c7684101b952a59af7ada58223d82a8822c2fd1f54db2b1815c8fc73ce6"
+        }
+      ],
+      "component_summary_sha256": "ec31957b900642c5cfd8689d622b4f244503e5a02f857cad8cf652bf79d8497c",
+      "scalar_report_sha256": "7b00f3cf6c250b570d8ed27d85e4b2af2c3eb6eda498ab76a9c6cdbe37442b81"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "cycle": 3,
+      "original_phase": "six-browser-media-offers",
+      "exact_failed_command": "stream.subscribe",
+      "fixture_event": "select-3",
+      "event_proof": "Existing exactStoreunknown subscription has SAME connection as original completedoffer-3; originalsummaryselect0/1/2 complete. Journal not reread; no invented journal line.",
+      "journal_line": null,
+      "operation_id_sha256": "62173a3cfb0495fbe0a450b5bf4c91de7dfe4b7039b665db06f32c45fc304146",
+      "record_id_sha256": "894d78281af57635e4cb6fd7197d3b4de9190d353cc2531b4e747df5c089d2f3",
+      "connection_id_sha256": "8323ecae83070fca4e575e919f05643293f5b814f7961a1b4341d66c0c215079",
+      "state": "unknown",
+      "result_absent": true,
+      "problem_absent": true,
+      "effects": [
+        {
+          "provider": "native-stream",
+          "state": "unknown",
+          "attempt": 1,
+          "submission_generation": 1,
+          "observation_present": "not retained in reused scalar extract"
+        }
+      ],
+      "completed_offers": [
+        "offer-0",
+        "offer-1",
+        "offer-2",
+        "offer-3",
+        "offer-4",
+        "offer-5"
+      ],
+      "completed_selections": [
+        "select-0",
+        "select-1",
+        "select-2"
+      ],
+      "archive_sha256": "e3e01ef00ee34f018e84756506af4de4d1a0c3d531ee6d97ab96fa55314b0934",
+      "archive_bytes": 272397366,
+      "selected_members": [
+        {
+          "name": "private/instance/state/state.sqlite3",
+          "bytes": 4878336,
+          "sha256": "86b2f6304bc1218b4536a6f1fefa577735f432a414c8a94e17a2589df6017626"
+        },
+        {
+          "name": "private/instance/state/state.sqlite3-shm",
+          "bytes": 32768,
+          "sha256": "bf78f6437ab61aedbeb47af30bc803554da01967fb252743c340b3e52dc5943a"
+        },
+        {
+          "name": "private/instance/state/state.sqlite3-wal",
+          "bytes": 4177712,
+          "sha256": "a7aa3c5ad95d7a902958aac479184b967ef7a32e98fb2fcc3dfab16b486cf692"
+        },
+        {
+          "name": "private/materialized-server.log",
+          "bytes": 6871932,
+          "sha256": "7e2a903d5e3cca8cf71df0f9607dd805b12b090a9e1be3741880344c0d041efb"
+        }
+      ],
+      "component_summary_sha256": "9cb56eb666c147b42bf51984eb56a94695d52341f74d26a026dd6a6413c23635",
+      "scalar_report_sha256": "a365355574debfd6caa58156e6bcd43914dd26f0febf9a044ce9eb061449f5d1"
+    }
+  ],
+  "historical_source_sha256": "11d35fd4c5b663260fea0c105c982e774a7f85aea1f928a1b84b45f01e6a4349",
+  "causal_narrowing": {
+    "proven": [
+      "Allthree exact original subscriptionroots durableunknown withone native-stream effect attempt1/submissionGeneration1; two newscalars also prove observationNULL.",
+      "Public503 reasonauthority_unavailable collapses internal authority-busy AND authority-unavailable; historical logs did not enable native_stream_preparation/currentorigin targets, so exact innerleaf is unavailable.",
+      "At old1170 subscription resource stage/parameter/activate errors wrapreconciliation-required\u2192409. Policyreauthorization/physical/cancellation refusals mapforbidden\u2192403. The propagating503 path in knownresource worker is complete stream_invocation_with_activation factory afterfreshpolicy; its transientEntryNotReady\u2192authority-busy or Storecurrent-scene errors remain distinguishable only bymissinginternaldiagnostic."
+    ],
+    "not_proven": [
+      "No proof of exact primarySQL vs registry vs permanent authority-file origin in v215.",
+      "No automatic claim current Busy-only loop fixes every public503; permanentauthority-unavailable correctly stays terminal.",
+      "No evidence these three failures need any initial native_start retry."
+    ]
+  },
+  "current_possible_failure_classes": {
+    "within_narrowed_scene_factory": [
+      "Service stream_entry metadata registryWouldBlock/adoptionpending\u2192authority-busy (Core/host current metadata, no newmediaeffect).",
+      "Store native_stream_media_reads_with_peer immediateprimarySQLmutex + complete currentattempt/target/source projection; any temporary authority-busy or installation/authority-unavailable propagates.",
+      "Current sourcecredential-epoch/activation-projection pending Busy are API paths; ordinary fixture has no intentionalrotation/replacement at setup, no actualsuchleaf isestablished.",
+      "Foreign/revoked/expired/missing currentauthority remainForbidden/terminal; storageerror remainsstorage_unavailable, notreportedauthority_unavailable."
+    ],
+    "outside_observed_effect_phase": [
+      "Replay-read, initialphysical source, accept/admission, preflight source/catalog/compatibility/sourceauthorization/bindplan and begin can returnBusy undercurrentAPI, but originalunknown native-stream effect shows these three had already begun; they are not the demonstratedfirstfailurephase.",
+      "Read-only refresh occurs between selectcalls but exactfailurejournal/currentDB prove these three failed mutationselect0/1/3, not refresh."
+    ]
+  },
+  "implemented_path_comparison": {
+    "current": "canonical_native_streams/subscription_resources.rs nowuses current_scene::capture around COMPLETE freshpolicy\u2192physical/currentbinding\u2192Storefullscene factory; authority-busy only retries after allproof/partialreads drop, within SAMEoriginalcap. prepared object retained once; activate once outsidefactory.",
+    "already_verified_related_control": "Existing signed postcommit Data case actually selects AV+Data and injects realcurrentWriter+primarySQL; it directly proves preparedpath but not ordinary initial AV/olddecodedmedia.",
+    "new_regression_required": "Stage one actual ordinary four-identity/twoSession/sixsource initial AVselect with prestarted real Opus/VP8 masters, oldindependent receivers decoded before/after bothsamepreparedfaults; one signed mutation/onceparameters+effect/unchangedID+deadline, allownersjoined. Existing genericrevoke/cancel/expiry/permanent controls retained.",
+    "no_new_production_retry_proposed": true
+  },
+  "source_proof": {
+    "scripts/lib/browser_matrix_admission.mjs": "2a3372155ac2e27d034699cae93428bdc489046bcae66ff7d29a2bf9639a203d",
+    "crates/connect-service/src/canonical_native_streams.rs": "d57a83b18be1317590401dbd94c962b292bcf4e53ea3c1a530ea302343e814a5",
+    "crates/connect-service/src/canonical_native_streams/subscription_resources.rs": "b45fe68455c414a4f58de0a9581e1ad0e3bcdf1e0efa1d2bfead560a2e1112c7",
+    "crates/connect-service/src/canonical_native_streams/subscription_resources/current_scene.rs": "0bc4a93ddb38ec8b974a1d0ee9886ba22981daa8c19851b78c0d1e05b71de90f",
+    "crates/connect-service/src/canonical_media/streams.rs": "b19af206ad483323dbabecc57a983abaa0f5d9d0cf2fef21a7e81e66330e05a5",
+    "crates/connect-store/src/peer_authority/connection_media.rs": "f36e843a972afcaafe03a02fb0448c8a844ca02ed8b0258a37c0fc78187cd5be",
+    "crates/connect-protocol/src/canonical_http.rs": "20020de6aefd890178e2aacbfeb44ca5312ccf623fe35cef50e42d59203c62d7"
+  },
+  "private_extractions": "New MacES/ARMES oneforwardpass each inclwholearchiveSHA; reused previousARMEd smallscalars and verifiedDB extraction; originalarchives/reports unchanged.",
+  "actions": "No source edits/build/tests/browser/media/guest work; onlyselective archives, readonlyquerycopies, ignored evidence."
+}
