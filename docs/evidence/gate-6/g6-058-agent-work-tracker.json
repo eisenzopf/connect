@@ -1,16 +1,16 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-11T09:53:27.144008+00:00",
-  "revision": 1,
-  "status": "held-for-owner-review",
+  "updated_at": "2026-11-11T10:09:15.345780+00:00",
+  "revision": 5,
+  "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-current",
-    "content_revision": 1,
-    "verified_at": "2026-11-11T10:02:59.348341+00:00",
+    "sync_status": "update-pending",
+    "content_revision": 5,
+    "verified_at": "2026-11-11T10:39:51.116113+00:00",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -95,23 +95,36 @@
         "B191"
       ],
       "depends_on": [],
-      "status": "held-for-owner-review",
-      "implementation_state": "draft-uncompiled-untested",
+      "status": "component-verified",
+      "implementation_state": "8/8newData-controls-pass;combined-media-and-matrix-pending",
       "proposed_fix": "Complete narrow same-transaction positive Data ledger capture; preserve current grant and PCM custody without an authority Writer when authority is unchanged.",
       "required_evidence": "Old path reproduces epoch invalidation; fixed path preserves actual PCM grant/custody; revoke, expiry, uncertainty, lifecycle fallback, credential rotation and SQL boundary negatives still pass.",
       "coordinator_review": {
         "status": "pending",
         "root_cause_confirmed": false,
         "failure_mapping_verified": true,
-        "architecture_conformance": "pending",
+        "architecture_conformance": "independent-source-review-passed;runtime-media-followthrough-pending",
         "counterexample_verified": false,
-        "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "regression_verified": true,
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence_scope": "Storeattempt02:72/80passed;8failed;originalrunclosed;source/binaryunchanged",
+          "result": "failed",
+          "raw_evidence_private": ".local/gate-6/v216-batch/store-results.json",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt03.json",
+          "result": "81/82passed;8/8newData-controls-pass",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:19:33.021885+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -134,8 +147,8 @@
       "depends_on": [
         "P1.1"
       ],
-      "status": "held-for-owner-review",
-      "implementation_state": "proposed",
+      "status": "in-progress",
+      "implementation_state": "remaining-immutable-replacement-intent-Writer-conflict-confirmed;guarded-candidate-under-review",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
@@ -145,12 +158,19 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt03.json",
+          "result": "81/82passed;8/8newData-controls-pass",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 8,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -170,7 +190,7 @@
         "B190"
       ],
       "depends_on": [],
-      "status": "held-for-owner-review",
+      "status": "in-progress",
       "implementation_state": "draft-uncompiled-untested",
       "proposed_fix": "Distinguish temporary Busy from permanent refusal and retry only authorization of the same prepared owner within its original deadline.",
       "required_evidence": "Actual signed Data subscription under held writer: one prepare/activation/effect; positive release, negative revoke/expiry/permanent refusal/cancel; old media remains usable.",
@@ -181,12 +201,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 45,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -207,7 +228,7 @@
         "B194"
       ],
       "depends_on": [],
-      "status": "held-for-owner-review",
+      "status": "in-progress",
       "implementation_state": "root-cause-unresolved",
       "proposed_fix": "Trace original 503 phase through existing bounded offer admission; fix exact leaf rather than indiscriminately replaying offers.",
       "required_evidence": "All three WT missing-programme cases linked to original commands; causal regression for each distinct cause, original-effect recovery and no duplicate media admission.",
@@ -218,12 +239,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 29,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -248,7 +270,7 @@
       "depends_on": [
         "P2.1"
       ],
-      "status": "held-for-owner-review",
+      "status": "in-progress",
       "implementation_state": "root-cause-partly-unresolved",
       "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
       "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
@@ -259,12 +281,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 66,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -291,8 +314,8 @@
         "B192"
       ],
       "depends_on": [],
-      "status": "held-for-owner-review",
-      "implementation_state": "partial-uncompiled-draft",
+      "status": "in-progress",
+      "implementation_state": "authority-read-and-current-scope-regressions-pass;full-retirement-deadline-not-yet-proved",
       "proposed_fix": "Remove verified redundant control work, including unnecessary public status rendering during authority-only walks; locate remaining queue/server latency.",
       "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
@@ -302,12 +325,25 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence_scope": "Storeattempt02:72/80passed;8failed;originalrunclosed;source/binaryunchanged",
+          "result": "failed",
+          "raw_evidence_private": ".local/gate-6/v216-batch/store-results.json",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt03.json",
+          "result": "81/82passed;8/8newData-controls-pass",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:19:33.021885+00:00",
       "mapped_check_count": 16,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -326,7 +362,7 @@
         "B189"
       ],
       "depends_on": [],
-      "status": "held-for-owner-review",
+      "status": "assigned",
       "implementation_state": "committed-focused-runtime-verified",
       "proposed_fix": "Use exact approved runtime from the matrix contract with ordinary isolated CA trust.",
       "required_evidence": "Existing11unit and real trusted/untrusted HTTPS/WSS evidence retained; affected cells must admit and complete fresh workload/captures.",
@@ -337,7 +373,8 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [
         {
@@ -352,7 +389,7 @@
         "a52c30b8d38708cdbcdb0bb7eaa0ac7908f7b587"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 52,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [],
@@ -369,7 +406,7 @@
         "B193"
       ],
       "depends_on": [],
-      "status": "held-for-owner-review",
+      "status": "in-progress",
       "implementation_state": "implemented-pure-tests-verified",
       "proposed_fix": "Stop and join same original statistics request at programme terminal before retiring peer, with unchanged500ms join limit.",
       "required_evidence": "Existing21puretests retained; actual browser three-cycle follow-through shows no unjoined original stats promise and no false joined receipt.",
@@ -380,7 +417,8 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [
         {
@@ -393,7 +431,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 10,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": []
@@ -412,7 +450,7 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "held-for-owner-review",
+      "status": "assigned",
       "implementation_state": "measured-failures-open",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
@@ -423,12 +461,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -452,7 +491,7 @@
       "depends_on": [
         "P3.1"
       ],
-      "status": "held-for-owner-review",
+      "status": "assigned",
       "implementation_state": "measured-failures-open",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
@@ -463,12 +502,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -493,7 +533,7 @@
         "P3.2",
         "P4.2"
       ],
-      "status": "held-for-owner-review",
+      "status": "assigned",
       "implementation_state": "classification-complete-runtime-open",
       "proposed_fix": "Separate missing-handoff coverage from resource leaks; retain required10browserrenderer owners and all actual natural joins.",
       "required_evidence": "All3completecycles, exact original/replacement receipts, zero Session-owned physical owners/tasks/pools, helper/client joins and unchanged end/cleanup deadlines.",
@@ -504,12 +544,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 41,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": []
@@ -527,7 +568,7 @@
       "depends_on": [
         "P6.1"
       ],
-      "status": "held-for-owner-review",
+      "status": "assigned",
       "implementation_state": "capacity-evidence-partial",
       "proposed_fix": "Retain approved per-role/aggregate RSS and original numeric process/FD/thread capacities; trends diagnostic and separate soak unaffected.",
       "required_evidence": "1GiB server/4GiB browser/1GiB helper/6GiB aggregate; exact original resource-pool restoration and source-bound server thread exception; no incomplete cycle counted as pass.",
@@ -538,12 +579,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": []
@@ -562,7 +604,7 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "held-for-owner-review",
+      "status": "in-progress",
       "implementation_state": "fixture-incomplete-do-not-build",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
@@ -573,12 +615,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -609,7 +652,7 @@
         "P6.2",
         "P7.1"
       ],
-      "status": "held-for-owner-review",
+      "status": "assigned",
       "implementation_state": "held-not-ready",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
@@ -620,12 +663,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -645,7 +689,7 @@
       "depends_on": [
         "P7.2"
       ],
-      "status": "held-for-owner-review",
+      "status": "assigned",
       "implementation_state": "not-started",
       "proposed_fix": "Execute one frozen all32/all432local matrix; coordinator reconciles original check artifacts to every proposed fix and reopens any residual.",
       "required_evidence": "All required cycles and32cells/432checks pass; no inherited results, skipped failures, x86/GitHub builds, altered criteria or unjoined processes. No task is matrix-resolved on unit evidence alone.",
@@ -656,12 +700,13 @@
         "architecture_conformance": "pending",
         "counterexample_verified": false,
         "regression_verified": false,
-        "actual_matrix_effect_verified": false
+        "actual_matrix_effect_verified": false,
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": []
@@ -2919,6 +2964,21 @@
       "at": "2026-11-11T10:00:35.774Z",
       "action": "Mobile revision1written and exact body/roster/hyperlinks verified. Assigned15tasks and145failure mappings. Protocol contract attached. No implementation/test run.",
       "by": "/root"
+    },
+    {
+      "at": "2026-11-11T10:09:15.345780+00:00",
+      "by": "/root",
+      "action": "Owner approved Proceed. Resumed three agents, rootP3.2 implementation and independentreview. Remaining tasks assigned with dependencies. No matrix launched."
+    },
+    {
+      "at": "2026-11-11T10:19:33.021885+00:00",
+      "by": "/root",
+      "action": "Storebuild02passed,80focused executed72passed8failed.7/8newData controls passed;noncefixture selfdeadlock interrupted.5oldfixtures lackSQLWriter,2failures trace generic effectproof binding. Fixes under review; no matrix qualification."
+    },
+    {
+      "at": "2026-11-11T10:39:51.116113+00:00",
+      "by": "/root",
+      "action": "82Storetestsexecuted81passed1trueimmutableintentadmissionWritergap.IndependentreviewsapprovedB191andP3authorityreadscope.Whole03Cargo stoppedalreadyfailedServiceunitimport+traittypecomplexity;fixesstaged.No matrix resultclaimed."
     }
   ],
   "tracking_review": {

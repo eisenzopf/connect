@@ -56,6 +56,17 @@ fn get(id: &str) -> OperationAction {
     }
 }
 
+// Historical/expiry fixture changes still use the actual mutation protocol.
+// Acquire file Writers before borrowing SQL and release SQL before the proof.
+fn fixture_operation_writer(f: &Fixture) -> Arc<crate::AuthorityGuardSet> {
+    f.store
+        .try_acquire_authority(&[
+            AuthorityScope::identity(&f.ids[0], AuthorityMode::Write).unwrap(),
+            AuthorityScope::conversation(&f.cid, AuthorityMode::Write).unwrap(),
+        ])
+        .unwrap()
+}
+
 #[test]
 fn packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release() {
     let f = Fixture::new();
@@ -73,6 +84,9 @@ fn packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release()
         .unwrap();
     let two = rows::by_record(&c, &second).unwrap().record;
     drop(c);
+    let peer = Store::open_administration(f.store.path(), Limits::default()).unwrap();
+    let writer = fixture_operation_writer(&f);
+    assert!(peer.authority_covers(&writer, &[]));
     let _physical_scope = f.store.retain_packet_observers().unwrap();
     let observation = f.store.packet_connections.observe().unwrap();
     let observer = f.store.try_packet_connection(&observation).unwrap();
@@ -103,7 +117,6 @@ fn packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release()
             [&one.record_id]
         )
         .is_err());
-    let external = Connection::open(f.store.path()).unwrap();
     let before = rows::by_record(&observer, &one.record_id)
         .unwrap()
         .record
@@ -116,12 +129,15 @@ fn packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release()
             .revision,
         before
     );
-    external
-        .execute(
-            "UPDATE operations SET revision=revision+1 WHERE record_id=?1",
-            [&one.record_id],
-        )
-        .unwrap();
+    {
+        let external = peer.connection_with_authority(&writer).unwrap();
+        external
+            .execute(
+                "UPDATE operations SET revision=revision+1 WHERE record_id=?1",
+                [&one.record_id],
+            )
+            .unwrap();
+    }
     assert_eq!(
         rows::by_record(&snapshot, &one.record_id)
             .unwrap()
@@ -138,9 +154,12 @@ fn packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release()
         before + 1,
         "compiled SQL must not retain the completed snapshot"
     );
-    external
-        .execute_batch("CREATE TABLE observer_statement_schema_probe(value INTEGER)")
-        .unwrap();
+    {
+        let external = peer.connection_with_authority(&writer).unwrap();
+        external
+            .execute_batch("CREATE TABLE observer_statement_schema_probe(value INTEGER)")
+            .unwrap();
+    }
     assert_eq!(
         rows::by_record(&observer, &two.record_id)
             .unwrap()
@@ -149,6 +168,7 @@ fn packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release()
         two.operation_id
     );
     drop(observer);
+    let external = peer.connection_with_authority(&writer).unwrap();
     let checkpoint: (i64, i64, i64) = external
         .query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |r| {
             Ok((r.get(0)?, r.get(1)?, r.get(2)?))
@@ -168,7 +188,10 @@ fn operation_row_reads_keep_bindings_commits_rollback_and_schema_current() {
         .store
         .admit_transition(&f.keys[0], f.request("statement-one"))
         .unwrap();
-    let mut c = f.store.connection().unwrap();
+    let peer = Store::open_administration(f.store.path(), Limits::default()).unwrap();
+    let writer = fixture_operation_writer(&f);
+    assert!(peer.authority_covers(&writer, &[]));
+    let c = f.store.connection_with_authority(&writer).unwrap();
     let second: String = c
         .query_row(
             "SELECT record_id FROM operations WHERE record_id!=?1 ORDER BY record_id LIMIT 1",
@@ -199,13 +222,19 @@ fn operation_row_reads_keep_bindings_commits_rollback_and_schema_current() {
         started.elapsed().as_millis()
     );
     let before = rows::by_record(&c, &one.record_id).unwrap().record.revision;
-    let external = Connection::open(f.store.path()).unwrap();
-    external
-        .execute(
-            "UPDATE operations SET revision=revision+1 WHERE record_id=?1",
-            [&one.record_id],
-        )
-        .unwrap();
+    // The Store retains the actual Connection and its statement cache while
+    // its short SQL borrow is released before the other original SQL unit.
+    drop(c);
+    {
+        let external = peer.connection_with_authority(&writer).unwrap();
+        external
+            .execute(
+                "UPDATE operations SET revision=revision+1 WHERE record_id=?1",
+                [&one.record_id],
+            )
+            .unwrap();
+    }
+    let mut c = f.store.connection_with_authority(&writer).unwrap();
     assert_eq!(
         rows::by_record(&c, &one.record_id).unwrap().record.revision,
         before + 1,
@@ -232,9 +261,14 @@ fn operation_row_reads_keep_bindings_commits_rollback_and_schema_current() {
         before + 1,
         "compiled statements retain no rolled-back result"
     );
-    external
-        .execute_batch("CREATE TABLE statement_schema_probe(value INTEGER)")
-        .unwrap();
+    drop(c);
+    {
+        let external = peer.connection_with_authority(&writer).unwrap();
+        external
+            .execute_batch("CREATE TABLE statement_schema_probe(value INTEGER)")
+            .unwrap();
+    }
+    let c = f.store.connection_with_authority(&writer).unwrap();
     assert_eq!(
         rows::by_record(&c, &two.record_id)
             .unwrap()
@@ -242,6 +276,8 @@ fn operation_row_reads_keep_bindings_commits_rollback_and_schema_current() {
             .operation_id,
         two.operation_id
     );
+    drop(c);
+    let external = peer.connection_with_authority(&writer).unwrap();
     let checkpoint: (i64, i64, i64) = external
         .query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |r| {
             Ok((r.get(0)?, r.get(1)?, r.get(2)?))
@@ -255,6 +291,8 @@ fn operation_row_reads_keep_bindings_commits_rollback_and_schema_current() {
     external
         .execute_batch("DROP TABLE statement_schema_probe")
         .unwrap();
+    drop(external);
+    let c = f.store.connection_with_authority(&writer).unwrap();
     assert_eq!(
         rows::by_record(&c, &one.record_id).unwrap().record.revision,
         before + 1
@@ -499,14 +537,15 @@ fn canonical_operation_source_expiry_during_sql_wait_rolls_back_lazy_recovery_an
     let f = Fixture::new();
     f.admit("target");
     let lease = f.claim("target");
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    {
+        let writer = fixture_operation_writer(&f);
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        c.execute(
             "UPDATE operations SET lease_expires_at=0 WHERE operation_id='target'",
             [],
         )
         .unwrap();
+    }
     let mut request = request(&f, get("target"));
     for is_cancel in [false, true] {
         let action = if is_cancel {
@@ -601,14 +640,15 @@ fn canonical_operation_lazy_get_recovers_possible_submission_once_without_reclai
     f.admit("target");
     let lease = f.claim("target");
     let effect = f.effect(&lease, "possible-creation");
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    {
+        let writer = fixture_operation_writer(&f);
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        c.execute(
             "UPDATE operations SET lease_expires_at=0 WHERE operation_id='target'",
             [],
         )
         .unwrap();
+    }
     let request = request(&f, get("target"));
     let proof = admit(&f, &request);
     let recovered = f
@@ -664,7 +704,8 @@ fn canonical_operation_decisions_reject_nested_mutations_and_bound_malformed_sou
     // provenance traversal. Public mutation above already rejects such nesting.
     let mut previous = first.record_id.clone();
     {
-        let c = f.store.connection().unwrap();
+        let writer = fixture_operation_writer(&f);
+        let c = f.store.connection_with_authority(&writer).unwrap();
         for n in 0..32 {
             let record = format!("malformed-record-{n}");
             let operation = format!("malformed-{n}");
@@ -690,7 +731,11 @@ fn canonical_operation_decisions_reject_nested_mutations_and_bound_malformed_sou
         "capacity-exceeded"
     );
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
-    f.store.connection().unwrap().execute("UPDATE operation_decisions SET target_record_id=operation_record_id WHERE operation_record_id=?1",[&previous]).unwrap();
+    {
+        let writer = fixture_operation_writer(&f);
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        c.execute("UPDATE operation_decisions SET target_record_id=operation_record_id WHERE operation_record_id=?1",[&previous]).unwrap();
+    }
     let before = Store::inspect_snapshot(f.store.path()).unwrap();
     assert_eq!(
         f.store
@@ -700,14 +745,15 @@ fn canonical_operation_decisions_reject_nested_mutations_and_bound_malformed_sou
         "capacity-exceeded"
     );
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    {
+        let writer = fixture_operation_writer(&f);
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        c.execute(
             "UPDATE operation_decisions SET action='reconcile' WHERE operation_record_id=?1",
             [&previous],
         )
         .unwrap();
+    }
     let before = Store::inspect_snapshot(f.store.path()).unwrap();
     assert_eq!(
         f.store
@@ -718,14 +764,15 @@ fn canonical_operation_decisions_reject_nested_mutations_and_bound_malformed_sou
     );
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
     let target_record = f.get("target").record_id;
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    {
+        let writer = fixture_operation_writer(&f);
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        c.execute(
             "INSERT INTO operation_decisions VALUES(?1,?2,'cancel')",
             params![target_record, first.record_id],
         )
         .unwrap();
+    }
     let PeerCommand::Operation(claim) = &mut request.command else {
         panic!()
     };
@@ -901,7 +948,13 @@ fn transition_command(
 fn endpoint_replacement_admits_only_immutable_intent_while_current_packet_readers_remain_owned() {
     let f = Fixture::new();
     {
-        let c = f.store.connection().unwrap();
+        let writer = f
+            .store
+            .try_acquire_authority(&[
+                AuthorityScope::identity(&f.ids[0], AuthorityMode::Write).unwrap()
+            ])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute("INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES('replacement-device',?1,'tnt_default','fixture','fixture')", [&f.ids[0]]).unwrap();
         c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,verification_state,verification_evidence,verified_at) VALUES('replacement-endpoint',?1,'tnt_default','replacement-device','quic','quic://fixture.invalid/replacement','[\"audio\"]','verified','fixture-proof',?2)", params![f.ids[0],crate::now()]).unwrap();
     }
@@ -1186,14 +1239,20 @@ fn canonical_transition_replay_uses_existing_http_expiry_without_operation_get_p
     let command = transition_command(http);
     let mut signed = request(&f, get("unused"));
     signed.command = PeerCommand::Transition(command.clone());
-    f.store
-        .connection()
-        .unwrap()
-        .execute(
+    {
+        let writer = f
+            .store
+            .try_acquire_authority(&[
+                AuthorityScope::identity(&f.ids[0], AuthorityMode::Write).unwrap()
+            ])
+            .unwrap();
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        c.execute(
             "UPDATE credentials SET operations='[\"session.consult\"]' WHERE id=?1",
             [&f.keys[0]],
         )
         .unwrap();
+    }
     let proof = admit(&f, &signed);
     assert_eq!(
         f.store

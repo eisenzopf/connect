@@ -350,11 +350,11 @@ pub(super) fn read(c: &Connection, actor: &Actor, row: &rows::Saved) -> Result<(
             .map_err(|_| Error::storage())?;
         if let Some(id) = target {
             actor.require(&row.record.command_type)?;
-            let target = rows::by_record(c, &id)?;
+            let target = rows::for_authority(c, &id)?;
             return if row.record.command_type == "operation.cleanup" {
-                super::cleanup::authorize(c, actor, &target)
+                target.require_cleanup(c, actor)
             } else {
-                read(c, actor, &target)
+                target.require_read(c, actor)
             };
         }
         if row.record.command_type.starts_with("conversation.") {

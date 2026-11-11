@@ -115,7 +115,37 @@ fn authority_rows_still_refuse_current_scope_and_connection_epoch_changes() {
                 std::thread::sleep(std::time::Duration::from_millis(5));
             }
         }
-        let c = f.store.connection().unwrap();
+        let writer = if change == "expiry" {
+            None
+        } else {
+            let scopes = {
+                let c = f.store.connection().unwrap();
+                let mut scopes = crate::authority_admission::conversation_scopes(
+                    &c,
+                    &f.cid,
+                    crate::AuthorityMode::Write,
+                )
+                .unwrap();
+                scopes.push(
+                    crate::AuthorityScope::identity(&f.ids[0], crate::AuthorityMode::Write)
+                        .unwrap(),
+                );
+                scopes
+            };
+            Some(
+                f.store
+                    .acquire_authority(
+                        &scopes,
+                        &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+                    )
+                    .unwrap(),
+            )
+        };
+        let c = if let Some(writer) = &writer {
+            f.store.connection_with_authority(writer).unwrap()
+        } else {
+            f.store.connection().unwrap()
+        };
         match change {
             "permission" => {
                 c.execute(
@@ -171,4 +201,108 @@ fn authority_rows_still_refuse_current_scope_and_connection_epoch_changes() {
             }
         )
         .is_err());
+}
+
+#[test]
+fn source_scope_admission_does_not_render_status_history_or_relax_claims() {
+    let f = Fixture::new();
+    let accepted = f.admit("authority-scope-display-independence");
+    let c = f.store.connection().unwrap();
+    let actor = actor_from_connection(&c, &f.keys[0]).unwrap();
+    let actions = vec![
+        OperationAction::Get {
+            operation_id: accepted.operation_id.clone(),
+        },
+        OperationAction::Cancel {
+            operation_id: "scope-cancel".into(),
+            target_operation_id: accepted.operation_id.clone(),
+            reason: None,
+        },
+        OperationAction::Reconcile {
+            operation_id: "scope-reconcile".into(),
+            target_operation_id: accepted.operation_id.clone(),
+            outcome: ReconcileOutcome::Cancelled,
+            evidence_id: "scope-evidence".into(),
+        },
+    ];
+    let claims = actions
+        .into_iter()
+        .map(|action| crate::PeerOperationClaim {
+            action,
+            conversation_id: Some(f.cid.clone()),
+            session_id: Some(f.sid.clone()),
+            connection_id: None,
+        })
+        .collect::<Vec<_>>();
+    let expected = claims
+        .iter()
+        .map(|claim| peer::operation_source_scopes(&c, &actor, claim, true).unwrap())
+        .collect::<Vec<_>>();
+    assert!(!rows::by_record(&c, &accepted.record_id)
+        .unwrap()
+        .record
+        .causal_event_ids
+        .is_empty());
+    c.execute_batch("CREATE TEMP VIEW visible_journal AS SELECT * FROM missing_status_page_source")
+        .unwrap();
+    assert!(rows::by_record(&c, &accepted.record_id).is_err());
+    for (claim, expected) in claims.iter().zip(expected) {
+        assert!(peer::operation_source_scopes(&c, &actor, claim, true).unwrap() == expected);
+        for field in ["conversation", "session", "connection"] {
+            let mut wrong = claim.clone();
+            match field {
+                "conversation" => wrong.conversation_id = Some("wrong-conversation".into()),
+                "session" => wrong.session_id = Some("wrong-session".into()),
+                _ => wrong.connection_id = Some("wrong-connection".into()),
+            }
+            assert!(peer::operation_source_scopes(&c, &actor, &wrong, true).is_err());
+        }
+        let mut stranger = actor.clone();
+        stranger.identity_id = f.ids[1].clone();
+        assert!(peer::operation_source_scopes(&c, &stranger, claim, true).is_err());
+    }
+    c.execute_batch("DROP VIEW temp.visible_journal").unwrap();
+    assert!(!rows::by_record(&c, &accepted.record_id)
+        .unwrap()
+        .record
+        .causal_event_ids
+        .is_empty());
+}
+
+#[test]
+fn decision_source_authorization_omits_history_but_preserves_current_permission() {
+    let f = Fixture::new();
+    let target = f.admit("authority-decision-target");
+    let decision = f
+        .store
+        .execute_operation_action(
+            &f.keys[0],
+            OperationAction::Cancel {
+                operation_id: "authority-decision-cancel".into(),
+                target_operation_id: target.operation_id,
+                reason: None,
+            },
+        )
+        .unwrap();
+    let c = f.store.connection().unwrap();
+    let actor = actor_from_connection(&c, &f.keys[0]).unwrap();
+    let claim = crate::PeerOperationClaim {
+        action: OperationAction::Get {
+            operation_id: decision.operation_id.clone(),
+        },
+        conversation_id: Some(f.cid.clone()),
+        session_id: Some(f.sid.clone()),
+        connection_id: None,
+    };
+    let before = peer::operation_source_scopes(&c, &actor, &claim, true).unwrap();
+    c.execute_batch("CREATE TEMP VIEW visible_journal AS SELECT * FROM missing_status_page_source")
+        .unwrap();
+    assert!(peer::operation_source_scopes(&c, &actor, &claim, true).unwrap() == before);
+    assert!(rows::by_record(&c, &decision.record_id).is_err());
+    let mut restricted = actor.clone();
+    restricted.scope.operations = vec!["operation.get".into()];
+    assert!(
+        peer::operation_source_scopes(&c, &restricted, &claim, true).is_err(),
+        "original cancel authority is still required"
+    );
 }

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-architecture-contract/1",
   "updated_at": "2026-11-11T09:57:45.996389+00:00",
-  "status": "proposed-review-contract;implementation-held",
+  "status": "owner-approved-implementation-contract",
   "requested_by_owner": "Respect native WebRTC/SIP media and signaling conventions while consolidating Connect control in UCTP and media on declared UCTP/QUIC paths.",
   "coordinator": "/root",
   "architecture_reviewer": "/root/media_blockers",

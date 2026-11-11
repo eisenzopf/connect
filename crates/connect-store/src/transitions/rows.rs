@@ -1,6 +1,8 @@
 use super::*;
 mod authority_row;
-pub(super) use authority_row::AuthoritySaved;
+pub(super) use authority_row::{
+    operation_source_scopes as authority_operation_scopes, AuthoritySaved,
+};
 pub(crate) struct Saved {
     pub record: OperationRecord,
     pub tenant: String,
@@ -37,7 +39,7 @@ fn cached_row<T>(
 ) -> rusqlite::Result<T> {
     c.prepare_cached(sql)?.query_row(params, read)
 }
-pub(super) fn find(c: &Connection, tenant: &str, owner: &str, id: &str) -> Result<Option<Saved>> {
+fn find_record(c: &Connection, tenant: &str, owner: &str, id: &str) -> Result<Option<String>> {
     let record: Option<String> = cached_row(
         c,
         "SELECT record_id FROM operations WHERE tenant_id=?1 AND owner_id=?2 AND operation_id=?3",
@@ -46,7 +48,22 @@ pub(super) fn find(c: &Connection, tenant: &str, owner: &str, id: &str) -> Resul
     )
     .optional()
     .map_err(|_| Error::storage())?;
-    record.map(|r| by_record(c, &r)).transpose()
+    Ok(record)
+}
+pub(super) fn find(c: &Connection, tenant: &str, owner: &str, id: &str) -> Result<Option<Saved>> {
+    find_record(c, tenant, owner, id)?
+        .map(|r| by_record(c, &r))
+        .transpose()
+}
+pub(super) fn find_for_authority(
+    c: &Connection,
+    tenant: &str,
+    owner: &str,
+    id: &str,
+) -> Result<Option<AuthoritySaved>> {
+    find_record(c, tenant, owner, id)?
+        .map(|r| for_authority(c, &r))
+        .transpose()
 }
 pub(super) fn by_record(c: &Connection, id: &str) -> Result<Saved> {
     load(c, id, true)

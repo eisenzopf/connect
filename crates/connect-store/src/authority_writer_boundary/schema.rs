@@ -414,6 +414,54 @@ fn phase_ledger_touch() -> String {
     )
 }
 
+fn queued_effect_confirm() -> String {
+    let immutable = same_columns(&[
+        "id",
+        "operation_record_id",
+        "provider",
+        "correlation_key",
+        "idempotency_mode",
+        "attempt",
+        "submission_generation",
+        "provider_ref",
+        "observation_json",
+        "compensates_effect_id",
+    ]);
+    let f = phase_ledger::FUNCTION;
+    format!("({immutable}) AND OLD.state='submitting' AND NEW.state='confirmed' AND NEW.provider='native-stream' AND NEW.correlation_key=NEW.operation_record_id AND NEW.idempotency_mode='none' AND NEW.attempt=1 AND NEW.submission_generation=1 AND NEW.provider_ref IS NULL AND NEW.observation_json IS NULL AND NEW.compensates_effect_id IS NULL AND EXISTS(SELECT 1 FROM native_stream_operations n JOIN operations o ON o.record_id=n.operation_record_id JOIN native_data_messages d ON d.operation_record_id=o.record_id WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_id=NEW.id AND n.closed=0 AND n.effect_started=1 AND o.command_type='message.send' AND o.state='preparing' AND o.cancel_requested=0 AND o.tombstoned=0 AND {f}('queued-effect-confirm',o.record_id,NEW.id,'data-queued',NULL,n.attempt_id,NULL))")
+}
+
+fn queued_operation_update() -> String {
+    let immutable = same_columns(&[
+        "record_id",
+        "tenant_id",
+        "owner_id",
+        "operation_id",
+        "digest",
+        "command_type",
+        "conversation_id",
+        "session_id",
+        "connection_id",
+        "expected_revision",
+        "intent_json",
+        "problem_json",
+        "tombstoned",
+        "created_at",
+        "expires_at",
+        "ledger_version",
+        "worker_cleanup",
+        "cancel_requested",
+    ]);
+    let lease_same = same_columns(&[
+        "worker_generation",
+        "lease_owner",
+        "lease_expires_at",
+        "worker_runtime",
+    ]);
+    let f = phase_ledger::FUNCTION;
+    format!("({immutable}) AND NEW.command_type='message.send' AND NEW.ledger_version=0 AND NEW.problem_json IS NULL AND NEW.cancel_requested=0 AND NEW.tombstoned=0 AND EXISTS(SELECT 1 FROM native_stream_operations n JOIN operation_effects e ON e.id=n.effect_id AND e.operation_record_id=n.operation_record_id JOIN native_data_messages d ON d.operation_record_id=n.operation_record_id WHERE n.operation_record_id=NEW.record_id AND n.effect_started=1 AND e.provider='native-stream' AND e.state='confirmed' AND e.attempt=1 AND e.submission_generation=1 AND ((n.closed=0 AND ({lease_same}) AND OLD.worker_generation=1 AND NEW.lease_owner=n.attempt_id AND NEW.worker_runtime=n.attempt_runtime AND NEW.lease_expires_at=NEW.expires_at AND ((OLD.state='preparing' AND NEW.state='committing' AND OLD.result_json IS NULL AND NEW.result_json IS NULL AND {f}('queued-root-committing',NEW.record_id,e.id,'data-queued',NULL,n.attempt_id,NEW.revision)) OR (OLD.state='committing' AND NEW.state='completed' AND OLD.result_json IS NULL AND {f}('queued-root-completed',NEW.record_id,e.id,'data-queued',NEW.result_json,n.attempt_id,NEW.revision)))) OR (n.closed=1 AND OLD.state='completed' AND NEW.state='completed' AND OLD.revision=NEW.revision AND OLD.result_json IS NEW.result_json AND OLD.updated_at=NEW.updated_at AND OLD.worker_generation=1 AND NEW.worker_generation=2 AND OLD.lease_owner=n.attempt_id AND OLD.worker_runtime=n.attempt_runtime AND OLD.lease_expires_at=OLD.expires_at AND NEW.lease_owner IS NULL AND NEW.lease_expires_at IS NULL AND NEW.worker_runtime IS NULL AND {f}('queued-root-invalidate',NEW.record_id,e.id,'data-queued',NEW.result_json,n.attempt_id,NEW.revision))))")
+}
+
 fn dormant(table: &str, action: &str, collisions: &str) -> String {
     if action == "insert" {
         let no_collision =
@@ -451,7 +499,11 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
         return format!("({no_collision}) AND ({condition})");
     }
     if action == "update" && table == "operation_effects" {
-        return phase_ledger_effect_update();
+        return format!(
+            "({}) OR ({})",
+            phase_ledger_effect_update(),
+            queued_effect_confirm()
+        );
     }
     if action == "update" && table == "native_replacement_steps" {
         return format!(
@@ -546,10 +598,11 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
             initial_slot("NEW.record_id")
         );
         return format!(
-            "({initial_offer}) OR ({}) OR ({}) OR ({})",
+            "({initial_offer}) OR ({}) OR ({}) OR ({}) OR ({})",
             native_stream_begin_update(),
             phase_ledger_touch(),
-            fresh_reservation_root()
+            fresh_reservation_root(),
+            queued_operation_update()
         );
     }
     if action == "update" && table == "native_offer_operations" {

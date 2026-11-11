@@ -1,6 +1,7 @@
 //! The owned engine job consumes its attempt only after the actual Core call
 //! returns success. Retrying this receipt records that same outcome, never IO.
 use super::*;
+mod queued;
 
 pub struct NativeStreamCommitted {
     lease: NativeStreamLease,
@@ -333,6 +334,9 @@ impl Store {
         &self,
         receipt: &NativeStreamCommitted,
     ) -> Result<OperationRecord> {
+        if let Some(record) = self.complete_queued_native_stream(receipt)? {
+            return Ok(record);
+        }
         let lease = &receipt.lease;
         let owner = self.require_runtime_owner()?;
         let authority = self.native_stream_outcome_authority(lease)?;

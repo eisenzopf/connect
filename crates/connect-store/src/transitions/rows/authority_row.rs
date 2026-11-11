@@ -1,5 +1,7 @@
 //! Fresh internal authority facts. No conversion to a public operation record.
 use super::*;
+mod operation_scopes;
+pub(in crate::transitions) use operation_scopes::operation_source_scopes;
 
 // Do not implement Clone, Deref, AsRef<Saved>, Serialize or a record accessor.
 // The inner row has no rendered causal page and must never escape as a reply.
@@ -44,6 +46,13 @@ impl AuthoritySaved {
     // kind-specific branch. Only status display rendering was omitted.
     pub(in crate::transitions) fn require_read(&self, c: &Connection, actor: &Actor) -> Result<()> {
         super::super::authority::read(c, actor, &self.0)
+    }
+    pub(in crate::transitions) fn require_cleanup(
+        &self,
+        c: &Connection,
+        actor: &Actor,
+    ) -> Result<()> {
+        super::super::cleanup::authorize(c, actor, &self.0)
     }
     pub(in crate::transitions) fn require_execution(
         &self,

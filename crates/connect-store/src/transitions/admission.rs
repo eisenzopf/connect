@@ -212,6 +212,22 @@ impl Store {
             },
         )
     }
+    // Generic effect mutations require the actual owner/Conversation Writer;
+    // typed native ledger permits continue to use their separate Read paths.
+    pub(super) fn transition_lease_mutation_authority(
+        &self,
+        credential: &str,
+        lease: &TransitionLease,
+    ) -> Result<Arc<AuthorityGuardSet>> {
+        self.stable_authority(
+            &AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
+            || {
+                let c = self.connection()?;
+                let actor = actor_from_connection(&c, credential)?;
+                mutation_row_scopes(&workers::lease_authority(&c, &actor, lease, self, true)?)
+            },
+        )
+    }
     pub(super) fn transition_lease_authority(
         &self,
         credential: &str,

@@ -14,8 +14,9 @@ impl Store {
         for v in [id_, provider, correlation].into_iter().chain(compensates) {
             id(v)?;
         }
-        let authority = self.transition_lease_authority(credential, lease)?;
+        let authority = self.transition_lease_mutation_authority(credential, lease)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -91,8 +92,9 @@ impl Store {
         lease: &TransitionLease,
         effect: &str,
     ) -> Result<OperationEffect> {
-        let authority = self.transition_lease_authority(credential, lease)?;
+        let authority = self.transition_lease_mutation_authority(credential, lease)?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -154,13 +156,14 @@ impl Store {
         if matches!(state, EffectState::Prepared | EffectState::Submitting) {
             return Err(invalid());
         }
-        let authority = self.transition_operation_authority(
+        let authority = self.transition_operation_mutation_authority(
             credential,
             operation,
             &["operation.observe"],
             None,
         )?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
@@ -258,13 +261,14 @@ impl Store {
         if outcome != ReconcileOutcome::Completed && completion.is_some() {
             return Err(invalid());
         }
-        let authority = self.transition_operation_authority(
+        let authority = self.transition_operation_mutation_authority(
             credential,
             operation,
             &["operation.observe"],
             None,
         )?;
         let mut c = self.connection()?;
+        c.bind_available_mutation_authority(self, &authority)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;

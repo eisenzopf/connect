@@ -83,7 +83,28 @@ fn parent_permissions_origin_filtered(
     String,
     std::sync::Arc<crate::NativeMediaOrigin>,
 ) {
-    let mut f = if data {
+    parent_permissions_origin_filtered_media(
+        granted, completed, end, data, send, extra, excluded, false,
+    )
+}
+fn parent_permissions_origin_filtered_media(
+    granted: bool,
+    completed: bool,
+    end: bool,
+    data: bool,
+    send: bool,
+    extra: &[&str],
+    excluded: &[&str],
+    audio_data: bool,
+) -> (
+    Fixture,
+    PeerAuthorityRequest,
+    String,
+    std::sync::Arc<crate::NativeMediaOrigin>,
+) {
+    let mut f = if audio_data {
+        Fixture::with_endpoint_capabilities(vec!["audio".into(), "data".into()])
+    } else if data {
         Fixture::with_endpoint_capabilities(vec!["data".into()])
     } else {
         Fixture::new()
@@ -123,21 +144,34 @@ fn parent_permissions_origin_filtered(
         let writer = f.controlled_conversation_writer(0);
         let c = f.store.connection_with_authority(&writer).unwrap();
         c.execute(
-            r#"UPDATE sessions SET media='["data"]' WHERE id='session'"#,
-            [],
+            "UPDATE sessions SET media=?1 WHERE id='session'",
+            [if audio_data {
+                json!(["audio", "data"])
+            } else {
+                json!(["data"])
+            }
+            .to_string()],
         )
         .unwrap();
         c.execute(
             "UPDATE session_control SET capabilities_json=?1 WHERE session_id='session'",
-            [json!({"data":["reliable-ordered"]}).to_string()],
+            [if audio_data {
+                json!({"audio":["opus"],"data":["reliable-ordered"]})
+            } else {
+                json!({"data":["reliable-ordered"]})
+            }
+            .to_string()],
         )
         .unwrap();
-        c.execute("UPDATE session_presence_capabilities SET capabilities_json=?1 WHERE session_id='session'",[json!({"data":["reliable-ordered"]}).to_string()]).unwrap();
+        c.execute("UPDATE session_presence_capabilities SET capabilities_json=?1 WHERE session_id='session'",[if audio_data { json!({"audio":["opus"],"data":["reliable-ordered"]}) } else { json!({"data":["reliable-ordered"]}) }.to_string()]).unwrap();
 
         let PeerCommand::NativeConnectionOffer(offer) = &mut request.command else {
             panic!()
         };
         offer.offer = json!({"substrate":"quic","capabilities":{"data_protocols":["json","binary"],"max_streams_per_connection":8,"identity_assurance_offered":"identified"},"streams_offered":[{"id":"application","kind":"data","direction":"sendonly","codec_preferences":["json","binary"]}]});
+        if audio_data {
+            offer.offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"audio","kind":"audio","direction":"sendrecv","codec_preferences":["opus"]}));
+        }
     }
 
     let proof = f.admit(&request);
@@ -171,7 +205,7 @@ fn parent_permissions_origin_filtered(
             [lease.effect_id()],
         )
         .unwrap();
-        tx.execute("UPDATE connections SET state='ready',revision=1,observed_runtime_id=?2,observed_at=?3,readiness_json=?4 WHERE id=?1",params![lease.connection_id(),f.store.runtime_epoch(),crate::now(),json!({"streams":[if data {"application"} else {"audio"}],"stream_revision":1,"participant_revision":1}).to_string()]).unwrap();
+        tx.execute("UPDATE connections SET state='ready',revision=1,observed_runtime_id=?2,observed_at=?3,readiness_json=?4 WHERE id=?1",params![lease.connection_id(),f.store.runtime_epoch(),crate::now(),json!({"streams":if audio_data {vec!["audio","application"]} else if data {vec!["application"]} else {vec!["audio"]},"stream_revision":1,"participant_revision":1}).to_string()]).unwrap();
         tx.execute(
             "UPDATE operations SET state='completed',revision=revision+1 WHERE record_id=?1",
             [lease.record_id()],
@@ -1365,6 +1399,7 @@ mod data_reads;
 mod data_writes;
 mod gates;
 mod quality;
+mod queued_capture;
 mod reconciliation;
 mod selector_sources;
 

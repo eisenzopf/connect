@@ -1,6 +1,7 @@
 //! Exact same-Unit positive native phase metadata; never an IO authorization.
 use super::*;
 use rusqlite::OptionalExtension;
+pub(crate) mod queued;
 pub(crate) mod reservation;
 
 pub(crate) const FUNCTION: &str = "connect_store_native_phase_ledger_v1";
@@ -103,6 +104,11 @@ impl State {
                 return false;
             };
             let key = &active.key;
+            if key.phase == "data-queued" {
+                return queued::matches(
+                    active, action, record, effect, phase, expected, attempt, revision,
+                );
+            }
             if key.phase == "reserve" {
                 return key.record == record
                     && phase == Some("reserve")
