@@ -1,0 +1,17 @@
+{
+  "format": "connect/g6-058-rtc-statistics-ordering-checkpoint/1",
+  "recorded_at": "2026-11-11T13:20:42.406807+00:00",
+  "scope": "21 Node diagnostic lifecycle unit controls only; no browser matrix qualification",
+  "source_sha256": "ca1bc875e052e3fb8a4c795595d08136387a1a3e5f64a0a2e9b1ab75e9ff1819",
+  "counts": {
+    "tests": 21,
+    "pass": 21,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "source_unchanged": true,
+  "original_group_joined": true,
+  "log_sha256": "7d5639f52e9cd1d7e7494948d5a9dfde5df8c4ab6b6af3fe32e709f70a1eeb8c"
+}

@@ -175,3 +175,22 @@ test('a video refusal refreshes bounded original VP8 reason snapshots without re
  assert.equal(stages.report().owners[0].snapshots.length, 63);
  assert.equal(stages.report().overflow, true);
 });
+
+
+test('terminal statistics join stops new reads before a peer closes and close reuses the exact receipt',async()=>{
+ const oldSet=globalThis.setInterval,oldClear=globalThis.clearInterval;
+ let tick,resolve,reads=0,peerClosed=false;
+ globalThis.setInterval=fn=>{tick=fn;return 1;};globalThis.clearInterval=()=>{};
+ const sampler=browserMatrixRtcStages(()=>{
+  assert.equal(peerClosed,false,'Do not begin a diagnostic getStats after original peer retirement');
+  reads++;return new Promise(done=>{resolve=done;});
+ });
+ try{
+  sampler.start(performance.now());await Promise.resolve();assert.equal(reads,1);
+  const terminal=sampler.close();tick();await Promise.resolve();assert.equal(reads,1);
+  let joined=false;void terminal.then(()=>{joined=true;});await Promise.resolve();assert.equal(joined,false);
+  resolve([]);assert.deepEqual(await terminal,{joined:true,outstanding_original_snapshot:false});
+  peerClosed=true;tick();await Promise.resolve();assert.equal(reads,1);
+  assert.equal(sampler.close(),terminal,'Physical close must reuse the exact original join receipt');
+ }finally{resolve?.([]);await sampler.close();globalThis.setInterval=oldSet;globalThis.clearInterval=oldClear;}
+});

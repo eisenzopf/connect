@@ -624,6 +624,10 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
             rtc_audio_boundary_diagnostics:rtc?.report()??null,
             pipeline:pipeline?.report(routes.map((route,index)=>({index,source:route.selected.index,
                 audio:route.measure.envelope.edges,audioEnvelope:route.measure.envelope.report(1),video:route.measure.videoEdges}))),passed:measured.every(route=>route.passed),routes:measured});},
+        // Stop and join the original diagnostic read while its peer is still
+        // live. The same bounded receipt is reused by close; pending work never
+        // becomes a synthetic join after peer retirement.
+        stopStatistics(){return rtcStages?.close();},
         close(){return closing??=(async()=>{closed=true;pipeline?.close();Renderer.prototype.audio=originalAudio;Renderer.prototype.video=originalVideo;
             // Stop scheduling diagnostics at original close, before joining
             // render owners. A pending original getStats is never a fake join.

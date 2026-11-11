@@ -308,7 +308,13 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
     // Aggregate the original failure only after the fixed programme finishes.
     // Each actual SDK operation still performs its own current authorization.
     try{keepalive.check();}catch(error){retainKeepaliveFailure(report,error);}
-    if(observer)report.decoded_media=observer.report();
+    if(observer){
+        report.decoded_media=observer.report();
+        // No diagnostic reads may begin while original SDK peers are retiring.
+        // This is the same original 500ms statistics join, within cleanup's
+        // unchanged 5s interval measured from original.deadlineMs.
+        await observer.stopStatistics?.();
+    }
     await journal({kind:'programme-terminal',elapsedMs:report.finished_ms,moves:report.moves.length});
     return report;
 }

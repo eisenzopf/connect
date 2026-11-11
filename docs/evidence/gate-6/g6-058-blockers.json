@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T10:39:51.116113+00:00",
-  "run_status": "Implementation active. Storecomponent82checkscompleted:81passed1failed;all8newData-grantcontrolsPASS.Source/binaryunchanged. Remainingstrictendpointintentadmissiontest exposesexclusiveWriteragainstliveoldmediaReaders;gain-onlybirthcandidateunderreview. Combined03Cargo failedServiceimport andwasstopped;no umbrella successclaimed.No fullmatrix launched:v215 remains0/32cells,287passed101failed44blocked checks.",
+  "updated": "2026-11-11T12:58:54.018668+00:00",
+  "run_status": "Source13 focused batch completed115/116 checks; original process groups joined and source/binaries unchanged. Same-command two-fault Data, both shorter native controls and all3 RTC SQL cases pass. Actual62s workload completed4moves/8Data directions but failed4real video FPS bins and cleanup response correlation. Full matrix unchanged:v2150/32cells,287passed101failed44blocked. Admission checkpoint f29ffaea pushed.",
   "blockers": [
     {
       "id": "B01",
@@ -1553,33 +1553,33 @@
     {
       "id": "B190",
       "title": "Prepared subscription temporary authority refusal",
-      "status": "Held for review. Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed.",
+      "status": "Component verified: same original Data command survives real authority exclusion then scene SQL exclusion; one activation/64KiB delivery. Four scene negatives and both shorter controls pass. Matrix pending.",
       "change": "Preserve the exact prepared resource and distinguish temporary authority-busy from permanent failure before bounded reauthorization.",
-      "evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect."
     },
     {
       "id": "B191",
       "title": "Data completion may invalidate live audio custody",
-      "status": "8/8newactualgrant/PCM/rotation/nonce/SQLcontrolsPASS;independentsourcereviewpassed;combinedmedia/matrixpending.",
+      "status": "Positive Data ledger and immutable intent preserve actual PCM custody in old/fixed controls; all91 Store checks pass. Full workload video deficits remain separately open.",
       "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt03.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced."
     },
     {
       "id": "B192",
       "title": "Retained-owner control requests exhaust shared cleanup cutoff",
-      "status": "Held for review. Latency measured; complete root cause not established. Root started an untested authority-only source-walk draft to eliminate public causal-page rendering. No proven deadline fix yet.",
+      "status": "Authority-only source-walk controls pass; full programme completes4moves/media joins. End correlation fails, so original67s retirement proof remains open.",
       "change": "Remove serialized helper/server latency within the original shared 62\u201367second deadline.",
-      "evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains."
     },
     {
       "id": "B193",
       "title": "Original RTC statistics request survives into peer shutdown",
-      "status": "Held for plan review; not matrix-verified. Chrome fix committed and focused runtime verified. Statistics ordering patch applied with pure-test evidence; browser runtime not yet verified.",
+      "status": "Chrome trust/runtime profile verified; original RTC statistics ordering has pure-test evidence. Live browser workload remains pending.",
       "change": "Use the exact contract browser pin for isolated CA profiles. Stop and join the original diagnostic statistics request at the programme terminal before closing the peer; preserve the 500ms join bound and truthful ownership receipts.",
-      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "No startup or late diagnostic-owner cascade; all original browser cycles actually execute."
     },
     {
@@ -1593,33 +1593,33 @@
     {
       "id": "B195",
       "title": "Decoded media deficits beyond handoff success",
-      "status": "Held for plan review; not matrix-verified. Measured failures and candidate causes documented; additional fixes are required. No media-quality pass claimed for the current drafts.",
+      "status": "Real downstream loss: clean receivers2/3 decode12/19 and19/16FPS in seconds18/43 (minimum24) while local senders submit30FPS. Both routes are Session0. Exact packet/grant/Core cause under investigation; quality bar retained.",
       "change": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
-      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun."
     },
     {
       "id": "B196",
       "title": "Incomplete workload coverage in composite resource checks",
-      "status": "Held for plan review; not matrix-verified. Classification corrected; existing successful capacity checks do not close the composite requirement.",
+      "status": "One actual62s native cycle completed4moves/8Data directions; End correlation fails. Three-cycle OS budgets, exact owner closure and10-renderer browser coverage remain unqualified.",
       "change": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
-      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff."
     },
     {
       "id": "B197",
       "title": "Recorded original-owner failures paired with uncertain target deadlines",
-      "status": "OriginalRTCfailure boundaries identified:one-shotpreStartSQLreads and capturedStartedreceipt SQLsettlement. Receiptfiximplementedunverified;preStartcandidateunderreview.",
+      "status": "All3 real signed RTC SQL regressions pass: captured Start, initial StartRead and typed not-begun. Original receipts, one Start and old media retained. Matrix pending.",
       "change": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
-      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains."
     },
     {
       "id": "B198",
       "title": "Focused fixture omits matrix Data and full retirement sequence",
-      "status": "Held for plan review; not matrix-verified. Plan only. No new build, focused workload or matrix launch after the owner requested review.",
+      "status": "Full native programme actually ran62s with4moves/8Data directions.115/116focusedchecks pass; failing workload includes real quality deficits and cleanup correlation. No new matrix run.",
       "change": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
-      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open."
     }
   ],
@@ -3233,7 +3233,7 @@
       "owner": "/root/v198_resources",
       "dependencies": [],
       "solution": "Use a narrow transaction-bound ledger capability for exact positive Data completion under complete current Readers; verify lifecycle reconciliation is a no-op, otherwise use the original Writer path. Keep uncertainty, cancellation and genuine authorization changes on the Writer path. Audit remaining ledger/status/metrics writes for the same unnecessary invalidation.",
-      "status": "Assigned; see live agent-work-tracker for per-subtask activity and evidence.",
+      "status": "Data/intent component controls pass; actual Commit authority reach and unchanged-flow loss under diagnosis.",
       "completion": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3252,7 +3252,7 @@
       "owner": "/root/media_blockers",
       "dependencies": [],
       "solution": "Distinguish internal AuthorityBusy from permanent refusal. For a still-owned prepared resource, join and retry only its current authorization acquisition under the original deadline/cancellation, then activate once. Trace initial offer and replacement preparation separately; extend only where the same ownership proof holds. Preserve original logical operation IDs and uncertainty recovery. Initial offers already have a bounded activation-admission loop: locate the actual refusing phase rather than adding indiscriminate retries.",
-      "status": "Assigned; see live agent-work-tracker for per-subtask activity and evidence.",
+      "status": "Component verified: same original two-fault Data,4negative controls and both shorter workloads pass.",
       "completion": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3271,7 +3271,7 @@
       "owner": "/root, /root/media_blockers",
       "dependencies": [],
       "solution": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
-      "status": "Assigned; see live agent-work-tracker for per-subtask activity and evidence.",
+      "status": "Four full native moves and3signed RTC SQL cases pass; final original retirement proof remains open.",
       "completion": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3290,7 +3290,7 @@
       "owner": "/root/fixture_blockers",
       "dependencies": [],
       "solution": "Use the exact contract browser pin for isolated CA profiles. Stop and join the original diagnostic statistics request at the programme terminal before closing the peer; preserve the 500ms join bound and truthful ownership receipts.",
-      "status": "Assigned; see live agent-work-tracker for per-subtask activity and evidence.",
+      "status": "Chrome trust verified; statistics pure controls pass; live browser follow-through pending.",
       "completion": "No startup or late diagnostic-owner cascade; all original browser cycles actually execute.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3314,7 +3314,7 @@
         "S110"
       ],
       "solution": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
-      "status": "Assigned; see live agent-work-tracker for per-subtask activity and evidence.",
+      "status": "Open:4real clean-video FPS failures; encode/local publication cadence remains30FPS.",
       "completion": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3339,7 +3339,7 @@
         "S111"
       ],
       "solution": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
-      "status": "Assigned; see live agent-work-tracker for per-subtask activity and evidence.",
+      "status": "Single native functional cycle exercised; End correlation/67s proof and3cycle OS/browser coverage remain open.",
       "completion": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3365,7 +3365,7 @@
         "S112"
       ],
       "solution": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
-      "status": "Assigned; see live agent-work-tracker for per-subtask activity and evidence.",
+      "status": "Source13:115/116focusedchecks pass. Full32/432 not rerun; quality/cleanup fixes required.",
       "completion": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -5763,10 +5763,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v215.json"
   },
   "current_focused_verification": {
-    "passed": 121,
-    "planned": 121,
-    "scope": "Store93, protocol13, signed10, cadence2 and Linux ARM readiness3.",
-    "next": "Historical pre-v215 evidence; new drafts are held for owner review and not verified."
+    "passed": 115,
+    "planned": 116,
+    "scope": "Source13:91Store,10Service,5UCTP,1signedData,3RTCsigned,2shortnative,3programmecontrols passed; full62s native workload failed.",
+    "next": "Four real clean-video FPS failures and End correlation remain; correct both before the next complete matrix."
   },
   "current_workplan_tasks": [
     "S107",

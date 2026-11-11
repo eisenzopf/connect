@@ -5,7 +5,7 @@ import {browserMatrixObservation} from '../lib/browser_matrix_observation.mjs';
 import {nativeIdentity,bindNativeStreams,nativeBoundary} from '../../sdk/tests/native_activation_fixture.mjs';
 const deferred=()=>{let resolve;const promise=new Promise(value=>resolve=value);return {promise,resolve};};
 const flush=async()=>{for(let i=0;i<80;i++)await Promise.resolve();};
-async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=false,snapshotRefusal=false,earlyTerminalWake=false,cleanupTracking=false,delayedActivation=false,receiptRefusal=null,activationRefusal=false}={}){
+async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=false,snapshotRefusal=false,earlyTerminalWake=false,cleanupTracking=false,delayedActivation=false,receiptRefusal=null,activationRefusal=false,statisticsAtTerminal=false}={}){
  const originalClock=globalThis.performance,originalTimer=globalThis.setTimeout,originalDocument=globalThis.document;
  let now=0;const timers=[],timeOrigin=1_800_000_000_000;globalThis.performance={now:()=>now,timeOrigin};globalThis.setTimeout=(resolve,ms)=>{timers.push({at:now+ms,resolve});};
  globalThis.document={createElement:()=>({getContext:()=>({})})};
@@ -67,6 +67,11 @@ async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=f
  for(const route of plan.routes)sources.sources[route.index].attachments.push({connectionId:route.connection,capture:{closed:false}});
  class Renderer{audio(){return true;}video(){return true;}}
  const observer=browserMatrixObservation(Renderer,plan),report={};
+ const terminalStatistics=deferred();let statisticsStops=0;
+ if(statisticsAtTerminal)observer.stopStatistics=()=>{
+  statisticsStops++;assert.equal(now,62000,'Statistics must stop on the original programme terminal before any peer retirement');
+  return terminalStatistics.promise;
+ };
  if (activationRefusal) {
   const activate = observer.activate;
   observer.activate = (index, id, options) => {
@@ -127,7 +132,13 @@ async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=f
     assert.equal(journals.some(value=>value.kind==='programme-terminal'),false,'No terminal journal before the actual original deadline');
    }
   }
-  await advance(62000);await work;
+  await advance(62000);
+  if(statisticsAtTerminal){
+   assert.equal(statisticsStops,1);assert.equal(report.finished_ms,62000);
+   assert.equal(journals.some(value=>value.kind==='programme-terminal'),false,'Retirement cannot start behind an outstanding original statistics read');
+   terminalStatistics.resolve({joined:true});await flush();
+  }
+  await work;
   if(invalidReceipt||oldRefusal||snapshotRefusal||receiptRefusal||activationRefusal)assert.ok(report.failures.some(value=>value.operation_id==='move-0-0'),'Verification failure remains a failed original move');
   else assert.equal(report.moves.length,4);
   if(cleanupTracking){
@@ -150,7 +161,7 @@ async function fixture({invalidReceipt=false,oldRefusal=false,keepaliveFailure=f
    assert.equal(report.failures[0].kind,snapshotError.kind,'Preserve a refusal before mutation submission');
   }
   return {report, journals};
- }finally{activationReady.resolve();commit.resolve();oldRead.resolve();await flush();await advance(40000);await advance(62000);await work.catch(()=>{});await observer.close();globalThis.performance=originalClock;globalThis.setTimeout=originalTimer;globalThis.document=originalDocument;}
+ }finally{terminalStatistics.resolve({joined:true});activationReady.resolve();commit.resolve();oldRead.resolve();await flush();await advance(40000);await advance(62000);await work.catch(()=>{});await observer.close();globalThis.performance=originalClock;globalThis.setTimeout=originalTimer;globalThis.document=originalDocument;}
 }
 test('movement joins asynchronous public renderer activation within the original cutoff before old-owner verification',()=>fixture({delayedActivation:true}));
 test('validated target output is observed before a slow old-owner verification read',()=>fixture({cleanupTracking:true}));
@@ -187,3 +198,5 @@ test('post-receipt observer403 retains both fulfilled owners and the exact faili
  assert.deepEqual(failure.problem, {code:403,reason:'forbidden'});
  assert.equal(report.moves.some(row => row.operation_id === 'move-0-0'), false);
 });
+
+test('fixed programme joins the original diagnostic snapshot before handing ownership to retirement',()=>fixture({statisticsAtTerminal:true,keepaliveFailure:true}));

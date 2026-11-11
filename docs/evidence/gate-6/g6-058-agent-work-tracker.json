@@ -10,7 +10,7 @@
     "tab_id": "t.0",
     "sync_status": "verified",
     "content_revision": 10,
-    "verified_at": "2026-11-11T12:54:07.366001+00:00",
+    "verified_at": "2026-11-11T13:04:54.522429+00:00",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -96,7 +96,7 @@
       ],
       "depends_on": [],
       "status": "component-verified",
-      "implementation_state": "90/90Storepass;combined-workload-and-matrix-pending",
+      "implementation_state": "91/91Store andsignedData pass; fullquality/matrixopen",
       "proposed_fix": "Complete narrow same-transaction positive Data ledger capture; preserve current grant and PCM custody without an authority Writer when authority is unchanged.",
       "required_evidence": "Old path reproduces epoch invalidation; fixed path preserves actual PCM grant/custody; revoke, expiry, uncertainty, lifecycle fallback, credential rotation and SQL boundary negatives still pass.",
       "coordinator_review": {
@@ -157,8 +157,8 @@
       "depends_on": [
         "P1.1"
       ],
-      "status": "component-verified",
-      "implementation_state": "90/90Storepass;combined-workload-and-matrix-pending",
+      "status": "diagnosing",
+      "implementation_state": "intentverified; narrowfirst-positiveCommitcaptureReaderpermitdrafting;physicalCommit/publicactivationWriterretained",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
@@ -622,8 +622,8 @@
         "P3.2",
         "P4.2"
       ],
-      "status": "assigned",
-      "implementation_state": "classification-complete-runtime-open",
+      "status": "in-progress",
+      "implementation_state": "nativefunctionalcycleexecuted; Endcorrelation andfull3cycleOS/browserownershippending",
       "proposed_fix": "Separate missing-handoff coverage from resource leaks; retain required10browserrenderer owners and all actual natural joins.",
       "required_evidence": "All3completecycles, exact original/replacement receipts, zero Session-owned physical owners/tasks/pools, helper/client joins and unchanged end/cleanup deadlines.",
       "coordinator_review": {
@@ -664,7 +664,7 @@
         "P6.1"
       ],
       "status": "assigned",
-      "implementation_state": "capacity-evidence-partial",
+      "implementation_state": "DBaudit4MB;32GiBoldobjectcleanupuserdecisionpending;fullmatrixcapacityshort",
       "proposed_fix": "Retain approved per-role/aggregate RSS and original numeric process/FD/thread capacities; trends diagnostic and separate soak unaffected.",
       "required_evidence": "1GiB server/4GiB browser/1GiB helper/6GiB aggregate; exact original resource-pool restoration and source-bound server thread exception; no incomplete cycle counted as pass.",
       "coordinator_review": {
