@@ -1,5 +1,6 @@
 //! Isolated Store policy qualification, including actual length-prefixed TCP.
 //! TCP fixtures exercise peer lifetime, not TLS/ALPN or listener installation.
+#![recursion_limit = "256"]
 #![allow(clippy::unwrap_used)]
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use connect_protocol::{provisioning::*, Limits};

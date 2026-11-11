@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-11T12:25:02.786942+00:00",
-  "revision": 9,
+  "updated_at": "2026-11-11T12:53:36.260177+00:00",
+  "revision": 10,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 9,
-    "verified_at": "2026-11-11T12:25:38.701739+00:00",
+    "content_revision": 10,
+    "verified_at": "2026-11-11T12:54:07.366001+00:00",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -210,8 +210,8 @@
         "B190"
       ],
       "depends_on": [],
-      "status": "in-progress",
-      "implementation_state": "5/5preparedreauthcontrols pass; postauth scene-read Busygap confirmed; correctioninprogress",
+      "status": "component-verified",
+      "implementation_state": "sameoriginaltwo-real-faultsignedData+4negativeunits+bothshortmedia controlsPASS;matrixpending",
       "proposed_fix": "Distinguish temporary Busy from permanent refusal and retry only authorization of the same prepared owner within its original deadline.",
       "required_evidence": "Actual signed Data subscription under held writer: one prepare/activation/effect; positive release, negative revoke/expiry/permanent refusal/cancel; old media remains usable.",
       "coordinator_review": {
@@ -239,11 +239,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
           "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+          "result": "115/116passed;full62squality+cleanupremainfailed",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:25:02.786942+00:00",
+      "updated_at": "2026-11-11T12:53:36.260177+00:00",
       "mapped_check_count": 45,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -335,11 +340,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
           "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+          "result": "115/116passed;full62squality+cleanupremainfailed",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:25:02.786942+00:00",
+      "updated_at": "2026-11-11T12:53:36.260177+00:00",
       "mapped_check_count": 66,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -401,11 +411,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
           "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+          "result": "115/116passed;full62squality+cleanupremainfailed",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:25:02.786942+00:00",
+      "updated_at": "2026-11-11T12:53:36.260177+00:00",
       "mapped_check_count": 16,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -526,10 +541,16 @@
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+          "result": "115/116passed;full62squality+cleanupremainfailed",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-11T12:53:36.260177+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -553,8 +574,8 @@
       "depends_on": [
         "P3.1"
       ],
-      "status": "assigned",
-      "implementation_state": "measured-failures-open",
+      "status": "diagnosing",
+      "implementation_state": "actualfull62s clean2/3 loseFPSat18/43;senderlocalcadence30fps; downstreamloss+decoder gating; exactcausepending",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -567,10 +588,16 @@
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+          "result": "115/116passed;full62squality+cleanupremainfailed",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-11T12:53:36.260177+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -609,10 +636,16 @@
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+          "result": "115/116passed;full62squality+cleanupremainfailed",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-11T12:53:36.260177+00:00",
       "mapped_check_count": 41,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": []
@@ -667,7 +700,7 @@
         "P2.1"
       ],
       "status": "in-progress",
-      "implementation_state": "fullprogramme attempted; exact3fixtureassert wrong(actual4); strict actualpublicrevision fixpendingruntime",
+      "implementation_state": "actual62s4moves8Data complete;publictotals>1440;quality andcleanupcorrelationfail",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -695,11 +728,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
           "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+          "result": "115/116passed;full62squality+cleanupremainfailed",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:25:02.786942+00:00",
+      "updated_at": "2026-11-11T12:53:36.260177+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -3072,13 +3110,12 @@
     "status": "proposed contract recorded; code conformance remains unverified"
   },
   "focused_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
-    "passed": 108,
-    "failed": 4,
-    "all_original_groups_joined": true,
-    "rtc_signed_real_sql": "3/3passed",
-    "full62s_programme": "failed invented exact revision before complete programme; no pass",
-    "matrix_effect": "not-tested"
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+    "passed": 115,
+    "failed": 1,
+    "all_original_process_groups_joined": true,
+    "matrix_effect": "not-tested",
+    "full62s": "All4moves/8Data directions completed;4 genuine quality-bin failures and cleanup correlation remain"
   },
   "focused_signed_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v216-components10.json",

@@ -130,6 +130,26 @@ fn offered(id: &str, direction: Direction, audio_codec: &str) -> NonEmpty<sdk::O
         }],
     }
 }
+fn offered_for_mode(
+    mode: u8,
+    id: &str,
+    direction: Direction,
+    audio_codec: &str,
+) -> NonEmpty<sdk::OfferedStream> {
+    let mut streams = offered(id, direction, audio_codec);
+    if mode == 36 {
+        streams.rest.push(sdk::OfferedStream {
+            id: format!("{id}-data").parse().unwrap(),
+            kind: Medium::Data,
+            direction: Direction::Sendrecv,
+            codecs: single("binary".into()),
+        });
+    }
+    streams
+}
+#[cfg(feature = "test-support")]
+#[path = "replacement_video_recovery/post_commit_data.rs"]
+mod post_commit_data;
 async fn publish(stream: &sdk::Stream, frame: &[u8], index: u32, sequence: &mut u16) {
     publish_timestamp(stream, frame, index * 3000, sequence).await;
 }
@@ -715,10 +735,25 @@ async fn exercise(mode: u8) {
         .with_env_filter(std::env::var("RUST_LOG").unwrap_or_else(|_| "connect_client::canonical::native_video=debug,connect_service::canonical_flow_ready=debug,connect_service::canonical_replacement=debug".into()))
         .with_test_writer()
         .try_init();
-    let f = Fixture::with_native_end_scope("EdDSA", 12).await;
+    let mut f = Fixture::with_native_end_scope("EdDSA", 12).await;
+    if mode == 36 {
+        // Match the explicit isolated64KiB fixture in media_ipc/data.rs.
+        // Provision before any public client/endpoint or original operation;
+        // the production default and all programme/control clocks are unchanged.
+        f.server.shutdown().await.unwrap();
+        f.config.limits.message_bytes = 64 * 1024;
+        f.server = RunningCanonicalServer::start(f.config.clone())
+            .await
+            .unwrap();
+        f.client.endpoint = f.server.address;
+    }
     super::super::canonical_native_connections::ready_endpoint_with_capabilities(
         &f,
-        vec!["audio".into(), "video".into()],
+        if mode == 36 {
+            vec!["audio".into(), "video".into(), "data".into()]
+        } else {
+            vec!["audio".into(), "video".into()]
+        },
     )
     .await;
     let mut scope = Scope::collaboration(vec!["*".into()]);
@@ -732,14 +767,22 @@ async fn exercise(mode: u8) {
         &f,
         &f.peer.identity_id,
         295,
-        vec!["audio".into(), "video".into()],
+        if mode == 36 {
+            vec!["audio".into(), "video".into(), "data".into()]
+        } else {
+            vec!["audio".into(), "video".into()]
+        },
         scope.clone(),
     );
     let replacement_config = super::super::canonical_native_connections::party_with_scope(
         &f,
         &f.client.identity_id,
         296,
-        vec!["audio".into(), "video".into()],
+        if mode == 36 {
+            vec!["audio".into(), "video".into(), "data".into()]
+        } else {
+            vec!["audio".into(), "video".into()]
+        },
         scope.clone(),
     );
     let endpoint: String = rusqlite::Connection::open(&f.config.database)
@@ -832,7 +875,8 @@ async fn exercise(mode: u8) {
     if mode >= 9 {
         caps["audio"] = json!(["opus"]);
     }
-    if mode == 10 {
+    if matches!(mode, 10 | 36) {
+        // Session Data capabilities describe delivery; binary is the Stream codec.
         caps["data"] = json!(["reliable-ordered"]);
     }
     if mode == 2 {
@@ -842,7 +886,7 @@ async fn exercise(mode: u8) {
         .invite(
             "native-session".parse().unwrap(),
             recipients,
-            if mode == 10 {
+            if matches!(mode, 10 | 36) {
                 sdk::SessionMedium::TextChat
             } else {
                 sdk::SessionMedium::VoiceVideo
@@ -887,7 +931,7 @@ async fn exercise(mode: u8) {
     } else {
         None
     };
-    if mode == 10 {
+    if matches!(mode, 10 | 36) {
         let before = session.refresh(options()).await.unwrap();
         assert_eq!(before.media, vec![Medium::Data]);
         session
@@ -917,7 +961,8 @@ async fn exercise(mode: u8) {
     let source = session
         .offer_connection(
             "feedback-source".parse().unwrap(),
-            offered(
+            offered_for_mode(
+                mode,
                 "feedback-camera",
                 Direction::Sendrecv,
                 if mode >= 9 { "opus" } else { "g.711-mu" },
@@ -933,7 +978,8 @@ async fn exercise(mode: u8) {
     let target = target_session
         .offer_connection(
             "feedback-target".parse().unwrap(),
-            offered(
+            offered_for_mode(
+                mode,
                 "feedback-monitor",
                 Direction::Sendrecv,
                 if mode >= 9 { "opus" } else { "g.711-mu" },
@@ -1107,7 +1153,24 @@ async fn exercise(mode: u8) {
         f.temp.path(),
         matches!(
             mode,
-            18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35
+            18 | 19
+                | 20
+                | 21
+                | 22
+                | 23
+                | 24
+                | 25
+                | 26
+                | 27
+                | 28
+                | 29
+                | 30
+                | 31
+                | 32
+                | 33
+                | 34
+                | 35
+                | 36
         ),
     )
     .await;
@@ -1297,6 +1360,10 @@ async fn exercise(mode: u8) {
         offer["capabilities"]["audio_codecs"] =
             json!([{"name":"opus","params":{"sample_rate":48000,"channels":1}}]);
         offer["streams_offered"][0]["codec_preferences"] = json!(["opus"]);
+    }
+    if mode == 36 {
+        offer["capabilities"]["data_protocols"] = json!(["binary"]);
+        offer["streams_offered"].as_array_mut().unwrap().push(json!({"id":"replacement-data","kind":"data","direction":"sendrecv","codec_preferences":["binary"]}));
     }
     if mode == 2 {
         offer["capabilities"]["audio_codecs"]
@@ -1913,6 +1980,47 @@ async fn exercise(mode: u8) {
     assert_eq!(done["state"], "completed");
     assert_eq!(done["result"]["generation"], 2);
     #[cfg(feature = "test-support")]
+    if mode == 36 {
+        let observed = futures_util::FutureExt::catch_unwind(std::panic::AssertUnwindSafe(
+            post_commit_data::audit(
+                &f,
+                &done,
+                &scope,
+                &offer["capabilities"],
+                &mut replacement,
+                &target,
+                original_cutoff,
+            ),
+        ))
+        .await;
+        let encoder_closed =
+            futures_util::FutureExt::catch_unwind(std::panic::AssertUnwindSafe(encoder.close()))
+                .await;
+        let target_closed = replacement.shutdown().await;
+        drop(io);
+        let publisher_closed = publisher.close(options()).await;
+        let subscriber_closed = subscriber.close(options()).await;
+        let server_closed = f.server.shutdown().await;
+        // Every original owner is joined before propagating the first work
+        // failure, including an unexpected assertion during audit preflight.
+        let result = match observed {
+            Ok(result) => result,
+            Err(original) => std::panic::resume_unwind(original),
+        };
+        assert!(
+            result.is_ok(),
+            "same prepared postcommit Data admission failed: {result:?}"
+        );
+        if let Err(original) = encoder_closed {
+            std::panic::resume_unwind(original);
+        }
+        target_closed.unwrap();
+        publisher_closed.unwrap();
+        subscriber_closed.unwrap();
+        server_closed.unwrap();
+        return;
+    }
+    #[cfg(feature = "test-support")]
     if let Some(before) = original_video_phase_rows {
         assert_eq!(
             readiness::original_video_phase_rows(&f, &original_preparation.record_id),
@@ -2285,4 +2393,16 @@ async fn signed_allocation_final_reply_preserves_actual_old_route_and_original_q
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_allocation_final_reply_source_revocation_drains_io_and_refuses_same_original() {
     exercise(35).await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn signed_postcommit_data_subscription_recovers_same_prepared_candidate_after_real_authority_contention(
+) {
+    let began = std::time::Instant::now();
+    exercise(36).await;
+    assert!(
+        began.elapsed() < Duration::from_secs(90),
+        "all original owners must join within the original 90-second fixture limit"
+    );
 }

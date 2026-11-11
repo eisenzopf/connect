@@ -8,7 +8,9 @@ fn expired() -> Error {
     Error::new("timeout", "RTC replacement resource admission deadline")
 }
 
-/// Never wrap allocation, start, SDP, negotiation, mute or recording here.
+/// Never wrap allocation, physical start, SDP, negotiation, mute or new effect
+/// recording here. Exact idempotent SQL settlement of an ALREADY captured
+/// positive receipt may use read_busy; it grants no new IO and repeats no effect.
 /// Each retry must derive fresh authority and exact resource metadata. The
 /// original absolute budget and cancellation owner never change.
 pub(crate) async fn read<T, F, Fut, Cancel>(

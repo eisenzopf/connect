@@ -32,7 +32,16 @@ impl CanonicalHandler {
         let authority = authorized
             .authority::<crate::StoreInvocationAuthority>()
             .ok_or_else(Error::forbidden)?;
-        self.authorize_with(authorized, authority).await
+        self.authorize_with(authorized, authority)
+            .await
+            .inspect_err(|error| {
+                crate::peer_authority::observe_unavailable(
+                    "handler-authorization",
+                    authorized.envelope().payload().kind(),
+                    "current-principal-and-enrollment",
+                    error,
+                );
+            })
     }
     async fn authorize_with(
         &self,
@@ -675,7 +684,7 @@ impl AuthenticatedHandler for CanonicalHandler {
                         match crate::canonical_webrtc::ice_ack_details(&self.service.store, &a) {
                             Ok(details) => details,
                             Err(error) => {
-                                return HandlerReplies::new(vec![problem(a.envelope(), error)?])
+                                return HandlerReplies::new(vec![problem(a.envelope(), error)?]);
                             }
                         };
                     let refusal = if a.envelope().kind() == "stream.subscribe"

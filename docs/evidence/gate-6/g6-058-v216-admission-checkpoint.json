@@ -1,0 +1,21 @@
+{
+  "format": "connect/g6-058-admission-checkpoint/1",
+  "recorded_at": "2026-11-11T12:54:51.703854+00:00",
+  "scope": "Service prepared subscription scene recovery and RTC original Start ownership; component-only",
+  "source13_workspace_sha256": "b38ff823928e35f7f504bb615e06f4a621da7032983f397c43bb14f622cfacf9",
+  "source_lock_sha256": "68b2ade75dfb289bfce3c23ad21c2a14e6bf65089258ce66430e82bb910de7e5",
+  "matched_service_and_selected_fixture_files": 180,
+  "all_checkpoint_code_unchanged_since_test": true,
+  "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+  "limitations": "Full62s workload still failed4videoquality bins and cleanup frame correlation; P7fixture changes are not checkpointed here. No fullmatrix improvement claimed.",
+  "independent_reviews": [
+    {
+      "scope": "composite scene admission",
+      "sha256": "e9a1bf02c7163ed87d50b8a4b12dd0ba82c8acc6c6d7d0fbcdaf365c42fbbc0c"
+    },
+    {
+      "scope": "scene/native/P7 source",
+      "sha256": "c60cfd096d36a6d4730e19b8db3dc629292616be6f8cdc72478bfa87266bce6c"
+    }
+  ]
+}

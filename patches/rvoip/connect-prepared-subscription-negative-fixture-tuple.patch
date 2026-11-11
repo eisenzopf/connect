@@ -1,0 +1,11 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
+@@ -920,7 +920,7 @@
+ }
+ #[tokio::test]
+ async fn prepared_subscription_retry_rejects_non_subscription_preparation_marker() {
+-    let (a, policy, replay) = allocation_with_policy().await;
++    let (a, policy, _grants, replay) = allocation_with_policy().await;
+     let (a, deadline) = a
+         .into_replacement_allocation_wait(Instant::now() + Duration::from_secs(1))
+         .unwrap();

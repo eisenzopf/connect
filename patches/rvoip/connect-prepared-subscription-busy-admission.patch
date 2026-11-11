@@ -1,0 +1,824 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -7,11 +7,11 @@
+ //! application handler. A correlated reply is an observation, never an authority
+ //! grant for a subsequent effect.
+ 
+-use super::{replay::ReplayFence, Envelope, Scope, WireError};
++use super::{Envelope, Scope, WireError, replay::ReplayFence};
+ use async_trait::async_trait;
+ use parking_lot::Mutex;
+ use rvoip_auth_core::bearer::{
+-    ensure_principal_active, AuthenticatedPrincipal, BearerValidator, ValidatedBearer,
++    AuthenticatedPrincipal, BearerValidator, ValidatedBearer, ensure_principal_active,
+ };
+ use rvoip_auth_core::sig9421::{Sig9421Error, Sig9421Verifier};
+ use rvoip_core::identity::IdentityAssurance;
+@@ -34,6 +34,10 @@
+     Authentication,
+     #[error("current authority denied")]
+     Authority,
++    /// Definite temporary policy admission exclusion. No policy guard or
++    /// effect is implied. Permanent authority-file failures stay unavailable.
++    #[error("current authority admission is busy")]
++    AuthorityBusy,
+     #[error("current authority temporarily unavailable")]
+     AuthorityUnavailable,
+     #[error("current policy storage unavailable")]
+@@ -382,11 +386,11 @@
+ mod offer_answer;
+ pub use offer_answer::OfferAnswerSubmission;
+ pub(in crate::v2) use offer_answer::{
+-    validate_offer_answer, AnswerCancellation, AnswerPermit, PendingAnswer,
++    AnswerCancellation, AnswerPermit, PendingAnswer, validate_offer_answer,
+ };
+ pub(in crate::v2) mod lifecycle;
+ mod subscriptions;
+-pub use data::{native_data_message, DataOrigin, DataReceipt, DataSubmission, NativeDataMessage};
++pub use data::{DataOrigin, DataReceipt, DataSubmission, NativeDataMessage, native_data_message};
+ pub(in crate::v2) use data::{DataPending, DeliveryOrigin};
+ pub use subscriptions::{HandlerDelivery, SubscriptionOrigin};
+ 
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -3,23 +3,24 @@
+ //! one actor. This never delegates a command to a v1 coordinator.
+ 
+ use super::{
++    APPLICATION_PROFILE, Envelope, Identifier, Scope,
+     auth_dispatch::*,
+     payloads::*,
+     reachability::{
+         Outbound, PeerRoutes, ReachabilityRegistry, Registration, RouteAuthority, TrustedPeerRoute,
+     },
+     replay::ReplayFence,
+-    select_application_profile, Envelope, Identifier, Scope, APPLICATION_PROFILE,
++    select_application_profile,
+ };
+ use async_trait::async_trait;
+ use bytes::Bytes;
+ use futures::{Sink, SinkExt, Stream, StreamExt};
+ use rvoip_auth_core::{
+-    bearer::{opaque_session_token_matches, AuthenticatedPrincipal, ValidatedBearer},
++    bearer::{AuthenticatedPrincipal, ValidatedBearer, opaque_session_token_matches},
+     sig9421::{Sig9421Signer, Sig9421Verifier},
+ };
+ use rvoip_core::identity::IdentityAssurance;
+-use serde_json::{json, Value};
++use serde_json::{Value, json};
+ use std::{fmt, sync::Arc, time::Duration};
+ use tokio::{
+     io::{AsyncRead, AsyncWrite},
+@@ -1084,7 +1085,7 @@
+ }
+ fn error_category(error: DispatchError) -> &'static str {
+     match error {
+-        DispatchError::AuthorityUnavailable => "authorization",
++        DispatchError::AuthorityBusy | DispatchError::AuthorityUnavailable => "authorization",
+         DispatchError::StorageUnavailable => "storage",
+         DispatchError::Capacity => "capacity",
+         _ => "auth",
+@@ -1093,7 +1094,9 @@
+ fn error_reason(error: DispatchError) -> &'static str {
+     match error {
+         DispatchError::Authority => "forbidden",
+-        DispatchError::AuthorityUnavailable => "authority_unavailable",
++        DispatchError::AuthorityBusy | DispatchError::AuthorityUnavailable => {
++            "authority_unavailable"
++        }
+         DispatchError::StorageUnavailable => "storage_unavailable",
+         DispatchError::Capacity => "capacity_exceeded",
+         DispatchError::ScopeDenied => "insufficient_scope",
+@@ -1123,6 +1126,7 @@
+         DispatchError::Unsupported => 501,
+         DispatchError::Capacity | DispatchError::ReplayCapacity => 429,
+         DispatchError::ReplayUnavailable
++        | DispatchError::AuthorityBusy
+         | DispatchError::AuthorityUnavailable
+         | DispatchError::StorageUnavailable => 503,
+         DispatchError::Closed => 408,
+@@ -1143,6 +1147,12 @@
+                 "authentication_failed",
+             ),
+             (DispatchError::Authority, 403, "auth", "forbidden"),
++            (
++                DispatchError::AuthorityBusy,
++                503,
++                "authorization",
++                "authority_unavailable",
++            ),
+             (
+                 DispatchError::AuthorityUnavailable,
+                 503,
+--- a/crates/uctp/rvoip-uctp/src/staged_data/diagnostics.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_data/diagnostics.rs
+@@ -109,6 +109,7 @@
+             DispatchError::UnsupportedMethod => "unsupported-method",
+             DispatchError::Authentication => "authentication",
+             DispatchError::Authority => "authority",
++            DispatchError::AuthorityBusy => "authority-busy",
+             DispatchError::AuthorityUnavailable => "authority-unavailable",
+             DispatchError::StorageUnavailable => "storage-unavailable",
+             DispatchError::ScopeDenied => "scope-denied",
+@@ -200,7 +201,11 @@
+         for i in 0..100 {
+             d.note(Refusal {
+                 stage: "admit",
+-                class: if i % 2 == 0 { "not-ready" } else { "metadata-busy" },
++                class: if i % 2 == 0 {
++                    "not-ready"
++                } else {
++                    "metadata-busy"
++                },
+             });
+         }
+         assert_eq!(d.emitted, MAX_REFUSAL_ROWS);
+@@ -225,9 +230,11 @@
+         let lines = Lines::default();
+         let writer = lines.clone();
+         let subscriber = tracing_subscriber::fmt()
+-            .without_time().with_ansi(false)
++            .without_time()
++            .with_ansi(false)
+             .with_max_level(tracing::Level::TRACE)
+-            .with_writer(move || writer.clone()).finish();
++            .with_writer(move || writer.clone())
++            .finish();
+         tracing::subscriber::with_default(subscriber, || {
+             let mut d = DataDiagnostics::new();
+             let mut original = outcome(DataDisposition::NotStarted);
+@@ -240,7 +247,10 @@
+             original.disposition = DataDisposition::SubmissionUnknown;
+             d.terminal(&original, "observer-completed");
+             d.terminal(&original, "must-not-duplicate");
+-            assert!(matches!(original.disposition, DataDisposition::SubmissionUnknown));
++            assert!(matches!(
++                original.disposition,
++                DataDisposition::SubmissionUnknown
++            ));
+             assert_eq!(d.emitted, MAX_REFUSAL_ROWS);
+             assert!(d.terminal);
+             assert!(d.suppressed > 0);
+@@ -248,7 +258,10 @@
+         let bytes = lines.0.lock().unwrap();
+         let text = std::str::from_utf8(&bytes).unwrap();
+         assert_eq!(text.lines().count(), usize::from(MAX_REFUSAL_ROWS) + 1);
+-        assert_eq!(text.matches("Original Data local delivery outcome").count(), 1);
++        assert_eq!(
++            text.matches("Original Data local delivery outcome").count(),
++            1
++        );
+         assert!(text.contains("submission-unknown"));
+         assert!(!text.contains("must-not-duplicate"));
+     }
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
+@@ -342,6 +342,90 @@
+         self._lease = AuthorityLease::checking(resource, deadline, move || !current.is_cancelled());
+         Ok(self)
+     }
++    /// Retain this SAME prepared subscription while definite temporary policy
++    /// admission exclusion clears. This never prepares resources, publishes a
++    /// route, activates IO or consumes another signature. Every attempt obtains
++    /// fresh authority and is bounded by the ONE original resource cutoff.
++    /// Permanent refusal/unavailable errors return immediately; uncertain
++    /// activation must never be passed to this admission-only method.
++    pub async fn reauthorize_subscription_resource_preparation(
++        &self,
++        stop: &CancellationToken,
++        physical: &CancellationToken,
++        requested: Instant,
++    ) -> Result<Arc<ResourceActivationAuthority>, DispatchError> {
++        self.reauthorize_subscription_resource_preparation_observing(
++            stop,
++            physical,
++            requested,
++            || {},
++        )
++        .await
++    }
++    /// Same admission-only operation; the synchronous callback observes only
++    /// a definite busy return AFTER that policy attempt and its guards ended.
++    /// It supplies no authority, resource, payload or permission to replay IO.
++    pub async fn reauthorize_subscription_resource_preparation_observing(
++        &self,
++        stop: &CancellationToken,
++        physical: &CancellationToken,
++        requested: Instant,
++        mut busy: impl FnMut(),
++    ) -> Result<Arc<ResourceActivationAuthority>, DispatchError> {
++        let resource = self
++            ._lease
++            .authority::<ResourcePreparation>()
++            .filter(|r| r.kind == PreparationKind::Subscription)
++            .ok_or(DispatchError::Authority)?;
++        let deadline = self
++            .resource_preparation_cutoff(requested)
++            .min(resource.deadline);
++        let original = self.invocation.child_token();
++        loop {
++            if stop.is_cancelled()
++                || physical.is_cancelled()
++                || original.is_cancelled()
++                || self.origin.lifetime.is_cancelled()
++                || Instant::now() >= deadline
++            {
++                return Err(DispatchError::Closed);
++            }
++            // Join the ACTUAL policy future, including its Store admission.
++            // Cancellation cannot detach an acquired domain guard. Its result
++            // cannot activate or disclose anything after the original cutoff.
++            match self.reauthorize_resource_preparation().await {
++                Ok(mut current) => {
++                    if stop.is_cancelled()
++                        || physical.is_cancelled()
++                        || original.is_cancelled()
++                        || self.origin.lifetime.is_cancelled()
++                        || Instant::now() >= deadline
++                        || !self.resource_activation_current(&current)
++                    {
++                        return Err(DispatchError::Closed);
++                    }
++                    // This freshly constructed sealed token has no published
++                    // alias yet. Narrow its temporal bound to this caller too.
++                    let owned = Arc::get_mut(&mut current).ok_or(DispatchError::Authority)?;
++                    owned.deadline = owned.deadline.min(deadline);
++                    return Ok(current);
++                }
++                Err(DispatchError::AuthorityBusy) => {
++                    busy();
++                }
++                Err(error) => return Err(error),
++            }
++            // The failed admission returned no grant. Only this same original
++            // resource/cancellation metadata remains during the bounded pause.
++            tokio::select! { biased;
++                _ = stop.cancelled() => return Err(DispatchError::Closed),
++                _ = physical.cancelled() => return Err(DispatchError::Closed),
++                _ = original.cancelled() => return Err(DispatchError::Closed),
++                _ = self.origin.lifetime.cancelled() => return Err(DispatchError::Closed),
++                _ = tokio::time::sleep_until(deadline.min(Instant::now()+Duration::from_millis(20))) => {},
++            }
++        }
++    }
+     /// Fresh authorization for exactly this already-signed original command.
+     /// This cannot consume another signature, issue a command or resume another
+     /// resource instance. No original application guard was retained in prepare.
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
+@@ -81,8 +81,8 @@
+     Envelope::from_value(value).unwrap()
+ }
+ #[test]
+-fn resource_subscription_results_require_exact_current_activation_and_final_reply_survives_handler_drop(
+-) {
++fn resource_subscription_results_require_exact_current_activation_and_final_reply_survives_handler_drop()
++ {
+     let a = authorized();
+     let reply = result(&a);
+     assert_eq!(
+@@ -141,35 +141,47 @@
+     let a = authorized();
+     let resource = a._lease.authority::<ResourcePreparation>().unwrap();
+     let mut offered=envelope("connection.offer",json!({"by_participant":"part_alice","substrate":"quic","capabilities":{},"streams_offered":[{"id":"audio","kind":"audio","direction":"sendrecv","codec_preferences":["pcmu"]}],"substrate_setup":{"kind":"native-prepared/1","revision":1,"offer_id":a.envelope().id(),"streams":[]}})).original().clone();
+-    assert!(resource
+-        .permits(&Envelope::from_value(offered.clone()).unwrap())
+-        .is_ok());
++    assert!(
++        resource
++            .permits(&Envelope::from_value(offered.clone()).unwrap())
++            .is_ok()
++    );
+     for field in ["cid", "sid", "connid", "operation_id"] {
+         let mut bad = offered.clone();
+         bad[field] = json!("foreign");
+-        assert!(resource
+-            .permits(&Envelope::from_value(bad).unwrap())
+-            .is_err());
++        assert!(
++            resource
++                .permits(&Envelope::from_value(bad).unwrap())
++                .is_err()
++        );
+     }
+     let mut bad = offered.clone();
+     bad["in_reply_to"] = json!(a.envelope().id());
+-    assert!(resource
+-        .permits(&Envelope::from_value(bad).unwrap())
+-        .is_err());
++    assert!(
++        resource
++            .permits(&Envelope::from_value(bad).unwrap())
++            .is_err()
++    );
+     let mut bad = offered.clone();
+     bad["payload"]["streams_offered"][0]["id"] = json!("foreign-stream");
+-    assert!(resource
+-        .permits(&Envelope::from_value(bad).unwrap())
+-        .is_err());
++    assert!(
++        resource
++            .permits(&Envelope::from_value(bad).unwrap())
++            .is_err()
++    );
+     let mut bad = offered.clone();
+     bad["payload"]["by_participant"] = json!("foreign-participant");
+-    assert!(resource
+-        .permits(&Envelope::from_value(bad).unwrap())
+-        .is_err());
++    assert!(
++        resource
++            .permits(&Envelope::from_value(bad).unwrap())
++            .is_err()
++    );
+     offered["payload"]["substrate_setup"]["revision"] = json!(2);
+-    assert!(resource
+-        .permits(&Envelope::from_value(offered).unwrap())
+-        .is_err());
++    assert!(
++        resource
++            .permits(&Envelope::from_value(offered).unwrap())
++            .is_err()
++    );
+ }
+ 
+ struct OriginalPolicy {
+@@ -229,9 +241,10 @@
+             Instant::now() + Duration::from_secs(30),
+         )
+         .unwrap();
+-    assert!(a
+-        .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
+-        .is_none());
++    assert!(
++        a.authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++            .is_none()
++    );
+     let writer = grants
+         .clone()
+         .try_write_owned()
+@@ -241,9 +254,11 @@
+     assert!(fresh.current());
+     assert!(fresh.deadline <= until);
+     assert!(fresh.deadline <= a.origin.deadline);
+-    assert!(fresh
+-        .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
+-        .is_some());
++    assert!(
++        fresh
++            .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++            .is_some()
++    );
+     assert_eq!(policy.calls.load(Ordering::Acquire), 1);
+     assert_eq!(
+         replay.usage().0,
+@@ -378,9 +393,11 @@
+     let fresh = a.reauthorize_resource_preparation().await.unwrap();
+     assert!(a.resource_activation_current(&fresh));
+     assert!(fresh.deadline <= until && fresh.deadline <= a.origin.deadline);
+-    assert!(fresh
+-        .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
+-        .is_some());
++    assert!(
++        fresh
++            .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++            .is_some()
++    );
+     assert!(
+         grants.clone().try_write_owned().is_err(),
+         "same fresh guard retained through local reservation"
+@@ -476,73 +493,149 @@
+     assert_eq!(replay.usage().0, 1);
+ }
+ 
++fn allocation_original() -> AuthorizedEnvelope {
++    let mut a = initial_authorized();
++    let mut original = a.envelope.original().clone();
++    original["payload"]["replacement_preparation"]["profile"] =
++        json!("connect-replacement-preparation-v1");
++    a.envelope = Envelope::from_value(original).unwrap();
++    a
++}
++async fn allocation_with_policy() -> (
++    AuthorizedEnvelope,
++    Arc<OriginalPolicy>,
++    Arc<tokio::sync::RwLock<bool>>,
++    Arc<crate::v2::replay::ReplayFence>,
++) {
++    let mut a = allocation_original();
++    let grants = Arc::new(tokio::sync::RwLock::new(false));
++    let original =
++        AuthorityLease::checking(grants.clone().read_owned().await, a.origin.deadline, || {
++            true
++        });
++    a.reply_authority.replace(original.retained());
++    a._lease = original;
++    let policy = Arc::new(OriginalPolicy {
++        expected: a.envelope.original().clone(),
++        grants: grants.clone(),
++        calls: std::sync::atomic::AtomicUsize::new(0),
++        deadline: a.origin.deadline,
++    });
++    let (context, replay) = crate::v2::auth_peer::exchange::resource_test_context(
++        policy.clone(),
++        a.principal.clone(),
++        a.origin.lifetime.clone(),
++        a.origin.deadline,
++    );
++    replay.consume(a.envelope.id()).unwrap();
++    a.exchange = Some(context);
++    (a, policy, grants, replay)
++}
++#[tokio::test]
++async fn allocation_coordinator_wait_releases_both_guards_and_restores_only_same_fresh_original() {
++    let (a, policy, grants, replay) = allocation_with_policy().await;
++    let original = a.envelope.original().clone();
++    let origin = a.origin.deadline;
++    let (a, until) = a
++        .into_replacement_allocation_wait(Instant::now() + Duration::from_secs(30))
++        .unwrap();
++    assert_eq!(until, origin);
++    assert!(
++        a.authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++            .is_none()
++    );
++    drop(
++        grants
++            .clone()
++            .try_write_owned()
++            .expect("both original and final-reply guards must be gone during coordinator wait"),
++    );
++    assert!(
++        a._lease
++            .authority::<ResourcePreparation>()
++            .unwrap()
++            .permits(a.envelope())
++            .is_err()
++    );
++    assert!(a.reply_authority.for_replies(&[result(&a)]).is_err());
++    let fresh = a.reauthorize_resource_preparation().await.unwrap();
++    let a = a.resume_replacement_allocation(fresh).unwrap();
++    assert_eq!(a.envelope.original(), &original);
++    assert_eq!(a.origin.deadline, origin);
++    assert!(
++        a.authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++            .is_some()
++    );
++    assert_eq!(policy.calls.load(Ordering::Acquire), 1);
++    assert_eq!(replay.usage().0, 1);
++    let reply = result(&a);
++    assert!(a.reply_authority.for_replies(&[reply.clone()]).is_ok());
++    a.invocation.cancel();
++    assert!(a.reply_authority.for_replies(&[reply.clone()]).is_ok());
++    a.origin.lifetime.cancel();
++    assert_eq!(
++        a.reply_authority.for_replies(&[reply]).unwrap_err(),
++        DispatchError::Authority
++    );
++}
++#[tokio::test]
++async fn allocation_coordinator_wait_recaptures_revocation_without_replaying_or_extending_cutoff() {
++    let (a, policy, grants, replay) = allocation_with_policy().await;
++    let (a, until) = a
++        .into_replacement_allocation_wait(Instant::now() + Duration::from_secs(30))
++        .unwrap();
++    {
++        let mut writer = grants
++            .clone()
++            .try_write_owned()
++            .expect("no provisional domain aliases while waiting");
++        *writer = true;
++    }
++    assert!(matches!(
++        a.reauthorize_resource_preparation().await,
++        Err(DispatchError::Authority)
++    ));
++    assert_eq!(policy.calls.load(Ordering::Acquire), 1);
++    assert_eq!(replay.usage().0, 1);
++    assert_eq!(a._lease.deadline(), Some(until));
++    assert!(a.reply_authority.for_replies(&[result(&a)]).is_err());
++}
++#[tokio::test]
++async fn allocation_resume_rejects_foreign_fresh_proof_expiry_and_original_cancellation() {
++    let (a, _, _, _) = allocation_with_policy().await;
++    let (a, _) = a
++        .into_replacement_allocation_wait(Instant::now() + Duration::from_secs(30))
++        .unwrap();
++    let (b, _, _, _) = allocation_with_policy().await;
++    let (b, _) = b
++        .into_replacement_allocation_wait(Instant::now() + Duration::from_secs(30))
++        .unwrap();
++    let foreign = b.reauthorize_resource_preparation().await.unwrap();
++    assert!(matches!(
++        a.resume_replacement_allocation(foreign),
++        Err(DispatchError::Authority)
++    ));
++    for cancel in [false, true] {
++        let (a, _, _, _) = allocation_with_policy().await;
++        let (mut a, _) = a
++            .into_replacement_allocation_wait(Instant::now() + Duration::from_secs(30))
++            .unwrap();
++        let fresh = a.reauthorize_resource_preparation().await.unwrap();
++        if cancel {
++            a.origin.lifetime.cancel();
++        } else {
++            a._lease.deadline = Some(Instant::now() - Duration::from_millis(1));
++        }
++        assert!(matches!(
++            a.resume_replacement_allocation(fresh),
++            Err(DispatchError::Authority)
++        ));
++    }
++}
+ 
+-fn allocation_original() -> AuthorizedEnvelope {
+-    let mut a=initial_authorized();
+-    let mut original=a.envelope.original().clone();
+-    original["payload"]["replacement_preparation"]["profile"]=json!("connect-replacement-preparation-v1");
+-    a.envelope=Envelope::from_value(original).unwrap();
+-    a
+-}
+-async fn allocation_with_policy() -> (AuthorizedEnvelope, Arc<OriginalPolicy>, Arc<tokio::sync::RwLock<bool>>, Arc<crate::v2::replay::ReplayFence>) {
+-    let mut a=allocation_original();
+-    let grants=Arc::new(tokio::sync::RwLock::new(false));
+-    let original=AuthorityLease::checking(grants.clone().read_owned().await,a.origin.deadline,||true);
+-    a.reply_authority.replace(original.retained());a._lease=original;
+-    let policy=Arc::new(OriginalPolicy{expected:a.envelope.original().clone(),grants:grants.clone(),calls:std::sync::atomic::AtomicUsize::new(0),deadline:a.origin.deadline});
+-    let(context,replay)=crate::v2::auth_peer::exchange::resource_test_context(policy.clone(),a.principal.clone(),a.origin.lifetime.clone(),a.origin.deadline);
+-    replay.consume(a.envelope.id()).unwrap();a.exchange=Some(context);
+-    (a,policy,grants,replay)
+-}
+-#[tokio::test]
+-async fn allocation_coordinator_wait_releases_both_guards_and_restores_only_same_fresh_original() {
+-    let(a,policy,grants,replay)=allocation_with_policy().await;
+-    let original=a.envelope.original().clone();let origin=a.origin.deadline;
+-    let(a,until)=a.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
+-    assert_eq!(until,origin);assert!(a.authority::<tokio::sync::OwnedRwLockReadGuard<bool>>().is_none());
+-    drop(grants.clone().try_write_owned().expect("both original and final-reply guards must be gone during coordinator wait"));
+-    assert!(a._lease.authority::<ResourcePreparation>().unwrap().permits(a.envelope()).is_err());
+-    assert!(a.reply_authority.for_replies(&[result(&a)]).is_err());
+-    let fresh=a.reauthorize_resource_preparation().await.unwrap();
+-    let a=a.resume_replacement_allocation(fresh).unwrap();
+-    assert_eq!(a.envelope.original(),&original);assert_eq!(a.origin.deadline,origin);
+-    assert!(a.authority::<tokio::sync::OwnedRwLockReadGuard<bool>>().is_some());
+-    assert_eq!(policy.calls.load(Ordering::Acquire),1);assert_eq!(replay.usage().0,1);
+-    let reply=result(&a);assert!(a.reply_authority.for_replies(&[reply.clone()]).is_ok());
+-    a.invocation.cancel();assert!(a.reply_authority.for_replies(&[reply.clone()]).is_ok());
+-    a.origin.lifetime.cancel();assert_eq!(a.reply_authority.for_replies(&[reply]).unwrap_err(),DispatchError::Authority);
+-}
+-#[tokio::test]
+-async fn allocation_coordinator_wait_recaptures_revocation_without_replaying_or_extending_cutoff() {
+-    let(a,policy,grants,replay)=allocation_with_policy().await;
+-    let(a,until)=a.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
+-    {let mut writer=grants.clone().try_write_owned().expect("no provisional domain aliases while waiting");*writer=true;}
+-    assert!(matches!(a.reauthorize_resource_preparation().await,Err(DispatchError::Authority)));
+-    assert_eq!(policy.calls.load(Ordering::Acquire),1);assert_eq!(replay.usage().0,1);
+-    assert_eq!(a._lease.deadline(),Some(until));
+-    assert!(a.reply_authority.for_replies(&[result(&a)]).is_err());
+-}
+-#[tokio::test]
+-async fn allocation_resume_rejects_foreign_fresh_proof_expiry_and_original_cancellation() {
+-    let(a,_,_,_)=allocation_with_policy().await;
+-    let(a,_)=a.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
+-    let(b,_,_,_)=allocation_with_policy().await;
+-    let(b,_)=b.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
+-    let foreign=b.reauthorize_resource_preparation().await.unwrap();
+-    assert!(matches!(a.resume_replacement_allocation(foreign),Err(DispatchError::Authority)));
+-    for cancel in [false,true] {
+-        let(a,_,_,_)=allocation_with_policy().await;
+-        let(mut a,_)=a.into_replacement_allocation_wait(Instant::now()+Duration::from_secs(30)).unwrap();
+-        let fresh=a.reauthorize_resource_preparation().await.unwrap();
+-        if cancel {a.origin.lifetime.cancel();} else {a._lease.deadline=Some(Instant::now()-Duration::from_millis(1));}
+-        assert!(matches!(a.resume_replacement_allocation(fresh),Err(DispatchError::Authority)));
+-    }
+-}
+-
+-
+-#[tokio::test]
+-async fn replacement_capture_retirement_releases_real_original_and_reply_guards_after_cancel_or_expiry(
+-) {
++#[tokio::test]
++async fn replacement_capture_retirement_releases_real_original_and_reply_guards_after_cancel_or_expiry()
++ {
+     for state in 0..3 {
+         let (mut a, policy, grants, replay) = allocation_with_policy().await;
+         let reply = result(&a);
+@@ -610,13 +703,14 @@
+                 } else {
+                     "part_alice".into()
+                 };
+-                assert!(a
+-                    .into_resource_preparation(
++                assert!(
++                    a.into_resource_preparation(
+                         participant,
+                         ["audio".into()].into_iter().collect(),
+                         requested
+                     )
+-                    .is_err());
++                    .is_err()
++                );
+             } else {
+                 if state == 3 {
+                     a.exchange = None;
+@@ -645,3 +739,200 @@
+         }
+     }
+ }
++
++struct SubscriptionBusyPolicy {
++    expected: serde_json::Value,
++    grants: Arc<tokio::sync::RwLock<bool>>,
++    busy: CancellationToken,
++    calls: std::sync::atomic::AtomicUsize,
++    permanent: AtomicBool,
++    deadline: Instant,
++}
++#[async_trait::async_trait]
++impl CurrentAuthority for SubscriptionBusyPolicy {
++    async fn acquire(
++        &self,
++        principal: &AuthenticatedPrincipal,
++        original: &Envelope,
++    ) -> Result<AuthorityLease, DispatchError> {
++        self.calls.fetch_add(1, Ordering::AcqRel);
++        if principal.subject != "alice" || original.original() != &self.expected {
++            return Err(DispatchError::Authority);
++        }
++        if self.permanent.load(Ordering::Acquire) {
++            return Err(DispatchError::AuthorityUnavailable);
++        }
++        let guard = match self.grants.clone().try_read_owned() {
++            Ok(guard) => guard,
++            Err(_) => {
++                self.busy.cancel();
++                return Err(DispatchError::AuthorityBusy);
++            }
++        };
++        if *guard {
++            return Err(DispatchError::Authority);
++        }
++        Ok(AuthorityLease::checking(guard, self.deadline, || true))
++    }
++}
++fn busy_subscription() -> (
++    AuthorizedEnvelope,
++    Arc<SubscriptionBusyPolicy>,
++    Arc<crate::v2::replay::ReplayFence>,
++) {
++    let mut a = authorized();
++    let policy = Arc::new(SubscriptionBusyPolicy {
++        expected: a.envelope.original().clone(),
++        grants: Arc::new(tokio::sync::RwLock::new(false)),
++        busy: CancellationToken::new(),
++        calls: std::sync::atomic::AtomicUsize::new(0),
++        permanent: AtomicBool::new(false),
++        deadline: a.origin.deadline,
++    });
++    let (context, replay) = crate::v2::auth_peer::exchange::resource_test_context(
++        policy.clone(),
++        a.principal.clone(),
++        a.origin.lifetime.clone(),
++        a.origin.deadline,
++    );
++    replay.consume(a.envelope.id()).unwrap();
++    a.exchange = Some(context);
++    (a, policy, replay)
++}
++#[tokio::test]
++async fn same_prepared_subscription_retries_real_temporary_exclusion_without_new_command_or_cutoff()
++{
++    let (a, policy, replay) = busy_subscription();
++    let original = a.envelope.original().clone();
++    let deadline = a._lease.deadline().unwrap();
++    let marker = a
++        ._lease
++        .authority::<ResourcePreparation>()
++        .unwrap()
++        .marker
++        .clone();
++    let held = policy.grants.clone().write_owned().await;
++    let stop = CancellationToken::new();
++    let physical = CancellationToken::new();
++    let requested = deadline - Duration::from_millis(1);
++    let waiting = a.reauthorize_subscription_resource_preparation(&stop, &physical, requested);
++    let release = async {
++        policy.busy.cancelled().await;
++        drop(held);
++    };
++    let (current, ()) = tokio::join!(waiting, release);
++    let current = current.unwrap();
++    assert!(a.resource_activation_current(&current));
++    assert!(current.deadline <= requested);
++    assert!(
++        current
++            .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++            .is_some()
++    );
++    assert_eq!(a.envelope.original(), &original);
++    assert_eq!(a._lease.deadline(), Some(deadline));
++    assert!(Arc::ptr_eq(&marker, &current.marker));
++    assert_eq!(replay.usage().0, 1);
++    assert_eq!(policy.calls.load(Ordering::Acquire), 2);
++    // Only the genuine fresh admission may restore result rights; waiting did not.
++    a.install_resource_reply_authority(&current).unwrap();
++    assert!(a.reply_authority.for_replies(&[result(&a)]).is_ok());
++}
++#[tokio::test]
++async fn prepared_subscription_busy_then_actual_revocation_refuses_same_original() {
++    let (a, policy, replay) = busy_subscription();
++    let deadline = a._lease.deadline().unwrap();
++    let mut held = policy.grants.clone().write_owned().await;
++    let stop = CancellationToken::new();
++    let physical = CancellationToken::new();
++    let waiting = a.reauthorize_subscription_resource_preparation(&stop, &physical, deadline);
++    let revoke = async {
++        policy.busy.cancelled().await;
++        *held = true;
++        drop(held);
++    };
++    let (observed, ()) = tokio::join!(waiting, revoke);
++    assert!(matches!(observed, Err(DispatchError::Authority)));
++    assert_eq!(policy.calls.load(Ordering::Acquire), 2);
++    assert_eq!(replay.usage().0, 1);
++    assert!(a.reply_authority.for_replies(&[result(&a)]).is_err());
++}
++#[tokio::test]
++async fn prepared_subscription_permanent_authority_file_failure_is_not_retried() {
++    let (a, policy, replay) = busy_subscription();
++    policy.permanent.store(true, Ordering::Release);
++    let observed = a
++        .reauthorize_subscription_resource_preparation(
++            &CancellationToken::new(),
++            &CancellationToken::new(),
++            a.origin.deadline,
++        )
++        .await;
++    assert!(matches!(observed, Err(DispatchError::AuthorityUnavailable)));
++    assert_eq!(policy.calls.load(Ordering::Acquire), 1);
++    assert_eq!(replay.usage().0, 1);
++}
++#[tokio::test]
++async fn prepared_subscription_original_cutoff_and_all_original_cancellations_stop_busy_wait() {
++    for mode in ["cutoff", "physical", "stop", "invocation", "origin"] {
++        let (mut a, policy, replay) = busy_subscription();
++        let stop = CancellationToken::new();
++        let physical = CancellationToken::new();
++        let deadline = Instant::now() + Duration::from_millis(35);
++        if mode == "cutoff" {
++            a._lease.deadline = Some(deadline);
++            let resource = a
++                ._lease
++                ._guard
++                .downcast_ref::<ResourcePreparation>()
++                .unwrap();
++            assert!(resource.deadline >= deadline);
++        }
++        let held = policy.grants.clone().write_owned().await;
++        let waiting = a.reauthorize_subscription_resource_preparation(
++            &stop,
++            &physical,
++            if mode == "cutoff" {
++                deadline + Duration::from_secs(30)
++            } else {
++                a.origin.deadline
++            },
++        );
++        let cancel = async {
++            policy.busy.cancelled().await;
++            match mode {
++                "physical" => physical.cancel(),
++                "stop" => stop.cancel(),
++                "invocation" => a.invocation.cancel(),
++                "origin" => a.origin.lifetime.cancel(),
++                _ => (),
++            }
++        };
++        let (observed, ()) = tokio::join!(waiting, cancel);
++        drop(held);
++        assert!(matches!(observed, Err(DispatchError::Closed)), "{mode}");
++        assert_eq!(replay.usage().0, 1);
++        assert!(a.reply_authority.for_replies(&[result(&a)]).is_err());
++        if mode == "cutoff" {
++            assert_eq!(a._lease.deadline(), Some(deadline));
++        }
++    }
++}
++#[tokio::test]
++async fn prepared_subscription_retry_rejects_non_subscription_preparation_marker() {
++    let (a, policy, replay) = allocation_with_policy().await;
++    let (a, deadline) = a
++        .into_replacement_allocation_wait(Instant::now() + Duration::from_secs(1))
++        .unwrap();
++    assert!(matches!(
++        a.reauthorize_subscription_resource_preparation(
++            &CancellationToken::new(),
++            &CancellationToken::new(),
++            deadline
++        )
++        .await,
++        Err(DispatchError::Authority)
++    ));
++    assert_eq!(policy.calls.load(Ordering::Acquire), 0);
++    assert_eq!(replay.usage().0, 1);
++}

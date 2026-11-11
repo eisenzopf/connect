@@ -1,6 +1,7 @@
 //! One RTC replacement owner, from the original signed SDP through adoption.
 //! No originating reader survives ICE/DTLS/RTP waits or the active lifetime.
 pub(super) mod admission;
+mod prestart;
 
 use super::*;
 use super::{
@@ -478,48 +479,309 @@ impl Runtime {
                 "RTC replacement SDP was already attempted; observe the original operation",
             ));
         }
-        // Before begin, a temporary metadata refusal has no phase/Core effect.
-        // Do not retain the signed mutation writer through five-second retries.
-        let (read, entries) = {
-            let store = self.media.store.clone();
-            let receipt = allocated.receipt.clone();
-            let key = credential.to_owned();
-            let a = a.clone();
-            let read = store_call(move || {
-                store.native_replacement_start_read_with_peer(&receipt, &key, proof(&a)?)
-            })
-            .await?;
-            let entries = self.media.replacement_preparation_entries(read.source())?;
-            (read, entries)
-        };
-        let (profile, plan) = crate::canonical_media::offer_plan(
-            read.target(),
-            &crate::canonical_native::base_profile()?,
-            a.principal(),
-        )
-        .map_err(denied)?;
-        if !plan.rejected().is_empty()
-            || !(1..=3).contains(&plan.selected().len())
-            || plan
-                .selected()
-                .iter()
-                .any(|s| !matches!(s.requested.medium, Medium::Audio | Medium::Video))
-        {
-            return Err(Error::new(
-                "unsupported-media-profile",
-                "RTC replacement requires its exact selected audio and optional directional video ports",
-            ));
-        }
-        let deadline = root.deadline.min(
+        // Capture this original short control bound ONCE, before either SQL
+        // admission can wait. It may only narrow the existing <=5s Start read,
+        // original signed proof and reservation; a retry cannot renew it.
+        let mut original_until = proof(&a)?
+            .expires_at()
+            .min(chrono::Utc::now().timestamp() + 5);
+        let mut deadline = root.deadline.min(
             Instant::now()
                 + Duration::from_secs(
-                    (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64
+                    (original_until - chrono::Utc::now().timestamp()).max(0) as u64
                 ),
         );
-        // The original start reader still bounds SDP and resource admission.
-        // Later private readiness belongs to the unchanged reservation lifetime;
-        // every packet continues to require fresh current authority.
-        let readiness = super::readiness::ReadyGate::new(&read, &plan, root.deadline)?;
+        let participant = proof(&a)?
+            .native_member()
+            .ok_or_else(Error::forbidden)?
+            .0
+            .to_owned();
+        let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
+        let streams = intent.offer["streams_offered"]
+            .as_array()
+            .ok_or_else(Error::forbidden)?
+            .iter()
+            .map(|s| {
+                s["id"]
+                    .as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(Error::forbidden)
+            })
+            .collect::<Result<BTreeSet<_>>>()?;
+        // Only exact signed parameter-exchange metadata survives a pre-begin
+        // wait. Drop BOTH original application and reply guards first, just as
+        // native replacement does; never keep a Writer over a retry pause.
+        // This exact already recorded allocation exists before Start. Retain
+        // its original cleanup custody now, including pre-begin expiry/cancel;
+        // an absent Start attempt must never strand its physical reservation.
+        owned.root = Some(root.clone());
+        owned.allocated = Some(allocated.clone());
+        owned.deadline = Some(deadline);
+        owned.intent = Some(intent.clone());
+        #[cfg(feature = "test-support")]
+        let read_probe = self
+            .media
+            .take_preparation_registry_probe_for_test(&format!(
+                "rtc-start-read:{}",
+                root.handle.intent().operation_id
+            ));
+        #[cfg(feature = "test-support")]
+        let begin_probe = self
+            .media
+            .take_preparation_registry_probe_for_test(&format!(
+                "rtc-start-begin:{}",
+                root.handle.intent().operation_id
+            ));
+        #[cfg(feature = "test-support")]
+        let original_custody = if read_probe.is_some() || begin_probe.is_some() {
+            let probe = proof(&a)?.retained_custody_probe_for_test();
+            if !probe() {
+                return Err(Error::new(
+                    "test-custody-unobserved",
+                    "Original RTC command custody probe did not observe its own live scope set",
+                ));
+            }
+            Some(probe)
+        } else {
+            None
+        };
+        let original = Arc::try_unwrap(a)
+            .map_err(|_| Error::new("conflict", "Original RTC invocation is still shared"))?;
+        let a = Arc::new(
+            original
+                .into_resource_preparation(participant, streams, deadline)
+                .map_err(denied)?,
+        );
+        let root_cancel = root.handle.cancellation();
+        let invocation_cancel = a.invocation_cancellation();
+        let mut original_plan = None;
+        let (attempt, read, origin, entries, profile, plan, readiness, admission) = loop {
+            if self.stop.is_cancelled()
+                || physical.lifetime.is_cancelled()
+                || root_cancel.is_cancelled()
+                || a.invocation_cancellation().is_cancelled()
+                || Instant::now() >= deadline
+            {
+                return Err(Error::forbidden());
+            }
+            let current = match a.reauthorize_resource_preparation().await {
+                Ok(current) => Some(current),
+                Err(rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityBusy) => None,
+                Err(rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityUnavailable) => {
+                    return Err(Error::new(
+                        "authority-unavailable",
+                        "Original RTC authority is unavailable",
+                    ));
+                }
+                Err(rvoip_uctp::v2::auth_dispatch::DispatchError::StorageUnavailable) => {
+                    return Err(Error::storage());
+                }
+                Err(_) => return Err(Error::forbidden()),
+            };
+            if let Some(current) = current {
+                #[cfg(feature = "test-support")]
+                let current_custody = if original_custody.is_some() {
+                    let probe = current
+                        .authority::<StoreInvocationAuthority>()
+                        .and_then(|authority| authority.peer_guard())
+                        .ok_or_else(Error::forbidden)?
+                        .retained_custody_probe_for_test();
+                    if !probe() {
+                        return Err(Error::new("test-custody-unobserved", "Fresh RTC command custody probe did not observe its own live scope set"));
+                    }
+                    Some(probe)
+                } else {
+                    None
+                };
+                let observation: OriginalWorker<'_, _> = Box::pin(async {
+                    if !a.resource_activation_current(&current) {
+                        return Err(Error::forbidden());
+                    }
+                    physical.validate(
+                        &a,
+                        current
+                            .authority::<StoreInvocationAuthority>()
+                            .ok_or_else(Error::forbidden)?,
+                    )?;
+                    #[cfg(feature = "test-support")]
+                    if let Some(probe) = &read_probe {
+                        if probe.load(Ordering::Acquire) == 0 {
+                            probe.store(1, Ordering::Release);
+                            while probe.load(Ordering::Acquire) == 1 {
+                                tokio::select! {biased;
+                                    _=self.stop.cancelled()=>return Err(Error::forbidden()),
+                                    _=physical.lifetime.cancelled()=>return Err(Error::forbidden()),
+                                    _=root_cancel.cancelled()=>return Err(Error::forbidden()),
+                                    _=invocation_cancel.cancelled()=>return Err(Error::forbidden()),
+                                    _=tokio::time::sleep_until(deadline)=>return Err(Error::forbidden()),
+                                    _=tokio::time::sleep(Duration::from_millis(1))=>{},
+                                }
+                            }
+                            if probe.load(Ordering::Acquire) != 2 {
+                                return Err(Error::forbidden());
+                            }
+                        }
+                    }
+                    let store = self.media.store.clone();
+                    let receipt = allocated.receipt.clone();
+                    let key = credential.to_owned();
+                    let proof = current.clone();
+                    let read = self
+                        .owned_store_call(move || {
+                            let proof = proof
+                                .authority::<StoreInvocationAuthority>()
+                                .and_then(|a| a.peer_guard())
+                                .ok_or_else(Error::forbidden)?;
+                            match store
+                                .native_replacement_start_read_with_peer(&receipt, &key, proof)
+                            {
+                                Ok(mut read) => {
+                                    read.limit(original_until)?;
+                                    Ok(Some(read))
+                                }
+                                // This call is entirely effect-free. Its admission
+                                // never publishes a Start or changes the reservation.
+                                Err(error) if error.code == "authority-busy" => Ok(None),
+                                Err(error) => Err(error),
+                            }
+                        })
+                        .await?;
+                    let Some(mut read) = read else {
+                        return Ok(None);
+                    };
+                    // The actual current source/retained/operator projection
+                    // may be shorter than the original target peer proof.
+                    // Pin that first real expiry too; later reads only narrow.
+                    let pinned = prestart::narrow(original_until, deadline, read.expires_at())?;
+                    original_until = pinned.0;
+                    deadline = pinned.1;
+                    read.limit(original_until)?;
+                    let entries = self.media.replacement_preparation_entries(read.source())?;
+                    let (profile, plan) = crate::canonical_media::offer_plan(
+                        read.target(),
+                        &crate::canonical_native::base_profile()?,
+                        a.principal(),
+                    )
+                    .map_err(denied)?;
+                    if !plan.rejected().is_empty()
+                        || !(1..=3).contains(&plan.selected().len())
+                        || plan
+                            .selected()
+                            .iter()
+                            .any(|s| !matches!(s.requested.medium, Medium::Audio | Medium::Video))
+                    {
+                        return Err(Error::new(
+                            "unsupported-media-profile",
+                            "RTC replacement requires its exact selected audio and optional directional video ports",
+                        ));
+                    }
+                    let captured = (
+                        read.target().connection.clone(),
+                        plan.selected().to_vec(),
+                        plan.rejected().to_vec(),
+                    );
+                    if original_plan.as_ref().is_some_and(|old| old != &captured) {
+                        return Err(Error::forbidden());
+                    }
+                    original_plan.get_or_insert(captured);
+                    let readiness = super::readiness::ReadyGate::new(&read, &plan, root.deadline)?;
+                    #[cfg(feature = "test-support")]
+                    if let Some(probe) = &begin_probe {
+                        if probe.load(Ordering::Acquire) == 0 {
+                            probe.store(1, Ordering::Release);
+                            while probe.load(Ordering::Acquire) == 1 {
+                                tokio::select! {biased;
+                                    _=self.stop.cancelled()=>return Err(Error::forbidden()),
+                                    _=physical.lifetime.cancelled()=>return Err(Error::forbidden()),
+                                    _=root_cancel.cancelled()=>return Err(Error::forbidden()),
+                                    _=invocation_cancel.cancelled()=>return Err(Error::forbidden()),
+                                    _=tokio::time::sleep_until(deadline)=>return Err(Error::forbidden()),
+                                    _=tokio::time::sleep(Duration::from_millis(1))=>{},
+                                }
+                            }
+                            if probe.load(Ordering::Acquire) != 2 {
+                                return Err(Error::forbidden());
+                            }
+                        }
+                    }
+                    let store = self.media.store.clone();
+                    let receipt = allocated.receipt.clone();
+                    let key = credential.to_owned();
+                    let proof = current.clone();
+                    let resource = a.clone();
+                    let cancelled = root_cancel.clone();
+                    let physical_cancel = physical.lifetime.clone();
+                    let stopped = self.stop.clone();
+                    let begun = self
+                        .owned_store_call(move || {
+                            if cancelled.is_cancelled()
+                                || physical_cancel.is_cancelled()
+                                || Instant::now() >= deadline
+                                || !resource.resource_activation_current(&proof)
+                            {
+                                return Err(Error::forbidden());
+                            }
+                            let proof = proof
+                                .authority::<StoreInvocationAuthority>()
+                                .and_then(|a| a.peer_guard())
+                                .ok_or_else(Error::forbidden)?;
+                            // ONLY None proves no primary SQL/transaction/effect
+                            // began. Any error after SQL admission is terminal here.
+                            prestart::before_begin(&stopped, || {
+                                store.try_begin_native_replacement_start_with_read(
+                                    receipt, &key, proof, read,
+                                )
+                            })
+                        })
+                        .await?;
+                    Ok::<_, Error>(begun.map(|(attempt, read, origin)| {
+                        (attempt, read, origin, entries, profile, plan, readiness)
+                    }))
+                });
+                let observed = observation.await;
+                match observed {
+                    Ok(Some((attempt, read, origin, entries, profile, plan, readiness))) => {
+                        break (
+                            attempt, read, origin, entries, profile, plan, readiness, current,
+                        );
+                    }
+                    Ok(None) => {}
+                    Err(error) => return Err(error),
+                }
+                // The exact Store call has joined; every current proof/read
+                // and provisional preparation value drops before the pause.
+                drop(current);
+                #[cfg(feature = "test-support")]
+                for probe in [&read_probe, &begin_probe].into_iter().flatten() {
+                    if probe.load(Ordering::Acquire) == 2 {
+                        // The exact command's original/reply and fresh scope
+                        // sets must release; healthy published media owns other
+                        // sets and must remain admitted. No WriterNotice or
+                        // kernel mutation disturbs that independent authority.
+                        if original_custody.as_ref().is_some_and(|held| held())
+                            || current_custody.as_ref().is_some_and(|held| held())
+                        {
+                            probe.store(5, Ordering::Release);
+                            return Err(Error::new("test-custody-retained", "Original RTC invocation or fresh metadata scope custody remains after the joined refusal"));
+                        }
+                        probe.store(3, Ordering::Release);
+                    }
+                }
+            }
+            tokio::select! {biased;
+                _=self.stop.cancelled()=>return Err(Error::forbidden()),
+                _=physical.lifetime.cancelled()=>return Err(Error::forbidden()),
+                _=root_cancel.cancelled()=>return Err(Error::forbidden()),
+                _=invocation_cancel.cancelled()=>return Err(Error::forbidden()),
+                _=tokio::time::sleep_until(deadline.min(Instant::now()+Duration::from_millis(20)))=>{},
+            }
+        };
+        #[cfg(feature = "test-support")]
+        for probe in [&read_probe, &begin_probe].into_iter().flatten() {
+            probe.store(4, Ordering::Release);
+        }
+        // The once-only Start has now begun. Nothing below reenters the SQL
+        // preflight loop, including SDP/configure/mute or an uncertain result.
         let policy = Arc::new(TargetPolicy {
             base: self.media.clone(),
             pending: root.handle.prepared_binding(),
@@ -536,16 +798,6 @@ impl Runtime {
             data_observer: None,
             readiness: Some(readiness.clone()),
         });
-        let (attempt, read, origin) = {
-            let store = self.media.store.clone();
-            let receipt = allocated.receipt.clone();
-            let key = credential.to_owned();
-            let a = a.clone();
-            store_call(move || {
-                store.begin_native_replacement_start_with_read(receipt, &key, proof(&a)?, read)
-            })
-            .await?
-        };
         owned.invocation = Some(a.clone());
         owned.attempt = Some(attempt);
         owned.root = Some(root.clone());
@@ -566,11 +818,14 @@ impl Runtime {
             adopted: OnceLock::new(),
         });
         owned.source = Some(source.clone());
-        let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
-        owned.peer = Some(peer);
+        owned.peer = Some(peer.clone());
         let invocation = StartInvocation {
             policy: policy.clone(),
-            authority: StartAuthority::Signed(a.clone()),
+            authority: StartAuthority::Reauthorized {
+                resource: a.clone(),
+                admission,
+                peer,
+            },
             read: read.clone(),
             entries,
             deadline,
@@ -611,19 +866,6 @@ impl Runtime {
         );
         drop(read);
         drop(owned.invocation.take());
-        let a = Arc::try_unwrap(a)
-            .map_err(|_| Error::new("conflict", "Original RTC invocation is still shared"))?
-            .into_resource_preparation(
-                participant.clone(),
-                policy
-                    .plan
-                    .selected()
-                    .iter()
-                    .map(|s| s.requested.logical_id.as_str().to_owned())
-                    .collect(),
-                deadline,
-            )
-            .map_err(denied)?;
         // The driver receives immutable original parameters and resource-only
         // custody. No Store grant survives its SDP/ICE/DTLS work.
         let driver = host.start_replacement(ReplacementPreparation {
@@ -859,10 +1101,80 @@ impl Runtime {
         drop(invocation);
         drop(read);
         drop(proof);
-        let store = self.media.store.clone();
-        let receipt = started.receipt.clone();
-        self.owned_store_call(move || store.record_native_replacement_started(&receipt))
-            .await?;
+        #[cfg(feature = "test-support")]
+        let record_probe = self
+            .media
+            .take_preparation_registry_probe_for_test(&format!(
+                "rtc-start-record:{}",
+                root.handle.intent().operation_id
+            ));
+        #[cfg(feature = "test-support")]
+        if let Some(probe) = &record_probe {
+            // Actual muted activation and its original receipt already exist.
+            // Every activation reader above has dropped. A fixture may now
+            // exclude real primary SQL without fabricating an admission result.
+            probe.store(1, Ordering::Release);
+            while probe.load(Ordering::Acquire) == 1 {
+                tokio::select! { biased;
+                    _ = self.stop.cancelled() => return Err(Error::forbidden()),
+                    _ = physical.lifetime.cancelled() => return Err(Error::forbidden()),
+                    _ = root_cancelled.cancelled() => return Err(Error::forbidden()),
+                    _ = driver.closed() => return Err(Error::forbidden()),
+                    _ = tokio::time::sleep_until(until) => return Err(Error::forbidden()),
+                    _ = tokio::time::sleep(Duration::from_millis(1)) => {},
+                }
+            }
+            if probe.load(Ordering::Acquire) != 2 {
+                return Err(Error::forbidden());
+            }
+        }
+        // Recording this already captured receipt is idempotent metadata, not
+        // another SDP, start or muted activation. Temporary primary SQL/file
+        // exclusion cannot destroy the original prepared physical owner. Reuse
+        // the SAME admission cutoff; no successful IO is repeated or renewed.
+        admission::read_busy(
+            until,
+            &wait,
+            async {
+                tokio::select! { biased;
+                    _ = self.stop.cancelled() => {},
+                    _ = physical.lifetime.cancelled() => {},
+                    _ = root_cancelled.cancelled() => {},
+                    _ = driver.closed() => {},
+                }
+            },
+            || {
+                let store = self.media.store.clone();
+                let receipt = started.receipt.clone();
+                #[cfg(feature = "test-support")]
+                let record_probe = record_probe.clone();
+                // Erase only this new joined metadata future at the existing
+                // Send-checked worker boundary. No task, cancellation owner or
+                // poll/drop custody changes; avoid recursive Send obligations
+                // through the full RTC replacement coroutine.
+                let capture: OriginalWorker<'_, connect_protocol::transitions::OperationRecord> =
+                    Box::pin(async move {
+                        let result = self
+                            .owned_store_call(move || {
+                                store.record_native_replacement_started(&receipt)
+                            })
+                            .await;
+                        #[cfg(feature = "test-support")]
+                        if result.as_ref().is_err_and(|e| e.code == "authority-busy") {
+                            if let Some(probe) = &record_probe {
+                                probe.store(3, Ordering::Release);
+                            }
+                        }
+                        result
+                    });
+                capture
+            },
+        )
+        .await?;
+        #[cfg(feature = "test-support")]
+        if let Some(probe) = &record_probe {
+            probe.store(4, Ordering::Release);
+        }
         if !registered {
             return Err(Error::storage());
         }

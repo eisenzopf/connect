@@ -191,6 +191,7 @@ impl Queue {
                 result,
                 Err(DispatchError::Closed
                     | DispatchError::Capacity
+                    | DispatchError::AuthorityBusy
                     | DispatchError::AuthorityUnavailable)
             ) && flight.queued.listener.current()
                 && flight.queued.at.elapsed() < Duration::from_secs(5)

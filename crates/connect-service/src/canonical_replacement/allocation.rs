@@ -176,7 +176,8 @@ impl Runtime {
                         match result {
                             Ok(fresh) => break fresh,
                             Err(
-                                rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityUnavailable
+                                rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityBusy
+                                | rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityUnavailable
                                 | rvoip_uctp::v2::auth_dispatch::DispatchError::StorageUnavailable,
                             ) => {
                                 tokio::select! { biased;
@@ -194,7 +195,7 @@ impl Runtime {
                                 return Err(allocation_refused(
                                     "preflight-reauthorize",
                                     Error::forbidden(),
-                                ))
+                                ));
                             }
                         }
                     };
@@ -611,7 +612,8 @@ impl Runtime {
                     }
                 }
                 Err(
-                    rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityUnavailable
+                    rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityBusy
+                    | rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityUnavailable
                     | rvoip_uctp::v2::auth_dispatch::DispatchError::StorageUnavailable,
                 ) => {}
                 _ => break,

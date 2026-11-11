@@ -2127,6 +2127,17 @@
       "target": "rvoip",
       "path": "patches/rvoip/gate6-replacement-retire-captured-authority.patch",
       "sha256": "4660a30e640f3d17b1cc1398ed2feeaf7de87c9815a0b3c972b7098d1799cce2"
+    },
+    {
+      "path": "patches/rvoip/connect-prepared-subscription-busy-admission.patch",
+      "sha256": "c35559c72fe24cd51c8efd9184d9cffbc2886bd82399bc26f4670589160403b2",
+      "source": "Retain exact prepared subscription across definite temporary current-authority admission contention; unchanged public503 and no effect replay"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-prepared-subscription-negative-fixture-tuple.patch",
+      "sha256": "bb029d87d6d8889d2b6e66939bc37300733437cdfe371141d31e33e84dd39dc1",
+      "source": "Test-only compile correction: allocation fixture returns envelope, policy, grant controller and replay fence; bind unused grant controller in non-subscription negative. Production and all assertions unchanged."
     }
   ]
 }

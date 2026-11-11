@@ -3,6 +3,9 @@
 use super::*;
 #[path = "replacement_av/private_marker.rs"]
 mod private_marker;
+#[cfg(feature = "test-support")]
+#[path = "replacement_av/started_record.rs"]
+mod started_record;
 use connect_client::canonical::CanonicalHttpClient;
 use connect_protocol::{
     replacement_video::{ReplacementVideo, ReplacementVideoStream},
@@ -362,9 +365,14 @@ async fn full_replacement(algorithm: &str) {
     full_replacement_with_private_delay(algorithm, false).await;
 }
 async fn full_replacement_with_private_delay(algorithm: &str, delay_after_admit: bool) {
-    full_replacement_case(algorithm, delay_after_admit, None).await;
+    full_replacement_case(algorithm, delay_after_admit, None, None).await;
 }
-async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negative: Option<&str>) {
+async fn full_replacement_case(
+    algorithm: &str,
+    delay_after_admit: bool,
+    negative: Option<&str>,
+    contention: Option<&str>,
+) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
@@ -580,6 +588,31 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
     assert!(host.adapter().is_connection_live(&retained_runtime));
     let mut media = renew(allocation);
     media["payload"]["replacement_preparation"]["profile"] = json!("connect-replacement-media-v1");
+    // Core's replacement intent uses the immutable Store record ID. These
+    // hooks must match that exact original; signed commands/status continue
+    // using the public operation ID above.
+    #[cfg(feature = "test-support")]
+    let record_probe = (contention == Some("record")).then(|| {
+        f.server
+            .service
+            .arm_canonical_preparation_registry_probe_for_test(&format!(
+                "rtc-start-record:{}",
+                prepared.record_id
+            ))
+            .unwrap()
+    });
+    #[cfg(feature = "test-support")]
+    let prestart_probe = contention
+        .filter(|phase| matches!(*phase, "read" | "begin"))
+        .map(|phase| {
+            f.server
+                .service
+                .arm_canonical_preparation_registry_probe_for_test(&format!(
+                    "rtc-start-{phase}:{}",
+                    prepared.record_id
+                ))
+                .unwrap()
+        });
     let original_target_until = tokio::time::Instant::now() + Duration::from_secs(8);
     let private_cutoff = delay_after_admit.then_some(original_target_until);
     let id = private_marker::until_phase(
@@ -588,6 +621,44 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
         target_peer.send(media.clone(), true),
     )
     .await;
+    #[cfg(feature = "test-support")]
+    let answer = if let Some(probe) = prestart_probe {
+        let (answer, result) = tokio::join!(
+            futures_util::FutureExt::catch_unwind(std::panic::AssertUnwindSafe(
+                private_marker::until_phase(
+                    Some(original_target_until),
+                    "original-media-answer",
+                    target_peer.read()
+                )
+            )),
+            started_record::settle_before_start_under_real_sql_exclusion(
+                &f,
+                &cid,
+                &prepared.record_id,
+                probe,
+                original_target_until
+            ),
+        );
+        result.expect("same original RTC preStart SQL admission");
+        let answer = answer.expect("original signed SDP receiver after SQL owner joined");
+        assert_eq!(original_reservation(), captured_reservation);
+        assert_eq!(host.adapter().total_allocations(), 3);
+        assert!(host.adapter().is_connection_live(&old_runtime));
+        original_av(
+            &mut a,
+            &mut b,
+            &red,
+            &blue,
+            &directory,
+            "after-preStart-sql-busy",
+        )
+        .await;
+        answer
+    } else {
+        private_marker::until_phase(private_cutoff, "original-media-answer", target_peer.read())
+            .await
+    };
+    #[cfg(not(feature = "test-support"))]
     let answer =
         private_marker::until_phase(private_cutoff, "original-media-answer", target_peer.read())
             .await;
@@ -706,6 +777,53 @@ async fn full_replacement_case(algorithm: &str, delay_after_admit: bool, negativ
     .unwrap();
     senders.push(opus::producer(&replacement, 660.0));
     senders.push(video_producer(&replacement, red.clone()));
+    #[cfg(feature = "test-support")]
+    if let Some(probe) = record_probe {
+        let result = started_record::settle_under_real_sql_exclusion(
+            &f,
+            &prepared.record_id,
+            probe,
+            original_target_until,
+        )
+        .await;
+        if let Err(error) = result {
+            // The counterfactual one-shot implementation must fail only AFTER
+            // releasing/joining SQL and these exact original physical owners.
+            for received in [a, b] {
+                for stream in received.streams {
+                    stream.close().await.unwrap();
+                }
+            }
+            for (stop, sender) in senders {
+                stop.cancel();
+                let _ = sender.await;
+            }
+            for peer in peers {
+                let _ = peer.close().await;
+            }
+            let _ = replacement.close().await;
+            let _ = first.socket.close(None).await;
+            let _ = second.socket.close(None).await;
+            let _ = target_peer.socket.close(None).await;
+            let _ = f.server.shutdown().await;
+            panic!("original captured RTC Start did not recover: {error}");
+        }
+        assert_eq!(original_reservation(), captured_reservation);
+        assert_eq!(host.adapter().total_allocations(), 3);
+        assert!(host.adapter().is_connection_live(&old_runtime));
+        assert!(host.adapter().is_connection_live(&retained_runtime));
+        // Actual SRTP Opus and VP8 still decode on the original old/retained
+        // peers after this same metadata receipt resumes; no fallback peer.
+        original_av(
+            &mut a,
+            &mut b,
+            &red,
+            &blue,
+            &directory,
+            "after-captured-start-busy",
+        )
+        .await;
+    }
     let mut c = private_marker::until_phase(
         private_cutoff,
         "candidate-remote-tracks",
@@ -1304,15 +1422,36 @@ async fn signed_webrtc_av_private_readiness_survives_original_start_capture_afte
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
 async fn signed_webrtc_av_original_reservation_expiry_refuses_genuine_private_observation() {
-    full_replacement_case("EdDSA", false, Some("expiry")).await;
+    full_replacement_case("EdDSA", false, Some("expiry"), None).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
 async fn signed_webrtc_av_current_operator_revocation_refuses_genuine_private_observation() {
-    full_replacement_case("EdDSA", false, Some("operator-revoked")).await;
+    full_replacement_case("EdDSA", false, Some("operator-revoked"), None).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
 async fn signed_webrtc_av_original_physical_cancel_refuses_genuine_private_observation() {
-    full_replacement_case("EdDSA", false, Some("physical-cancel")).await;
+    full_replacement_case("EdDSA", false, Some("physical-cancel"), None).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
+async fn signed_webrtc_av_captured_start_survives_real_sql_exclusion_without_replaying_resources() {
+    full_replacement_case("EdDSA", false, None, Some("record")).await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
+async fn signed_webrtc_av_initial_start_read_waits_for_real_sql_without_retaining_writer_or_replaying_start(
+) {
+    full_replacement_case("EdDSA", false, None, Some("read")).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
+async fn signed_webrtc_av_typed_not_begun_waits_for_real_sql_without_retaining_writer_or_replaying_start(
+) {
+    full_replacement_case("EdDSA", false, None, Some("begin")).await;
 }

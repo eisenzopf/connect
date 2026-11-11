@@ -273,7 +273,10 @@ impl Runtime {
             // It does not send a frame, consume a signature or reserve an effect.
             let admission = match a.reauthorize_resource_preparation().await {
                 Ok(admission) => Some(admission),
-                Err(rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityUnavailable) => None,
+                Err(
+                    rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityBusy
+                    | rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityUnavailable,
+                ) => None,
                 Err(_) => return Err(Error::forbidden()),
             };
             if let Some(admission) = admission {

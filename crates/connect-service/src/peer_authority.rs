@@ -821,7 +821,8 @@ fn store_error(error: connect_protocol::Error) -> DispatchError {
     match error.code.as_str() {
         "unauthorized" => DispatchError::Authentication,
         "capacity-exceeded" => DispatchError::Capacity,
-        "authority-busy" | "authority-unavailable" => DispatchError::AuthorityUnavailable,
+        "authority-busy" => DispatchError::AuthorityBusy,
+        "authority-unavailable" => DispatchError::AuthorityUnavailable,
         "storage-unavailable" => DispatchError::StorageUnavailable,
         _ => DispatchError::Authority,
     }
@@ -1020,3 +1021,31 @@ impl StorePeerAuthority {
 }
 
 pub(crate) use webrtc::validate as validate_webrtc_resource_answer;
+
+#[cfg(test)]
+mod busy_error_tests {
+    use super::*;
+    use connect_protocol::Error;
+    #[test]
+    fn temporary_contention_is_typed_separately_from_permanent_authority_file_refusal() {
+        assert_eq!(
+            store_error(Error::new("authority-busy", "Current authority is busy")),
+            DispatchError::AuthorityBusy
+        );
+        for message in [
+            "Authority file changed",
+            "Unsafe authority file",
+            "Authority files must remain private to the state owner",
+        ] {
+            assert_eq!(
+                store_error(Error::new("authority-unavailable", message)),
+                DispatchError::AuthorityUnavailable
+            );
+        }
+        assert_eq!(store_error(Error::forbidden()), DispatchError::Authority);
+        assert_eq!(
+            store_error(Error::storage()),
+            DispatchError::StorageUnavailable
+        );
+    }
+}
