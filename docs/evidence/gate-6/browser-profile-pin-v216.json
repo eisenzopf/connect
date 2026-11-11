@@ -1,0 +1,61 @@
+{
+  "format": "connect/g6-058-browser-profile-pin-fix/1",
+  "updated": "2026-11-11T09:24:26.775366+00:00",
+  "after_run": "v215",
+  "problem": "Chrome CA-profile helper retained a Chrome156 pin after the approved Mac runtime advanced to157. Browser workloads stopped before admission; zero-packet failures were downstream.",
+  "fix": "Use the approved per-platform matrix contract for the exact runtime check. Preserve private profiles, certificate trust rules and packet requirements.",
+  "unit_tests": {
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "command": "python3 -B -m unittest discover -s scripts/tests -p test_browser_profile.py -v"
+  },
+  "actual_chrome_version": "157.0.8103.39",
+  "actual_tls_checks": [
+    {
+      "case": "trusted",
+      "passed": true,
+      "process_joined": true,
+      "receipt_sha256": "c4de83163fd36ea4111f9b8d0064435201be7615153d26bbc862704f5e9c1a43",
+      "tls_results": {
+        "valid": {
+          "https": true,
+          "wss": true
+        },
+        "foreign": {
+          "https": false,
+          "wss": false
+        },
+        "wrong_name": {
+          "https": false,
+          "wss": false
+        }
+      }
+    },
+    {
+      "case": "untrusted",
+      "passed": true,
+      "process_joined": true,
+      "receipt_sha256": "3ca22a517ac7671b9188a07b3089ea8c2ce0b29b5b55ed27a525c79ca2420bc8",
+      "tls_results": {
+        "valid": {
+          "https": false,
+          "wss": false
+        },
+        "foreign": {
+          "https": false,
+          "wss": false
+        },
+        "wrong_name": {
+          "https": false,
+          "wss": false
+        }
+      }
+    }
+  ],
+  "schema_fixture": "scripts/fixtures/browser-profile/chrome157-server-certificate-schema.json",
+  "schema_fixture_sha256": "ed2607021cb419fd60c38df197bf1eaac9992410cdad93f4eb85d93add5e53d6",
+  "matrix_cells_retested": 0,
+  "matrix_passes_claimed": 0,
+  "remaining": "Full affected browser workload and next full32 matrix remain pending."
+}

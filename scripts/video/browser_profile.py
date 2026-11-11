@@ -2,6 +2,7 @@
 """Seed one new isolated qualification profile with normal local CA trust."""
 import argparse
 import ctypes
+from contextlib import closing
 import hashlib
 import json
 import platform
@@ -11,8 +12,7 @@ import subprocess
 import sys
 
 
-CHROME_VERSION = '156.0.8078.80'
-LINUX_CHROME_VERSION = '156.0.8078.4'
+ROOT = Path(__file__).resolve().parents[2]
 NSS_VERSION = '3.130'
 
 
@@ -104,6 +104,17 @@ def import_firefox_root(runtime, profile, certificate):
     return version
 
 
+def expected_chrome_version():
+    """The approved matrix contract pins both runtime and isolated trust fixture."""
+    versions = json.loads((ROOT / 'contracts/gate6-transport-matrix.json').read_text())[
+        'expected_browsers_by_client_platform']
+    if sys.platform == 'darwin':
+        return 'Google Chrome ' + versions['macos-arm64']['chrome']
+    if sys.platform == 'linux' and platform.machine() == 'aarch64':
+        return 'Google Chrome for Testing ' + versions['ubuntu24-arm64']['chrome']
+    raise ValueError('Use a verified macOS or Linux qualification profile')
+
+
 def create_profile(browser, binary, profile, root_der):
     binary, profile, root_der = map(lambda p: Path(p).absolute(), (binary, profile, root_der))
     # Never accept an existing directory or symlink, including an empty profile.
@@ -114,12 +125,7 @@ def create_profile(browser, binary, profile, root_der):
         raise ValueError('Expected one bounded DER CA certificate')
     if browser == 'chrome':
         version = subprocess.check_output([str(binary), '--version'], text=True).strip()
-        if sys.platform == 'darwin':
-            expected = 'Google Chrome ' + CHROME_VERSION
-        elif sys.platform == 'linux' and platform.machine() == 'aarch64':
-            expected = 'Google Chrome for Testing ' + LINUX_CHROME_VERSION
-        else:
-            raise ValueError('Use a verified macOS or Linux qualification profile')
+        expected = expected_chrome_version()
         if version != expected:
             raise ValueError(f'Qualification database schema requires {expected}')
     elif browser != 'firefox':
@@ -128,7 +134,7 @@ def create_profile(browser, binary, profile, root_der):
     if browser == 'chrome':
         default = profile / 'Default'
         default.mkdir(mode=0o700)
-        with sqlite3.connect(default / 'ServerCertificate') as db:
+        with closing(sqlite3.connect(default / 'ServerCertificate')) as db, db:
             db.executescript('''
                 CREATE TABLE meta(key LONGVARCHAR NOT NULL UNIQUE PRIMARY KEY,value LONGVARCHAR);
                 CREATE TABLE certificates(sha256hash_hex TEXT PRIMARY KEY,
@@ -137,7 +143,7 @@ def create_profile(browser, binary, profile, root_der):
             db.executemany('INSERT INTO meta VALUES(?,?)', [
                 ('version', 1), ('last_compatible_version', 1), ('mmap_status', -1),
             ])
-            # Chromium 156 CertificateMetadata.trust (field 1) contains
+            # The qualified v1 CertificateMetadata.trust (field 1) contains
             # CertificateTrust.trust_type (field 1), TRUSTED enum value 3.
             db.execute('INSERT INTO certificates VALUES(?,?,?)', (
                 hashlib.sha256(certificate).hexdigest(), certificate, bytes.fromhex('0a020803')))

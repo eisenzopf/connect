@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T04:01:21.180608+00:00",
-  "run_status": "Resource Begin/retirement batch passes 118/118 focused checks: Store 93, protocol 13, signed 10 and cadence 2. Both media scenarios complete both handoff rounds with no measured bins below 24 FPS. Latest full v214 remains 0/32 cells and 288/432 checks passed. Local ARM qualification and the full 32-cell retest are next.",
+  "updated": "2026-11-11T09:24:26.775366+00:00",
+  "run_status": "Completed local v215: all 32 cells attempted, 0 passed/32 failed; 287 of 432 checks passed, 101 failed, 44 blocked, 0 not-run. Focused 121/121 and both release builds passed before the run. No overall matrix improvement. Next batch addresses Chrome fixture version drift, subscription reauthorization, Data completion authority invalidation and retirement latency; all media and cleanup limits remain unchanged. Chrome profile fix now passes 11 unit tests and real configured/unconfigured HTTPS/WSS checks; affected matrix cells have not yet been rerun.",
   "blockers": [
     {
       "id": "B01",
@@ -1537,10 +1537,42 @@
     {
       "id": "B188",
       "title": "Allocate/Start admission excludes unchanged original media",
-      "status": "Addressed in focused runtime: both reproduced old admission failures now pass; Store93/protocol13/signed10/cadence2 all pass. Full matrix pending.",
+      "status": "Focused121/121 verified including ARM. Full v215 completed with0/32cell passes; separate remaining blockers B189\u2013B192.",
       "change": "Use current Read with exact same-Unit dormant resource ledger; retire all original authority aliases before historical failure settlement. Keep real mutations under Writer.",
       "evidence": "docs/evidence/gate-6/resource-begin-continuity-v215.json",
-      "next": "Qualify the same reviewed source on local ARM and in all32 transport cells."
+      "next": "Retain focused evidence; finish next batch and repeat unchanged full matrix."
+    },
+    {
+      "id": "B189",
+      "title": "Chrome CA-profile runtime pin drift",
+      "status": "Implemented: 11 unit tests and both real Chrome trust profiles pass; full matrix verification pending.",
+      "change": "Read approved platform runtime pin from the matrix contract; preserve strict CA validation.",
+      "evidence": "docs/evidence/gate-6/browser-profile-pin-v216.json",
+      "next": "Run affected browser workload, then the full matrix after the remaining batch is verified."
+    },
+    {
+      "id": "B190",
+      "title": "Prepared subscription temporary authority refusal",
+      "status": "Root cause path identified; functional fix not implemented.",
+      "change": "Preserve the exact prepared resource and distinguish temporary authority-busy from permanent failure before bounded reauthorization.",
+      "evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
+      "next": "Signed contention, revocation, expiry and permanent-refusal controls; no preparation or effect replay."
+    },
+    {
+      "id": "B191",
+      "title": "Data completion may invalidate live audio custody",
+      "status": "Candidate cause under investigation; not yet proven or fixed.",
+      "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
+      "evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
+      "next": "Actual PCM grant continuity across positive completion/replay and revocation on genuine authority changes."
+    },
+    {
+      "id": "B192",
+      "title": "Retained-owner control requests exhaust shared cleanup cutoff",
+      "status": "Measured; functional fix not implemented.",
+      "change": "Remove serialized helper/server latency within the original shared 62\u201367second deadline.",
+      "evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
+      "next": "Original exact owner retirement, all current reads and cleanup complete within unchanged cutoff."
     }
   ],
   "workplan_tasks": [
@@ -3106,6 +3138,46 @@
       "status": "Focused runtime verified in resource-begin-continuity-v215.json:118/118 pass, including both two-round cadence scenarios. Full transport matrix pending.",
       "completion": "Pass coexistence/negative controls and actual signed failure/replay tests, then unchanged combined decoded cadence.",
       "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S103",
+      "title": "Chrome CA-profile runtime pin drift",
+      "owner": "Root",
+      "dependencies": [],
+      "solution": "Read approved platform runtime pin from the matrix contract; preserve strict CA validation.",
+      "status": "Implemented: 11 unit tests and real configured/unconfigured Chrome HTTPS/WSS checks pass.",
+      "completion": "Verify affected browser cells in the next complete matrix run.",
+      "completion_status": "focused-runtime-verified"
+    },
+    {
+      "id": "S104",
+      "title": "Prepared subscription temporary authority refusal",
+      "owner": "Root",
+      "dependencies": [],
+      "solution": "Preserve the exact prepared resource and distinguish temporary authority-busy from permanent failure before bounded reauthorization.",
+      "status": "Root cause path identified; functional fix not implemented.",
+      "completion": "Signed contention, revocation, expiry and permanent-refusal controls; no preparation or effect replay.",
+      "completion_status": "planned"
+    },
+    {
+      "id": "S105",
+      "title": "Data completion may invalidate live audio custody",
+      "owner": "Root",
+      "dependencies": [],
+      "solution": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
+      "status": "Candidate cause under investigation; not yet proven or fixed.",
+      "completion": "Actual PCM grant continuity across positive completion/replay and revocation on genuine authority changes.",
+      "completion_status": "planned"
+    },
+    {
+      "id": "S106",
+      "title": "Retained-owner control requests exhaust shared cleanup cutoff",
+      "owner": "Root",
+      "dependencies": [],
+      "solution": "Remove serialized helper/server latency within the original shared 62\u201367second deadline.",
+      "status": "Measured; functional fix not implemented.",
+      "completion": "Original exact owner retirement, all current reads and cleanup complete within unchanged cutoff.",
+      "completion_status": "planned"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -5487,81 +5559,21 @@
     "post_verification_changes": "Progress documentation and its renderer only; library, upstream patch, lock and test bytes unchanged."
   },
   "latest_full_run": {
-    "evidence_key": "completed_v214_actual",
-    "label": "v214",
-    "status_url": "../evidence/gate-6/transport-matrix-v214.json"
+    "evidence_key": "completed_v215_actual",
+    "label": "v215",
+    "status_url": "../evidence/gate-6/transport-matrix-v215.json"
   },
   "current_focused_verification": {
-    "passed": 118,
-    "planned": 118,
-    "scope": "Core6 and signed8 pass; unchanged Store60 retained by exact final emitted binary hash. Both cadence scenarios complete all handoffs but retain six deficient second7 bins each.",
-    "next": "Both media-cadence scenarios now pass. Local ARM companion checks and full32 retest pending; focused results do not qualify matrix cells."
+    "passed": 121,
+    "planned": 121,
+    "scope": "Store93, protocol13, signed10, cadence2 and Linux ARM readiness3.",
+    "next": "All32 retested in v215; no cell passed. Next fixes require focused regressions before another full run."
   },
   "current_workplan_tasks": [
-    "S86",
-    "S87",
-    "S88",
-    "S89",
-    "S90",
-    "S91",
-    "S92",
-    "S93",
-    "S94",
-    "S71",
-    "S72",
-    "S73",
-    "S74",
-    "S68",
-    "S69",
-    "S70",
-    "S39",
-    "S40",
-    "S41",
-    "S42",
-    "S43",
-    "S44",
-    "S45",
-    "S46",
-    "S47",
-    "S48",
-    "S49",
-    "S50",
-    "S51",
-    "S52",
-    "S53",
-    "S54",
-    "S55",
-    "S56",
-    "S57",
-    "S58",
-    "S59",
-    "S60",
-    "S61",
-    "S62",
-    "S63",
-    "S64",
-    "S65",
-    "S66",
-    "S67",
-    "S75",
-    "S76",
-    "S77",
-    "S78",
-    "S79",
-    "S80",
-    "S81",
-    "S82",
-    "S83",
-    "S84",
-    "S85",
-    "S95",
-    "S96",
-    "S97",
-    "S98",
-    "S99",
-    "S100",
-    "S101",
-    "S102"
+    "S103",
+    "S104",
+    "S105",
+    "S106"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -5575,10 +5587,6 @@
     "source_lock_sha256": "c058bd6954c4d3e08226845ec4f1de2b3ff59a053f98e278e3b97283d27d4754",
     "prepared_rvoip_sha256": "cc397acfbe5d00d01035e38a22874cae62a359e65c1b8279e60e3ec37b19905f",
     "qualification_note": "The Store comparison checker expected five full captures for two credentials, but measured eleven. Its strict failed receipt is preserved. Source review accounts for six admission captures, four execution checks and one output capture; the fixed path passes with one. No test or historical verdict was rewritten. Restored checks do not inflate the 83 distinct focused passes."
-  },
-  "next_full_run_status": {
-    "url": "../evidence/gate-6/prepared-media-followthrough-v215.json",
-    "label": "Latest v215 batch: 59/61 focused checks pass; second-round cadence still fails"
   },
   "completed_v208_actual": {
     "source_revision": "0e37d42e07bfe9f20ff9dc4d5d985db08d7c3005",
@@ -17045,5 +17053,59 @@
   "v215_preparation_resource_ledger": "docs/evidence/gate-6/preparation-resource-ledger-v215.json",
   "v215_prepared_media_followthrough": "docs/evidence/gate-6/prepared-media-followthrough-v215.json",
   "v215_private_activation_continuity": "docs/evidence/gate-6/private-activation-continuity-v215.json",
-  "v215_resource_begin_continuity": "docs/evidence/gate-6/resource-begin-continuity-v215.json"
+  "v215_resource_begin_continuity": "docs/evidence/gate-6/resource-begin-continuity-v215.json",
+  "completed_v215_actual": {
+    "source_revision": "1170d846a6f3d1af3c6e17eac8486a6ac27e6fb2",
+    "summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 32,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 287,
+        "failed": 101,
+        "blocked": 44,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "matrix_sha256": "77853c5268d861170c3664f05f42b91be825ed81c7eff621a97ccc981b2d1af2",
+    "closure_receipt_sha256": "19dc3fb02c0ad025ab332686a7e69a577fe02c2c91505f5592fd3d1c19b405d1",
+    "public_evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
+    "public_evidence_sha256": "7a2867554771310fc845caad36f9a39da0c29ea70049527d17eed816404d666d",
+    "source_release": "Original coordinator joined; complete state releases source guard.",
+    "failure_family_cell_counts": {
+      "device-replacement-and-old-owner-retirement": 25,
+      "declared-concurrent-workload": 11,
+      "independently-decoded-duplex-media-and-profile-budgets": 28,
+      "owned-drain-and-resource-reclamation": 29,
+      "actual-private-packet-capture": 4,
+      "normal-tls-and-current-device-key-authority": 1,
+      "current-revocation-expiry-and-conflicting-operation-refusals": 1,
+      "wt-unavailable-selects-documented-wss-fallback-with-reason": 1,
+      "neither-path-usable-refuses-without-mutation-resubmission": 1
+    },
+    "blocked_requirement_family_cell_counts": {
+      "normal-tls-and-current-device-key-authority": 4,
+      "selected-transport-and-authenticated-discovery": 5,
+      "one-service-contract-and-original-operation-recovery": 5,
+      "participant-add-update-remove-and-current-audiences": 5,
+      "session-upgrade-and-current-capability-refusal": 5,
+      "device-replacement-and-old-owner-retirement": 4,
+      "independently-decoded-duplex-media-and-profile-budgets": 4,
+      "current-revocation-expiry-and-conflicting-operation-refusals": 4,
+      "wt-unavailable-selects-documented-wss-fallback-with-reason": 4,
+      "neither-path-usable-refuses-without-mutation-resubmission": 4
+    }
+  },
+  "v216_chrome_profile_fix": {
+    "public_evidence": "docs/evidence/gate-6/browser-profile-pin-v216.json",
+    "public_evidence_sha256": "ee630f67f8a725d7a97f869e6720659ece87908b906a6e4f670834e08582f2fd"
+  }
 }

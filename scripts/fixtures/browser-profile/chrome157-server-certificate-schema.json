@@ -1,0 +1,72 @@
+{
+  "format": "connect/chrome-isolated-certificate-schema/1",
+  "client_platform": "macos-arm64",
+  "browser_version": "Google Chrome 157.0.8103.39",
+  "schema_source": "Actual Chrome157-created isolated untrusted profile from completed v215 cell; browser naturally joined and unconfigured CA refused.",
+  "archive_sha256": "e61a6f46dc3aa09cd2143cecbed14d9298597db68914dc2435328136908d5c8d",
+  "component_report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+  "original_database_sha256": "180ffbc2a4f10b5563f5a7bfe62d23909f0aa77572a06e59a9be4c6fca7176f7",
+  "member": "private/browser/untrusted-profile/Default/ServerCertificate",
+  "tables": {
+    "meta": [
+      [
+        0,
+        "key",
+        "LONGVARCHAR",
+        1,
+        null,
+        1
+      ],
+      [
+        1,
+        "value",
+        "LONGVARCHAR",
+        0,
+        null,
+        0
+      ]
+    ],
+    "certificates": [
+      [
+        0,
+        "sha256hash_hex",
+        "TEXT",
+        0,
+        null,
+        1
+      ],
+      [
+        1,
+        "der_cert",
+        "BLOB",
+        1,
+        null,
+        0
+      ],
+      [
+        2,
+        "trust_settings",
+        "BLOB",
+        1,
+        null,
+        0
+      ]
+    ]
+  },
+  "meta": [
+    [
+      "last_compatible_version",
+      "1"
+    ],
+    [
+      "mmap_status",
+      "-1"
+    ],
+    [
+      "version",
+      "1"
+    ]
+  ],
+  "actual_original_certificate_rows": 0,
+  "scope": "Observed SQLite schema and version compatibility only. This empty database does not establish configured HTTPS/WSS acceptance or certificate-trust blob decoding."
+}

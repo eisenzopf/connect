@@ -1,5 +1,10 @@
-"""Pinned Firefox trust importer bootstrap; no browser or native library execution."""
+"""Exact private-profile runtime/schema and bundled NSS; no browser/library execution."""
 import importlib.util
+from contextlib import closing
+import hashlib
+import json
+import sqlite3
+import tempfile
 from pathlib import Path
 import unittest
 from unittest import mock
@@ -83,6 +88,95 @@ class FirefoxProfileBootstrap(unittest.TestCase):
             with self.assertRaises(ValueError):
                 PROFILE.load_firefox_nss(Path("/original/firefox"))
         load.assert_not_called()
+
+
+class ChromeProfileContract(unittest.TestCase):
+    def setUp(self):
+        self.scratch = tempfile.TemporaryDirectory()
+        self.addCleanup(self.scratch.cleanup)
+        self.base = Path(self.scratch.name)
+        self.root_der = self.base / 'root.der'
+        self.root_der.write_bytes(b'\x30\x00')
+        self.binary = self.base / 'original-chrome'
+        self.contract = json.loads((PROFILE.ROOT / 'contracts/gate6-transport-matrix.json').read_text())
+
+    def create(self, version, system='darwin', destination=None):
+        destination = destination or self.base / 'profile'
+        with mock.patch.object(PROFILE.sys, 'platform', system), \
+                mock.patch.object(PROFILE.platform, 'machine', return_value='aarch64'), \
+                mock.patch.object(PROFILE.subprocess, 'check_output', return_value=version + '\n'):
+            return PROFILE.create_profile('chrome', self.binary, destination, self.root_der)
+
+    def test_approved_mac157_seeds_actual_chrome157_schema_and_preserves_trust_bytes(self):
+        fixture_path = Path(__file__).resolve().parents[1] / 'fixtures/browser-profile/chrome157-server-certificate-schema.json'
+        original = json.loads(fixture_path.read_text())
+        version = 'Google Chrome ' + self.contract['expected_browsers_by_client_platform']['macos-arm64']['chrome']
+        self.assertEqual(version, original['browser_version'], 'New approved runtime needs an actual schema observation')
+        result = self.create(version)
+        self.assertEqual(result['version'], version)
+        self.assertEqual(result['root_sha256'], hashlib.sha256(self.root_der.read_bytes()).hexdigest())
+        with closing(sqlite3.connect(self.base / 'profile/Default/ServerCertificate')) as db:
+            for name, columns in original['tables'].items():
+                self.assertEqual([list(row) for row in db.execute('PRAGMA table_info(' + name + ')')], columns)
+            self.assertEqual([list(row) for row in db.execute('SELECT key,value FROM meta ORDER BY key')], original['meta'])
+            self.assertEqual(db.execute('SELECT sha256hash_hex,der_cert,trust_settings FROM certificates').fetchall(),
+                             [(result['root_sha256'], self.root_der.read_bytes(), bytes.fromhex('0a020803'))])
+            self.assertEqual(db.execute('PRAGMA integrity_check').fetchone(), ('ok',))
+        self.assertEqual((self.base / 'profile').stat().st_mode & 0o777, 0o700)
+
+    def test_linux_retains_exact_approved_testing_runtime(self):
+        version = 'Google Chrome for Testing ' + self.contract['expected_browsers_by_client_platform']['ubuntu24-arm64']['chrome']
+        self.assertEqual(self.create(version, 'linux')['version'], version)
+
+    def test_profile_import_reads_actual_contract_not_a_second_version_literal(self):
+        contract = json.loads(json.dumps(self.contract))
+        contract['expected_browsers_by_client_platform']['macos-arm64']['chrome'] = '157.0.8103.40'
+        source = self.base / 'contract-root'
+        (source / 'contracts').mkdir(parents=True)
+        (source / 'contracts/gate6-transport-matrix.json').write_text(json.dumps(contract))
+        with mock.patch.object(PROFILE, 'ROOT', source):
+            self.assertEqual(self.create('Google Chrome 157.0.8103.40')['version'], 'Google Chrome 157.0.8103.40')
+
+    def test_stale_foreign_product_or_platform_runtime_refuses_before_profile_creation(self):
+        for index, (system, version) in enumerate([
+                ('darwin', 'Google Chrome 156.0.8078.80'),
+                ('darwin', 'Google Chrome for Testing 157.0.8103.39'),
+                ('linux', 'Google Chrome 157.0.8103.39'),
+                ('linux', 'Google Chrome for Testing 156.0.8078.5')]):
+            with self.subTest(system=system, version=version):
+                profile = self.base / ('refused-' + str(index))
+                with self.assertRaises(ValueError):
+                    self.create(version, system, profile)
+                self.assertFalse(profile.exists())
+
+    def test_existing_or_symlink_profile_refuses_without_running_version_or_changing_target(self):
+        existing = self.base / 'existing'
+        existing.mkdir()
+        marker = existing / 'original'
+        marker.write_bytes(b'keep')
+        link = self.base / 'linked'
+        link.symlink_to(existing, target_is_directory=True)
+        with mock.patch.object(PROFILE.subprocess, 'check_output') as check:
+            for profile in [existing, link]:
+                with self.assertRaises(FileExistsError):
+                    PROFILE.create_profile('chrome', self.binary, profile, self.root_der)
+        check.assert_not_called()
+        self.assertEqual(marker.read_bytes(), b'keep')
+        self.assertEqual(sorted(p.name for p in existing.iterdir()), ['original'])
+
+    def test_empty_or_oversized_root_refuses_without_profile_or_version_execution(self):
+        for size in [0, 65537]:
+            self.root_der.write_bytes(b'x' * size)
+            with mock.patch.object(PROFILE.subprocess, 'check_output') as check:
+                with self.assertRaises(ValueError):
+                    PROFILE.create_profile('chrome', self.binary, self.base / 'refused', self.root_der)
+            check.assert_not_called()
+            self.assertFalse((self.base / 'refused').exists())
+
+    def test_unsupported_platform_refuses_without_creating_profile(self):
+        with self.assertRaises(ValueError):
+            self.create('Google Chrome 157.0.8103.39', 'win32')
+        self.assertFalse((self.base / 'profile').exists())
 
 
 if __name__ == "__main__":
