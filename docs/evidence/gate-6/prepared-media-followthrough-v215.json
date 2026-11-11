@@ -1,0 +1,199 @@
+{
+  "format": "connect/prepared-media-followthrough/1",
+  "updated": "2026-11-11T01:00:36.529834+00:00",
+  "base_commit": "51d027434710cff29d6e5d84ead4eb768122102b",
+  "status": "59 of 61 distinct focused checks passed; both cadence tests still fail. No new full 32-cell run.",
+  "changes": [
+    "Exact positive preparation/allocation/Start captures and fresh unused reservation bookkeeping preserve existing public media epochs under transaction-bound permissions; known capture replay uses Deferred SQL.",
+    "Dormant initial muted activation uses the original current scoped Read. Actual first signed Start and later scene mutations retain their mutation boundaries. RTC releases all activation readers before the owned historical capture call.",
+    "Signed allocation releases both application/reply guards and the coordinator before owned historical recording; fresh exact original source/root/target/capture and physical validation precede restoring reply authority. No physical attempt is repeated."
+  ],
+  "checks": {
+    "store": {
+      "receipt_sha256": "31a4682f98369014c038c007d2f182b823258f5fe94db0dc2e3069fccdf08b42",
+      "source_sha256": "6faa9987bf8000856d0792216565174e3b6d4d2f7deb4437d876b6efcd2de99b",
+      "summary": {
+        "selected": 53,
+        "completed": 53,
+        "passed": 53,
+        "failed": 0
+      },
+      "selected": [
+        "connection_control::tests::replacement_sources::custody::fresh_generated_reservation_preserves_queued_old_source_epoch",
+        "connection_control::tests::replacement_sources::custody::fresh_reservation_permit_refuses_victims_and_other_lease_or_lineage",
+        "connection_control::tests::replacement_sources::custody::reservation_writer_drains_original_packet_reads_and_does_not_pin_later_media",
+        "connection_control::tests::replacement_sources::custody::reservation_mixed_scope_still_excludes_same_conversation_readers",
+        "connection_control::tests::replacement_sources::custody::preparation_reservation_releases_writer_during_primary_sql_reacquire",
+        "connection_control::tests::replacement_sources::custody::replacement_reserved_candidate_refuses_ordinary_native_preparation_before_and_after_cancel",
+        "connection_control::tests::replacement_sources::custody::positive_prepared_capture_and_replay_preserve_old_source_epoch",
+        "connection_control::tests::replacement_sources::custody::replacement_preparation_captured_fact_survives_cancel_and_revoke_without_media_or_role_claim",
+        "connection_control::tests::replacement_sources::custody::replacement_preparation_begins_once_and_unknown_never_authorizes_another_attempt",
+        "connection_control::tests::replacement_sources::custody::preparation_begin_preserves_epoch_during_primary_sql_reacquire",
+        "connection_control::tests::replacement_sources::custody::exact_prepared_capture_replay_does_not_reserve_sql_writer",
+        "connection_control::tests::replacement_sources::allocation::positive_allocation_capture_preserves_original_queued_epoch_and_replay",
+        "connection_control::tests::replacement_sources::start::positive_start_capture_preserves_original_queued_epoch_and_replay",
+        "connection_control::tests::replacement_sources::allocation::positive_resource_capture_permit_rejects_wrong_descriptor_and_negative_mutations",
+        "connection_control::tests::replacement_sources::allocation::replacement_allocation_unknown_cannot_reexecute_or_borrow_preparation_cleanup",
+        "connection_control::tests::replacement_sources::allocation::signed_allocation_uncertain_sql_refusal_retains_same_attempt_and_records_unknown_once",
+        "connection_control::tests::replacement_sources::start::replacement_start_refuses_changed_parameters_and_unknown_never_repeats",
+        "connection_control::tests::replacement_sources::start::replacement_start_has_separate_once_only_effect_and_fresh_provisional_generation_two_reads",
+        "connection_control::tests::replacement_sources::start::mixed_authority::replacement_start_keeps_identity_readers_and_records_with_exact_conversation_writer",
+        "connection_control::tests::replacement_sources::custody::preparation_begin_preserves_queued_old_source_epoch",
+        "connection_control::tests::replacement_sources::custody::preparation_begin_permit_authorizes_only_exact_positive_ledger",
+        "connection_control::tests::replacement_sources::custody::reserved_preparation_begin_refusal_keeps_same_lease_effect_and_original_cutoff",
+        "connection_control::tests::replacement_sources::custody::replacement_preparation_current_policy_loss_prevents_begin_and_capture_is_not_execution",
+        "connection_control::tests::replacement_sources::custody::replacement_restart_fences_unstarted_started_and_captured_preparation_without_reexecution",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::positive_ledger::scene_positive_attach_preserves_actual_io_and_original_queued_epoch_once",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::positive_ledger::scene_positive_readiness_preserves_io_but_activate_and_current_writer_still_exclude",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::positive_ledger::uncertain_capture_retains_writer_and_drains_actual_io_before_unknown",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::positive_ledger::late_positive_unknown_or_cancelled_capture_cannot_use_read_or_revive_io",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::positive_ledger::raw_read_wrong_phase_and_foreign_manager_cannot_borrow_ledger_permit",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::positive_ledger::ledger_nonce_is_transaction_bound_and_cannot_replace_unique_victim",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::positive_ledger::expired_complete_scene_refuses_ledger_begin_without_renewing_original_cutoff",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::positive_ledger::phase_step_collisions_and_wrong_attempt_do_not_consume_original_binding",
+        "authority_writer_boundary::tests::raw_sql_cannot_revoke_a_live_store_credential",
+        "authority_writer_boundary::tests::actual_row_refuses_missing_read_foreign_and_wrong_identity_writers",
+        "authority_writer_boundary::tests::sql_unit_pins_the_original_writer_and_rolls_back_before_releasing_it",
+        "authority_writer_boundary::tests::cached_statement_steps_the_current_exact_unit_permit",
+        "authority_writer_boundary::tests::update_or_replace_cannot_erase_another_identity_with_only_the_source_writer",
+        "authority_writer_boundary::tests::original_journal_append_fills_metadata_but_cannot_rewrite_a_saved_export_prefix",
+        "authority_writer_boundary::tests::watcher_cannot_enable_after_a_guard_trigger_or_schema_table_changes",
+        "authority_writer_boundary::tests::native_flow_phase_and_join_projection_preserve_permissions_but_control_mutations_need_write",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::original_attach_journal_writer_is_released_before_fresh_complete_read_and_old_source_io",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::cancellation_between_original_attach_reservation_and_fresh_read_refuses_without_new_effect",
+        "connection_control::tests::replacement_sources::start::scene_snapshot::credential_revocation_after_attach_begin_is_checked_by_new_complete_read",
+        "connection_control::tests::replacement_sources::start::replacement_private_media_phases_are_ordered_once_only_and_capture_without_projection",
+        "connection_control::tests::replacement_sources::start::uncertain_private_attach_does_not_reexecute_and_exact_native_retirement_settles_only_local_resources",
+        "connection_control::tests::replacement_sources::start::replacement_full_scene_read_uses_one_complete_interval_for_target_and_existing_routes",
+        "connection_control::tests::replacement_sources::start::mixed_authority::dormant_start_activation_preserves_queued_old_source_epoch",
+        "connection_control::tests::replacement_sources::start::mixed_authority::dormant_start_activation_keeps_live_io_and_drains_real_revocation_before_uncertain_capture",
+        "connection_control::tests::replacement_sources::start::mixed_authority::replacement_start_same_conversation_reader_blocks_without_an_attempt_then_original_succeeds",
+        "connection_control::tests::replacement_sources::start::mixed_authority::replacement_start_rechecks_current_credential_and_original_root_binding",
+        "connection_control::tests::replacement_sources::allocation::first_allocation_reply_requires_exact_current_captured_target_descriptor",
+        "connection_control::tests::replacement_sources::allocation::first_allocation_reply_refuses_durable_cancel_before_any_runtime_token",
+        "connection_control::tests::replacement_sources::allocation::first_allocation_reply_revalidates_original_retained_source_after_capture"
+      ],
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "signed": {
+      "receipt_sha256": "66e638d5b0de4581aafbc58b732478fa13d0a6445ea98d8cf43ef1a726a2392b",
+      "source_sha256": "6faa9987bf8000856d0792216565174e3b6d4d2f7deb4437d876b6efcd2de99b",
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "selected": [
+        "sdk_handles::replacement_video_recovery::signed_allocation_capture_releases_writer_while_primary_sql_is_owned",
+        "sdk_handles::replacement_video_recovery::signed_allocation_capture_settles_original_after_operator_withdrawal_but_refuses_reply"
+      ],
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "preparation": {
+      "receipt_sha256": "c65aae6a028c52469db35e8791b725647c1f17b950b88b69994b4d1e512a2b9c",
+      "source_sha256": "6faa9987bf8000856d0792216565174e3b6d4d2f7deb4437d876b6efcd2de99b",
+      "summary": {
+        "selected": 4,
+        "completed": 4,
+        "passed": 4,
+        "failed": 0
+      },
+      "selected": [
+        "sdk_handles::replacement_video_recovery::signed_attach_read_custody_preserves_original_route_during_actual_core_boundary",
+        "sdk_handles::replacement_video_recovery::signed_signal_read_custody_preserves_original_route_during_actual_core_boundary",
+        "sdk_handles::replacement_video_recovery::signed_attach_read_custody_revocation_cuts_original_epoch_and_drains_real_io",
+        "sdk_handles::replacement_video_recovery::signed_signal_read_custody_revocation_cuts_original_epoch_and_drains_real_io"
+      ],
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "cadence": {
+      "receipt_sha256": "a0c50bed8e17757ff7338cd8c3f2db32cad1247c264358d7b39ed4e9b45bea07",
+      "source_sha256": "6faa9987bf8000856d0792216565174e3b6d4d2f7deb4437d876b6efcd2de99b",
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "selected": [
+        "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+        "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates"
+      ],
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "old_signed": {
+      "receipt_sha256": "569f2b0ba5f822e378cf804aeecedc7b38ecb14a8c67f007945e5dff719959e5",
+      "source_sha256": "a26de7f721af5889cb0376ef42dade2e53e70c341dfe9dc06066850cc97d0c8e",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "selected": [
+        "sdk_handles::replacement_video_recovery::signed_allocation_capture_releases_writer_while_primary_sql_is_owned"
+      ],
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "old_dormant": {
+      "receipt_sha256": "82d2f03e0c8265ecf073536eea057548ace6d5eed6df5a9031dfa0c66a7098ae",
+      "source_sha256": "a26de7f721af5889cb0376ef42dade2e53e70c341dfe9dc06066850cc97d0c8e",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "selected": [
+        "connection_control::tests::replacement_sources::start::mixed_authority::dormant_start_activation_preserves_queued_old_source_epoch"
+      ],
+      "source_unchanged": true,
+      "original_groups_absent": true
+    }
+  },
+  "causal_old_failures": {
+    "signed": "allocation capture starved actual original video while primary SQL was held",
+    "dormant": "dormant initial muted activation admission revoked the original queued old-source epoch"
+  },
+  "cadence_comparison": {
+    "previous_source_commit": "24551061",
+    "previous_deficient_bins": [
+      16,
+      11
+    ],
+    "current_deficient_bins": [
+      6,
+      6
+    ],
+    "current_failing_round": 1,
+    "current_failing_complete_second": 7,
+    "decoded_fps_by_receiver_case00": [
+      16,
+      18,
+      13,
+      15,
+      16,
+      16
+    ],
+    "decoded_fps_by_receiver_case01": [
+      20,
+      16,
+      20,
+      20,
+      14,
+      13
+    ],
+    "required_fps": 24,
+    "publisher_encoded_and_submitted_fps": 30,
+    "first_round": "All complete cadence bins passed in both cases.",
+    "movement_and_cleanup": "Both handoff rounds completed; all original runner groups exited naturally and were absent.",
+    "interpretation": "The shared residual window overlaps allocation/Start and private Activate. Timing alignment alone does not identify which owner dropped the frames."
+  },
+  "next": "Attribute remaining second-round shared loss before another full matrix; keep all original quality thresholds. Three Linux-only fixture controls still need local ARM Linux verification."
+}

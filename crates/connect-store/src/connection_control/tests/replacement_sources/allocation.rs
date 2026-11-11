@@ -1077,3 +1077,295 @@ fn signed_allocation_sqlite_begin_failure_never_becomes_entry_deferral() {
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
     assert_eq!(f.count("native_replacement_steps"), 1);
 }
+
+pub(super) fn positive_resource_preserves_old_source(
+    store: &std::sync::Arc<Store>,
+    source: &std::sync::Arc<crate::NativeMediaOrigin>,
+    provider: &str,
+    record: impl Fn() -> crate::Result<connect_protocol::transitions::OperationRecord>,
+) {
+    use std::time::{Duration, Instant};
+    let mut watcher = store.start_media_authorization_watcher().unwrap();
+    let weak = std::sync::Arc::downgrade(store);
+    let original = source.clone();
+    let snapshot = store
+        .register_native_media_snapshot_for(source, None, move || {
+            weak.upgrade()
+                .ok_or_else(crate::Error::forbidden)?
+                .try_native_media_read(&original, None)
+        })
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let live = loop {
+        match snapshot.admit() {
+            Ok(io) => break io,
+            Err(error) if error.code == "authority-busy" && Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(1))
+            }
+            Err(error) => panic!("original old source publication setup refused: {error}"),
+        }
+    };
+    let stamp = live.snapshot_stamp().unwrap();
+    let epoch = live.packet_epoch().unwrap();
+    // Preserve a queued packet epoch, not an active IO reader that would
+    // prevent the old Writer from confirming the same immutable capture.
+    drop(live);
+    let first = record();
+    let first_epoch = epoch.current();
+    let original_io = snapshot.admit_original(stamp).ok();
+    let before_replay = Store::inspect_snapshot(store.path()).unwrap();
+    let repeated = record();
+    let replay_epoch = epoch.current() && original_io.as_ref().is_some_and(|io| io.current());
+    drop(original_io);
+    let after_replay = Store::inspect_snapshot(store.path()).unwrap();
+    drop(snapshot);
+    watcher.shutdown().unwrap();
+
+    let first = first.unwrap();
+    assert_eq!(first.state, OperationState::Preparing);
+    assert_eq!(first, repeated.unwrap());
+    assert_eq!(before_replay, after_replay);
+    let effect = first
+        .effects
+        .iter()
+        .find(|effect| effect.provider == provider)
+        .unwrap();
+    assert_eq!(effect.state, EffectState::Confirmed);
+    assert_eq!((effect.attempt, effect.submission_generation), (1, 1));
+    assert!(
+        first_epoch,
+        "positive resource capture revoked the original queued old-source epoch"
+    );
+    assert!(
+        replay_epoch,
+        "identical capture replay revoked actual old-source IO"
+    );
+}
+
+#[test]
+fn positive_allocation_capture_preserves_original_queued_epoch_and_replay() {
+    let (f, _, _, prepared, request, sources) = prepared_target_scene();
+    let proof = f.admit(&request);
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
+        .unwrap();
+    let expected = attempt.expected_allocation().clone();
+    let capture = attempt.allocated(expected).unwrap();
+    drop(read);
+    drop(proof);
+    let store = std::sync::Arc::new(f.store);
+    positive_resource_preserves_old_source(
+        &store,
+        &sources[0],
+        "native-replacement-allocate",
+        || store.record_native_replacement_allocated(&capture),
+    );
+}
+
+#[test]
+fn positive_resource_capture_permit_rejects_wrong_descriptor_and_negative_mutations() {
+    use crate::authority_writer_boundary::phase_ledger::{Key, Stage};
+    use crate::{AuthorityMode, AuthorityScope};
+    let (f, _, command, prepared, request) = prepared_target();
+    let proof = f.admit(&request);
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
+        .unwrap();
+    let expected = crate::provisioning::canonical_json(attempt.expected_allocation()).unwrap();
+    let record = attempt.record_id();
+    drop(read);
+    drop(proof);
+    let (owner, runtime, reservation, digest, attempt_id, effect, target): (String, String, String, String, String, String, String) = f.store.connection().unwrap().query_row(
+        "SELECT o.owner_id,n.runtime_epoch,n.reservation_id,n.plan_digest,s.attempt_id,s.effect_id,e.observation_json FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='allocate' JOIN operation_effects e ON e.id=s.effect_id WHERE n.operation_record_id=?1",
+        [record], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?,row.get(5)?,row.get(6)?)),
+    ).unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let held = f
+        .store
+        .try_acquire_authority(&[
+            AuthorityScope::identity(&owner, AuthorityMode::Read).unwrap(),
+            AuthorityScope::conversation(&command.conversation_id, AuthorityMode::Read).unwrap(),
+        ])
+        .unwrap();
+    let mut c = f.store.connection().unwrap();
+    let tx = c
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    let observe = "UPDATE native_replacement_steps SET observation_json=?2 WHERE operation_record_id=?1 AND phase='allocate'";
+    let confirm = "UPDATE operation_effects SET state='confirmed' WHERE id=?1";
+    let touch = "UPDATE operations SET revision=revision+1 WHERE record_id=?1";
+    let key = |observation: &str| Key {
+        record: record.to_owned(),
+        phase: "allocate",
+        attempt: attempt_id.clone(),
+        effect: effect.clone(),
+        expected: observation.to_owned(),
+        runtime: runtime.clone(),
+        reservation: reservation.clone(),
+        digest: digest.clone(),
+        stage: Stage::Confirm,
+    };
+    let boundary = &f.store.authority_writer_boundary;
+    assert!(tx.execute(observe, [record, &expected]).is_err());
+    assert!(boundary
+        .native_resource_capture_ledger(&f.store, &tx, &held, key(&expected), Some("{}"))
+        .is_err());
+    assert!(boundary
+        .native_resource_capture_ledger(&f.store, &tx, &held, key("{}"), Some(&target))
+        .is_err());
+    let permit = boundary
+        .native_resource_capture_ledger(&f.store, &tx, &held, key(&expected), Some(&target))
+        .unwrap();
+    assert!(tx.execute(confirm, [&effect]).is_err());
+    assert!(tx.execute(observe, [record, "{}"]).is_err());
+    assert_eq!(tx.execute(observe, [record, &expected]).unwrap(), 1);
+    assert!(tx
+        .execute(
+            "UPDATE operation_effects SET state='unknown' WHERE id=?1",
+            [&effect]
+        )
+        .is_err());
+    assert!(tx
+        .execute(
+            "UPDATE operation_effects SET state='confirmed',observation_json='{}' WHERE id=?1",
+            [&effect]
+        )
+        .is_err());
+    assert_eq!(tx.execute(confirm, [&effect]).unwrap(), 1);
+    assert!(tx
+        .execute(
+            "UPDATE operations SET cancel_requested=1,revision=revision+1 WHERE record_id=?1",
+            [record]
+        )
+        .is_err());
+    assert_eq!(tx.execute(touch, [record]).unwrap(), 1);
+    assert!(tx.execute(touch, [record]).is_err());
+    drop(permit);
+    tx.rollback().unwrap();
+    drop(c);
+    drop(held);
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+}
+
+fn captured_allocation_for_reply(
+    f: &Fixture,
+    prepared: &NativeReplacementPrepared,
+    request: &PeerAuthorityRequest,
+) -> crate::NativeReplacementAllocated {
+    let proof = f.admit(request);
+    let credential = &request.credentials[0];
+    let (attempt, read) = f
+        .store
+        .begin_native_replacement_allocation_with_peer(prepared, credential, &proof)
+        .unwrap();
+    drop(read);
+    let expected = attempt.expected_allocation().clone();
+    let captured = attempt.allocated(expected).unwrap();
+    let unconfirmed = f
+        .store
+        .native_replacement_allocation_reply_with_peer(&captured, credential, &proof)
+        .unwrap_err();
+    assert_eq!(
+        unconfirmed.code, "forbidden",
+        "an opaque Core receipt is not a durable capture"
+    );
+    let recorded = f
+        .store
+        .record_native_replacement_allocated_with_peer(&captured, &proof)
+        .unwrap();
+    let current = f
+        .store
+        .native_replacement_allocation_reply_with_peer(&captured, credential, &proof)
+        .unwrap();
+    assert_eq!(current, recorded);
+    assert_eq!(current.state, OperationState::Preparing);
+    assert_eq!(current.effects.len(), 2);
+    assert!(current
+        .effects
+        .iter()
+        .all(|effect| effect.state == EffectState::Confirmed));
+    captured
+}
+
+#[test]
+fn first_allocation_reply_requires_exact_current_captured_target_descriptor() {
+    let (f, _, _, prepared, request) = prepared_target();
+    let captured = captured_allocation_for_reply(&f, &prepared, &request);
+    let mut changed = request.clone();
+    let crate::PeerCommand::NativeConnectionOffer(intent) = &mut changed.command else {
+        panic!()
+    };
+    intent.offer["streams_offered"][0]["id"] = json!("changed-audio");
+    let proof = f.admit(&changed);
+    let selected = f
+        .store
+        .native_replacement_allocation_read_with_peer(&prepared, &changed.credentials[0], &proof)
+        .unwrap();
+    assert!(
+        selected.current(),
+        "the altered signed target can have current planning authority"
+    );
+    let error = f
+        .store
+        .native_replacement_allocation_reply_with_peer(&captured, &changed.credentials[0], &proof)
+        .unwrap_err();
+    assert_eq!(
+        error.code, "conflict",
+        "planning authority cannot reuse another exact target receipt"
+    );
+}
+
+#[test]
+fn first_allocation_reply_refuses_durable_cancel_before_any_runtime_token() {
+    let (f, key, command, prepared, request) = prepared_target();
+    let captured = captured_allocation_for_reply(&f, &prepared, &request);
+    cancel(&f, &key, &command);
+    // The target credential and physical offer remain generally admissible.
+    // No Service root token is involved in this durable cancellation.
+    let proof = f.admit(&request);
+    assert!(proof.current());
+    let error = f
+        .store
+        .native_replacement_allocation_reply_with_peer(&captured, &request.credentials[0], &proof)
+        .unwrap_err();
+    assert_eq!(error.code, "forbidden");
+    let historical = f
+        .store
+        .replay_native_replacement_allocation_with_peer(&captured, &request.credentials[0], &proof)
+        .unwrap();
+    assert!(historical.cancel_requested);
+    assert!(
+        historical.result.is_none()
+            && historical.problem.is_none()
+            && historical.effects.is_empty()
+    );
+}
+
+#[test]
+fn first_allocation_reply_revalidates_original_retained_source_after_capture() {
+    let (f, _, _, prepared, request) = prepared_target();
+    let captured = captured_allocation_for_reply(&f, &prepared, &request);
+    let admin = f.store.revalidate(&f.admin).unwrap();
+    f.store.revoke(&admin, &f.keys[1]).unwrap();
+    let proof = f.admit(&request);
+    assert!(
+        proof.current(),
+        "generic target authorization is still live"
+    );
+    let error = f
+        .store
+        .native_replacement_allocation_reply_with_peer(&captured, &request.credentials[0], &proof)
+        .unwrap_err();
+    assert!(matches!(error.code.as_str(), "unauthorized" | "forbidden"));
+    let historical = f
+        .store
+        .replay_native_replacement_allocation_with_peer(&captured, &request.credentials[0], &proof)
+        .unwrap();
+    assert!(
+        historical.result.is_none()
+            && historical.problem.is_none()
+            && historical.effects.is_empty()
+    );
+}

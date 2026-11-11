@@ -1,6 +1,7 @@
 //! Exact same-Unit positive native phase metadata; never an IO authorization.
 use super::*;
 use rusqlite::OptionalExtension;
+pub(crate) mod reservation;
 
 pub(crate) const FUNCTION: &str = "connect_store_native_phase_ledger_v1";
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -19,10 +20,12 @@ pub(crate) struct Key {
     pub digest: String,
     pub stage: Stage,
 }
+struct ResourceTarget<'a>(Option<&'a str>);
 pub(super) struct Active {
     key: Key,
     nonce: u64,
     root_revision: i64,
+    reservation_root: Option<String>,
     // Pins the original complete Read until this transaction permit ends.
     _proof: Arc<AuthorityGuardSet>,
 }
@@ -99,17 +102,29 @@ impl State {
                 return false;
             };
             let key = &active.key;
+            if key.phase == "reserve" {
+                return key.record == record
+                    && phase == Some("reserve")
+                    && active.reservation_matches(action, effect, expected, attempt, revision);
+            }
             let action_matches = match action {
                 "effect-birth" | "effect-submit" => key.stage == Stage::Begin,
                 "prepare-step-start" | "prepare-effect-submit" => {
                     key.phase == "prepare" && key.stage == Stage::Begin
                 }
                 "effect-confirm" => key.stage == Stage::Confirm,
+                "resource-step-confirm" | "resource-effect-confirm" | "resource-root-touch" => {
+                    matches!(key.phase, "prepare" | "allocate" | "start")
+                        && key.stage == Stage::Confirm
+                }
                 "root-touch-begin" => key.stage == Stage::Begin,
                 "root-touch-confirm" => key.stage == Stage::Confirm,
                 _ => false,
             };
-            let revision_matches = if matches!(action, "root-touch-begin" | "root-touch-confirm") {
+            let revision_matches = if matches!(
+                action,
+                "root-touch-begin" | "root-touch-confirm" | "resource-root-touch"
+            ) {
                 active.root_revision.checked_add(1) == revision
             } else {
                 revision.is_none()
@@ -136,8 +151,41 @@ impl State {
         proof: &Arc<AuthorityGuardSet>,
         key: Key,
     ) -> Result<Permit<'a>> {
+        self.native_phase_ledger_in(store, connection, proof, key, None)
+    }
+
+    /// Historical immutable capture only. The opaque receipt supplies the
+    /// previously submitted target descriptor separately from its observation.
+    pub(crate) fn native_resource_capture_ledger<'a>(
+        self: &Arc<Self>,
+        store: &Store,
+        connection: &'a Connection,
+        proof: &Arc<AuthorityGuardSet>,
+        key: Key,
+        target: Option<&str>,
+    ) -> Result<Permit<'a>> {
+        if key.stage != Stage::Confirm
+            || !matches!(
+                (key.phase, target),
+                ("prepare", None) | ("allocate" | "start", Some(_))
+            )
+        {
+            return Err(Error::forbidden());
+        }
+        self.native_phase_ledger_in(store, connection, proof, key, Some(ResourceTarget(target)))
+    }
+
+    fn native_phase_ledger_in<'a>(
+        self: &Arc<Self>,
+        store: &Store,
+        connection: &'a Connection,
+        proof: &Arc<AuthorityGuardSet>,
+        key: Key,
+        resource_target: Option<ResourceTarget<'_>>,
+    ) -> Result<Permit<'a>> {
         if !Arc::ptr_eq(self, &store.authority_writer_boundary)
-            || !matches!(key.phase, "prepare" | "attach" | "readiness")
+            || (resource_target.is_none()
+                && !matches!(key.phase, "prepare" | "attach" | "readiness"))
             || key.record.is_empty()
             || key.effect.is_empty()
             || key.attempt.is_empty()
@@ -176,7 +224,43 @@ impl State {
         ) {
             return Err(Error::forbidden());
         }
-        if key.phase == "prepare" {
+        if let Some(ResourceTarget(target)) = resource_target {
+            let plan: Option<String> = connection.query_row(
+                "SELECT n.plan_json FROM native_replacement_steps s JOIN native_replacements n ON n.operation_record_id=s.operation_record_id JOIN operations o ON o.record_id=n.operation_record_id JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase=?2 AND s.attempt_id=?3 AND s.effect_id=?4 AND s.started=1 AND s.observation_json IS NULL AND o.lease_owner=n.reservation_id AND o.lease_expires_at=n.expires_at AND e.provider='native-replacement-'||s.phase AND e.correlation_key=CASE s.phase WHEN 'prepare' THEN s.operation_record_id ELSE e.id END AND e.idempotency_mode='none' AND e.state='submitting' AND e.attempt=1 AND e.submission_generation=1 AND e.provider_ref IS NULL AND e.observation_json IS ?5 AND e.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM native_replacement_steps later WHERE later.operation_record_id=s.operation_record_id AND (later.phase='commit' OR (s.phase='allocate' AND later.phase='start') OR (s.phase='prepare' AND later.phase!='prepare')))",
+                rusqlite::params![key.record,key.phase,key.attempt,key.effect,target], |r|r.get(0),
+            ).optional().map_err(|_|Error::storage())?;
+            let plan: serde_json::Value = serde_json::from_str(&plan.ok_or_else(Error::forbidden)?)
+                .map_err(|_| Error::storage())?;
+            let expected = match (key.phase, target) {
+                ("prepare", None) => plan["expected_preparation"].clone(),
+                ("allocate", Some(target)) => {
+                    let target: serde_json::Value =
+                        serde_json::from_str(target).map_err(|_| Error::storage())?;
+                    let mut expected = plan["expected_preparation"].clone();
+                    expected["target_operation_id"] = target["intent"]["operation_id"].clone();
+                    expected["target_key_id"] = target["key_id"].clone();
+                    expected["allocated"] = serde_json::json!(true);
+                    expected
+                }
+                ("start", Some(target)) => {
+                    let target: serde_json::Value =
+                        serde_json::from_str(target).map_err(|_| Error::storage())?;
+                    let streams = target["intent"]["offer"]["streams_offered"]
+                        .as_array()
+                        .ok_or_else(Error::forbidden)?
+                        .iter()
+                        .map(|stream| stream["id"].clone())
+                        .collect::<Vec<_>>();
+                    serde_json::json!({"candidate":candidate,"generation":generation,"stream_revision":2,"streams":streams,"resources_prepared":true,"prepared_muted":true,"media_ready":false})
+                }
+                _ => return Err(Error::forbidden()),
+            };
+            if !expected.is_object()
+                || key.expected != crate::provisioning::canonical_json(&expected)?
+            {
+                return Err(Error::forbidden());
+            }
+        } else if key.phase == "prepare" {
             let valid: bool = connection.query_row(
                 "SELECT EXISTS(SELECT 1 FROM native_replacement_steps s JOIN native_replacements n ON n.operation_record_id=s.operation_record_id JOIN operations o ON o.record_id=n.operation_record_id JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase='prepare' AND s.attempt_id=?2 AND s.effect_id=?3 AND s.started=0 AND s.observation_json IS NULL AND o.lease_owner=n.reservation_id AND o.lease_expires_at=n.expires_at AND n.expires_at>?4 AND e.provider='native-replacement-prepare' AND e.correlation_key=s.operation_record_id AND e.idempotency_mode='none' AND e.state='prepared' AND e.attempt=0 AND e.submission_generation=0 AND e.provider_ref IS NULL AND e.observation_json IS NULL AND e.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM native_replacement_steps later WHERE later.operation_record_id=s.operation_record_id AND later.phase!='prepare'))",
                 rusqlite::params![key.record,key.attempt,key.effect,crate::now()], |r|r.get(0),
@@ -218,6 +302,7 @@ impl State {
             key,
             nonce,
             root_revision,
+            reservation_root: None,
             _proof: proof.clone(),
         });
         Ok(Permit {

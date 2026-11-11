@@ -470,3 +470,170 @@ pub(super) fn assert_settled(database: &Path, record: &str, mode: u8) {
         assert!(rows.iter().all(|row| row.2 == "confirmed"));
     }
 }
+
+#[derive(Debug, PartialEq, Eq)]
+struct AllocationStep {
+    attempt_id: String,
+    effect_id: String,
+    attempt: u64,
+    submission_generation: u64,
+    state: String,
+    observation: bool,
+}
+
+fn allocation_step(f: &Fixture, record: &str) -> rusqlite::Result<AllocationStep> {
+    let db = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )?;
+    db.busy_timeout(Duration::ZERO)?;
+    db.query_row(
+        "SELECT s.attempt_id,s.effect_id,e.attempt,e.submission_generation,e.state,s.observation_json IS NOT NULL FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase='allocate' AND s.started=1",
+        [record], |row| Ok(AllocationStep {attempt_id:row.get(0)?,effect_id:row.get(1)?,attempt:row.get(2)?,submission_generation:row.get(3)?,state:row.get(4)?,observation:row.get(5)?}),
+    )
+}
+
+pub(super) async fn allocation_capture(
+    f: &Fixture,
+    probe: &PreparationCustodyProbe,
+    client: &mut CanonicalClient,
+    command: &TransitionCommand,
+    root: &connect_client::canonical::payloads::OperationUpdated,
+    offer: Value,
+    sender: &sdk::Stream,
+    receiver: &sdk::Stream,
+    original_key: &[u8],
+    sequence: &mut u16,
+    original_epoch: &sdk::VideoReceiveEpoch,
+    original: &readiness::OriginalPreparation,
+    withdraw_operator: Option<&str>,
+) -> std::result::Result<(), String> {
+    use readiness::surviving_epoch::SqlOwner;
+    let allocation = AssertUnwindSafe(client.allocate_native_replacement_target(
+        command,
+        root,
+        serde_json::from_value(offer).unwrap(),
+    ))
+    .catch_unwind();
+    let observe = async {
+        let mut sql = None;
+        let mut before = None;
+        let observed = AssertUnwindSafe(async {
+            tokio::time::timeout_at(original.cutoff, probe.entered())
+                .await
+                .map_err(|_| "original allocation capture did not reach its barrier".to_owned())?;
+            if withdraw_operator.is_none() {
+                sql = Some(SqlOwner::acquire(f.server.store.clone()));
+            }
+            let step = allocation_step(f, &original.record_id)
+                .map_err(|e| format!("original allocation metadata while SQL held: {e}"))?;
+            assert_eq!(
+                (
+                    &*step.state,
+                    step.attempt,
+                    step.submission_generation,
+                    step.observation
+                ),
+                ("submitting", 1, 1, false)
+            );
+            before = Some(step);
+            if let Some(operator) = withdraw_operator {
+                // Withdraw the source operation's independent operator
+                // credential while the exact target's signed request is
+                // parked. Its physical signer remains live for the refusal.
+                let store = f.server.store.clone();
+                let admin = f.admin.clone();
+                let operator = operator.to_owned();
+                tokio::task::spawn_blocking(move || {
+                    let admin = store.authenticate(&admin)?;
+                    store.revoke(&admin, &operator)
+                })
+                .await
+                .map_err(|e| format!("original operator withdrawal join: {e}"))?
+                .map_err(|e| format!("original operator withdrawal: {}", e.code))?;
+                probe.release();
+                tokio::time::timeout_at(original.cutoff, probe.left())
+                    .await
+                    .map_err(|_| "original withdrawal barrier did not release".to_owned())?;
+                return Ok(());
+            }
+            probe.release();
+            tokio::time::timeout_at(original.cutoff, probe.left())
+                .await
+                .map_err(|_| "original allocation capture barrier did not release".to_owned())?;
+            let media_until = original
+                .cutoff
+                .min(tokio::time::Instant::now() + Duration::from_millis(200));
+            let (bytes, epoch) = tokio::time::timeout_at(media_until, async {
+                publish_timestamp(sender, original_key, 1500, sequence).await;
+                receive_timestamp(receiver, 1500).await
+            })
+            .await
+            .map_err(|_| {
+                "allocation capture starved actual original video while primary SQL was held"
+                    .to_owned()
+            })?;
+            assert_eq!(&epoch, original_epoch);
+            assert_eq!(&bytes, original_key);
+            decode_old_route(f.temp.path(), &bytes, media_until).await?;
+            let held = allocation_step(f, &original.record_id)
+                .map_err(|e| format!("allocation step after actual old-route decoding: {e}"))?;
+            assert_eq!(
+                before.as_ref(),
+                Some(&held),
+                "allocation capture changed while primary SQL was held"
+            );
+            Ok::<(), String>(())
+        })
+        .catch_unwind()
+        .await;
+        let sql_joined = sql.as_mut().is_none_or(SqlOwner::finish);
+        drop(sql);
+        probe.release();
+        let result = observed.unwrap_or_else(|_| {
+            Err("actual old media/capture assertion failed (see retained panic)".into())
+        });
+        (result, before, sql_joined)
+    };
+    // If the old route fails, keep the actual signed command in flight and
+    // release its primary SQL blocker before waiting for the original reply.
+    let (allocation, (observed, before, sql_joined)) = tokio::join!(allocation, observe);
+    if !sql_joined {
+        return Err("original primary SQL owner failed to join".into());
+    }
+    let allocation = allocation.map_err(|_| "original signed allocation panicked".to_owned())?;
+    match (withdraw_operator, allocation) {
+        (Some(_), Err(connect_client::ClientError::Application(error)))
+            if error.code == "forbidden" => {}
+        (Some(_), _) => {
+            return Err(
+                "original allocation did not return its scoped forbidden after withdrawal".into(),
+            );
+        }
+        (None, Ok(reply))
+            if reply.record_id.as_ref() == root.record_id.as_ref()
+                && reply.operation_id == root.operation_id => {}
+        (None, Ok(_)) => return Err("original allocation replied for another record".into()),
+        (None, Err(error)) => {
+            return Err(format!(
+                "original signed allocation did not settle: {error}"
+            ));
+        }
+    }
+    let before = before.ok_or_else(|| "original started allocation was not observed".to_owned())?;
+    let after = allocation_step(f, &original.record_id)
+        .map_err(|e| format!("confirmed allocation metadata: {e}"))?;
+    if (&after.attempt_id, &after.effect_id) != (&before.attempt_id, &before.effect_id)
+        || (
+            &*after.state,
+            after.attempt,
+            after.submission_generation,
+            after.observation,
+        ) != ("confirmed", 1, 1, true)
+    {
+        return Err(format!(
+            "original allocation was not captured exactly once: {before:?} to {after:?}"
+        ));
+    }
+    observed
+}

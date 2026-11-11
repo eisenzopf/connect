@@ -1107,7 +1107,7 @@ async fn exercise(mode: u8) {
         f.temp.path(),
         matches!(
             mode,
-            18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29
+            18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31
         ),
     )
     .await;
@@ -1268,12 +1268,12 @@ async fn exercise(mode: u8) {
         None
     };
     #[cfg(feature = "test-support")]
-    let preparation_custody_probe = if (26..=29).contains(&mode) {
+    let preparation_custody_probe = if (26..=31).contains(&mode) {
         use connect_service::canonical_media_projection_fixture::PreparationCustodyPhase;
-        let phase = if matches!(mode, 26 | 28) {
-            PreparationCustodyPhase::Attach
-        } else {
-            PreparationCustodyPhase::Signal
+        let phase = match mode {
+            26 | 28 => PreparationCustodyPhase::Attach,
+            30 | 31 => PreparationCustodyPhase::AllocationCapture,
+            _ => PreparationCustodyPhase::Signal,
         };
         Some(
             f.server
@@ -1301,6 +1301,44 @@ async fn exercise(mode: u8) {
             .as_array_mut()
             .unwrap()
             .push(json!({"name":"pcma","params":{"sample_rate":8000,"channels":1}}));
+    }
+    #[cfg(feature = "test-support")]
+    if matches!(mode, 30 | 31) {
+        let probe = preparation_custody_probe.unwrap();
+        let observed = preparation_custody::allocation_capture(
+            &f,
+            &probe,
+            &mut replacement,
+            &command,
+            &root,
+            offer,
+            &old_send,
+            &retained_recv,
+            &first,
+            &mut original_sequence,
+            &previous_retained_epoch,
+            &original_preparation,
+            (mode == 31).then_some(original_operator_credential.as_str()),
+        )
+        .await;
+        drop(probe);
+        let encoder_closed =
+            futures_util::FutureExt::catch_unwind(std::panic::AssertUnwindSafe(encoder.close()))
+                .await;
+        let replacement_closed = replacement.shutdown().await;
+        let publisher_closed = publisher.close(options()).await;
+        let subscriber_closed = subscriber.close(options()).await;
+        let server_closed = f.server.shutdown().await;
+        assert!(
+            observed.is_ok(),
+            "actual allocation capture custody failed: {observed:?}"
+        );
+        assert!(encoder_closed.is_ok(), "original encoder did not close");
+        replacement_closed.unwrap();
+        publisher_closed.unwrap();
+        subscriber_closed.unwrap();
+        server_closed.unwrap();
+        return;
     }
     let allocation = replacement
         .allocate_native_replacement_target(
@@ -2168,6 +2206,18 @@ async fn signed_attach_read_custody_revocation_cuts_original_epoch_and_drains_re
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_signal_read_custody_revocation_cuts_original_epoch_and_drains_real_io() {
     exercise(29).await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_allocation_capture_releases_writer_while_primary_sql_is_owned() {
+    exercise(30).await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_allocation_capture_settles_original_after_operator_withdrawal_but_refuses_reply() {
+    exercise(31).await;
 }
 
 #[cfg(feature = "memory-diagnostics")]

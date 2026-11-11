@@ -1,0 +1,60 @@
+{
+  "format": "connect/preparation-resource-ledger/1",
+  "updated": "2026-11-11T01:00:36.529834+00:00",
+  "base_commit": "51d027434710cff29d6e5d84ead4eb768122102b",
+  "schema_version": 124,
+  "status": "All 53 integrated Store checks and all 6 signed preparation/allocation checks passed. Both representative cadence tests still fail only their second-round second-7 bins. Full v214 remains the latest matrix.",
+  "root_cause": "Preparing a new unused replacement and recording exact positive preparation, allocation and Start results acquired Conversation Writers despite leaving existing public route authorization unchanged. These Writers revoked original queued media epochs.",
+  "fix": "Exact transaction-bound permissions for generated unused reservation creation and first positive capture; fresh scoped Reads for unchanged public facts. Known capture replay uses Deferred SQL with exact tuple revalidation. Claimed target IDs, permission changes, cancellation, uncertainty and actual audience activation retain Writer exclusion.",
+  "checks": {
+    "resource-captures-old-resource_captures_old": {
+      "receipt_sha256": "3ab20aa6241077097f2849cc3db4537c2a1c36ee0925cff7303496a373edb088",
+      "source_sha256": "5e9e1008d454efdb55985c83bb1c25f7161582c94fa8a1a2496fa27397e88d66",
+      "summary": {
+        "selected": 3,
+        "completed": 3,
+        "passed": 0,
+        "failed": 3
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "fresh-reservation-old-fresh_reservation_old": {
+      "receipt_sha256": "a8779d6501fb495e26b8327636457e30f8f2b5643931b0e6558363575f2d21c4",
+      "source_sha256": "24e54fb0cf263b632f5c429dd5bccc52b1d3e6ad3c4b64addf09ac4da01c742c",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "preparation-ledger-batch-preparation_ledger_batch_fixed": {
+      "receipt_sha256": "cc30f3710caf87391aa72ad30401c466a6aaa5db67c3380741fd8040a737b853",
+      "source_sha256": "7596d16c356c667badc1bd1b4c8ab3110f895c276482df395371d9153cb9f7ee",
+      "summary": {
+        "selected": 46,
+        "completed": 46,
+        "passed": 46,
+        "failed": 0
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "integrated_store_53": {
+      "receipt_sha256": "31a4682f98369014c038c007d2f182b823258f5fe94db0dc2e3069fccdf08b42",
+      "source_sha256": "6faa9987bf8000856d0792216565174e3b6d4d2f7deb4437d876b6efcd2de99b",
+      "summary": {
+        "selected": 53,
+        "completed": 53,
+        "passed": 53,
+        "failed": 0
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    }
+  },
+  "related_followthrough": "docs/evidence/gate-6/prepared-media-followthrough-v215.json"
+}

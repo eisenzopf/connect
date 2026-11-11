@@ -120,10 +120,7 @@ fn allocated_current_with_packet_context(
     let a = &allocated.attempt;
     let prepared = &a.prepared;
     let saved = current_prepared_with_packet_context(store, c, prepared, captured)?;
-    let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.state='confirmed' WHERE s.operation_record_id=?1 AND s.phase='allocate' AND s.attempt_id=?2 AND s.effect_id=?3 AND s.started=1 AND s.observation_json=?4 AND e.observation_json=?5)",params![prepared.record,a.attempt,a.effect,allocated.observation,a.target],|r|r.get(0)).map_err(|_|Error::storage())?;
-    if !exact {
-        return Err(Error::forbidden());
-    }
+    require_confirmed_allocation(c, allocated)?;
     Ok(saved)
 }
 fn same_target(
@@ -416,6 +413,19 @@ impl Store {
     ) -> Result<OperationRecord> {
         let prepared = &attempt.allocated.attempt.prepared;
         local_owner(self, &prepared.owner, &prepared.runtime)?;
+        if let Some(observation) = observation {
+            let capture = PositiveResourceCapture {
+                prepared,
+                phase: "start",
+                attempt: &attempt.attempt,
+                effect: &attempt.effect,
+                target: &attempt.target,
+                observation,
+            };
+            if let Some(record) = self.try_record_positive_native_resource(capture, interval)? {
+                return Ok(record);
+            }
+        }
         let held = self.stable_authority_with(
             interval,
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),

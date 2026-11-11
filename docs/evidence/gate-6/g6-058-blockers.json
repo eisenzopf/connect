@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T00:00:23.985623+00:00",
-  "run_status": "Full v214 remains0/32 cells,288/432 checks pass. Latest Begin ledger fix passes9 focused and22 shared authority controls after reproducing old queued-media invalidation. Earlier recovery/SQL fixes and Signal fixture verified;3 companion controls await local ARM Linux. Both last combined cadence cases failed; related positive-capture fixes are being batched before another run.",
+  "updated": "2026-11-11T01:00:36.529834+00:00",
+  "run_status": "Full v214 remains 0/32 cells and 288/432 checks passed. The latest integrated preparation batch passes 53 Store and 6 signed checks. Both representative cadence tests still fail, but deficient bins fell from 16 and 11 to 6 each: only second 7 of the second preparation round remains below 24 FPS. Both first rounds now meet cadence. No new full matrix; three companion controls still await local ARM Linux.",
   "blockers": [
     {
       "id": "B01",
@@ -1497,10 +1497,10 @@
     {
       "id": "B183",
       "title": "Replacement preparation holds authority Writer while waiting for primary SQL",
-      "status": "Both old publication-stall regressions reproduced; all8 fixed Store controls pass. Combined cadence still fails; SQL wait fix alone is insufficient.",
-      "change": "Release the entire Writer proof on primary SQL mutex refusal before waiting. Reacquire current scopes within the original 250ms budget, before any transaction or mutation.",
-      "evidence": "docs/evidence/gate-6/replacement-sql-custody-v215.json",
-      "next": "Audit remaining preparation journal Writers and actual public projection dependencies."
+      "status": "Original preparation SQL controls pass; actual signed allocation starvation reproduced on old code and both fixed signed allocation controls pass.",
+      "change": "Release the entire Writer proof on primary SQL mutex refusal before waiting. Reacquire current scopes within the original 250ms budget, before any transaction or mutation. Signed allocation now releases both application aliases and the coordinator before historical recording, then freshly validates the exact original result and physical peer before restoring reply authority.",
+      "evidence": "docs/evidence/gate-6/prepared-media-followthrough-v215.json",
+      "next": "Remaining cadence loss is confined to the second-round shared second-7 window; investigate its exact owner."
     },
     {
       "id": "B184",
@@ -1513,10 +1513,18 @@
     {
       "id": "B185",
       "title": "Preparation-only ledger updates may invalidate unrelated public routes",
-      "status": "Begin fix implemented: original epoch-loss reproduced, then9 focused and22 shared authority/phase controls pass. Positive prepare/allocation/start capture and fresh-reservation audits remain in progress.",
-      "change": "Audit Begin and positive preparation/allocation/start recording separately. Preserve Writers for real permission, lineage, membership, activation, uncertainty and cancellation changes. Fresh candidate reservation needs a distinct absence/lineage proof.",
-      "evidence": "docs/evidence/gate-6/preparation-begin-ledger-v215.json",
-      "next": "Exact old-epoch counterexamples, narrowly bounded transaction permits and negative authorization controls, then combined cadence retest."
+      "status": "Implemented; four capture/reservation epoch-loss counterexamples reproduced and all 53 integrated Store controls pass. Both representative first rounds now pass cadence; second rounds remain below threshold.",
+      "change": "Schema 124 exact same-transaction permissions cover fresh unused generated reservation and first positive prepare/allocation/Start capture. Known replay is a Deferred read. Current policy, original cutoffs, once-only effects and Writer boundaries for real changes/uncertainty/cancellation remain enforced.",
+      "evidence": "docs/evidence/gate-6/preparation-resource-ledger-v215.json",
+      "next": "Attribute remaining second-round loss without loosening quality or authorization checks."
+    },
+    {
+      "id": "B186",
+      "title": "Dormant initial activation invalidates original queued media",
+      "status": "Old queued-epoch failure reproduced; fixed current-Read and real-revocation/Unknown controls pass within the 53-check batch. Actual cadence remains partially unresolved.",
+      "change": "Use current scoped Read only for the new dormant target initial muted activation. Drop all RTC read aliases before one owned historical recording; retain first signed Start and later actual scene mutation boundaries.",
+      "evidence": "docs/evidence/gate-6/prepared-media-followthrough-v215.json",
+      "next": "Verify remaining second-round stall and full transport matrix."
     }
   ],
   "workplan_tasks": [
@@ -2975,8 +2983,8 @@
         "S93"
       ],
       "code_paths": [],
-      "solution": "Audit exact journal DML/authorization dependencies and preserve current revocation, uncertainty and routing-change barriers.",
-      "status": "All22 phase controls and2 receiver guards pass; both cadence cases fail. Investigating exact pre-Activate loss and stale-partial decoder recovery.",
+      "solution": "Preserve existing public epochs through private bookkeeping, then trace residual shared loss across signed admission, Start and private Activate without assuming correlation is causation.",
+      "status": "53 Store and 6 signed checks pass. Both first rounds pass cadence; only six second-7 bins fail in each second round (13\u201320 FPS versus 24).",
       "completion": "Focused regression preserves current authority/cleanup and passes actual media delivery, then all32 cells.",
       "completion_status": "in-progress"
     },
@@ -2990,7 +2998,7 @@
       ],
       "code_paths": [],
       "solution": "Use retained policy trace to identify the first refusal/drop; add only the missing bounded diagnostic if necessary, then fix and test the exact path.",
-      "status": "Current fixed signed Signal continuity passes alongside Attach and both revocation controls. Earlier intermittent failures retained; full matrix still pending.",
+      "status": "All 4 signed Attach/Signal continuity and revocation checks pass on the latest integrated source; full matrix still pending.",
       "completion": "Focused regression preserves current authority/cleanup and passes actual media delivery, then all32 cells.",
       "completion_status": "focused-verified-with-runtime-limitations"
     },
@@ -3008,6 +3016,45 @@
       "status": "All5 fixed Store replay/first-capture/refusal controls pass, including original queued epoch regression. Signed preparation4/4 pass; cadence unresolved.",
       "completion": "Fixed actual epoch regression, first-capture Writer, historical cancellation/revocation and public commitment guards; signed delivery and representative cadence.",
       "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S98",
+      "title": "Keep original media live while allocation results wait for SQL",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S95"
+      ],
+      "code_paths": [],
+      "solution": "Actual original signed request, decoded old video under held SQL, same once-only historical result, and current reply refusal.",
+      "status": "Old signed video-starvation reproduced; both fixed signed continuity and operator-withdrawal controls pass.",
+      "completion": "Actual original signed request, decoded old video under held SQL, same once-only historical result, and current reply refusal.",
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S99",
+      "title": "Preserve old media during dormant muted startup",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S95"
+      ],
+      "code_paths": [],
+      "solution": "Preserve queued old stamp and live IO, enforce real revocation drain, and record original uncertainty once.",
+      "status": "Old epoch-loss reproduced; fixed current Read and revocation/Unknown controls pass in integrated Store53.",
+      "completion": "Preserve queued old stamp and live IO, enforce real revocation drain, and record original uncertainty once.",
+      "completion_status": "focused-verified-with-runtime-limitations"
+    },
+    {
+      "id": "S100",
+      "title": "Resolve remaining second-round shared media stall",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S95"
+      ],
+      "code_paths": [],
+      "solution": "Identify causal packet loss/authority owner, unit-test the fix, then rerun combined cadence before the full 32-cell matrix.",
+      "status": "In progress: both cadence tests fail only second-round second-7 bins despite all publishers producing 30 FPS.",
+      "completion": "Identify causal packet loss/authority owner, unit-test the fix, then rerun combined cadence before the full 32-cell matrix.",
+      "completion_status": "in-progress"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -5394,10 +5441,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v214.json"
   },
   "current_focused_verification": {
-    "passed": 33,
-    "planned": 35,
-    "scope": "Epoch-fix batch across preserved source-specific receipts:27 Store controls,2 receiver guards,4 signed preparation pass;2 representative cadence fail. Corrected fixture verified. No matrix-cell qualification.",
-    "next": "Reproduce and fix stale-partial recovery; identify original packet-loss cause, then fresh full32."
+    "passed": 59,
+    "planned": 61,
+    "scope": "Same integrated source: 53 Store, 2 signed allocation, 4 signed preparation, and 2 representative cadence checks. Both cadence cases failed.",
+    "next": "Resolve the remaining second-round shared stall, then local ARM Linux companions and full 32-cell qualification."
   },
   "current_workplan_tasks": [
     "S86",
@@ -5458,7 +5505,10 @@
     "S85",
     "S95",
     "S96",
-    "S97"
+    "S97",
+    "S98",
+    "S99",
+    "S100"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -5474,8 +5524,8 @@
     "qualification_note": "The Store comparison checker expected five full captures for two credentials, but measured eleven. Its strict failed receipt is preserved. Source review accounts for six admission captures, four execution checks and one output capture; the fixed path passes with one. No test or historical verdict was rewritten. Restored checks do not inflate the 83 distinct focused passes."
   },
   "next_full_run_status": {
-    "url": "../evidence/gate-6/post-v214-reviewed-batch.json",
-    "label": "Integrated v215 batch: source reviewed, build and tests pending"
+    "url": "../evidence/gate-6/prepared-media-followthrough-v215.json",
+    "label": "Latest v215 batch: 59/61 focused checks pass; second-round cadence still fails"
   },
   "completed_v208_actual": {
     "source_revision": "0e37d42e07bfe9f20ff9dc4d5d985db08d7c3005",
@@ -16938,5 +16988,7 @@
   "v215_preparation_begin_ledger": {
     "public_evidence": "docs/evidence/gate-6/preparation-begin-ledger-v215.json",
     "status": "Old epoch-loss regression reproduced; 9 focused Begin controls and22 shared authority/phase controls pass. Combined cadence retest waits for related capture changes."
-  }
+  },
+  "v215_preparation_resource_ledger": "docs/evidence/gate-6/preparation-resource-ledger-v215.json",
+  "v215_prepared_media_followthrough": "docs/evidence/gate-6/prepared-media-followthrough-v215.json"
 }

@@ -240,18 +240,12 @@ impl Runtime {
                 }
                 // This is only exact captured metadata replay, not a Core scene cut.
                 drop(_roles);
-                self.record_allocated_replacement_with_peer(&previous, a.clone())
+                let record = self
+                    .settle_original_allocation_reply(
+                        a, &physical, &saved, &previous, credential, true,
+                    )
                     .await
-                    .map_err(|error| allocation_refused("replay-capture", error))?;
-                let store = self.media.store.clone();
-                let a = a.clone();
-                let key = credential.to_owned();
-                let receipt = previous.receipt.clone();
-                let record = store_call(move || {
-                    store.replay_native_replacement_allocation_with_peer(&receipt, &key, proof(&a)?)
-                })
-                .await
-                .map_err(|error| allocation_refused("replay-read", error))?;
+                    .map_err(|error| allocation_refused("replay-reply", error))?;
                 return Ok(Reply {
                     record,
                     answered: false,
@@ -451,26 +445,171 @@ impl Runtime {
             }
             Err(_) => false,
         };
+        drop(_roles);
         if !installed {
-            // A valid physical capture already exists. Preserve that actual
-            // historical fact even if registry publication must fail closed.
+            // This capture has no registry owner to recover it. Preserve the
+            // original historical outcome before reporting failed publication.
             saved.handle.cancel();
-        }
-        let record = self
-            .record_allocated_replacement_with_peer(&allocated, a.clone())
-            .await
-            .map_err(|error| allocation_refused("capture", error))?;
-        if !installed {
+            self.record_allocated_replacement_with_peer(&allocated, a)
+                .await
+                .map_err(|error| allocation_refused("capture", error))?;
             return Err(allocation_refused(
                 "capture-owner-registry",
                 Error::storage(),
             ));
         }
+        let record = self
+            .settle_original_allocation_reply(a, &physical, &saved, &allocated, credential, false)
+            .await?;
         Ok(Reply {
             record,
             answered: false,
         })
     }
+    /// The same immutable Core capture already has an owner. Release both
+    /// original application aliases while recording it, then admit the same
+    /// signed command only for its reply. This cannot begin another effect.
+    async fn settle_original_allocation_reply(
+        &self,
+        a: Arc<AuthorizedEnvelope>,
+        physical: &Physical,
+        saved: &PreparedReplacement,
+        allocated: &AllocatedReplacement,
+        credential: &str,
+        replay: bool,
+    ) -> Result<connect_protocol::transitions::OperationRecord> {
+        let original = Arc::try_unwrap(a).map_err(|_| {
+            allocation_refused(
+                "capture-owner",
+                Error::new("conflict", "Original allocation invocation is still shared"),
+            )
+        })?;
+        let (a, cutoff) = original
+            .into_replacement_allocation_wait(saved.deadline)
+            .map_err(|_| allocation_refused("capture-suspend", Error::forbidden()))?;
+        #[cfg(feature = "test-support")]
+        self.pause_original_allocation_capture_for_test(saved, &a, cutoff)
+            .await;
+        // This is historical attribution, which may still settle after the
+        // original reply closes. The registry retains the same opaque capture.
+        self.record_allocated_replacement(allocated)
+            .await
+            .map_err(|error| allocation_refused("capture", error))?;
+        let root_cancel = saved.handle.cancellation();
+        let invocation_cancel = a.invocation_cancellation();
+        let current = || {
+            !self.stop.is_cancelled()
+                && !physical.lifetime.is_cancelled()
+                && !root_cancel.is_cancelled()
+                && !invocation_cancel.is_cancelled()
+                && tokio::time::Instant::now() < cutoff
+        };
+        while current() {
+            // Join the actual fresh policy acquisition even if cancellation
+            // wins during its blocking Store work. Recheck before any reply.
+            match a.reauthorize_resource_preparation().await {
+                Ok(fresh) if current() => {
+                    // The reply slot is still resource-only. Validate the actual
+                    // captured allocation under the same fresh proof before
+                    // restoring any result authority. A durable cancellation
+                    // may already be visible before Core propagates its token.
+                    let store = self.media.store.clone();
+                    let receipt = allocated.receipt.clone();
+                    let credential = credential.to_owned();
+                    let checked = fresh.clone();
+                    let observed = self
+                        .owned_store_call(move || {
+                            let proof = checked
+                                .authority::<StoreInvocationAuthority>()
+                                .and_then(|authority| authority.peer_guard())
+                                .ok_or_else(Error::forbidden)?;
+                            if replay {
+                                store.replay_native_replacement_allocation_with_peer(
+                                    &receipt,
+                                    &credential,
+                                    proof,
+                                )
+                            } else {
+                                store.native_replacement_allocation_reply_with_peer(
+                                    &receipt,
+                                    &credential,
+                                    proof,
+                                )
+                            }
+                        })
+                        .await;
+                    match observed {
+                        Ok(record) if current() => {
+                            let authority = fresh
+                                .authority::<StoreInvocationAuthority>()
+                                .ok_or_else(Error::forbidden)?;
+                            physical.validate(&a, authority).map_err(|error| {
+                                allocation_refused("capture-reply-physical", error)
+                            })?;
+                            if !current() {
+                                break;
+                            }
+                            a.resume_replacement_allocation(fresh).map_err(|_| {
+                                allocation_refused("capture-resume", Error::forbidden())
+                            })?;
+                            return Ok(record);
+                        }
+                        Ok(_) => break,
+                        Err(error)
+                            if error.code == "authority-busy"
+                                && error.message == "Current state is busy" =>
+                        {
+                            drop(fresh);
+                        }
+                        Err(error) if !replay && error.code == "unauthorized" => {
+                            // The target signer was already freshly admitted.
+                            // Withdrawal of the original source denies this result.
+                            return Err(allocation_refused(
+                                "capture-reply-state",
+                                Error::forbidden(),
+                            ));
+                        }
+                        Err(error) => return Err(allocation_refused("capture-reply-state", error)),
+                    }
+                }
+                Err(
+                    rvoip_uctp::v2::auth_dispatch::DispatchError::AuthorityUnavailable
+                    | rvoip_uctp::v2::auth_dispatch::DispatchError::StorageUnavailable,
+                ) => {}
+                _ => break,
+            }
+            tokio::select! { biased;
+                _ = self.stop.cancelled() => {},
+                _ = physical.lifetime.cancelled() => {},
+                _ = root_cancel.cancelled() => {},
+                _ = invocation_cancel.cancelled() => {},
+                _ = tokio::time::sleep_until(cutoff.min(tokio::time::Instant::now()+Duration::from_millis(20))) => {},
+            }
+        }
+        Err(allocation_refused(
+            "capture-reply-authority",
+            Error::forbidden(),
+        ))
+    }
+
+    #[cfg(feature = "test-support")]
+    async fn pause_original_allocation_capture_for_test(
+        &self,
+        saved: &PreparedReplacement,
+        a: &AuthorizedEnvelope,
+        cutoff: tokio::time::Instant,
+    ) {
+        use crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase;
+        if let Some(probe) = self.media.take_preparation_custody_probe_for_test(
+            &saved.origin.request().operation_id,
+            PreparationCustodyPhase::AllocationCapture,
+        ) {
+            probe
+                .pause(&self.stop, &a.invocation_cancellation(), cutoff, None)
+                .await;
+        }
+    }
+
     async fn record_allocation_uncertain_with_peer(
         &self,
         attempt: connect_store::NativeReplacementAllocationAttempt,
@@ -516,7 +655,7 @@ impl Runtime {
         let record = retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
             let receipt = allocated.receipt.clone();
-            store_call(move || store.record_native_replacement_allocated(&receipt))
+            self.owned_store_call(move || store.record_native_replacement_allocated(&receipt))
         })
         .await?;
         allocated.recorded.store(true, Ordering::Release);

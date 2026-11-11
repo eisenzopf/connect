@@ -7,12 +7,14 @@ use tokio_util::sync::CancellationToken;
 pub enum PreparationCustodyPhase {
     Attach,
     Signal,
+    AllocationCapture,
 }
 impl PreparationCustodyPhase {
     fn name(self) -> &'static str {
         match self {
             Self::Attach => "attach",
             Self::Signal => "signal",
+            Self::AllocationCapture => "allocation-capture",
         }
     }
 }

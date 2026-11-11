@@ -36,7 +36,7 @@ fn scene_snapshot(
         }
     }
 }
-fn source_snapshot(
+pub(super) fn source_snapshot(
     store: &Arc<Store>,
     source: &Arc<crate::NativeMediaOrigin>,
 ) -> crate::NativeMediaSnapshot {
@@ -50,7 +50,7 @@ fn source_snapshot(
         })
         .unwrap()
 }
-fn source_admitted(snapshot: &crate::NativeMediaSnapshot) -> crate::NativeMediaRead {
+pub(super) fn source_admitted(snapshot: &crate::NativeMediaSnapshot) -> crate::NativeMediaRead {
     let until = Instant::now() + Duration::from_secs(3);
     loop {
         match snapshot.admit() {

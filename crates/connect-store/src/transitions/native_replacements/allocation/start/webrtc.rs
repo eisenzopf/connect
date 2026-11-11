@@ -137,32 +137,24 @@ impl Store {
         origin: &NativeReplacementStartOrigin,
         wait: &crate::AuthorityWait,
     ) -> Result<PeerAuthorityGuard> {
-        self.resume_native_replacement_start_mode(origin, wait, false)
-    }
-    /// Fresh current mutation exclusion after independent transport/codecs.
-    /// Same original start, expiry and validators; no effect or media replay.
-    pub fn resume_native_replacement_start_activation_authority(
-        &self,
-        origin: &NativeReplacementStartOrigin,
-        wait: &crate::AuthorityWait,
-    ) -> Result<PeerAuthorityGuard> {
-        self.resume_native_replacement_start_mode(origin, wait, true)
-    }
-    fn resume_native_replacement_start_mode(
-        &self,
-        origin: &NativeReplacementStartOrigin,
-        wait: &crate::AuthorityWait,
-        mutation: bool,
-    ) -> Result<PeerAuthorityGuard> {
         let expiry = origin.expires_at;
         let remaining = chrono::DateTime::from_timestamp(expiry, 0)
             .and_then(|expiry| (expiry - chrono::Utc::now()).to_std().ok())
             .ok_or_else(Error::forbidden)?;
         let mut proof =
-            self.admit_peer_authority_mode(&origin.request, &wait.bounded(remaining), mutation)?;
+            self.admit_peer_authority_mode(&origin.request, &wait.bounded(remaining), false)?;
         proof.limit_expiry(expiry)?;
         self.native_replacement_start_read_under(origin, &proof)?;
         Ok(proof)
+    }
+    /// The dormant target's initial muted Core activation owns exact current
+    /// source/target authority. No existing route or durable lineage changes.
+    pub fn resume_native_replacement_start_activation_authority(
+        &self,
+        origin: &NativeReplacementStartOrigin,
+        wait: &crate::AuthorityWait,
+    ) -> Result<PeerAuthorityGuard> {
+        self.resume_native_replacement_start_authority(origin, wait)
     }
     pub fn native_replacement_start_read_under(
         &self,

@@ -543,6 +543,7 @@ impl Runtime {
         }, || async {
             let store = self.media.store.clone(); let origin = origin.clone(); let wait = wait.clone();
             let (proof, read) = store_call(move || {
+                // This exact Read covers only the dormant target's initial muted cut.
                 let proof = store.resume_native_replacement_start_activation_authority(&origin, &wait)?;
                 let read = store.native_replacement_start_read_under(&origin, &proof)?;
                 Ok((Arc::new(proof), Arc::new(read)))

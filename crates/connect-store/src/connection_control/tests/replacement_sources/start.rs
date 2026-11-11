@@ -1176,3 +1176,28 @@ fn replacement_start_after_sql_admission_error_is_never_a_typed_prebegin_deferra
         "original failed transaction rolls back its partial effect"
     );
 }
+
+#[test]
+fn positive_start_capture_preserves_original_queued_epoch_and_replay() {
+    let (f, _, _, allocated, request, sources) = fixture_scene(&[]);
+    let proof = f.admit(&request);
+    let read = f
+        .store
+        .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
+        .unwrap();
+    let (attempt, read, _) = f
+        .store
+        .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
+        .unwrap();
+    let expected = attempt.expected_resources().clone();
+    let capture = attempt.started(expected).unwrap();
+    drop(read);
+    drop(proof);
+    let store = Arc::new(f.store);
+    super::allocation::positive_resource_preserves_old_source(
+        &store,
+        &sources[0],
+        "native-replacement-start",
+        || store.record_native_replacement_started(&capture),
+    );
+}

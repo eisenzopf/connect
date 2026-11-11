@@ -1805,3 +1805,234 @@ fn preparation_begin_permit_authorizes_only_exact_positive_ledger() {
     drop(held);
     assert_eq!(preparation_effect_state(&f.store, record), (1, 0, 0));
 }
+
+#[test]
+fn positive_prepared_capture_and_replay_preserve_old_source_epoch() {
+    use std::time::{Duration, Instant};
+    let (f, _, _, origin, sources) = setup();
+    let lease = prepare(&f, &origin, &sources);
+    let expected = lease.plan().unwrap()["expected_preparation"].clone();
+    let attempt = begin(&f, lease);
+    let receipt = attempt.prepared(expected).unwrap();
+    let store = std::sync::Arc::new(f.store);
+    let mut watcher = store.start_media_authorization_watcher().unwrap();
+    let weak = std::sync::Arc::downgrade(&store);
+    let original = sources[0].clone();
+    let snapshot = store
+        .register_native_media_snapshot_for(&sources[0], None, move || {
+            weak.upgrade()
+                .ok_or_else(crate::Error::forbidden)?
+                .try_native_media_read(&original, None)
+        })
+        .unwrap();
+    let until = Instant::now() + Duration::from_secs(2);
+    let first = loop {
+        match snapshot.admit() {
+            Ok(io) => break io,
+            Err(error) if error.code == "authority-busy" && Instant::now() < until => {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            Err(error) => panic!("original old source publication setup refused: {error}"),
+        }
+    };
+    let stamp = first.snapshot_stamp().unwrap();
+    let epoch = first.packet_epoch().unwrap();
+    drop(first);
+    let captured = store.record_native_replacement_prepared(&receipt);
+    let original_after_capture = epoch.current() && snapshot.admit_original(stamp).is_ok();
+    let replayed = store.record_native_replacement_prepared(&receipt);
+    let original_after_replay = epoch.current() && snapshot.admit_original(stamp).is_ok();
+    drop(snapshot);
+    watcher.shutdown().unwrap();
+    let captured = captured.unwrap();
+    assert_eq!(captured.state, OperationState::Preparing);
+    assert_eq!(captured.effects.len(), 1);
+    assert_eq!(captured.effects[0].state, EffectState::Confirmed);
+    assert_eq!(captured.effects[0].attempt, 1);
+    assert!(captured.result.is_none());
+    assert_eq!(replayed.unwrap(), captured);
+    let rows: u64 = store.connection().unwrap().query_row(
+        "SELECT count(*) FROM operation_observations WHERE operation_record_id=?1 AND source='native-replacement-prepare'",
+        [origin.record_id()], |row| row.get(0),
+    ).unwrap();
+    assert_eq!(rows, 1);
+    assert!(
+        original_after_capture,
+        "positive prepared capture revoked the queued old-source epoch"
+    );
+    assert!(
+        original_after_replay,
+        "exact captured replay revoked the queued old-source epoch"
+    );
+}
+
+#[test]
+fn exact_prepared_capture_replay_does_not_reserve_sql_writer() {
+    let (f, _, _, origin, sources) = setup();
+    let lease = prepare(&f, &origin, &sources);
+    let expected = lease.plan().unwrap()["expected_preparation"].clone();
+    let receipt = begin(&f, lease).prepared(expected).unwrap();
+    let original = f
+        .store
+        .record_native_replacement_prepared(&receipt)
+        .unwrap();
+    let mut external = rusqlite::Connection::open(f.store.path()).unwrap();
+    let writer = external
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    let replay = f.store.record_native_replacement_prepared(&receipt);
+    writer.rollback().unwrap();
+    assert_eq!(replay.unwrap(), original);
+}
+
+#[test]
+fn fresh_generated_reservation_preserves_queued_old_source_epoch() {
+    use std::time::{Duration, Instant};
+    let (f, _, _, origin, sources) = setup();
+    let store = std::sync::Arc::new(f.store);
+    let mut watcher = store.start_media_authorization_watcher().unwrap();
+    let weak = std::sync::Arc::downgrade(&store);
+    let original = sources[0].clone();
+    let snapshot = store
+        .register_native_media_snapshot_for(&sources[0], None, move || {
+            weak.upgrade()
+                .ok_or_else(crate::Error::forbidden)?
+                .try_native_media_read(&original, None)
+        })
+        .unwrap();
+    let until = Instant::now() + Duration::from_secs(2);
+    let first = loop {
+        match snapshot.admit() {
+            Ok(io) => break io,
+            Err(error) if error.code == "authority-busy" && Instant::now() < until => {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            Err(error) => panic!("original old source publication setup refused: {error}"),
+        }
+    };
+    let stamp = first.snapshot_stamp().unwrap();
+    let epoch = first.packet_epoch().unwrap();
+    drop(first);
+    let candidate = format!("replacement_{}", origin.record_id());
+    let prepare = || {
+        let read = store.try_native_replacement_preparation_read(
+            &origin,
+            &crate::NativeReplacementSourceOrigin::Native(sources[0].clone()),
+            &sources[1],
+        )?;
+        let mut request = request();
+        request.candidate_connection_id = candidate.clone();
+        store.prepare_native_replacement(read, request)
+    };
+    let reserved = prepare();
+    let original_io = snapshot.admit_original(stamp).ok();
+    let replayed = prepare();
+    let epoch_preserved = epoch.current() && original_io.as_ref().is_some_and(|io| io.current());
+    drop(original_io);
+    drop(snapshot);
+    watcher.shutdown().unwrap();
+    let reserved = reserved.unwrap().unwrap();
+    assert_eq!(reserved.record_id(), origin.record_id());
+    assert_eq!(
+        reserved.plan().unwrap()["candidate_connection_id"],
+        candidate
+    );
+    let replayed = replayed.unwrap().unwrap();
+    assert_eq!(reserved.plan().unwrap(), replayed.plan().unwrap());
+    assert_eq!(reserved.expires_at(), replayed.expires_at());
+    assert_eq!(
+        preparation_effect_state(&store, origin.record_id()),
+        (1, 0, 0)
+    );
+    assert!(epoch_preserved, "fresh generated reservation revoked the queued old-source epoch without changing existing source facts");
+}
+
+#[test]
+fn fresh_reservation_permit_refuses_victims_and_other_lease_or_lineage() {
+    use crate::authority_writer_boundary::phase_ledger::reservation::Reservation;
+    use crate::{AuthorityMode, AuthorityScope};
+    let (f, _, _, origin, _) = setup();
+    let record = origin.record_id();
+    let (owner, cid, victim): (String, String, String) = f.store.connection().unwrap().query_row(
+        "SELECT o.owner_id,o.conversation_id,(SELECT id FROM operation_effects e WHERE e.operation_record_id!=o.record_id LIMIT 1) FROM operations o WHERE o.record_id=?1",
+        [record], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?)),
+    ).unwrap();
+    let held = f
+        .store
+        .try_acquire_authority(&[
+            AuthorityScope::identity(&owner, AuthorityMode::Read).unwrap(),
+            AuthorityScope::conversation(&cid, AuthorityMode::Read).unwrap(),
+        ])
+        .unwrap();
+    let candidate = format!("replacement_{record}");
+    let expires = crate::now() + 5;
+    let reservation = |effect| Reservation {
+        record,
+        credential: &origin.credential,
+        runtime: &origin.runtime,
+        original_digest: &origin.digest,
+        reservation: "fixture-fresh-reservation",
+        candidate: &candidate,
+        candidate_runtime: "fixture-fresh-runtime",
+        generation: 2,
+        plan: "{}",
+        selection: "{}",
+        plan_digest: "fixture-fresh-digest",
+        expires,
+        attempt: "fixture-fresh-attempt",
+        effect,
+    };
+    let mut sql = f.store.connection().unwrap();
+    let tx = sql
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    let update = "UPDATE operations SET state='preparing',lease_owner=?2,lease_expires_at=?3,worker_generation=worker_generation+1,worker_runtime=?4,worker_cleanup=0 WHERE record_id=?1";
+    let exact = params![
+        record,
+        "fixture-fresh-reservation",
+        expires,
+        f.store.transition_runtime
+    ];
+    assert!(
+        tx.execute(update, exact).is_err(),
+        "registered Read alone cannot reserve a lineage"
+    );
+    let boundary = &f.store.authority_writer_boundary;
+    assert!(
+        boundary
+            .native_fresh_reservation_ledger(&f.store, &tx, &held, reservation(&victim))
+            .is_err(),
+        "a colliding effect cannot borrow another original row"
+    );
+    let permit = boundary
+        .native_fresh_reservation_ledger(&f.store, &tx, &held, reservation("fixture-fresh-effect"))
+        .unwrap();
+    assert!(tx
+        .execute(
+            update,
+            params![record, "forged-lease", expires, f.store.transition_runtime]
+        )
+        .is_err());
+    assert_eq!(tx.execute(update, exact).unwrap(), 1);
+    let insert = "INSERT INTO native_replacements(operation_record_id,credential_id,runtime_epoch,original_digest,reservation_id,candidate_connection_id,candidate_runtime_id,generation,plan_json,selection_json,plan_digest,expires_at) VALUES(?1,?2,?3,?4,'fixture-fresh-reservation',?5,'fixture-fresh-runtime',2,'{}','{}','fixture-fresh-digest',?6)";
+    assert!(tx
+        .execute(
+            insert,
+            params![
+                record,
+                origin.credential,
+                origin.runtime,
+                origin.digest,
+                "forged-lineage",
+                expires
+            ]
+        )
+        .is_err());
+    assert!(tx.execute("INSERT OR REPLACE INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state) VALUES(?1,?2,'native-replacement-prepare',?2,'none','prepared')",params![victim,record]).is_err());
+    assert!(tx.query_row("SELECT EXISTS(SELECT 1 FROM operation_effects WHERE id=?1 AND operation_record_id!=?2)",params![victim,record],|row|row.get::<_,bool>(0)).unwrap());
+    drop(permit);
+    tx.rollback().unwrap();
+    drop(sql);
+    drop(held);
+    assert_eq!(preparation_effect_state(&f.store, record), (0, 0, 0));
+}

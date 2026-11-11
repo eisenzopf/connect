@@ -305,11 +305,11 @@ impl Store {
     /// waiting for the same original request. This cannot retry a mutation.
     fn native_replacement_preparation_sql<'a>(
         &'a self,
-        selection: &NativeReplacementSelection,
         wait: &crate::AuthorityWait,
         mutation: bool,
         authority_stage: &'static str,
         sql_stage: &'static str,
+        scopes: impl Fn(&Connection) -> Result<Vec<crate::AuthorityScope>>,
     ) -> Result<(
         Arc<crate::AuthorityGuardSet>,
         crate::installation_ownership::ConnectionGuard<'a>,
@@ -319,11 +319,7 @@ impl Store {
                 let c = self
                     .try_connection_with_wait(wait)
                     .map_err(|error| preparation_refused(sql_stage, error))?;
-                if mutation {
-                    self.native_replacement_reservation_scopes(&c, selection)?
-                } else {
-                    selection.scopes(self, &c, false)?
-                }
+                scopes(&c)?
             };
             let held = self
                 .acquire_authority(&scopes, wait)
@@ -348,40 +344,55 @@ impl Store {
         }
     }
 
-    /// Reserve IDs and a single managed-preparation effect before Core is
-    /// called. Current Identity facts retain Read; the exact Conversation
-    /// Writer drains lineage-dependent IO before candidate metadata changes.
-    /// No binding, participant, role, key or capability row changes here.
+    /// Reserve the original managed preparation before Core is called. An
+    /// unused generated target can be born under current selection Reads;
+    /// existing or explicitly named candidate lineages still need Write.
     pub fn prepare_native_replacement(
         &self,
         read: NativeReplacementPreparationRead,
         request: ReplacementPreparationRequest,
     ) -> Result<Option<NativeReplacementPreparationLease>> {
         validate_request(&request)?;
+        let fresh_target = read.context().candidate_connection_id.is_none()
+            && request.candidate_connection_id
+                == format!("replacement_{}", read.selection().origin.record_id());
         let selection = read.into_selection()?;
-        // into_selection consumes/drops every input Read interval before fresh
-        // ordered Write admission. Candidate linkage participates in private
-        // floor facts even before Core commit; never upgrade a retained reader.
-        // This writer ends at the reservation transaction, before transport or
-        // codec preparation, and does not grant candidate IO.
+        // Consume input Reads before rederiving current file scopes. Existing
+        // candidate linkage participates in private-floor facts before commit.
+        let scopes = |c: &Connection| {
+            if fresh_target {
+                selection.scopes(self, c, false)
+            } else {
+                self.native_replacement_reservation_scopes(c, &selection)
+            }
+        };
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(250));
         let (held, mut c) = self.native_replacement_preparation_sql(
-            &selection,
             &wait,
-            true,
+            !fresh_target,
             "reservation-authority",
             "reservation-sql",
+            &scopes,
         )?;
+        let replay = fresh_target
+            && c.query_row(
+                "SELECT EXISTS(SELECT 1 FROM native_replacements WHERE operation_record_id=?1)",
+                [selection.origin.record_id()],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(|_| Error::storage())?;
+        let behavior = if replay {
+            TransactionBehavior::Deferred
+        } else {
+            TransactionBehavior::Immediate
+        };
         let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .transaction_with_behavior(behavior)
             .map_err(|error| {
                 tracing::debug!(target:"connect_store::native_candidate",stage="reservation-transaction",sqlite_code=?error.sqlite_error_code(),"Replacement metadata deferred");
                 Error::new("authority-busy", "Replacement reservation metadata is busy")
             })?;
-        if !self.authority_covers(
-            &held,
-            &self.native_replacement_reservation_scopes(&tx, &selection)?,
-        ) {
+        if !self.authority_covers(&held, &scopes(&tx)?) {
             return Err(Error::forbidden());
         }
         let origin = &selection.origin;
@@ -419,6 +430,9 @@ impl Store {
                 expires,
             }));
         }
+        if replay {
+            return Err(conflict());
+        }
         let claimed = candidate::prepared(&tx, origin)?;
         if (!(row.record.state == OperationState::Accepted && row.record.effects.is_empty())
             && !(claimed && row.record.state == OperationState::Preparing))
@@ -455,11 +469,42 @@ impl Store {
         let reservation = format!("nrr_{}", uuid::Uuid::new_v4());
         let attempt = format!("nrp_{}", uuid::Uuid::new_v4());
         let effect = format!("nre_{}", uuid::Uuid::new_v4());
+        let generation = value["generation"].as_u64().ok_or_else(invalid)?;
+        let permit = if fresh_target {
+            use crate::authority_writer_boundary::phase_ledger::reservation::Reservation;
+            Some(
+                self.authority_writer_boundary
+                    .native_fresh_reservation_ledger(
+                        self,
+                        &tx,
+                        &held,
+                        Reservation {
+                            record: &origin.record,
+                            credential: &origin.credential,
+                            runtime: &origin.runtime,
+                            original_digest: &origin.digest,
+                            reservation: &reservation,
+                            candidate: &request.candidate_connection_id,
+                            candidate_runtime: &runtime,
+                            generation,
+                            plan: &encoded,
+                            selection: &selected,
+                            plan_digest: &hash,
+                            expires,
+                            attempt: &attempt,
+                            effect: &effect,
+                        },
+                    )?,
+            )
+        } else {
+            None
+        };
         tx.execute("UPDATE operations SET state='preparing',lease_owner=?2,lease_expires_at=?3,worker_generation=worker_generation+1,worker_runtime=?4,worker_cleanup=0 WHERE record_id=?1",params![origin.record,reservation,expires,self.transition_runtime]).map_err(|_|Error::storage())?;
-        tx.execute("INSERT INTO native_replacements(operation_record_id,credential_id,runtime_epoch,original_digest,reservation_id,candidate_connection_id,candidate_runtime_id,generation,plan_json,selection_json,plan_digest,expires_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",params![origin.record,origin.credential,origin.runtime,origin.digest,reservation,request.candidate_connection_id,runtime,value["generation"].as_u64().ok_or_else(invalid)?,encoded,selected,hash,expires]).map_err(|e|if matches!(e,rusqlite::Error::SqliteFailure(ref v,_) if v.code==rusqlite::ErrorCode::ConstraintViolation){conflict()}else{Error::storage()})?;
+        tx.execute("INSERT INTO native_replacements(operation_record_id,credential_id,runtime_epoch,original_digest,reservation_id,candidate_connection_id,candidate_runtime_id,generation,plan_json,selection_json,plan_digest,expires_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",params![origin.record,origin.credential,origin.runtime,origin.digest,reservation,request.candidate_connection_id,runtime,generation,encoded,selected,hash,expires]).map_err(|e|if matches!(e,rusqlite::Error::SqliteFailure(ref v,_) if v.code==rusqlite::ErrorCode::ConstraintViolation){conflict()}else{Error::storage()})?;
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state) VALUES(?1,?2,'native-replacement-prepare',?2,'none','prepared')",params![effect,origin.record]).map_err(|_|Error::storage())?;
         tx.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,'prepare',?2,?3)",params![origin.record,attempt,effect]).map_err(|_|Error::storage())?;
         native_handoffs::touch(&tx, &origin.record, self)?;
+        drop(permit);
         tx.commit().map_err(|_| Error::storage())?;
         Ok(Some(NativeReplacementPreparationLease {
             selection,
@@ -550,11 +595,11 @@ impl Store {
             std::time::Duration::from_secs(expires.saturating_sub(crate::now()).max(0) as u64);
         let wait = crate::AuthorityWait::new(remaining.min(std::time::Duration::from_millis(250)));
         let (held, mut c) = self.native_replacement_preparation_sql(
-            &selection,
             &wait,
             false,
             "begin-authority",
             "begin-sql",
+            |c| selection.scopes(self, c, false),
         )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -757,45 +802,136 @@ impl Store {
         receipt: &NativeReplacementPrepared,
     ) -> Result<OperationRecord> {
         local_owner(self, &receipt.owner, &receipt.runtime)?;
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                admission::mutation_row_scopes(&rows::by_record(&c, &receipt.record)?)
-            },
+        let wait = crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT);
+        {
+            let (held, mut c) = self.native_replacement_preparation_sql(
+                &wait,
+                false,
+                "capture-read-authority",
+                "capture-read-sql",
+                |c| admission::row_scopes(&rows::by_record(c, &receipt.record)?),
+            )?;
+            if prepared_recording_state(&c, receipt)?.0.is_some() {
+                // An identical receipt is an observation. Revalidate it inside
+                // a read transaction without taking a SQLite writer reservation.
+                let tx = c
+                    .transaction_with_behavior(TransactionBehavior::Deferred)
+                    .map_err(|_| Error::storage())?;
+                let row = rows::by_record(&tx, &receipt.record)?;
+                admission::require_row(self, &held, &row)?;
+                let old = prepared_recording_state(&tx, receipt)?
+                    .0
+                    .ok_or_else(conflict)?;
+                if old != receipt.observation {
+                    return Err(conflict());
+                }
+                tx.commit().map_err(|_| Error::storage())?;
+                return Ok(row.record);
+            }
+            let tx = c
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(|_| Error::storage())?;
+            if let Some(result) = self.record_replacement_prepared_in(&tx, &held, receipt, true)? {
+                tx.commit().map_err(|_| Error::storage())?;
+                return Ok(result);
+            }
+            // Late or uncertain first captures retain their existing Writer.
+            // Drop this transaction and all readers before that admission.
+        }
+        let (held, mut c) = self.native_replacement_preparation_sql(
+            &wait,
+            true,
+            "capture-write-authority",
+            "capture-write-sql",
+            |c| admission::mutation_row_scopes(&rows::by_record(c, &receipt.record)?),
         )?;
-        let mut c = self.connection_with_authority(&held)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let row = rows::by_record(&tx, &receipt.record)?;
-        admission::require_row(self, &held, &row)?;
-        let old:Option<Option<String>>=tx.query_row("SELECT s.observation_json FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.phase='prepare' AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1",params![receipt.record,receipt.runtime,receipt.reservation,receipt.hash,receipt.attempt,receipt.effect],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
-        if let Some(old) = old.ok_or_else(Error::forbidden)? {
-            if old != receipt.observation {
-                return Err(conflict());
-            }
-        } else {
-            if !matches!(
-                row.record.state,
-                OperationState::Preparing | OperationState::Unknown
-            ) {
-                return Err(conflict());
-            }
-            tx.execute("UPDATE native_replacement_steps SET observation_json=?2 WHERE operation_record_id=?1 AND phase='prepare'",params![receipt.record,receipt.observation]).map_err(|_|Error::storage())?;
-            let changed=tx.execute("UPDATE operation_effects SET state='confirmed' WHERE id=?1 AND state IN ('submitting','unknown')",[&receipt.effect]).map_err(|_|Error::storage())?;
-            if changed != 1 {
-                return Err(conflict());
-            }
-            let fact = serde_json::json!({"operation_id":row.record.operation_id,"native_replacement_prepared":true,"media_ready":false});
-            let (hash, encoded) = digest(&fact)?;
-            tx.execute("INSERT INTO operation_observations(id,operation_record_id,source,source_event_id,digest,actor_id,data_json,observed_at) VALUES(?1,?2,'native-replacement-prepare',?3,?4,?5,?6,?7)",params![format!("nro_{}",uuid::Uuid::new_v4()),receipt.record,receipt.attempt,hash,row.owner,encoded,crate::now()]).map_err(|_|Error::storage())?;
-            native_handoffs::touch(&tx, &receipt.record, self)?;
-        }
-        let result = rows::by_record(&tx, &receipt.record)?.record;
+        let result = self
+            .record_replacement_prepared_in(&tx, &held, receipt, false)?
+            .ok_or_else(Error::forbidden)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(result)
     }
+
+    fn record_replacement_prepared_in(
+        &self,
+        tx: &Connection,
+        held: &Arc<crate::AuthorityGuardSet>,
+        receipt: &NativeReplacementPrepared,
+        positive_only: bool,
+    ) -> Result<Option<OperationRecord>> {
+        let row = rows::by_record(tx, &receipt.record)?;
+        admission::require_row(self, held, &row)?;
+        let (old, effect_state, positive) = prepared_recording_state(tx, receipt)?;
+        if let Some(old) = old {
+            if old != receipt.observation {
+                return Err(conflict());
+            }
+            return Ok(Some(row.record));
+        }
+        if !matches!(
+            row.record.state,
+            OperationState::Preparing | OperationState::Unknown
+        ) {
+            return Err(conflict());
+        }
+        let permit = if positive_only {
+            if !positive
+                || row.record.state != OperationState::Preparing
+                || row.record.cancel_requested
+                || row.tombstoned
+                || effect_state != "submitting"
+            {
+                return Ok(None);
+            }
+            use crate::authority_writer_boundary::phase_ledger;
+            Some(
+                self.authority_writer_boundary
+                    .native_resource_capture_ledger(
+                        self,
+                        tx,
+                        held,
+                        phase_ledger::Key {
+                            record: receipt.record.clone(),
+                            phase: "prepare",
+                            attempt: receipt.attempt.clone(),
+                            effect: receipt.effect.clone(),
+                            expected: receipt.observation.clone(),
+                            runtime: receipt.runtime.clone(),
+                            reservation: receipt.reservation.clone(),
+                            digest: receipt.hash.clone(),
+                            stage: phase_ledger::Stage::Confirm,
+                        },
+                        None,
+                    )?,
+            )
+        } else {
+            if !self.authority_covers(held, &admission::mutation_row_scopes(&row)?) {
+                return Err(Error::forbidden());
+            }
+            None
+        };
+        tx.execute("UPDATE native_replacement_steps SET observation_json=?2 WHERE operation_record_id=?1 AND phase='prepare'",params![receipt.record,receipt.observation]).map_err(|_|Error::storage())?;
+        let changed=tx.execute("UPDATE operation_effects SET state='confirmed' WHERE id=?1 AND state IN ('submitting','unknown')",[&receipt.effect]).map_err(|_|Error::storage())?;
+        if changed != 1 {
+            return Err(conflict());
+        }
+        let fact = serde_json::json!({"operation_id":row.record.operation_id,"native_replacement_prepared":true,"media_ready":false});
+        let (hash, encoded) = digest(&fact)?;
+        tx.execute("INSERT INTO operation_observations(id,operation_record_id,source,source_event_id,digest,actor_id,data_json,observed_at) VALUES(?1,?2,'native-replacement-prepare',?3,?4,?5,?6,?7)",params![format!("nro_{}",uuid::Uuid::new_v4()),receipt.record,receipt.attempt,hash,row.owner,encoded,crate::now()]).map_err(|_|Error::storage())?;
+        native_handoffs::touch(tx, &receipt.record, self)?;
+        drop(permit);
+        Ok(Some(rows::by_record(tx, &receipt.record)?.record))
+    }
+}
+fn prepared_recording_state(
+    c: &Connection,
+    receipt: &NativeReplacementPrepared,
+) -> Result<(Option<String>, String, bool)> {
+    let saved:Option<(Option<String>,String,bool)>=c.query_row("SELECT s.observation_json,e.state,COALESCE((n.expires_at>?7 AND o.lease_owner=n.reservation_id AND o.lease_expires_at=n.expires_at AND NOT EXISTS(SELECT 1 FROM native_replacement_steps later WHERE later.operation_record_id=n.operation_record_id AND later.phase!='prepare')),0) FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.phase='prepare' AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1",params![receipt.record,receipt.runtime,receipt.reservation,receipt.hash,receipt.attempt,receipt.effect,crate::now()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|_|Error::storage())?;
+    saved.ok_or_else(Error::forbidden)
 }
 // The caller may inspect this before acquiring authority and again under its
 // SQL transaction. A due result never authorizes DML without the exact Writer.

@@ -254,11 +254,47 @@ fn rejected_native_member_birth() -> &'static str {
 
 // The private Unit key authorizes only these fixed positive ledger transitions.
 // Arbitrary row states or a registered Read alone never bypass row Write guards.
+fn fresh_reservation_root() -> String {
+    let function = phase_ledger::FUNCTION;
+    let immutable = same_columns(&[
+        "record_id",
+        "tenant_id",
+        "owner_id",
+        "operation_id",
+        "digest",
+        "command_type",
+        "conversation_id",
+        "session_id",
+        "connection_id",
+        "expected_revision",
+        "intent_json",
+        "revision",
+        "result_json",
+        "problem_json",
+        "tombstoned",
+        "created_at",
+        "updated_at",
+        "expires_at",
+        "ledger_version",
+        "cancel_requested",
+    ]);
+    format!("({immutable}) AND OLD.command_type='connection.replace' AND OLD.state='accepted' AND NEW.state='preparing' AND OLD.lease_owner IS NULL AND OLD.lease_expires_at IS NULL AND OLD.cancel_requested=0 AND OLD.tombstoned=0 AND NEW.worker_generation=OLD.worker_generation+1 AND NEW.worker_cleanup=0 AND {function}('reserve-root',NEW.record_id,NULL,'reserve',json_array(NEW.worker_runtime,NEW.lease_owner,NEW.lease_expires_at),NULL,NULL)")
+}
+fn fresh_reservation_row() -> String {
+    let function = phase_ledger::FUNCTION;
+    format!("{function}('reserve-row',NEW.operation_record_id,NULL,'reserve',json_array(NEW.credential_id,NEW.runtime_epoch,NEW.original_digest,NEW.reservation_id,NEW.candidate_connection_id,NEW.candidate_runtime_id,NEW.generation,NEW.plan_json,NEW.selection_json,NEW.plan_digest,NEW.expires_at),NULL,NULL)")
+}
+fn fresh_reservation_step() -> String {
+    let function = phase_ledger::FUNCTION;
+    format!("NEW.phase='prepare' AND NEW.started=0 AND NEW.observation_json IS NULL AND {function}('reserve-step',NEW.operation_record_id,NEW.effect_id,'reserve',NULL,NEW.attempt_id,NULL)")
+}
 fn phase_ledger_effect_insert() -> String {
     let function = phase_ledger::FUNCTION;
-    format!(
+    let scene = format!(
         "NEW.provider IN ('native-replacement-attach','native-replacement-readiness') AND NEW.correlation_key=NEW.id AND NEW.idempotency_mode='none' AND NEW.state='prepared' AND NEW.attempt=0 AND NEW.submission_generation=0 AND NEW.provider_ref IS NULL AND NEW.compensates_effect_id IS NULL AND {function}('effect-birth',NEW.operation_record_id,NEW.id,substr(NEW.provider,20),NEW.observation_json,NULL,NULL)"
-    )
+    );
+    let reserve = format!("NEW.provider='native-replacement-prepare' AND NEW.correlation_key=NEW.operation_record_id AND NEW.idempotency_mode='none' AND NEW.state='prepared' AND NEW.attempt=0 AND NEW.submission_generation=0 AND NEW.provider_ref IS NULL AND NEW.observation_json IS NULL AND NEW.compensates_effect_id IS NULL AND {function}('reserve-effect',NEW.operation_record_id,NEW.id,'reserve',NULL,NULL,NULL)");
+    format!("({scene}) OR ({reserve})")
 }
 fn phase_ledger_effect_update() -> String {
     let function = phase_ledger::FUNCTION;
@@ -284,8 +320,24 @@ fn phase_ledger_effect_update() -> String {
     let prepare = format!(
         "NEW.provider='native-replacement-prepare' AND NEW.correlation_key=NEW.operation_record_id AND NEW.observation_json IS NULL AND OLD.state='prepared' AND NEW.state='submitting' AND OLD.attempt=0 AND NEW.attempt=1 AND OLD.submission_generation=0 AND NEW.submission_generation=1 AND EXISTS(SELECT 1 FROM native_replacement_steps s WHERE s.operation_record_id=NEW.operation_record_id AND s.effect_id=NEW.id AND s.phase='prepare' AND s.started=1 AND s.observation_json IS NULL AND {function}('prepare-effect-submit',NEW.operation_record_id,NEW.id,s.phase,'',s.attempt_id,NULL))"
     );
+    let resource = format!(
+        "NEW.provider IN ('native-replacement-prepare','native-replacement-allocate','native-replacement-start') AND NEW.correlation_key=CASE NEW.provider WHEN 'native-replacement-prepare' THEN NEW.operation_record_id ELSE NEW.id END AND OLD.state='submitting' AND NEW.state='confirmed' AND OLD.attempt=1 AND NEW.attempt=1 AND OLD.submission_generation=1 AND NEW.submission_generation=1 AND EXISTS(SELECT 1 FROM native_replacement_steps s WHERE s.operation_record_id=NEW.operation_record_id AND s.effect_id=NEW.id AND s.phase IN ('prepare','allocate','start') AND NEW.provider='native-replacement-'||s.phase AND s.started=1 AND s.observation_json IS NOT NULL AND {function}('resource-effect-confirm',NEW.operation_record_id,NEW.id,s.phase,s.observation_json,s.attempt_id,NULL))"
+    );
     format!(
-        "({immutable}) AND NEW.idempotency_mode='none' AND NEW.provider_ref IS NULL AND NEW.compensates_effect_id IS NULL AND (({scene}) OR ({prepare}))"
+        "({immutable}) AND NEW.idempotency_mode='none' AND NEW.provider_ref IS NULL AND NEW.compensates_effect_id IS NULL AND (({scene}) OR ({prepare}) OR ({resource}))"
+    )
+}
+fn resource_step_confirm() -> String {
+    let function = phase_ledger::FUNCTION;
+    let immutable = same_columns(&[
+        "operation_record_id",
+        "phase",
+        "attempt_id",
+        "effect_id",
+        "started",
+    ]);
+    format!(
+        "({immutable}) AND NEW.phase IN ('prepare','allocate','start') AND NEW.started=1 AND OLD.observation_json IS NULL AND NEW.observation_json IS NOT NULL AND {function}('resource-step-confirm',NEW.operation_record_id,NEW.effect_id,NEW.phase,NEW.observation_json,NEW.attempt_id,NULL) AND EXISTS(SELECT 1 FROM operation_effects e WHERE e.id=NEW.effect_id AND e.operation_record_id=NEW.operation_record_id AND e.provider='native-replacement-'||NEW.phase AND e.state='submitting' AND e.attempt=1 AND e.submission_generation=1)"
     )
 }
 fn preparation_step_start() -> String {
@@ -335,8 +387,12 @@ fn phase_ledger_touch() -> String {
     let prepare = format!(
         "EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=NEW.record_id AND s.phase='prepare' AND s.started=1 AND s.observation_json IS NULL AND e.provider='native-replacement-prepare' AND e.correlation_key=NEW.record_id AND e.state='submitting' AND e.attempt=1 AND e.submission_generation=1 AND e.observation_json IS NULL AND {function}('root-touch-begin',NEW.record_id,s.effect_id,s.phase,'',s.attempt_id,NEW.revision))"
     );
+    let resource = format!(
+        "EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=NEW.record_id AND s.phase IN ('prepare','allocate','start') AND s.started=1 AND s.observation_json IS NOT NULL AND e.provider='native-replacement-'||s.phase AND e.correlation_key=CASE s.phase WHEN 'prepare' THEN s.operation_record_id ELSE e.id END AND e.state='confirmed' AND e.attempt=1 AND e.submission_generation=1 AND {function}('resource-root-touch',NEW.record_id,s.effect_id,s.phase,s.observation_json,s.attempt_id,NEW.revision))"
+    );
+    let reserve = format!("EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=NEW.record_id AND s.phase='prepare' AND s.started=0 AND s.observation_json IS NULL AND e.provider='native-replacement-prepare' AND e.state='prepared' AND e.attempt=0 AND e.submission_generation=0 AND {function}('reserve-touch',NEW.record_id,s.effect_id,'reserve',NULL,s.attempt_id,NEW.revision))");
     format!(
-        "({immutable}) AND OLD.state='preparing' AND NEW.cancel_requested=0 AND NEW.tombstoned=0 AND OLD.revision<9007199254740990 AND NEW.revision=OLD.revision+1 AND (({scene}) OR ({prepare}))"
+        "({immutable}) AND OLD.state='preparing' AND NEW.cancel_requested=0 AND NEW.tombstoned=0 AND OLD.revision<9007199254740990 AND NEW.revision=OLD.revision+1 AND (({scene}) OR ({prepare}) OR ({resource}) OR ({reserve}))"
     )
 }
 
@@ -365,6 +421,8 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
             "native_offer_operations" => format!("NEW.effect_started=0 AND {}", initial_slot("NEW.operation_record_id")),
             "operation_members" => format!("({} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)) OR ({}) OR ({} AND EXISTS(SELECT 1 FROM native_stream_operations ns JOIN operations sub ON sub.record_id=ns.operation_record_id WHERE sub.record_id=NEW.operation_record_id AND NEW.participant_id=ns.participant_id AND NEW.identity_id=sub.owner_id AND NEW.membership_epoch=ns.membership_epoch))", initial_slot("NEW.operation_record_id"), rejected_native_member_birth(), native_stream_birth("NEW.operation_record_id")),
             "operation_effects" => format!("({} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)) OR ({} AND NEW.provider='native-stream' AND NEW.correlation_key=NEW.operation_record_id AND NEW.idempotency_mode='none' AND NEW.state='submitting' AND NEW.attempt=1 AND NEW.submission_generation=1 AND NEW.provider_ref IS NULL AND NEW.observation_json IS NULL AND NEW.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM operation_effects prior WHERE prior.operation_record_id=NEW.operation_record_id)) OR ({})", initial_slot("NEW.operation_record_id"), native_stream_birth("NEW.operation_record_id"), phase_ledger_effect_insert()),
+            "native_replacements" => fresh_reservation_row(),
+            "native_replacement_steps" => fresh_reservation_step(),
             "operation_endpoints" => format!("{} AND EXISTS(SELECT 1 FROM native_offer_operations n WHERE n.operation_record_id=NEW.operation_record_id AND n.effect_started=0)", initial_slot("NEW.operation_record_id")),
             // The receipt and its unique original operation are created in one
             // SQL transaction before any native invocation can be constructed.
@@ -377,7 +435,11 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
         return phase_ledger_effect_update();
     }
     if action == "update" && table == "native_replacement_steps" {
-        return preparation_step_start();
+        return format!(
+            "({}) OR ({})",
+            preparation_step_start(),
+            resource_step_confirm()
+        );
     }
     if action == "update" && table == "messages" {
         // explicit_message_metadata performs a same-value UPDATE after INSERT.
@@ -464,9 +526,10 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
             initial_slot("NEW.record_id")
         );
         return format!(
-            "({initial_offer}) OR ({}) OR ({})",
+            "({initial_offer}) OR ({}) OR ({}) OR ({})",
             native_stream_begin_update(),
-            phase_ledger_touch()
+            phase_ledger_touch(),
+            fresh_reservation_root()
         );
     }
     if action == "update" && table == "native_offer_operations" {

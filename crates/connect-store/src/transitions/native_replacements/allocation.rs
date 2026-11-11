@@ -2,6 +2,8 @@
 use super::*;
 use crate::{PeerAuthorityGuard, PeerCommand, PeerSessionProjection};
 use connect_protocol::connection_control::OfferIntent;
+mod positive_capture;
+use positive_capture::PositiveResourceCapture;
 mod start;
 pub use start::{
     NativeReplacementAudienceCapture, NativeReplacementCommitAttempt,
@@ -73,6 +75,18 @@ impl NativeReplacementAllocationAttempt {
             attempt: self,
         })
     }
+}
+fn require_confirmed_allocation(
+    c: &Connection,
+    allocated: &NativeReplacementAllocated,
+) -> Result<()> {
+    let a = &allocated.attempt;
+    let prepared = &a.prepared;
+    let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id AND e.provider='native-replacement-allocate' AND e.correlation_key=e.id AND e.idempotency_mode='none' AND e.state='confirmed' AND e.attempt=1 AND e.submission_generation=1 WHERE s.operation_record_id=?1 AND s.phase='allocate' AND s.attempt_id=?2 AND s.effect_id=?3 AND s.started=1 AND s.observation_json=?4 AND e.observation_json=?5)",params![prepared.record,a.attempt,a.effect,allocated.observation,a.target],|r|r.get(0)).map_err(|_|Error::storage())?;
+    if !exact {
+        return Err(Error::forbidden());
+    }
+    Ok(())
 }
 pub(super) fn current_prepared(
     store: &Store,
@@ -497,6 +511,19 @@ impl Store {
     ) -> Result<OperationRecord> {
         let prepared = &attempt.prepared;
         local_owner(self, &prepared.owner, &prepared.runtime)?;
+        if let Some(observation) = observation {
+            let capture = PositiveResourceCapture {
+                prepared,
+                phase: "allocate",
+                attempt: &attempt.attempt,
+                effect: &attempt.effect,
+                target: &attempt.target,
+                observation,
+            };
+            if let Some(record) = self.try_record_positive_native_resource(capture, interval)? {
+                return Ok(record);
+            }
+        }
         if let Some(held) = interval {
             let mut c = self.try_connection()?;
             return self.record_replacement_allocation_in(&mut c, attempt, observation, held);
@@ -572,6 +599,35 @@ impl Store {
 }
 
 impl Store {
+    /// The first positive allocation reply requires the same current original
+    /// source, target and confirmed capture. A historical record alone grants
+    /// no current result rights after original operation or source withdrawal.
+    pub fn native_replacement_allocation_reply_with_peer(
+        &self,
+        captured: &NativeReplacementAllocated,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+    ) -> Result<OperationRecord> {
+        let attempt = &captured.attempt;
+        let prepared = &attempt.prepared;
+        let mut c = self.try_connection()?;
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Deferred)
+            .map_err(|_| Error::storage())?;
+        let read = self.native_replacement_allocation_read_in(&tx, prepared, credential, proof)?;
+        if crate::provisioning::canonical_json(&read.descriptor)? != attempt.target {
+            return Err(conflict());
+        }
+        require_confirmed_allocation(&tx, captured)?;
+        let row = rows::by_record(&tx, &prepared.record)?;
+        admission::require_row(self, Self::peer_scopes(proof), &row)?;
+        tx.commit().map_err(|_| Error::storage())?;
+        if !read.current() || !proof.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(row.record)
+    }
+
     /// Exact target phase replay returns progress only. No new attempt, source
     /// grant, result or provider detail is produced, even for a terminal root.
     pub fn replay_native_replacement_allocation_with_peer(

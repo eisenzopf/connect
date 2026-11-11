@@ -716,6 +716,7 @@ impl Runtime {
                 let origin = source.origin.clone();
                 let wait = wait.clone();
                 let (proof, read) = store_call(move || {
+                    // Same current Read as native dormant muted activation.
                     let proof = store
                         .resume_native_replacement_start_activation_authority(&origin, &wait)?;
                     let read = store.native_replacement_start_read_under(&origin, &proof)?;
@@ -807,14 +808,16 @@ impl Runtime {
             preparation: OnceLock::new(),
         });
         *allocated.started.lock().map_err(|_| Error::storage())? = Some(started.clone());
-        self.media
-            .store
-            .record_native_replacement_started_with_peer(&started.receipt, &proof)?;
-        // The actual activation and capture transaction are complete. Release
-        // every alias of this Write before metadata-only origin retry.
+        // The physical cut and exact receipt are complete. Historical recording
+        // may need a Writer if cancellation/uncertainty settles concurrently.
+        // Drop all activation readers before recording this same receipt.
         drop(invocation);
         drop(read);
         drop(proof);
+        let store = self.media.store.clone();
+        let receipt = started.receipt.clone();
+        self.owned_store_call(move || store.record_native_replacement_started(&receipt))
+            .await?;
         // The original resources and their immutable capture already exist.
         // Temporary command-SQL exclusion must reobserve only this origin read,
         // never configure/mute, start recording, or the once-only physical IO.
