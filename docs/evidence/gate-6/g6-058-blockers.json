@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T12:58:54.018668+00:00",
-  "run_status": "Source13 focused batch completed115/116 checks; original process groups joined and source/binaries unchanged. Same-command two-fault Data, both shorter native controls and all3 RTC SQL cases pass. Actual62s workload completed4moves/8Data directions but failed4real video FPS bins and cleanup response correlation. Full matrix unchanged:v2150/32cells,287passed101failed44blocked. Admission checkpoint f29ffaea pushed.",
+  "updated": "2026-11-11T14:15:47.500646+00:00",
+  "run_status": "Store18 passed102/102: exact positive historical Commit capture preserves original audio epoch, while real revoke/expiry/Writer and exact SQL byte/nonce/unit controls remain enforced. All original groups joined; source/binary unchanged. Next: default Service compile and combined130-check batch including actual62s programme. Latest complete full workload remains115/116 with genuine video FPS and cleanup correlation failures; full matrix unchanged v2150/32cells,287passed101failed44blocked.",
   "blockers": [
     {
       "id": "B01",

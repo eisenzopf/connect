@@ -83,6 +83,7 @@ impl State {
             root_revision: 0,
             reservation_root: Some(root),
             candidate_audience: None,
+            commit_capture: None,
             _proof: proof.clone(),
         });
         Ok(Permit {

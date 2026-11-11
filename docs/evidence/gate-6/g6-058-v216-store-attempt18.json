@@ -1,0 +1,541 @@
+{
+  "format": "connect/g6-058-positive-commit-capture-verified/1",
+  "recorded_at": "2026-11-11T14:15:47.472565+00:00",
+  "scope": "102 Store controls only; no decoded media, combined workload or matrix qualification",
+  "source_sha256": "05e62abbdf0d5e2b8fbdb07996ec20c99598f154f479bd7a73e9244efc8eee38",
+  "binary_sha256": "be4ed4ab9f6bdb463f9497afd5d2548067f3e0f59bcbbc3e2a7ca0d665c8cf12",
+  "executed": 102,
+  "passed": 102,
+  "failed": 0,
+  "source_unchanged": true,
+  "binary_unchanged": true,
+  "all_original_groups_joined": true,
+  "results_sha256": "8b5db4ea1c78a7c5bbd513c588d184ad6f1d09f645312ce41d44e5dd245f7280",
+  "independent_subtype_review_sha256": "2005b304e6d52806c32d4507fdae7efcc548026eb3bd478e957c6492b940c97e",
+  "independent_admission_order_review_sha256": "3c073c3f3e63ef35b278edf34986690eb8d1ddac37176d53b97a9a6c7981347c",
+  "proven_behavior": [
+    "First current exact positive historical Commit capture preserves unaffected original audio IO and queued epoch.",
+    "Real credential revocation still invalidates the original epoch.",
+    "Unknown, canceled, expired, mismatched, existing/claimed candidate and genuine public changes retain Writer custody.",
+    "Same-unit nonce, foreign/incomplete proof refusals, rollback and commit boundaries remain exact.",
+    "Actual json_set-produced connection delta succeeds; semantically equal but byte-different JSON, extra fields, state/generation/revision changes are refused after genuine prerequisites.",
+    "The other91 retained Store controls pass on the same source and binary."
+  ],
+  "limits": [
+    "Actual opaque Core receipt is fixture-controlled in these Store controls.",
+    "Positive-reader mode eligibility during all four real handoffs and actual clean-route media quality require the combined programme.",
+    "Full32 matrix remains v2150/32 with287/432 individual checks passed."
+  ],
+  "rows": [
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::first_positive_commit_capture_preserves_unaffected_audio_io_and_original_queued_epoch",
+      "passed": true,
+      "log_sha256": "ac6fbda19a857888a850accb6b3461081af1bfd9a138379308af83d138973d2e"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::positive_commit_capture_does_not_preserve_epoch_across_real_credential_revocation",
+      "passed": true,
+      "log_sha256": "7417c2f9861d4ff922fe2948cc1328c2e745ab9b7009d8e5a9db8190366b8009"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::unknown_cancelled_and_retired_commit_captures_keep_writer_custody",
+      "passed": true,
+      "log_sha256": "e544f2a59e278a2c1fca73e7bcc3fa169dc4594786df269a0005f8b61ab3746d"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::naturally_expired_positive_commit_capture_remains_historical_writer_only",
+      "passed": true,
+      "log_sha256": "f4d361a1c4c19129bf3aad5d346bf24f57725f9826fcaf2c4a237f335342e992"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::positive_commit_permit_rejects_foreign_units_arbitrary_rows_and_unique_victims",
+      "passed": true,
+      "log_sha256": "d9f677caf41448ce82fb6b863b235a51925b88fbafb3d49a16268d086b934fae"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::commit_capture_permit_rollback_nonce_and_commit_boundaries_remain_exact",
+      "passed": true,
+      "log_sha256": "2a233bf796520017e4b69e2cfad0f33cf236ed30dbcc098176766dc807f38c6e"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::existing_or_claimed_dormant_candidate_cannot_enter_positive_commit_reader_path",
+      "passed": true,
+      "log_sha256": "0dc1bb8da246dafbf3dbc2791dd83dbd60d3903e31a16b691be0347022298388"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_commit_refuses_read_only_scene_without_starting_an_effect",
+      "passed": true,
+      "log_sha256": "279f76157071f102d754e7ad7a0287051d9a13ef3b480faf58b5fb642880fae5"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::first_known_commit_capture_still_requires_writer_and_records_once_after_io_drains",
+      "passed": true,
+      "log_sha256": "a0a4d42438c8f09718aaa09b408100793753e8c775491a268fb76bb1e7046448"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::recorded_commit_replay_preserves_actual_media_read_and_original_queued_epoch",
+      "passed": true,
+      "log_sha256": "b6b59bbb31d6b8d5c8fbec336d9e0d110e3c82c9372568d191109645c26b3c53"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_write_drains_old_readers_then_rederives_and_commits_once",
+      "passed": true,
+      "log_sha256": "a266bb653b1de068de3ec1f4e2c3737ad13d40d7442f798888ae9b15b25ea81f"
+    },
+    {
+      "test": "authority_writer_boundary::tests::actual_row_refuses_missing_read_foreign_and_wrong_identity_writers",
+      "passed": true,
+      "log_sha256": "cfa3f31757c550eb69fe7d4c8a10347d176f12ae2c8fb13e5d303265750b59f3"
+    },
+    {
+      "test": "authority_writer_boundary::tests::cached_statement_steps_the_current_exact_unit_permit",
+      "passed": true,
+      "log_sha256": "641e88bda4240bdb8c8fd34c577314223ba9662a888e6dac24c7e7f1f46a7538"
+    },
+    {
+      "test": "authority_writer_boundary::tests::message_birth::live_message_birth_rejects_commit_and_read_only_or_autocommit_admission",
+      "passed": true,
+      "log_sha256": "ce1f4d32515212122536d2755ba0a3eb1594c379b31f35cd6a74abe35902dce4"
+    },
+    {
+      "test": "authority_writer_boundary::tests::message_birth::message_birth_is_exact_connection_namespace_and_never_an_old_parent_or_replace_permit",
+      "passed": true,
+      "log_sha256": "7cdfe3b0677d6a1be6166c2e30f750e5032a2a1e2ab87ec24b81bcbe85f2c891"
+    },
+    {
+      "test": "authority_writer_boundary::tests::message_birth::new_message_append_never_waits_for_or_invalidates_original_conversation_read",
+      "passed": true,
+      "log_sha256": "8b2203c4709c1bdafd44036368cd93cec031f704e06a8bb87ded35c05fb38236"
+    },
+    {
+      "test": "authority_writer_boundary::tests::message_birth::new_message_guard_schema_requires_current_version_and_never_converts_previous",
+      "passed": true,
+      "log_sha256": "1a6babb4fb35633fbb6b6c7bbcec49afec1f9be2a667659eeb092a3ab5ae7f04"
+    },
+    {
+      "test": "authority_writer_boundary::tests::message_birth::rollback_invalidates_message_nonce_and_stale_drop_cannot_clear_successor",
+      "passed": true,
+      "log_sha256": "de040bd510130235342c300c6690e4536617531c0ed2ae2988f86337255594e4"
+    },
+    {
+      "test": "authority_writer_boundary::tests::message_birth::savepoint_restore_of_old_parent_keeps_original_sql_unit_writer_pinned",
+      "passed": true,
+      "log_sha256": "4150efda2f600e1aa58315885c4894cd5e10f9e0817e8ef5a4da84b87ed9a42a"
+    },
+    {
+      "test": "authority_writer_boundary::tests::native_flow_phase_and_join_projection_preserve_permissions_but_control_mutations_need_write",
+      "passed": true,
+      "log_sha256": "22b0f4d4dac1858a78d8a938380914eeabe377d883b2541b64a0f2a75437bf38"
+    },
+    {
+      "test": "authority_writer_boundary::tests::original_journal_append_fills_metadata_but_cannot_rewrite_a_saved_export_prefix",
+      "passed": true,
+      "log_sha256": "eb4ae82d5e045acde623c8b770227fb4213e19d276ca92bfc6dcda65722c0206"
+    },
+    {
+      "test": "authority_writer_boundary::tests::parent_birth::invited_session_birth_is_exact_kind_shape_and_never_old_parent_extension",
+      "passed": true,
+      "log_sha256": "6aa52bf825eea2927790850cad91563d3f69c6b3b6765ace2d12d554d2c522f8"
+    },
+    {
+      "test": "authority_writer_boundary::tests::parent_birth::parent_birth_hooks_reject_commit_and_rollback_stale_nonce_for_each_kind",
+      "passed": true,
+      "log_sha256": "6c5a733740b73730dafecfa0844c8c62fb78c931823348263c3ddb0dea841d6d"
+    },
+    {
+      "test": "authority_writer_boundary::tests::parent_birth::parent_birth_refuses_foreign_connection_wrong_cid_and_raw_external_writer",
+      "passed": true,
+      "log_sha256": "b41eccacef082607754e5572fca0d0cc4bdc59fcdb38d708847c78ef5cb4712c"
+    },
+    {
+      "test": "authority_writer_boundary::tests::parent_birth::public_invited_provider_session_and_pending_call_preserve_original_read_and_replay",
+      "passed": true,
+      "log_sha256": "0d810901795007d66a13174475243cda0440dc69a0c16ee092614096e5460bea"
+    },
+    {
+      "test": "authority_writer_boundary::tests::raw_sql_cannot_revoke_a_live_store_credential",
+      "passed": true,
+      "log_sha256": "cd9c557b98c01d5e5493d2250e2fc70da998a93f3a78850f5fbb0b6d45f32119"
+    },
+    {
+      "test": "authority_writer_boundary::tests::sql_unit_pins_the_original_writer_and_rolls_back_before_releasing_it",
+      "passed": true,
+      "log_sha256": "1b63ec9552bfbc52575adfc26598478aed8da75070163200c698e8a5de0d0d80"
+    },
+    {
+      "test": "authority_writer_boundary::tests::update_or_replace_cannot_erase_another_identity_with_only_the_source_writer",
+      "passed": true,
+      "log_sha256": "5ffa012274c320ca2a6aed7436a67b164a9df2e852cc5424e1e7083a1d389076"
+    },
+    {
+      "test": "authority_writer_boundary::tests::watcher_cannot_enable_after_a_guard_trigger_or_schema_table_changes",
+      "passed": true,
+      "log_sha256": "e16745259c55f154c44ea8ce6ebe97301a4442ab4bb6e663cf20dc8f30f0bf7b"
+    },
+    {
+      "test": "connection_control::tests::credential_refresh_writer::credential_epoch_mutation_waits_for_original_media_and_reuses_its_exact_writer",
+      "passed": true,
+      "log_sha256": "221c38e4af4a0d7184cd62a8fc1ac158de8be17e88f4df00756c851e173c477a"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_admission_atomically_keeps_one_message_and_original_audience_without_a_publication_effect",
+      "passed": true,
+      "log_sha256": "4af0ba3b47108f799cf77758d3e8f3eabd7778ba35b68166317990f1248201e9"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_all_replay_keeps_original_epoch_snapshots_after_presence_changes",
+      "passed": true,
+      "log_sha256": "10351b2a18232e41ae1861f8c9fac6ba4ce1f043a36d078433ccd7105c9012f0"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_attempt_cannot_be_completed_as_a_subscription",
+      "passed": true,
+      "log_sha256": "e779aea539732df0e8f68ed4a9584e9b548b35ad393ef6c27da0b5d17b9c76e6"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_cancel_before_publication_keeps_durable_message_and_never_starts_an_effect",
+      "passed": true,
+      "log_sha256": "ad2562365d3c44e75c9d264074a7bfb6609acb230bdbf9be595358321fa24de1"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_capacity_refusal_leaves_no_partial_message_or_identity",
+      "passed": true,
+      "log_sha256": "e9be887b6b49bb9d0035f8ce1a70d869279a308feefe921152408f2c5655e5a4"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_captured_queue_receipt_recovers_after_cancel_and_storage_failure_without_reviving_parent",
+      "passed": true,
+      "log_sha256": "5747d95d243089a4b320fb4062790c284e9e6e1a76fe5bc355ab3308c97ebf3a"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_changed_identity_scope_encoding_audience_and_extensions_conflict_before_new_work",
+      "passed": true,
+      "log_sha256": "06b1be10828c8036af0d25d981ee801cecf6b1f4ee850c70937d211737ea811c"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_journal_failure_rolls_back_message_audience_and_root_then_same_id_recovers",
+      "passed": true,
+      "log_sha256": "072ec93b79694ae197ed2875c495e82a1006b7cb9c14f48a97b81fbe07a48f93"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_message_does_not_enqueue_an_ambient_provider_route",
+      "passed": true,
+      "log_sha256": "7418caf7b37f30b6eb975a3cf9651e1c970a395f42ef9558c99f4677ce2d5119"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_queue_receipt_is_local_admission_without_stream_revision_or_delivery_claim",
+      "passed": true,
+      "log_sha256": "be41710d2e986bd3e6dfc0ff9d0a67cada085be04882eebb401a577e98330c93"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_shares_message_and_logical_identity_namespaces_with_ordinary_messages",
+      "passed": true,
+      "log_sha256": "277ae800189e5c365f9e721bd359a2798654b24d8bf298b73274034ac74727f8"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_successor_preserves_uncertainty_message_and_original_effect_without_resubmission",
+      "passed": true,
+      "log_sha256": "7a2e36c6f7b3f098a261d67bd24329d3380104895e21cd423a740cbde63f602e"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_cancellation_and_source_revocation_stop_queued_delivery_without_new_identity",
+      "passed": true,
+      "log_sha256": "c0d2cb4994e3d67fd026614fe9c3d7cd09b2dc9dfa2c5466a75df23bb085f476"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_connection_creation_does_not_grant_subscription_permission",
+      "passed": true,
+      "log_sha256": "19269379404d6170c0d976053fba447faf80c9fa304272eec31fdba2f778bfec"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_current_target_permission_presence_and_data_floor_are_independent",
+      "passed": true,
+      "log_sha256": "65cdc8ffb208277d26417aa255db14b8569554bcaa2206874b59ba3731c37af0"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_exact_intent_and_original_audience_cannot_be_substituted",
+      "passed": true,
+      "log_sha256": "e23d7d8b3686187120350466f2569231b6cac350169feda7cb2664fa757ad671"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_held_current_check_uses_no_store_lock_and_fresh_contention_refuses",
+      "passed": true,
+      "log_sha256": "279c1a0a6d5e15a64efddbb3c22e15ec8191657fbc03877f5ec28651026ac201"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_requires_one_begun_original_message_and_has_no_writer_effect",
+      "passed": true,
+      "log_sha256": "2a2d53928a925115a40a92b6c89e33b073fff5ebbb98e3e9b2ca85207d617425"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_reads::original_publication_metadata_does_not_queue_behind_unrelated_command_sql",
+      "passed": true,
+      "log_sha256": "5e8226107510ff9237219d6dce3b7b1c7afeea84258724b4fb387a185c07c741"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_callback_refuses_store_contention_immediately_and_retries_same_identity",
+      "passed": true,
+      "log_sha256": "ac2c2b0d391ca633c6aa36e847865208611ab510cb92a4eb7031eeccc4d58797"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_capacity_is_reserved_before_write_and_exchanged_for_exactly_one_fact",
+      "passed": true,
+      "log_sha256": "66ee337640d44b6800295291d1e98b74f95e76e8cb57aa037b14945e5ba02447"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_genuine_unaddressed_target_cannot_reserve_or_record_a_write_and_refusal_releases_without_facts",
+      "passed": true,
+      "log_sha256": "2130ab54504ed9c6ea02fc1e2054bd363213f5dbf8e7543394f1aacadaefecdd"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_historical_fact_survives_cancel_revocation_and_retired_target_without_revival",
+      "passed": true,
+      "log_sha256": "9d66527c0566d5c846cdce0965ca526e08d52de7a6a44a510d2f3325bee3c9b9"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refusal_before_admission_is_recorded_but_cannot_become_written",
+      "passed": true,
+      "log_sha256": "6b4eb40e5c619cd76feeedf71c1c2c4fd0343954944b5b3a4e2eca69560c85f6"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refuses_wrong_source_message_operation_target_and_store_without_facts",
+      "passed": true,
+      "log_sha256": "2f05532a5da51293b857c8bc8e224b8fdc1970ec2145635043279db376307ceb"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_reserves_before_io_and_records_one_typed_local_fact_without_completing_queue_work",
+      "passed": true,
+      "log_sha256": "d99b0b3991d209fb98805490c4ace5bd9cee32f4c4f4b2704e73b813ad7d0631"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_sqlite_writer_contention_never_waits_and_preserves_pending_identity",
+      "passed": true,
+      "log_sha256": "5b4b13cc3e0dbdfc2447503bd04f4a81cfb0f9b255b48e2c960fbbc05de47085"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_storage_failure_retains_original_reservation_and_same_callback_recovers",
+      "passed": true,
+      "log_sha256": "e0ebd1a745efba01751c16f57d97fa8e1f62053bef66777b03653ec4057fdb1d"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_successor_marks_only_pending_original_writes_unknown_and_rejects_old_tokens",
+      "passed": true,
+      "log_sha256": "6cd3feb92747dca127685304ad6156f1534d9399a86d757ad86b6c910b401512"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_completion_releases_only_its_slot_and_never_restarts_the_original_effect",
+      "passed": true,
+      "log_sha256": "ffb965706cdea8f7038cdfbb0549b67cf13f9204fe467fc24984e14c72252dc6"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_completion_unblocks_credential_rotation_only_under_its_real_current_writer",
+      "passed": true,
+      "log_sha256": "6789b0f84404ac92d4dc119fbb4c57caa124b7c26ea11a3f04157638a445cb3b"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_data_completion_and_exact_replay_preserve_actual_pcm_io_and_queued_epoch",
+      "passed": true,
+      "log_sha256": "00935f296cc908241278eca9f87b22f1377265fb6b4b4a10c1509967443f3551"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_data_lifecycle_witness_refusal_uses_the_existing_historical_writer",
+      "passed": true,
+      "log_sha256": "077317c66ddd31711ec468ff26ab5064037d4963f7499f88fbe18f5f51429af6"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_positive_permit_is_bound_to_actual_unit_proof_and_rollback_nonce",
+      "passed": true,
+      "log_sha256": "2bd5302dd12b59d315c49bfa1378349e88a6c371de4153709bdadf7ae8b5ce11"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_positive_permit_rejects_unrelated_sql_and_exact_outcome_rewrites",
+      "passed": true,
+      "log_sha256": "e5b3ee9634f838b2471d36cd4996af5ae6aace052eefd2da1d35e6392d576101"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::real_credential_writer_drains_pcm_io_and_cannot_revive_original_queued_epoch",
+      "passed": true,
+      "log_sha256": "2c488f2edee7d37b295c25f105b3097430158b9939fdcb661cfdd02adb1eb08d"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::uncertain_data_outcome_keeps_the_real_writer_boundary",
+      "passed": true,
+      "log_sha256": "bd85b67beefd5da7bdde6bec03e98be79509219eeabfede7e8ba63a034951fcc"
+    },
+    {
+      "test": "transitions::tests::authority_rows::authority_rows_do_not_render_the_public_journal_page",
+      "passed": true,
+      "log_sha256": "d0618a5b29747d1d18920e60416679e4e4cfbdeb43fecbec59207762c592a88a"
+    },
+    {
+      "test": "transitions::tests::authority_rows::authority_rows_preserve_effects_uncertainty_and_full_public_status",
+      "passed": true,
+      "log_sha256": "6ba6fc411248ece9e80f2c772eea4becc3e6acb06f0fed3454df98a76fb04f7f"
+    },
+    {
+      "test": "transitions::tests::authority_rows::authority_rows_still_refuse_current_scope_and_connection_epoch_changes",
+      "passed": true,
+      "log_sha256": "9966007b00ca2ce76feb708bef466b9d85a3438fdb30a32928b29dd92ab4c4cb"
+    },
+    {
+      "test": "transitions::tests::authority_rows::decision_source_authorization_omits_history_but_preserves_current_permission",
+      "passed": true,
+      "log_sha256": "12d483f330cd9a9a4b9e6efbf87f12883310f64f193dc5a82a8e22192afc0ff8"
+    },
+    {
+      "test": "transitions::tests::authority_rows::source_scope_admission_does_not_render_status_history_or_relax_claims",
+      "passed": true,
+      "log_sha256": "785f7160d212efec004d8a223aa92750abeb4e0e1dde429b29b1fb218777c686"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_message_receipt_proof_retains_typed_scope_and_refuses_extra_session_assertion",
+      "passed": true,
+      "log_sha256": "f65f8e04cf71e142a17a13bf34c2e14d6d730373b9456c25e9ae54ce9be8113f"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_cancel_replay_and_attributed_reconciliation_share_current_durable_receipts",
+      "passed": true,
+      "log_sha256": "d04a041665cebf45b39c36e43d6cb6e2949c972bc649cb339541f3ab5db1c0cf"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_decisions_reject_nested_mutations_and_bound_malformed_source_depth_and_cycles",
+      "passed": true,
+      "log_sha256": "74d62135601cb9158fd3ac8863b280e254204923dd228d6dbd9f715fc40854d7"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_get_keeps_nonconversation_provisioning_projection_source_current",
+      "passed": true,
+      "log_sha256": "761c9665f3ba7cbc05495f9bf9b15b6bda506fad7c116648c411c3351306855d"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_get_requires_both_recovery_permission_and_current_original_command_scope",
+      "passed": true,
+      "log_sha256": "804cc26f43c1af97b4ff3436523893b6a8e192d8cf1c8abcf56388b56539d9d1"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_get_retains_pending_invitation_projection_identity_until_delivery",
+      "passed": true,
+      "log_sha256": "c0e6623c73932c0cefbb9f0ce458600bba170223d7b540a935f534a9b87e1607"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_held_get_does_not_reenter_behind_queued_key_retirement",
+      "passed": true,
+      "log_sha256": "d2a97c13991028abbd7a57e4d2d33c803708b24f7951f0427b22eff86fb2d81b"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_lazy_get_recovers_possible_submission_once_without_reclaim_or_resubmit",
+      "passed": true,
+      "log_sha256": "c23a6f1a027e3395d82ef7e0881022091ec7d8a2561650d63ac4a3d754b2ea69"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_proof_covers_real_target_sources_and_refuses_spoofed_resource_assertions",
+      "passed": true,
+      "log_sha256": "991dc83b59f859435d46da971392ac5b70cec76b3e93b8a240727b36ceb5cdc5"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_proof_is_not_substitutable_for_another_action_target_credential_or_root",
+      "passed": true,
+      "log_sha256": "a8b7651243b3a7e04616b81b78d634d07a80d85d5d14b3532b5aeefec1c00347"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_operation_source_expiry_during_sql_wait_rolls_back_lazy_recovery_and_decision",
+      "passed": true,
+      "log_sha256": "f10d26ec1392c729fa28f0f54b95935d68d109508179fe310ba9dac3bf284403"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_transition_admission_reuses_exact_proof_and_never_renews_original_expiry",
+      "passed": true,
+      "log_sha256": "4ce49efa0bdb54275f8bcb925f20887a7aa3b39a17a9399b9ddbd0c82625be5b"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_transition_proof_binds_every_resource_and_intent_without_fallback",
+      "passed": true,
+      "log_sha256": "0c669c6f35cb5beda4a75ff94952317e64580595259163dcd945a469808976c0"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_transition_replay_uses_existing_http_expiry_without_operation_get_permission",
+      "passed": true,
+      "log_sha256": "a18e1fbbffa77bf236d051af64e1af6d69a61f0adeaec63277efae72d7684728"
+    },
+    {
+      "test": "transitions::tests::peer_operations::canonical_transition_source_readers_block_target_writers_but_not_unrelated_identity",
+      "passed": true,
+      "log_sha256": "829b4dcf2b78477fb55118d733e22c5e9ce84ec49d6dd423c6b6151b365932ea"
+    },
+    {
+      "test": "transitions::tests::peer_operations::endpoint_replacement_admits_only_immutable_intent_while_current_packet_readers_remain_owned",
+      "passed": true,
+      "log_sha256": "289f9d63c307b171120de42af9df4f2a61ef0645df176965d92bc4f746d242c3"
+    },
+    {
+      "test": "transitions::tests::peer_operations::http_transition_command_replay_preserves_expiry_and_checks_operation_resource_claims",
+      "passed": true,
+      "log_sha256": "272e2f4a70225398d66d07281875cdb296d5104c8e175876c2b6346a9682f1aa"
+    },
+    {
+      "test": "transitions::tests::peer_operations::operation_row_reads_keep_bindings_commits_rollback_and_schema_current",
+      "passed": true,
+      "log_sha256": "5a91d64c0d9db5e7d9d60f159818e65db962999be15712cc034b80833d527ce4"
+    },
+    {
+      "test": "transitions::tests::peer_operations::packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release",
+      "passed": true,
+      "log_sha256": "f17c048be9c17698e58bed57f2200593aeb084a60f00df9c8aa1d5e178154fe9"
+    },
+    {
+      "test": "transitions::tests::concurrent_workers_and_duplicate_submission_have_one_external_attempt",
+      "passed": true,
+      "log_sha256": "9106c77f1ad5b9f4b13ce851667402e6db949b1af985cb982bbaaa0532a565df"
+    },
+    {
+      "test": "transitions::tests::authority_tests::operation_admission_leases_effects_cancel_and_reconcile_wait_for_delivery",
+      "passed": true,
+      "log_sha256": "fcd0f0c784dc4d17ef49873f9f1aacac09131cbd5e995792ef54492e221fd3c1"
+    },
+    {
+      "test": "transitions::tests::peer_operations::intent_birth::intent_replay_is_deferred_and_never_restarts_or_releases_reservations",
+      "passed": true,
+      "log_sha256": "c91225b8c21db6445108c7eb59c6588f83964d1cba69b641dcbdd83f3e69f994"
+    },
+    {
+      "test": "transitions::tests::peer_operations::intent_birth::intent_no_started_boundary_is_exactly_noop_but_actual_loss_requires_writer",
+      "passed": true,
+      "log_sha256": "9c55d0a172d897f6495cc88b551cdfee9dfab5d96034998642022b789fb16ce8"
+    },
+    {
+      "test": "transitions::tests::peer_operations::intent_birth::intent_birth_permit_rejects_foreign_unit_forged_rows_and_unique_victims",
+      "passed": true,
+      "log_sha256": "ae7ee8c146d0bb68c7bbf3423b18e590541c4e253abef8d9e8f29a811ac78dc9"
+    },
+    {
+      "test": "transitions::tests::peer_operations::intent_birth::intent_pending_departure_refuses_read_birth_even_without_a_started_boundary",
+      "passed": true,
+      "log_sha256": "08162eae91a3e93a7079c06c75de886b71b773eb9dae6a8cb42b0df08225b921"
+    },
+    {
+      "test": "transitions::tests::peer_operations::intent_birth::intent_birth_never_uses_read_custody_to_bypass_current_credential_or_endpoint_refusal",
+      "passed": true,
+      "log_sha256": "5bf298dd200134b1f3f49bd814dbe17479c940b2385cf04183fd156fd7b83a3d"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::immutable_endpoint_intent_and_exact_replay_preserve_original_pcm_grant_until_real_revoke",
+      "passed": true,
+      "log_sha256": "3a3000d8ad002bc9bc2bcc0f87de02a0280033e44bec861de4833c8187b8a6ed"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::custody::preparation_begin_permit_authorizes_only_exact_positive_ledger",
+      "passed": true,
+      "log_sha256": "4d2e0d64a0e744b54172eeae04b9ca2573b4c6df3048d7e0e06548c5a01ff993"
+    },
+    {
+      "test": "authority_fences::raw_probe::tests::raw_exclusive_probe_detects_both_shared_and_exclusive_original_guards_without_dml",
+      "passed": true,
+      "log_sha256": "2e2f161d4b774f14769b8de275507a64e17d1babd5fd0bf2b963dc2564c00f29"
+    },
+    {
+      "test": "connection_control::tests::native_stream_authority::queued_capture::exact_command_custody_probe_detects_shared_aliases_without_counting_independent_admissions",
+      "passed": true,
+      "log_sha256": "e5223b9e4c756647b6bfe442ec6d6850506a578307c6fb2cfb821ffd36e64d54"
+    }
+  ]
+}

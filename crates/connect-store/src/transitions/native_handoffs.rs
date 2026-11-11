@@ -497,7 +497,15 @@ fn event(c: &Connection, row: &rows::Saved, store: &Store) -> Result<()> {
     Ok(())
 }
 pub(super) fn touch(c: &Connection, record: &str, store: &Store) -> Result<()> {
-    let changed=c.execute("UPDATE operations SET revision=revision+1,updated_at=?2 WHERE record_id=?1 AND revision<9007199254740990",params![record,crate::now()]).map_err(|_|Error::storage())?;
+    touch_at(c, record, store, crate::now())
+}
+pub(super) fn touch_at(
+    c: &Connection,
+    record: &str,
+    store: &Store,
+    recorded_at: i64,
+) -> Result<()> {
+    let changed=c.execute("UPDATE operations SET revision=revision+1,updated_at=?2 WHERE record_id=?1 AND revision<9007199254740990",params![record,recorded_at]).map_err(|_|Error::storage())?;
     if changed != 1 {
         return Err(conflict());
     }

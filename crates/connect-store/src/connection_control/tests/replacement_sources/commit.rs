@@ -1441,3 +1441,5 @@ mod private_successor;
 mod scene_unary;
 
 mod snapshot_binding;
+
+mod positive_capture;

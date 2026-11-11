@@ -1,0 +1,85 @@
+{
+  "format": "connect/g6-058-positive-commit-capture-checkpoint/1",
+  "recorded_at": "2026-11-11T14:06:42.597500+00:00",
+  "source_sha256": "aabd366cbf5a26a89b1457962c255e9bc5b4372f553abbd66cb329bd06d94b42",
+  "binary_sha256": "94dd177e7e264517780f928465f5ee4177d09d2f863d219c39977c32c9c3b97c",
+  "scope": "eleven affected Store controls only; not matrix qualification",
+  "planned": 102,
+  "executed": 11,
+  "passed": 9,
+  "failed": 2,
+  "remaining_not_run": 91,
+  "source_unchanged": true,
+  "original_groups_joined": true,
+  "results_sha256": "9dc071f56c72ae522cb2bda4771ab46856441e996c66334f3bebd674dbce57be",
+  "admission_order_review_sha256": "3c073c3f3e63ef35b278edf34986690eb8d1ddac37176d53b97a9a6c7981347c",
+  "finding": "Previous four shared-deadline failures are gone. Both remaining positive-path controls admit SQL/file guards in under1ms, then abort during transaction body with storage-unavailable. The exact SQL rejection remains under investigation. No wider suite or matrix started.",
+  "rows": [
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::first_positive_commit_capture_preserves_unaffected_audio_io_and_original_queued_epoch",
+      "passed": false,
+      "elapsed_seconds": 3.699902057647705,
+      "log_sha256": "0875ae48295b79dff7055b4c561c005e28cea76320553bcfaa6434980ec9444d"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::positive_commit_capture_does_not_preserve_epoch_across_real_credential_revocation",
+      "passed": false,
+      "elapsed_seconds": 1.2048060894012451,
+      "log_sha256": "13c4b5e7ce2743fa511aa6e185c2e2e9ad09c6802d03945cee32df887cd89d8e"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::unknown_cancelled_and_retired_commit_captures_keep_writer_custody",
+      "passed": true,
+      "elapsed_seconds": 7.045686721801758,
+      "log_sha256": "94135952981deed97a1ee20de59a26a62b6ce66fd0b049bb2cafb4f918466e71"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::naturally_expired_positive_commit_capture_remains_historical_writer_only",
+      "passed": true,
+      "elapsed_seconds": 1.855592966079712,
+      "log_sha256": "f5d7fd5f0d7b815749accde936db7ed6b014ef50ef4694cc001ee2bd665e4029"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::positive_commit_permit_rejects_foreign_units_arbitrary_rows_and_unique_victims",
+      "passed": true,
+      "elapsed_seconds": 1.7521610260009766,
+      "log_sha256": "2fadeba5123e6435a365653eaeceb716ffafdcb4824dbea90b6ca13d754eb82f"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::commit_capture_permit_rollback_nonce_and_commit_boundaries_remain_exact",
+      "passed": true,
+      "elapsed_seconds": 1.1004118919372559,
+      "log_sha256": "94035ac9563e945ca461d3c121edad55250e2b263eeb898f5398b9e3c756bb34"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::existing_or_claimed_dormant_candidate_cannot_enter_positive_commit_reader_path",
+      "passed": true,
+      "elapsed_seconds": 3.517742872238159,
+      "log_sha256": "c0eb066c841ab630af1b9bf33c1bb7d3a40776948739e3f501d09a05f361db8d"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_commit_refuses_read_only_scene_without_starting_an_effect",
+      "passed": true,
+      "elapsed_seconds": 1.0534000396728516,
+      "log_sha256": "279f76157071f102d754e7ad7a0287051d9a13ef3b480faf58b5fb642880fae5"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::first_known_commit_capture_still_requires_writer_and_records_once_after_io_drains",
+      "passed": true,
+      "elapsed_seconds": 1.1991360187530518,
+      "log_sha256": "a81c852205e1ab505098b844dab22159e20c747eea442d0b92b029d0f9e8d72a"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::recorded_commit_replay_preserves_actual_media_read_and_original_queued_epoch",
+      "passed": true,
+      "elapsed_seconds": 1.2166850566864014,
+      "log_sha256": "dafef78bd74e24abe2f5827dd4c633a4c9fdad9eb72aace62267da0933066644"
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_write_drains_old_readers_then_rederives_and_commits_once",
+      "passed": true,
+      "elapsed_seconds": 1.19757080078125,
+      "log_sha256": "fceddd06e6762d5d0fe17764fbb1cccfc5baf4b6591f89e1b000f2cff7cbb06e"
+    }
+  ]
+}

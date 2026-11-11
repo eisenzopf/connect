@@ -1,0 +1,18 @@
+{
+  "format": "connect/g6-058-positive-commit-sql-diagnosis/1",
+  "recorded_at": "2026-11-11T14:10:03.230581+00:00",
+  "scope": "one original Store control with test-only static DML-stage diagnostics; diagnostic failure, not passing qualification",
+  "source_sha256": "a9ba50246311943d634d2cafdba33e49a24805e7f7ef4496c85d2a1288a9f455",
+  "binary_sha256": "3cd9981e34be8ebad775692bd664dbcdaecabee9c80c6ed08b2d9fc5bb2fc21d",
+  "executed": 1,
+  "passed": 0,
+  "failed": 1,
+  "source_unchanged": true,
+  "binary_unchanged": true,
+  "original_groups_joined": true,
+  "actual_rejected_stage": "connection-revision",
+  "actual_sqlite_error": "Coordinated Store mutation required",
+  "log_sha256": "50a21eedcdadf87fe28caa4fb23ad08759a414069b9381fb0bea296a3367e434",
+  "synthetic_subtype_sha256": "cff45b0c9875d2286b5b3c57fbd1d7f0e257eb84c02296ad1e746338d0226cd4",
+  "finding": "Synthetic in-memory SQLite3.53.4 embeds json_set NEW.readiness_json as an object despite typeof(text); a bound Rust-string-equivalent tuple quotes it as text. CAST AS TEXT retains subtype. Actual bundled Store rejects exactly that connection-revision stage. Proposed correction strips only transient subtype before the exact tuple comparison; no authority or JSON-byte equality relaxation."
+}

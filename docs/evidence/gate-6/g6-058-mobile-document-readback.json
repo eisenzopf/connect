@@ -1,16 +1,9 @@
 {
-  "format": "connect/g6-058-mobile-document-readback/1",
   "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
-  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
-  "tab_id": "t.0",
-  "body_characters": 35642,
-  "task_cards": 15,
-  "failure_mapping_entries": 145,
-  "native_table_rows": 5,
-  "exact_body_readback": true,
-  "roster_readback": true,
-  "hyperlinks_verified": true,
-  "implementation_or_tests_run": false,
-  "verified_at": "2026-11-11T10:02:59.348341+00:00",
-  "reviewer_correction_verified": true
+  "content_revision": 13,
+  "revision_id": "AHj4eMTmo3BvaiIvKBr_4_b69o5puc_Q0gtv_ZdTpGoXaFU42lYyQbBAKH1pv5L4sLY-wLIX16K8YkhYWhNJgEWLGLnSCdvxVXea52H1VmU",
+  "verified": true,
+  "header": "Revision 13 | Coordinator: /root | Status:102/102 Store checks pass; combined media verification next\n",
+  "checkpoint": "Checkpoint: Store18 passed102/102 controls on unchanged source/binary hashes; every original test process group joined. The first exact current positive historical Commit capture preserves the unaffected original audio IO and queued epoch. Real credential revocation, expiry, uncertainty, existing/claimed candidates, physical Commit/public activation Writer boundaries, foreign/incomplete proof, nonce and rollback controls remain enforced. Two verified defects were corrected: expensive eligibility work consuming the shared5ms admission window, and SQLite transient JSON subtype causing an exact-text guard mismatch. Strengthened controls first establish valid commit prerequisites, then reject semantically equal but byte-different JSON and accept the exact actual json_set delta. This is Store component proof only, using a controlled opaque Core receipt. Next is the normal default-feature Service compilation and combined130-check suite, including the actual62s programme and observed Reader/Writer modes during all four moves. The latest completed full workload remains source13:115/116 passed; four clean-route video FPS bins and cleanup response correlation still failed. Genuine physical/public Writer boundaries remain under audit. No matrix rerun or acceptance relaxation: v215 remains0/32 cells and287/432 checks passed. All computation remains local ARM/Mac.\n",
+  "checked_at": "2026-11-11T14:16:21.465Z"
 }

@@ -118,6 +118,58 @@ impl NativeReplacementCommitAttempt {
     }
 }
 impl NativeReplacementCommitted {
+    pub(crate) fn commit_ledger_key(&self) -> crate::authority_writer_boundary::phase_ledger::Key {
+        let a = &self.attempt;
+        let p = &a.origin.started.attempt.allocated.attempt.prepared;
+        crate::authority_writer_boundary::phase_ledger::Key {
+            record: p.record.clone(),
+            phase: "commit",
+            attempt: a.attempt.clone(),
+            effect: a.effect.clone(),
+            expected: self.observation.clone(),
+            runtime: p.runtime.clone(),
+            reservation: p.reservation.clone(),
+            digest: p.hash.clone(),
+            stage: crate::authority_writer_boundary::phase_ledger::Stage::Confirm,
+        }
+    }
+    pub(crate) fn commit_ledger_descriptor(&self) -> &str {
+        &self.attempt.expected
+    }
+    pub(crate) fn commit_ledger_audience(&self) -> Option<&NativeReplacementAudienceCapture> {
+        self.audience.as_ref()
+    }
+    pub(crate) fn commit_ledger_authority(
+        &self,
+        store: &Store,
+        c: &Connection,
+        held: Option<&Arc<AuthorityGuardSet>>,
+    ) -> Result<(Vec<AuthorityScope>, i64)> {
+        let p = &self
+            .attempt
+            .origin
+            .started
+            .attempt
+            .allocated
+            .attempt
+            .prepared;
+        let (_, _, mut scopes, until) = media_facts(store, c, &self.attempt.origin)?;
+        scopes.extend(crate::authority_admission::conversation_scopes(
+            c,
+            &p.selection.origin.request().conversation_id,
+            crate::AuthorityMode::Read,
+        )?);
+        let until = if let Some(held) = held {
+            p.selection
+                .read_with_connection(store, c, held.clone(), until)?
+                .expires_at()
+        } else {
+            until
+                .min(p.selection.physical_expiry())
+                .min(p.selection.origin.request().expires_at)
+        };
+        Ok((AuthorityScope::merged(&scopes)?, until))
+    }
     /// Attach the Core-sealed packetization boundary exactly once before this
     /// original immutable observation is recorded. No DB or physical mutation.
     pub fn capture_native_activation(
@@ -453,6 +505,7 @@ impl Store {
             Some(&captured.observation),
             captured.audience.as_ref(),
             Some(&captured.capture_diagnostics),
+            Some(captured),
         )
     }
     fn read_recorded_replacement_commit(
@@ -500,7 +553,7 @@ impl Store {
         &self,
         captured: &NativeReplacementCommitUncertain,
     ) -> Result<OperationRecord> {
-        self.record_replacement_commit(&captured.attempt, None, None, None)
+        self.record_replacement_commit(&captured.attempt, None, None, None, None)
     }
     fn record_replacement_commit(
         &self,
@@ -508,19 +561,39 @@ impl Store {
         observation: Option<&str>,
         audience: Option<&NativeReplacementAudienceCapture>,
         diagnostics: Option<&super::projection::AdmissionCounters>,
+        positive: Option<&NativeReplacementCommitted>,
     ) -> Result<OperationRecord> {
         let p = &a.origin.started.attempt.allocated.attempt.prepared;
         local_owner(self, &p.owner, &p.runtime)?;
+        // This effect-free preview chooses only a provisional footprint. Its
+        // full policy derivation must not consume the shared five-millisecond
+        // SQL/file admission window. The immediate SQL try adds no wait, and
+        // its guard drops here before that original admission window starts.
+        let prefer_reader = if let Some(capture) = positive {
+            let c = self.try_connection()?;
+            crate::authority_writer_boundary::phase_ledger::commit::eligible(self, &c, capture)?
+        } else {
+            false
+        };
         let (held, mut c) = self.try_replacement_capture_projection(diagnostics, |c| {
             let row = rows::by_record(c, &p.record)?;
-            // Even a capture without an optional audience advances the live
-            // pending policy phase and must invalidate its exact snapshots.
-            let mut scopes = admission::mutation_row_scopes(&row)?;
+            // This hint grants nothing. The actual transaction below repeats
+            // complete current validation and refuses a stale Read footprint.
+            let eligible = prefer_reader;
+            let mut scopes = if eligible {
+                admission::row_scopes(&row)?
+            } else {
+                admission::mutation_row_scopes(&row)?
+            };
             if audience.is_some() {
                 scopes.extend(crate::authority_admission::conversation_scopes(
                     c,
                     &row.record.conversation_id.clone().ok_or_else(invalid)?,
-                    crate::AuthorityMode::Write,
+                    if eligible {
+                        crate::AuthorityMode::Read
+                    } else {
+                        crate::AuthorityMode::Write
+                    },
                 )?);
             }
             AuthorityScope::merged(&scopes)
@@ -550,6 +623,38 @@ impl Store {
             timing.unchanged();
             return Ok(row.record);
         }
+        // Eligibility may have crossed an expiry/cancel boundary after scope
+        // derivation. Never upgrade a retained Reader behind itself.
+        let eligible = positive
+            .map(|capture| {
+                crate::authority_writer_boundary::phase_ledger::commit::eligible(self, &tx, capture)
+            })
+            .transpose()?
+            .unwrap_or(false);
+        let required = if eligible {
+            admission::row_scopes(&row)?
+        } else {
+            admission::mutation_row_scopes(&row)?
+        };
+        if !self.authority_covers(&held, &required) {
+            return Err(Error::new(
+                "authority-busy",
+                "Commit capture now requires original writer custody",
+            ));
+        }
+        let permit = if eligible {
+            Some(
+                self.authority_writer_boundary
+                    .native_commit_capture_ledger(
+                        self,
+                        &tx,
+                        &held,
+                        positive.ok_or_else(Error::forbidden)?,
+                    )?,
+            )
+        } else {
+            None
+        };
         if let Some(observation) = observation {
             tx.execute("UPDATE native_replacement_steps SET observation_json=?2 WHERE operation_record_id=?1 AND phase='commit'",params![p.record,observation]).map_err(|_|Error::storage())?;
             tx.execute("UPDATE operation_effects SET state='confirmed' WHERE id=?1 AND state IN ('submitting','unknown')",[&a.effect]).map_err(|_|Error::storage())?;
@@ -567,13 +672,29 @@ impl Store {
             workers::invalidate(&tx, &p.record)?;
         }
         if let Some(audience) = audience {
-            audience.record(&tx, self, &a.effect)?;
+            if eligible {
+                audience.record_positive_commit(&tx, self, &a.effect)?;
+            } else {
+                audience.record(&tx, self, &a.effect)?;
+            }
         }
-        native_handoffs::touch(&tx, &p.record, self)?;
+        if let Some(permit) = &permit {
+            native_handoffs::touch_at(&tx, &p.record, self, permit.commit_capture_recorded_at()?)?;
+        } else {
+            native_handoffs::touch(&tx, &p.record, self)?;
+        }
         let record = rows::by_record(&tx, &p.record)?.record;
+        if let Some(permit) = &permit {
+            local_owner(self, &p.owner, &p.runtime)?;
+            permit.require_commit_capture_current()?;
+        }
+        drop(permit);
         timing.committing();
         tx.commit().map_err(|_| Error::storage())?;
         timing.committed();
+        tracing::debug!(target:"connect_store::native_commit_capture",record=%p.record,
+            mode=if eligible {"positive-reader"} else {"writer-fallback"},
+            "Historical replacement Commit capture recorded");
         Ok(record)
     }
 }

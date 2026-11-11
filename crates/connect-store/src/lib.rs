@@ -204,7 +204,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 128;
+pub const SCHEMA_VERSION: u32 = 129;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 // Compiled operation/source SQL only; never a row, transaction or grant cache.
 const OPERATION_SQL_CACHE_CAPACITY: usize = 32;
@@ -653,6 +653,10 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!(
             "../migrations/128_immutable_replacement_intent.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/129_positive_native_commit_capture.sql"
         ))
         .map_err(|_| Error::storage())?;
         authority_writer_boundary::schema::install(&tx)?;

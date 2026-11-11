@@ -115,6 +115,7 @@ impl State {
             root_revision,
             reservation_root: Some(reservation_root),
             candidate_audience: None,
+            commit_capture: None,
             _proof: proof.clone(),
         });
         Ok(Permit {

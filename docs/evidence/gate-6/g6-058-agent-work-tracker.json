@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-11T12:53:36.260177+00:00",
-  "revision": 10,
+  "updated_at": "2026-11-11T14:15:47.500646+00:00",
+  "revision": 13,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 10,
-    "verified_at": "2026-11-11T13:04:54.522429+00:00",
+    "content_revision": 13,
+    "verified_at": "2026-11-11T14:16:21.465Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -157,15 +157,15 @@
       "depends_on": [
         "P1.1"
       ],
-      "status": "diagnosing",
-      "implementation_state": "intentverified; narrowfirst-positiveCommitcaptureReaderpermitdrafting;physicalCommit/publicactivationWriterretained",
+      "status": "component-verified",
+      "implementation_state": "102/102 Store controls pass; exact first positive Commit metadata preserves original audio epoch; real revoke/Writer/byte/unit/nonce controls pass; actual programme/matrix pending",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
         "status": "pending",
         "root_cause_confirmed": true,
         "failure_mapping_verified": true,
-        "architecture_conformance": "pending",
+        "architecture_conformance": "independent-source-reviewed; actual combined media effect pending",
         "counterexample_verified": true,
         "regression_verified": true,
         "actual_matrix_effect_verified": false,
@@ -186,11 +186,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
           "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt16.json",
+          "result": "9/11 executed pass;2 storage-unavailable; remaining91 notrun",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt18.json",
+          "result": "102/102 pass; original groups joined; source/binary unchanged",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:25:02.786942+00:00",
+      "updated_at": "2026-11-11T14:15:47.500646+00:00",
       "mapped_check_count": 8,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [

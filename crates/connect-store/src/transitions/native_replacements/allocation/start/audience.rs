@@ -102,6 +102,66 @@ impl NativeReplacementSceneRead {
     }
 }
 impl NativeReplacementAudienceCapture {
+    /// Exact current live-original deltas for a sealed historical Commit. The
+    /// fresh target is still absent and is not an original Connection UPDATE.
+    /// Existing/claimed/retired slots keep Writer custody; a descriptor alone
+    /// cannot prove a subsequently appearing candidate row is the same slot.
+    pub(crate) fn positive_commit_json(
+        &self,
+        store: &Store,
+        c: &Connection,
+        record: &str,
+        runtime: &str,
+        candidate_connection: &str,
+        candidate_runtime: &str,
+        candidate_generation: u64,
+    ) -> Result<Option<(String, Vec<String>)>> {
+        self.require(record, runtime, "commit")?;
+        if self.candidate_only.is_some() || runtime != store.runtime_epoch() {
+            return Ok(None);
+        }
+        let Some((id, generation, before, after)) = self.values.get(candidate_runtime) else {
+            return Ok(None);
+        };
+        let dormant:bool=c.query_row("SELECT NOT EXISTS(SELECT 1 FROM connections WHERE id=?1) AND NOT EXISTS(SELECT 1 FROM native_replacement_candidates WHERE operation_record_id=?2 OR candidate_connection_id=?1) AND NOT EXISTS(SELECT 1 FROM native_connection_lifetimes WHERE connection_id=?1 AND retired=0)",params![candidate_connection,record],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if id != candidate_connection
+            || *generation != candidate_generation
+            || before.checked_add(1) != Some(*after)
+            || !dormant
+        {
+            return Ok(None);
+        }
+        let mut connections = Vec::new();
+        let mut unique = std::collections::BTreeSet::new();
+        for (source, (id, generation, before, after)) in &self.values {
+            if !unique.insert(id) || before.checked_add(1) != Some(*after) {
+                return Ok(None);
+            }
+            if source == candidate_runtime {
+                continue;
+            }
+            let row:Option<String>=c.query_row("SELECT readiness_json FROM connections WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?4 AND (EXISTS(SELECT 1 FROM native_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0) OR EXISTS(SELECT 1 FROM telephone_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0))",params![id,generation,runtime,before],|r|r.get(0)).optional().map_err(|_|Error::storage())?;
+            let Some(old) = row else {
+                return Ok(None);
+            };
+            let next: String = c
+                .query_row(
+                    "SELECT json_set(?1,'$.stream_revision',?2)",
+                    params![old, after],
+                    |r| r.get(0),
+                )
+                .map_err(|_| Error::storage())?;
+            let exact: String = c
+                .query_row(
+                    "SELECT json_array(?1,?2,?3,?4,?5)",
+                    params![id, generation, runtime, old, next],
+                    |r| r.get(0),
+                )
+                .map_err(|_| Error::storage())?;
+            connections.push(exact);
+        }
+        Ok(Some((self.json()?, connections)))
+    }
     pub(super) fn require(&self, record: &str, runtime: &str, phase: &str) -> Result<()> {
         if self.record != record || self.runtime != runtime || self.phase != phase {
             return Err(Error::forbidden());
@@ -160,6 +220,25 @@ impl NativeReplacementAudienceCapture {
         Ok(())
     }
     pub(super) fn record(&self, c: &Connection, store: &Store, effect: &str) -> Result<()> {
+        self.record_in(c, store, effect, None)
+    }
+    pub(super) fn record_positive_commit(
+        &self,
+        c: &Connection,
+        store: &Store,
+        effect: &str,
+    ) -> Result<()> {
+        self.require(&self.record, store.runtime_epoch(), "commit")?;
+        let candidate:String=c.query_row("SELECT candidate_connection_id FROM native_replacements WHERE operation_record_id=?1",[&self.record],|r|r.get(0)).map_err(|_|Error::storage())?;
+        self.record_in(c, store, effect, Some(&candidate))
+    }
+    fn record_in(
+        &self,
+        c: &Connection,
+        store: &Store,
+        effect: &str,
+        exact_candidate: Option<&str>,
+    ) -> Result<()> {
         if self.runtime != store.runtime_epoch() {
             return Err(Error::forbidden());
         }
@@ -196,12 +275,18 @@ impl NativeReplacementAudienceCapture {
             return Ok(());
         }
         for (connection, generation, before, after) in self.values.values() {
+            if exact_candidate == Some(connection.as_str()) {
+                continue;
+            }
             if before == after {
                 continue;
             }
             // No historical metadata can revive a retired incarnation or
             // overwrite a later independently recorded native observation.
-            c.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?4) WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?5 AND (EXISTS(SELECT 1 FROM native_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0) OR EXISTS(SELECT 1 FROM telephone_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0))",params![connection,generation,self.runtime,after,before]).map_err(|_|Error::storage())?;
+            let changed=c.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?4) WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?5 AND (EXISTS(SELECT 1 FROM native_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0) OR EXISTS(SELECT 1 FROM telephone_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0))",params![connection,generation,self.runtime,after,before]).map_err(|_|Error::storage())?;
+            if exact_candidate.is_some() && changed != 1 {
+                return Err(conflict());
+            }
         }
         Ok(())
     }

@@ -1,6 +1,7 @@
 //! Exact same-Unit positive native phase metadata; never an IO authorization.
 use super::*;
 use rusqlite::OptionalExtension;
+pub(crate) mod commit;
 mod intent;
 pub(crate) mod queued;
 pub(crate) mod reservation;
@@ -29,6 +30,7 @@ pub(super) struct Active {
     root_revision: i64,
     reservation_root: Option<String>,
     candidate_audience: Option<String>,
+    commit_capture: Option<commit::Capture>,
     // Pins the original complete Read until this transaction permit ends.
     _proof: Arc<AuthorityGuardSet>,
 }
@@ -105,6 +107,11 @@ impl State {
                 return false;
             };
             let key = &active.key;
+            if key.phase == "commit" {
+                return commit::matches(
+                    active, action, record, effect, phase, expected, attempt, revision,
+                );
+            }
             if key.phase == "intent-birth" {
                 return phase == Some("intent-birth")
                     && effect.is_none()
@@ -444,6 +451,7 @@ impl State {
             root_revision,
             reservation_root: None,
             candidate_audience,
+            commit_capture: None,
             _proof: proof.clone(),
         });
         Ok(Permit {
