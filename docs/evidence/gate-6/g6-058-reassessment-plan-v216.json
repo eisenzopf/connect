@@ -1,0 +1,165 @@
+{
+  "format": "connect/g6-058-reassessment-plan/1",
+  "updated": "2026-11-11T09:43:35.170197+00:00",
+  "status": "awaiting-owner-review; implementation and test runs held",
+  "baseline": "v215",
+  "baseline_evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
+  "latest_committed_revision": "a52c30b8d38708cdbcdb0bb7eaa0ac7908f7b587",
+  "objective": "All 32 cells and all 432 required checks pass on one frozen, locally tested source; no weakened acceptance or inherited passes.",
+  "limitation": "Complete check classification is not complete causal proof. No honest guarantee of 32/32 exists before verification. Remaining hypotheses must pass counterexamples and actual concurrent workload regressions.",
+  "architecture": [
+    "Prepare transport and codecs independently; authorize and activate at one controlled boundary. Keep the existing media connection active during preparation.",
+    "Admitted packet processing uses a current immutable grant plus bounded local generation/expiry checks. Unrelated control bookkeeping must not invalidate media grants or require SQL on each packet.",
+    "Only relevant authority, ownership, membership, stream-policy and expiry changes invalidate affected grants. Revoked grants and old queued custody are never revived.",
+    "Busy preparation waits within its original deadline and retains its original owner. It never repeats a physical mutation or extends the acceptance deadline.",
+    "Session admission alone is insufficient for perpetual authority: changes remain enforceable, while healthy unchanged media avoids redundant control-plane work."
+  ],
+  "workstreams": [
+    {
+      "id": "P1",
+      "title": "Restore control-plane/media-plane isolation",
+      "blockers": [
+        "B191"
+      ],
+      "priority": 1,
+      "kind": "production boundary",
+      "evidence": "Exact successful native Data Queued completion currently obtains owner/Conversation Writer scopes. These can invalidate existing packet grants despite no media permission change. Actual audio captures show intact packet sequence numbers across source timestamp omissions, with authority-refused buffered audio; the link to this particular writer remains to be proven experimentally.",
+      "solution": "Use a narrow transaction-bound ledger capability for exact positive Data completion under complete current Readers; verify lifecycle reconciliation is a no-op, otherwise use the original Writer path. Keep uncertainty, cancellation and genuine authorization changes on the Writer path. Audit remaining ledger/status/metrics writes for the same unnecessary invalidation.",
+      "verification": [
+        "Reproduce original media epoch loss with the old path, then prove the same actual grant and queued PCM custody survive exact positive completion and identical replay.",
+        "Prove real revoke, expiry, ownership and stream-policy changes still fence the affected media; unrelated participant bookkeeping leaves other admitted flows current.",
+        "Exercise credential rotation, pending-control release, lifecycle fallback, cross-Unit/rollback/nonce and forbidden SQL mutations."
+      ],
+      "exit": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced.",
+      "state": "Draft applied, unformatted/uncompiled/untested. Six regressions drafted; credential-refresh/control-slot proof and direct regression still required."
+    },
+    {
+      "id": "P2",
+      "title": "Make preparation tolerate temporary contention without replay",
+      "blockers": [
+        "B190",
+        "B194"
+      ],
+      "priority": 1,
+      "kind": "production admission",
+      "evidence": "Native subscriptions reached UNKNOWN after a physical effect began. Browser audit finds 16 failed target-preparation attempts with 503 authority_unavailable, plus initial media-offer failures in three WT cells. The public error currently conflates temporary busy with permanent unavailable; original logs do not establish that every refusal shares one leaf cause.",
+      "solution": "Distinguish internal AuthorityBusy from permanent refusal. For a still-owned prepared resource, join and retry only its current authorization acquisition under the original deadline/cancellation, then activate once. Trace initial offer and replacement preparation separately; extend only where the same ownership proof holds. Preserve original logical operation IDs and uncertainty recovery. Initial offers already have a bounded activation-admission loop: locate the actual refusing phase rather than adding indiscriminate retries.",
+      "verification": [
+        "Use actual signed post-commit Data subscription with a held authority writer released before the original deadline; preparation and activation each occur once.",
+        "Repeat with permanent failure, revoke, expiry, cancellation and a writer held past cutoff; old media keeps playing while preparation is eligible, failed candidates close, and no physical effect is resubmitted.",
+        "Cover initial offers and WebRTC target preparation with request-bound phase evidence; prove each specific refusing leaf before changing it."
+      ],
+      "exit": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect.",
+      "state": "Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed."
+    },
+    {
+      "id": "P3",
+      "title": "Complete handoffs and retire original owners within existing deadlines",
+      "blockers": [
+        "B192",
+        "B197"
+      ],
+      "priority": 1,
+      "kind": "production lifecycle and SDK coordination",
+      "evidence": "A retained native helper spends 4.442s on serialized ends/waits, leaving about 555ms for the required current snapshot. Separately, 25 browser move failures contain an original-owner application/recorded failure paired with target deadline/uncertain. These are not demonstrated browser inability or authorization denials.",
+      "solution": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
+      "verification": [
+        "Deterministic same-helper end/wait/snapshot regression under the unchanged absolute 62\u201367s boundary, preserving all sibling results and joins.",
+        "Old-versus-new source-scope equivalence, wrong-scope/recipient/epoch/decision-chain refusal and public status completeness for the authority-only loader optimization.",
+        "Actual signed/native and browser make-before-break workload: usable audio and decoded keyframe before commit, old playback through preparation, exact original retirement receipts after commit."
+      ],
+      "exit": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains.",
+      "state": "Latency measured; complete root cause not established. Root started an untested authority-only source-walk draft to eliminate public causal-page rendering. No proven deadline fix yet."
+    },
+    {
+      "id": "P4",
+      "title": "Repair browser setup and diagnostic teardown",
+      "blockers": [
+        "B189",
+        "B193"
+      ],
+      "priority": 1,
+      "kind": "test harness",
+      "evidence": "Four Mac-local Chrome cells never admitted because the CA helper pinned Chrome156 while the contract/runtime was157. Another Firefox cell passed its first-cycle controls but an original getStats promise did not join; subsequent cycles never began.",
+      "solution": "Use the exact contract browser pin for isolated CA profiles. Stop and join the original diagnostic statistics request at the programme terminal before closing the peer; preserve the 500ms join bound and truthful ownership receipts.",
+      "verification": [
+        "Existing evidence: 11 Chrome profile/unit tests and actual configured/unconfigured Chrome HTTPS/WSS trust checks passed.",
+        "Existing evidence: 21 pure Node tests passed for terminal stats ordering and original delayed/pending promise behavior; actual browser follow-through still needed.",
+        "Fresh actual browser workloads must admit, finish all three cycles, collect private captures and join every original owner."
+      ],
+      "exit": "No startup or late diagnostic-owner cascade; all original browser cycles actually execute.",
+      "state": "Chrome fix committed and focused runtime verified. Statistics ordering patch applied with pure-test evidence; browser runtime not yet verified."
+    },
+    {
+      "id": "P5",
+      "title": "Resolve remaining decoded audio and video deficits",
+      "blockers": [
+        "B195"
+      ],
+      "priority": 2,
+      "kind": "media pipeline and measurement attribution",
+      "evidence": "Decoded media fails in 28 cells, including cells with successful handoffs. A Linux WT example has all video/sync checks pass but audio only59.68\u201359.76s against59.9s. Native retained routes have source timestamp omissions despite all3000 frames submitted and no measured late sends. Browser RTC video also fails independently of handoff failures.",
+      "solution": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
+      "verification": [
+        "Continuous audio under concurrent Data/status/read/prepare/commit traffic, plus legitimate revocation; independent capture/decode proves retained and moved route duration, identity and gaps.",
+        "Video reorder, bounded gap/keyframe recovery, new-generation startup and both sides of replacement; genuine rendered FPS and A/V skew under the unchanged matrix profile.",
+        "Repeat the complete programme through all three cycles, including handoff windows and the final retirement window; diagnostics must attribute any remaining failure to a stage."
+      ],
+      "exit": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun.",
+      "state": "Measured failures and candidate causes documented; additional fixes are required. No media-quality pass claimed for the current drafts."
+    },
+    {
+      "id": "P6",
+      "title": "Verify full ownership coverage and resource budgets",
+      "blockers": [
+        "B196"
+      ],
+      "priority": 2,
+      "kind": "cleanup coverage and resource evidence",
+      "evidence": "The composite reclamation check fails in29 cells. In16 complete normal browser reports, capacity plateau verdicts passed; many composite failures instead reflect only6\u20139 renderer owners because required handoffs failed. Other failures include incomplete programme windows or the genuinely unjoined statistics owner.",
+      "solution": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
+      "verification": [
+        "Three complete cycles with all required original and replacement owners, then Session cleanup and helper/client joins.",
+        "No Session-owned resources remain; server\u22641GiB, browser\u22644GiB, native helper\u22641GiB under the approved profile.",
+        "Verify natural-owner and retained-owner end deadlines separately; incomplete cycles never count as resource passes."
+      ],
+      "exit": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff.",
+      "state": "Classification corrected; existing successful capacity checks do not close the composite requirement."
+    },
+    {
+      "id": "P7",
+      "title": "Qualify one coherent batch against the actual matrix workload",
+      "blockers": [
+        "B198"
+      ],
+      "priority": 3,
+      "kind": "verification process",
+      "evidence": "121 focused checks passed before v215, yet no full cell passed. The representative signed test was AV-only and26s, omitting the matrix post-commit Data sequence and full retirement duration.",
+      "solution": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
+      "verification": [
+        "Complete all draft modules; review patches/source-lock, materialize verified dependencies, format and build once against a coherent graph.",
+        "For each defect retain failing old-condition evidence and passing corrected behavior; execute combined full-duration regression under both signing algorithms and affected transports.",
+        "Preflight browser pins/trust, packet capture, ARM architecture, disk capacity, owned-process closure and normal shipping binaries.",
+        "Commit and push the verified batch with CI skipped; freeze sources; execute all32 cells/all432 checks with original3-cycle requirements, including local remote-profile fixtures."
+      ],
+      "exit": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
+      "state": "Plan only. No new build, focused workload or matrix launch after the owner requested review."
+    }
+  ],
+  "sequence": [
+    "Owner reviews this plan; implementation remains held.",
+    "After approval: finish P1/P2/P4 in parallel; investigate and fix P3 and independently localize P5. All code edits batched before integration tests.",
+    "Run causal unit regressions and safety counterexamples; integrate source-lock/dependencies and complete signed Data fixture.",
+    "Run full-duration combined regressions and cleanup/capacity checks; close P3/P5/P6 using actual evidence. Any unexplained failure blocks the full matrix.",
+    "Freeze and checkpoint one coherent build; preflight local resources; run complete32-cell matrix. Update the ledger from original artifacts only."
+  ],
+  "unchanged_acceptance": [
+    "No deferred A/V qualification or removed cell.",
+    "No blanket busy bypass or restored revoked grant.",
+    "No resource zero-growth requirement; approved ownership/budget acceptance remains.",
+    "No cutoff extensions, shortened programme, reduced move count or fake joins.",
+    "No GitHub VM or x86 run. G6-054 remains parked."
+  ],
+  "audit_evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+  "audit_sha256": "3f9a2e106b3405da6954955a121d737de5a6b94e1dd63fda6c2c8f87876d2f39"
+}

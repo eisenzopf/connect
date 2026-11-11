@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T09:24:26.775366+00:00",
-  "run_status": "Completed local v215: all 32 cells attempted, 0 passed/32 failed; 287 of 432 checks passed, 101 failed, 44 blocked, 0 not-run. Focused 121/121 and both release builds passed before the run. No overall matrix improvement. Next batch addresses Chrome fixture version drift, subscription reauthorization, Data completion authority invalidation and retirement latency; all media and cleanup limits remain unchanged. Chrome profile fix now passes 11 unit tests and real configured/unconfigured HTTPS/WSS checks; affected matrix cells have not yet been rerun.",
+  "updated": "2026-11-11T09:46:45.398336+00:00",
+  "run_status": "OWNER REVIEW HOLD: further implementation, dependency mutation, builds and test runs paused at owner request. Completed v215 remains 0/32 cells passed; 287/432 checks passed,101 failed,44 blocked. All145 non-passing checks now classified against32 original SHA-verified reports. Current code drafts are incomplete and untested; they do not change matrix verdicts. Review docs/developer/g6-058-reassessment-v216.html before proceeding.",
   "blockers": [
     {
       "id": "B01",
@@ -1553,26 +1553,74 @@
     {
       "id": "B190",
       "title": "Prepared subscription temporary authority refusal",
-      "status": "Root cause path identified; functional fix not implemented.",
+      "status": "Held for review. Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed.",
       "change": "Preserve the exact prepared resource and distinguish temporary authority-busy from permanent failure before bounded reauthorization.",
       "evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
-      "next": "Signed contention, revocation, expiry and permanent-refusal controls; no preparation or effect replay."
+      "next": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect."
     },
     {
       "id": "B191",
       "title": "Data completion may invalidate live audio custody",
-      "status": "Candidate cause under investigation; not yet proven or fixed.",
+      "status": "Held for review. Draft applied, unformatted/uncompiled/untested. Six regressions drafted; credential-refresh/control-slot proof and direct regression still required.",
       "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
       "evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
-      "next": "Actual PCM grant continuity across positive completion/replay and revocation on genuine authority changes."
+      "next": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced."
     },
     {
       "id": "B192",
       "title": "Retained-owner control requests exhaust shared cleanup cutoff",
-      "status": "Measured; functional fix not implemented.",
+      "status": "Held for review. Latency measured; complete root cause not established. Root started an untested authority-only source-walk draft to eliminate public causal-page rendering. No proven deadline fix yet.",
       "change": "Remove serialized helper/server latency within the original shared 62\u201367second deadline.",
       "evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
-      "next": "Original exact owner retirement, all current reads and cleanup complete within unchanged cutoff."
+      "next": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains."
+    },
+    {
+      "id": "B193",
+      "title": "Original RTC statistics request survives into peer shutdown",
+      "status": "Held for plan review; not matrix-verified. Chrome fix committed and focused runtime verified. Statistics ordering patch applied with pure-test evidence; browser runtime not yet verified.",
+      "change": "Use the exact contract browser pin for isolated CA profiles. Stop and join the original diagnostic statistics request at the programme terminal before closing the peer; preserve the 500ms join bound and truthful ownership receipts.",
+      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "next": "No startup or late diagnostic-owner cascade; all original browser cycles actually execute."
+    },
+    {
+      "id": "B194",
+      "title": "Initial browser media-offer authority refusal",
+      "status": "Held for plan review; not matrix-verified. Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed.",
+      "change": "Distinguish internal AuthorityBusy from permanent refusal. For a still-owned prepared resource, join and retry only its current authorization acquisition under the original deadline/cancellation, then activate once. Trace initial offer and replacement preparation separately; extend only where the same ownership proof holds. Preserve original logical operation IDs and uncertainty recovery. Initial offers already have a bounded activation-admission loop: locate the actual refusing phase rather than adding indiscriminate retries.",
+      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "next": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect."
+    },
+    {
+      "id": "B195",
+      "title": "Decoded media deficits beyond handoff success",
+      "status": "Held for plan review; not matrix-verified. Measured failures and candidate causes documented; additional fixes are required. No media-quality pass claimed for the current drafts.",
+      "change": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
+      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "next": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun."
+    },
+    {
+      "id": "B196",
+      "title": "Incomplete workload coverage in composite resource checks",
+      "status": "Held for plan review; not matrix-verified. Classification corrected; existing successful capacity checks do not close the composite requirement.",
+      "change": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
+      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "next": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff."
+    },
+    {
+      "id": "B197",
+      "title": "Recorded original-owner failures paired with uncertain target deadlines",
+      "status": "Held for plan review; not matrix-verified. Latency measured; complete root cause not established. Root started an untested authority-only source-walk draft to eliminate public causal-page rendering. No proven deadline fix yet.",
+      "change": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
+      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "next": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains."
+    },
+    {
+      "id": "B198",
+      "title": "Focused fixture omits matrix Data and full retirement sequence",
+      "status": "Held for plan review; not matrix-verified. Plan only. No new build, focused workload or matrix launch after the owner requested review.",
+      "change": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
+      "evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+      "next": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open."
     }
   ],
   "workplan_tasks": [
@@ -3155,9 +3203,9 @@
       "owner": "Root",
       "dependencies": [],
       "solution": "Preserve the exact prepared resource and distinguish temporary authority-busy from permanent failure before bounded reauthorization.",
-      "status": "Root cause path identified; functional fix not implemented.",
+      "status": "Held for owner review; see reassessment plan. Drafts are not yet compiled/tested.",
       "completion": "Signed contention, revocation, expiry and permanent-refusal controls; no preparation or effect replay.",
-      "completion_status": "planned"
+      "completion_status": "held-for-review"
     },
     {
       "id": "S105",
@@ -3165,9 +3213,9 @@
       "owner": "Root",
       "dependencies": [],
       "solution": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
-      "status": "Candidate cause under investigation; not yet proven or fixed.",
+      "status": "Held for owner review; see reassessment plan. Drafts are not yet compiled/tested.",
       "completion": "Actual PCM grant continuity across positive completion/replay and revocation on genuine authority changes.",
-      "completion_status": "planned"
+      "completion_status": "held-for-review"
     },
     {
       "id": "S106",
@@ -3175,12 +3223,100 @@
       "owner": "Root",
       "dependencies": [],
       "solution": "Remove serialized helper/server latency within the original shared 62\u201367second deadline.",
-      "status": "Measured; functional fix not implemented.",
+      "status": "Held for owner review; see reassessment plan. Drafts are not yet compiled/tested.",
       "completion": "Original exact owner retirement, all current reads and cleanup complete within unchanged cutoff.",
-      "completion_status": "planned"
+      "completion_status": "held-for-review"
+    },
+    {
+      "id": "S107",
+      "title": "P1 Restore control-plane/media-plane isolation",
+      "owner": "Coordinated local implementation batch",
+      "dependencies": [],
+      "solution": "Use a narrow transaction-bound ledger capability for exact positive Data completion under complete current Readers; verify lifecycle reconciliation is a no-op, otherwise use the original Writer path. Keep uncertainty, cancellation and genuine authorization changes on the Writer path. Audit remaining ledger/status/metrics writes for the same unnecessary invalidation.",
+      "status": "Held for owner review. Draft applied, unformatted/uncompiled/untested. Six regressions drafted; credential-refresh/control-slot proof and direct regression still required.",
+      "completion": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced.",
+      "completion_status": "held-for-review"
+    },
+    {
+      "id": "S108",
+      "title": "P2 Make preparation tolerate temporary contention without replay",
+      "owner": "Coordinated local implementation batch",
+      "dependencies": [],
+      "solution": "Distinguish internal AuthorityBusy from permanent refusal. For a still-owned prepared resource, join and retry only its current authorization acquisition under the original deadline/cancellation, then activate once. Trace initial offer and replacement preparation separately; extend only where the same ownership proof holds. Preserve original logical operation IDs and uncertainty recovery. Initial offers already have a bounded activation-admission loop: locate the actual refusing phase rather than adding indiscriminate retries.",
+      "status": "Held for owner review. Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed.",
+      "completion": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect.",
+      "completion_status": "held-for-review"
+    },
+    {
+      "id": "S109",
+      "title": "P3 Complete handoffs and retire original owners within existing deadlines",
+      "owner": "Coordinated local implementation batch",
+      "dependencies": [],
+      "solution": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
+      "status": "Held for owner review. Latency measured; complete root cause not established. Root started an untested authority-only source-walk draft to eliminate public causal-page rendering. No proven deadline fix yet.",
+      "completion": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains.",
+      "completion_status": "held-for-review"
+    },
+    {
+      "id": "S110",
+      "title": "P4 Repair browser setup and diagnostic teardown",
+      "owner": "Coordinated local implementation batch",
+      "dependencies": [],
+      "solution": "Use the exact contract browser pin for isolated CA profiles. Stop and join the original diagnostic statistics request at the programme terminal before closing the peer; preserve the 500ms join bound and truthful ownership receipts.",
+      "status": "Held for owner review. Chrome fix committed and focused runtime verified. Statistics ordering patch applied with pure-test evidence; browser runtime not yet verified.",
+      "completion": "No startup or late diagnostic-owner cascade; all original browser cycles actually execute.",
+      "completion_status": "held-for-review"
+    },
+    {
+      "id": "S111",
+      "title": "P5 Resolve remaining decoded audio and video deficits",
+      "owner": "Coordinated local implementation batch",
+      "dependencies": [
+        "S107",
+        "S108",
+        "S109",
+        "S110"
+      ],
+      "solution": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
+      "status": "Held for owner review. Measured failures and candidate causes documented; additional fixes are required. No media-quality pass claimed for the current drafts.",
+      "completion": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun.",
+      "completion_status": "held-for-review"
+    },
+    {
+      "id": "S112",
+      "title": "P6 Verify full ownership coverage and resource budgets",
+      "owner": "Coordinated local implementation batch",
+      "dependencies": [
+        "S107",
+        "S108",
+        "S109",
+        "S110",
+        "S111"
+      ],
+      "solution": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
+      "status": "Held for owner review. Classification corrected; existing successful capacity checks do not close the composite requirement.",
+      "completion": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff.",
+      "completion_status": "held-for-review"
+    },
+    {
+      "id": "S113",
+      "title": "P7 Qualify one coherent batch against the actual matrix workload",
+      "owner": "Coordinated local implementation batch",
+      "dependencies": [
+        "S107",
+        "S108",
+        "S109",
+        "S110",
+        "S111",
+        "S112"
+      ],
+      "solution": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
+      "status": "Held for owner review. Plan only. No new build, focused workload or matrix launch after the owner requested review.",
+      "completion": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
+      "completion_status": "held-for-review"
     }
   ],
-  "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
+  "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
   "verified_focused_scope": {
     "rust_arm": 212,
     "node": 288,
@@ -5567,13 +5703,16 @@
     "passed": 121,
     "planned": 121,
     "scope": "Store93, protocol13, signed10, cadence2 and Linux ARM readiness3.",
-    "next": "All32 retested in v215; no cell passed. Next fixes require focused regressions before another full run."
+    "next": "Historical pre-v215 evidence; new drafts are held for owner review and not verified."
   },
   "current_workplan_tasks": [
-    "S103",
-    "S104",
-    "S105",
-    "S106"
+    "S107",
+    "S108",
+    "S109",
+    "S110",
+    "S111",
+    "S112",
+    "S113"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -17107,5 +17246,13 @@
   "v216_chrome_profile_fix": {
     "public_evidence": "docs/evidence/gate-6/browser-profile-pin-v216.json",
     "public_evidence_sha256": "ee630f67f8a725d7a97f869e6720659ece87908b906a6e4f670834e08582f2fd"
+  },
+  "v216_owner_review": {
+    "status": "awaiting-owner-review",
+    "plan": "docs/evidence/gate-6/g6-058-reassessment-plan-v216.json",
+    "assessment": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
+    "matrix_rerun_started": false,
+    "code_batch_ready": false,
+    "hold_reason": "Owner requested the completed plan before further implementation/testing."
   }
 }

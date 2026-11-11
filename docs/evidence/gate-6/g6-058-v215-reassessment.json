@@ -1,0 +1,4188 @@
+{
+  "format": "connect/g6-058-v215-reassessment/1",
+  "comparison": "Descriptive comparison of two complete runs, not a controlled causal experiment. Runtime causes are stated only where original observations and source establish them.",
+  "runs": {
+    "214": {
+      "source_revision": "2cbcf155884576d1dcadc0435e02f7e6b9744d5b",
+      "matrix_sha256": "fb6c4e61d07e11f58501859d4c53c2f588af84d0ec8828b8e88b565bf86a4c17",
+      "summary": {
+        "cells": {
+          "passed": 0,
+          "failed": 32,
+          "blocked": 0,
+          "not-run": 0,
+          "running": 0,
+          "incomplete": 0
+        },
+        "required_cells": 32,
+        "required_checks": 432,
+        "checks": {
+          "passed": 288,
+          "failed": 100,
+          "blocked": 44,
+          "not-run": 0,
+          "running": 0
+        }
+      },
+      "all_cells_attempted": true,
+      "all_verifier_integrities": true
+    },
+    "215": {
+      "source_revision": "1170d846a6f3d1af3c6e17eac8486a6ac27e6fb2",
+      "matrix_sha256": "77853c5268d861170c3664f05f42b91be825ed81c7eff621a97ccc981b2d1af2",
+      "summary": {
+        "cells": {
+          "passed": 0,
+          "failed": 32,
+          "blocked": 0,
+          "not-run": 0,
+          "running": 0,
+          "incomplete": 0
+        },
+        "required_cells": 32,
+        "required_checks": 432,
+        "checks": {
+          "passed": 287,
+          "failed": 101,
+          "blocked": 44,
+          "not-run": 0,
+          "running": 0
+        }
+      },
+      "all_cells_attempted": true,
+      "all_verifier_integrities": true
+    }
+  },
+  "transitions": {
+    "passed->passed": 276,
+    "failed->failed": 89,
+    "passed->failed": 8,
+    "failed->passed": 11,
+    "blocked->blocked": 40,
+    "blocked->failed": 4,
+    "passed->blocked": 4
+  },
+  "nonpass_family_counts": {
+    "native-handoff-or-terminal-failures": 8,
+    "native-workload-prerequisite-or-window-incomplete": 3,
+    "native-decoded-quality-and-handoff-coverage": 8,
+    "native-original-window-or-retirement-incomplete": 8,
+    "chrome-profile-contract-pin-mismatch": 52,
+    "browser-replacement-or-owner-receipt-refusal": 14,
+    "browser-decoded-quality-or-required-cycle-coverage": 20,
+    "browser-required-renderer-custody-coverage-incomplete": 13,
+    "browser-offer-authority-unavailable": 9,
+    "original-rtc-statistics-unjoined": 10
+  },
+  "interpretation": [
+    "Four Mac local Chrome cells fail before admission because profile helper rejects approved Chrome157; its packet-capture zero observations and40blocked checks are downstream. Fixed separately after v215; original results unchanged.",
+    "One Mac remote FirefoxES256 cycle passes original TLS/control/authority/selection and physically closes all renderers but cannot join an original diagnostic getStats; cycles2/3 remain unstarted. Aggregate trust/control failures do not prove authorization orTLS regressions.",
+    "Three WT cells have a missing full programme in one cycle because actual media-offer503authority_unavailable; strict programme/resource failures remain.",
+    "Successful capacity plateau observations do not prove complete functional retirement; the frozen resource verifier additionally requires the full10-renderer workload and exact joins. Failed handoffs with6\u20139joined actual renderers remain failed. No evidence here establishes those composite failures asRSS/FD/thread budget excess.",
+    "Decoded audio/video failure is evaluated independently from movement. No current sync=false route is observed in compact browser cycle facts, but the complete quality requirement still fails.",
+    "Native failures are not uniform: original data subscribe503, physical-target readiness assertion, retained-current-end or natural-owner-join deadlines, plus incomplete programme/cleanup cases occur across the original three cycles."
+  ],
+  "confirmed_browser_move_failure_classes": {
+    "target_preparation_503_authority_unavailable": 16,
+    "source_operation_application_recorded_with_target_preparation_deadline_uncertain": 25,
+    "specific_underlying_Store_or_Core_leaf_proved_for_every_attempt": false
+  },
+  "confirmed_resource_subgroups": {
+    "browser_capacity_profile_passes_but_required_ten_renderer_custody_incomplete": 13,
+    "browser_capacity_and_complete_required_custody_passes": 3,
+    "browser_missing_full_programme_due_to_offer_503": 3,
+    "browser_original_statistics_snapshot_unjoined": 1,
+    "browser_setup_failed_before_baseline": 4,
+    "native_resource_cases": 8,
+    "native_resource_scope": "Original programme window, session or helper retirement proof failed; this does not establish an OS budget excess"
+  },
+  "planned_fixture_fix": {
+    "action": "Stop and join the same original RTC diagnostic snapshot at the fixed programme terminal before peer retirement",
+    "status": "Applied after v215; isolated pure Node21passed,0failed,0skipped,0cancelled. Full workload verification pending.",
+    "confirmed_source_gap": "The diagnostic timer was left active while SDK peers closed",
+    "runtime_attribution_limit": "The failing per-peer browser-native getStats promise was not retained; exact underlying native call behavior is unproved"
+  },
+  "cells": [
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "report_sha256": "bc62443011800734ff87eadf7b578185e70a78578d61b9872d60a99817a4bf3f",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 1,
+          "failure": {
+            "name": "AssertionError",
+            "kind": null,
+            "certainty": null,
+            "stage": "physical-target-readiness",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 2,
+          "completed_moves": null,
+          "failure": {
+            "name": null,
+            "kind": null,
+            "certainty": null,
+            "stage": null,
+            "source_index": null,
+            "ordinal": null,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 4,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only",
+            "stage": "retained-current-end",
+            "source_index": null,
+            "ordinal": null,
+            "problem_code": null
+          }
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "AssertionError",
+          "failure_kind": null,
+          "problem_code": null,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 2,
+          "failure_phase": "six-native-data-subscriptions",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 3,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "deadline",
+          "problem_code": null,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": true
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-1:original-workload-window-incomplete"
+      ]
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/ES256",
+      "report_sha256": "4ef843b713131a116014ca36bee38c215a0ca8532201b76f94e349fca941d8ba",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 4,
+            "ordinal": 1,
+            "problem_code": 503
+          }
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 3,
+          "failure": {
+            "name": "AssertionError",
+            "kind": null,
+            "certainty": null,
+            "stage": "physical-target-readiness",
+            "source_index": 4,
+            "ordinal": 1,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 3,
+          "completed_moves": null,
+          "failure": {
+            "name": null,
+            "kind": null,
+            "certainty": null,
+            "stage": null,
+            "source_index": null,
+            "ordinal": null,
+            "problem_code": null
+          }
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 2,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "AssertionError",
+          "failure_kind": null,
+          "problem_code": null,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 3,
+          "failure_phase": "six-native-data-subscriptions",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-1:original-workload-window-incomplete"
+      ]
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "integrity": true,
+      "original_cycles_observed": 0,
+      "chrome_profile_setup_failure": true,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [],
+      "cycle_facts": [],
+      "resource_profile_failures": [
+        "original-baseline"
+      ]
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "integrity": true,
+      "original_cycles_observed": 0,
+      "chrome_profile_setup_failure": true,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [],
+      "cycle_facts": [],
+      "resource_profile_failures": [
+        "original-baseline"
+      ]
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "integrity": true,
+      "original_cycles_observed": 0,
+      "chrome_profile_setup_failure": true,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [],
+      "cycle_facts": [],
+      "resource_profile_failures": [
+        "original-baseline"
+      ]
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "integrity": true,
+      "original_cycles_observed": 0,
+      "chrome_profile_setup_failure": true,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [],
+      "cycle_facts": [],
+      "resource_profile_failures": [
+        "original-baseline"
+      ]
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "report_sha256": "3c10b295850e0724e53f87f19ad6dcb66433efc3beab3e8c70ba44ac7bb3776e",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 4,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 5,
+            "video": 6,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 3,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "report_sha256": "16c7ad7ffa28b70c375dc9df8a0a042e82d804dfd18ae0b5c3231fc5d1ae2b0f",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 1,
+          "failed_moves": 2,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            },
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 3,
+          "failed_moves": 1,
+          "blocked_returns": 0,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 2,
+            "video": 4,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 7,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 2,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 9,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 2,
+            "video": 5,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "report_sha256": "090cf3f33d6c90f6ef317cc41474d7dfc688d7a2d8ca7677e22c7f985f7b081d",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "deadline",
+            "certainty": "read-only",
+            "stage": "final-natural-owner-join",
+            "source_index": 0,
+            "ordinal": 1,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 2,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "deadline",
+          "problem_code": null,
+          "retirement_passed": false,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": true
+        },
+        {
+          "cycle": 2,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 3,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-1:original-session-or-helper-work-unjoined"
+      ]
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "report_sha256": "a2c8aa6f3abbfc2bc42dfe53ed7f2c1d4c81f13ade0749ff366db202cc82d71e",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failure": {
+            "name": null,
+            "kind": null,
+            "certainty": null,
+            "stage": null,
+            "source_index": null,
+            "ordinal": null,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 2,
+          "completed_moves": null,
+          "failure": {
+            "name": null,
+            "kind": null,
+            "certainty": null,
+            "stage": null,
+            "source_index": null,
+            "ordinal": null,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 1,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "failure_phase": null,
+          "failure_name": null,
+          "failure_kind": null,
+          "problem_code": null,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": true
+        },
+        {
+          "cycle": 2,
+          "failure_phase": "six-native-data-subscriptions",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 3,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-2:original-workload-missing-or-reused"
+      ]
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "report_sha256": "b3dd4707b6a94cce50b71bd2ed0f79f9db4e542cf854dcc1175a4b86550cada6",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 3,
+            "video": 1,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 2,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 4,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "report_sha256": "68fb0ef928dcdcde7a57d3ca83337e81e070a58b4a487abb73ab7918fa4e1995",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [
+        {
+          "index": 2,
+          "phase": "six-browser-media-offers",
+          "problem_code": 503,
+          "reason": "authority_unavailable"
+        }
+      ],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 0,
+          "failed_moves": null,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 4,
+            "video": 0,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": false,
+          "retirement_passed": null,
+          "local_owners_joined": false,
+          "actual_renderer_owners": 0,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 0,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 2,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-2:original-workload-missing-or-reused"
+      ]
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "report_sha256": "c6b3d5942439d2d7d1badf47cf974e0c993e6d25872fd31cf0025a619d3afddc",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 2,
+            "video": 4,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 2,
+            "video": 4,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 6,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "report_sha256": "acbcce1f93eb051aadb3195509ceaa8dd6371e37d0c19fdccb0221ef3534dc22",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 6,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 2,
+            "video": 6,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 2,
+            "video": 3,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "report_sha256": "3bf5cf69f77fd0247bd5e2198fc0ee7bc7bb3a5c9e8b82880c534476bfc33996",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 6,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 3,
+            "video": 3,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 5,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "integrity": true,
+      "original_cycles_observed": 1,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": true,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 0,
+          "failed_moves": 2,
+          "blocked_returns": 2,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            },
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": false,
+          "local_owners_joined": false,
+          "actual_renderer_owners": 6,
+          "renderer_joined": false,
+          "pending_original_statistics": true,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": false,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 1,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": [
+        "exactly-three-original-cycles-required"
+      ]
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "report_sha256": "63400016cdbd9b151f23f0486a960ac2c8bc58f6f90061ae75e7e9d9ab42df06",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 2,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 1,
+          "failure": {
+            "name": "AssertionError",
+            "kind": null,
+            "certainty": null,
+            "stage": "physical-target-readiness",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 1,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 4,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 2,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "AssertionError",
+          "failure_kind": null,
+          "problem_code": null,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 3,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-1:original-workload-window-incomplete"
+      ]
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "report_sha256": "4b9a36b8cd4bb9212e2a806b398fc9e45874b6d7e0f38f6914a2461c4b23690f",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 3,
+          "failure": {
+            "name": "AssertionError",
+            "kind": null,
+            "certainty": null,
+            "stage": "physical-target-readiness",
+            "source_index": 0,
+            "ordinal": 1,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 2,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 4,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "AssertionError",
+          "failure_kind": null,
+          "problem_code": null,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 2,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 3,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-1:original-workload-window-incomplete"
+      ]
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "report_sha256": "8ada46ba8b891967618badcf9ab4793bfd49a8bcfd944ff51fb6d0b6f60dc413",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 0,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 0,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 0,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "report_sha256": "8a9b2d44f578d669f6e02c02d7e206b5fac201593e144c2e298e415217ac1f59",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 0,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 2,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 2,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "report_sha256": "c444a4177705aba812277b4223fda02fd032ac4ee47011764238a596b0e56921",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 0,
+          "failed_moves": 2,
+          "blocked_returns": 2,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            },
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 6,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 4,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 2,
+            "video": 5,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 6,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "report_sha256": "c06f3d55d3d14e9723849b6a5567ee33773cf4b30675d6e7cc81a85206842cfd",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 1,
+          "failed_moves": 2,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            },
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 7,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 2,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 2,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 5,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "report_sha256": "0e33fe20f53e5dd18c755b2ddea687c77b97417487f4fe4cec53a8287859f284",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 0,
+          "failed_moves": 2,
+          "blocked_returns": 2,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            },
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 6,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 2,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 3,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 3,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "report_sha256": "e0a1b39cff1d43255533220aeafb69512efe60d2a6efa8399992cf7b25223ea0",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 2,
+          "failed_moves": 2,
+          "blocked_returns": 0,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            },
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 0,
+          "failed_moves": 2,
+          "blocked_returns": 2,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            },
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 2,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 4,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 6,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 3,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "report_sha256": "928efc1aaa51b2a9dc72b8200025b370a039c1b46f7412c3568771e6f8216855",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 2,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 2,
+          "failure": {
+            "name": "AssertionError",
+            "kind": null,
+            "certainty": null,
+            "stage": "physical-target-readiness",
+            "source_index": 0,
+            "ordinal": 1,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 2,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "AssertionError",
+          "failure_kind": null,
+          "problem_code": null,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 3,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-1:original-workload-window-incomplete"
+      ]
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "report_sha256": "1850e0ad3d5e1333aee3860c7767a518bf59a24ff72105e9ac2a75b302068eeb",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 1,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 0,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failure": {
+            "name": null,
+            "kind": null,
+            "certainty": null,
+            "stage": null,
+            "source_index": null,
+            "ordinal": null,
+            "problem_code": null
+          }
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failure": {
+            "name": "NodeSdkError",
+            "kind": "application",
+            "certainty": "uncertain",
+            "stage": "incoming-data-subscription",
+            "source_index": 4,
+            "ordinal": 0,
+            "problem_code": 503
+          }
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        },
+        {
+          "cycle": 2,
+          "failure_phase": null,
+          "failure_name": null,
+          "failure_kind": null,
+          "problem_code": null,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": true
+        },
+        {
+          "cycle": 3,
+          "failure_phase": "six-native-opus-vp8-sixty-second-workload",
+          "failure_name": "NodeSdkError",
+          "failure_kind": "application",
+          "problem_code": 503,
+          "retirement_passed": true,
+          "actual_helpers_joined": true,
+          "actual_clients_closed": true,
+          "programme_window_observed": false
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-1:original-workload-window-incomplete"
+      ]
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "report_sha256": "60119c514594e978096b91cb547c15e3413678fadf562f1b40014324697f5a16",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [
+        {
+          "index": 3,
+          "phase": "six-browser-media-offers",
+          "problem_code": 503,
+          "reason": "authority_unavailable"
+        }
+      ],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 0,
+          "failed_moves": null,
+          "blocked_returns": 0,
+          "failures": []
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 5,
+            "video": 0,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 1,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": false,
+          "retirement_passed": null,
+          "local_owners_joined": false,
+          "actual_renderer_owners": 0,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 0,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-3:original-workload-missing-or-reused"
+      ]
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "report_sha256": "15fc30aca6c46046be87521e73b510ca9d913c8e6a7ed8c868b275d9768c74a1",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [
+        {
+          "index": 3,
+          "phase": "six-browser-media-offers",
+          "problem_code": 503,
+          "reason": "authority_unavailable"
+        }
+      ],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 0,
+          "failed_moves": null,
+          "blocked_returns": 0,
+          "failures": []
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 5,
+            "video": 0,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 6,
+            "video": 2,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": false,
+          "retirement_passed": null,
+          "local_owners_joined": false,
+          "actual_renderer_owners": 0,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 0,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": [
+        "cycle-3:original-workload-missing-or-reused"
+      ]
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "report_sha256": "d233301f82063637d20f38a10bc51ba3ea1606d2167186b1134c5e602f326057",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 1,
+          "failed_moves": 2,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            },
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 3,
+          "failed_moves": 1,
+          "blocked_returns": 0,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 0,
+          "failed_moves": 2,
+          "blocked_returns": 2,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            },
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 7,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 4,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 9,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 2,
+            "video": 1,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 6,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 4,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "report_sha256": "14dbf7f03a5cec9ecfcd6520a21c77c84e0b33e5ba49ea3126ec53fbd44146a1",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 3,
+          "failed_moves": 1,
+          "blocked_returns": 0,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 4,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 9,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 3,
+            "video": 6,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 1,
+            "video": 4,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "report_sha256": "cb25aa69d84cd72e7497f60a0ffa4447b0221e84acf3edb57b39f883b1b84267",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 1,
+          "failed_moves": 2,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            },
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 7,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 1,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 3,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 2,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "report_sha256": "8b03edfb77b3c05bc4b8b43457fe9c1018467cd3bcbf502441db40354f634547",
+      "integrity": true,
+      "original_cycles_observed": 3,
+      "chrome_profile_setup_failure": false,
+      "original_statistics_unjoined": false,
+      "incomplete_browser_cycles": [],
+      "movement": [
+        {
+          "cycle": 1,
+          "completed_moves": 2,
+          "failed_moves": 1,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            }
+          ]
+        },
+        {
+          "cycle": 2,
+          "completed_moves": 4,
+          "failed_moves": 0,
+          "blocked_returns": 0,
+          "failures": []
+        },
+        {
+          "cycle": 3,
+          "completed_moves": 1,
+          "failed_moves": 2,
+          "blocked_returns": 1,
+          "failures": [
+            {
+              "phase": "original-owner-receipts",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "recorded",
+              "code": null,
+              "reason": null
+            },
+            {
+              "phase": "target-preparation",
+              "name": "BrowserSdkError",
+              "kind": "application",
+              "certainty": "uncertain",
+              "code": 503,
+              "reason": "authority_unavailable"
+            }
+          ]
+        }
+      ],
+      "cycle_facts": [
+        {
+          "cycle": 1,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 8,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 2,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 2,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 10,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 6,
+            "sync": 0
+          }
+        },
+        {
+          "cycle": 3,
+          "workload_complete": true,
+          "retirement_passed": true,
+          "local_owners_joined": true,
+          "actual_renderer_owners": 7,
+          "renderer_joined": true,
+          "pending_original_statistics": false,
+          "diagnostic_hooks_joined": true,
+          "fixture_references_released": true,
+          "quality_failed_routes": {
+            "audio": 0,
+            "video": 1,
+            "sync": 0
+          }
+        }
+      ],
+      "resource_profile_failures": []
+    }
+  ],
+  "nonpass_checks": [
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-handoff-or-terminal-failures",
+      "role": "functional-failure",
+      "report_sha256": "bc62443011800734ff87eadf7b578185e70a78578d61b9872d60a99817a4bf3f"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check": "declared-concurrent-workload",
+      "old_status": "passed",
+      "status": "failed",
+      "family": "native-workload-prerequisite-or-window-incomplete",
+      "role": "incomplete-workload-cascade",
+      "report_sha256": "bc62443011800734ff87eadf7b578185e70a78578d61b9872d60a99817a4bf3f"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-decoded-quality-and-handoff-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "bc62443011800734ff87eadf7b578185e70a78578d61b9872d60a99817a4bf3f"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-original-window-or-retirement-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "bc62443011800734ff87eadf7b578185e70a78578d61b9872d60a99817a4bf3f"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-handoff-or-terminal-failures",
+      "role": "functional-failure",
+      "report_sha256": "4ef843b713131a116014ca36bee38c215a0ca8532201b76f94e349fca941d8ba"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check": "declared-concurrent-workload",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-workload-prerequisite-or-window-incomplete",
+      "role": "incomplete-workload-cascade",
+      "report_sha256": "4ef843b713131a116014ca36bee38c215a0ca8532201b76f94e349fca941d8ba"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-decoded-quality-and-handoff-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "4ef843b713131a116014ca36bee38c215a0ca8532201b76f94e349fca941d8ba"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-original-window-or-retirement-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "4ef843b713131a116014ca36bee38c215a0ca8532201b76f94e349fca941d8ba"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "normal-tls-and-current-device-key-authority",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "selected-transport-and-authenticated-discovery",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "one-service-contract-and-original-operation-recovery",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "participant-add-update-remove-and-current-audiences",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "session-upgrade-and-current-capability-refusal",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "declared-concurrent-workload",
+      "old_status": "blocked",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "actual-private-packet-capture",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check": "neither-path-usable-refuses-without-mutation-resubmission",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "normal-tls-and-current-device-key-authority",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "selected-transport-and-authenticated-discovery",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "one-service-contract-and-original-operation-recovery",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "participant-add-update-remove-and-current-audiences",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "session-upgrade-and-current-capability-refusal",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "declared-concurrent-workload",
+      "old_status": "blocked",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "actual-private-packet-capture",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check": "neither-path-usable-refuses-without-mutation-resubmission",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "normal-tls-and-current-device-key-authority",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "selected-transport-and-authenticated-discovery",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "one-service-contract-and-original-operation-recovery",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "participant-add-update-remove-and-current-audiences",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "session-upgrade-and-current-capability-refusal",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "declared-concurrent-workload",
+      "old_status": "blocked",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "actual-private-packet-capture",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "neither-path-usable-refuses-without-mutation-resubmission",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "normal-tls-and-current-device-key-authority",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "selected-transport-and-authenticated-discovery",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "one-service-contract-and-original-operation-recovery",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "participant-add-update-remove-and-current-audiences",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "session-upgrade-and-current-capability-refusal",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "declared-concurrent-workload",
+      "old_status": "blocked",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "actual-private-packet-capture",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "neither-path-usable-refuses-without-mutation-resubmission",
+      "old_status": "blocked",
+      "status": "blocked",
+      "family": "chrome-profile-contract-pin-mismatch",
+      "role": "startup-cascade",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "3c10b295850e0724e53f87f19ad6dcb66433efc3beab3e8c70ba44ac7bb3776e"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "3c10b295850e0724e53f87f19ad6dcb66433efc3beab3e8c70ba44ac7bb3776e"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "3c10b295850e0724e53f87f19ad6dcb66433efc3beab3e8c70ba44ac7bb3776e"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "16c7ad7ffa28b70c375dc9df8a0a042e82d804dfd18ae0b5c3231fc5d1ae2b0f"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "16c7ad7ffa28b70c375dc9df8a0a042e82d804dfd18ae0b5c3231fc5d1ae2b0f"
+    },
+    {
+      "cell": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "16c7ad7ffa28b70c375dc9df8a0a042e82d804dfd18ae0b5c3231fc5d1ae2b0f"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-handoff-or-terminal-failures",
+      "role": "functional-failure",
+      "report_sha256": "090cf3f33d6c90f6ef317cc41474d7dfc688d7a2d8ca7677e22c7f985f7b081d"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-decoded-quality-and-handoff-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "090cf3f33d6c90f6ef317cc41474d7dfc688d7a2d8ca7677e22c7f985f7b081d"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-original-window-or-retirement-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "090cf3f33d6c90f6ef317cc41474d7dfc688d7a2d8ca7677e22c7f985f7b081d"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-handoff-or-terminal-failures",
+      "role": "functional-failure",
+      "report_sha256": "a2c8aa6f3abbfc2bc42dfe53ed7f2c1d4c81f13ade0749ff366db202cc82d71e"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check": "declared-concurrent-workload",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-workload-prerequisite-or-window-incomplete",
+      "role": "incomplete-workload-cascade",
+      "report_sha256": "a2c8aa6f3abbfc2bc42dfe53ed7f2c1d4c81f13ade0749ff366db202cc82d71e"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-decoded-quality-and-handoff-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "a2c8aa6f3abbfc2bc42dfe53ed7f2c1d4c81f13ade0749ff366db202cc82d71e"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-original-window-or-retirement-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "a2c8aa6f3abbfc2bc42dfe53ed7f2c1d4c81f13ade0749ff366db202cc82d71e"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "b3dd4707b6a94cce50b71bd2ed0f79f9db4e542cf854dcc1175a4b86550cada6"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-offer-authority-unavailable",
+      "role": "functional-failure",
+      "report_sha256": "68fb0ef928dcdcde7a57d3ca83337e81e070a58b4a487abb73ab7918fa4e1995"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check": "declared-concurrent-workload",
+      "old_status": "passed",
+      "status": "failed",
+      "family": "browser-offer-authority-unavailable",
+      "role": "incomplete-workload-cascade",
+      "report_sha256": "68fb0ef928dcdcde7a57d3ca83337e81e070a58b4a487abb73ab7918fa4e1995"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "68fb0ef928dcdcde7a57d3ca83337e81e070a58b4a487abb73ab7918fa4e1995"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-offer-authority-unavailable",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "68fb0ef928dcdcde7a57d3ca83337e81e070a58b4a487abb73ab7918fa4e1995"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "c6b3d5942439d2d7d1badf47cf974e0c993e6d25872fd31cf0025a619d3afddc"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "c6b3d5942439d2d7d1badf47cf974e0c993e6d25872fd31cf0025a619d3afddc"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "c6b3d5942439d2d7d1badf47cf974e0c993e6d25872fd31cf0025a619d3afddc"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "acbcce1f93eb051aadb3195509ceaa8dd6371e37d0c19fdccb0221ef3534dc22"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "acbcce1f93eb051aadb3195509ceaa8dd6371e37d0c19fdccb0221ef3534dc22"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "acbcce1f93eb051aadb3195509ceaa8dd6371e37d0c19fdccb0221ef3534dc22"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "3bf5cf69f77fd0247bd5e2198fc0ee7bc7bb3a5c9e8b82880c534476bfc33996"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "3bf5cf69f77fd0247bd5e2198fc0ee7bc7bb3a5c9e8b82880c534476bfc33996"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "3bf5cf69f77fd0247bd5e2198fc0ee7bc7bb3a5c9e8b82880c534476bfc33996"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "normal-tls-and-current-device-key-authority",
+      "old_status": "passed",
+      "status": "failed",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "incomplete-cycle-cascade",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "selected-transport-and-authenticated-discovery",
+      "old_status": "passed",
+      "status": "blocked",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "incomplete-cycle-cascade",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "one-service-contract-and-original-operation-recovery",
+      "old_status": "passed",
+      "status": "blocked",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "incomplete-cycle-cascade",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "participant-add-update-remove-and-current-audiences",
+      "old_status": "passed",
+      "status": "blocked",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "incomplete-cycle-cascade",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "session-upgrade-and-current-capability-refusal",
+      "old_status": "passed",
+      "status": "blocked",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "incomplete-cycle-cascade",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "declared-concurrent-workload",
+      "old_status": "passed",
+      "status": "failed",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "incomplete-cycle-cascade",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "old_status": "passed",
+      "status": "failed",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "incomplete-cycle-cascade",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "primary",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "old_status": "passed",
+      "status": "failed",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "incomplete-cycle-cascade",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "neither-path-usable-refuses-without-mutation-resubmission",
+      "old_status": "passed",
+      "status": "failed",
+      "family": "original-rtc-statistics-unjoined",
+      "role": "incomplete-cycle-cascade",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-handoff-or-terminal-failures",
+      "role": "functional-failure",
+      "report_sha256": "63400016cdbd9b151f23f0486a960ac2c8bc58f6f90061ae75e7e9d9ab42df06"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-decoded-quality-and-handoff-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "63400016cdbd9b151f23f0486a960ac2c8bc58f6f90061ae75e7e9d9ab42df06"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-original-window-or-retirement-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "63400016cdbd9b151f23f0486a960ac2c8bc58f6f90061ae75e7e9d9ab42df06"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-handoff-or-terminal-failures",
+      "role": "functional-failure",
+      "report_sha256": "4b9a36b8cd4bb9212e2a806b398fc9e45874b6d7e0f38f6914a2461c4b23690f"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-decoded-quality-and-handoff-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "4b9a36b8cd4bb9212e2a806b398fc9e45874b6d7e0f38f6914a2461c4b23690f"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-original-window-or-retirement-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "4b9a36b8cd4bb9212e2a806b398fc9e45874b6d7e0f38f6914a2461c4b23690f"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "8ada46ba8b891967618badcf9ab4793bfd49a8bcfd944ff51fb6d0b6f60dc413"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "8a9b2d44f578d669f6e02c02d7e206b5fac201593e144c2e298e415217ac1f59"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "c444a4177705aba812277b4223fda02fd032ac4ee47011764238a596b0e56921"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "c444a4177705aba812277b4223fda02fd032ac4ee47011764238a596b0e56921"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "c444a4177705aba812277b4223fda02fd032ac4ee47011764238a596b0e56921"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "c06f3d55d3d14e9723849b6a5567ee33773cf4b30675d6e7cc81a85206842cfd"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "c06f3d55d3d14e9723849b6a5567ee33773cf4b30675d6e7cc81a85206842cfd"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "c06f3d55d3d14e9723849b6a5567ee33773cf4b30675d6e7cc81a85206842cfd"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "0e33fe20f53e5dd18c755b2ddea687c77b97417487f4fe4cec53a8287859f284"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "0e33fe20f53e5dd18c755b2ddea687c77b97417487f4fe4cec53a8287859f284"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "0e33fe20f53e5dd18c755b2ddea687c77b97417487f4fe4cec53a8287859f284"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "e0a1b39cff1d43255533220aeafb69512efe60d2a6efa8399992cf7b25223ea0"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "e0a1b39cff1d43255533220aeafb69512efe60d2a6efa8399992cf7b25223ea0"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "e0a1b39cff1d43255533220aeafb69512efe60d2a6efa8399992cf7b25223ea0"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-handoff-or-terminal-failures",
+      "role": "functional-failure",
+      "report_sha256": "928efc1aaa51b2a9dc72b8200025b370a039c1b46f7412c3568771e6f8216855"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-decoded-quality-and-handoff-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "928efc1aaa51b2a9dc72b8200025b370a039c1b46f7412c3568771e6f8216855"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-original-window-or-retirement-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "928efc1aaa51b2a9dc72b8200025b370a039c1b46f7412c3568771e6f8216855"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-handoff-or-terminal-failures",
+      "role": "functional-failure",
+      "report_sha256": "1850e0ad3d5e1333aee3860c7767a518bf59a24ff72105e9ac2a75b302068eeb"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-decoded-quality-and-handoff-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "1850e0ad3d5e1333aee3860c7767a518bf59a24ff72105e9ac2a75b302068eeb"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "native-original-window-or-retirement-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "1850e0ad3d5e1333aee3860c7767a518bf59a24ff72105e9ac2a75b302068eeb"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-offer-authority-unavailable",
+      "role": "functional-failure",
+      "report_sha256": "60119c514594e978096b91cb547c15e3413678fadf562f1b40014324697f5a16"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check": "declared-concurrent-workload",
+      "old_status": "passed",
+      "status": "failed",
+      "family": "browser-offer-authority-unavailable",
+      "role": "incomplete-workload-cascade",
+      "report_sha256": "60119c514594e978096b91cb547c15e3413678fadf562f1b40014324697f5a16"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "60119c514594e978096b91cb547c15e3413678fadf562f1b40014324697f5a16"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-offer-authority-unavailable",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "60119c514594e978096b91cb547c15e3413678fadf562f1b40014324697f5a16"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-offer-authority-unavailable",
+      "role": "functional-failure",
+      "report_sha256": "15fc30aca6c46046be87521e73b510ca9d913c8e6a7ed8c868b275d9768c74a1"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check": "declared-concurrent-workload",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-offer-authority-unavailable",
+      "role": "incomplete-workload-cascade",
+      "report_sha256": "15fc30aca6c46046be87521e73b510ca9d913c8e6a7ed8c868b275d9768c74a1"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "15fc30aca6c46046be87521e73b510ca9d913c8e6a7ed8c868b275d9768c74a1"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-offer-authority-unavailable",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "15fc30aca6c46046be87521e73b510ca9d913c8e6a7ed8c868b275d9768c74a1"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "d233301f82063637d20f38a10bc51ba3ea1606d2167186b1134c5e602f326057"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "d233301f82063637d20f38a10bc51ba3ea1606d2167186b1134c5e602f326057"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "d233301f82063637d20f38a10bc51ba3ea1606d2167186b1134c5e602f326057"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "14dbf7f03a5cec9ecfcd6520a21c77c84e0b33e5ba49ea3126ec53fbd44146a1"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "14dbf7f03a5cec9ecfcd6520a21c77c84e0b33e5ba49ea3126ec53fbd44146a1"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "14dbf7f03a5cec9ecfcd6520a21c77c84e0b33e5ba49ea3126ec53fbd44146a1"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "cb25aa69d84cd72e7497f60a0ffa4447b0221e84acf3edb57b39f883b1b84267"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "cb25aa69d84cd72e7497f60a0ffa4447b0221e84acf3edb57b39f883b1b84267"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "cb25aa69d84cd72e7497f60a0ffa4447b0221e84acf3edb57b39f883b1b84267"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "device-replacement-and-old-owner-retirement",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-replacement-or-owner-receipt-refusal",
+      "role": "functional-failure",
+      "report_sha256": "8b03edfb77b3c05bc4b8b43457fe9c1018467cd3bcbf502441db40354f634547"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "independently-decoded-duplex-media-and-profile-budgets",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-decoded-quality-or-required-cycle-coverage",
+      "role": "measured-quality-or-incomplete-handoff-coverage",
+      "report_sha256": "8b03edfb77b3c05bc4b8b43457fe9c1018467cd3bcbf502441db40354f634547"
+    },
+    {
+      "cell": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check": "owned-drain-and-resource-reclamation",
+      "old_status": "failed",
+      "status": "failed",
+      "family": "browser-required-renderer-custody-coverage-incomplete",
+      "role": "composite-retirement-or-workload-coverage-failure",
+      "report_sha256": "8b03edfb77b3c05bc4b8b43457fe9c1018467cd3bcbf502441db40354f634547"
+    }
+  ],
+  "unchanged_acceptance": {
+    "cells": 32,
+    "checks": 432,
+    "programme_ms": 62000,
+    "moves_ms": [
+      15000,
+      40000
+    ],
+    "statistics_join_ms": 500,
+    "local_cleanup_ms": 5000,
+    "idle_seconds": 10,
+    "no_verdicts_rewritten": true
+  }
+}
