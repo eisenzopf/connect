@@ -2336,3 +2336,7 @@ fn representative_recovered_key_keeps_the_next_contiguous_delta() {
     assert!(history.take_request(now));
     assert_eq!(progress.lock().unwrap().video_losses, losses_at_key + 1);
 }
+
+#[cfg(feature = "test-support")]
+#[path = "representative/initial_av.rs"]
+mod initial_av;

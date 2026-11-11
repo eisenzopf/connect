@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-reassessment-plan/1",
-  "updated": "2026-11-11T17:03:23.096512+00:00",
+  "updated": "2026-11-11T17:27:16.122230+00:00",
   "status": "Owner approved implementation; tracked work in progress. Matrix qualification remains open.",
   "baseline": "v215",
   "baseline_evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
@@ -54,7 +54,7 @@
         "Cover initial offers and WebRTC target preparation with request-bound phase evidence; prove each specific refusing leaf before changing it."
       ],
       "exit": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect.",
-      "state": "Prepared subscription recovery component-verified for signedAV+Data; archived3setup503cases are originalsubscriptions after6completedoffers, exactinnerleafunlogged. OrdinaryinitialAVfaultregressionpending. No initialofferretry proposed.",
+      "state": "Archived3setup503cases provenoriginalstream.subscribe after6completedoffers; exactinnerleafunlogged. OrdinaryinitialAVrealWriter+SQLfaultfixturev2 integrated/source-reviewed; runtime175pending. No initialofferretry.",
       "assigned_tasks": [
         "P2.1",
         "P2.2"
@@ -77,7 +77,7 @@
         "Actual signed/native and browser make-before-break workload: usable audio and decoded keyframe before commit, old playback through preparation, exact original retirement receipts after commit."
       ],
       "exit": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains.",
-      "state": "Source17 127/130; typedStart controls verified but two laterReadySQLfailures remain. Ready401grant-freecurrentadmission/once-onlycapture source-reviewed; combinedsignedRTC verification pending. Full62retirementdeadline stillopen.",
+      "state": "Ready401integrated; UCTP24passed11/11with6newReadycontrols, productionunchanged by405exactparserassertioncorrection. Service/signedRTC/full62retirementfollowthroughpending.",
       "assigned_tasks": [
         "P3.1",
         "P3.2"
@@ -167,7 +167,7 @@
         "Commit and push the verified batch with CI skipped; freeze sources; execute all32 cells/all432 checks with original3-cycle requirements, including local remote-profile fixtures."
       ],
       "exit": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
-      "state": "Owner approved execution; latestcompletecombined17 127/130, supplementaryStore20 106/106. Allfixes/source reviews andexpandedunit/11signedRTC/full62batch precede freshall32/all432. No newmatrix launched.",
+      "state": "Final175exactselector/fixtureplan staged, all130originalsretained; unitfirst11signedRTCs/full62LAST. TargetedStore106/106,Core19/19,UCTP11/11green. Largecombinedbuildrequirespending44GiBcoldcachecleanup; no new32launched.",
       "assigned_tasks": [
         "P7.1",
         "P7.2",

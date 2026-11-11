@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T17:03:23.096512+00:00",
-  "run_status": "Store20 passed106/106 and Core22 passed19/19, source/binaries unchanged and all original groups joined. Core7privateprepublicationlockcontrols and oldpublisherrecovery are verified; Ready401Service/UCTP/signedRTC followthrough and ordinaryinitialAVfaultcase precede finalexpandedcombinedrun/full62quality. All3WTsetupfailures arestream.subscribe after6completedoffers. Latestcompletecombined17 remains127/130; matrix215 remains0/32cells,287passed101failed44blocked.",
+  "updated": "2026-11-11T17:27:16.122230+00:00",
+  "run_status": "TargetedStore106/106, Core19/19 andUCTP11/11pass, unchangedsource/binaries and joinedoriginalgroups. ReadyServicecontrols and11signedRTCcases plusintegratedordinaryinitialAVregression areselectedinfinal175; genuinefull62qualitylast. D2has~1.7GiBfree; largecombinedbuild/runneeds pending44GiBcoldobjectcleanupapproval. No proposedcleanupfilesdeleted. Latestcompletecombined17 remains127/130; matrix215 unchanged0/32,287passed101failed44blocked.",
   "blockers": [
     {
       "id": "B01",
@@ -1625,10 +1625,10 @@
     {
       "id": "B199",
       "title": "Valid Ready SQL contention straddles volatile capture",
-      "status": "Implemented and independently source-reviewed; Ready401 grant-free wait and signed pre/postcapture SQL/revocation regressions integrated; runtime unverified.",
+      "status": "Ready401source-reviewed; UCTP24passed11/11including6Readycontrols after405test-onlyexactparsernegativefix. ServiceandsignedRTCfollowthroughpending.",
       "change": "Implement narrow original-only grant-free Ready wait with fresh authorization on typedBusy, exactly-once capture and separate read-only result recovery. Keep original deadlines and physical bindings.",
       "evidence": "g6-058-v216-components17.json: all123pure pass; Start probes/SQL owner joins/private decode/invalidReady refusals succeed, then validReady encounters primarySQLBusy and same-root status staysPreparing.",
-      "next": "Execute six Service and six UCTP controls plus all11signedRTC variants in frozen170 batch; inspect exact custody/once-only Ready before matrix."
+      "next": "Final175:16Servicecontrols,11actualsignedRTCvariants, ordinaryinitialAV andfull62programme; originaldeadlines/once-onlycapture/currentnegativechecks retained."
     },
     {
       "id": "B200",
@@ -5782,7 +5782,7 @@
     "passed": 127,
     "planned": 130,
     "scope": "Source17:102Store,10Service,5UCTP,6purefixture,1RTC,1signedData,2shortnative pass.2RTCReady and1native return fail.",
-    "next": "Latestcompletecombined17 remains127/130. SupplementaryStore20 106/106 andCore22 19/19pass. OrdinaryinitialAVfaultregression+Ready401Service/UCTP/11signedRTC/full62 stillpending; matrixverdictunchanged."
+    "next": "Lastcompletecombined17 remains127/130. TargetedStore106/106, Core19/19 andUCTP11/11aregreen; final175combined/signedRTC/initialAV/full62pendingcapacity. No newmatrixqualification."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17364,5 +17364,25 @@
     "passed": 19,
     "failed": 0,
     "matrix_result": false
-  }
+  },
+  "current_component_verification": [
+    {
+      "name": "Store authority and retirement",
+      "passed": 106,
+      "planned": 106,
+      "evidence": "g6-058-v216-store20-verification.json"
+    },
+    {
+      "name": "Core private video metadata",
+      "passed": 19,
+      "planned": 19,
+      "evidence": "g6-058-v216-core22-verification.json"
+    },
+    {
+      "name": "UCTP original Ready authority",
+      "passed": 11,
+      "planned": 11,
+      "evidence": "g6-058-v216-uctp24-verification.json"
+    }
+  ]
 }

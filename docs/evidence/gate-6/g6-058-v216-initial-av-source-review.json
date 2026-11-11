@@ -1,0 +1,11 @@
+{
+  "format": "connect/g6-058-initial-av-source-review/1",
+  "created_at": "2026-11-11T17:27:16.122230+00:00",
+  "manifest_sha256": "68a63de284f4b06c206c6e0297a4b3623fcf00e51931133ac8b534a0371e3e89",
+  "patch_sha256": "925e0371073589ef91ac91502f3878e76e8a7affe12ee01b77b3ba5fe0eb553f",
+  "independent_media_review_sha256": "6c985ab6d19c0b795ffcc4fbcb771d33282888c4aeb8ed3f62c7c408e4d87569",
+  "coordinator_review_sha256": "b8377b17042ccbf4d9b82a344fbb3bbdeaf54aa87012455d500773ed6e3338dc",
+  "scope": "One ordinary initial signedAVsubscription after6ordinaryoffers; sameoriginalpreparedflow underactual currentWriter then postauthprimarySQLBusy. Actual oldandtargetdecodes, postSQLcapturedvideo watermarks, originaleffect/revision/expiry, joinedcleanupattempts; no productionchange.",
+  "runtime": "Uncompiled/unrun; selectedasoneof175, no full62/browser/resource/matrixclaim.",
+  "selector": "sdk_handles::replacement_video_recovery::readiness::representative::initial_av::signed_initial_six_source_av_subscription_releases_both_busy_boundaries_without_replaying_original"
+}

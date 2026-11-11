@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-11T17:03:23.096512+00:00",
-  "revision": 18,
+  "updated_at": "2026-11-11T17:27:16.122230+00:00",
+  "revision": 19,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 18,
-    "verified_at": "2026-11-11T17:05:34.181Z",
+    "content_revision": 19,
+    "verified_at": "2026-11-11T17:31:35.463Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -302,7 +302,7 @@
       ],
       "depends_on": [],
       "status": "cause-confirmed",
-      "implementation_state": "All3WTmissingprogrammes failed originalstream.subscribe after6completedoffers, oneeffecteach. Exactunavailableleafunlogged; existingcomplete-sceneBusyrecovery covers transientpath. OrdinaryinitialAVtwo-faultregressionpending.",
+      "implementation_state": "Archived3originalsubscriptions tracedafter6completedoffers; exacthistoricalinnerunavailableleafunlogged. TrueinitialAVtwo-faultfixturev2 integrated/source-reviewed withpostSQLfreshcaptureproof, selectedin175; runtimepending.",
       "proposed_fix": "Retain same prepared subscription across definite complete-scene Busy after all fresh proofs drop; preserve permanent refusals, original deadline and one activation. No initial offer retry or mutation resubmission.",
       "required_evidence": "All three WT missing-programme cases linked to original commands; causal regression for each distinct cause, original-effect recovery and no duplicate media admission.",
       "coordinator_review": {
@@ -351,7 +351,7 @@
         "P2.1"
       ],
       "status": "independent-source-reviewed",
-      "implementation_state": "Ready401 integrated; current metadata retry drops custody and preserves original deadline/once-only capture; sixService/sixUCTP/new signedRTC controls pending.",
+      "implementation_state": "Ready401integrated; UCTP24passed11/11 including6newReadycontrols aftertest-only405parserassertioncorrection. Service6newReadycontrols and all11signedRTCcases pendingfinal175.",
       "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
       "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
       "coordinator_review": {
@@ -393,6 +393,11 @@
         {
           "evidence_scope": "Integrated fix batch after source17; old-condition counterexamples reproduced. Fixed source unverified; Store19 compile stopped before tests.",
           "result": "pending-fixed-verification",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-uctp24-verification.json",
+          "result": "11/11passed; parser/currentproof/custody/deadline/rightscontrols only",
           "matrix_result": false
         }
       ],

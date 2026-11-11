@@ -1,0 +1,134 @@
+{
+  "format": "connect/g6-058-uctp24-verification/1",
+  "created_at": "2026-11-11T17:27:16.122230+00:00",
+  "scope": "11actualUCTPcontrols including6ReadyWait controls; five malformedmarker/scope cases and repeatedconversion retain exact parser/APIrefusal assertions. NoService/signedRTC/fullprogramme/matrixpassclaim.",
+  "summary": {
+    "completed": 11,
+    "passed": 11,
+    "failed": 0
+  },
+  "workspace_sha256": "e07793e335fdfa206a0001c3dc188cb066778cd1485d1e05a7d6e816df3a63b0",
+  "source_lock_sha256": "bef0ccbe4fa72c4a5656ee066134ef48ab007c91f2299b8a8ad248bffbe738c5",
+  "binary_sha256": "a90f0a82863aa90f4a9f9f6c87bbd9424968f9d10ef3f06bc0c78e88760177e6",
+  "build_owner": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "--manifest-path",
+      ".deps/rvoip/crates/uctp/rvoip-uctp/Cargo.toml",
+      "-p",
+      "rvoip-uctp",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "pid": 3621,
+    "pgid": 3621,
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 4.732921208022162,
+    "source_unchanged": true
+  },
+  "source_unchanged": true,
+  "binary_unchanged": true,
+  "all_original_groups_joined": true,
+  "405_test_only_manifest_sha256": "2a98977303d9a876a0934792e69e803fe37002d681c5d363a324723a09411971",
+  "405_coordinator_independent_review_sha256": "0bf4ffc6f3ff1867be380d2fd483c3fda41cce4ef396a9be887a358bab53002f",
+  "raw_results_sha256": "50d5c7d4d565cc5a61390f66e047657c27162f022f04788637d9ef40496e3bac",
+  "rows": [
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::same_prepared_subscription_retries_real_temporary_exclusion_without_new_command_or_cutoff",
+      "ok": true,
+      "elapsed_seconds": 0.034830624994356185,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "7453a48381de783c2ffe6995cf890e9fd7548b6f165664301d5e7e9c05faa784"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_busy_then_actual_revocation_refuses_same_original",
+      "ok": true,
+      "elapsed_seconds": 0.03247404197463766,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "ab0e1c68528305005a5991f0b493deae1f7c5c78d06f73293f502837c906c6c1"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_permanent_authority_file_failure_is_not_retried",
+      "ok": true,
+      "elapsed_seconds": 0.008133542025461793,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "9a37a7e079ef06ce96d40d3d5752ccf00be2287e34a91a442753c2436e8e8279"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_original_cutoff_and_all_original_cancellations_stop_busy_wait",
+      "ok": true,
+      "elapsed_seconds": 0.049995374982245266,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "7615629790fd18552d5929273ec06d3501445c760347dd558e3496835f1c21ed"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_retry_rejects_non_subscription_preparation_marker",
+      "ok": true,
+      "elapsed_seconds": 0.00854541704757139,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "46520fb1f0bd2f772b5e248301089ea38985421a509e25d078ca9b536f6b93f1"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_releases_both_original_guards_and_permits_no_exchange_or_result_before_fresh_proof",
+      "ok": true,
+      "elapsed_seconds": 0.01062449999153614,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "608ca3a167c5c16d1251328ce865a906f7fa4b189f4b9ace2e97a2d80ce9a23c"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_rejects_other_profiles_missing_scope_extra_marker_and_reconverted_owner",
+      "ok": true,
+      "elapsed_seconds": 0.012292166997212917,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "64f5e122aeeae6267f864517a278f4b0f88bb0ed516e49a3e00861c5a0c725a3"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_reply_requires_same_instance_fresh_current_proof_not_foreign_or_subscription",
+      "ok": true,
+      "elapsed_seconds": 0.009272666997276247,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "b6ce0844de7682399c2509cd598520c3a65b5511f0932b9c0cc55a86f2c127b8"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_rechecks_real_policy_revocation_without_replay_or_retained_old_reader",
+      "ok": true,
+      "elapsed_seconds": 0.008784875040873885,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "e9b129b52865274e4b9d8ff51c314c4f9934fef564df067294469096f5a4ed24"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_preserves_original_and_private_cutoffs_and_expiry_releases_reply_aliases",
+      "ok": true,
+      "elapsed_seconds": 0.03446783300023526,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "f1e4169c0514d02a04b30bc416ec2d466888a6fe9d2637b5398be4599bea028d"
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::separate_historical_ready_request_uses_only_own_original_lease_bound",
+      "ok": true,
+      "elapsed_seconds": 0.008761500008404255,
+      "exit_code": 0,
+      "original_group_joined": true,
+      "log_sha256": "ee18185139f9ea051f4ca7d7c216961ec5feaf1e93dbf8ab84cd95a1afd851ac"
+    }
+  ]
+}

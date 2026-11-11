@@ -2158,6 +2158,12 @@
       "path": "patches/rvoip/connect-private-video-metadata-poison-fixture-mut.patch",
       "sha256": "54fc3af1bf32ca06759c5311ea1a1fdc2467273b8e5ded82a7ce8481d9d92b54",
       "source": "Test-only compiler correction E0596: poison fixture receiver try_recv needs mutable fixture binding. No production logic or assertions changed."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-replacement-ready-negative-parser-fixture.patch",
+      "sha256": "95b1f66c73d34736382d982094509fca4139bec099ce080cf5f500e076144eca",
+      "source": "Test-only correction: assert exact wire-schema rejection of missing connection scope before ReadyWait API; retain all other invalid-marker and reconverted-owner API refusals."
     }
   ]
 }

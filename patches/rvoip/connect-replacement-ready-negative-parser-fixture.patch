@@ -1,0 +1,38 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/ready_tests.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/ready_tests.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/ready_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/ready_tests.rs
+@@ -111,12 +111,31 @@
+             3 => v["payload"]["replacement_preparation"]["readiness"] = json!(null),
+             _ => v["payload"]["replacement_preparation"]["operation_record_id"] = json!(""),
+         }
+-        a.envelope = Envelope::from_value(v).unwrap();
+-        assert!(a.into_replacement_ready_wait(None).is_err());
++        if fault == 1 {
++            // connection.offer requires connid in the published wire schema.
++            // This malformed command cannot become an immutable Envelope and
++            // must be rejected before the Ready-specific authority boundary.
++            assert!(matches!(
++                Envelope::from_value(v),
++                Err(crate::v2::WireError::InvalidPayload)
++            ));
++            continue;
++        }
++        // The other four extension-marker variants are valid wire envelopes;
++        // they must reach, and be refused by, the exact Ready binding checks.
++        a.envelope = Envelope::from_value(v)
++            .expect("well-formed invalid Ready marker must reach the authority API");
++        assert!(matches!(
++            a.into_replacement_ready_wait(None),
++            Err(DispatchError::Authority)
++        ));
+     }
+     let (a, _, _, _) = ready_with_policy().await;
+     let (a, _) = a.into_replacement_ready_wait(None).unwrap();
+-    assert!(a.into_replacement_ready_wait(None).is_err());
++    assert!(matches!(
++        a.into_replacement_ready_wait(None),
++        Err(DispatchError::Authority)
++    ));
+ }
+ #[tokio::test]
+ async fn ready_reply_requires_same_instance_fresh_current_proof_not_foreign_or_subscription() {

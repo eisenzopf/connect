@@ -31,6 +31,19 @@ def main():
     workplan = ('<h3 id="current-fix-workplan">Current fix batch</h3>'
         + '<table><thead><tr><th>Task</th><th>Status</th><th>Required verification</th></tr></thead>'
         + '<tbody>' + "".join(workplan_rows) + '</tbody></table>') if workplan_rows else ""
+    component_rows = []
+    for item in data.get("current_component_verification", []):
+        component_rows.append(
+            '<tr><td>' + esc(item["name"]) + '</td><td>'
+            + esc(item["passed"]) + ' / ' + esc(item["planned"])
+            + ' passed</td><td><a href="../evidence/gate-6/'
+            + esc(item["evidence"]) + '">Verification evidence</a></td></tr>'
+        )
+    components = ('<h3>Targeted component verification</h3>'
+        + '<p>These are separate component suites. The final combined batch and '
+        + '32-cell qualification remain separate requirements.</p>'
+        + '<table><thead><tr><th>Scope</th><th>Result</th><th>Evidence</th></tr></thead>'
+        + '<tbody>' + "".join(component_rows) + '</tbody></table>') if component_rows else ""
     for item in data["blockers"]:
         assert item["id"] not in ids
         ids.add(item["id"])
@@ -43,7 +56,7 @@ def main():
         + '<p>Updated ' + esc(data["updated"]) + '. Implemented fixes stay open until their stated runtime checks pass. '
         + 'Component verification does not change the 32-cell matrix totals. '
         + '<a href="../evidence/gate-6/g6-058-blockers.json">Blocker ledger</a></p>'
-        + workplan
+        + components + workplan
         + '<table><thead><tr><th>Blocker</th><th>Status</th><th>Change</th><th>Evidence / commit</th><th>Next verification</th></tr></thead>'
         + '<tbody>' + "".join(rows) + '</tbody></table></section>' + END)
     current = PAGE.read_text()

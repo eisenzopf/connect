@@ -1,0 +1,119 @@
+{
+  "format": "connect/g6-058-uctp23-verification/1",
+  "summary": {
+    "completed": 11,
+    "passed": 10,
+    "failed": 1
+  },
+  "workspace_sha256": "21bcd7cf74e21281e97afd4d4c2e6d8d5a416a71d3c61cce90243d96743a1b29",
+  "source_lock_sha256": "f9ccb9b8a87608e3b0ca5031fb8e319f1bf5229a2cfed4a922c2fc0b0f955e0b",
+  "binary_sha256": "5ddef435311d59b82f00776f9e1bb4bbb761f3866ce34c9992b5bafd74d49352",
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "binary_unchanged": true,
+  "build_owner": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "--manifest-path",
+      ".deps/rvoip/crates/uctp/rvoip-uctp/Cargo.toml",
+      "-p",
+      "rvoip-uctp",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "pid": 91982,
+    "pgid": 91982,
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 386.3701111249975,
+    "source_unchanged": true
+  },
+  "scope": "11actualUCTPcontrols, one malformednegativefixture failed beforeReady API; preserve failure verdict. 405test-only correction pendingruntime.",
+  "rows": [
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::same_prepared_subscription_retries_real_temporary_exclusion_without_new_command_or_cutoff",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "7453a48381de783c2ffe6995cf890e9fd7548b6f165664301d5e7e9c05faa784",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_busy_then_actual_revocation_refuses_same_original",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "ab0e1c68528305005a5991f0b493deae1f7c5c78d06f73293f502837c906c6c1",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_permanent_authority_file_failure_is_not_retried",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "9a37a7e079ef06ce96d40d3d5752ccf00be2287e34a91a442753c2436e8e8279",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_original_cutoff_and_all_original_cancellations_stop_busy_wait",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "7615629790fd18552d5929273ec06d3501445c760347dd558e3496835f1c21ed",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_retry_rejects_non_subscription_preparation_marker",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "46520fb1f0bd2f772b5e248301089ea38985421a509e25d078ca9b536f6b93f1",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_releases_both_original_guards_and_permits_no_exchange_or_result_before_fresh_proof",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "608ca3a167c5c16d1251328ce865a906f7fa4b189f4b9ace2e97a2d80ce9a23c",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_rejects_other_profiles_missing_scope_extra_marker_and_reconverted_owner",
+      "ok": false,
+      "exit_code": 101,
+      "log_sha256": "c9793df49c815a96065d5722408fbfe8db10b5e32e105914466488ecae945959",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_reply_requires_same_instance_fresh_current_proof_not_foreign_or_subscription",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "b6ce0844de7682399c2509cd598520c3a65b5511f0932b9c0cc55a86f2c127b8",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_rechecks_real_policy_revocation_without_replay_or_retained_old_reader",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "e9b129b52865274e4b9d8ff51c314c4f9934fef564df067294469096f5a4ed24",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_preserves_original_and_private_cutoffs_and_expiry_releases_reply_aliases",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "f1e4169c0514d02a04b30bc416ec2d466888a6fe9d2637b5398be4599bea028d",
+      "original_group_joined": true
+    },
+    {
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::separate_historical_ready_request_uses_only_own_original_lease_bound",
+      "ok": true,
+      "exit_code": 0,
+      "log_sha256": "ee18185139f9ea051f4ca7d7c216961ec5feaf1e93dbf8ab84cd95a1afd851ac",
+      "original_group_joined": true
+    }
+  ]
+}
