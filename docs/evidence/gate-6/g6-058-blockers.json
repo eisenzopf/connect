@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T17:27:16.122230+00:00",
-  "run_status": "TargetedStore106/106, Core19/19 andUCTP11/11pass, unchangedsource/binaries and joinedoriginalgroups. ReadyServicecontrols and11signedRTCcases plusintegratedordinaryinitialAVregression areselectedinfinal175; genuinefull62qualitylast. D2has~1.7GiBfree; largecombinedbuild/runneeds pending44GiBcoldobjectcleanupapproval. No proposedcleanupfilesdeleted. Latestcompletecombined17 remains127/130; matrix215 unchanged0/32,287passed101failed44blocked.",
+  "updated": "2026-11-11T17:49:51.249411+00:00",
+  "run_status": "TargetedStore106/106, Core19/19 andUCTP11/11pass. Normal productionService metadata/typecheck25 passed with unchangedsource/originalgroupjoined; test-support/memory-diagnostics excluded. Final175source/metadataaudit passes, all130originals retained incl11signedRTC andfull62last; combinedbuild/runtimeUNRUN. D2has~1.4GiBfree; awaiting44GiBcoldobjectcleanupdecision, noselectedfiledeleted. Matrix215 remains0/32cells,287passed101failed44blocked.",
   "blockers": [
     {
       "id": "B01",
@@ -5782,7 +5782,7 @@
     "passed": 127,
     "planned": 130,
     "scope": "Source17:102Store,10Service,5UCTP,6purefixture,1RTC,1signedData,2shortnative pass.2RTCReady and1native return fail.",
-    "next": "Lastcompletecombined17 remains127/130. TargetedStore106/106, Core19/19 andUCTP11/11aregreen; final175combined/signedRTC/initialAV/full62pendingcapacity. No newmatrixqualification."
+    "next": "Lastcompletecombined17 remains127/130. TargetedStore106/106, Core19/19, UCTP11/11andnormalproductionServicecheckaregreen. Final175combined/signedRTC/initialAV/full62pendingdiskcleanupdecision; no newmatrixqualification."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17384,5 +17384,10 @@
       "planned": 11,
       "evidence": "g6-058-v216-uctp24-verification.json"
     }
-  ]
+  ],
+  "current_production_check": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-service-default25-check.json",
+    "result": "passed",
+    "scope": "normal productionmetadata/typecheck only, no runtimeclaim"
+  }
 }

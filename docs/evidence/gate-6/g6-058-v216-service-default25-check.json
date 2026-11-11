@@ -1,0 +1,33 @@
+{
+  "format": "connect/g6-058-service-default25-check/1",
+  "created_at": "2026-11-11T17:49:51.249411+00:00",
+  "scope": "Normal production Service metadata/type check only; no codegen test build, runtime test or matrix qualification.",
+  "result": "passed",
+  "source_revision": "dad0f600",
+  "workspace_sha256": "c1efcdbb35c34d7f024a9281f453eb2c88fd3de6f13c147fab585bcd30818146",
+  "source_lock_sha256": "bef0ccbe4fa72c4a5656ee066134ef48ab007c91f2299b8a8ad248bffbe738c5",
+  "normal_profile_verified": true,
+  "source_unchanged": true,
+  "original_group_joined": true,
+  "exit_code": 0,
+  "elapsed_seconds": 872.958945624996,
+  "command": [
+    "cargo",
+    "check",
+    "--locked",
+    "--offline",
+    "--jobs",
+    "8",
+    "-p",
+    "connect-service",
+    "--lib",
+    "--message-format=json"
+  ],
+  "log_sha256": "678b1700bb0b20b7964474fbdef357c0721e565ed9087a28b3e7238d0e324c72",
+  "stderr_sha256": "4cdb362fc7414dc726840feb22cc94ac77bfec051898d725f9eb6013a2f47c6f",
+  "runner_sha256": "7065f1637299762e64c0844c899a5c5213bbf8ba1b883fd96b4ab53b600dd2c0",
+  "helpers_sha256": "6b28b608ef9e19c555427df018ea6ed297dcad3706deff05348e228f4227a3d3",
+  "features": "normal production Service; test-support and memory-diagnostics excluded",
+  "actual_after_available_D2_bytes": 1475784704,
+  "limitations": "Metadata/typecheck only: no codegen/link/runtime/signedRTC/fullprogramme/matrix qualification."
+}

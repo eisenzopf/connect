@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-11T17:27:16.122230+00:00",
-  "revision": 19,
+  "updated_at": "2026-11-11T17:49:51.249411+00:00",
+  "revision": 20,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 19,
-    "verified_at": "2026-11-11T17:31:35.463Z",
+    "content_revision": 20,
+    "verified_at": "2026-11-11T17:51:22.196Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -869,8 +869,8 @@
         "P6.2",
         "P7.1"
       ],
-      "status": "assigned",
-      "implementation_state": "Normal Service and combined ordinarydebug builds pass; frozen130 runs127pass3fail; source/binaries/groups stable. Next Ready/return fixes need fresh review and batch.",
+      "status": "component-verified",
+      "implementation_state": "NormalproductionServicecheck25 passed, normal405prepared; final175source/selector/fixturemetadata audit passed. Allsourcefixes+testfeaturespushed dad0f600. Largecombinedbuild/runtime notstarted: D2~1.4GiB, proposed44GiBcleanup unanswered.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -887,6 +887,16 @@
         {
           "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
           "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-service-default25-check.json",
+          "result": "Normal productionmetadata/typecheck passed; no runtime/matrixqualification",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-final175-selection-review.json",
+          "result": "175metadata/namespace/inputguards pass; actualbuild/runtimeunrun",
           "matrix_result": false
         }
       ],

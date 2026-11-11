@@ -1,10 +1,10 @@
 {
   "format": "connect/g6-058-reassessment-plan/1",
-  "updated": "2026-11-11T17:27:16.122230+00:00",
+  "updated": "2026-11-11T17:49:51.249411+00:00",
   "status": "Owner approved implementation; tracked work in progress. Matrix qualification remains open.",
   "baseline": "v215",
   "baseline_evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
-  "latest_committed_revision": "c421bdaec056d60aacb85c73d7ecbb3dab9d001a",
+  "latest_committed_revision": "dad0f600",
   "objective": "All 32 cells and all 432 required checks pass on one frozen, locally tested source; no weakened acceptance or inherited passes.",
   "limitation": "Complete check classification is not complete causal proof. No honest guarantee of 32/32 exists before verification. Remaining hypotheses must pass counterexamples and actual concurrent workload regressions.",
   "architecture": [
@@ -167,7 +167,7 @@
         "Commit and push the verified batch with CI skipped; freeze sources; execute all32 cells/all432 checks with original3-cycle requirements, including local remote-profile fixtures."
       ],
       "exit": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
-      "state": "Final175exactselector/fixtureplan staged, all130originalsretained; unitfirst11signedRTCs/full62LAST. TargetedStore106/106,Core19/19,UCTP11/11green. Largecombinedbuildrequirespending44GiBcoldcachecleanup; no new32launched.",
+      "state": "Final175source/selector/fixturemetadataaudit passes; original130 retained. Store106/106,Core19/19,UCTP11/11andnormalproductionServicecheck25passed. Combined175build/runtime andfull32stillpendingdiskcleanupdecision (D2~1.4GiB); proposed44GiBcoldcachefilesnotdeleted.",
       "assigned_tasks": [
         "P7.1",
         "P7.2",
