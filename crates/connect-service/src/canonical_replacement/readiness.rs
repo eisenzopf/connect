@@ -8,7 +8,8 @@ use rvoip_core::{
     staged_streams::{device_replacement::VideoReplacementPreparation, MediaSource},
     stream_lifecycle::{Medium, StreamDirection},
 };
-use rvoip_uctp::v2::auth_dispatch::AuthorizedEnvelope;
+use rvoip_uctp::v2::auth_dispatch::{AuthorizedEnvelope, ResourceActivationAuthority};
+mod admission;
 use std::sync::{Mutex, OnceLock};
 pub(super) struct ReadyGate {
     nonce: String,
@@ -149,6 +150,14 @@ impl ReadyGate {
             None => Ok(false),
         }
     }
+    fn admission_bound(
+        &self,
+        value: &serde_json::Value,
+        root: tokio::time::Instant,
+    ) -> Result<(bool, Option<tokio::time::Instant>)> {
+        let historical = self.existing(value)?;
+        Ok((historical, (!historical).then(|| root.min(self.deadline))))
+    }
     fn capture(&self, value: &serde_json::Value) -> Result<()> {
         let value = self.parse(value)?;
         if tokio::time::Instant::now() >= self.deadline
@@ -212,11 +221,21 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: &str,
     ) -> Result<Reply> {
-        let authority = a
-            .authority::<StoreInvocationAuthority>()
-            .ok_or_else(Error::forbidden)?;
-        physical.validate(&a, authority)?;
-        let proof = authority.peer_guard().ok_or_else(Error::forbidden)?;
+        #[cfg(feature = "test-support")]
+        let original_custody;
+        {
+            let authority = a
+                .authority::<StoreInvocationAuthority>()
+                .ok_or_else(Error::forbidden)?;
+            physical.validate(&a, authority)?;
+            #[cfg(feature = "test-support")]
+            {
+                original_custody = authority
+                    .peer_guard()
+                    .ok_or_else(Error::forbidden)?
+                    .retained_custody_probe_for_test();
+            }
+        }
         let intent = crate::canonical_native::intent(a.envelope())?;
         let marker = &intent.offer["replacement_preparation"];
         if marker["profile"] != "connect-replacement-ready-v1"
@@ -271,35 +290,230 @@ impl Runtime {
             .policy
             .readiness
             .as_ref()
-            .ok_or_else(Error::forbidden)?;
-        let observation = &marker["readiness"];
-        if !gate.existing(observation)? {
-            let read = self.media.store.native_replacement_ready_read_with_peer(
-                &started.receipt,
-                credential,
-                proof,
-            )?;
-            if !read.current()
+            .ok_or_else(Error::forbidden)?
+            .clone();
+        let observation = marker["readiness"].clone();
+        let (historical, requested) = gate.admission_bound(&observation, root.deadline)?;
+        // A new observation keeps the original private cutoff. A SEPARATE
+        // identical historical replay has only its own signed request/lease
+        // bound: it may return metadata after the private preparation expired,
+        // but cannot capture readiness, reopen preroll or authorize media.
+
+        #[cfg(feature = "test-support")]
+        let probe = self
+            .media
+            .take_preparation_registry_probe_for_test(&format!("replacement-ready:{record}"));
+        let original = Arc::try_unwrap(a)
+            .map_err(|_| Error::new("conflict", "Original Ready command remains aliased"))?;
+        let (resource, until) = original
+            .into_replacement_ready_wait(requested)
+            .map_err(admission::authority_error)?;
+        let resource = Arc::new(resource);
+        let original = resource.invocation_cancellation();
+        // A separate already-captured replay is ordinary current metadata;
+        // retirement of its PRIVATE preparation cannot cancel its new request.
+        let root_cancel = if historical {
+            original.clone()
+        } else {
+            root.handle.cancellation()
+        };
+        let cancellation = [&self.stop, &physical.lifetime, &root_cancel, &original];
+        let capture_authority =
+            admission::capture(until, cancellation, "ready-current-read", || {
+                let attempt: admission::Attempt<
+                    '_,
+                    (
+                        Arc<ResourceActivationAuthority>,
+                        Option<connect_store::NativeReplacementStartRead>,
+                    ),
+                > = Box::pin(async {
+                    let current = resource
+                        .reauthorize_resource_preparation()
+                        .await
+                        .map_err(admission::authority_error)?;
+                    if !resource.resource_activation_current(&current) {
+                        return Err(Error::forbidden());
+                    }
+                    let authority = current
+                        .authority::<StoreInvocationAuthority>()
+                        .ok_or_else(Error::forbidden)?;
+                    physical.validate(&resource, authority)?;
+                    let proof = authority.peer_guard().ok_or_else(Error::forbidden)?;
+                    #[cfg(feature = "test-support")]
+                    let custody = probe
+                        .as_ref()
+                        .map(|_| proof.retained_custody_probe_for_test());
+                    #[cfg(feature = "test-support")]
+                    admission::probe(probe.as_deref(), 0, 1, 2, until, cancellation).await?;
+                    let result =
+                        (|| -> Result<Option<connect_store::NativeReplacementStartRead>> {
+                            if gate.existing(&observation)? {
+                                return Ok(None);
+                            }
+                            if historical
+                                || tokio::time::Instant::now() >= root.deadline.min(gate.deadline)
+                            {
+                                return Err(Error::forbidden());
+                            }
+
+                            let read = self.media.store.native_replacement_ready_read_with_peer(
+                                &started.receipt,
+                                credential,
+                                proof,
+                            )?;
+                            if !read.current()
+                                || root.handle.is_committed()
+                                || root.handle.cancellation().is_cancelled()
+                                || !self.native_connection_live(&root.handle.intent().replacement)
+                                || started.controller.revision() < 2
+                                || started
+                                    .policy
+                                    .activation
+                                    .get()
+                                    .and_then(|a| a.confirmed_generation())
+                                    != Some(read.target().connection.generation)
+                            {
+                                return Err(Error::forbidden());
+                            }
+                            Ok(Some(read))
+                        })();
+                    match result {
+                        Ok(read) => Ok((current, read)),
+                        Err(error) => {
+                            drop(current);
+                            #[cfg(feature = "test-support")]
+                            if error.code == "authority-busy"
+                                && probe
+                                    .as_ref()
+                                    .is_some_and(|p| p.load(Ordering::Acquire) == 2)
+                            {
+                                if original_custody() || custody.as_ref().is_some_and(|held| held())
+                                {
+                                    if let Some(probe) = &probe {
+                                        probe.store(99, Ordering::Release);
+                                    }
+                                    return Err(Error::new(
+                                        "test-custody-retained",
+                                        "Ready capture admission retained command authority",
+                                    ));
+                                }
+                                if let Some(probe) = &probe {
+                                    probe.store(3, Ordering::Release);
+                                }
+                                admission::probe(probe.as_deref(), 3, 3, 9, until, cancellation)
+                                    .await?;
+                            }
+                            Err(error)
+                        }
+                    }
+                });
+                attempt
+            })
+            .await?;
+        if capture_authority.1.is_some() {
+            if !resource.resource_activation_current(&capture_authority.0)
+                || capture_authority
+                    .1
+                    .as_ref()
+                    .is_none_or(|read| !read.current())
                 || root.handle.is_committed()
-                || root.handle.cancellation().is_cancelled()
-                || !self.native_connection_live(&root.handle.intent().replacement)
-                || started.controller.revision() < 2
-                || started
-                    .policy
-                    .activation
-                    .get()
-                    .and_then(|a| a.confirmed_generation())
-                    != Some(read.target().connection.generation)
+                || root_cancel.is_cancelled()
+                || self.stop.is_cancelled()
+                || physical.lifetime.is_cancelled()
+                || tokio::time::Instant::now() >= until
             {
                 return Err(Error::forbidden());
             }
-            gate.capture(observation)?;
+            // Exactly-once volatile acceptance is OUTSIDE every retry factory.
+            // Both actual private preparations and immutable observation are
+            // checked again by capture; no remote report alone is authority.
+            gate.capture(&observation)?;
+            tracing::debug!(target:"connect_service::canonical_replacement",operation_record=record,
+                stage="ready-capture-accepted","Original genuine decoder Ready captured once");
         }
-        let record = self.media.store.replay_native_replacement_ready_with_peer(
-            &started.receipt,
-            credential,
-            proof,
-        )?;
+        // Core's real movement Writer may now proceed while the SAME accepted
+        // Ready waits only for its current historical result. No capture grant
+        // or Store source interval survives the following wait/retry loop.
+        drop(capture_authority);
+        #[cfg(feature = "test-support")]
+        if let Some(probe) = &probe {
+            probe.store(4, Ordering::Release);
+        }
+        let (record, current) =
+            admission::capture(until, cancellation, "ready-result-read", || {
+                let attempt: admission::Attempt<
+                    '_,
+                    (
+                        connect_protocol::transitions::OperationRecord,
+                        Arc<ResourceActivationAuthority>,
+                    ),
+                > = Box::pin(async {
+                    let current = resource
+                        .reauthorize_resource_preparation()
+                        .await
+                        .map_err(admission::authority_error)?;
+                    if !resource.resource_activation_current(&current) {
+                        return Err(Error::forbidden());
+                    }
+                    let authority = current
+                        .authority::<StoreInvocationAuthority>()
+                        .ok_or_else(Error::forbidden)?;
+                    physical.validate(&resource, authority)?;
+                    let proof = authority.peer_guard().ok_or_else(Error::forbidden)?;
+                    #[cfg(feature = "test-support")]
+                    let custody = probe
+                        .as_ref()
+                        .map(|_| proof.retained_custody_probe_for_test());
+                    #[cfg(feature = "test-support")]
+                    admission::probe(probe.as_deref(), 4, 5, 6, until, cancellation).await?;
+                    let result = self.media.store.replay_native_replacement_ready_with_peer(
+                        &started.receipt,
+                        credential,
+                        proof,
+                    );
+                    match result {
+                        Ok(record) => Ok((record, current)),
+                        Err(error) => {
+                            drop(current);
+                            #[cfg(feature = "test-support")]
+                            if error.code == "authority-busy"
+                                && probe
+                                    .as_ref()
+                                    .is_some_and(|p| p.load(Ordering::Acquire) == 6)
+                            {
+                                if original_custody() || custody.as_ref().is_some_and(|held| held())
+                                {
+                                    if let Some(probe) = &probe {
+                                        probe.store(99, Ordering::Release);
+                                    }
+                                    return Err(Error::new(
+                                        "test-custody-retained",
+                                        "Ready result admission retained command authority",
+                                    ));
+                                }
+                                if let Some(probe) = &probe {
+                                    probe.store(7, Ordering::Release);
+                                }
+                                admission::probe(probe.as_deref(), 7, 7, 10, until, cancellation)
+                                    .await?;
+                            }
+                            Err(error)
+                        }
+                    }
+                });
+                attempt
+            })
+            .await?;
+        if !resource.resource_activation_current(&current) {
+            return Err(Error::forbidden());
+        }
+        resource
+            .install_replacement_ready_reply_authority(&current)
+            .map_err(admission::authority_error)?;
+        #[cfg(feature = "test-support")]
+        if let Some(probe) = &probe {
+            probe.store(8, Ordering::Release);
+        }
         Ok(Reply {
             record,
             answered: false,
@@ -331,6 +545,31 @@ mod decoder_contract_tests {
             v["video"] = serde_json::json!({"stream_id":"original-video","decoded_frames":1,"decoded_keyframes":1,"decoder_startup":"fresh-peer-first-decoded-frame"});
         }
         v
+    }
+    #[tokio::test]
+    async fn historical_identical_ready_keeps_its_own_request_bound_after_private_expiry_without_new_capture(
+    ) {
+        let mut gate = gate(true, false);
+        gate.deadline = tokio::time::Instant::now() - Duration::from_millis(1);
+        let original = observation(false);
+        let root = tokio::time::Instant::now() - Duration::from_millis(1);
+        let (known, until) = gate.admission_bound(&original, root).unwrap();
+        assert!(!known);
+        assert!(until.is_some_and(|t| t < tokio::time::Instant::now()));
+        assert!(gate.capture(&original).is_err());
+        // Historical equality classifies metadata only. It supplies NO current
+        // authorization, private preparation or decoded readiness to this unit.
+        gate.freeze_observation(gate.parse(&original).unwrap())
+            .unwrap();
+        assert_eq!(gate.admission_bound(&original, root).unwrap(), (true, None));
+        assert!(gate.capture(&original).is_err());
+        assert!(!gate.observed());
+        let mut changed = original;
+        changed["audio"]["decoded_samples"] = serde_json::json!(320);
+        assert_eq!(
+            gate.admission_bound(&changed, root).unwrap_err().code,
+            "conflict"
+        );
     }
     #[tokio::test]
     async fn original_decoder_observation_is_frozen_and_identical_retry_is_observational_only() {

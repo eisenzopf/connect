@@ -623,3 +623,5 @@ fn existing_or_claimed_dormant_candidate_cannot_enter_positive_commit_reader_pat
             .is_err());
     }
 }
+
+mod source_retirement;

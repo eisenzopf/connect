@@ -1,0 +1,349 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
+@@ -9,6 +9,7 @@
+     InitialOffer,
+     Subscription,
+     ReplacementAllocation,
++    ReplacementReady,
+ }
+ 
+ #[derive(Clone)]
+@@ -26,9 +27,12 @@
+         if self.cancellation.is_cancelled() || Instant::now() >= self.deadline {
+             return Err(DispatchError::Closed);
+         }
+-        if self.kind == PreparationKind::ReplacementAllocation {
+-            // This is only a same-original coordinator wait, never a parameter
+-            // exchange, media grant or application-result permission.
++        if matches!(
++            self.kind,
++            PreparationKind::ReplacementAllocation | PreparationKind::ReplacementReady
++        ) {
++            // Same-original coordinator/Ready metadata waits grant neither
++            // parameter exchange, media nor application-result permission.
+             return Err(DispatchError::Unsupported);
+         }
+         for scope in [
+@@ -138,6 +142,108 @@
+             }));
+         self._lease = AuthorityLease::checking(resource, deadline, move || !current.is_cancelled());
+         Ok((self, deadline))
++    }
++    /// Consume the unique signed Ready invocation before metadata waits. This
++    /// releases BOTH application and shared reply Readers, retaining only the
++    /// original signed request and its existing lease/request/caller cutoff.
++    /// It grants no parameter exchange, media, ACK or application result.
++    pub fn into_replacement_ready_wait(
++        mut self,
++        requested: Option<Instant>,
++    ) -> Result<(Self, Instant), DispatchError> {
++        let exact = self.replacement_ready_binding();
++        let deadline = self.resource_preparation_cutoff(requested.unwrap_or(self.origin.deadline));
++        if exact {
++            // Refused/expired conversion also releases the shared reply alias.
++            // The consumed original application lease drops on every error.
++            let cancellation = self.origin.lifetime.child_token();
++            let current = cancellation.clone();
++            let reply = ResourcePreparation {
++                kind: PreparationKind::ReplacementReady,
++                marker: Arc::new(()),
++                original: self.envelope.clone(),
++                participant: String::new(),
++                streams: BTreeSet::new(),
++                cancellation,
++                deadline,
++            };
++            self.reply_authority.note_resource_preparation();
++            self.reply_authority
++                .replace(AuthorityLease::checking(reply, deadline, move || {
++                    !current.is_cancelled()
++                }));
++        }
++        if !exact
++            || !self.supports_native_negotiation()
++            || !self._lease.current()
++            || self._lease.authority::<ResourcePreparation>().is_some()
++            || deadline <= Instant::now()
++        {
++            return Err(DispatchError::Authority);
++        }
++        let cancellation = self.invocation.child_token();
++        let current = cancellation.clone();
++        let resource = ResourcePreparation {
++            kind: PreparationKind::ReplacementReady,
++            marker: Arc::new(()),
++            original: self.envelope.clone(),
++            participant: String::new(),
++            streams: BTreeSet::new(),
++            cancellation,
++            deadline,
++        };
++        let mut reply = resource.clone();
++        reply.cancellation = self.origin.lifetime.child_token();
++        let reply_current = reply.cancellation.clone();
++        self.reply_authority
++            .replace(AuthorityLease::checking(reply, deadline, move || {
++                !reply_current.is_cancelled()
++            }));
++        self._lease = AuthorityLease::checking(resource, deadline, move || !current.is_cancelled());
++        Ok((self, deadline))
++    }
++    fn replacement_ready_binding(&self) -> bool {
++        let marker = &self.envelope.original()["payload"]["replacement_preparation"];
++        self.envelope.kind() == "connection.offer"
++            && self.envelope.scope(Scope::Reply).is_none()
++            && [
++                Scope::Conversation,
++                Scope::Session,
++                Scope::Connection,
++                Scope::Operation,
++            ]
++            .iter()
++            .all(|scope| self.envelope.scope(*scope).is_some())
++            && marker.as_object().is_some_and(|value| value.len() == 3)
++            && marker["profile"] == "connect-replacement-ready-v1"
++            && marker["operation_record_id"]
++                .as_str()
++                .is_some_and(|value| !value.is_empty())
++            && marker["readiness"].is_object()
++    }
++    /// Restore final Ready reply rights only from this exact Ready instance's
++    /// actual fresh current policy proof. The wait marker supplies no grant.
++    pub fn install_replacement_ready_reply_authority(
++        &self,
++        authority: &Arc<ResourceActivationAuthority>,
++    ) -> Result<(), DispatchError> {
++        let resource = self
++            ._lease
++            .authority::<ResourcePreparation>()
++            .ok_or(DispatchError::Authority)?;
++        if resource.kind != PreparationKind::ReplacementReady
++            || !self.replacement_ready_binding()
++            || !self.resource_activation_current(authority)
++        {
++            return Err(DispatchError::Authority);
++        }
++        let current = authority.clone();
++        self.reply_authority.replace(AuthorityLease {
++            _guard: authority.lease._guard.clone(),
++            validity: Some(Arc::new(move || current.reply_current())),
++            deadline: Some(authority.deadline),
++        });
++        Ok(())
+     }
+     fn replacement_capture_binding(&self) -> bool {
+         let marker = &self.envelope.original()["payload"]["replacement_preparation"];
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
+@@ -936,3 +936,6 @@
+     assert_eq!(policy.calls.load(Ordering::Acquire), 0);
+     assert_eq!(replay.usage().0, 1);
+ }
++
++#[path = "ready_tests.rs"]
++mod ready_wait;
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/ready_tests.rs
+@@ -0,0 +1,202 @@
++//! Actual unique-command/current-proof mechanics; no domain Ready is fabricated.
++use super::*;
++
++async fn ready_with_policy() -> (
++    AuthorizedEnvelope,
++    Arc<OriginalPolicy>,
++    Arc<tokio::sync::RwLock<bool>>,
++    Arc<crate::v2::replay::ReplayFence>,
++) {
++    let mut a = initial_authorized();
++    let mut v = a.envelope.original().clone();
++    v["payload"]["replacement_preparation"] = json!({"profile":"connect-replacement-ready-v1","operation_record_id":"original-record",
++        "readiness":{"nonce":"actual-fixture-challenge","source_generation":1,"target_generation":2,"stream_revision":2,"audio":{"stream_id":"audio","decoded_samples":160}}});
++    a.envelope = Envelope::from_value(v).unwrap();
++    let grants = Arc::new(tokio::sync::RwLock::new(false));
++    let lease =
++        AuthorityLease::checking(grants.clone().read_owned().await, a.origin.deadline, || {
++            true
++        });
++    a.reply_authority.replace(lease.retained());
++    a._lease = lease;
++    let policy = Arc::new(OriginalPolicy {
++        expected: a.envelope.original().clone(),
++        grants: grants.clone(),
++        calls: std::sync::atomic::AtomicUsize::new(0),
++        deadline: a.origin.deadline,
++    });
++    let (context, replay) = crate::v2::auth_peer::exchange::resource_test_context(
++        policy.clone(),
++        a.principal.clone(),
++        a.origin.lifetime.clone(),
++        a.origin.deadline,
++    );
++    replay.consume(a.envelope.id()).unwrap();
++    a.exchange = Some(context);
++    (a, policy, grants, replay)
++}
++fn ack(a: &AuthorizedEnvelope) -> Envelope {
++    let mut value = envelope("ack", json!({})).original().clone();
++    value["in_reply_to"] = json!(a.envelope.id());
++    Envelope::from_value(value).unwrap()
++}
++#[tokio::test]
++async fn ready_wait_releases_both_original_guards_and_permits_no_exchange_or_result_before_fresh_proof(
++) {
++    let (a, policy, grants, replay) = ready_with_policy().await;
++    let deliberate_alias = a._lease.retained();
++    let original = a.envelope.original().clone();
++    let bound = a.origin.deadline;
++    assert!(grants.clone().try_write_owned().is_err());
++    let (a, until) = a.into_replacement_ready_wait(None).unwrap();
++    assert_eq!(until, bound);
++    assert_eq!(a.envelope.original(), &original);
++    assert!(a
++        .authority::<tokio::sync::OwnedRwLockReadGuard<bool>>()
++        .is_none());
++    assert!(
++        grants.clone().try_write_owned().is_err(),
++        "deliberate external original lease alias must still block a writer"
++    );
++    drop(deliberate_alias);
++    drop(
++        grants
++            .clone()
++            .try_write_owned()
++            .expect("original application AND shared reply aliases released"),
++    );
++    let wait = a._lease.authority::<ResourcePreparation>().unwrap();
++    assert!(wait.permits(a.envelope()).is_err());
++    assert!(a.reply_authority.for_replies(&[ack(&a)]).is_err());
++    assert!(a.reply_authority.for_replies(&[result(&a)]).is_err());
++    let refusal = {
++        let mut v = ack(&a).original().clone();
++        v["type"] = json!("error");
++        v["payload"] =
++            json!({"code":503,"category":"authorization","reason":"authority_unavailable"});
++        Envelope::from_value(v).unwrap()
++    };
++    assert!(a.reply_authority.for_replies(&[refusal]).is_ok());
++    let current = a.reauthorize_resource_preparation().await.unwrap();
++    assert_eq!(policy.calls.load(Ordering::Acquire), 1);
++    assert_eq!(replay.usage().0, 1);
++    assert!(
++        a.install_resource_reply_authority(&current).is_err(),
++        "Subscription API remains restricted"
++    );
++    a.install_replacement_ready_reply_authority(&current)
++        .unwrap();
++    assert!(a.reply_authority.resource_only());
++    assert!(a.reply_authority.for_replies(&[ack(&a)]).is_ok());
++    a.invocation.cancel();
++    assert!(!current.current());
++    assert!(a.reply_authority.for_replies(&[ack(&a)]).is_ok());
++    a.origin.lifetime.cancel();
++    assert!(a.reply_authority.for_replies(&[ack(&a)]).is_err());
++}
++#[tokio::test]
++async fn ready_wait_rejects_other_profiles_missing_scope_extra_marker_and_reconverted_owner() {
++    for fault in 0..5 {
++        let (mut a, _, _, _) = ready_with_policy().await;
++        let mut v = a.envelope.original().clone();
++        match fault {
++            0 => {
++                v["payload"]["replacement_preparation"]["profile"] =
++                    json!("connect-replacement-media-v1")
++            }
++            1 => {
++                v.as_object_mut().unwrap().remove("connid");
++            }
++            2 => v["payload"]["replacement_preparation"]["extra"] = json!(true),
++            3 => v["payload"]["replacement_preparation"]["readiness"] = json!(null),
++            _ => v["payload"]["replacement_preparation"]["operation_record_id"] = json!(""),
++        }
++        a.envelope = Envelope::from_value(v).unwrap();
++        assert!(a.into_replacement_ready_wait(None).is_err());
++    }
++    let (a, _, _, _) = ready_with_policy().await;
++    let (a, _) = a.into_replacement_ready_wait(None).unwrap();
++    assert!(a.into_replacement_ready_wait(None).is_err());
++}
++#[tokio::test]
++async fn ready_reply_requires_same_instance_fresh_current_proof_not_foreign_or_subscription() {
++    let (a, _, _, _) = ready_with_policy().await;
++    let (a, _) = a.into_replacement_ready_wait(None).unwrap();
++    let (b, _, _, _) = ready_with_policy().await;
++    let (b, _) = b.into_replacement_ready_wait(None).unwrap();
++    let foreign = b.reauthorize_resource_preparation().await.unwrap();
++    assert!(a
++        .install_replacement_ready_reply_authority(&foreign)
++        .is_err());
++    let current = a.reauthorize_resource_preparation().await.unwrap();
++    assert!(authorized()
++        .install_replacement_ready_reply_authority(&current)
++        .is_err());
++    a.origin.lifetime.cancel();
++    assert!(a
++        .install_replacement_ready_reply_authority(&current)
++        .is_err());
++}
++#[tokio::test]
++async fn ready_wait_rechecks_real_policy_revocation_without_replay_or_retained_old_reader() {
++    let (a, policy, grants, replay) = ready_with_policy().await;
++    let (a, _) = a.into_replacement_ready_wait(None).unwrap();
++    let current = a.reauthorize_resource_preparation().await.unwrap();
++    assert!(grants.clone().try_write_owned().is_err());
++    drop(current);
++    let mut writer = grants
++        .clone()
++        .try_write_owned()
++        .expect("fresh proof ends before any backoff");
++    *writer = true;
++    drop(writer);
++    assert!(matches!(
++        a.reauthorize_resource_preparation().await,
++        Err(DispatchError::Authority)
++    ));
++    assert_eq!(policy.calls.load(Ordering::Acquire), 2);
++    assert_eq!(replay.usage().0, 1);
++    assert!(a.reply_authority.for_replies(&[ack(&a)]).is_err());
++}
++#[tokio::test]
++async fn ready_wait_preserves_original_and_private_cutoffs_and_expiry_releases_reply_aliases() {
++    let (a, policy, grants, replay) = ready_with_policy().await;
++    let private = Instant::now() + Duration::from_millis(20);
++    let (a, until) = a.into_replacement_ready_wait(Some(private)).unwrap();
++    assert_eq!(until, private);
++    tokio::time::sleep_until(private + Duration::from_millis(2)).await;
++    assert!(matches!(
++        a.reauthorize_resource_preparation().await,
++        Err(DispatchError::Authority)
++    ));
++    assert_eq!(policy.calls.load(Ordering::Acquire), 0);
++    assert_eq!(replay.usage().0, 1);
++    drop(grants.clone().try_write_owned().unwrap());
++    let (mut a, _, grants, _) = ready_with_policy().await;
++    a.invocation.cancel();
++    assert!(a.into_replacement_ready_wait(None).is_err());
++    drop(grants.clone().try_write_owned().unwrap());
++}
++#[tokio::test]
++async fn separate_historical_ready_request_uses_only_own_original_lease_bound() {
++    let (a, policy, _, replay) = ready_with_policy().await;
++    let original = a.origin.deadline;
++    let (a, until) = a.into_replacement_ready_wait(None).unwrap();
++    assert_eq!(until, original);
++    let current = a.reauthorize_resource_preparation().await.unwrap();
++    assert!(current.deadline <= original);
++    assert_eq!(policy.calls.load(Ordering::Acquire), 1);
++    assert_eq!(replay.usage().0, 1);
++    a.install_replacement_ready_reply_authority(&current)
++        .unwrap();
++    assert!(a.reply_authority.for_replies(&[ack(&a)]).is_ok());
++    // Private-phase exemption supplies no Ready observation or media authority;
++    // Service separately requires exact immutable prior observation + current
++    // target proof before taking this historical-only branch.
++    assert!(a
++        ._lease
++        .authority::<ResourcePreparation>()
++        .unwrap()
++        .permits(a.envelope())
++        .is_err());
++}

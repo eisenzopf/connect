@@ -1,0 +1,29 @@
+{
+  "scope": "Old Store129 production with test-only real original-native cleanup and NEW healthy audio authorization; controlled opaque Core receipt, no decoded/sent media claim",
+  "source_sha256": "71ceb1f24d35e0f2687856372c2d4926c326b03e8dc72f967003c3a0fdbe2341",
+  "source_lock_sha256": "090ef8e89d7a7480745d609f0d4253d0e7e475b0e8c89425e1201f4e5d34bc72",
+  "fixture_manifest_sha256": "f37bf16c03e8811de7e46d8d0f0d9cf3d8b688d9ad82426d3a63ca055b8a0de2",
+  "binary_sha256": "5df844526a36dff9f77ee6acfeb318fe0dfda1d44430f3970096434c9f4566ca",
+  "exit_code": 101,
+  "wait_returned": true,
+  "naturally_exited": true,
+  "group_absent": true,
+  "elapsed_seconds": 1.2428700923919678,
+  "summary": [
+    [
+      "FAILED",
+      "0",
+      "1",
+      "0"
+    ]
+  ],
+  "expected_epoch_cut_reproduced": true,
+  "source_unchanged": true,
+  "binary_unchanged": true,
+  "log_sha256": "7d5f7cfc6d133383055041eabac8efafb8e3211c92e19969bbeed24dfb9740fd",
+  "recorded_at": "2026-11-11T15:55:30.348648+00:00",
+  "old_fixture_first_attempt": "Compileerror E0277 NativeMediaRead noDebug; no testexecuted, correctedResult.err().unwrap independentreviewed; preserved firstattempt receipts.",
+  "causal_fact": "After real exact old-native cleanup, retired/noIO/member/currentcontinuation checks pass; known metadata capture takes Writer, revokes freshly admitted healthy audio epoch and hits expected precise assertion.",
+  "fixed_status": "Candidatev4 identity-path correction compiled; Store20 passed106/106 including all4retirement controls, with unchanged source/binary and all original groups joined. Combined media and full matrix remain pending.",
+  "actual_p7_limit": "Source17 Session0 Writer-fallback reason unlogged; this counter proves a concrete expected-retirement defect, not retrospective exact attribution of the P7 fallback or media loss."
+}

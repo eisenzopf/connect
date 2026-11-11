@@ -1,0 +1,28 @@
+{
+  "scope": "Old Core publisher validation with recorded tests-only access shim and real held foreign-publisher metadata mutex; expected counterexample only, not a media quality pass",
+  "source_sha256": "644586c7c7a9710808e631e77d70b9a45cadf7ae194c49e41ffa97439e021a1e",
+  "source_lock_sha256": "cbd6e16c5919b0bad7c676b68e358a954e226d69b4e7b5b0da46a08805912c9d",
+  "fixture_manifest_sha256": "dfb41a7e6502a272e9327923613d5c5a3258d58ae854a8d8f318e7e03c1a7c13",
+  "binary_sha256": "750ca034d6c6d8e429716d429c17a55a66ee1cca32152f3194875cafc78ddff7",
+  "test": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_exclusion_is_unpublished_preserves_ordinary_mapping_and_recovers",
+  "exit_code": 101,
+  "wait_returned": true,
+  "naturally_exited": true,
+  "group_absent": true,
+  "elapsed_seconds": 0.01682901382446289,
+  "summary": [
+    [
+      "FAILED",
+      "0",
+      "1",
+      "0"
+    ]
+  ],
+  "expected_unpublished_backpressure_reproduced": true,
+  "source_unchanged": true,
+  "binary_unchanged": true,
+  "log_sha256": "7a86228b5e27f864b6051e7a7b7d19b81cb54729f1fa8294399dbdac95137e59",
+  "recorded_at": "2026-11-11T16:15:57.166315+00:00",
+  "actual_panic": "publisher_exclusion.rs:35:14 prepare_replacement_video unwrap returns Backpressure before route publication",
+  "fixed_status": "Reviewed Core402 candidate production fix and three controls remain unrun."
+}

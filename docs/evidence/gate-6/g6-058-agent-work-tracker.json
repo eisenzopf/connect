@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-11T15:15:47.574343+00:00",
-  "revision": 14,
+  "updated_at": "2026-11-11T16:32:24.254348+00:00",
+  "revision": 16,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 14,
-    "verified_at": "2026-11-11T15:24:10.948Z",
+    "content_revision": 16,
+    "verified_at": "2026-11-11T16:32:58.958Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -158,7 +158,7 @@
         "P1.1"
       ],
       "status": "component-verified",
-      "implementation_state": "102/102 Store pass; actual two captures observed1Reader(Session1),1Writerfallback(Session0); exact fallback reason under investigation; no matrix effect proven",
+      "implementation_state": "Store20 exact106/106pass; original and replacement-origin retirement preserve fresh unaffected epoch; combined media followthrough and matrix pending.",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
@@ -200,6 +200,16 @@
         {
           "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
           "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
+        },
+        {
+          "evidence_scope": "Integrated fix batch after source17; old-condition counterexamples reproduced. Fixed source unverified; Store19 compile stopped before tests.",
+          "result": "pending-fixed-verification",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json",
+          "result": "106/106 passed",
           "matrix_result": false
         }
       ],
@@ -328,13 +338,14 @@
       "coordinator": "/root",
       "blocker_ids": [
         "B190",
-        "B197"
+        "B197",
+        "B199"
       ],
       "depends_on": [
         "P2.1"
       ],
-      "status": "cause-confirmed",
-      "implementation_state": "Valid Ready encounters one-shot pre/postcapture SQLBusy; Start probes/private decode pass; exact capture side ambiguous. Narrow grant-free Ready reauthorization wait in implementation.",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Ready401 integrated; current metadata retry drops custody and preserves original deadline/once-only capture; sixService/sixUCTP/new signedRTC controls pending.",
       "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
       "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
       "coordinator_review": {
@@ -371,6 +382,11 @@
         {
           "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
           "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
+        },
+        {
+          "evidence_scope": "Integrated fix batch after source17; old-condition counterexamples reproduced. Fixed source unverified; Store19 compile stopped before tests.",
+          "result": "pending-fixed-verification",
           "matrix_result": false
         }
       ],
@@ -603,13 +619,14 @@
       "coordinator": "/root",
       "blocker_ids": [
         "B195",
-        "B197"
+        "B197",
+        "B200"
       ],
       "depends_on": [
         "P3.1"
       ],
-      "status": "diagnosing",
-      "implementation_state": "Return private route0 has zero inbound/receiver notice; route4 receives191frames. Fullprogramme aborts~48s. Prior source13 realvideo deficits unresolved; no new quality verdict.",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Core402 integrated; old publisher-lock failure reproduced;15Core tests and actual full62 media evaluation pending.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -631,6 +648,11 @@
         {
           "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
           "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
+        },
+        {
+          "evidence_scope": "Integrated fix batch after source17; old-condition counterexamples reproduced. Fixed source unverified; Store19 compile stopped before tests.",
+          "result": "pending-fixed-verification",
           "matrix_result": false
         }
       ],
@@ -744,7 +766,9 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "blocker_ids": [
-        "B198"
+        "B198",
+        "B199",
+        "B200"
       ],
       "depends_on": [
         "P1.1",

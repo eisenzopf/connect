@@ -4,6 +4,7 @@
 use super::*;
 pub(super) mod not_submitted;
 mod recovery;
+mod retired_source;
 pub use not_submitted::NativeReplacementCommitNotSubmitted;
 use recovery::{Projection, ProjectionFacts};
 
@@ -139,12 +140,12 @@ impl NativeReplacementCommitted {
     pub(crate) fn commit_ledger_audience(&self) -> Option<&NativeReplacementAudienceCapture> {
         self.audience.as_ref()
     }
-    pub(crate) fn commit_ledger_authority(
+    pub(crate) fn commit_ledger_authority_decision(
         &self,
         store: &Store,
         c: &Connection,
         held: Option<&Arc<AuthorityGuardSet>>,
-    ) -> Result<(Vec<AuthorityScope>, i64)> {
+    ) -> Result<(Vec<AuthorityScope>, i64, &'static str)> {
         let p = &self
             .attempt
             .origin
@@ -153,7 +154,29 @@ impl NativeReplacementCommitted {
             .allocated
             .attempt
             .prepared;
-        let (_, _, mut scopes, until) = media_facts(store, c, &self.attempt.origin)?;
+        let (_, _, mut scopes, until) = match media_facts(store, c, &self.attempt.origin) {
+            Ok(facts) => facts,
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "forbidden" | "unauthorized" | "not-ready" | "conflict"
+                ) =>
+            {
+                return match retired_source::authority(self, store, c, held) {
+                    Ok((scopes, until)) => Ok((scopes, until, "exact-retired-original")),
+                    Err(e)
+                        if matches!(
+                            e.code.as_str(),
+                            "forbidden" | "unauthorized" | "not-ready" | "conflict"
+                        ) =>
+                    {
+                        Err(error)
+                    }
+                    Err(e) => Err(e),
+                };
+            }
+            Err(error) => return Err(error),
+        };
         scopes.extend(crate::authority_admission::conversation_scopes(
             c,
             &p.selection.origin.request().conversation_id,
@@ -168,7 +191,7 @@ impl NativeReplacementCommitted {
                 .min(p.selection.physical_expiry())
                 .min(p.selection.origin.request().expires_at)
         };
-        Ok((AuthorityScope::merged(&scopes)?, until))
+        Ok((AuthorityScope::merged(&scopes)?, until, "live-original"))
     }
     /// Attach the Core-sealed packetization boundary exactly once before this
     /// original immutable observation is recorded. No DB or physical mutation.
@@ -569,17 +592,20 @@ impl Store {
         // full policy derivation must not consume the shared five-millisecond
         // SQL/file admission window. The immediate SQL try adds no wait, and
         // its guard drops here before that original admission window starts.
-        let prefer_reader = if let Some(capture) = positive {
+        let preview = if let Some(capture) = positive {
             let c = self.try_connection()?;
-            crate::authority_writer_boundary::phase_ledger::commit::eligible(self, &c, capture)?
+            crate::authority_writer_boundary::phase_ledger::commit::decision(self, &c, capture)?
         } else {
-            false
+            crate::authority_writer_boundary::phase_ledger::commit::Decision {
+                reader: false,
+                reason: "non-positive-observation",
+            }
         };
         let (held, mut c) = self.try_replacement_capture_projection(diagnostics, |c| {
             let row = rows::by_record(c, &p.record)?;
             // This hint grants nothing. The actual transaction below repeats
             // complete current validation and refuses a stale Read footprint.
-            let eligible = prefer_reader;
+            let eligible = preview.reader;
             let mut scopes = if eligible {
                 admission::row_scopes(&row)?
             } else {
@@ -625,12 +651,18 @@ impl Store {
         }
         // Eligibility may have crossed an expiry/cancel boundary after scope
         // derivation. Never upgrade a retained Reader behind itself.
-        let eligible = positive
+        let actual = positive
             .map(|capture| {
-                crate::authority_writer_boundary::phase_ledger::commit::eligible(self, &tx, capture)
+                crate::authority_writer_boundary::phase_ledger::commit::decision(self, &tx, capture)
             })
             .transpose()?
-            .unwrap_or(false);
+            .unwrap_or(
+                crate::authority_writer_boundary::phase_ledger::commit::Decision {
+                    reader: false,
+                    reason: "non-positive-observation",
+                },
+            );
+        let eligible = actual.reader;
         let required = if eligible {
             admission::row_scopes(&row)?
         } else {
@@ -694,6 +726,7 @@ impl Store {
         timing.committed();
         tracing::debug!(target:"connect_store::native_commit_capture",record=%p.record,
             mode=if eligible {"positive-reader"} else {"writer-fallback"},
+            preview_reason=preview.reason, transaction_reason=actual.reason,
             "Historical replacement Commit capture recorded");
         Ok(record)
     }

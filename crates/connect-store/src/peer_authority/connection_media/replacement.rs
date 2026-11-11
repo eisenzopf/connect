@@ -166,6 +166,40 @@ pub struct NativeReplacementSelection {
     retained: Arc<NativeMediaOrigin>,
 }
 impl NativeReplacementSelection {
+    /// Current metadata for ONE known public movement after its exact original
+    /// native custodian retired. This never constructs old-source media IO.
+    pub(crate) fn retired_commit_ledger_authority(
+        &self,
+        store: &Store,
+        c: &Connection,
+        plan: &serde_json::Value,
+        target_identity: &str,
+    ) -> Result<(Vec<AuthorityScope>, i64)> {
+        let NativeReplacementSourceOrigin::Native(source) = &self.source else {
+            return Err(Error::forbidden());
+        };
+        if self.retained.connection_id() != self.origin.request().intent.retained()
+            || self.retained.connection_id() == source.connection_id()
+            || self.retained.conversation_id() != source.conversation_id()
+            || self.retained.session_id() != source.session_id()
+        {
+            return Err(Error::forbidden());
+        }
+        let (mut scopes, operator_until) =
+            self.origin
+                .continuation_authority(store, c, target_identity)?;
+        let (old_scopes, old_until) =
+            super::retired_source::authority(store, c, source, &self.origin, plan)?;
+        // The retained original must STILL have its real current packet grant.
+        // An expected retirement applies only to the replaced source.
+        let (_, retained_scopes, retained_until) = facts(store, c, &self.retained)?;
+        scopes.extend(old_scopes);
+        scopes.extend(retained_scopes);
+        Ok((
+            AuthorityScope::merged(&scopes)?,
+            operator_until.min(old_until).min(retained_until),
+        ))
+    }
     pub(crate) fn source(&self) -> &NativeReplacementSourceOrigin {
         &self.source
     }

@@ -2138,6 +2138,16 @@
       "path": "patches/rvoip/connect-prepared-subscription-negative-fixture-tuple.patch",
       "sha256": "bb029d87d6d8889d2b6e66939bc37300733437cdfe371141d31e33e84dd39dc1",
       "source": "Test-only compile correction: allocation fixture returns envelope, policy, grant controller and replay fence; bind unused grant controller in non-subscription negative. Production and all assertions unchanged."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-replacement-ready-admission-wait.patch",
+      "sha256": "f6552e09b78b6646166fef49cd3bfea513bc214f63ed162e258576257382ac5c",
+      "source": "Same-original decoder Ready metadata wait: strict Ready-only resource marker releases application/reply authority; fresh instance-bound current proof restores only final Ready result rights. No parameter/media rights, deadline renewal, physical effect retry or Subscription API broadening. Exact current/revoke/expiry/custody negative controls."
+    },
+    {
+      "path": "patches/rvoip/connect-private-video-publisher-validation-busy.patch",
+      "sha256": "b399a83d6a3bae8e42d82f41b15935515420e4d8f957e5c84c971a370afb545a"
     }
   ]
 }

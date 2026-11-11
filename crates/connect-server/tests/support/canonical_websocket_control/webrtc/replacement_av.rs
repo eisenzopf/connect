@@ -4,6 +4,9 @@ use super::*;
 #[path = "replacement_av/private_marker.rs"]
 mod private_marker;
 #[cfg(feature = "test-support")]
+#[path = "replacement_av/ready_sql.rs"]
+mod ready_sql;
+#[cfg(feature = "test-support")]
 #[path = "replacement_av/started_record.rs"]
 mod started_record;
 use connect_client::canonical::CanonicalHttpClient;
@@ -310,6 +313,14 @@ fn readiness_refusal_problems_and_progress_require_closed_exact_semantics() {
         !qualified_negative(&not_ready, None),
         "even knownpublicshape needs original boundary evidence"
     );
+    assert!(
+        !qualified_ready_negative(&ReadyNegativeReceipt::TerminalClose, None),
+        "terminal close alone is not original no-effect/root evidence"
+    );
+    assert!(!qualified_ready_negative(
+        &ReadyNegativeReceipt::Problem(not_ready),
+        None
+    ));
     for state in [
         Some("accepted"),
         Some("preparing"),
@@ -326,6 +337,26 @@ fn readiness_refusal_problems_and_progress_require_closed_exact_semantics() {
 // Its only production test construction is AFTER all actual original terminal,
 // boundary, no-effect and physical retirement assertions in the macro below.
 struct OriginalNegativeTerminal;
+// A terminal close is only an observed transport fact. It acquires negative
+// qualification exclusively after the same original no-effect/root assertions.
+enum ReadyNegativeReceipt {
+    Problem(connect_protocol::canonical_http::Problem),
+    TerminalClose,
+}
+impl From<connect_protocol::canonical_http::Problem> for ReadyNegativeReceipt {
+    fn from(problem: connect_protocol::canonical_http::Problem) -> Self {
+        Self::Problem(problem)
+    }
+}
+fn qualified_ready_negative(
+    receipt: &ReadyNegativeReceipt,
+    facts: Option<&OriginalNegativeTerminal>,
+) -> bool {
+    match receipt {
+        ReadyNegativeReceipt::Problem(problem) => qualified_negative(problem, facts),
+        ReadyNegativeReceipt::TerminalClose => facts.is_some(),
+    }
+}
 fn qualified_negative(
     problem: &connect_protocol::canonical_http::Problem,
     corroboration: Option<&OriginalNegativeTerminal>,
@@ -724,7 +755,9 @@ async fn full_replacement_case(
             // Only these independent actual original assertions qualify the
             // negative. The closed public400 alone has no internal diagnosis.
             let corroboration = OriginalNegativeTerminal;
-            assert!(qualified_negative(&$public_problem, Some(&corroboration)));
+            let receipt: ReadyNegativeReceipt = ($public_problem).into();
+            assert!(qualified_ready_negative(&receipt, Some(&corroboration)));
+            let target_socket_closed = matches!(receipt, ReadyNegativeReceipt::TerminalClose);
             original_av(
                 &mut a,
                 &mut b,
@@ -751,7 +784,9 @@ async fn full_replacement_case(
             }
             first.socket.close(None).await.unwrap();
             second.socket.close(None).await.unwrap();
-            target_peer.socket.close(None).await.unwrap();
+            if !target_socket_closed {
+                target_peer.socket.close(None).await.unwrap();
+            }
             drop(first);
             drop(second);
             drop(target_peer);
@@ -1156,6 +1191,70 @@ async fn full_replacement_case(
     }
     let ready_until =
         private_cutoff.unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_secs(5));
+    #[cfg(feature = "test-support")]
+    if contention == Some("ready-revoke") {
+        let probe = f
+            .server
+            .service
+            .arm_canonical_preparation_registry_probe_for_test(&format!(
+                "replacement-ready:{}",
+                prepared.record_id
+            ))
+            .unwrap();
+        let one_ready =
+            ready_sql::read_original_refusal_or_close(&mut target_peer, renew(ready.clone()));
+        let (problem, revoked) = tokio::join!(
+            futures_util::FutureExt::catch_unwind(std::panic::AssertUnwindSafe(
+                private_marker::until_phase(
+                    Some(ready_until),
+                    "ready-busy-real-revocation",
+                    one_ready
+                ),
+            )),
+            futures_util::FutureExt::catch_unwind(std::panic::AssertUnwindSafe(
+                ready_sql::revoke_after_pre_capture_busy(
+                    &f,
+                    &prepared.record_id,
+                    &key.id,
+                    probe.clone(),
+                    ready_until
+                )
+            )),
+        );
+        let problem = match problem {
+            Ok(problem) => problem,
+            Err(panic) => std::panic::resume_unwind(panic),
+        };
+        let revoked = match revoked {
+            Ok(result) => result,
+            Err(panic) => std::panic::resume_unwind(panic),
+        };
+        revoked.expect("real credential Writer admitted and original SQL worker joined");
+        assert_eq!(
+            probe.load(std::sync::atomic::Ordering::Acquire),
+            9,
+            "revoked original never captured Ready"
+        );
+        assert!(f.server.store.revalidate(&key.id).is_err());
+        let cleanup_until = tokio::time::Instant::now() + Duration::from_secs(5);
+        finish_failed_original!(
+            vec![a, b, c],
+            false,
+            cleanup_until,
+            "operator-revoked",
+            problem
+        );
+    }
+    #[cfg(feature = "test-support")]
+    let ready_probe = (contention == Some("ready-both")).then(|| {
+        f.server
+            .service
+            .arm_canonical_preparation_registry_probe_for_test(&format!(
+                "replacement-ready:{}",
+                prepared.record_id
+            ))
+            .unwrap()
+    });
     let original_ready = async {
         let uncertain = submit_original_ready(
             &mut target_peer,
@@ -1176,12 +1275,41 @@ async fn full_replacement_case(
         }
         done
     };
-    let done = private_marker::until_phase(
+    let original_ready = private_marker::until_phase(
         Some(ready_until),
         "original-ready-and-status",
         original_ready,
-    )
-    .await;
+    );
+    #[cfg(feature = "test-support")]
+    let done = if let Some(probe) = ready_probe {
+        // Both original futures join even if the signed caller panics. The
+        // fixture helper always releases and joins its real SQL owner first.
+        let (done, held) = tokio::join!(
+            futures_util::FutureExt::catch_unwind(std::panic::AssertUnwindSafe(original_ready)),
+            futures_util::FutureExt::catch_unwind(std::panic::AssertUnwindSafe(
+                ready_sql::settle_both_under_real_sql_exclusion(
+                    &f,
+                    &prepared.record_id,
+                    probe,
+                    ready_until,
+                )
+            )),
+        );
+        let done = match done {
+            Ok(done) => done,
+            Err(panic) => std::panic::resume_unwind(panic),
+        };
+        let held = match held {
+            Ok(result) => result,
+            Err(panic) => std::panic::resume_unwind(panic),
+        };
+        held.expect("both original Ready SQL boundaries and owners joined");
+        done
+    } else {
+        original_ready.await
+    };
+    #[cfg(not(feature = "test-support"))]
+    let done = original_ready.await;
     assert_eq!(done.record_id, prepared.record_id);
     assert_eq!(done.result.as_ref().unwrap()["generation"], 2);
     let activation: connect_protocol::replacement_activation::NativeActivationBoundary =
@@ -1454,4 +1582,19 @@ async fn signed_webrtc_av_initial_start_read_waits_for_real_sql_without_retainin
 async fn signed_webrtc_av_typed_not_begun_waits_for_real_sql_without_retaining_writer_or_replaying_start(
 ) {
     full_replacement_case("EdDSA", false, None, Some("begin")).await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
+async fn signed_webrtc_av_original_ready_survives_pre_and_post_capture_sql_without_replaying_effects(
+) {
+    full_replacement_case("EdDSA", false, None, Some("ready-both")).await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit synthetic VP8 fixtures and independent decoder; CONNECT_GATE6_AV_FIXTURE_DIR and CONNECT_GATE6_FFMPEG"]
+async fn signed_webrtc_av_ready_busy_releases_exact_custody_before_real_credential_revocation() {
+    full_replacement_case("EdDSA", false, None, Some("ready-revoke")).await;
 }

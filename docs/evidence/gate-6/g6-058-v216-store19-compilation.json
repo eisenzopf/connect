@@ -1,0 +1,18 @@
+{
+  "format": "connect/g6-058-store19-compilation/1",
+  "created_at": "2026-11-11T16:28:35.569279+00:00",
+  "tests_executed": 0,
+  "build_owner": {
+    "pid": 57112,
+    "pgid": 57112,
+    "exit_code": 101,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 14.609443664550781
+  },
+  "build_log_sha256": "bed3b7b03c09c33f093ec8b22de5597953b691ad162eda6da88e8bfd43273620",
+  "error": "E0609: two target.identity_id field references in exact retired source capture. Target is PeerConnectionProjection; actual identity is target.session.actor.identity_id.",
+  "correction": "Both predicates retained with existing target projection actor field path, independently compared with projection_from_facts and ProjectionFacts::from_attempt.",
+  "fixed_runtime_verdict": "not run"
+}

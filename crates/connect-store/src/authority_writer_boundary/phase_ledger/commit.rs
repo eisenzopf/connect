@@ -8,24 +8,29 @@ pub(super) struct Capture {
     recorded_at: i64,
     root_touch: String,
 }
+#[derive(Clone, Copy)]
+pub(crate) struct Decision {
+    pub(crate) reader: bool,
+    pub(crate) reason: &'static str,
+}
 struct Facts {
     capture: Capture,
     required: Vec<AuthorityScope>,
     revision: i64,
 }
 
-fn facts(
+fn decision_facts(
     store: &Store,
     c: &Connection,
     captured: &crate::NativeReplacementCommitted,
     held: Option<&Arc<AuthorityGuardSet>>,
-) -> Result<Option<Facts>> {
+) -> Result<(Option<Facts>, &'static str)> {
     let key = captured.commit_ledger_key();
     if key.runtime != store.runtime_epoch() {
-        return Ok(None);
+        return Ok((None, "runtime-mismatch"));
     }
     let Some(audience) = captured.commit_ledger_audience() else {
-        return Ok(None);
+        return Ok((None, "audience-absent"));
     };
     let row: Option<(i64,String,String,u64,i64)> = c.query_row(
         "SELECT o.revision,n.candidate_connection_id,n.candidate_runtime_id,n.generation,min(o.expires_at,n.expires_at) FROM operations o JOIN native_replacements n ON n.operation_record_id=o.record_id JOIN native_replacement_steps s ON s.operation_record_id=o.record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=o.record_id WHERE o.record_id=?1 AND o.command_type='connection.replace' AND o.state='preparing' AND o.cancel_requested=0 AND o.tombstoned=0 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND o.worker_runtime=?5 AND o.lease_owner=n.reservation_id AND o.lease_expires_at=n.expires_at AND o.expires_at>?6 AND n.expires_at>?6 AND s.attempt_id=?7 AND s.effect_id=?8 AND s.started=1 AND s.observation_json IS NULL AND e.provider='native-replacement-commit' AND e.correlation_key=e.id AND e.idempotency_mode='none' AND e.state='submitting' AND e.attempt=1 AND e.submission_generation=1 AND e.provider_ref IS NULL AND e.compensates_effect_id IS NULL AND e.observation_json=?9 AND NOT EXISTS(SELECT 1 FROM native_replacement_lifetimes l WHERE l.operation_record_id=o.record_id) AND NOT EXISTS(SELECT 1 FROM native_replacement_audiences a WHERE a.operation_record_id=o.record_id AND a.phase='commit')",
@@ -33,22 +38,31 @@ fn facts(
         |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?)),
     ).optional().map_err(|_|Error::storage())?;
     let Some((revision, candidate, runtime, generation, until)) = row else {
-        return Ok(None);
+        return Ok((None, "root-effect-not-current"));
     };
     // A known outcome after revocation/expiry is still historical, but must
     // retain the existing Writer path. Never mint this permit from receipt IDs.
-    let (required, current_until) = match captured.commit_ledger_authority(store, c, held) {
-        Ok(facts) => facts,
-        Err(e)
-            if matches!(
-                e.code.as_str(),
-                "forbidden" | "unauthorized" | "not-ready" | "conflict"
-            ) =>
-        {
-            return Ok(None);
-        }
-        Err(e) => return Err(e),
-    };
+    let (required, current_until, basis) =
+        match captured.commit_ledger_authority_decision(store, c, held) {
+            Ok(facts) => facts,
+            Err(e)
+                if matches!(
+                    e.code.as_str(),
+                    "forbidden" | "unauthorized" | "not-ready" | "conflict"
+                ) =>
+            {
+                return Ok((
+                    None,
+                    match e.code.as_str() {
+                        "unauthorized" => "current-authority-unauthorized",
+                        "not-ready" => "current-authority-not-ready",
+                        "conflict" => "current-authority-conflict",
+                        _ => "current-authority-forbidden",
+                    },
+                ));
+            }
+            Err(e) => return Err(e),
+        };
     let Some((audience, connections)) = audience.positive_commit_json(
         store,
         c,
@@ -59,11 +73,11 @@ fn facts(
         generation,
     )?
     else {
-        return Ok(None);
+        return Ok((None, "audience-delta-not-exact"));
     };
     let until = until.min(current_until);
     if crate::now() >= until {
-        return Ok(None);
+        return Ok((None, "original-expired"));
     }
     let recorded_at = crate::now();
     let root_touch: String = c
@@ -73,17 +87,20 @@ fn facts(
             |r| r.get(0),
         )
         .map_err(|_| Error::storage())?;
-    Ok(Some(Facts {
-        capture: Capture {
-            audience,
-            connections,
-            until,
-            recorded_at,
-            root_touch,
-        },
-        required,
-        revision,
-    }))
+    Ok((
+        Some(Facts {
+            capture: Capture {
+                audience,
+                connections,
+                until,
+                recorded_at,
+                root_touch,
+            },
+            required,
+            revision,
+        }),
+        basis,
+    ))
 }
 
 /// Effect-free eligibility only. The exact constructor repeats it under the
@@ -93,7 +110,20 @@ pub(crate) fn eligible(
     c: &Connection,
     captured: &crate::NativeReplacementCommitted,
 ) -> Result<bool> {
-    Ok(facts(store, c, captured, None)?.is_some())
+    Ok(decision(store, c, captured)?.reader)
+}
+
+/// Closed metadata labels, never authority or a replacement for same-Unit facts.
+pub(crate) fn decision(
+    store: &Store,
+    c: &Connection,
+    captured: &crate::NativeReplacementCommitted,
+) -> Result<Decision> {
+    let (facts, reason) = decision_facts(store, c, captured, None)?;
+    Ok(Decision {
+        reader: facts.is_some(),
+        reason,
+    })
 }
 
 pub(super) fn matches(
@@ -166,12 +196,14 @@ impl State {
         {
             return Err(Error::forbidden());
         }
-        let facts = facts(store, c, captured, Some(proof))?.ok_or_else(|| {
-            Error::new(
-                "authority-busy",
-                "Commit capture now requires original writer custody",
-            )
-        })?;
+        let facts = decision_facts(store, c, captured, Some(proof))?
+            .0
+            .ok_or_else(|| {
+                Error::new(
+                    "authority-busy",
+                    "Commit capture now requires original writer custody",
+                )
+            })?;
         if !store.authority_covers(proof, &facts.required) {
             return Err(Error::forbidden());
         }

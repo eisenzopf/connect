@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T15:15:47.574343+00:00",
-  "run_status": "Fresh frozen batch17 completed127/130 checks; original groups joined and source/binaries unchanged. All123pure, signedData,2shortnative and1RTC pass.2RTC validReadySQLBusy failures and native return private-readiness timeout remain. Full programme aborted~48s with2/4moves; no fresh62squality/End verdict. Full matrix unchanged:v2150/32cells,287passed101failed44blocked.",
+  "updated": "2026-11-11T16:32:24.254348+00:00",
+  "run_status": "Store20 passed106/106 with unchanged source/binary and all original groups joined, including all4retired-source regressions. Ready401/Core402 source-reviewed, additional prepublication lock controls in review before final combined run. Source17 remains127/130; full matrix unchanged v2150/32 cells,287passed101failed44blocked.",
   "blockers": [
     {
       "id": "B01",
@@ -1625,18 +1625,18 @@
     {
       "id": "B199",
       "title": "Valid Ready SQL contention straddles volatile capture",
-      "status": "Cause confirmed at two one-shot Ready SQL reads; fresh batch17 two signed RTC cases fail Ready/status. Existing logs do not distinguish before versus after capture.",
+      "status": "Implemented and independently source-reviewed; Ready401 grant-free wait and signed pre/postcapture SQL/revocation regressions integrated; runtime unverified.",
       "change": "Implement narrow original-only grant-free Ready wait with fresh authorization on typedBusy, exactly-once capture and separate read-only result recovery. Keep original deadlines and physical bindings.",
       "evidence": "g6-058-v216-components17.json: all123pure pass; Start probes/SQL owner joins/private decode/invalidReady refusals succeed, then validReady encounters primarySQLBusy and same-root status staysPreparing.",
-      "next": "Media owner401 API/Service fix; independent fixture review, pre/postcapture exclusion and revoke/expiry/cancel controls; fullbatch retest."
+      "next": "Execute six Service and six UCTP controls plus all11signedRTC variants in frozen170 batch; inspect exact custody/once-only Ready before matrix."
     },
     {
       "id": "B200",
       "title": "Unpublished direct-route validation treats contention as permanent Backpressure",
-      "status": "Native return route0 stops with Media(Backpressure) before Ready; route4 receives media. Source points to publisher.state.try_lock WouldBlock before route creation/publication; exact runtime leaf is not tagged yet.",
+      "status": "Old production counterexample reproduced exact publisher-lock Backpressure before publication. Core402 typed recovery integrated and independently source-reviewed; fixed controls unrun.",
       "change": "Private typed publisher-validation exclusion mapped ONLY at unpublished preroll boundary to existing MetadataBusy recovery. Ordinary subscriptions retain Backpressure, all permanent errors remain terminal.",
-      "evidence": "g6-058-v216-components17.json: return candidate0 zero inbound/no verified receiver notice; target4 decodes191frames; original8s candidate deadline aborts programme~48s.",
-      "next": "Fixture/Core owner stages402 with actual held-lock and original-cutoff/security tests; coordinator reviews and integrates after401, then fullnative workload and matrix."
+      "evidence": "g6-058-v216-components17.json and g6-058-v216-publisher-counterexample.json; causal held-lock counter failed at original prepare with Backpressure, source/binary stable and original process group joined.",
+      "next": "Execute15Core regressions and full62programme; require actual4handoffs and evaluated public quality. No pass from aborted workload."
     }
   ],
   "workplan_tasks": [
@@ -17346,5 +17346,11 @@
     "matrix_cells_passed": 0,
     "matrix_baseline": "v215;no inheritedcomponentpasses",
     "latest_evidence": "docs/evidence/gate-6/g6-058-v216-components13.json"
+  },
+  "v216_store20": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json",
+    "passed": 106,
+    "failed": 0,
+    "matrix_result": false
   }
 }
