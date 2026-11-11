@@ -1,7 +1,7 @@
 {
   "format": "connect/gate6-resource-begin-continuity/1",
-  "updated": "2026-11-11T03:30:50.606432+00:00",
-  "status": "Integrated Store126 and recorded protocol patch398 plus Service guard retirement. First controls: Store92/93 (one explicit Writer fixture correction now applied), protocol13/13. Combined signed/cadence pending.",
+  "updated": "2026-11-11T04:01:21.180608+00:00",
+  "status": "Focused runtime verified:118/118 checks pass. Both two-round media scenarios meet unchanged quality assertions; full32 qualification remains pending.",
   "scope": "Local macOS arm64 Store controls using actual default replacement-profile admission and retained published original-media IO; this is not cryptographic signed wire or matrix qualification.",
   "before": {
     "receipt": ".local/gate-6/v215-batch-verification/resource-begin-old-resource_begin_old-results.json",
@@ -65,7 +65,8 @@
         "passed": 92,
         "failed": 1
       },
-      "all_original_owners_joined": true
+      "all_original_owners_joined": true,
+      "interpretation": "Initial92/93 result retained. One Writer-exclusion fixture corrected to explicit mutation authority with assertions unchanged; final93/93 passes."
     },
     "protocol": {
       "receipt": ".local/gate-6/v215-batch-verification/resource-retirement398-resource_retirement_uctp-results.json",
@@ -77,8 +78,118 @@
         "failed": 0
       },
       "all_original_owners_joined": true
+    },
+    "store_final": {
+      "receipt": ".local/gate-6/v215-batch-verification/resource-batch-final398-emitted-store-results.json",
+      "sha256": "207a25acb2f99c475d506376174b1e962263c85da05285621c2167923987ca05",
+      "summary": {
+        "selected": 93,
+        "completed": 93,
+        "passed": 93,
+        "failed": 0
+      },
+      "source_sha256": "798dd0309d76071e43cc98f9b17ad22466c4f81d23982345a66471a4396761fc",
+      "binary_sha256": "e19a51d69312fda1afb23703c0197560d7421beebd9b191449fc2e28c5d91c2c",
+      "all_original_owners_joined": true,
+      "parent_closure": {
+        "path": ".local/gate-6/v215-batch-verification/resource-batch-final398-emitted-store-build-closure.json",
+        "sha256": "21ddae1f8b396146fd3e296fd44904d83ebba51aef8bb1bdbc1ac5d8ace49094"
+      }
+    },
+    "signed_final": {
+      "receipt": ".local/gate-6/v215-batch-verification/resource-batch-final398-resource_begin_final_signed-results.json",
+      "sha256": "90e56a9bec5488f69fc4bb0a604923b104544e9d7324f9ca6dc498484f174035",
+      "summary": {
+        "selected": 10,
+        "completed": 10,
+        "passed": 10,
+        "failed": 0
+      },
+      "source_sha256": "798dd0309d76071e43cc98f9b17ad22466c4f81d23982345a66471a4396761fc",
+      "binary_sha256": "9fb696f143430ef364064524be79e804646280be381ce7f385c6abe7d0ed785f",
+      "all_original_owners_joined": true
+    },
+    "cadence_final": {
+      "receipt": ".local/gate-6/v215-batch-verification/resource-batch-final398-resource_begin_final_cadence-results.json",
+      "sha256": "7bfab1b9be3e20c221f5827c3f9d42dd97a2672c9270d0a322cdecb262c5e0fc",
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "source_sha256": "798dd0309d76071e43cc98f9b17ad22466c4f81d23982345a66471a4396761fc",
+      "binary_sha256": "9fb696f143430ef364064524be79e804646280be381ce7f385c6abe7d0ed785f",
+      "all_original_owners_joined": true
     }
   },
-  "fixture_correction": "The Writer-exclusion control now explicitly admits mutation authority; all exclusion and drop assertions remain. Retest pending.",
-  "coverage_limit": "The Service failed-allocation receipt slot and watcher recovery are source-reviewed; its underlying Unknown SQL retry/drain and actual protocol guard release are unit-tested. No separate Service fault-injection run of the new slot."
+  "fixture_correction": "Explicit Writer-exclusion fixture passes in final93; all exclusion and drop assertions retained.",
+  "coverage_limit": "The Service failed-allocation receipt slot and watcher recovery are source-reviewed; its underlying Unknown SQL retry/drain and actual protocol guard release are unit-tested. No separate Service fault-injection run of the new slot.",
+  "implementation_commit": "8da25ece",
+  "verification_total": {
+    "selected": 118,
+    "passed": 118,
+    "failed": 0,
+    "store": 93,
+    "protocol": 13,
+    "signed": 10,
+    "cadence": 2,
+    "scope": "Local macOS arm64 focused controls; no matrix cell qualified."
+  },
+  "cadence": {
+    "report": ".local/gate-6/v215-batch-verification/resource-batch-final398-cadence-compact.json",
+    "sha256": "ba9840d37c36b8528638d8f7a64a7f953deb88213ffe744990a11042d1a7dc43",
+    "threshold_fps": 24,
+    "rounds": [
+      {
+        "case": 0,
+        "round": 0,
+        "complete_bin_range_excluding_end": [
+          3,
+          5
+        ],
+        "moves": 2,
+        "generation": 2,
+        "measured_deficient_bins": 0
+      },
+      {
+        "case": 0,
+        "round": 1,
+        "complete_bin_range_excluding_end": [
+          7,
+          10
+        ],
+        "moves": 2,
+        "generation": 3,
+        "measured_deficient_bins": 0
+      },
+      {
+        "case": 1,
+        "round": 0,
+        "complete_bin_range_excluding_end": [
+          3,
+          5
+        ],
+        "moves": 2,
+        "generation": 2,
+        "measured_deficient_bins": 0
+      },
+      {
+        "case": 1,
+        "round": 1,
+        "complete_bin_range_excluding_end": [
+          7,
+          10
+        ],
+        "moves": 2,
+        "generation": 3,
+        "measured_deficient_bins": 0
+      }
+    ],
+    "interpretation": "Both actual test assertions pass, including all measured complete bins at or above24FPS. After-join samples are not substituted for quality-snapshot observations."
+  },
+  "next": [
+    "Run three outstanding readiness withdrawal/expiry/physical-cancellation controls on local ARM Linux.",
+    "Build exact reviewed source normally on local Mac/ARM Linux, complete preflight, run all32 cells/432 checks."
+  ]
 }

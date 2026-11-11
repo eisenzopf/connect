@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T03:30:50.606432+00:00",
-  "run_status": "Full v214 remains 0/32 cells, 288/432 checks passed. Resource Begin/retirement batch integrated: actual old Allocate/Start contention now passes with original media IO retained; Store 92/93 and protocol 13/13 pass. Remaining Store failure was an old Writer fixture now corrected with assertions retained; combined signed/cadence verification pending.",
+  "updated": "2026-11-11T04:01:21.180608+00:00",
+  "run_status": "Resource Begin/retirement batch passes 118/118 focused checks: Store 93, protocol 13, signed 10 and cadence 2. Both media scenarios complete both handoff rounds with no measured bins below 24 FPS. Latest full v214 remains 0/32 cells and 288/432 checks passed. Local ARM qualification and the full 32-cell retest are next.",
   "blockers": [
     {
       "id": "B01",
@@ -1529,18 +1529,18 @@
     {
       "id": "B187",
       "title": "Private muted Activate disrupts unchanged original streams",
-      "status": "Addressed in focused scope: Core6, Store60 and signed8 pass, including actual post-retirement successor. Full cadence still fails earlier allocation/startup interval; no matrix qualification.",
+      "status": "Focused continuity and combined cadence verified: original Core6/Store60/signed8 plus current full two-round cadence pass. Full matrix pending.",
       "change": "Preserve exact immutable singleton predicate and installed outside rule ordering; reject outside changes before quiescence. Specialized complete-current Read plus exact same-attempt candidate-only activation ledger records only candidate revision advance. General audience changes, Commit and uncertain outcomes retain Writer.",
       "evidence": "docs/evidence/gate-6/private-activation-continuity-v215.json",
-      "next": "Resolve remaining second-round cadence and qualify full transport matrix."
+      "next": "Qualify full transport matrix."
     },
     {
       "id": "B188",
       "title": "Allocate/Start admission excludes unchanged original media",
-      "status": "Implemented; new default-admission continuity and negative controls pass. First Store92/93, protocol13/13; explicit Writer fixture corrected, final signed/cadence pending.",
+      "status": "Addressed in focused runtime: both reproduced old admission failures now pass; Store93/protocol13/signed10/cadence2 all pass. Full matrix pending.",
       "change": "Use current Read with exact same-Unit dormant resource ledger; retire all original authority aliases before historical failure settlement. Keep real mutations under Writer.",
       "evidence": "docs/evidence/gate-6/resource-begin-continuity-v215.json",
-      "next": "Verify fixed coexistence, negative authority/ledger controls, signed failure/replay paths, then combined cadence."
+      "next": "Qualify the same reviewed source on local ARM and in all32 transport cells."
     }
   ],
   "workplan_tasks": [
@@ -3068,9 +3068,9 @@
       ],
       "code_paths": [],
       "solution": "Identify causal packet loss/authority owner, unit-test the fix, then rerun combined cadence before the full 32-cell matrix.",
-      "status": "In progress: both cadence tests fail only second-round second-7 bins despite all publishers producing 30 FPS.",
+      "status": "Focused runtime verified in resource-begin-continuity-v215.json:118/118 pass, including both two-round cadence scenarios. Full transport matrix pending.",
       "completion": "Identify causal packet loss/authority owner, unit-test the fix, then rerun combined cadence before the full 32-cell matrix.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S101",
@@ -3085,9 +3085,9 @@
         "patches/rvoip/gate6-private-activate-preserve-outside-programmes.patch"
       ],
       "solution": "Preserve exact immutable singleton predicate and installed outside rule ordering; reject outside changes before quiescence. Specialized complete-current Read plus exact same-attempt candidate-only activation ledger records only candidate revision advance. General audience changes, Commit and uncertain outcomes retain Writer.",
-      "status": "Core6/Store60/signed8 pass; initial and post-retirement private Activate continuity verified. Full matrix qualification pending.",
+      "status": "Focused runtime verified in resource-begin-continuity-v215.json:118/118 pass, including both two-round cadence scenarios. Full transport matrix pending.",
       "completion": "Both causal regressions and retained revocation controls pass; assess decoded cadence before full32.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     },
     {
       "id": "S102",
@@ -3103,9 +3103,9 @@
         "crates/connect-service/src/canonical_replacement/start.rs"
       ],
       "solution": "Exact dormant resource ledger plus complete current Read; historical error settlement consumes original guard aliases and preserves same attempt.",
-      "status": "Implemented with Store126/protocol398. Store92/93 and protocol13/13; fixture correction applied. Final Store/signed/cadence pending.",
+      "status": "Focused runtime verified in resource-begin-continuity-v215.json:118/118 pass, including both two-round cadence scenarios. Full transport matrix pending.",
       "completion": "Pass coexistence/negative controls and actual signed failure/replay tests, then unchanged combined decoded cadence.",
-      "completion_status": "in-progress"
+      "completion_status": "focused-runtime-verified"
     }
   ],
   "workplan_review_html": ".local/gate-6/g6-058-fix-workplan-v203.html",
@@ -5492,10 +5492,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v214.json"
   },
   "current_focused_verification": {
-    "passed": 105,
+    "passed": 118,
     "planned": 118,
     "scope": "Core6 and signed8 pass; unchanged Store60 retained by exact final emitted binary hash. Both cadence scenarios complete all handoffs but retain six deficient second7 bins each.",
-    "next": "Resource Begin batch: Store92/93 and protocol13/13. Writer fixture correction and final93 Store,10 signed,2 cadence checks pending."
+    "next": "Both media-cadence scenarios now pass. Local ARM companion checks and full32 retest pending; focused results do not qualify matrix cells."
   },
   "current_workplan_tasks": [
     "S86",
