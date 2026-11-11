@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-10T23:52:55.643198+00:00",
-  "run_status": "Full v214 remains 0/32 cells, 288/432 checks pass. Recovery and SQL fixes pass85 component checks. Signal revocation now passes with concurrent original-route consumption;3 companion cases require local ARM Linux. Both combined cadence cases still fail. Auditing remaining preparation-only ledger invalidations before the next batch.",
+  "updated": "2026-11-11T00:00:23.985623+00:00",
+  "run_status": "Full v214 remains0/32 cells,288/432 checks pass. Latest Begin ledger fix passes9 focused and22 shared authority controls after reproducing old queued-media invalidation. Earlier recovery/SQL fixes and Signal fixture verified;3 companion controls await local ARM Linux. Both last combined cadence cases failed; related positive-capture fixes are being batched before another run.",
   "blockers": [
     {
       "id": "B01",
@@ -1513,9 +1513,9 @@
     {
       "id": "B185",
       "title": "Preparation-only ledger updates may invalidate unrelated public routes",
-      "status": "Source audit in progress. All six routes share one Conversation authority scope; each Writer announcement withdraws positive snapshots. Exact safe exemptions are not yet implemented.",
+      "status": "Begin fix implemented: original epoch-loss reproduced, then9 focused and22 shared authority/phase controls pass. Positive prepare/allocation/start capture and fresh-reservation audits remain in progress.",
       "change": "Audit Begin and positive preparation/allocation/start recording separately. Preserve Writers for real permission, lineage, membership, activation, uncertainty and cancellation changes. Fresh candidate reservation needs a distinct absence/lineage proof.",
-      "evidence": "docs/evidence/gate-6/combined-media-followthrough-v215.json",
+      "evidence": "docs/evidence/gate-6/preparation-begin-ledger-v215.json",
       "next": "Exact old-epoch counterexamples, narrowly bounded transaction permits and negative authorization controls, then combined cadence retest."
     }
   ],
@@ -16934,5 +16934,9 @@
   "v215_concurrent_original_fixture": {
     "public_evidence": "docs/evidence/gate-6/concurrent-original-media-fixture-v215.json",
     "status": "Signal revocation passed on macOS ARM64; three companion cases stopped at the existing Linux-only guard and require local ARM Linux verification."
+  },
+  "v215_preparation_begin_ledger": {
+    "public_evidence": "docs/evidence/gate-6/preparation-begin-ledger-v215.json",
+    "status": "Old epoch-loss regression reproduced; 9 focused Begin controls and22 shared authority/phase controls pass. Combined cadence retest waits for related capture changes."
   }
 }

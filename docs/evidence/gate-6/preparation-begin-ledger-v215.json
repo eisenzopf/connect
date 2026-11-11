@@ -1,0 +1,46 @@
+{
+  "format": "connect/preparation-begin-ledger/1",
+  "updated": "2026-11-11T00:00:23.985623+00:00",
+  "base_commit": "5e55de0f21c94b6efd949f124d9d65fae499b732df3",
+  "schema_version": 123,
+  "status": "Old epoch-loss regression reproduced; 9 focused Begin controls and22 shared authority/phase controls pass. Combined cadence retest waits for related capture changes.",
+  "root_cause": "Submitting the original dormant preparation effect acquired a Conversation Writer and revoked queued old-source media despite leaving public authorization facts unchanged.",
+  "fix": "Fresh complete selection Read and exact same-transaction permit for only started0\u21921, prepared\u2192submitting, and one root revision/journal update. Preserve original cutoff, current policy and once-only effect. Reservation, uncertainty, cancellation and actual activation retain Writer.",
+  "review_sha256": "a8ff43ae286bbb0b1aa87c8a74b87fe726eadc4d6df240623aee653ba1f7805d",
+  "checks": {
+    "old": {
+      "receipt_sha256": "578010b279e9616a151d94f09496e92ec6df9638b1cd280ebe3bce4309482f3c",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true,
+      "causal_assertion": "begin revoked the original queued old-source epoch despite only submitting its dormant preparation effect"
+    },
+    "fixed": {
+      "receipt_sha256": "30ce4ad4140051d5656c3d3fc36eb927f16ac60c38f500580098a9ad5c773dad",
+      "summary": {
+        "selected": 9,
+        "completed": 9,
+        "passed": 9,
+        "failed": 0
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    },
+    "shared_phase_guards": {
+      "receipt_sha256": "efa8eea2b9504c8b34cd2ff20534941a068c090f27791cf630884f8f60cb4676",
+      "summary": {
+        "selected": 22,
+        "completed": 22,
+        "passed": 22,
+        "failed": 0
+      },
+      "source_unchanged": true,
+      "original_groups_absent": true
+    }
+  }
+}

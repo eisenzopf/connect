@@ -1012,10 +1012,6 @@ fn reservation_writer_drains_original_packet_reads_and_does_not_pin_later_media(
 fn reserved_preparation_begin_refusal_keeps_same_lease_effect_and_original_cutoff() {
     let (f, _, _, origin, sources) = setup();
     let lease = prepare(&f, &origin, &sources);
-    let alias = f
-        .store
-        .native_replacement_preparation_attempt_read(&lease)
-        .unwrap();
     let read = f
         .store
         .native_replacement_preparation_attempt_read(&lease)
@@ -1026,14 +1022,16 @@ fn reserved_preparation_begin_refusal_keeps_same_lease_effect_and_original_cutof
         f.count("native_replacement_steps"),
         f.count("operation_effects"),
     );
+    let primary = f.store.connection().unwrap();
     assert_eq!(
         f.store
             .begin_native_replacement_preparation_before(&lease, read, until)
             .err()
-            .expect("held original Read must defer begin")
+            .expect("held primary SQL must defer begin before its transaction")
             .code,
         "authority-busy"
     );
+    drop(primary);
     assert_eq!(
         before,
         (
@@ -1044,7 +1042,6 @@ fn reserved_preparation_begin_refusal_keeps_same_lease_effect_and_original_cutof
     );
     let not_started:(bool,u64,String)=f.store.connection().unwrap().query_row("SELECT s.started,e.attempt,e.state FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1 AND s.phase='prepare'",[lease.record_id()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
     assert_eq!(not_started, (false, 0, "prepared".into()));
-    drop(alias);
     let read = f
         .store
         .native_replacement_preparation_attempt_read(&lease)
@@ -1512,9 +1509,10 @@ fn reserved_control_first_facts_cutoff_survives_failed_file_admission() {
 
 // The race starts after real file admission. A primary SQL owner acquired
 // earlier would prevent the initial scope derivation and miss this boundary.
-fn preparation_sql_race_republishes_old_source<T: Send>(
+fn preparation_sql_race_keeps_old_source_available<T: Send>(
     store: &std::sync::Arc<Store>,
     source: &std::sync::Arc<crate::NativeMediaOrigin>,
+    preserves_epoch: bool,
     prepare: impl FnOnce() -> crate::Result<T> + Send,
 ) -> T {
     use std::time::{Duration, Instant};
@@ -1544,7 +1542,7 @@ fn preparation_sql_race_republishes_old_source<T: Send>(
     let before = Store::inspect_snapshot(store.path()).unwrap();
     let (entered, ready) = std::sync::mpsc::sync_channel(1);
     let (release, resume) = std::sync::mpsc::sync_channel(1);
-    let (writer_entered, same_state, fresh_current, old_refused, result) =
+    let (proof_entered, same_state, fresh_current, old_current, result) =
         std::thread::scope(|workers| {
             let worker = workers.spawn(move || {
                 crate::authority_admission::with_passive_admission_probe(
@@ -1555,48 +1553,57 @@ fn preparation_sql_race_republishes_old_source<T: Send>(
                     prepare,
                 )
             });
-            let writer_entered = ready.recv_timeout(Duration::from_secs(1)) == Ok(true);
+            let proof_entered = ready.recv_timeout(Duration::from_secs(1)) == Ok(true);
             let primary = store.connection().unwrap();
             let _ = release.send(());
             // Inspect while the exact caller cannot enter its durable transaction.
             // Published IO uses independent observer SQL; this primary owner is
             // therefore no reason to withhold an otherwise current old route.
             let until = Instant::now() + Duration::from_millis(100);
-            let fresh_current = loop {
+            let mut live_io = loop {
                 match snapshot.admit() {
-                    Ok(io) => break io.current(),
+                    Ok(io) => break Some(io),
                     Err(error) if error.code == "authority-busy" && Instant::now() < until => {
                         std::thread::sleep(Duration::from_millis(1))
                     }
-                    Err(_) => break false,
+                    Err(_) => break None,
                 }
             };
-            let old_refused = !old_epoch.current() && snapshot.admit_original(old_stamp).is_err();
+            let old_current = old_epoch.current() && snapshot.admit_original(old_stamp).is_ok();
             let same_state =
                 Store::inspect_snapshot(store.path()).is_ok_and(|state| state == before);
+            let mut fresh_current = live_io.as_ref().is_some_and(|io| io.current());
+            if !preserves_epoch {
+                // Reservation still genuinely needs Write and must drain this IO.
+                drop(live_io.take());
+            }
             drop(primary);
             let result = worker.join().unwrap();
+            if preserves_epoch {
+                // Begin must also finish while genuine old-source IO is retained.
+                fresh_current &= live_io.as_ref().is_some_and(|io| io.current());
+            }
             (
-                writer_entered,
+                proof_entered,
                 same_state,
                 fresh_current,
-                old_refused,
+                old_current,
                 result,
             )
         });
     drop(snapshot);
     watcher.shutdown().unwrap();
     assert!(
-        writer_entered,
-        "probe must hold the actual acquired Conversation Writer"
+        proof_entered,
+        "probe must hold the actual acquired Conversation proof"
     );
     assert!(
         same_state,
         "blocked primary custody cannot start a reservation/effect"
     );
-    assert!(
-        old_refused,
-        "a fresh publication cannot revive the withdrawn original epoch"
+    assert_eq!(
+        old_current, preserves_epoch,
+        "dormant begin preserves its queued epoch; a real Writer revocation stays irreversible"
     );
     assert!(
         fresh_current,
@@ -1624,7 +1631,7 @@ fn preparation_reservation_releases_writer_during_primary_sql_reacquire() {
         )
         .unwrap();
     let store = std::sync::Arc::new(f.store);
-    let lease = preparation_sql_race_republishes_old_source(&store, &sources[0], || {
+    let lease = preparation_sql_race_keeps_old_source_available(&store, &sources[0], false, || {
         store.prepare_native_replacement(read, request())
     })
     .unwrap();
@@ -1636,7 +1643,7 @@ fn preparation_reservation_releases_writer_during_primary_sql_reacquire() {
 }
 
 #[test]
-fn preparation_begin_releases_writer_during_primary_sql_reacquire() {
+fn preparation_begin_preserves_epoch_during_primary_sql_reacquire() {
     let (f, _, _, origin, sources) = setup();
     let lease = prepare(&f, &origin, &sources);
     let read = f
@@ -1645,9 +1652,10 @@ fn preparation_begin_releases_writer_during_primary_sql_reacquire() {
         .unwrap();
     let cutoff = read.expires_at();
     let store = std::sync::Arc::new(f.store);
-    let (_attempt, read) = preparation_sql_race_republishes_old_source(&store, &sources[0], || {
-        store.begin_native_replacement_preparation_before(&lease, read, cutoff)
-    });
+    let (_attempt, read) =
+        preparation_sql_race_keeps_old_source_available(&store, &sources[0], true, || {
+            store.begin_native_replacement_preparation_before(&lease, read, cutoff)
+        });
     assert!(read.current());
     assert!(read.expires_at() <= cutoff);
     drop(read);
@@ -1655,4 +1663,145 @@ fn preparation_begin_releases_writer_during_primary_sql_reacquire() {
         preparation_effect_state(&store, origin.record_id()),
         (1, 1, 1)
     );
+}
+
+#[test]
+fn preparation_begin_preserves_queued_old_source_epoch() {
+    use std::time::{Duration, Instant};
+    let (f, _, _, origin, sources) = setup();
+    let lease = prepare(&f, &origin, &sources);
+    let store = std::sync::Arc::new(f.store);
+    let mut watcher = store.start_media_authorization_watcher().unwrap();
+    let weak = std::sync::Arc::downgrade(&store);
+    let original = sources[0].clone();
+    let snapshot = store
+        .register_native_media_snapshot_for(&sources[0], None, move || {
+            weak.upgrade()
+                .ok_or_else(crate::Error::forbidden)?
+                .try_native_media_read(&original, None)
+        })
+        .unwrap();
+    let until = Instant::now() + Duration::from_secs(2);
+    let first = loop {
+        match snapshot.admit() {
+            Ok(io) => break io,
+            Err(error) if error.code == "authority-busy" && Instant::now() < until => {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            Err(error) => panic!("original old source publication setup refused: {error}"),
+        }
+    };
+    let stamp = first.snapshot_stamp().unwrap();
+    let epoch = first.packet_epoch().unwrap();
+    drop(first);
+    let read = store
+        .native_replacement_preparation_attempt_read(&lease)
+        .unwrap();
+    let cutoff = read.expires_at();
+    let begun = store.begin_native_replacement_preparation_before(&lease, read, cutoff);
+    let epoch_preserved = epoch.current() && snapshot.admit_original(stamp).is_ok();
+    drop(snapshot);
+    watcher.shutdown().unwrap();
+    let (attempt, read) = begun.unwrap();
+    assert_eq!(attempt.record_id(), origin.record_id());
+    assert!(read.current() && read.expires_at() <= cutoff);
+    drop(read);
+    assert_eq!(
+        preparation_effect_state(&store, origin.record_id()),
+        (1, 1, 1)
+    );
+    assert!(
+        epoch_preserved,
+        "begin revoked the original queued old-source epoch despite only submitting its dormant preparation effect"
+    );
+}
+
+#[test]
+fn preparation_begin_permit_authorizes_only_exact_positive_ledger() {
+    use crate::authority_writer_boundary::phase_ledger::{Key, Stage};
+    let (f, _, _, origin, sources) = setup();
+    let _lease = prepare(&f, &origin, &sources);
+    let record = origin.record_id();
+    let (owner, cid, runtime, reservation, digest, attempt, effect): (String, String, String, String, String, String, String) = f.store.connection().unwrap().query_row(
+        "SELECT o.owner_id,o.conversation_id,n.runtime_epoch,n.reservation_id,n.plan_digest,s.attempt_id,s.effect_id FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='prepare' WHERE n.operation_record_id=?1",
+        [record], |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?,row.get(5)?,row.get(6)?)),
+    ).unwrap();
+    let held = f
+        .store
+        .try_acquire_authority(&[
+            crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Read).unwrap(),
+            crate::AuthorityScope::conversation(&cid, crate::AuthorityMode::Read).unwrap(),
+        ])
+        .unwrap();
+    let mut sql = f.store.connection().unwrap();
+    let tx = sql
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    let start = "UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='prepare'";
+    let submit = "UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1";
+    assert!(
+        tx.execute(start, [record]).is_err(),
+        "registered Read alone cannot mutate exact phase"
+    );
+    assert!(
+        tx.execute(submit, [&effect]).is_err(),
+        "registered Read alone cannot submit exact effect"
+    );
+    let key = |attempt: String, stage| Key {
+        record: record.to_owned(),
+        phase: "prepare",
+        attempt,
+        effect: effect.clone(),
+        expected: String::new(),
+        runtime: runtime.clone(),
+        reservation: reservation.clone(),
+        digest: digest.clone(),
+        stage,
+    };
+    let boundary = &f.store.authority_writer_boundary;
+    assert!(boundary
+        .native_phase_ledger(
+            &f.store,
+            &tx,
+            &held,
+            key("foreign-attempt".into(), Stage::Begin)
+        )
+        .is_err());
+    assert!(boundary
+        .native_phase_ledger(&f.store, &tx, &held, key(attempt.clone(), Stage::Confirm))
+        .is_err());
+    let permit = boundary
+        .native_phase_ledger(&f.store, &tx, &held, key(attempt, Stage::Begin))
+        .unwrap();
+    assert!(
+        tx.execute(submit, [&effect]).is_err(),
+        "effect cannot submit before exact started step"
+    );
+    assert!(tx.execute("UPDATE native_replacement_steps SET started=1,observation_json='{}' WHERE operation_record_id=?1 AND phase='prepare'",[record]).is_err());
+    assert_eq!(tx.execute(start, [record]).unwrap(), 1);
+    assert!(tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1,provider_ref='forged' WHERE id=?1",[&effect]).is_err());
+    assert_eq!(tx.execute(submit, [&effect]).unwrap(), 1);
+    assert!(tx
+        .execute(
+            "UPDATE operation_effects SET state='confirmed' WHERE id=?1",
+            [&effect]
+        )
+        .is_err());
+    assert!(tx
+        .execute(
+            "UPDATE operations SET revision=revision+1,state='unknown' WHERE record_id=?1",
+            [record]
+        )
+        .is_err());
+    let touch = "UPDATE operations SET revision=revision+1 WHERE record_id=?1";
+    assert_eq!(tx.execute(touch, [record]).unwrap(), 1);
+    assert!(
+        tx.execute(touch, [record]).is_err(),
+        "same permit cannot advance revision twice"
+    );
+    drop(permit);
+    tx.rollback().unwrap();
+    drop(sql);
+    drop(held);
+    assert_eq!(preparation_effect_state(&f.store, record), (1, 0, 0));
 }

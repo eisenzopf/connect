@@ -101,6 +101,9 @@ impl State {
             let key = &active.key;
             let action_matches = match action {
                 "effect-birth" | "effect-submit" => key.stage == Stage::Begin,
+                "prepare-step-start" | "prepare-effect-submit" => {
+                    key.phase == "prepare" && key.stage == Stage::Begin
+                }
                 "effect-confirm" => key.stage == Stage::Confirm,
                 "root-touch-begin" => key.stage == Stage::Begin,
                 "root-touch-confirm" => key.stage == Stage::Confirm,
@@ -134,7 +137,7 @@ impl State {
         key: Key,
     ) -> Result<Permit<'a>> {
         if !Arc::ptr_eq(self, &store.authority_writer_boundary)
-            || !matches!(key.phase, "attach" | "readiness")
+            || !matches!(key.phase, "prepare" | "attach" | "readiness")
             || key.record.is_empty()
             || key.effect.is_empty()
             || key.attempt.is_empty()
@@ -173,23 +176,33 @@ impl State {
         ) {
             return Err(Error::forbidden());
         }
-        let expected = crate::provisioning::canonical_json(
-            &serde_json::json!({"candidate":candidate,"generation":generation,"phase":key.phase,"attached":true,"private":true,"activated_muted":key.phase!="attach","media_ready":key.phase=="readiness"}),
-        )?;
-        if key.expected != expected {
-            return Err(Error::forbidden());
-        }
-        let valid: bool = match key.stage {
+        if key.phase == "prepare" {
+            let valid: bool = connection.query_row(
+                "SELECT EXISTS(SELECT 1 FROM native_replacement_steps s JOIN native_replacements n ON n.operation_record_id=s.operation_record_id JOIN operations o ON o.record_id=n.operation_record_id JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase='prepare' AND s.attempt_id=?2 AND s.effect_id=?3 AND s.started=0 AND s.observation_json IS NULL AND o.lease_owner=n.reservation_id AND o.lease_expires_at=n.expires_at AND n.expires_at>?4 AND e.provider='native-replacement-prepare' AND e.correlation_key=s.operation_record_id AND e.idempotency_mode='none' AND e.state='prepared' AND e.attempt=0 AND e.submission_generation=0 AND e.provider_ref IS NULL AND e.observation_json IS NULL AND e.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM native_replacement_steps later WHERE later.operation_record_id=s.operation_record_id AND later.phase!='prepare'))",
+                rusqlite::params![key.record,key.attempt,key.effect,crate::now()], |r|r.get(0),
+            ).map_err(|_|Error::storage())?;
+            if key.stage != Stage::Begin || !key.expected.is_empty() || !valid {
+                return Err(Error::forbidden());
+            }
+        } else {
+            let expected = crate::provisioning::canonical_json(
+                &serde_json::json!({"candidate":candidate,"generation":generation,"phase":key.phase,"attached":true,"private":true,"activated_muted":key.phase!="attach","media_ready":key.phase=="readiness"}),
+            )?;
+            if key.expected != expected {
+                return Err(Error::forbidden());
+            }
+            let valid: bool = match key.stage {
             Stage::Begin => connection.query_row("SELECT NOT EXISTS(SELECT 1 FROM native_replacement_media_steps WHERE operation_record_id=?1 AND phase=?2) AND NOT EXISTS(SELECT 1 FROM operation_effects WHERE id=?3) AND NOT EXISTS(SELECT 1 FROM native_replacement_media_steps WHERE attempt_id=?4 OR effect_id=?3)",rusqlite::params![key.record,key.phase,key.effect,key.attempt],|r|r.get(0)),
             Stage::Confirm => connection.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_media_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase=?2 AND s.attempt_id=?3 AND s.effect_id=?4 AND s.started=1 AND s.observation_json IS NULL AND e.provider='native-replacement-'||s.phase AND e.correlation_key=e.id AND e.idempotency_mode='none' AND e.state='submitting' AND e.attempt=1 AND e.submission_generation=1 AND e.observation_json=?5 AND e.provider_ref IS NULL AND e.compensates_effect_id IS NULL)",rusqlite::params![key.record,key.phase,key.attempt,key.effect,key.expected],|r|r.get(0)),
         }.map_err(|_|Error::storage())?;
-        if !valid {
-            return Err(Error::forbidden());
-        }
-        if key.stage == Stage::Begin && key.phase == "readiness" {
-            let previous:bool=connection.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_media_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase='activate' AND s.started=1 AND s.observation_json IS NOT NULL AND s.observation_json=e.observation_json AND e.state='confirmed')",[&key.record],|r|r.get(0)).map_err(|_|Error::storage())?;
-            if !previous {
+            if !valid {
                 return Err(Error::forbidden());
+            }
+            if key.stage == Stage::Begin && key.phase == "readiness" {
+                let previous:bool=connection.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_media_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase='activate' AND s.started=1 AND s.observation_json IS NOT NULL AND s.observation_json=e.observation_json AND e.state='confirmed')",[&key.record],|r|r.get(0)).map_err(|_|Error::storage())?;
+                if !previous {
+                    return Err(Error::forbidden());
+                }
             }
         }
         let mut slot = self.slot.lock().map_err(|_| Error::storage())?;

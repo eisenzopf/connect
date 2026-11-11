@@ -300,14 +300,14 @@ impl Store {
         scopes.extend(mutation);
         crate::AuthorityScope::merged(&scopes)
     }
-    /// Wait for the primary SQL owner without holding file authority. If the
-    /// mutex is taken again between scope derivation and file admission, drop
-    /// the complete Writer before waiting for the same original request.
-    /// This helper returns before BEGIN IMMEDIATE and cannot retry a mutation.
-    fn native_replacement_mutation_sql<'a>(
+    /// Wait for primary SQL without holding file authority. If the mutex is
+    /// taken again after file admission, release the complete proof before
+    /// waiting for the same original request. This cannot retry a mutation.
+    fn native_replacement_preparation_sql<'a>(
         &'a self,
         selection: &NativeReplacementSelection,
         wait: &crate::AuthorityWait,
+        mutation: bool,
         authority_stage: &'static str,
         sql_stage: &'static str,
     ) -> Result<(
@@ -319,7 +319,11 @@ impl Store {
                 let c = self
                     .try_connection_with_wait(wait)
                     .map_err(|error| preparation_refused(sql_stage, error))?;
-                self.native_replacement_reservation_scopes(&c, selection)?
+                if mutation {
+                    self.native_replacement_reservation_scopes(&c, selection)?
+                } else {
+                    selection.scopes(self, &c, false)?
+                }
             };
             let held = self
                 .acquire_authority(&scopes, wait)
@@ -337,7 +341,9 @@ impl Store {
                 result => result.map_err(|error| preparation_refused(sql_stage, error))?,
             };
             wait.check()?;
-            c.bind_available_mutation_authority(self, &held)?;
+            if mutation {
+                c.bind_available_mutation_authority(self, &held)?;
+            }
             return Ok((held, c));
         }
     }
@@ -359,9 +365,10 @@ impl Store {
         // This writer ends at the reservation transaction, before transport or
         // codec preparation, and does not grant candidate IO.
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(250));
-        let (held, mut c) = self.native_replacement_mutation_sql(
+        let (held, mut c) = self.native_replacement_preparation_sql(
             &selection,
             &wait,
+            true,
             "reservation-authority",
             "reservation-sql",
         )?;
@@ -535,34 +542,28 @@ impl Store {
             return Err(preparation_refused("begin-selection", Error::forbidden()));
         }
         let expires = read.expires_at();
-        // Consume every original Read before acquiring the mutation writer. The
-        // returned writer-backed read is control-only: callers drop it after
-        // synchronous Core capacity preparation, before transport/codec IO.
+        // Release the old Read before primary SQL wait. Begin only submits
+        // the exact preparation effect; fresh complete source/selection Reads
+        // remain valid through synchronous Core capacity preparation.
         let selection = read.into_selection()?;
         let remaining =
             std::time::Duration::from_secs(expires.saturating_sub(crate::now()).max(0) as u64);
         let wait = crate::AuthorityWait::new(remaining.min(std::time::Duration::from_millis(250)));
-        let (held, mut c) = self.native_replacement_mutation_sql(
+        let (held, mut c) = self.native_replacement_preparation_sql(
             &selection,
             &wait,
+            false,
             "begin-authority",
             "begin-sql",
         )?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| preparation_refused("begin-transaction", Error::storage()))?;
-        // All fallible current selection/expiry and exact mutation footprints
-        // are rederived in this transaction BEFORE the once-only started
-        // mutation, so refusal cannot discard an attempt.
+        // Revalidate the complete current selection and exact original
+        // attempt in this transaction before the once-only ledger mutation.
         let read = selection
             .read_with_connection(self, &tx, held.clone(), expires)
             .map_err(|e| preparation_refused("begin-current-selection", e))?;
-        if !self.authority_covers(
-            &held,
-            &self.native_replacement_reservation_scopes(&tx, &selection)?,
-        ) {
-            return Err(Error::forbidden());
-        }
         let row =
             bound(&tx, self, &lease).map_err(|e| preparation_refused("begin-reservation", e))?;
         lease
@@ -603,6 +604,33 @@ impl Store {
         if row.record.state != OperationState::Preparing {
             return Err(conflict());
         }
+        let started: bool = tx.query_row(
+            "SELECT started FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='prepare'",
+            [lease.record_id()], |row| row.get(0),
+        ).map_err(|_|Error::storage())?;
+        if started {
+            return Err(Error::new(
+                "reconciliation-required",
+                "Native replacement preparation already attempted",
+            ));
+        }
+        use crate::authority_writer_boundary::phase_ledger;
+        let permit = self.authority_writer_boundary.native_phase_ledger(
+            self,
+            &tx,
+            &held,
+            phase_ledger::Key {
+                record: lease.record_id().to_owned(),
+                phase: "prepare",
+                attempt: lease.attempt.clone(),
+                effect: lease.effect.clone(),
+                expected: String::new(),
+                runtime: lease.selection.origin.runtime.clone(),
+                reservation: lease.reservation.clone(),
+                digest: lease.hash.clone(),
+                stage: phase_ledger::Stage::Begin,
+            },
+        )?;
         let changed=tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='prepare' AND started=0",[lease.record_id()]).map_err(|_|Error::storage())?;
         if changed != 1 {
             return Err(Error::new(
@@ -618,6 +646,7 @@ impl Store {
         if !read.current() {
             return Err(preparation_refused("begin-current", Error::forbidden()));
         }
+        drop(permit);
         tx.commit().map_err(|_| Error::storage())?;
         Ok((
             NativeReplacementPreparationAttempt {
