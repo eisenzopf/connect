@@ -1,0 +1,206 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -112,6 +112,12 @@
+ #[derive(Clone)]
+ pub(super) struct SavedAudioProgram(Program);
+ impl SavedAudioProgram {
++    #[cfg(test)]
++    pub(super) fn same_for_test(&self, other: &Self) -> bool {
++        self.0.same(&other.0)
++    }
++
++
+     /// Retarget only this exact admitted source. Participant intent, unrelated
+     /// selections and exclusions remain intact; physical IDs are never reused.
+     pub(super) fn replacing_connection(
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -3822,3 +3822,5 @@
+ mod queued_audio_policy_retry;
+ 
+ mod retained_audio_policy_retry;
++
++mod preparation_identity;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/preparation_identity.rs
+@@ -0,0 +1,180 @@
++use super::*;
++use crate::staged_streams::direct_subscriptions::{DirectSubscription, DirectSubscriptionChange};
++
++async fn room() -> Room {
++    let mut room = Room::new().await;
++    for name in ["alice", "bob", "public", "hold"] {
++        let controller = &room.nodes[name].controller;
++        controller
++            .change(
++                controller.revision(),
++                &[desired(Medium::Audio), desired(Medium::Video)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++    }
++    let source = &room.nodes["alice"].controller;
++    let target = &room.nodes["bob"].controller;
++    target
++        .change_direct_subscriptions(
++            target.revision(),
++            DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                source,
++                desired(Medium::Video).logical_id,
++                desired(Medium::Video).logical_id,
++            )]),
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    room.add_owned_with_media(
++        "device",
++        "device",
++        owner("device"),
++        true,
++        None,
++        vec![desired(Medium::Audio), desired(Medium::Video)],
++    )
++    .await;
++    room
++}
++
++fn muted_plan(room: &Room, operation: &str) -> AudioAudiencePlan {
++    let mut plan = room
++        .scene
++        .plan_audio_audience(AudioAudienceRequest {
++            operation_id: operation.into(),
++            expected_revision: room.scene.audience_revision(),
++            private_connections: BTreeSet::from([ConnectionId::from_string("device")]),
++            receivers: BTreeMap::from([(ConnectionId::from_string("device"), vec![])]),
++            activate_muted: Some(ConnectionId::from_string("device")),
++        })
++        .unwrap();
++    plan.keep_endpoint_muted(&ConnectionId::from_string("device"))
++        .unwrap();
++    plan
++}
++
++#[tokio::test]
++async fn muted_preparation_preserves_outside_programme_tickets_models_and_queued_video() {
++    let mut room = room().await;
++    let mut video = room.nodes["bob"]
++        .adapter
++        .port(Medium::Video)
++        .take_egress()
++        .unwrap();
++    room.publish("alice", 1800).unwrap();
++    let source = room.nodes["alice"].adapter.port(Medium::Video);
++    let original = frame(&source, 12345);
++    source.try_publish(&original).unwrap();
++    room.tick();
++    let old_audio = outgoing(&mut room.nodes.get_mut("bob").unwrap().out).await;
++    let old_video = outgoing(&mut video).await;
++    let before = room
++        .nodes
++        .iter()
++        .filter(|(name, _)| name.as_str() != "device")
++        .map(|(name, node)| {
++            let consumer = node
++                .controller
++                .audio_consumer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .unwrap()
++                .upgrade()
++                .unwrap();
++            (
++                name.clone(),
++                (
++                    node.controller.revision(),
++                    node.controller.state.lock().unwrap().active.clone(),
++                    consumer.subscriptions.clone(),
++                    consumer.subscriptions.saved_program(),
++                    consumer.subscriptions.stamp(),
++                ),
++            )
++        })
++        .collect::<BTreeMap<_, _>>();
++    let candidate_before = room.nodes["device"].controller.revision();
++    let (_, handle) = room
++        .apply(muted_plan(&room, "activate-device"))
++        .await
++        .unwrap();
++    for (name, (revision, bindings, gate, programme, stamp)) in &before {
++        let controller = &room.nodes[name].controller;
++        assert_eq!(
++            controller.revision(),
++            *revision,
++            "muted preparation changed outside public revision"
++        );
++        let state = controller.state.lock().unwrap();
++        assert_eq!(state.active.len(), bindings.len());
++        for (logical, port) in bindings {
++            let current_port = &state.active[logical];
++            assert!(
++                Arc::ptr_eq(current_port, port),
++                "muted preparation replaced an outside port"
++            );
++            assert!(port.ticket().is_current());
++        }
++        drop(state);
++        let current = controller
++            .audio_consumer
++            .lock()
++            .unwrap()
++            .as_ref()
++            .unwrap()
++            .upgrade()
++            .unwrap();
++        assert!(Arc::ptr_eq(&current.subscriptions, gate));
++        assert!(programme.same_for_test(&current.subscriptions.saved_program()));
++        assert!(
++            stamp.is_current(),
++            "muted preparation retired an unchanged outside audio ticket"
++        );
++        assert_eq!(
++            handle.commit().revisions_for(controller).unwrap(),
++            (*revision, *revision)
++        );
++    }
++    assert_eq!(
++        room.nodes["device"].controller.revision(),
++        candidate_before + 1
++    );
++    assert!(room.nodes["device"]
++        .controller
++        .state
++        .lock()
++        .unwrap()
++        .model
++        .streams()
++        .values()
++        .filter(|stream| stream.negotiated.requested.medium == Medium::Audio)
++        .all(|stream| stream.source_muted));
++    old_audio.deliver(|_| async { Ok(()) }).await.unwrap();
++    old_video
++        .deliver(move |observed| async move {
++            assert_eq!(observed.stream_id, original.stream_id);
++            assert_eq!(observed.payload, original.payload);
++            assert_eq!(observed.timestamp_rtp, original.timestamp_rtp);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    room.heard("public", 1800).await;
++    room.publish("alice", 1800).unwrap();
++    room.tick();
++    room.heard("bob", 1800).await;
++    room.heard("public", 1800).await;
++    assert!(
++        room.publish("device", 6000).is_err(),
++        "muted candidate gained public ingress"
++    );
++    room.silent(&["device"]);
++}

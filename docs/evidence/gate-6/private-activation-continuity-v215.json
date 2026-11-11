@@ -1,0 +1,221 @@
+{
+  "status": "74 focused checks pass: Core6, unchanged byte-identical Store60, signed8. Two cadence checks still fail only second-round second7 quality.",
+  "source_lock_sha256": "b1aa2ddd0113e5b2ae10bfe6868d945ce9b316b09f1684722ae8a67176b25a3b",
+  "schema": 125,
+  "receipts": {
+    "signed_before": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-custody-old-private_activate_custody_old-results.json",
+      "sha256": "f91d596e57e0d1e367e82f4d46cd909e5e5d2096f37edf2605f5ae08480acc8c",
+      "source_sha256": "fc3d743c2dbb6b56871f79eeecf60b12ae66234dc3a72dfa1cd70ee1cc6334a7",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "owners_closed": true
+    },
+    "core_before": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-core-old-private_activate_core_old-results.json",
+      "sha256": "bc6d80f638a6de4b762cf440c311f7e04a7d9e0206e058cd527da63a00416125",
+      "source_sha256": "7c5a61b68dfbd1fc8bae0cfdaeaa913f8a1a2893c560bab238a3f3641a05d645",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "owners_closed": true
+    },
+    "core_initial_after": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-fixed-core-private_activate_core-results.json",
+      "sha256": "11010967bb271596a480323eb356ed0c4e106c4d6f13067eaebdc7715b2ac0e2",
+      "source_sha256": "650f3769bc8fbf72a52c91131c613fa9856bc6a318f0238f438f5f0ba21334a7",
+      "summary": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 4,
+        "failed": 1
+      },
+      "owners_closed": true
+    },
+    "core_corrected_after": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-fixed-core394-private_activate_core_corrected-results.json",
+      "sha256": "0e7a48379348875c86ac1d19421d670b4b94d96593f1edf0712cb32bf85de8d7",
+      "source_sha256": "daf8a49527ceff1d92ef3ae6c9e48c19b8d9440bde56a5f772f8b0da67d8f015",
+      "summary": {
+        "selected": 5,
+        "completed": 5,
+        "passed": 5,
+        "failed": 0
+      },
+      "owners_closed": true
+    },
+    "store_after": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-fixed394-emitted-store-results.json",
+      "sha256": "a5e129fd08e1ddcb18bd1a0dcb948d90c49418b5fd1e53e7a7cf4d140c0fab5a",
+      "summary": {
+        "selected": 60,
+        "completed": 60,
+        "passed": 60,
+        "failed": 0
+      },
+      "source_sha256": "65451571ecfec4c0d7ae492bea9b31643273daa6c6f628b76cd2a27d866d5128"
+    },
+    "store_build_closure": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-fixed394-emitted-store-build-closure.json",
+      "sha256": "2d6b372431c30d8e41727100dd30cbe7316bd90f7f48e7674388a5f974d34656",
+      "summary": null,
+      "source_sha256": "65451571ecfec4c0d7ae492bea9b31643273daa6c6f628b76cd2a27d866d5128"
+    },
+    "signed_initial_after": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-fixed394-private_activate_signed-results.json",
+      "sha256": "4fa95f9419e55fbf7b0941620380f003ce08819623b301a4fe97b17fbbbb3863",
+      "summary": {
+        "selected": 8,
+        "completed": 8,
+        "passed": 7,
+        "failed": 1
+      },
+      "source_sha256": "65451571ecfec4c0d7ae492bea9b31643273daa6c6f628b76cd2a27d866d5128"
+    },
+    "signed_corrected_after": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-fixture394-private_activate_signed_artifacts-results.json",
+      "sha256": "93258737f58983ba264874aaa82fdcf7c2cd1f84461eda651467912f18f6a102",
+      "summary": {
+        "selected": 8,
+        "completed": 8,
+        "passed": 8,
+        "failed": 0
+      },
+      "source_sha256": "c2f2ca4b24fa21e49f6888950cc21bc06374a36137bd1f24235b5aa2054bfec9"
+    },
+    "cadence_after": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-fixed394-private_activate_cadence-results.json",
+      "sha256": "8a1f7fb6f556b34a79106999b1cf1d9218dc35a265c2dcff5c50cc72d21ae76d",
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "source_sha256": "65451571ecfec4c0d7ae492bea9b31643273daa6c6f628b76cd2a27d866d5128"
+    },
+    "retirement_initial_setup_failure": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-retirement-old395-private_activate_retirement_old-results.json",
+      "sha256": "0511053cdcc1afc051a5a3471b35e65d2cc0d368a72282d611fe6604cc18afc7",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "source_sha256": "0b35533399b9ed433444b9545d12392a058ba797c38f701c4d9c01d69add4504"
+    },
+    "retirement_before": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-retirement-old396-private_activate_retirement_corrected_old-results.json",
+      "sha256": "5ef5856797a401f716426720b5b52f1058b12a0f944371cb2811c3be45ea24bf",
+      "summary": {
+        "selected": 1,
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "source_sha256": "816e0756a75da0095d6e28bf92b2583e0321633b9c0f61e63d835f4173a70c78"
+    },
+    "core_final_after": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-core397-private_activate_core_retirement_fixed-results.json",
+      "sha256": "2c64c6f77e6c34b37b081a988dc5bde4ecab840ee6db33e495cf875759538298",
+      "summary": {
+        "selected": 6,
+        "completed": 6,
+        "passed": 6,
+        "failed": 0
+      },
+      "source_sha256": "0591ebd3308f0b9c0597d4b88d2a68dadc386a31a6f6bbc47b88228895639f54"
+    },
+    "store_final_binary_reuse": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-final397-store-reuse.json",
+      "sha256": "0f01f9a4df2f584885f51537f0dbc5ba3217017c1c060d07bef8601755510f71",
+      "summary": null,
+      "source_sha256": "0591ebd3308f0b9c0597d4b88d2a68dadc386a31a6f6bbc47b88228895639f54"
+    },
+    "signed_final_initial": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-final397-private_activate_final_signed-results.json",
+      "sha256": "a31c5b04feb95f59a3d5d2847170cfde05b517754cdb7e7e83bb9282057f1836",
+      "summary": {
+        "selected": 8,
+        "completed": 8,
+        "passed": 6,
+        "failed": 2
+      },
+      "source_sha256": "0591ebd3308f0b9c0597d4b88d2a68dadc386a31a6f6bbc47b88228895639f54"
+    },
+    "signed_bootstrap_corrected": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-bootstrap397-private_activate_bootstrap_signed-results.json",
+      "sha256": "3b10f7d2e4a30b77c5e75e3c2b54cf85404f864c7821c105d96c988b3d02b2b2",
+      "summary": {
+        "selected": 8,
+        "completed": 8,
+        "passed": 8,
+        "failed": 0
+      },
+      "source_sha256": "e5009dc957e4e3d73a0bdbca3ed8b10ddd0ddcff4d4b830939422af315ce90f7"
+    },
+    "cadence_final": {
+      "path": ".local/gate-6/v215-batch-verification/private-activate-final397-private_activate_final_cadence-results.json",
+      "sha256": "156146a50e4a4f311a4d37a8f16b7c268203df3902d6d0cd66a9de60dec35e39",
+      "summary": {
+        "selected": 2,
+        "completed": 2,
+        "passed": 0,
+        "failed": 2
+      },
+      "source_sha256": "0591ebd3308f0b9c0597d4b88d2a68dadc386a31a6f6bbc47b88228895639f54"
+    }
+  },
+  "root_cause": "Muted singleton activation rebuilt an equivalent audience rule identity, reticketed unchanged outside programmes/revisions, and held exclusive Conversation authority. Signed before test demonstrates authority-busy; Core before test demonstrates outside revision 3 to 4.",
+  "fix": "Preserve exact immutable singleton predicate and installed outside rule ordering; reject outside changes before quiescence. Specialized complete-current Read plus exact same-attempt candidate-only activation ledger records only candidate revision advance. General audience changes, Commit and uncertain outcomes retain Writer.",
+  "fixture_correction": "Initial fixed test passed prior production-failure assertions but compared forwarded frame to publisher stream ID. Actual forwarding rebinds to receiver transport ID. Additive test-only patch now asserts Bob original receiver ID, exact payload and timestamp.",
+  "pending": [
+    "Diagnose remaining allocation/startup interval frame-rate dip without changing quality requirements",
+    "local ARM Linux companions",
+    "full32"
+  ],
+  "matrix_qualified": false,
+  "signed_fixture_correction": "Two original-video decodes reused protected create-new filename. Distinct per-phase input filenames preserve exact decoder checks and original cutoffs; signed8 then all pass.",
+  "repeat_handoff_regression": "Corrected actual Commit/retirement/successor test reproduces Core Authority refusal before fix and passes afterward. Specialized comparison now requires all active rules as an exact subset and exact singleton once, rejects duplicates, preserves installed conservative extras/order. Both cadence scenarios complete both handoff rounds again.",
+  "readiness_fixture_correction": "Buffered downlink could satisfy usable decoder before first send tick. Loop now requires an actual uplink send AND usable downlink under same absolute deadline; assertions retained. Eight signed tests pass.",
+  "cadence_result": {
+    "passed": 0,
+    "failed": 2,
+    "all_rounds_complete": true,
+    "first_round_deficient_bins": [
+      0,
+      0
+    ],
+    "second_round_deficient_bins": [
+      6,
+      6
+    ],
+    "deficient_second": 7,
+    "decoded_fps_case00": [
+      16,
+      17,
+      16,
+      21,
+      21,
+      22
+    ],
+    "decoded_fps_case01": [
+      20,
+      20,
+      21,
+      20,
+      19,
+      19
+    ],
+    "required": 24,
+    "encoded_and_published_fps": 30
+  }
+}

@@ -2089,6 +2089,39 @@
       "path": "patches/rvoip/gate6-original-video-pending-diagnostics.patch",
       "sha256": "0cb0e0ac300d6f4c1c8fbe461ee0cc4637839ae9f5f0ac53fcd6d815a34c15a2",
       "source": "Bounded original video pending diagnostics and actual scene regression distinguish transient receiver cache readiness from original epoch revocation. Preserve same packet, route/scene, current authorization and original200ms age; no grant or timeout changes."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-private-activate-outside-custody-counterexample.patch",
+      "sha256": "7acd2f9cf7795969ac57060309d08bede5c8dd8bf46df0c42490ea7818056a8d",
+      "source": "G6-058 tests-only actual muted singleton activation continuity counterexample. Hold original public audio/video and exact programmes, ports, tickets and revisions across the original private activation. Production unchanged; runtime pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-private-activate-preserve-outside-programmes.patch",
+      "sha256": "3270012f1d46f298e25047f07c22ca6dbfdf8ed36d08a4347f3740f94b0a86e1",
+      "source": "G6-058 exact private muted singleton activation preserves original public audio rules, programmes, ports, gates, tickets and revisions. Exact controller/member/credential and unique rule identity are checked before quiescence. Generic audience cuts retain normal behavior; runtime pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-private-activate-receiver-stream-fixture.patch",
+      "sha256": "6d98cf689e6a8295951bb0095b41f7105d8621a39f9e10d86c088995bcf0bf94",
+      "source": "G6-058 Core continuity test correction: direct forwarding rewrites source stream ID to the exact receiving Video port transport ID. Bind original receiver ID before muted activation and require that exact ID with unchanged payload/timestamp. All programme, Port, ticket, revision and admitted-IO checks retained. Production unchanged; runtime pending."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-private-activate-retired-rule-counterexample.patch",
+      "sha256": "10383472335f20e8b069cf7118e12cb45bfdae2804b92ff4d59d6a3336b6051a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-private-activate-postcommit-fixture.patch",
+      "sha256": "94ba65ac0214c081038a4ab7eb10d4e063a45e90003b876ae8516129490c4b4a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-private-activate-retain-installed-rules.patch",
+      "sha256": "cff759c629bde9d588af95e094ec475b11bf109117b49c9a3e4109c17baee702"
     }
   ]
 }

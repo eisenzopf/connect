@@ -567,3 +567,5 @@ fn phase_step_collisions_and_wrong_attempt_do_not_consume_original_binding() {
     drop(read);
     assert_eq!(counts(&f.store, &id), (0, 0));
 }
+
+mod candidate_activation;

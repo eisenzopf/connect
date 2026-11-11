@@ -11,6 +11,7 @@ pub struct NativeReplacementAudienceCapture {
     record: String,
     runtime: String,
     phase: &'static str,
+    candidate_only: Option<String>,
     values: BTreeMap<String, (String, u64, u64, u64)>,
 }
 redacted!(NativeReplacementAudienceCapture);
@@ -20,6 +21,45 @@ impl NativeReplacementSceneRead {
         observed: BTreeMap<String, u64>,
     ) -> Result<NativeReplacementAudienceCapture> {
         self.capture_revisions(observed, "activate")
+    }
+    /// Exact Core observation for a muted candidate-only private cut. Every
+    /// outside controller keeps its original revision; only this target advances.
+    pub fn capture_candidate_only_activation_revisions(
+        &self,
+        observed: BTreeMap<String, (u64, u64)>,
+    ) -> Result<NativeReplacementAudienceCapture> {
+        if observed.len() != self.audience_sources.len() {
+            return Err(conflict());
+        }
+        let target = self.media.target.runtime_connection_id.as_str();
+        let mut values = BTreeMap::new();
+        for (runtime, origin) in &self.audience_sources {
+            let (before, after) = observed.get(runtime).copied().ok_or_else(conflict)?;
+            let expected = if runtime == target {
+                before.checked_add(1)
+            } else {
+                Some(before)
+            };
+            if before != origin.revision || expected != Some(after) || after > 9_007_199_254_740_991
+            {
+                return Err(conflict());
+            }
+            values.insert(
+                runtime.clone(),
+                (origin.connection.clone(), origin.generation, before, after),
+            );
+        }
+        if !values.contains_key(target) {
+            return Err(conflict());
+        }
+        let origin = &self.media.source.selection().origin;
+        Ok(NativeReplacementAudienceCapture {
+            record: origin.record.clone(),
+            runtime: origin.runtime.clone(),
+            phase: "activate",
+            candidate_only: Some(target.to_owned()),
+            values,
+        })
     }
     pub fn capture_commit_revisions(
         &self,
@@ -56,6 +96,7 @@ impl NativeReplacementSceneRead {
             record: origin.record.clone(),
             runtime: origin.runtime.clone(),
             phase,
+            candidate_only: None,
             values,
         })
     }
@@ -70,8 +111,46 @@ impl NativeReplacementAudienceCapture {
     pub(super) fn after(&self, runtime: &str) -> Option<u64> {
         self.values.get(runtime).map(|v| v.3)
     }
+    pub(crate) fn is_candidate_only(&self) -> bool {
+        self.phase == "activate" && self.candidate_only.is_some()
+    }
+    pub(crate) fn candidate_activation_json(
+        &self,
+        record: &str,
+        runtime: &str,
+        candidate_runtime: &str,
+        candidate_connection: &str,
+        generation: u64,
+    ) -> Result<String> {
+        self.require(record, runtime, "activate")?;
+        if self.candidate_only.as_deref() != Some(candidate_runtime) {
+            return Err(Error::forbidden());
+        }
+        let mut changed = 0;
+        for (source, (connection, original_generation, before, after)) in &self.values {
+            if source == candidate_runtime {
+                if connection != candidate_connection
+                    || *original_generation != generation
+                    || before.checked_add(1) != Some(*after)
+                {
+                    return Err(Error::forbidden());
+                }
+                changed += 1;
+            } else if before != after {
+                return Err(Error::forbidden());
+            }
+        }
+        if changed != 1 {
+            return Err(Error::forbidden());
+        }
+        self.json()
+    }
     fn json(&self) -> Result<String> {
-        crate::provisioning::canonical_json(&serde_json::json!({"sources":self.values}))
+        let mut value = serde_json::json!({"sources":self.values});
+        if self.is_candidate_only() {
+            value["candidate_only"] = serde_json::json!(true);
+        }
+        crate::provisioning::canonical_json(&value)
     }
     pub(super) fn require_recorded(&self, c: &Connection, effect: &str) -> Result<()> {
         let saved:Option<(String,String,String)>=c.query_row("SELECT runtime_epoch,effect_id,capture_json FROM native_replacement_audiences WHERE operation_record_id=?1 AND phase=?2",params![self.record,self.phase],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional().map_err(|_|Error::storage())?;
@@ -84,7 +163,26 @@ impl NativeReplacementAudienceCapture {
         if self.runtime != store.runtime_epoch() {
             return Err(Error::forbidden());
         }
-        let body = self.json()?;
+        let body = if let Some(candidate) = &self.candidate_only {
+            let (connection, generation, _, _) =
+                self.values.get(candidate).ok_or_else(Error::forbidden)?;
+            let public: bool = c.query_row(
+                "SELECT EXISTS(SELECT 1 FROM connections WHERE id=?1 AND state IN ('ready','active','held'))",
+                [connection], |row| row.get(0),
+            ).map_err(|_| Error::storage())?;
+            if public {
+                return Err(Error::forbidden());
+            }
+            self.candidate_activation_json(
+                &self.record,
+                &self.runtime,
+                candidate,
+                connection,
+                *generation,
+            )?
+        } else {
+            self.json()?
+        };
         if body.len() > 262144 {
             return Err(Error::new(
                 "capacity-exceeded",
@@ -92,7 +190,15 @@ impl NativeReplacementAudienceCapture {
             ));
         }
         c.execute("INSERT INTO native_replacement_audiences(operation_record_id,phase,effect_id,runtime_epoch,capture_json) VALUES(?1,?2,?3,?4,?5)",params![self.record,self.phase,effect,self.runtime,body]).map_err(|_|Error::storage())?;
+        if self.is_candidate_only() {
+            // The only changed target is still dormant. This receipt changes no
+            // published original Connection, readiness, permission or epoch.
+            return Ok(());
+        }
         for (connection, generation, before, after) in self.values.values() {
+            if before == after {
+                continue;
+            }
             // No historical metadata can revive a retired incarnation or
             // overwrite a later independently recorded native observation.
             c.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.stream_revision',?4) WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active') AND json_extract(readiness_json,'$.stream_revision')=?5 AND (EXISTS(SELECT 1 FROM native_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0) OR EXISTS(SELECT 1 FROM telephone_connection_lifetimes l WHERE l.connection_id=connections.id AND l.generation=connections.generation AND l.runtime_epoch=?3 AND l.retired=0))",params![connection,generation,self.runtime,after,before]).map_err(|_|Error::storage())?;

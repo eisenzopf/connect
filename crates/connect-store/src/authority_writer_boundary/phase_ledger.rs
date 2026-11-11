@@ -26,6 +26,7 @@ pub(super) struct Active {
     nonce: u64,
     root_revision: i64,
     reservation_root: Option<String>,
+    candidate_audience: Option<String>,
     // Pins the original complete Read until this transaction permit ends.
     _proof: Arc<AuthorityGuardSet>,
 }
@@ -107,6 +108,17 @@ impl State {
                     && phase == Some("reserve")
                     && active.reservation_matches(action, effect, expected, attempt, revision);
             }
+            if action == "candidate-activation-audience" {
+                return key.phase == "activate"
+                    && key.stage == Stage::Confirm
+                    && key.record == record
+                    && phase == Some("activate")
+                    && effect == Some(key.effect.as_str())
+                    && expected == active.candidate_audience.as_deref()
+                    && expected.is_some()
+                    && attempt.is_none()
+                    && revision.is_none();
+            }
             let action_matches = match action {
                 "effect-birth" | "effect-submit" => key.stage == Stage::Begin,
                 "prepare-step-start" | "prepare-effect-submit" => {
@@ -151,7 +163,7 @@ impl State {
         proof: &Arc<AuthorityGuardSet>,
         key: Key,
     ) -> Result<Permit<'a>> {
-        self.native_phase_ledger_in(store, connection, proof, key, None)
+        self.native_phase_ledger_in(store, connection, proof, key, None, None)
     }
 
     /// Historical immutable capture only. The opaque receipt supplies the
@@ -172,7 +184,30 @@ impl State {
         {
             return Err(Error::forbidden());
         }
-        self.native_phase_ledger_in(store, connection, proof, key, Some(ResourceTarget(target)))
+        self.native_phase_ledger_in(
+            store,
+            connection,
+            proof,
+            key,
+            Some(ResourceTarget(target)),
+            None,
+        )
+    }
+
+    /// Exact dormant candidate-only activation bookkeeping. The complete scene
+    /// is checked by the fixed Store entry point before this private Unit permit.
+    pub(crate) fn native_candidate_activation_ledger<'a>(
+        self: &Arc<Self>,
+        store: &Store,
+        connection: &'a Connection,
+        proof: &Arc<AuthorityGuardSet>,
+        key: Key,
+        audience: Option<&crate::NativeReplacementAudienceCapture>,
+    ) -> Result<Permit<'a>> {
+        if key.phase != "activate" || (key.stage == Stage::Confirm) != audience.is_some() {
+            return Err(Error::forbidden());
+        }
+        self.native_phase_ledger_in(store, connection, proof, key, None, Some(audience))
     }
 
     fn native_phase_ledger_in<'a>(
@@ -182,9 +217,11 @@ impl State {
         proof: &Arc<AuthorityGuardSet>,
         key: Key,
         resource_target: Option<ResourceTarget<'_>>,
+        candidate_activation: Option<Option<&crate::NativeReplacementAudienceCapture>>,
     ) -> Result<Permit<'a>> {
         if !Arc::ptr_eq(self, &store.authority_writer_boundary)
-            || (resource_target.is_none()
+            || (candidate_activation.is_none()
+                && resource_target.is_none()
                 && !matches!(key.phase, "prepare" | "attach" | "readiness"))
             || key.record.is_empty()
             || key.effect.is_empty()
@@ -224,6 +261,32 @@ impl State {
         ) {
             return Err(Error::forbidden());
         }
+        let candidate_audience = if let Some(audience) = candidate_activation {
+            let exact_lease: bool = connection.query_row(
+                "SELECT EXISTS(SELECT 1 FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND o.lease_owner=n.reservation_id AND o.lease_expires_at=n.expires_at AND (?2=0 OR n.expires_at>?3) AND NOT EXISTS(SELECT 1 FROM native_replacement_audiences a WHERE a.operation_record_id=n.operation_record_id AND a.phase='activate'))",
+                rusqlite::params![key.record, key.stage == Stage::Begin, crate::now()], |row| row.get(0),
+            ).map_err(|_| Error::storage())?;
+            if !exact_lease {
+                return Err(Error::forbidden());
+            }
+            let connection_id: String = connection.query_row(
+                "SELECT candidate_connection_id FROM native_replacements WHERE operation_record_id=?1 AND NOT EXISTS(SELECT 1 FROM connections c WHERE c.id=native_replacements.candidate_connection_id AND c.state IN ('ready','active','held'))",
+                [&key.record], |row| row.get(0),
+            ).optional().map_err(|_| Error::storage())?.ok_or_else(Error::forbidden)?;
+            audience
+                .map(|capture| {
+                    capture.candidate_activation_json(
+                        &key.record,
+                        &key.runtime,
+                        &candidate,
+                        &connection_id,
+                        generation,
+                    )
+                })
+                .transpose()?
+        } else {
+            None
+        };
         if let Some(ResourceTarget(target)) = resource_target {
             let plan: Option<String> = connection.query_row(
                 "SELECT n.plan_json FROM native_replacement_steps s JOIN native_replacements n ON n.operation_record_id=s.operation_record_id JOIN operations o ON o.record_id=n.operation_record_id JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase=?2 AND s.attempt_id=?3 AND s.effect_id=?4 AND s.started=1 AND s.observation_json IS NULL AND o.lease_owner=n.reservation_id AND o.lease_expires_at=n.expires_at AND e.provider='native-replacement-'||s.phase AND e.correlation_key=CASE s.phase WHEN 'prepare' THEN s.operation_record_id ELSE e.id END AND e.idempotency_mode='none' AND e.state='submitting' AND e.attempt=1 AND e.submission_generation=1 AND e.provider_ref IS NULL AND e.observation_json IS ?5 AND e.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM native_replacement_steps later WHERE later.operation_record_id=s.operation_record_id AND (later.phase='commit' OR (s.phase='allocate' AND later.phase='start') OR (s.phase='prepare' AND later.phase!='prepare')))",
@@ -269,9 +332,11 @@ impl State {
                 return Err(Error::forbidden());
             }
         } else {
-            let expected = crate::provisioning::canonical_json(
-                &serde_json::json!({"candidate":candidate,"generation":generation,"phase":key.phase,"attached":true,"private":true,"activated_muted":key.phase!="attach","media_ready":key.phase=="readiness"}),
-            )?;
+            let mut observation = serde_json::json!({"candidate":candidate,"generation":generation,"phase":key.phase,"attached":true,"private":true,"activated_muted":key.phase!="attach","media_ready":key.phase=="readiness"});
+            if candidate_activation.is_some() {
+                observation["candidate_only"] = serde_json::json!(true);
+            }
+            let expected = crate::provisioning::canonical_json(&observation)?;
             if key.expected != expected {
                 return Err(Error::forbidden());
             }
@@ -281,6 +346,15 @@ impl State {
         }.map_err(|_|Error::storage())?;
             if !valid {
                 return Err(Error::forbidden());
+            }
+            if candidate_activation.is_some() {
+                let attached: bool = connection.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM native_replacement_media_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase='attach' AND s.started=1 AND s.observation_json IS NOT NULL AND s.observation_json=e.observation_json AND e.state='confirmed')",
+                    [&key.record], |row| row.get(0),
+                ).map_err(|_| Error::storage())?;
+                if !attached {
+                    return Err(Error::forbidden());
+                }
             }
             if key.stage == Stage::Begin && key.phase == "readiness" {
                 let previous:bool=connection.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_media_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase='activate' AND s.started=1 AND s.observation_json IS NOT NULL AND s.observation_json=e.observation_json AND e.state='confirmed')",[&key.record],|r|r.get(0)).map_err(|_|Error::storage())?;
@@ -303,6 +377,7 @@ impl State {
             nonce,
             root_revision,
             reservation_root: None,
+            candidate_audience,
             _proof: proof.clone(),
         });
         Ok(Permit {

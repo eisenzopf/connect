@@ -269,7 +269,9 @@ async fn audio(
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut sequence = 0u16;
     timeout_at(cutoff,async {
-        while !decoder.usable() {
+        // Buffered downlink may decode before the first interval tick wins.
+        // Complete only after actual uplink submission and usable downlink.
+        while sequence == 0 || !decoder.usable() {
             tokio::select! {
                 _=tick.tick()=>{
                     sequence=sequence.wrapping_add(1);

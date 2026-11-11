@@ -1,0 +1,409 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -91,6 +91,9 @@
+ pub(super) struct ClosedAudience {
+     pub operation: String,
+     pub origins: Vec<AudienceOrigin>,
++    // Only exact muted preparation may keep the identical installed predicate.
++    // This points directly to the immutable original, never to a successor.
++    pub(super) routing_identity: Option<Arc<ClosedAudience>>,
+ }
+ impl ClosedAudience {
+     pub(super) fn contains(&self, controller: &StreamController) -> bool {
+@@ -362,8 +365,61 @@
+         {
+             return Err(StreamControlError::Authority);
+         }
++        let previous = self.require_equivalent_preparation()?;
++        let identity = previous
++            .routing_identity
++            .as_ref()
++            .unwrap_or(previous)
++            .clone();
++        Arc::make_mut(&mut self.group).routing_identity = Some(identity);
+         self.preparation_muted = true;
+         Ok(())
++    }
++    /// Immutable plan classification only. A matching held current authority
++    /// and unchanged outside plans are still required before any physical cut.
++    pub fn is_muted_endpoint_preparation(&self) -> bool {
++        self.preparation_muted && self.require_equivalent_preparation().is_ok()
++    }
++    fn require_equivalent_preparation(&self) -> ControlResult<&Arc<ClosedAudience>> {
++        let previous = self
++            .replaced_preparation
++            .as_ref()
++            .ok_or(StreamControlError::Authority)?;
++        let [before] = previous.origins.as_slice() else {
++            return Err(StreamControlError::Authority);
++        };
++        let [after] = self.group.origins.as_slice() else {
++            return Err(StreamControlError::Authority);
++        };
++        let identity = previous.routing_identity.as_ref().unwrap_or(previous);
++        if (self.preparation_muted
++            && !self
++                .group
++                .routing_identity
++                .as_ref()
++                .is_some_and(|held| Arc::ptr_eq(held, identity)))
++            || self.restore.is_some()
++            || self.handoff.is_some()
++            || self.replacement.is_some()
++            || !self.replaced_audiences.is_empty()
++            || self.request.activate_muted.as_ref() != Some(&after.connection)
++            || self.request.private_connections != BTreeSet::from([after.connection.clone()])
++            || self.request.receivers.len() != 1
++            || !self
++                .request
++                .receivers
++                .get(&after.connection)
++                .is_some_and(Vec::is_empty)
++            || before.connection != after.connection
++            || !Weak::ptr_eq(&before.controller, &after.controller)
++            || before.member.participant() != after.member.participant()
++            || before.member.identity() != after.member.identity()
++            || before.member.epoch() != after.member.epoch()
++            || !super::reliable_data::same_credential(&before.owner, &after.owner)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(previous)
+     }
+     /// Exact scene-issued plan identity for a held policy's approval. Matching
+     /// caller-supplied IDs alone is insufficient to approve another scene.
+@@ -433,9 +489,12 @@
+     pub(super) fn rules(&self, controller: &StreamController) -> Vec<AudioAudienceRule> {
+         self.groups
+             .values()
+-            .map(|group| AudioAudienceRule {
+-                group: group.clone(),
+-                inside: group.contains(controller),
++            .map(|group| {
++                let group = group.routing_identity.as_ref().unwrap_or(group);
++                AudioAudienceRule {
++                    group: group.clone(),
++                    inside: group.contains(controller),
++                }
+             })
+             .collect()
+     }
+@@ -479,6 +538,7 @@
+             group: Arc::new(ClosedAudience {
+                 operation: operation.into(),
+                 origins: vec![AudienceOrigin::new(controller)],
++                routing_identity: None,
+             }),
+             control,
+             state: state.clone(),
+@@ -901,6 +961,7 @@
+         let group = Arc::new(ClosedAudience {
+             operation: request.operation_id.clone(),
+             origins,
++            routing_identity: None,
+         });
+         let replaced_preparation = match &request.activate_muted {
+             None => None,
+@@ -1126,6 +1187,14 @@
+                 .collect::<ControlResult<Vec<_>>>()?;
+             (controllers, flights)
+         };
++        // Only the sealed muted singleton may retain its already-installed
++        // rule identity. The original group remains an immutable same-owner
++        // predicate; the new handle still records this distinct activation.
++        let equivalent_preparation = if plan.preparation_muted {
++            Some(plan.require_equivalent_preparation()?.clone())
++        } else {
++            None
++        };
+         let mut controls = BTreeMap::new();
+         let mut deadline = deadline.min(managed.as_ref().map_or(deadline, |m| m.deadline()));
+         if let Some(managed) = &managed {
+@@ -1195,6 +1264,7 @@
+                         Arc::new(ClosedAudience {
+                             operation: plan.group.operation.clone(),
+                             origins: vec![source.clone()],
++                            routing_identity: None,
+                         }),
+                     );
+                 }
+@@ -1247,6 +1317,7 @@
+                                 Arc::new(ClosedAudience {
+                                     operation: replaced.operation.clone(),
+                                     origins,
++                                    routing_identity: None,
+                                 }),
+                             );
+                         }
+@@ -1291,13 +1362,35 @@
+                 state
+                     .model
+                     .check_routing(&owner.current(), plan.expected[id])?;
+-                let rules = groups
++                let mut rules = groups
+                     .values()
+-                    .map(|group| AudioAudienceRule {
+-                        group: group.clone(),
+-                        inside: group.contains(controller),
++                    .map(|group| {
++                        let group = group.routing_identity.as_ref().unwrap_or(group);
++                        AudioAudienceRule {
++                            group: group.clone(),
++                            inside: group.contains(controller),
++                        }
+                     })
+-                    .collect();
++                    .collect::<Vec<_>>();
++                if equivalent_preparation.is_some() {
++                    // Preserve this receiver's actual installed rule order.
++                    // Private members can join between earlier activations.
++                    let current = member.audio_consumer.subscriptions.rules();
++                    let duplicate = |values: &[AudioAudienceRule]| {
++                        values.iter().enumerate().any(|(index, value)| {
++                            values[..index].iter().any(|prior| Arc::ptr_eq(&prior.group, &value.group))
++                        })
++                    };
++                    if duplicate(&current)
++                        || duplicate(&rules)
++                        || current.len() != rules.len()
++                        || current.iter().any(|old| !rules.iter().any(|next| old.same(next)))
++                        || rules.iter().any(|next| !current.iter().any(|old| old.same(next)))
++                    {
++                        return Err(StreamControlError::Authority);
++                    }
++                    rules = current;
++                }
+                 let saved = plan
+                     .replacement
+                     .as_ref()
+@@ -1451,6 +1544,27 @@
+             }
+             (targets, groups, muted_source)
+         };
++        if equivalent_preparation.is_some() {
++            let candidate = plan
++                .request
++                .activate_muted
++                .as_ref()
++                .ok_or(StreamControlError::Authority)?;
++            // Refuse before quiescence if an outside programme, gate, role or
++            // direct route could change. Fresh authority may reject this plan;
++            // it can never widen this preparation into a general audience cut.
++            if targets.iter().any(|target| {
++                target.controller.connection != *candidate
++                    && (target.audio.changed()
++                        || !target.ports.is_empty()
++                        || !target.inherited_gates.is_empty()
++                        || target.direct.is_some()
++                        || target.gate.is_some()
++                        || target.role.is_some())
++            }) {
++                return Err(StreamControlError::Authority);
++            }
++        }
+         let mut tokens = vec![cancel.clone()];
+         if let Some(managed) = &managed {
+             tokens.push(managed.cancellation());
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -119,6 +119,7 @@
+         let group = Arc::new(ClosedAudience {
+             operation: original.audience().group.operation.clone(),
+             origins: self.audience.group.origins.clone(),
++            routing_identity: None,
+         });
+         intent.restoration = Some(original.prepare_replacement_successor(
+             group.clone(),
+@@ -424,6 +425,7 @@
+         let group = Arc::new(ClosedAudience {
+             operation: request.operation_id.clone(),
+             origins,
++            routing_identity: None,
+         });
+         let original = members[&request.source]
+             .audio_consumer
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/preparation_identity.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/preparation_identity.rs
+@@ -178,3 +178,182 @@
+     );
+     room.silent(&["device"]);
+ }
++
++#[tokio::test]
++async fn muted_preparation_does_not_drain_admitted_old_audio_or_video_io() {
++    let mut room = room().await;
++    let mut video = room.nodes["bob"]
++        .adapter
++        .port(Medium::Video)
++        .take_egress()
++        .unwrap();
++    room.publish("alice", 1800).unwrap();
++    let source = room.nodes["alice"].adapter.port(Medium::Video);
++    source.try_publish(&frame(&source, 12345)).unwrap();
++    room.tick();
++    let audio = outgoing(&mut room.nodes.get_mut("bob").unwrap().out).await;
++    let video = outgoing(&mut video).await;
++    let audio_io = audio.admit_queued_media().unwrap();
++    let video_io = video.admit_queued_media().unwrap();
++    let plan = muted_plan(&room, "activate-with-outside-io");
++    assert!(plan.is_muted_endpoint_preparation());
++    room.apply(plan)
++        .await
++        .expect("private muted activation waited for unrelated admitted old IO");
++    drop(audio_io);
++    drop(video_io);
++    audio.deliver(|_| async { Ok(()) }).await.unwrap();
++    video.deliver(|_| async { Ok(()) }).await.unwrap();
++    assert!(room.publish("device", 6000).is_err());
++}
++
++#[tokio::test]
++async fn muted_preparation_rejects_foreign_controller_and_changed_original_credential() {
++    let room = room().await;
++    let before = room.scene.audience_revision();
++    let mut foreign = muted_plan(&room, "wrong-controller");
++    Arc::make_mut(&mut foreign.group).origins[0].controller =
++        Arc::downgrade(&room.nodes["alice"].controller);
++    assert!(foreign
++        .keep_endpoint_muted(&ConnectionId::from_string("device"))
++        .is_err());
++    assert!(room.apply(foreign).await.is_err());
++    assert_eq!(room.scene.audience_revision(), before);
++    let mut changed = muted_plan(&room, "changed-credential");
++    let candidate = &room.nodes["device"].controller;
++    let original_credential = candidate.credential_snapshot();
++    {
++        let mut current = candidate.credential.lock().unwrap();
++        let mut principal = (*current.principal).clone();
++        principal.scopes.push("changed-authorization".into());
++        current.principal = Arc::new(principal);
++        current.revision += 1;
++    }
++    Arc::make_mut(&mut changed.group).origins[0] = AudienceOrigin::new(candidate);
++    assert!(changed
++        .keep_endpoint_muted(&ConnectionId::from_string("device"))
++        .is_err());
++    assert!(room.apply(changed).await.is_err());
++    *candidate.credential.lock().unwrap() = original_credential;
++    assert_eq!(room.scene.audience_revision(), before);
++    let revoked = muted_plan(&room, "withdrawn-current-owner");
++    room.domain
++        .base
++        .0
++        .write()
++        .await
++        .revoked
++        .insert("device".into());
++    assert!(room.apply(revoked).await.is_err());
++    assert_eq!(room.scene.audience_revision(), before);
++}
++
++#[tokio::test]
++async fn ordinary_audience_change_still_retires_old_outside_ticket() {
++    let mut room = room().await;
++    room.publish("alice", 1800).unwrap();
++    room.tick();
++    let old = outgoing(&mut room.nodes.get_mut("bob").unwrap().out).await;
++    room.heard("public", 1800).await;
++    let controller = room.nodes["bob"].controller.clone();
++    let before = controller.revision();
++    let stamp = controller
++        .audio_consumer
++        .lock()
++        .unwrap()
++        .as_ref()
++        .unwrap()
++        .upgrade()
++        .unwrap()
++        .subscriptions
++        .stamp();
++    let plan = room
++        .scene
++        .plan_audio_audience(AudioAudienceRequest {
++            operation_id: "real-private-route-change".into(),
++            expected_revision: room.scene.audience_revision(),
++            private_connections: BTreeSet::from([
++                ConnectionId::from_string("device"),
++                ConnectionId::from_string("alice"),
++            ]),
++            receivers: BTreeMap::from([
++                (ConnectionId::from_string("device"), vec![]),
++                (ConnectionId::from_string("alice"), vec![]),
++                (ConnectionId::from_string("bob"), vec![]),
++                (ConnectionId::from_string("public"), vec![]),
++            ]),
++            activate_muted: Some(ConnectionId::from_string("device")),
++        })
++        .unwrap();
++    assert!(!plan.is_muted_endpoint_preparation());
++    room.apply(plan).await.unwrap();
++    assert!(controller.revision() > before);
++    assert!(!stamp.is_current());
++    assert!(old.deliver(|_| async { Ok(()) }).await.is_err());
++    room.publish("alice", 1800).unwrap();
++    room.tick();
++    room.silent(&["bob", "public"]);
++}
++
++#[tokio::test]
++async fn successive_muted_preparations_preserve_original_rule_identity_and_order() {
++    let mut room = room().await;
++    room.apply(muted_plan(&room, "zzz-activate-device"))
++        .await
++        .unwrap();
++    room.add_owned_with_media(
++        "device2",
++        "device2",
++        owner("device2"),
++        true,
++        None,
++        vec![desired(Medium::Audio), desired(Medium::Video)],
++    )
++    .await;
++    let before = room
++        .nodes
++        .iter()
++        .filter(|(name, _)| name.as_str() != "device2")
++        .map(|(name, node)| {
++            let consumer = node
++                .controller
++                .audio_consumer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .unwrap()
++                .upgrade()
++                .unwrap();
++            (
++                name.clone(),
++                (node.controller.revision(), consumer.subscriptions.stamp()),
++            )
++        })
++        .collect::<BTreeMap<_, _>>();
++    let mut plan = room
++        .scene
++        .plan_audio_audience(AudioAudienceRequest {
++            operation_id: "aaa-activate-device2".into(),
++            expected_revision: room.scene.audience_revision(),
++            private_connections: BTreeSet::from([ConnectionId::from_string("device2")]),
++            receivers: BTreeMap::from([(ConnectionId::from_string("device2"), vec![])]),
++            activate_muted: Some(ConnectionId::from_string("device2")),
++        })
++        .unwrap();
++    plan.keep_endpoint_muted(&ConnectionId::from_string("device2"))
++        .unwrap();
++    room.apply(plan).await.unwrap();
++    for (name, (revision, stamp)) in before {
++        assert_eq!(room.nodes[&name].controller.revision(), revision);
++        assert!(
++            stamp.is_current(),
++            "later preparation changed an existing rule identity"
++        );
++    }
++    room.publish("alice", 1800).unwrap();
++    room.tick();
++    room.heard("bob", 1800).await;
++    room.heard("public", 1800).await;
++    assert!(room.publish("device", 6000).is_err());
++    assert!(room.publish("device2", 6000).is_err());
++}

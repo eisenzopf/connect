@@ -1107,7 +1107,7 @@ async fn exercise(mode: u8) {
         f.temp.path(),
         matches!(
             mode,
-            18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31
+            18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33
         ),
     )
     .await;
@@ -1268,11 +1268,12 @@ async fn exercise(mode: u8) {
         None
     };
     #[cfg(feature = "test-support")]
-    let preparation_custody_probe = if (26..=31).contains(&mode) {
+    let preparation_custody_probe = if (26..=33).contains(&mode) {
         use connect_service::canonical_media_projection_fixture::PreparationCustodyPhase;
         let phase = match mode {
             26 | 28 => PreparationCustodyPhase::Attach,
             30 | 31 => PreparationCustodyPhase::AllocationCapture,
+            32 | 33 => PreparationCustodyPhase::Activate,
             _ => PreparationCustodyPhase::Signal,
         };
         Some(
@@ -1482,7 +1483,7 @@ async fn exercise(mode: u8) {
         return;
     }
     eprintln!("production replacement phase: replacement-resource-capture");
-    if !(26..=29).contains(&mode) {
+    if !matches!(mode, 26..=29 | 32 | 33) {
         phase(&f, &mut controller, &command, 5).await;
     }
     let mut io = replacement.claim_native_video_datagrams().unwrap();
@@ -2218,6 +2219,18 @@ async fn signed_allocation_capture_releases_writer_while_primary_sql_is_owned() 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_allocation_capture_settles_original_after_operator_withdrawal_but_refuses_reply() {
     exercise(31).await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_private_activate_preserves_original_route_and_queued_epoch() {
+    exercise(32).await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_private_activate_revocation_cuts_original_epoch_and_drains_real_io() {
+    exercise(33).await;
 }
 
 #[cfg(feature = "memory-diagnostics")]

@@ -8,6 +8,7 @@ pub enum PreparationCustodyPhase {
     Attach,
     Signal,
     AllocationCapture,
+    Activate,
 }
 impl PreparationCustodyPhase {
     fn name(self) -> &'static str {
@@ -15,6 +16,7 @@ impl PreparationCustodyPhase {
             Self::Attach => "attach",
             Self::Signal => "signal",
             Self::AllocationCapture => "allocation-capture",
+            Self::Activate => "activate",
         }
     }
 }

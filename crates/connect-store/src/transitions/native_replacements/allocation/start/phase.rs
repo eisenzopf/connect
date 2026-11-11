@@ -25,6 +25,7 @@ impl NativeReplacementMediaPhase {
 pub struct NativeReplacementMediaAttempt {
     origin: Arc<NativeReplacementMediaOrigin>,
     phase: NativeReplacementMediaPhase,
+    candidate_only: bool,
     attempt: String,
     effect: String,
     expected: String,
@@ -68,16 +69,39 @@ impl Store {
         phase: NativeReplacementMediaPhase,
         read: &NativeReplacementMediaRead,
     ) -> Result<NativeReplacementMediaAttempt> {
-        self.begin_native_replacement_media_phase_inner(origin, phase, read, None)
+        self.begin_native_replacement_media_phase_inner(origin, phase, read, None, false)
     }
     /// Complete scene custody may reserve only gain-only Attach/Readiness
     /// metadata. A naked packet read remains insufficient for a durable phase;
-    /// actual Activate and every uncertain/audience projection retain Write.
+    /// general Activate and every uncertain/general audience projection retain Write.
     pub fn begin_native_replacement_scene_media_phase(
         &self,
         origin: Arc<NativeReplacementMediaOrigin>,
         phase: NativeReplacementMediaPhase,
         scene: &NativeReplacementSceneRead,
+    ) -> Result<NativeReplacementMediaAttempt> {
+        self.begin_native_replacement_scene_phase(origin, phase, scene, false)
+    }
+    /// Only the specialized Core muted activation may consume this attempt.
+    /// Its complete current scene pins the exact unchanged outside rules.
+    pub fn begin_native_replacement_candidate_activation(
+        &self,
+        origin: Arc<NativeReplacementMediaOrigin>,
+        scene: &NativeReplacementSceneRead,
+    ) -> Result<NativeReplacementMediaAttempt> {
+        self.begin_native_replacement_scene_phase(
+            origin,
+            NativeReplacementMediaPhase::Activate,
+            scene,
+            true,
+        )
+    }
+    fn begin_native_replacement_scene_phase(
+        &self,
+        origin: Arc<NativeReplacementMediaOrigin>,
+        phase: NativeReplacementMediaPhase,
+        scene: &NativeReplacementSceneRead,
+        candidate_only: bool,
     ) -> Result<NativeReplacementMediaAttempt> {
         if !scene.current() {
             return Err(Error::forbidden());
@@ -91,7 +115,13 @@ impl Store {
                 return Err(Error::forbidden());
             }
         }
-        self.begin_native_replacement_media_phase_inner(origin, phase, scene.media(), Some(scene))
+        self.begin_native_replacement_media_phase_inner(
+            origin,
+            phase,
+            scene.media(),
+            Some(scene),
+            candidate_only,
+        )
     }
     fn begin_native_replacement_media_phase_inner(
         &self,
@@ -99,12 +129,17 @@ impl Store {
         phase: NativeReplacementMediaPhase,
         read: &NativeReplacementMediaRead,
         scene: Option<&NativeReplacementSceneRead>,
+        candidate_only: bool,
     ) -> Result<NativeReplacementMediaAttempt> {
+        if candidate_only && phase != NativeReplacementMediaPhase::Activate {
+            return Err(Error::forbidden());
+        }
         let positive = scene.is_some()
-            && matches!(
-                phase,
-                NativeReplacementMediaPhase::Attach | NativeReplacementMediaPhase::Readiness
-            );
+            && (candidate_only
+                || matches!(
+                    phase,
+                    NativeReplacementMediaPhase::Attach | NativeReplacementMediaPhase::Readiness
+                ));
         let current = || scene.map_or_else(|| read.current(), NativeReplacementSceneRead::current);
         let p = &origin.started.attempt.allocated.attempt.prepared;
         if !current() || read.source.selection().origin.record != p.record {
@@ -147,15 +182,35 @@ impl Store {
                 "Replacement media phase was already attempted",
             ));
         }
-        let expected = crate::provisioning::canonical_json(
-            &serde_json::json!({"candidate":saved["candidate_runtime_id"],"generation":saved["generation"],"phase":phase.name(),"attached":true,"private":true,"activated_muted":phase!=NativeReplacementMediaPhase::Attach,"media_ready":phase==NativeReplacementMediaPhase::Readiness}),
-        )?;
+        let mut observation = serde_json::json!({"candidate":saved["candidate_runtime_id"],"generation":saved["generation"],"phase":phase.name(),"attached":true,"private":true,"activated_muted":phase!=NativeReplacementMediaPhase::Attach,"media_ready":phase==NativeReplacementMediaPhase::Readiness});
+        if candidate_only {
+            observation["candidate_only"] = serde_json::json!(true);
+        }
+        let expected = crate::provisioning::canonical_json(&observation)?;
         let attempt = format!("nrm_{}", uuid::Uuid::new_v4());
         let effect = format!("nre_{}", uuid::Uuid::new_v4());
         if !current() {
             return Err(Error::forbidden());
         }
-        let permit = if positive {
+        let permit = if candidate_only {
+            Some(
+                self.authority_writer_boundary
+                    .native_candidate_activation_ledger(
+                        self,
+                        &tx,
+                        &read.interval,
+                        ledger_key(
+                            p,
+                            phase,
+                            &attempt,
+                            &effect,
+                            &expected,
+                            crate::authority_writer_boundary::phase_ledger::Stage::Begin,
+                        ),
+                        None,
+                    )?,
+            )
+        } else if positive {
             Some(self.authority_writer_boundary.native_phase_ledger(
                 self,
                 &tx,
@@ -185,6 +240,7 @@ impl Store {
         Ok(NativeReplacementMediaAttempt {
             origin,
             phase,
+            candidate_only,
             attempt,
             effect,
             expected,
@@ -204,7 +260,11 @@ impl Store {
             } else {
                 admission::mutation_row_scopes(&row)?
             };
-            if captured.audience.is_some() {
+            if captured
+                .audience
+                .as_ref()
+                .is_some_and(|audience| !audience.is_candidate_only())
+            {
                 scopes.extend(crate::authority_admission::conversation_scopes(
                     c,
                     &row.record.conversation_id.clone().ok_or_else(invalid)?,
@@ -246,7 +306,25 @@ impl Store {
                 "Original phase capture now requires a writer",
             ));
         }
-        let permit = if positive {
+        let permit = if positive && a.candidate_only {
+            Some(
+                self.authority_writer_boundary
+                    .native_candidate_activation_ledger(
+                        self,
+                        &tx,
+                        &held,
+                        ledger_key(
+                            p,
+                            a.phase,
+                            &a.attempt,
+                            &a.effect,
+                            &a.expected,
+                            crate::authority_writer_boundary::phase_ledger::Stage::Confirm,
+                        ),
+                        captured.audience.as_ref(),
+                    )?,
+            )
+        } else if positive {
             Some(self.authority_writer_boundary.native_phase_ledger(
                 self,
                 &tx,
@@ -308,6 +386,9 @@ impl NativeReplacementMediaCapture {
             return Err(Error::forbidden());
         }
         audience.require(&p.record, &p.runtime, "activate")?;
+        if self.attempt.candidate_only != audience.is_candidate_only() {
+            return Err(Error::forbidden());
+        }
         self.audience = Some(audience);
         Ok(self)
     }
@@ -335,12 +416,19 @@ fn ledger_key(
 }
 fn positive_capture(c: &Connection, captured: &NativeReplacementMediaCapture) -> Result<bool> {
     let a = &captured.attempt;
-    if !matches!(
-        a.phase,
-        NativeReplacementMediaPhase::Attach | NativeReplacementMediaPhase::Readiness
-    ) || captured.observation.as_deref() != Some(a.expected.as_str())
-        || captured.audience.is_some()
-    {
+    let eligible = if a.candidate_only {
+        a.phase == NativeReplacementMediaPhase::Activate
+            && captured
+                .audience
+                .as_ref()
+                .is_some_and(NativeReplacementAudienceCapture::is_candidate_only)
+    } else {
+        matches!(
+            a.phase,
+            NativeReplacementMediaPhase::Attach | NativeReplacementMediaPhase::Readiness
+        ) && captured.audience.is_none()
+    };
+    if !eligible || captured.observation.as_deref() != Some(a.expected.as_str()) {
         return Ok(false);
     }
     let p = &a.origin.started.attempt.allocated.attempt.prepared;

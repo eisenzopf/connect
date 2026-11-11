@@ -114,6 +114,7 @@ impl State {
             nonce,
             root_revision,
             reservation_root: Some(reservation_root),
+            candidate_audience: None,
             _proof: proof.clone(),
         });
         Ok(Permit {

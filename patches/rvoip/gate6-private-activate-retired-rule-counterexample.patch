@@ -1,0 +1,171 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -1085,3 +1085,168 @@
+ 
+ #[path = "replacement/audio_preroll.rs"]
+ mod audio_preroll;
++#[tokio::test]
++async fn next_muted_preparation_preserves_installed_rules_after_real_commit_and_retirement() {
++    use crate::staged_streams::direct_subscriptions::{
++        DirectSubscription, DirectSubscriptionChange,
++    };
++    let mut f = Move::new(false).await;
++    f.io().await;
++    f.confirm().await;
++    f.commit(f.plan().unwrap()).await.unwrap();
++    let retired_rule = f
++        .room
++        .scene
++        .audiences
++        .lock()
++        .unwrap()
++        .groups
++        .values()
++        .find(|group| group.origins.is_empty())
++        .unwrap()
++        .clone();
++    f.room.scene.remove(&ConnectionId::from_string("alice"));
++    assert!(!f
++        .room
++        .scene
++        .audiences
++        .lock()
++        .unwrap()
++        .groups
++        .values()
++        .any(|group| Arc::ptr_eq(group, &retired_rule)));
++    for name in ["bob", "public"] {
++        let controller = &f.room.nodes[name].controller;
++        controller
++            .change(
++                controller.revision(),
++                &[desired(Medium::Audio), desired(Medium::Video)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++    }
++    let publisher = f.room.nodes["public"].controller.clone();
++    let receiver = f.room.nodes["bob"].controller.clone();
++    receiver
++        .change_direct_subscriptions(
++            receiver.revision(),
++            DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                &publisher,
++                desired(Medium::Video).logical_id,
++                desired(Medium::Video).logical_id,
++            )]),
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    f.room
++        .add_owned(
++            "next-device",
++            "next-device",
++            owner("next-device"),
++            true,
++            None,
++        )
++        .await;
++    let before = {
++        let members = f.room.scene.members.lock().unwrap();
++        members
++            .iter()
++            .filter(|(name, _)| name.as_str() != "next-device")
++            .map(|(name, member)| {
++                (
++                    name.clone(),
++                    (
++                        member.controller.revision(),
++                        member.audio_consumer.subscriptions.rules(),
++                        member.audio_consumer.subscriptions.saved_program(),
++                        member.audio_consumer.subscriptions.stamp(),
++                        member.controller.state.lock().unwrap().active.clone(),
++                    ),
++                )
++            })
++            .collect::<BTreeMap<_, _>>()
++    };
++    let bob_rules = &before[&ConnectionId::from_string("bob")].1;
++    assert!(
++        bob_rules
++            .iter()
++            .any(|rule| Arc::ptr_eq(&rule.group, &retired_rule)),
++        "actual retirement must leave the conservative installed rule for this regression"
++    );
++    assert!(bob_rules.len() > f.room.scene.audiences.lock().unwrap().groups.len());
++    let target = f.room.nodes["bob"].adapter.port(Medium::Video);
++    let transport = target.binding().transport_id.clone();
++    let mut output = target.take_egress().unwrap();
++    let source = f.room.nodes["public"].adapter.port(Medium::Video);
++    let original = frame(&source, 54321);
++    source.try_publish(&original).unwrap();
++    f.room.publish("device", 1800).unwrap();
++    f.room.tick();
++    let audio = outgoing(&mut f.room.nodes.get_mut("bob").unwrap().out).await;
++    let video = outgoing(&mut output).await;
++    let audio_io = audio.admit_queued_media().unwrap();
++    let video_io = video.admit_queued_media().unwrap();
++    let mut plan = f
++        .room
++        .scene
++        .plan_audio_audience(AudioAudienceRequest {
++            operation_id: "activate-next-after-retirement".into(),
++            expected_revision: f.room.scene.audience_revision(),
++            private_connections: BTreeSet::from([ConnectionId::from_string("next-device")]),
++            receivers: BTreeMap::from([(ConnectionId::from_string("next-device"), vec![])]),
++            activate_muted: Some(ConnectionId::from_string("next-device")),
++        })
++        .unwrap();
++    plan.keep_endpoint_muted(&ConnectionId::from_string("next-device"))
++        .unwrap();
++    assert!(plan.is_muted_endpoint_preparation());
++    let candidate_revision = f.room.nodes["next-device"].controller.revision();
++    let (_, handle) = f.room.apply(plan).await.expect(
++        "next private preparation rejected original conservative rules after real retirement",
++    );
++    for (id, (revision, rules, programme, stamp, ports)) in before {
++        let members = f.room.scene.members.lock().unwrap();
++        let member = &members[&id];
++        assert_eq!(member.controller.revision(), revision);
++        assert!(same_rules(
++            &rules,
++            &member.audio_consumer.subscriptions.rules()
++        ));
++        assert!(programme.same_for_test(&member.audio_consumer.subscriptions.saved_program()));
++        assert!(stamp.is_current());
++        assert_eq!(
++            handle.commit().revisions_for(&member.controller).unwrap(),
++            (revision, revision)
++        );
++        let state = member.controller.state.lock().unwrap();
++        assert_eq!(state.active.len(), ports.len());
++        for (logical, port) in ports {
++            assert!(Arc::ptr_eq(&state.active[&logical], &port));
++            assert!(port.ticket().is_current());
++        }
++    }
++    assert_eq!(
++        f.room.nodes["next-device"].controller.revision(),
++        candidate_revision + 1
++    );
++    drop(audio_io);
++    drop(video_io);
++    audio.deliver(|_| async { Ok(()) }).await.unwrap();
++    video
++        .deliver(move |frame| async move {
++            assert_eq!(frame.stream_id, transport);
++            assert_eq!(frame.payload, original.payload);
++            assert_eq!(frame.timestamp_rtp, original.timestamp_rtp);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    assert!(f.room.publish("next-device", 6000).is_err());
++    f.room.silent(&["next-device"]);
++}

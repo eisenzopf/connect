@@ -1,0 +1,39 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -1094,18 +1094,30 @@
+     f.io().await;
+     f.confirm().await;
+     f.commit(f.plan().unwrap()).await.unwrap();
++    // The actual Commit already removes Alice before returning. Existing
++    // consumers retain the empty public-audience predicate after registry prune.
+     let retired_rule = f
+         .room
+         .scene
+-        .audiences
++        .members
+         .lock()
+         .unwrap()
+-        .groups
+-        .values()
+-        .find(|group| group.origins.is_empty())
++        .get(&ConnectionId::from_string("bob"))
+         .unwrap()
+-        .clone();
+-    f.room.scene.remove(&ConnectionId::from_string("alice"));
++        .audio_consumer
++        .subscriptions
++        .rules()
++        .into_iter()
++        .find(|rule| rule.group.origins.is_empty())
++        .unwrap()
++        .group;
++    assert!(!f
++        .room
++        .scene
++        .members
++        .lock()
++        .unwrap()
++        .contains_key(&ConnectionId::from_string("alice")));
+     assert!(!f
+         .room
+         .scene

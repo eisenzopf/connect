@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T01:00:36.529834+00:00",
-  "run_status": "Full v214 remains 0/32 cells and 288/432 checks passed. The latest integrated preparation batch passes 53 Store and 6 signed checks. Both representative cadence tests still fail, but deficient bins fell from 16 and 11 to 6 each: only second 7 of the second preparation round remains below 24 FPS. Both first rounds now meet cadence. No new full matrix; three companion controls still await local ARM Linux.",
+  "updated": "2026-11-11T02:45:34.153837+00:00",
+  "run_status": "Full v214 remains 0/32 cells and 288/432 checks passed. Current private Activate batch passes Core6, Store60 (byte-identical final emitted binary), signed8:74 focused checks. Both cadence scenarios complete both rounds but fail only second-round second7: six receivers each below24FPS while publishers produce30FPS. Allocation/startup attribution is next; no new full matrix.",
   "blockers": [
     {
       "id": "B01",
@@ -1525,6 +1525,14 @@
       "change": "Use current scoped Read only for the new dormant target initial muted activation. Drop all RTC read aliases before one owned historical recording; retain first signed Start and later actual scene mutation boundaries.",
       "evidence": "docs/evidence/gate-6/prepared-media-followthrough-v215.json",
       "next": "Verify remaining second-round stall and full transport matrix."
+    },
+    {
+      "id": "B187",
+      "title": "Private muted Activate disrupts unchanged original streams",
+      "status": "Addressed in focused scope: Core6, Store60 and signed8 pass, including actual post-retirement successor. Full cadence still fails earlier allocation/startup interval; no matrix qualification.",
+      "change": "Preserve exact immutable singleton predicate and installed outside rule ordering; reject outside changes before quiescence. Specialized complete-current Read plus exact same-attempt candidate-only activation ledger records only candidate revision advance. General audience changes, Commit and uncertain outcomes retain Writer.",
+      "evidence": "docs/evidence/gate-6/private-activation-continuity-v215.json",
+      "next": "Resolve remaining second-round cadence and qualify full transport matrix."
     }
   ],
   "workplan_tasks": [
@@ -3054,6 +3062,23 @@
       "solution": "Identify causal packet loss/authority owner, unit-test the fix, then rerun combined cadence before the full 32-cell matrix.",
       "status": "In progress: both cadence tests fail only second-round second-7 bins despite all publishers producing 30 FPS.",
       "completion": "Identify causal packet loss/authority owner, unit-test the fix, then rerun combined cadence before the full 32-cell matrix.",
+      "completion_status": "in-progress"
+    },
+    {
+      "id": "S101",
+      "title": "Preserve outside media through private Activate",
+      "owner": "Root and assigned agents",
+      "dependencies": [
+        "S100"
+      ],
+      "code_paths": [
+        "crates/connect-service/src/canonical_replacement/preparation.rs",
+        "crates/connect-store/src/transitions/native_replacements/allocation/start/audience.rs",
+        "patches/rvoip/gate6-private-activate-preserve-outside-programmes.patch"
+      ],
+      "solution": "Preserve exact immutable singleton predicate and installed outside rule ordering; reject outside changes before quiescence. Specialized complete-current Read plus exact same-attempt candidate-only activation ledger records only candidate revision advance. General audience changes, Commit and uncertain outcomes retain Writer.",
+      "status": "Core6/Store60/signed8 pass; initial and post-retirement private Activate continuity verified. Full matrix qualification pending.",
+      "completion": "Both causal regressions and retained revocation controls pass; assess decoded cadence before full32.",
       "completion_status": "in-progress"
     }
   ],
@@ -5441,10 +5466,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v214.json"
   },
   "current_focused_verification": {
-    "passed": 59,
-    "planned": 61,
-    "scope": "Same integrated source: 53 Store, 2 signed allocation, 4 signed preparation, and 2 representative cadence checks. Both cadence cases failed.",
-    "next": "Resolve the remaining second-round shared stall, then local ARM Linux companions and full 32-cell qualification."
+    "passed": 74,
+    "planned": 76,
+    "scope": "Core6 and signed8 pass; unchanged Store60 retained by exact final emitted binary hash. Both cadence scenarios complete all handoffs but retain six deficient second7 bins each.",
+    "next": "Verify remaining allocation/startup authority invalidation before further code changes and full32."
   },
   "current_workplan_tasks": [
     "S86",
@@ -5508,7 +5533,8 @@
     "S97",
     "S98",
     "S99",
-    "S100"
+    "S100",
+    "S101"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -16990,5 +17016,6 @@
     "status": "Old epoch-loss regression reproduced; 9 focused Begin controls and22 shared authority/phase controls pass. Combined cadence retest waits for related capture changes."
   },
   "v215_preparation_resource_ledger": "docs/evidence/gate-6/preparation-resource-ledger-v215.json",
-  "v215_prepared_media_followthrough": "docs/evidence/gate-6/prepared-media-followthrough-v215.json"
+  "v215_prepared_media_followthrough": "docs/evidence/gate-6/prepared-media-followthrough-v215.json",
+  "v215_private_activation_continuity": "docs/evidence/gate-6/private-activation-continuity-v215.json"
 }

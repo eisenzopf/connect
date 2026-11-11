@@ -339,6 +339,17 @@
       "must_resolve_base_scope": true
     },
     {
+      "table": "native_replacement_audiences",
+      "scope_queries_for_each_row": [
+        {
+          "kind": "Conversation",
+          "id_sql": "SELECT conversation_id AS id FROM operations WHERE record_id={row}.operation_record_id AND conversation_id IS NOT NULL",
+          "role": "base"
+        }
+      ],
+      "must_resolve_base_scope": true
+    },
+    {
       "table": "native_replacement_lifetimes",
       "scope_queries_for_each_row": [
         {

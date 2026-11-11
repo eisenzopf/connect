@@ -42,6 +42,7 @@ fn same_attempts(before: &Rows, after: &Rows) {
 // the decoder child across a timeout so its original process always joins.
 async fn decode_old_route(
     directory: &Path,
+    artifact: &str,
     frame: &[u8],
     cutoff: tokio::time::Instant,
 ) -> std::result::Result<(), String> {
@@ -54,7 +55,7 @@ async fn decode_old_route(
     input.extend((frame.len() as u32).to_le_bytes());
     input.extend(0u64.to_le_bytes());
     input.extend(frame);
-    let path = directory.join("custody-original-key.ivf");
+    let path = directory.join(artifact);
     init::private_write(&path, &input).map_err(|e| format!("original decoder input: {e}"))?;
     let mut child = tokio::process::Command::new("ffmpeg")
         .args(["-nostdin", "-hide_banner", "-loglevel", "error", "-i"])
@@ -150,11 +151,13 @@ async fn held_route(
     let mut held = None;
     let mut old_stamp = None;
     let mut old_epoch = None;
+    let mut observed_phase = None;
     let committed = Arc::new(AtomicBool::new(false));
     let work = AssertUnwindSafe(async {
         let entered_until = original.cutoff;
         tokio::time::timeout_at(entered_until,probe.entered()).await.expect("actual production phase not entered");
         let observed = probe.observation().unwrap();
+        observed_phase = Some(observed.phase);
         assert_eq!(observed.operation_id,command.operation_id);
         assert_eq!(observed.record_id,original.record_id);
         assert!(observed.expires_at <= original.expires_at);
@@ -210,7 +213,7 @@ async fn held_route(
         }).await.expect("original old-route frame did not forward under held phase");
         // Own decoder cancellation/join, rather than cancelling a future that
         // owns a child at the outer packet timeout boundary.
-        decode_old_route(f.temp.path(),&bytes,cutoff).await.unwrap();
+        decode_old_route(f.temp.path(), "custody-held-phase-key.ivf", &bytes, cutoff).await.unwrap();
         let now = readiness::original_cutoff(f,root);
         readiness::assert_same_original_preparation(original,&now);
         if revoke {
@@ -267,6 +270,51 @@ async fn held_route(
     if !left {
         return Err("actual original phase did not leave its bounded barrier".into());
     }
+    if work.is_ok() && !revoke && observed_phase == Some(PreparationCustodyPhase::Activate) {
+        // No Ready has been sent yet. Observe only the original physical
+        // activation's durable capture, before any final ownership cut.
+        tokio::time::timeout_at(original.cutoff, async {
+            loop {
+                let captured = rows(f, &original.record_id);
+                if let Some(row) = captured.get("activate") {
+                    if row.3 == "confirmed" {
+                        return Ok(());
+                    }
+                    if row.3 == "unknown" {
+                        return Err("original private activation became uncertain".to_owned());
+                    }
+                }
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .map_err(|_| "original private activation capture did not settle".to_owned())??;
+        let snapshot = snapshot.as_ref().ok_or("original route snapshot missing")?;
+        let stamp = old_stamp.ok_or("original route stamp missing")?;
+        let admitted = snapshot.admit_original(stamp).map_err(|_| {
+            "private activation revoked the original queued public media epoch".to_owned()
+        })?;
+        if !admitted.current() || !old_epoch.as_ref().is_some_and(|e| e.current()) {
+            return Err("original public media epoch became stale after private activation".into());
+        }
+        let (bytes, epoch) = tokio::time::timeout_at(original.cutoff, async {
+            publish_timestamp(sender, key, 1501, sequence).await;
+            receive_timestamp(receiver, 1501).await
+        })
+        .await
+        .map_err(|_| "original video stopped after private activation capture".to_owned())?;
+        if bytes != key || &epoch != previous {
+            return Err("private activation changed original decoded media identity".into());
+        }
+        decode_old_route(
+            f.temp.path(),
+            "custody-after-activate-key.ivf",
+            &bytes,
+            original.cutoff,
+        )
+        .await?;
+        drop(admitted);
+    }
     match work {
         Ok(()) => Ok(()),
         Err(panic) => {
@@ -308,8 +356,8 @@ pub(super) async fn exercise(
     camera: u16,
     original: &readiness::OriginalPreparation,
 ) -> std::result::Result<(), String> {
-    let revoke = matches!(mode, 28 | 29);
-    let attach = matches!(mode, 26 | 28);
+    let revoke = matches!(mode, 28 | 29 | 33);
+    let attach = matches!(mode, 26 | 28 | 32 | 33);
     let work = AssertUnwindSafe(async {
         if attach {
             held_route(
@@ -456,7 +504,7 @@ pub(super) fn assert_settled(database: &Path, record: &str, mode: u8) {
             .all(|row| row.1 == 1 && matches!(row.2.as_str(), "confirmed" | "unknown")),
         "joined original owner left repeated or unrecorded phase custody: {rows:?}"
     );
-    if matches!(mode, 28 | 29) {
+    if matches!(mode, 28 | 29 | 33) {
         assert_eq!(
             rows.len(),
             if mode == 28 { 1 } else { 2 },
@@ -575,7 +623,13 @@ pub(super) async fn allocation_capture(
             })?;
             assert_eq!(&epoch, original_epoch);
             assert_eq!(&bytes, original_key);
-            decode_old_route(f.temp.path(), &bytes, media_until).await?;
+            decode_old_route(
+                f.temp.path(),
+                "custody-allocation-capture-key.ivf",
+                &bytes,
+                media_until,
+            )
+            .await?;
             let held = allocation_step(f, &original.record_id)
                 .map_err(|e| format!("allocation step after actual old-route decoding: {e}"))?;
             assert_eq!(

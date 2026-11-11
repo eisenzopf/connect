@@ -1,0 +1,24 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/preparation_identity.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/preparation_identity.rs
+@@ -63,6 +63,12 @@
+ #[tokio::test]
+ async fn muted_preparation_preserves_outside_programme_tickets_models_and_queued_video() {
+     let mut room = room().await;
++    let receiver_stream = room.nodes["bob"]
++        .adapter
++        .port(Medium::Video)
++        .binding()
++        .transport_id
++        .clone();
+     let mut video = room.nodes["bob"]
+         .adapter
+         .port(Medium::Video)
+@@ -160,7 +166,7 @@
+     old_audio.deliver(|_| async { Ok(()) }).await.unwrap();
+     old_video
+         .deliver(move |observed| async move {
+-            assert_eq!(observed.stream_id, original.stream_id);
++            assert_eq!(observed.stream_id, receiver_stream);
+             assert_eq!(observed.payload, original.payload);
+             assert_eq!(observed.timestamp_rtp, original.timestamp_rtp);
+             Ok(())

@@ -28,6 +28,7 @@ fn preparation_custody_observation(
         (phase, &invocation.phase),
         (PreparationCustodyPhase::Attach, Phase::Attach)
             | (PreparationCustodyPhase::Signal, Phase::Signal(_))
+            | (PreparationCustodyPhase::Activate, Phase::Activate(_))
     ) {
         return None;
     }
@@ -220,7 +221,14 @@ impl Runtime {
         started: &Arc<StartedReplacement>,
         phase: Phase,
     ) -> Result<Invocation> {
-        let mutation = matches!(&phase, Phase::Activate(_) | Phase::Commit(_));
+        // This Activate comes only from Core's strict muted singleton plan.
+        // It preserves every original rule/controller and advances only the
+        // dormant candidate. General movement Commit retains Write custody.
+        let mutation = match &phase {
+            Phase::Activate(plan) => !plan.is_muted_endpoint_preparation(),
+            Phase::Commit(_) => true,
+            _ => false,
+        };
         self.continuation_read_with_custody(root, started, phase, mutation)
             .await
     }
@@ -287,8 +295,14 @@ impl Runtime {
             .cloned()
             .ok_or_else(Error::forbidden)?;
         let read = i.read.clone();
+        let candidate_only =
+            matches!(&i.phase, Phase::Activate(plan) if plan.is_muted_endpoint_preparation());
         let result = store_call(move || {
-            store.begin_native_replacement_scene_media_phase(origin, phase, &read)
+            if phase == Step::Activate && candidate_only {
+                store.begin_native_replacement_candidate_activation(origin, &read)
+            } else {
+                store.begin_native_replacement_scene_media_phase(origin, phase, &read)
+            }
         })
         .await;
         tracing::debug!(target: "connect_service::replacement_phase_trace",
@@ -415,14 +429,23 @@ impl Runtime {
             let Phase::Activate(plan) = i.phase.clone() else {
                 return Err(Error::forbidden());
             };
+            let candidate_only = plan.is_muted_endpoint_preparation();
             let attempt = self.begin_continuation(started, &i, Step::Activate).await?;
             let expected = attempt.expected()?;
+            #[cfg(feature = "test-support")]
+            if let Some(probe) = self.media.take_preparation_custody_probe_for_test(
+                &root.origin.request().operation_id,
+                crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase::Activate,
+            ) {
+                probe.pause(&self.stop, &root.handle.cancellation(), root.deadline.min(i.deadline),
+                    preparation_custody_observation(&i, crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase::Activate)).await;
+            }
             let result = self
                 .core
                 .activate_staged_device_replacement_with_held(&root.handle, plan, &i)
                 .await;
             let revisions = match &result {
-                Ok(context) => {
+                Ok(context) => (|| -> Result<_> {
                     let mut observed = std::collections::BTreeMap::new();
                     for id in context.commit().connections() {
                         let controller = if id.as_str()
@@ -441,30 +464,46 @@ impl Runtime {
                         } else {
                             self.connection_media_controller(id)?
                         };
-                        let (_, revision) = context
+                        let revisions = context
                             .commit()
                             .revisions_for(&controller)
                             .map_err(|_| Error::forbidden())?;
-                        observed.insert(id.as_str().to_owned(), revision);
+                        observed.insert(id.as_str().to_owned(), revisions);
                     }
-                    Some(i.read.capture_activation_revisions(observed)?)
-                }
-                Err(_) => None,
+                    if candidate_only {
+                        i.read.capture_candidate_only_activation_revisions(observed)
+                    } else {
+                        i.read.capture_activation_revisions(
+                            observed
+                                .into_iter()
+                                .map(|(id, (_, after))| (id, after))
+                                .collect(),
+                        )
+                    }
+                })()
+                .map(Some),
+                Err(_) => Ok(None),
             };
             let source_phone = i.source_phone.clone();
             drop(i);
-            let capture = if let Some(revisions) = revisions {
-                attempt
-                    .applied(expected)?
-                    .with_audience_revisions(revisions)?
-            } else {
-                attempt.uncertain()
+            let (capture, revision_error) = match revisions {
+                Ok(Some(revisions)) => (
+                    attempt
+                        .applied(expected)?
+                        .with_audience_revisions(revisions)?,
+                    None,
+                ),
+                Ok(None) => (attempt.uncertain(), None),
+                Err(error) => (attempt.uncertain(), Some(error)),
             };
             super::projection::record(
                 roles,
                 self.save_continuation(root, started, Step::Activate, capture),
             )
             .await?;
+            if let Some(error) = revision_error {
+                return Err(error);
+            }
             let context=result.map_err(|e|{tracing::debug!(target:"connect_service::canonical_replacement",?e,"Replacement private activation refused");Error::forbidden()})?;
             (context, source_phone)
         };
