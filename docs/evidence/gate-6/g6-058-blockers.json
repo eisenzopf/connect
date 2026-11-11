@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T09:46:45.398336+00:00",
-  "run_status": "OWNER REVIEW HOLD: further implementation, dependency mutation, builds and test runs paused at owner request. Completed v215 remains 0/32 cells passed; 287/432 checks passed,101 failed,44 blocked. All145 non-passing checks now classified against32 original SHA-verified reports. Current code drafts are incomplete and untested; they do not change matrix verdicts. Review docs/developer/g6-058-reassessment-v216.html before proceeding.",
+  "updated": "2026-11-11T10:01:00.500808+00:00",
+  "run_status": "OWNER REVIEW HOLD: further implementation, dependency mutation, builds and test runs paused at owner request. Completed v215 remains 0/32 cells passed; 287/432 checks passed,101 failed,44 blocked. All145 non-passing checks now classified against32 original SHA-verified reports. Current code drafts are incomplete and untested; they do not change matrix verdicts. Review docs/developer/g6-058-reassessment-v216.html before proceeding. Mobile review document now verified, with15assigned subtasks, separate reviewers, coordinator checkpoints and exact145check mappings. Implementation/test hold continues.",
   "blockers": [
     {
       "id": "B01",
@@ -3230,47 +3230,83 @@
     {
       "id": "S107",
       "title": "P1 Restore control-plane/media-plane isolation",
-      "owner": "Coordinated local implementation batch",
+      "owner": "/root/v198_resources",
       "dependencies": [],
       "solution": "Use a narrow transaction-bound ledger capability for exact positive Data completion under complete current Readers; verify lifecycle reconciliation is a no-op, otherwise use the original Writer path. Keep uncertainty, cancellation and genuine authorization changes on the Writer path. Audit remaining ledger/status/metrics writes for the same unnecessary invalidation.",
       "status": "Held for owner review. Draft applied, unformatted/uncompiled/untested. Six regressions drafted; credential-refresh/control-slot proof and direct regression still required.",
       "completion": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced.",
-      "completion_status": "held-for-review"
+      "completion_status": "held-for-review",
+      "reviewers": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "coordinator": "/root",
+      "subtask_ids": [
+        "P1.1",
+        "P1.2"
+      ]
     },
     {
       "id": "S108",
       "title": "P2 Make preparation tolerate temporary contention without replay",
-      "owner": "Coordinated local implementation batch",
+      "owner": "/root/media_blockers",
       "dependencies": [],
       "solution": "Distinguish internal AuthorityBusy from permanent refusal. For a still-owned prepared resource, join and retry only its current authorization acquisition under the original deadline/cancellation, then activate once. Trace initial offer and replacement preparation separately; extend only where the same ownership proof holds. Preserve original logical operation IDs and uncertainty recovery. Initial offers already have a bounded activation-admission loop: locate the actual refusing phase rather than adding indiscriminate retries.",
       "status": "Held for owner review. Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed.",
       "completion": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect.",
-      "completion_status": "held-for-review"
+      "completion_status": "held-for-review",
+      "reviewers": [
+        "/root/fixture_blockers",
+        "/root/v198_resources"
+      ],
+      "coordinator": "/root",
+      "subtask_ids": [
+        "P2.1",
+        "P2.2"
+      ]
     },
     {
       "id": "S109",
       "title": "P3 Complete handoffs and retire original owners within existing deadlines",
-      "owner": "Coordinated local implementation batch",
+      "owner": "/root, /root/media_blockers",
       "dependencies": [],
       "solution": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
       "status": "Held for owner review. Latency measured; complete root cause not established. Root started an untested authority-only source-walk draft to eliminate public causal-page rendering. No proven deadline fix yet.",
       "completion": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains.",
-      "completion_status": "held-for-review"
+      "completion_status": "held-for-review",
+      "reviewers": [
+        "/root/fixture_blockers",
+        "/root/v198_resources"
+      ],
+      "coordinator": "/root",
+      "subtask_ids": [
+        "P3.1",
+        "P3.2"
+      ]
     },
     {
       "id": "S110",
       "title": "P4 Repair browser setup and diagnostic teardown",
-      "owner": "Coordinated local implementation batch",
+      "owner": "/root/fixture_blockers",
       "dependencies": [],
       "solution": "Use the exact contract browser pin for isolated CA profiles. Stop and join the original diagnostic statistics request at the programme terminal before closing the peer; preserve the 500ms join bound and truthful ownership receipts.",
       "status": "Held for owner review. Chrome fix committed and focused runtime verified. Statistics ordering patch applied with pure-test evidence; browser runtime not yet verified.",
       "completion": "No startup or late diagnostic-owner cascade; all original browser cycles actually execute.",
-      "completion_status": "held-for-review"
+      "completion_status": "held-for-review",
+      "reviewers": [
+        "/root",
+        "/root/v198_resources"
+      ],
+      "coordinator": "/root",
+      "subtask_ids": [
+        "P4.1",
+        "P4.2"
+      ]
     },
     {
       "id": "S111",
       "title": "P5 Resolve remaining decoded audio and video deficits",
-      "owner": "Coordinated local implementation batch",
+      "owner": "/root/media_blockers",
       "dependencies": [
         "S107",
         "S108",
@@ -3280,12 +3316,21 @@
       "solution": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
       "status": "Held for owner review. Measured failures and candidate causes documented; additional fixes are required. No media-quality pass claimed for the current drafts.",
       "completion": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun.",
-      "completion_status": "held-for-review"
+      "completion_status": "held-for-review",
+      "reviewers": [
+        "/root/fixture_blockers",
+        "/root/v198_resources"
+      ],
+      "coordinator": "/root",
+      "subtask_ids": [
+        "P5.1",
+        "P5.2"
+      ]
     },
     {
       "id": "S112",
       "title": "P6 Verify full ownership coverage and resource budgets",
-      "owner": "Coordinated local implementation batch",
+      "owner": "/root/fixture_blockers",
       "dependencies": [
         "S107",
         "S108",
@@ -3296,12 +3341,21 @@
       "solution": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
       "status": "Held for owner review. Classification corrected; existing successful capacity checks do not close the composite requirement.",
       "completion": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff.",
-      "completion_status": "held-for-review"
+      "completion_status": "held-for-review",
+      "reviewers": [
+        "/root",
+        "/root/v198_resources"
+      ],
+      "coordinator": "/root",
+      "subtask_ids": [
+        "P6.1",
+        "P6.2"
+      ]
     },
     {
       "id": "S113",
       "title": "P7 Qualify one coherent batch against the actual matrix workload",
-      "owner": "Coordinated local implementation batch",
+      "owner": "/root, /root/media_blockers",
       "dependencies": [
         "S107",
         "S108",
@@ -3313,7 +3367,16 @@
       "solution": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
       "status": "Held for owner review. Plan only. No new build, focused workload or matrix launch after the owner requested review.",
       "completion": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
-      "completion_status": "held-for-review"
+      "completion_status": "held-for-review",
+      "reviewers": [
+        "/root/fixture_blockers"
+      ],
+      "coordinator": "/root",
+      "subtask_ids": [
+        "P7.1",
+        "P7.2",
+        "P7.3"
+      ]
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -17254,5 +17317,8 @@
     "matrix_rerun_started": false,
     "code_batch_ready": false,
     "hold_reason": "Owner requested the completed plan before further implementation/testing."
-  }
+  },
+  "agent_work_tracker": "docs/evidence/gate-6/g6-058-agent-work-tracker.json",
+  "mobile_review_document": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "architecture_contract": "docs/evidence/gate-6/g6-058-architecture-contract-v216.json"
 }

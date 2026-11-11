@@ -34,3 +34,17 @@
   mutation IDs across uncertainty and enforce current authorization on replay.
 - Each gate closes with behavior evidence, including failure/recovery cases.
   Record skipped or unresolved checks explicitly rather than calling them passes.
+
+- G6-058 work is coordinated through
+  `docs/evidence/gate-6/g6-058-agent-work-tracker.json` and the mobile document
+  linked there. Read its current hold/status before implementation or tests.
+  Preserve task and blocker IDs, named agent owners, independent reviewers,
+  dependency ordering, and exact original cell/check evidence mappings.
+  The coordinator reviews causal evidence and protocol invariants before
+  accepting a fix; authors cannot approve their own work. Component passes
+  never close matrix failures. Update the ledger and existing mobile document
+  at accepted checkpoints, preserving owner edits and recording sync failures.
+  Protocol review follows `docs/evidence/gate-6/g6-058-architecture-contract-v216.json`:
+  preserve WebRTC/SIP wire semantics at adapters while keeping UCTP canonical
+  control and the declared QUIC media paths. Do not substitute a protocol rewrite
+  or weaker acceptance for a demonstrated fix.

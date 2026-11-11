@@ -31,7 +31,11 @@
         "Exercise credential rotation, pending-control release, lifecycle fallback, cross-Unit/rollback/nonce and forbidden SQL mutations."
       ],
       "exit": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced.",
-      "state": "Draft applied, unformatted/uncompiled/untested. Six regressions drafted; credential-refresh/control-slot proof and direct regression still required."
+      "state": "Draft applied, unformatted/uncompiled/untested. Six regressions drafted; credential-refresh/control-slot proof and direct regression still required.",
+      "assigned_tasks": [
+        "P1.1",
+        "P1.2"
+      ]
     },
     {
       "id": "P2",
@@ -50,7 +54,11 @@
         "Cover initial offers and WebRTC target preparation with request-bound phase evidence; prove each specific refusing leaf before changing it."
       ],
       "exit": "All preparation regressions succeed or correctly refuse as specified, with no unexplained busy abort and no duplicate effect.",
-      "state": "Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed."
+      "state": "Subscription production draft and unit controls applied but untested. Signed fixture is incomplete; source-lock changed, verified .deps remains at its prior version. Initial-offer root cause/fix still proposed.",
+      "assigned_tasks": [
+        "P2.1",
+        "P2.2"
+      ]
     },
     {
       "id": "P3",
@@ -69,7 +77,11 @@
         "Actual signed/native and browser make-before-break workload: usable audio and decoded keyframe before commit, old playback through preparation, exact original retirement receipts after commit."
       ],
       "exit": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains.",
-      "state": "Latency measured; complete root cause not established. Root started an untested authority-only source-walk draft to eliminate public causal-page rendering. No proven deadline fix yet."
+      "state": "Latency measured; complete root cause not established. Root started an untested authority-only source-walk draft to eliminate public causal-page rendering. No proven deadline fix yet.",
+      "assigned_tasks": [
+        "P3.1",
+        "P3.2"
+      ]
     },
     {
       "id": "P4",
@@ -88,7 +100,11 @@
         "Fresh actual browser workloads must admit, finish all three cycles, collect private captures and join every original owner."
       ],
       "exit": "No startup or late diagnostic-owner cascade; all original browser cycles actually execute.",
-      "state": "Chrome fix committed and focused runtime verified. Statistics ordering patch applied with pure-test evidence; browser runtime not yet verified."
+      "state": "Chrome fix committed and focused runtime verified. Statistics ordering patch applied with pure-test evidence; browser runtime not yet verified.",
+      "assigned_tasks": [
+        "P4.1",
+        "P4.2"
+      ]
     },
     {
       "id": "P5",
@@ -98,15 +114,19 @@
       ],
       "priority": 2,
       "kind": "media pipeline and measurement attribution",
-      "evidence": "Decoded media fails in 28 cells, including cells with successful handoffs. A Linux WT example has all video/sync checks pass but audio only59.68\u201359.76s against59.9s. Native retained routes have source timestamp omissions despite all3000 frames submitted and no measured late sends. Browser RTC video also fails independently of handoff failures.",
+      "evidence": "Decoded media fails in 28 cells, including cells with successful handoffs. A Linux WT example has all video/sync checks pass but audio only59.68\u201359.76s against the applicable decoded coverage budget. Native retained routes have source timestamp omissions despite all3000 frames submitted and no measured late sends. Browser RTC video also fails independently of handoff failures.",
       "solution": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
       "verification": [
-        "Continuous audio under concurrent Data/status/read/prepare/commit traffic, plus legitimate revocation; independent capture/decode proves retained and moved route duration, identity and gaps.",
+        "Continuous audio under concurrent Data/status/read/prepare/commit traffic, plus legitimate revocation; independent capture/decode proves retained and moved route duration, identity and gaps. Preserve the approved measured handoff-cut accounting; do not substitute a stricter or looser threshold.",
         "Video reorder, bounded gap/keyframe recovery, new-generation startup and both sides of replacement; genuine rendered FPS and A/V skew under the unchanged matrix profile.",
         "Repeat the complete programme through all three cycles, including handoff windows and the final retirement window; diagnostics must attribute any remaining failure to a stage."
       ],
       "exit": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun.",
-      "state": "Measured failures and candidate causes documented; additional fixes are required. No media-quality pass claimed for the current drafts."
+      "state": "Measured failures and candidate causes documented; additional fixes are required. No media-quality pass claimed for the current drafts.",
+      "assigned_tasks": [
+        "P5.1",
+        "P5.2"
+      ]
     },
     {
       "id": "P6",
@@ -120,11 +140,15 @@
       "solution": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
       "verification": [
         "Three complete cycles with all required original and replacement owners, then Session cleanup and helper/client joins.",
-        "No Session-owned resources remain; server\u22641GiB, browser\u22644GiB, native helper\u22641GiB under the approved profile.",
+        "Zero Session-owned physical owners/tasks and original pool restoration; all natural joins; server\u22641GiB,browser\u22644GiB,helper\u22641GiB,aggregate\u22646GiB; original process/FD/thread capacities and source-bound server thread exception remain enforced.",
         "Verify natural-owner and retained-owner end deadlines separately; incomplete cycles never count as resource passes."
       ],
       "exit": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff.",
-      "state": "Classification corrected; existing successful capacity checks do not close the composite requirement."
+      "state": "Classification corrected; existing successful capacity checks do not close the composite requirement.",
+      "assigned_tasks": [
+        "P6.1",
+        "P6.2"
+      ]
     },
     {
       "id": "P7",
@@ -143,7 +167,12 @@
         "Commit and push the verified batch with CI skipped; freeze sources; execute all32 cells/all432 checks with original3-cycle requirements, including local remote-profile fixtures."
       ],
       "exit": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
-      "state": "Plan only. No new build, focused workload or matrix launch after the owner requested review."
+      "state": "Plan only. No new build, focused workload or matrix launch after the owner requested review.",
+      "assigned_tasks": [
+        "P7.1",
+        "P7.2",
+        "P7.3"
+      ]
     }
   ],
   "sequence": [
@@ -161,5 +190,9 @@
     "No GitHub VM or x86 run. G6-054 remains parked."
   ],
   "audit_evidence": "docs/evidence/gate-6/g6-058-v215-reassessment.json",
-  "audit_sha256": "3f9a2e106b3405da6954955a121d737de5a6b94e1dd63fda6c2c8f87876d2f39"
+  "audit_sha256": "3f9a2e106b3405da6954955a121d737de5a6b94e1dd63fda6c2c8f87876d2f39",
+  "agent_tracker": "docs/evidence/gate-6/g6-058-agent-work-tracker.json",
+  "mobile_document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "coordinator_agent": "/root",
+  "architecture_contract": "docs/evidence/gate-6/g6-058-architecture-contract-v216.json"
 }

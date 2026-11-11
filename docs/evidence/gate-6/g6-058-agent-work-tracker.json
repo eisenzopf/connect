@@ -1,0 +1,2936 @@
+{
+  "format": "connect/g6-058-agent-work-tracker/1",
+  "updated_at": "2026-11-11T09:53:27.144008+00:00",
+  "revision": 1,
+  "status": "held-for-owner-review",
+  "coordinator_agent": "/root",
+  "mobile_document": {
+    "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+    "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "tab_id": "t.0",
+    "sync_status": "verified-current",
+    "content_revision": 1,
+    "verified_at": "2026-11-11T10:02:59.348341+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
+  },
+  "baseline": {
+    "run": "v215",
+    "cells_passed": 0,
+    "cells_required": 32,
+    "checks_passed": 287,
+    "checks_failed": 101,
+    "checks_blocked": 44,
+    "checks_required": 432
+  },
+  "agents": [
+    {
+      "id": "/root",
+      "role": "Coordinator, integration and final evidence adjudication"
+    },
+    {
+      "id": "/root/v198_resources",
+      "role": "Store/authority isolation owner; independent safety review"
+    },
+    {
+      "id": "/root/media_blockers",
+      "role": "Media/admission/handoff owner; protocol architecture review"
+    },
+    {
+      "id": "/root/fixture_blockers",
+      "role": "Harness/coverage owner; independent verification review"
+    }
+  ],
+  "state_machine": [
+    "held-for-owner-review",
+    "assigned",
+    "diagnosing",
+    "cause-confirmed",
+    "implemented-unverified",
+    "independent-source-reviewed",
+    "component-verified",
+    "combined-workload-verified",
+    "awaiting-matrix",
+    "matrix-verified",
+    "closed"
+  ],
+  "review_policy": {
+    "no_self_review": true,
+    "coordinator_approval_required": true,
+    "fix_evidence": [
+      "original failure cell/check/report hash and original operation context",
+      "specific causal hypothesis, confidence and falsifying observation",
+      "exact code change and source/dependency revision",
+      "old-condition reproduction where reproducible; fixed regression and negative controls",
+      "WebRTC/SIP/UCTP/QUIC architecture invariants preserved",
+      "full concurrent workload and original cleanup evidence",
+      "fresh full-matrix cell/check result on same tested source"
+    ],
+    "reopen_on": [
+      "failed causal counterexample",
+      "unchanged original failure",
+      "new regression",
+      "missing original owner evidence",
+      "source/evidence mismatch",
+      "unexplained 503 or decoded loss"
+    ],
+    "update_triggers": [
+      "agent starts or hands off work",
+      "cause confirmed or rejected",
+      "fix reviewed",
+      "test finishes or fails",
+      "coordinator accepts/rejects evidence",
+      "matrix completes"
+    ],
+    "mobile_sync": "Coordinator updates the existing document at each accepted checkpoint with revision-guarded scoped edits; retains owner edits/comments. Repository JSON and source commits retain detailed evidence. A checkpoint is not synchronized until document readback succeeds. No unattended scheduled agent is created."
+  },
+  "tasks": [
+    {
+      "id": "P1.1",
+      "plan_id": "P1",
+      "title": "Data completion must preserve admitted media",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/media_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B191"
+      ],
+      "depends_on": [],
+      "status": "held-for-owner-review",
+      "implementation_state": "draft-uncompiled-untested",
+      "proposed_fix": "Complete narrow same-transaction positive Data ledger capture; preserve current grant and PCM custody without an authority Writer when authority is unchanged.",
+      "required_evidence": "Old path reproduces epoch invalidation; fixed path preserves actual PCM grant/custody; revoke, expiry, uncertainty, lifecycle fallback, credential rotation and SQL boundary negatives still pass.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 28,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [
+        "A01",
+        "A05",
+        "A06",
+        "A07"
+      ]
+    },
+    {
+      "id": "P1.2",
+      "plan_id": "P1",
+      "title": "Audit relevant state-change invalidation",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B191"
+      ],
+      "depends_on": [
+        "P1.1"
+      ],
+      "status": "held-for-owner-review",
+      "implementation_state": "proposed",
+      "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
+      "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 8,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [
+        "A01",
+        "A06",
+        "A07"
+      ]
+    },
+    {
+      "id": "P2.1",
+      "plan_id": "P2",
+      "title": "Preserve prepared subscriptions during temporary contention",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B190"
+      ],
+      "depends_on": [],
+      "status": "held-for-owner-review",
+      "implementation_state": "draft-uncompiled-untested",
+      "proposed_fix": "Distinguish temporary Busy from permanent refusal and retry only authorization of the same prepared owner within its original deadline.",
+      "required_evidence": "Actual signed Data subscription under held writer: one prepare/activation/effect; positive release, negative revoke/expiry/permanent refusal/cancel; old media remains usable.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 45,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [
+        "A01",
+        "A04",
+        "A05",
+        "A08"
+      ]
+    },
+    {
+      "id": "P2.2",
+      "plan_id": "P2",
+      "title": "Explain and repair initial media-offer refusals",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B194"
+      ],
+      "depends_on": [],
+      "status": "held-for-owner-review",
+      "implementation_state": "root-cause-unresolved",
+      "proposed_fix": "Trace original 503 phase through existing bounded offer admission; fix exact leaf rather than indiscriminately replaying offers.",
+      "required_evidence": "All three WT missing-programme cases linked to original commands; causal regression for each distinct cause, original-effect recovery and no duplicate media admission.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 29,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [
+        "A02",
+        "A03",
+        "A05",
+        "A08",
+        "A11"
+      ]
+    },
+    {
+      "id": "P3.1",
+      "plan_id": "P3",
+      "title": "Resolve replacement preparation and original-owner failures",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B190",
+        "B197"
+      ],
+      "depends_on": [
+        "P2.1"
+      ],
+      "status": "held-for-owner-review",
+      "implementation_state": "root-cause-partly-unresolved",
+      "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
+      "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 66,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11"
+      ]
+    },
+    {
+      "id": "P3.2",
+      "plan_id": "P3",
+      "title": "Meet retained-owner retirement deadline",
+      "owner_agent": "/root",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B192"
+      ],
+      "depends_on": [],
+      "status": "held-for-owner-review",
+      "implementation_state": "partial-uncompiled-draft",
+      "proposed_fix": "Remove verified redundant control work, including unnecessary public status rendering during authority-only walks; locate remaining queue/server latency.",
+      "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 16,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [
+        "A08",
+        "A10"
+      ]
+    },
+    {
+      "id": "P4.1",
+      "plan_id": "P4",
+      "title": "Verify Chrome trust fixture against contract runtime",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B189"
+      ],
+      "depends_on": [],
+      "status": "held-for-owner-review",
+      "implementation_state": "committed-focused-runtime-verified",
+      "proposed_fix": "Use exact approved runtime from the matrix contract with ordinary isolated CA trust.",
+      "required_evidence": "Existing11unit and real trusted/untrusted HTTPS/WSS evidence retained; affected cells must admit and complete fresh workload/captures.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/browser-profile-pin-v216.json",
+          "sha256": "ee630f67f8a725d7a97f869e6720659ece87908b906a6e4f670834e08582f2fd",
+          "scope": "11unit checks and actual configured/unconfigured Chrome HTTPS/WSS trust controls",
+          "result": "passed",
+          "matrix_result": false
+        }
+      ],
+      "commit_ids": [
+        "a52c30b8d38708cdbcdb0bb7eaa0ac7908f7b587"
+      ],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 52,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [],
+      "historical_implementation_author": "/root"
+    },
+    {
+      "id": "P4.2",
+      "plan_id": "P4",
+      "title": "Join original RTC diagnostics before peer shutdown",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B193"
+      ],
+      "depends_on": [],
+      "status": "held-for-owner-review",
+      "implementation_state": "implemented-pure-tests-verified",
+      "proposed_fix": "Stop and join same original statistics request at programme terminal before retiring peer, with unchanged500ms join limit.",
+      "required_evidence": "Existing21puretests retained; actual browser three-cycle follow-through shows no unjoined original stats promise and no false joined receipt.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/rtc-statistics-ordering-v216.json",
+          "sha256": "b2be15492b6d17a782defc584d5a051786447822a0d845e2fb4a0fca85eadb2f",
+          "scope": "21isolated pure Nodecontrols; actual browser verification pending",
+          "result": "passed",
+          "matrix_result": false
+        }
+      ],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 10,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": []
+    },
+    {
+      "id": "P5.1",
+      "plan_id": "P5",
+      "title": "Eliminate decoded audio deficits",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B195"
+      ],
+      "depends_on": [
+        "P1.1",
+        "P2.1"
+      ],
+      "status": "held-for-owner-review",
+      "implementation_state": "measured-failures-open",
+      "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
+      "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 28,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [
+        "A03",
+        "A04",
+        "A06",
+        "A09"
+      ]
+    },
+    {
+      "id": "P5.2",
+      "plan_id": "P5",
+      "title": "Eliminate decoded video and handoff readiness deficits",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B195",
+        "B197"
+      ],
+      "depends_on": [
+        "P3.1"
+      ],
+      "status": "held-for-owner-review",
+      "implementation_state": "measured-failures-open",
+      "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
+      "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 28,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [
+        "A02",
+        "A03",
+        "A04",
+        "A09"
+      ]
+    },
+    {
+      "id": "P6.1",
+      "plan_id": "P6",
+      "title": "Prove complete workload and owner coverage",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B196"
+      ],
+      "depends_on": [
+        "P3.1",
+        "P3.2",
+        "P4.2"
+      ],
+      "status": "held-for-owner-review",
+      "implementation_state": "classification-complete-runtime-open",
+      "proposed_fix": "Separate missing-handoff coverage from resource leaks; retain required10browserrenderer owners and all actual natural joins.",
+      "required_evidence": "All3completecycles, exact original/replacement receipts, zero Session-owned physical owners/tasks/pools, helper/client joins and unchanged end/cleanup deadlines.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 41,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": []
+    },
+    {
+      "id": "P6.2",
+      "plan_id": "P6",
+      "title": "Verify declared resource capacities",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B196"
+      ],
+      "depends_on": [
+        "P6.1"
+      ],
+      "status": "held-for-owner-review",
+      "implementation_state": "capacity-evidence-partial",
+      "proposed_fix": "Retain approved per-role/aggregate RSS and original numeric process/FD/thread capacities; trends diagnostic and separate soak unaffected.",
+      "required_evidence": "1GiB server/4GiB browser/1GiB helper/6GiB aggregate; exact original resource-pool restoration and source-bound server thread exception; no incomplete cycle counted as pass.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 0,
+      "mapping_scope": "cross-cutting verification or resource contract obligation",
+      "architecture_invariants": []
+    },
+    {
+      "id": "P7.1",
+      "plan_id": "P7",
+      "title": "Complete combined signed Data/media/retirement regression",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B198"
+      ],
+      "depends_on": [
+        "P1.1",
+        "P2.1"
+      ],
+      "status": "held-for-owner-review",
+      "implementation_state": "fixture-incomplete-do-not-build",
+      "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
+      "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 3,
+      "mapping_scope": "direct or contributing hypothesis; not a proven cure",
+      "architecture_invariants": [
+        "A10",
+        "A11"
+      ]
+    },
+    {
+      "id": "P7.2",
+      "plan_id": "P7",
+      "title": "Review and freeze coherent source/dependency batch",
+      "owner_agent": "/root",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B198"
+      ],
+      "depends_on": [
+        "P1.2",
+        "P2.2",
+        "P3.1",
+        "P3.2",
+        "P4.1",
+        "P4.2",
+        "P5.1",
+        "P5.2",
+        "P6.1",
+        "P6.2",
+        "P7.1"
+      ],
+      "status": "held-for-owner-review",
+      "implementation_state": "held-not-ready",
+      "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
+      "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 0,
+      "mapping_scope": "cross-cutting verification or resource contract obligation",
+      "architecture_invariants": [
+        "A11"
+      ]
+    },
+    {
+      "id": "P7.3",
+      "plan_id": "P7",
+      "title": "Run and adjudicate complete32-cell matrix",
+      "owner_agent": "/root",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "B198"
+      ],
+      "depends_on": [
+        "P7.2"
+      ],
+      "status": "held-for-owner-review",
+      "implementation_state": "not-started",
+      "proposed_fix": "Execute one frozen all32/all432local matrix; coordinator reconciles original check artifacts to every proposed fix and reopens any residual.",
+      "required_evidence": "All required cycles and32cells/432checks pass; no inherited results, skipped failures, x86/GitHub builds, altered criteria or unjoined processes. No task is matrix-resolved on unit evidence alone.",
+      "coordinator_review": {
+        "status": "pending",
+        "root_cause_confirmed": false,
+        "failure_mapping_verified": true,
+        "architecture_conformance": "pending",
+        "counterexample_verified": false,
+        "regression_verified": false,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [],
+      "commit_ids": [],
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-11T09:53:27.144008+00:00",
+      "mapped_check_count": 0,
+      "mapping_scope": "cross-cutting verification or resource contract obligation",
+      "architecture_invariants": []
+    }
+  ],
+  "failure_mapping": [
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "bc62443011800734ff87eadf7b578185e70a78578d61b9872d60a99817a4bf3f",
+      "failure_family": "native-handoff-or-terminal-failures",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P3.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "bc62443011800734ff87eadf7b578185e70a78578d61b9872d60a99817a4bf3f",
+      "failure_family": "native-workload-prerequisite-or-window-incomplete",
+      "classification_role": "incomplete-workload-cascade",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P7.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "bc62443011800734ff87eadf7b578185e70a78578d61b9872d60a99817a4bf3f",
+      "failure_family": "native-decoded-quality-and-handoff-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P1.2",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "bc62443011800734ff87eadf7b578185e70a78578d61b9872d60a99817a4bf3f",
+      "failure_family": "native-original-window-or-retirement-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "4ef843b713131a116014ca36bee38c215a0ca8532201b76f94e349fca941d8ba",
+      "failure_family": "native-handoff-or-terminal-failures",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P3.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "4ef843b713131a116014ca36bee38c215a0ca8532201b76f94e349fca941d8ba",
+      "failure_family": "native-workload-prerequisite-or-window-incomplete",
+      "classification_role": "incomplete-workload-cascade",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P7.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "4ef843b713131a116014ca36bee38c215a0ca8532201b76f94e349fca941d8ba",
+      "failure_family": "native-decoded-quality-and-handoff-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P1.2",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "4ef843b713131a116014ca36bee38c215a0ca8532201b76f94e349fca941d8ba",
+      "failure_family": "native-original-window-or-retirement-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "normal-tls-and-current-device-key-authority",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "selected-transport-and-authenticated-discovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "one-service-contract-and-original-operation-recovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "participant-add-update-remove-and-current-audiences",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "session-upgrade-and-current-capability-refusal",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "actual-private-packet-capture",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "neither-path-usable-refuses-without-mutation-resubmission",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "bc2d2e8bfadbc164e5284b112b010a24da4a726da053f36dd36457256b9d2549",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "normal-tls-and-current-device-key-authority",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "selected-transport-and-authenticated-discovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "one-service-contract-and-original-operation-recovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "participant-add-update-remove-and-current-audiences",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "session-upgrade-and-current-capability-refusal",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "actual-private-packet-capture",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "neither-path-usable-refuses-without-mutation-resubmission",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7405de61a9090200c6c772faf5fe7de2e536e7974b1a00ad2af0818b366dff99",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "normal-tls-and-current-device-key-authority",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "selected-transport-and-authenticated-discovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "one-service-contract-and-original-operation-recovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "participant-add-update-remove-and-current-audiences",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "session-upgrade-and-current-capability-refusal",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "actual-private-packet-capture",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "neither-path-usable-refuses-without-mutation-resubmission",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "fe1b76a789dd28a0ac519c63112981151fa6e20f9369f42d813ee0c6debdfbe2",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "normal-tls-and-current-device-key-authority",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "selected-transport-and-authenticated-discovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "one-service-contract-and-original-operation-recovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "participant-add-update-remove-and-current-audiences",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "session-upgrade-and-current-capability-refusal",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "actual-private-packet-capture",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "neither-path-usable-refuses-without-mutation-resubmission",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "7a44152ac9e489f9de8c1e3bffa3728e2c6b1a92db7d486cd5fcc8164a7e96e5",
+      "failure_family": "chrome-profile-contract-pin-mismatch",
+      "classification_role": "startup-cascade",
+      "assigned_task_ids": [
+        "P4.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "3c10b295850e0724e53f87f19ad6dcb66433efc3beab3e8c70ba44ac7bb3776e",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "3c10b295850e0724e53f87f19ad6dcb66433efc3beab3e8c70ba44ac7bb3776e",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "3c10b295850e0724e53f87f19ad6dcb66433efc3beab3e8c70ba44ac7bb3776e",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "16c7ad7ffa28b70c375dc9df8a0a042e82d804dfd18ae0b5c3231fc5d1ae2b0f",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "16c7ad7ffa28b70c375dc9df8a0a042e82d804dfd18ae0b5c3231fc5d1ae2b0f",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "16c7ad7ffa28b70c375dc9df8a0a042e82d804dfd18ae0b5c3231fc5d1ae2b0f",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "090cf3f33d6c90f6ef317cc41474d7dfc688d7a2d8ca7677e22c7f985f7b081d",
+      "failure_family": "native-handoff-or-terminal-failures",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P3.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "090cf3f33d6c90f6ef317cc41474d7dfc688d7a2d8ca7677e22c7f985f7b081d",
+      "failure_family": "native-decoded-quality-and-handoff-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P1.2",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "090cf3f33d6c90f6ef317cc41474d7dfc688d7a2d8ca7677e22c7f985f7b081d",
+      "failure_family": "native-original-window-or-retirement-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a2c8aa6f3abbfc2bc42dfe53ed7f2c1d4c81f13ade0749ff366db202cc82d71e",
+      "failure_family": "native-handoff-or-terminal-failures",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P3.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a2c8aa6f3abbfc2bc42dfe53ed7f2c1d4c81f13ade0749ff366db202cc82d71e",
+      "failure_family": "native-workload-prerequisite-or-window-incomplete",
+      "classification_role": "incomplete-workload-cascade",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P7.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a2c8aa6f3abbfc2bc42dfe53ed7f2c1d4c81f13ade0749ff366db202cc82d71e",
+      "failure_family": "native-decoded-quality-and-handoff-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P1.2",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a2c8aa6f3abbfc2bc42dfe53ed7f2c1d4c81f13ade0749ff366db202cc82d71e",
+      "failure_family": "native-original-window-or-retirement-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "b3dd4707b6a94cce50b71bd2ed0f79f9db4e542cf854dcc1175a4b86550cada6",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "68fb0ef928dcdcde7a57d3ca83337e81e070a58b4a487abb73ab7918fa4e1995",
+      "failure_family": "browser-offer-authority-unavailable",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "68fb0ef928dcdcde7a57d3ca83337e81e070a58b4a487abb73ab7918fa4e1995",
+      "failure_family": "browser-offer-authority-unavailable",
+      "classification_role": "incomplete-workload-cascade",
+      "assigned_task_ids": [
+        "P2.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "68fb0ef928dcdcde7a57d3ca83337e81e070a58b4a487abb73ab7918fa4e1995",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "68fb0ef928dcdcde7a57d3ca83337e81e070a58b4a487abb73ab7918fa4e1995",
+      "failure_family": "browser-offer-authority-unavailable",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P2.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "c6b3d5942439d2d7d1badf47cf974e0c993e6d25872fd31cf0025a619d3afddc",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "c6b3d5942439d2d7d1badf47cf974e0c993e6d25872fd31cf0025a619d3afddc",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "c6b3d5942439d2d7d1badf47cf974e0c993e6d25872fd31cf0025a619d3afddc",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "acbcce1f93eb051aadb3195509ceaa8dd6371e37d0c19fdccb0221ef3534dc22",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "acbcce1f93eb051aadb3195509ceaa8dd6371e37d0c19fdccb0221ef3534dc22",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "acbcce1f93eb051aadb3195509ceaa8dd6371e37d0c19fdccb0221ef3534dc22",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "3bf5cf69f77fd0247bd5e2198fc0ee7bc7bb3a5c9e8b82880c534476bfc33996",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "3bf5cf69f77fd0247bd5e2198fc0ee7bc7bb3a5c9e8b82880c534476bfc33996",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "3bf5cf69f77fd0247bd5e2198fc0ee7bc7bb3a5c9e8b82880c534476bfc33996",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "normal-tls-and-current-device-key-authority",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "incomplete-cycle-cascade",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "selected-transport-and-authenticated-discovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "incomplete-cycle-cascade",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "one-service-contract-and-original-operation-recovery",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "incomplete-cycle-cascade",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "participant-add-update-remove-and-current-audiences",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "incomplete-cycle-cascade",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "session-upgrade-and-current-capability-refusal",
+      "baseline_status": "blocked",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "incomplete-cycle-cascade",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "incomplete-cycle-cascade",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "incomplete-cycle-cascade",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "primary",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "wt-unavailable-selects-documented-wss-fallback-with-reason",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "incomplete-cycle-cascade",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "neither-path-usable-refuses-without-mutation-resubmission",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+      "failure_family": "original-rtc-statistics-unjoined",
+      "classification_role": "incomplete-cycle-cascade",
+      "assigned_task_ids": [
+        "P4.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "63400016cdbd9b151f23f0486a960ac2c8bc58f6f90061ae75e7e9d9ab42df06",
+      "failure_family": "native-handoff-or-terminal-failures",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P3.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "63400016cdbd9b151f23f0486a960ac2c8bc58f6f90061ae75e7e9d9ab42df06",
+      "failure_family": "native-decoded-quality-and-handoff-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P1.2",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "63400016cdbd9b151f23f0486a960ac2c8bc58f6f90061ae75e7e9d9ab42df06",
+      "failure_family": "native-original-window-or-retirement-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "4b9a36b8cd4bb9212e2a806b398fc9e45874b6d7e0f38f6914a2461c4b23690f",
+      "failure_family": "native-handoff-or-terminal-failures",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P3.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "4b9a36b8cd4bb9212e2a806b398fc9e45874b6d7e0f38f6914a2461c4b23690f",
+      "failure_family": "native-decoded-quality-and-handoff-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P1.2",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "4b9a36b8cd4bb9212e2a806b398fc9e45874b6d7e0f38f6914a2461c4b23690f",
+      "failure_family": "native-original-window-or-retirement-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "8ada46ba8b891967618badcf9ab4793bfd49a8bcfd944ff51fb6d0b6f60dc413",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "8a9b2d44f578d669f6e02c02d7e206b5fac201593e144c2e298e415217ac1f59",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "c444a4177705aba812277b4223fda02fd032ac4ee47011764238a596b0e56921",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "c444a4177705aba812277b4223fda02fd032ac4ee47011764238a596b0e56921",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "c444a4177705aba812277b4223fda02fd032ac4ee47011764238a596b0e56921",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "c06f3d55d3d14e9723849b6a5567ee33773cf4b30675d6e7cc81a85206842cfd",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "c06f3d55d3d14e9723849b6a5567ee33773cf4b30675d6e7cc81a85206842cfd",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "c06f3d55d3d14e9723849b6a5567ee33773cf4b30675d6e7cc81a85206842cfd",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "0e33fe20f53e5dd18c755b2ddea687c77b97417487f4fe4cec53a8287859f284",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "0e33fe20f53e5dd18c755b2ddea687c77b97417487f4fe4cec53a8287859f284",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "0e33fe20f53e5dd18c755b2ddea687c77b97417487f4fe4cec53a8287859f284",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "e0a1b39cff1d43255533220aeafb69512efe60d2a6efa8399992cf7b25223ea0",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "e0a1b39cff1d43255533220aeafb69512efe60d2a6efa8399992cf7b25223ea0",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "e0a1b39cff1d43255533220aeafb69512efe60d2a6efa8399992cf7b25223ea0",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "928efc1aaa51b2a9dc72b8200025b370a039c1b46f7412c3568771e6f8216855",
+      "failure_family": "native-handoff-or-terminal-failures",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P3.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "928efc1aaa51b2a9dc72b8200025b370a039c1b46f7412c3568771e6f8216855",
+      "failure_family": "native-decoded-quality-and-handoff-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P1.2",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "928efc1aaa51b2a9dc72b8200025b370a039c1b46f7412c3568771e6f8216855",
+      "failure_family": "native-original-window-or-retirement-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "1850e0ad3d5e1333aee3860c7767a518bf59a24ff72105e9ac2a75b302068eeb",
+      "failure_family": "native-handoff-or-terminal-failures",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1",
+        "P3.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "1850e0ad3d5e1333aee3860c7767a518bf59a24ff72105e9ac2a75b302068eeb",
+      "failure_family": "native-decoded-quality-and-handoff-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P1.2",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "1850e0ad3d5e1333aee3860c7767a518bf59a24ff72105e9ac2a75b302068eeb",
+      "failure_family": "native-original-window-or-retirement-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "60119c514594e978096b91cb547c15e3413678fadf562f1b40014324697f5a16",
+      "failure_family": "browser-offer-authority-unavailable",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "60119c514594e978096b91cb547c15e3413678fadf562f1b40014324697f5a16",
+      "failure_family": "browser-offer-authority-unavailable",
+      "classification_role": "incomplete-workload-cascade",
+      "assigned_task_ids": [
+        "P2.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "60119c514594e978096b91cb547c15e3413678fadf562f1b40014324697f5a16",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "60119c514594e978096b91cb547c15e3413678fadf562f1b40014324697f5a16",
+      "failure_family": "browser-offer-authority-unavailable",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P2.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "15fc30aca6c46046be87521e73b510ca9d913c8e6a7ed8c868b275d9768c74a1",
+      "failure_family": "browser-offer-authority-unavailable",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "declared-concurrent-workload",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "15fc30aca6c46046be87521e73b510ca9d913c8e6a7ed8c868b275d9768c74a1",
+      "failure_family": "browser-offer-authority-unavailable",
+      "classification_role": "incomplete-workload-cascade",
+      "assigned_task_ids": [
+        "P2.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "15fc30aca6c46046be87521e73b510ca9d913c8e6a7ed8c868b275d9768c74a1",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "15fc30aca6c46046be87521e73b510ca9d913c8e6a7ed8c868b275d9768c74a1",
+      "failure_family": "browser-offer-authority-unavailable",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P2.2"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "d233301f82063637d20f38a10bc51ba3ea1606d2167186b1134c5e602f326057",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "d233301f82063637d20f38a10bc51ba3ea1606d2167186b1134c5e602f326057",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "d233301f82063637d20f38a10bc51ba3ea1606d2167186b1134c5e602f326057",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "14dbf7f03a5cec9ecfcd6520a21c77c84e0b33e5ba49ea3126ec53fbd44146a1",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "14dbf7f03a5cec9ecfcd6520a21c77c84e0b33e5ba49ea3126ec53fbd44146a1",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "14dbf7f03a5cec9ecfcd6520a21c77c84e0b33e5ba49ea3126ec53fbd44146a1",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "cb25aa69d84cd72e7497f60a0ffa4447b0221e84acf3edb57b39f883b1b84267",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "cb25aa69d84cd72e7497f60a0ffa4447b0221e84acf3edb57b39f883b1b84267",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "cb25aa69d84cd72e7497f60a0ffa4447b0221e84acf3edb57b39f883b1b84267",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "device-replacement-and-old-owner-retirement",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "8b03edfb77b3c05bc4b8b43457fe9c1018467cd3bcbf502441db40354f634547",
+      "failure_family": "browser-replacement-or-owner-receipt-refusal",
+      "classification_role": "functional-failure",
+      "assigned_task_ids": [
+        "P2.1",
+        "P3.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "8b03edfb77b3c05bc4b8b43457fe9c1018467cd3bcbf502441db40354f634547",
+      "failure_family": "browser-decoded-quality-or-required-cycle-coverage",
+      "classification_role": "measured-quality-or-incomplete-handoff-coverage",
+      "assigned_task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "baseline_status": "failed",
+      "baseline_run": "v215",
+      "report_sha256": "8b03edfb77b3c05bc4b8b43457fe9c1018467cd3bcbf502441db40354f634547",
+      "failure_family": "browser-required-renderer-custody-coverage-incomplete",
+      "classification_role": "composite-retirement-or-workload-coverage-failure",
+      "assigned_task_ids": [
+        "P3.1",
+        "P6.1"
+      ],
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    }
+  ],
+  "architecture_contract": "docs/evidence/gate-6/g6-058-architecture-contract-v216.json",
+  "history": [
+    {
+      "at": "2026-11-11T09:53:27.144008+00:00",
+      "action": "Assigned15subtasks to named agents; coordinator reviewed full145check coverage. Implementation/test hold retained.",
+      "by": "/root"
+    },
+    {
+      "at": "2026-11-11T10:00:35.774Z",
+      "action": "Mobile revision1written and exact body/roster/hyperlinks verified. Assigned15tasks and145failure mappings. Protocol contract attached. No implementation/test run.",
+      "by": "/root"
+    }
+  ],
+  "tracking_review": {
+    "reviewer": "/root/fixture_blockers",
+    "result": "15unique tasks;145exact original non-pass mappings;no dependency cycles,self-review,or orphan mappings;hold retained",
+    "scope": "Document consistency only, not code/test acceptance",
+    "follow_up": "Existing P4 evidence linked. P4.1 reviewer changed to Store agent because root authored its historical fix; no author reviews own code."
+  },
+  "architecture_scope_note": "Preserve native WebRTC/SIP adapter semantics. WebRTC browser RTP/SRTP and browser WebTransport/QUIC are distinct profiles; unsupported profile capabilities must refuse explicitly, not silently downgrade or be asserted as implemented.",
+  "architecture_review": {
+    "reviewer": "/root/media_blockers",
+    "scope": "Read-only repo/primary-standard audit",
+    "status": "proposed contract recorded; code conformance remains unverified"
+  }
+}

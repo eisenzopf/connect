@@ -1,0 +1,216 @@
+{
+  "format": "connect/g6-058-architecture-contract/1",
+  "updated_at": "2026-11-11T09:57:45.996389+00:00",
+  "status": "proposed-review-contract;implementation-held",
+  "requested_by_owner": "Respect native WebRTC/SIP media and signaling conventions while consolidating Connect control in UCTP and media on declared UCTP/QUIC paths.",
+  "coordinator": "/root",
+  "architecture_reviewer": "/root/media_blockers",
+  "review_scope": "Source and primary standards review only; no interoperability test or architecture rewrite performed.",
+  "invariants": [
+    {
+      "id": "A01",
+      "title": "One canonical control model",
+      "requirement": "UCTP owns the canonical Connect application command/event model, journal, authorization, operation identity and recovery. Adapters preserve native signaling state machines and translate their observations into this model. Do not create a competing permission or ownership authority inside an adapter.",
+      "task_ids": [
+        "P1.1",
+        "P1.2",
+        "P2.1",
+        "P3.1"
+      ]
+    },
+    {
+      "id": "A02",
+      "title": "Native WebRTC peer semantics",
+      "requirement": "A WebRTC peer retains RTCPeerConnection SDP offer/answer, ICE, DTLS-SRTP and negotiated RTP/RTCP semantics. UCTP carries Connect control/signaling through its declared transport. The browser RTC peer leg must not be described or tested as native QUIC.",
+      "task_ids": [
+        "P2.2",
+        "P3.1",
+        "P5.2"
+      ]
+    },
+    {
+      "id": "A03",
+      "title": "Native SIP peer semantics",
+      "requirement": "SIP adapters retain transactions, dialogs, offer/answer, negotiated codec/payload mappings and RTP/SRTP media. A SIP acceptance or dialog event is not proof of decoded media readiness. Preserve original transaction/effect identity across uncertainty.",
+      "task_ids": [
+        "P2.2",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ]
+    },
+    {
+      "id": "A04",
+      "title": "Explicit UCTP/QUIC media profile",
+      "requirement": "Use the architecture\u2019s declared UCTP/QUIC media paths for native transport and browser WebTransport. Reliable control streams and low-latency media datagrams remain distinct. At a WebRTC/SIP-to-QUIC bridge, explicitly map negotiated media/identity/timing rather than assuming the external peer speaks QUIC. Keep local Core processing local where the architecture declares an in-process path; do not add a network hop to satisfy a label.",
+      "task_ids": [
+        "P2.1",
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ]
+    },
+    {
+      "id": "A05",
+      "title": "Preparation is separate from activation",
+      "requirement": "Prepare bounded transport/codec resources independently while the old authorized media route remains usable. Before one public activation, acquire fresh current authority for the exact source/recipient/owner/generation and verify usable audio plus a decoded keyframe where video is required. SDP/ICE/SIP/queue success alone is insufficient.",
+      "task_ids": [
+        "P1.1",
+        "P2.1",
+        "P2.2",
+        "P3.1"
+      ]
+    },
+    {
+      "id": "A06",
+      "title": "No control-bookkeeping interruption",
+      "requirement": "Admitted media uses immutable exact grants plus bounded local current-generation/expiry and IO lease checks. Positive Data attribution, identical replay and pure status/journal/metric changes must not invalidate unchanged media. No per-packet SQL policy traversal or control lock wait.",
+      "task_ids": [
+        "P1.1",
+        "P1.2",
+        "P5.1"
+      ]
+    },
+    {
+      "id": "A07",
+      "title": "Real changes fence only affected media",
+      "requirement": "Credential/key/device/identity/endpoint expiry or withdrawal, membership/role loss, terminal Session/Conversation, actual selected-stream audience/gate/codec or ownership/generation changes invalidate affected source/target/Session/medium/direction and dependent mixed/forwarded output. Stop new affected IO and drain owned IO as required. Unrelated admitted routes remain live. Never revive old buffered epochs.",
+      "task_ids": [
+        "P1.1",
+        "P1.2",
+        "P3.1"
+      ]
+    },
+    {
+      "id": "A08",
+      "title": "Original operations, bounded waits and honest uncertainty",
+      "requirement": "Keep immutable logical root/effect IDs and original cutoffs. Temporary Busy permits only a fresh authorization attempt for the same owned candidate at the proven admission boundary; never repeat uncertain physical preparation, activation or effects. Do not retain SQL/domain writer custody across signaling waits. Actual packet IO custody lasts through its bounded write.",
+      "task_ids": [
+        "P2.1",
+        "P2.2",
+        "P3.1",
+        "P3.2"
+      ]
+    },
+    {
+      "id": "A09",
+      "title": "Media timing, ordering and feedback remain valid",
+      "requirement": "Preserve explicit codec/payload-type, SSRC, sequence, timestamp, source-generation and RTCP sender-report clock mapping. Distinguish reordering from loss, honor keyframe startup/recovery and transport-appropriate feedback/congestion behavior. Do not fabricate source clocks or let reliable control delivery stall media; re-encode/mix only when the declared bridge requires it.",
+      "task_ids": [
+        "P3.1",
+        "P5.1",
+        "P5.2"
+      ]
+    },
+    {
+      "id": "A10",
+      "title": "Distinct movement operations",
+      "requirement": "ICE restart, QUIC network-path migration, device handoff and server/adapter replacement are different operations with different ownership/state transitions. Tests must exercise the actual operation and original owner retirement; success of one does not qualify another.",
+      "task_ids": [
+        "P3.1",
+        "P3.2",
+        "P7.1"
+      ]
+    },
+    {
+      "id": "A11",
+      "title": "Capabilities and qualification stay honest",
+      "requirement": "The current browser RTC profile explicitly refuses Data and subscription changes requiring new-resource renegotiation. Check fixture expectations against declared profiles; do not claim support, silently downgrade, or add new Gate6 scope without reviewing the contract. SIP interoperability remains an architecture invariant; G6-054 stays parked and no new provider/PSTN rehearsal is authorized here.",
+      "task_ids": [
+        "P2.2",
+        "P3.1",
+        "P7.1",
+        "P7.2"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "WebRTC API",
+      "url": "https://www.w3.org/TR/webrtc/"
+    },
+    {
+      "title": "JSEP: SDP offer/answer",
+      "url": "https://www.rfc-editor.org/rfc/rfc9429.html"
+    },
+    {
+      "title": "RTP for WebRTC",
+      "url": "https://www.rfc-editor.org/rfc/rfc8834.html"
+    },
+    {
+      "title": "ICE",
+      "url": "https://www.rfc-editor.org/rfc/rfc8445.html"
+    },
+    {
+      "title": "DTLS-SRTP",
+      "url": "https://www.rfc-editor.org/rfc/rfc5764"
+    },
+    {
+      "title": "SIP",
+      "url": "https://www.rfc-editor.org/rfc/rfc3261"
+    },
+    {
+      "title": "SDP offer/answer",
+      "url": "https://www.rfc-editor.org/rfc/rfc3264.html"
+    },
+    {
+      "title": "RTP and RTCP",
+      "url": "https://www.rfc-editor.org/rfc/rfc3550"
+    },
+    {
+      "title": "QUIC transport",
+      "url": "https://www.rfc-editor.org/rfc/rfc9000.html"
+    },
+    {
+      "title": "QUIC DATAGRAM",
+      "url": "https://www.rfc-editor.org/rfc/rfc9221.html"
+    },
+    {
+      "title": "WebTransport draft specification",
+      "url": "https://www.w3.org/TR/webtransport/"
+    }
+  ],
+  "source_anchors": [
+    {
+      "file": "sdk/typescript/src/browser_sdk_webrtc.ts",
+      "behavior": "Real RTCPeerConnection, WebSocket control and explicit Data refusal.",
+      "exists": true
+    },
+    {
+      "file": "sdk/typescript/src/browser_webrtc_signaling.ts",
+      "behavior": "Actual SDP offer and remote-answer application.",
+      "exists": true
+    },
+    {
+      "file": "crates/connect-service/src/canonical_webrtc/admission.rs",
+      "behavior": "Original physical peer and current binding/generation admission.",
+      "exists": true
+    },
+    {
+      "file": "crates/connect-service/src/canonical_webrtc/streams.rs",
+      "behavior": "Existing-port selection; explicit refusal when resource renegotiation is required.",
+      "exists": true
+    },
+    {
+      "file": "sdk/typescript/src/browser_media.ts",
+      "behavior": "Distinct WebTransport datagram media path.",
+      "exists": true
+    },
+    {
+      "file": "sdk/typescript/src/browser_control_transport.ts",
+      "behavior": "Reliable signed application control transport.",
+      "exists": true
+    },
+    {
+      "file": "crates/connect-service/src/initial_telephone.rs",
+      "behavior": "Actual SIP adapter integration.",
+      "exists": true
+    },
+    {
+      "file": "crates/connect-service/src/telephone_replacement/media.rs",
+      "behavior": "Private negotiated SIP replacement resources.",
+      "exists": true
+    }
+  ],
+  "acceptance": "Coordinator and independent reviewer verify applicable A01\u2013A11 for each fix. This document does not change protocol capabilities, test criteria or historical verdicts."
+}

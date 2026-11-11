@@ -1,0 +1,47 @@
+{
+  "format": "connect/g6-058-rtc-statistics-ordering-evidence/1",
+  "source_manifest_sha256": "5c4ee34e396247febc76fe2ca8c1a6fc68e58e586644d544850b8fd555ff2f39",
+  "files": {
+    "scripts/lib/browser_matrix_observation.mjs": {
+      "before_sha256": "5e2c013c9427163fcb7a13c012f0c7205c80be6a44a2a3940257d8b1a1135fb1",
+      "after_sha256": "ffda149e9fda598ad7d3b068f6f705354812b0c7adfd01d44eecfada71cb6a50"
+    },
+    "scripts/lib/browser_matrix_programme.mjs": {
+      "before_sha256": "5723cff349b8b77f7196e685330828acbcd14aebae4512b2bb1e11f20e83a1b6",
+      "after_sha256": "dbe8f4764eb4176591e2d4ca0b8d010264b1d3a74bcfe0cc871e172bc28895c0"
+    },
+    "scripts/tests/browser_matrix_stages.test.mjs": {
+      "before_sha256": "723255901335a679c271983ceba34c429f0e1a51a204a779f76faaff50dec891",
+      "after_sha256": "8b9c27f344ffb178b31647c1f82dffaae6a9017be1d413b3eddba9880edb664c"
+    },
+    "scripts/tests/browser_matrix_programme.test.mjs": {
+      "before_sha256": "a6c4300be3a2eecb848f6af550b2a21fd235425539e690b0df6cef4548a0993d",
+      "after_sha256": "e971e583147815ff240d500d6f38de89dc04185c8c742e0092d821fc670c90a7"
+    }
+  },
+  "patch_sha256": "fe5b0a67273c780fdeead7a5a66201e1ed7705ff586c59356e5feac411f67a7c",
+  "original_report": {
+    "cell": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+    "report_sha256": "a45898743438eac2189f2263de02da8155252e6fbfa89b640c6bc9b81533f27a",
+    "observed": "Pre-retirement quality report63attempts,pendingfalse; later renderer close reports original snapshot stillpending at500ms. All6actual renderer retirement receipts andRTC shutdown hooks fulfill.",
+    "causal_scope": "Source proves sampler remains live through peer shutdown. Exact per-peer unresolved native getStats call was not retained; terminal ordering removes proven race, full workload verification pending."
+  },
+  "preserved": {
+    "programme_ms": 62000,
+    "statistics_join_bound_ms": 500,
+    "cleanup_bound_ms": 5000,
+    "pending_is_joined": false,
+    "no_native_promise_cancellation_or_new_deadline": true
+  },
+  "validation": {
+    "scope": "Pure isolated Node fixture/model controls; no browser/media/guest/build",
+    "command": "node --test --test-reporter=tap scripts/tests/browser_matrix_stages.test.mjs scripts/tests/browser_matrix_programme.test.mjs",
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "changed_after_tests": "Comments only; source statement bytes unchanged",
+    "earlier_setup_failure": "Initial private symlink layout attempt failed imports before any case ran; corrected private paths then all21executedpassed."
+  },
+  "current_status": "Applied before owner review hold. Component checks passed; browser workload verification pending; no matrix verdict changed."
+}

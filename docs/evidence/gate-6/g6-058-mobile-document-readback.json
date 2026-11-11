@@ -1,0 +1,16 @@
+{
+  "format": "connect/g6-058-mobile-document-readback/1",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "body_characters": 35642,
+  "task_cards": 15,
+  "failure_mapping_entries": 145,
+  "native_table_rows": 5,
+  "exact_body_readback": true,
+  "roster_readback": true,
+  "hyperlinks_verified": true,
+  "implementation_or_tests_run": false,
+  "verified_at": "2026-11-11T10:02:59.348341+00:00",
+  "reviewer_correction_verified": true
+}
