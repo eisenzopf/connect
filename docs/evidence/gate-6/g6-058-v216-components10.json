@@ -1,0 +1,105 @@
+{
+  "format": "connect/g6-058-focused-signed-checkpoint/1",
+  "recorded_at": "2026-11-11T12:10:30.198410+00:00",
+  "scope": "Focused signed fixtures only; no matrix or complete workload qualification",
+  "runs": [
+    {
+      "attempt": 10,
+      "source_sha256": "0bf2b8baf5eade6138be629d7853f0d91c90b830da10f64ad82eb55fc400e087",
+      "summary": {
+        "completed": 4,
+        "passed": 1,
+        "failed": 3
+      },
+      "source_unchanged": true,
+      "binaries_unchanged": true,
+      "all_original_groups_joined": true,
+      "receipt_sha256": "014cc3c1132c4b752c5945b5647eb2945fb073b0c3a633358424c95d8521a41d",
+      "tests": [
+        {
+          "target": "gate6_replacement_video",
+          "test": "sdk_handles::replacement_video_recovery::signed_postcommit_data_subscription_recovers_same_prepared_candidate_after_real_authority_contention",
+          "ok": false,
+          "exit_code": 101,
+          "group_absent": true,
+          "elapsed_seconds": 4.985558986663818,
+          "log_sha256": "f103799ff22a137f86a6e313720fe402bba2fbfc13803d566a8ff867b6c15c6f"
+        },
+        {
+          "target": "gate6_canonical_webtransport",
+          "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_captured_start_survives_real_sql_exclusion_without_replaying_resources",
+          "ok": true,
+          "exit_code": 0,
+          "group_absent": true,
+          "elapsed_seconds": 4.872138977050781,
+          "log_sha256": "c17d839b3546a69bdd0e95be7309c4b7a6220898185b151da5ee77af3b17f62b"
+        },
+        {
+          "target": "gate6_canonical_webtransport",
+          "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_initial_start_read_waits_for_real_sql_without_retaining_writer_or_replaying_start",
+          "ok": false,
+          "exit_code": 101,
+          "group_absent": true,
+          "elapsed_seconds": 11.106446981430054,
+          "log_sha256": "f7c6f8cd7e46857f9df1c2fd81602894155d1d33d61446742154910045fd8823"
+        },
+        {
+          "target": "gate6_canonical_webtransport",
+          "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_typed_not_begun_waits_for_real_sql_without_retaining_writer_or_replaying_start",
+          "ok": false,
+          "exit_code": 101,
+          "group_absent": true,
+          "elapsed_seconds": 11.103657960891724,
+          "log_sha256": "d87d12dbe58af1dd7227797d557db598b2751eadc845b568fd1bc75f7322560d"
+        }
+      ]
+    },
+    {
+      "attempt": 11,
+      "source_sha256": "a2fbf20368c23840ad79ec0957387dfebf0e37fddfe83cb0dac18d4d63ef57f6",
+      "summary": {
+        "completed": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      "source_unchanged": true,
+      "binaries_unchanged": true,
+      "all_original_groups_joined": true,
+      "receipt_sha256": "1868735c2337291599f82b246c48061a5bb1a112d025500f620633a567274b3f",
+      "tests": [
+        {
+          "target": "gate6_replacement_video",
+          "test": "sdk_handles::replacement_video_recovery::signed_postcommit_data_subscription_recovers_same_prepared_candidate_after_real_authority_contention",
+          "ok": false,
+          "exit_code": 101,
+          "group_absent": true,
+          "elapsed_seconds": 4.519438982009888,
+          "log_sha256": "686cc5bb38ee8b95e966b0676528bb93880987e147ed740e9cce2ca0a4a59459"
+        }
+      ]
+    }
+  ],
+  "diagnoses": [
+    {
+      "attempt": 10,
+      "case": "RTC captured Start SQL exclusion",
+      "verdict": "passed one actual same-original case after internal record-ID fixture correction; no replay/reallocation"
+    },
+    {
+      "attempt": 11,
+      "case": "native Data subscription",
+      "verdict": "Conflict before parameter offer or intended contention: fixture requested preparation revision2 after committed revision3. Use same public completed receipt revision3, strict prepared/result4."
+    },
+    {
+      "attempt": 10,
+      "case": "RTC preStart read and typed not-begun",
+      "verdict": "Raw exclusive Conversation oracle cannot distinguish healthy published media Readers from retained command Readers. Exact per-admission scope-set custody probe under independent review; no pass claimed."
+    }
+  ],
+  "uctp_compile": {
+    "attempt": 10,
+    "exit_code": 101,
+    "cause": "cfgtest helper destructured four-item tuple into three bindings",
+    "correction": "recorded test-only patch+source-lock400 independently reviewed; normal dependency prepare verified; tests pending"
+  }
+}

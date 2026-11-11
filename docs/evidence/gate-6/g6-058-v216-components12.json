@@ -1,0 +1,2122 @@
+{
+  "format": "connect/g6-058-runtime-components/1",
+  "source_sha256": "e4bef26ed414e42396b6f31c4ad2ae4755085f28b58fe588c98d502fae9ddb41",
+  "expected": 112,
+  "configuration_sha256": "83b2d265df1b687638f112d8f1e10129a957b2b1c24f87be1c0ccd3290c98fa7",
+  "runner_sha256": "9759654d7d9ef80d80b96501e5c82dc31b2bc84de1e8e2407f14d8dfda302d0b",
+  "groups": [
+    {
+      "target": "connect_store",
+      "kind": "lib",
+      "selected": 91,
+      "binary_sha256": "fe56c88a505df7f7d671b95c6cc3b249a4ef7f11c26547c52590eb6746b84962",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "inventory_sha256": "a6ccc3357018668b719b630b8bd37a58ba72c6f15a4c3918374024db0a132e1d"
+    },
+    {
+      "target": "connect_service",
+      "kind": "lib",
+      "selected": 6,
+      "binary_sha256": "d4432cd7428b4b577895b61e780f7f8079fb512c69affb4b51c7819fb1e56b8d",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "inventory_sha256": "86f9518bbcd712e051ffc8de301ce8f103801493cc56e6822b556158ae6ba66d"
+    },
+    {
+      "target": "rvoip_uctp",
+      "kind": "lib",
+      "selected": 5,
+      "binary_sha256": "efea7c446e4a9df78adc59767e1e6d6e8caf81952e646e3bc96ba8d95b6cf4ff",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "inventory_sha256": "fc1d417aa5503623dd37fa354d007d212482028d86d3db8bbfac73ce083dce8b"
+    },
+    {
+      "target": "gate6_replacement_video",
+      "kind": "test",
+      "selected": 7,
+      "binary_sha256": "b4923ba354c298dc3d735145c32ecb0443f5e057bceb5d375130208c457f18cb",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "inventory_sha256": "6f70d33b79fec6c7b5cdd4c0a41895b4a42307b9f477e47f6ff3f67b07194011"
+    },
+    {
+      "target": "gate6_canonical_webtransport",
+      "kind": "test",
+      "selected": 3,
+      "binary_sha256": "039d18dc4794a25a1a154ef874e833ead454fc1417ebc42eec92d281c8e42b15",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "inventory_sha256": "a4ef758e626f3234764854cdf03396151057e208a729212b7fa41a7aa0863ea7"
+    }
+  ],
+  "summary": {
+    "completed": 112,
+    "passed": 108,
+    "failed": 4
+  },
+  "source_unchanged": true,
+  "binaries_unchanged": true,
+  "recorded_at": "2026-11-11T12:25:02.786942+00:00",
+  "scope": "Focused component and native workload attempts; not a full32cellmatrix",
+  "all_original_groups_joined": true,
+  "raw_receipt_sha256": "ca32710c381a52cb893fb88edde5732e3cb1cda064af3702e6483125281f4368",
+  "tests": [
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::actual_row_refuses_missing_read_foreign_and_wrong_identity_writers",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.9815959930419922,
+      "log_sha256": "3b2a46a23aa6938455ebfe872998429af4bb655066591ec366667b864bd5869f",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::cached_statement_steps_the_current_exact_unit_permit",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5239078998565674,
+      "log_sha256": "e5e768cf7142f1eb413df4a2f59465c002aaf5da743724835e8350d5a78e0de1",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::live_message_birth_rejects_commit_and_read_only_or_autocommit_admission",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5102341175079346,
+      "log_sha256": "8cdbcb9740ff6baaed89a80546dea31d01a0fdd1133f5c7f45602e520d7bafb3",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::message_birth_is_exact_connection_namespace_and_never_an_old_parent_or_replace_permit",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.0119130611419678,
+      "log_sha256": "b59c103a30403fb5080bb06d23a52fbafd03a19603b353a8b7cbf8aa161bfd0e",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::new_message_append_never_waits_for_or_invalidates_original_conversation_read",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5367941856384277,
+      "log_sha256": "c37cf996530fde6d53e027ddd387dd9034efa86ac8df5e3634ffa4a978d9a738",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::new_message_guard_schema_requires_current_version_and_never_converts_previous",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.49425506591796875,
+      "log_sha256": "222dcc2084a8085445ebd217e96fac432e6e030d14b8dd5a0731585434729cfb",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::rollback_invalidates_message_nonce_and_stale_drop_cannot_clear_successor",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5013091564178467,
+      "log_sha256": "a25211293ea36a0736d9f0e052d3a6c42bf6f0758c6ae645156084bc84c4b071",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::savepoint_restore_of_old_parent_keeps_original_sql_unit_writer_pinned",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5036649703979492,
+      "log_sha256": "f04222a064f1f046c3b0b5a7e7754b741993a9a93d9229b0c3b17dcb551246c6",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::native_flow_phase_and_join_projection_preserve_permissions_but_control_mutations_need_write",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5081782341003418,
+      "log_sha256": "d1c43ac52498ae69de2e3f66c2005c8cc5a7a693bc5d6c79e76263094b4cd161",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::original_journal_append_fills_metadata_but_cannot_rewrite_a_saved_export_prefix",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5210177898406982,
+      "log_sha256": "931e8536090b2c39af1a93708045c63b6e1d6c6dec2d600798bf886b1a3bb1c6",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::parent_birth::invited_session_birth_is_exact_kind_shape_and_never_old_parent_extension",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5267858505249023,
+      "log_sha256": "55f69c25e505af5b8e41d5e04c1fad8b306faa529ec7fb6a828200db81dda4c6",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::parent_birth::parent_birth_hooks_reject_commit_and_rollback_stale_nonce_for_each_kind",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.034038782119751,
+      "log_sha256": "057097381f2e7355e65530b19540da86a790d6b4609a8ca3855bcc7d01818802",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::parent_birth::parent_birth_refuses_foreign_connection_wrong_cid_and_raw_external_writer",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.0114848613739014,
+      "log_sha256": "17957d51a5888d1da63a3a2b13ffca258960a5ca27d5f72f34d9c23a52b9c68b",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::parent_birth::public_invited_provider_session_and_pending_call_preserve_original_read_and_replay",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5782241821289062,
+      "log_sha256": "ea96f66caea4721b40e7761fd190e13818fff6e7eafc2517c7542731aa4d939d",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::raw_sql_cannot_revoke_a_live_store_credential",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.517737865447998,
+      "log_sha256": "0da44351e3daf447a72ee0967ebb9710c531eac18a80da57dcc58cf7f6852ae8",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::sql_unit_pins_the_original_writer_and_rolls_back_before_releasing_it",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5003759860992432,
+      "log_sha256": "7c1a770c354065e356abd72b1377c35962a76b4c37c80726347162a10afbca46",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::update_or_replace_cannot_erase_another_identity_with_only_the_source_writer",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5021939277648926,
+      "log_sha256": "be8121a4183c6d2c04ad6c9fc110a589858d08ceb82efbe8773b00c25c0189d6",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::watcher_cannot_enable_after_a_guard_trigger_or_schema_table_changes",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.0538218021392822,
+      "log_sha256": "d2ba10121e230ecd892a16b3fa7ef9b71efcd6986af3978a9178007d99606017",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::credential_refresh_writer::credential_epoch_mutation_waits_for_original_media_and_reuses_its_exact_writer",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6515648365020752,
+      "log_sha256": "954abdc6fe69e00c14fe0c89dc7d354f503d51e9360afba75566ad6606aa2ed0",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_admission_atomically_keeps_one_message_and_original_audience_without_a_publication_effect",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.607994794845581,
+      "log_sha256": "17af2d1343db40e7effab4e1ce317cc88c8286fb930f608e403b98b6169d0dd3",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_all_replay_keeps_original_epoch_snapshots_after_presence_changes",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6253871917724609,
+      "log_sha256": "82d4b573feade50249b84cf7546a288eb6bd178a4b0130dc7b46ed5ed7385ff8",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_attempt_cannot_be_completed_as_a_subscription",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6318259239196777,
+      "log_sha256": "89ef74d835fd71fe94321cae521bf66606609c941e4d3e088a60e265e7547872",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_cancel_before_publication_keeps_durable_message_and_never_starts_an_effect",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6483480930328369,
+      "log_sha256": "30bc737e17518debc1da4f1a301cdb5d7976700eb0db012eac1bc997f7e77f39",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_capacity_refusal_leaves_no_partial_message_or_identity",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6104400157928467,
+      "log_sha256": "4f1148ca08ca4cd327a085e4fd26532bc7c7ea6c67f836c2823fe67213e49836",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_captured_queue_receipt_recovers_after_cancel_and_storage_failure_without_reviving_parent",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6900448799133301,
+      "log_sha256": "ea50927322e8521e68ae18400305cfa6e871214e8fe1034ecb69567dcc600d8f",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_changed_identity_scope_encoding_audience_and_extensions_conflict_before_new_work",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6487650871276855,
+      "log_sha256": "f5395d731157578a1de710791a2a1e346d2bb5a9f7dd5cc020a337508fae6a3e",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_journal_failure_rolls_back_message_audience_and_root_then_same_id_recovers",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6224870681762695,
+      "log_sha256": "87f36609104d32f1042a7401a0dbf28d901ae64f3d3fe371225705bce6e7430f",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_message_does_not_enqueue_an_ambient_provider_route",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.613508939743042,
+      "log_sha256": "e449c443da82b691a156a6d01c77fd84203a75813de6f405105baa78795afe6e",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_queue_receipt_is_local_admission_without_stream_revision_or_delivery_claim",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6492750644683838,
+      "log_sha256": "d590a1bdd1cc1ec18d296a99831d79280c63e462f2c565be040efe6737537aa2",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_shares_message_and_logical_identity_namespaces_with_ordinary_messages",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6524150371551514,
+      "log_sha256": "9ae482bc4f9cb059325279f4272153c59f2896eae615b7249f5db651ab0f93de",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_successor_preserves_uncertainty_message_and_original_effect_without_resubmission",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.75990891456604,
+      "log_sha256": "2aac9eb62c0ac43dfaf4787e630b8a35ebb0060bc409005335f2ad435da47ce4",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_cancellation_and_source_revocation_stop_queued_delivery_without_new_identity",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.4033019542694092,
+      "log_sha256": "4356ccaded7f653bb3b70fee47e49955893a3423c5c27f2cfe28ad912e76d803",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_connection_creation_does_not_grant_subscription_permission",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6902542114257812,
+      "log_sha256": "72c36d997e9cba47b60a4f5900b040e3877c5f6cc1ee8776880dfc717ab105ce",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_current_target_permission_presence_and_data_floor_are_independent",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 2.7490711212158203,
+      "log_sha256": "f6e87e90e7ffad6e8dfb11c2de6bcc8955310598060cf24fb562195dab263fc6",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_exact_intent_and_original_audience_cannot_be_substituted",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.3404898643493652,
+      "log_sha256": "c3d2b124460c075dc2e2ab7be755b2d1106576cb8bdc96d4f5105387725a1a71",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_held_current_check_uses_no_store_lock_and_fresh_contention_refuses",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7270920276641846,
+      "log_sha256": "f6cab2755a4288fa7cd0305dc7f27c97be0b5ee6a6386ee3b115822655c040ca",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_requires_one_begun_original_message_and_has_no_writer_effect",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7108778953552246,
+      "log_sha256": "9ccf8261d87fb44572e7aa2f413b05bc17e5e19422c313f1a1b42ab2f33d43de",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::original_publication_metadata_does_not_queue_behind_unrelated_command_sql",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6977558135986328,
+      "log_sha256": "6b70195ea1e803063e55912ef29fa2f29a879c374fe23a860c18a540353c811c",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_callback_refuses_store_contention_immediately_and_retries_same_identity",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6673901081085205,
+      "log_sha256": "2d754f6a86f6713c8cc97deea2955f3e873d4719a044ca5e153b303d2837da08",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_capacity_is_reserved_before_write_and_exchanged_for_exactly_one_fact",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6934502124786377,
+      "log_sha256": "f6d3a301c94c46f92bc7bb3f3e39b4f472955cf4f11b1409aed88b61b18889b6",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_genuine_unaddressed_target_cannot_reserve_or_record_a_write_and_refusal_releases_without_facts",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.686511754989624,
+      "log_sha256": "4cd05f6f367612d80b953dc80c5ed50f1c86cddbf6578815d16966742cc8721e",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_historical_fact_survives_cancel_revocation_and_retired_target_without_revival",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6782128810882568,
+      "log_sha256": "a3cd79b59cadaca75e5838283ddba9cc0cd49d17777b6bf8c00e8a8a3304db8a",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refusal_before_admission_is_recorded_but_cannot_become_written",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6572248935699463,
+      "log_sha256": "dfb851e537c43a79662778d274dc65cd9c160a016813fe83ee28af54b1205c8c",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refuses_wrong_source_message_operation_target_and_store_without_facts",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.181790828704834,
+      "log_sha256": "6a7227235bc8eb32461ef21bba463cf9a7333c41126c721372386e62e2176994",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_reserves_before_io_and_records_one_typed_local_fact_without_completing_queue_work",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7208802700042725,
+      "log_sha256": "290d5bc85b3884fdffb1567d96669570e0a2331f69d840dabafeae6fcfe1537a",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_sqlite_writer_contention_never_waits_and_preserves_pending_identity",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6585507392883301,
+      "log_sha256": "c739807eba2a62183a599c81b1b6125804120aaa9340e1f02a9c340ec95d719c",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_storage_failure_retains_original_reservation_and_same_callback_recovers",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6958301067352295,
+      "log_sha256": "c9a302c05b0a78932ce045d7c8f0fb1680d0039126968b873585b33f850d5c39",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_successor_marks_only_pending_original_writes_unknown_and_rejects_old_tokens",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7623600959777832,
+      "log_sha256": "9bcd7dbae71c07ec5914974fff31a6907c4560a37486ab5c950aba6265b40aec",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_completion_releases_only_its_slot_and_never_restarts_the_original_effect",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6842753887176514,
+      "log_sha256": "93fda7cef8b3c98a0d460f049a13320497191d6993ce753c5c7732263c92bf6f",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_completion_unblocks_credential_rotation_only_under_its_real_current_writer",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7549450397491455,
+      "log_sha256": "1f7a05ee9a5b6f54d52282ae2fca93fd7e406a6ce59b99d5476109e608777295",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_data_completion_and_exact_replay_preserve_actual_pcm_io_and_queued_epoch",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7319810390472412,
+      "log_sha256": "6f6121f674c535aa4b2c26910af6380838487b27563c7a1372118b54adfad795",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_data_lifecycle_witness_refusal_uses_the_existing_historical_writer",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6389150619506836,
+      "log_sha256": "49f7690ce5b2a4c759699c8c16af4fa25b27b92032f13946be12575fe4382f58",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_positive_permit_is_bound_to_actual_unit_proof_and_rollback_nonce",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.2152841091156006,
+      "log_sha256": "87c6db87842200ca86105be66702de96871f7ff230ba3491b7a9363d28ba3f67",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_positive_permit_rejects_unrelated_sql_and_exact_outcome_rewrites",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6852142810821533,
+      "log_sha256": "8f1a94ea1621e0d750756ea8cbedbf272a8d490ce712249426988c8879e9fb92",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::real_credential_writer_drains_pcm_io_and_cannot_revive_original_queued_epoch",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7230801582336426,
+      "log_sha256": "ec79bc90c1ae9c919555e1c3bb512181576ecd8f1a92ea1186bde81cdd113586",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::uncertain_data_outcome_keeps_the_real_writer_boundary",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7165942192077637,
+      "log_sha256": "836413b97ffa26f6a0acea5eb6f1a9527494a6d42e2fb6fa5fe91587bb029984",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::authority_rows_do_not_render_the_public_journal_page",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5257449150085449,
+      "log_sha256": "a248066d60808295a78303e189e9ba40ead85c8f906c3de428242c53fb44bde6",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::authority_rows_preserve_effects_uncertainty_and_full_public_status",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5743589401245117,
+      "log_sha256": "e216f5a859405d5473a5ff48431d5160faa2379284e8c233ba04077997e49ef7",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::authority_rows_still_refuse_current_scope_and_connection_epoch_changes",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 3.9835193157196045,
+      "log_sha256": "7d4a18486c99b12c4a238e6cb1ab90ba4406325dea03cda4d5478ff96393e179",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::decision_source_authorization_omits_history_but_preserves_current_permission",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5525670051574707,
+      "log_sha256": "9efc8aa7ed4170427fbe26d748e74a6521133c8d06752f878fe3e9fa2f7959e0",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::source_scope_admission_does_not_render_status_history_or_relax_claims",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5321431159973145,
+      "log_sha256": "d1a0642e3036c2d207d7e5a8a5fd725aa68ee06239c445081ae8969d60465ed7",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_message_receipt_proof_retains_typed_scope_and_refuses_extra_session_assertion",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5213379859924316,
+      "log_sha256": "a50ca9eef365e51fc5c307654a80d407eeda9fd0842ccbb47462f6d4b61b24a7",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_cancel_replay_and_attributed_reconciliation_share_current_durable_receipts",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5608301162719727,
+      "log_sha256": "7313b4d358f07379bf5f18deecc2d48ec212a848463a7ad8484ea65ac287d706",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_decisions_reject_nested_mutations_and_bound_malformed_source_depth_and_cycles",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7910411357879639,
+      "log_sha256": "5587ad91d71b996ece26ffcb1fec6b78e7100fb206c95455f37b878dae5e698b",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_get_keeps_nonconversation_provisioning_projection_source_current",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5429019927978516,
+      "log_sha256": "93591744b22db93b2836a0bf45f766dbc43a64e60dcef58802ef4e81bab8283e",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_get_requires_both_recovery_permission_and_current_original_command_scope",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6244001388549805,
+      "log_sha256": "2dde16dcfc6c549ff1683333f49475edeb9d80874566c5de0688e54ad8ab821b",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_get_retains_pending_invitation_projection_identity_until_delivery",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5434911251068115,
+      "log_sha256": "3cd6732f540984a522fdd5397b84b853a7954498c43810c4d0f9f5ad45f3109d",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_held_get_does_not_reenter_behind_queued_key_retirement",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.612267017364502,
+      "log_sha256": "6492eebd5dc06a643c881f5f4c5204a8b515279abc733f856555178ba488d2d3",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_lazy_get_recovers_possible_submission_once_without_reclaim_or_resubmit",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5833227634429932,
+      "log_sha256": "60d5cc4dfa24fe8f45a838bbe6af22701b794115e3583582ad4c5fc660e2d9cf",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_proof_covers_real_target_sources_and_refuses_spoofed_resource_assertions",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5759620666503906,
+      "log_sha256": "d4200cb133940cee00c3c1633b1e7017f50561a6e2125d38ab1dea78dbdf9aa3",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_proof_is_not_substitutable_for_another_action_target_credential_or_root",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.0763897895812988,
+      "log_sha256": "152fd0e06904a2daa826d0406fcb3b2c996a7906a69d9a6ccd2504a94d721fd4",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_source_expiry_during_sql_wait_rolls_back_lazy_recovery_and_decision",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 8.447269201278687,
+      "log_sha256": "c215ee223687f5f89ec3f708c490007bb751104dfb4b6726f022266c3a0c4e23",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_transition_admission_reuses_exact_proof_and_never_renews_original_expiry",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.6546239852905273,
+      "log_sha256": "ec094471fd9b69f35e443bc4d4c9caca52a35664437da58c06758c5477c3c5c2",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_transition_proof_binds_every_resource_and_intent_without_fallback",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5220742225646973,
+      "log_sha256": "152df65718193668abb759cece43ba1b5833cd837f0a389a4a3906d5c0aeaf74",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_transition_replay_uses_existing_http_expiry_without_operation_get_permission",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.530170202255249,
+      "log_sha256": "563a79b5ff36adf9b96fdfa08400b8d1cddcf9de43988203023aefa1420413c5",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_transition_source_readers_block_target_writers_but_not_unrelated_identity",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5818819999694824,
+      "log_sha256": "b00185c06779a4e24572c8f1ad17eb543e9ed6838153f5b279d780cf7f078412",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::endpoint_replacement_admits_only_immutable_intent_while_current_packet_readers_remain_owned",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5558879375457764,
+      "log_sha256": "df60a673b021eb30e34027c6549acc58e6823a1d9547ae7a1a4d08f1b58e7c75",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::http_transition_command_replay_preserves_expiry_and_checks_operation_resource_claims",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.6553599834442139,
+      "log_sha256": "58259fa4b50ccce2a9124b38d4319cacba4ac9f77892258dfbbf8876496099d1",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::operation_row_reads_keep_bindings_commits_rollback_and_schema_current",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.7041399478912354,
+      "log_sha256": "cd8683b9f4320ed3e6cdb6e3a997dfcbb7c3b72631a372315ae15d85c5afc117",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6931681632995605,
+      "log_sha256": "9d2454664b54689dc4d4ed0232089ace18f12fd97bb3fa69e5caa7ee9a40295b",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::concurrent_workers_and_duplicate_submission_have_one_external_attempt",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5868129730224609,
+      "log_sha256": "a936387f51606f33e56d1c93d55931f58ef9d7af5d17caf2860974a9e2c1fbe1",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::authority_tests::operation_admission_leases_effects_cancel_and_reconcile_wait_for_delivery",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.450085163116455,
+      "log_sha256": "bc0b94600fa02b1eeab896d575912010b20c64796e85ec734c1b816a6e7139c4",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_replay_is_deferred_and_never_restarts_or_releases_reservations",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5765151977539062,
+      "log_sha256": "70b2ff37bad9cca646c872932e7daa1951547d8e05c61347cf5e26a5122341c0",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_no_started_boundary_is_exactly_noop_but_actual_loss_requires_writer",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5415952205657959,
+      "log_sha256": "3084f0d27adad51d459aafbb751c5bb03daf521368687dff8ac98ebb4f351710",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_birth_permit_rejects_foreign_unit_forged_rows_and_unique_victims",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.0249059200286865,
+      "log_sha256": "717c8a6d55335dd4270725abfdb25b63ea741a8d4cf3116541d5380036f76757",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_pending_departure_refuses_read_birth_even_without_a_started_boundary",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5728812217712402,
+      "log_sha256": "d9d92ae1d0db8412976075d0dcc250645d506bff30c98fd0eb8d2f47d3e503f6",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_birth_never_uses_read_custody_to_bypass_current_credential_or_endpoint_refusal",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 1.0347740650177002,
+      "log_sha256": "26b17b2a5e5b5b62b9952420ceec140c4d65be3da618216779709a9ee1ace0f7",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::immutable_endpoint_intent_and_exact_replay_preserve_original_pcm_grant_until_real_revoke",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6962120532989502,
+      "log_sha256": "8b27368b3b3e37a9f43bca98555e8ee72e21c15597201f33506cd65a8832c247",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::custody::preparation_begin_permit_authorizes_only_exact_positive_ledger",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.6835439205169678,
+      "log_sha256": "631be8716d4b222f5daeb700244a2d45d1057ae357621b722d9ec89142389534",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "authority_fences::raw_probe::tests::raw_exclusive_probe_detects_both_shared_and_exclusive_original_guards_without_dml",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5037119388580322,
+      "log_sha256": "2534ad7482935d73da2ab5e8b0c7941ec37e5ad7b2c5bda65c5a0f9c9a066c90",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::exact_command_custody_probe_detects_shared_aliases_without_counting_independent_admissions",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5911390781402588,
+      "log_sha256": "14e1790193337a899f7572efadc07d1489cbd6555d0f8fd80718252aeda4ae28",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_service",
+      "test": "peer_authority::busy_error_tests::temporary_contention_is_typed_separately_from_permanent_authority_file_refusal",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.00740504264831543,
+      "log_sha256": "71531460a1b211323e5d692c20e6d9948f6671c3d3be9adb1feb6d766f35ec77",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_service",
+      "test": "peer_authority::unavailable::tests::actual_native_and_browser_runner_filters_admit_closed_control_failure_labels",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.014086246490478516,
+      "log_sha256": "de1cc91af13677ed2385becc9a99a4ab79e85d9740c3a22740948051ad3a40a2",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_service",
+      "test": "canonical_replacement::webrtc::prestart::tests::first_projection_shorter_than_target_proof_pins_actual_original_expiry",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.007448911666870117,
+      "log_sha256": "db5925bcc91ebdd7c848924bc71f96cb901d4aae5cf64a3f4132b94155b00596",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_service",
+      "test": "canonical_replacement::webrtc::prestart::tests::naturally_expired_first_projection_cannot_be_renewed_by_a_later_read_or_begin",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.5725209712982178,
+      "log_sha256": "f80e5ba7851920976bcab16c77a34f33fb84603c23d6367c7ea18ceb956b63a9",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_service",
+      "test": "canonical_replacement::webrtc::prestart::tests::expired_original_control_cutoff_cannot_issue_a_fresh_start_window",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.007079124450683594,
+      "log_sha256": "bb1ec803812e7e32453b7100674893cd2402bb384b293dc570ad9795bdcaf7d1",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "connect_service",
+      "test": "canonical_replacement::webrtc::prestart::tests::runtime_stop_during_projection_wait_cannot_enter_the_final_begin_callback",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.007341861724853516,
+      "log_sha256": "a713d573fb8b6dcf863a98394adddc6b8f8a082e9ef6caceafaecc26e70dc71a",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::same_prepared_subscription_retries_real_temporary_exclusion_without_new_command_or_cutoff",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.03845381736755371,
+      "log_sha256": "7446d0c3f5fdf95791d263ac1def14f869a879c055ddac36c02b34fa317656b5",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_busy_then_actual_revocation_refuses_same_original",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.03319907188415527,
+      "log_sha256": "bcb240f21ea31f2e7680731769eb4e04c98e2d4ad3ab39193fc3c84818835be9",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_permanent_authority_file_failure_is_not_retried",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.008840084075927734,
+      "log_sha256": "c707a4d4b4581e09fbb133bb6cc4363d28849ac60e490778ccc7fcca9edf4a0e",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_original_cutoff_and_all_original_cancellations_stop_busy_wait",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.05052590370178223,
+      "log_sha256": "2dd8d0cc6655d5274d3b3ccbaa5e3d9997f345d38624757463896159551f7c7f",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_retry_rejects_non_subscription_preparation_marker",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.009193181991577148,
+      "log_sha256": "4102ca1516a6ea21dfd8f2dfb0da09577a74c0d82dff0abb2b111fe289d980d3",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::signed_postcommit_data_subscription_recovers_same_prepared_candidate_after_real_authority_contention",
+      "ok": false,
+      "exit_code": 101,
+      "group_absent": true,
+      "elapsed_seconds": 3.9042418003082275,
+      "log_sha256": "b700e65368fc5130f82c854cd71f9f1d06efed38b0accb4904740c60f498f984",
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "ok": false,
+      "exit_code": 101,
+      "group_absent": true,
+      "elapsed_seconds": 45.50908708572388,
+      "log_sha256": "0c38b906809b7399e2cf54d80b18f420ae98d7b4578a983452d5b3360c06f184",
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::programme::full_programme_clock_and_movements_match_the_declared_matrix_contract",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.011075258255004883,
+      "log_sha256": "7148f2c68649f9cbf8112c4e545eb9db1e02bb71f9e43969ba311147d14540cb",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::programme::full_public_quality_never_credits_private_decode_or_invents_moving_bin_exclusions",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.01456594467163086,
+      "log_sha256": "0560563ebe7922fc3e70ce1bf25567195b919cca6490b1e880f2fc21920a2b4b",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::programme::actual_native_packet_counter_continues_when_the_inner_rtp_sequence_wraps",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 0.010164976119995117,
+      "log_sha256": "e5865a87cd128ba678c0ad7b02c724496f628c99456055acd3afd491eeec70dc",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates",
+      "ok": false,
+      "exit_code": 101,
+      "group_absent": true,
+      "elapsed_seconds": 13.884994268417358,
+      "log_sha256": "07d2eeabde92324c147b4392a3c051ba11cb366eef5f7653ded536ec7a16c326",
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+      "ok": false,
+      "exit_code": 101,
+      "group_absent": true,
+      "elapsed_seconds": 17.037113904953003,
+      "log_sha256": "1e911ac02d1e4e643cafe195b2a532fa50dea4255c68c00132b7b0aacd18fb53",
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_captured_start_survives_real_sql_exclusion_without_replaying_resources",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 4.701063871383667,
+      "log_sha256": "4301510d5a1785ba6c3c6587fdffb4d224b01822a1710d2b88712c65f6aed079",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": true
+    },
+    {
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_initial_start_read_waits_for_real_sql_without_retaining_writer_or_replaying_start",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 4.419140815734863,
+      "log_sha256": "24ede4eb742cf6cc3f69baac216cd6017208af0d312d6e667fd3167df449f102",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": true
+    },
+    {
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_typed_not_begun_waits_for_real_sql_without_retaining_writer_or_replaying_start",
+      "ok": true,
+      "exit_code": 0,
+      "group_absent": true,
+      "elapsed_seconds": 4.365436792373657,
+      "log_sha256": "143dec2a4e1db416cd1c66c98af7f8882a6488221d7d46f3db78a6f58baea309",
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "ignored_lane_explicitly_executed": true
+    }
+  ],
+  "failures": [
+    {
+      "case": "native postcommit Data / full programme",
+      "cause": "invented exact3 assertion refused actual validated activation revision4; no subscription recovery or full62s pass claimed",
+      "classification": "fixture",
+      "fix": "Use exact identity-bound public activation revision validated against original signed preparation, with exact next revision+1."
+    },
+    {
+      "case": "both shorter native representatives initial subscription",
+      "cause": "authorize-activation: authority-busy / primary-sql-mutex after prepared policy reauthorization and before Core activation; one-shot fresh scene read has no bounded recovery",
+      "classification": "production effect-free admission gap; correction in progress",
+      "fix": "Retry fresh policy+scene admission only for definiteBusy under original cutoff, release all current guards before wait, activate same candidate once."
+    }
+  ]
+}

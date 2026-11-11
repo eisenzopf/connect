@@ -1,6 +1,7 @@
 //! Exact same-Unit positive native phase metadata; never an IO authorization.
 use super::*;
 use rusqlite::OptionalExtension;
+mod intent;
 pub(crate) mod queued;
 pub(crate) mod reservation;
 
@@ -104,6 +105,13 @@ impl State {
                 return false;
             };
             let key = &active.key;
+            if key.phase == "intent-birth" {
+                return phase == Some("intent-birth")
+                    && effect.is_none()
+                    && attempt.is_none()
+                    && revision.is_none()
+                    && intent::matches(active, action, record, expected);
+            }
             if key.phase == "data-queued" {
                 return queued::matches(
                     active, action, record, effect, phase, expected, attempt, revision,

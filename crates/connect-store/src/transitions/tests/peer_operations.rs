@@ -1261,3 +1261,5 @@ fn canonical_transition_replay_uses_existing_http_expiry_without_operation_get_p
         first
     );
 }
+
+mod intent_birth;

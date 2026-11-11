@@ -17320,5 +17320,15 @@
   },
   "agent_work_tracker": "docs/evidence/gate-6/g6-058-agent-work-tracker.json",
   "mobile_review_document": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
-  "architecture_contract": "docs/evidence/gate-6/g6-058-architecture-contract-v216.json"
+  "architecture_contract": "docs/evidence/gate-6/g6-058-architecture-contract-v216.json",
+  "v216_focused_components": {
+    "status": "108/112pass source12;all3actualRTC SQLcasespass;2native stalefixtureassert failures;2native postauthscene-read SQLBusyfailures;fullprogrammeandmatrixpending",
+    "evidence": [
+      "docs/evidence/gate-6/g6-058-v216-components09.json",
+      "docs/evidence/gate-6/g6-058-v216-components10.json"
+    ],
+    "matrix_cells_passed": 0,
+    "matrix_baseline": "v215;no inheritedcomponentpasses",
+    "latest_evidence": "docs/evidence/gate-6/g6-058-v216-components12.json"
+  }
 }

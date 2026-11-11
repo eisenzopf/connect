@@ -159,9 +159,12 @@ fn uncertain_data_outcome_keeps_the_real_writer_boundary() {
     let epoch = io.packet_epoch().unwrap();
     let refused = store.native_stream_attempt_uncertain(&lease);
     let invalidated = !epoch.current();
+    // The first refused Writer wakes snapshot refresh. Join the real watcher
+    // and its in-flight factory before assuming all OTHER Read aliases drained;
+    // dropping this caller's IO alone does not give a try-Writer fairness.
+    watcher.shutdown().unwrap();
     drop(io);
     let recorded = store.native_stream_attempt_uncertain(&lease);
-    watcher.shutdown().unwrap();
     assert_eq!(refused.unwrap_err().code, "authority-busy");
     assert!(invalidated);
     assert_eq!(
@@ -175,7 +178,19 @@ fn queued_data_lifecycle_witness_refusal_uses_the_existing_historical_writer() {
     let (f, _origin, lease) = prepared();
     let receipt = lease.queued().unwrap();
     let record = receipt_record(&f);
-    f.change_fixture().execute("UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=(SELECT parent_record_id FROM native_stream_operations WHERE operation_record_id=?1)", [&record]).unwrap();
+    {
+        let c = f.change_fixture();
+        c.execute("UPDATE sessions SET state='active' WHERE id='session'", [])
+            .unwrap();
+        let fact = json!({"session":{"id":"session","conversation_id":f.cid,"state":"active"}})
+            .to_string();
+        c.execute(
+            "INSERT OR IGNORE INTO session_started_facts VALUES('session',?1,?2,'[]')",
+            params![f.cid, fact],
+        )
+        .unwrap();
+        c.execute("UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=(SELECT parent_record_id FROM native_stream_operations WHERE operation_record_id=?1)", [&record]).unwrap();
+    }
     let required = {
         let c = f.store.connection().unwrap();
         crate::authority_admission::conversation_scopes(&c, &f.cid, AuthorityMode::Read).unwrap()
@@ -512,4 +527,159 @@ fn queued_completion_unblocks_credential_rotation_only_under_its_real_current_wr
     );
     assert_eq!(busy_code, "authority-busy");
     assert!(writer_invalidated && original_refused && next_admitted);
+}
+
+#[test]
+fn immutable_endpoint_intent_and_exact_replay_preserve_original_pcm_grant_until_real_revoke() {
+    use connect_protocol::transitions::{OperationState, TransitionCommand, TransitionIntent};
+    let (f, mut signed, _, origin) = parent_permissions_origin_filtered_media(
+        false,
+        true,
+        false,
+        true,
+        true,
+        &["connection.replace"],
+        &[],
+        true,
+    );
+    let (revision, source_endpoint) = {
+        let writer = f.controlled_conversation_writer(0);
+        let c = f.store.connection_with_authority(&writer).unwrap();
+        let identity = crate::identity::actor_from_connection(&c, &f.keys[1])
+            .unwrap()
+            .identity_id;
+        // Controlled adapter metadata only: current replacement source selection
+        // requires this retained row to name the actual Store runtime. No
+        // physical retained port or decoded readiness is fabricated here.
+        c.execute("INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,state,observed_runtime_id,observed_at) VALUES('intent-retained','session',?1,1,?2,'tnt_default',?3,1,'active',?4,?5)",params![f.pids[1],identity,f.endpoints[1],f.store.runtime_epoch(),crate::now()]).unwrap();
+        let revision = c
+            .query_row(
+                "SELECT topology_revision FROM sessions WHERE id='session'",
+                [],
+                |r| r.get::<_, u64>(0),
+            )
+            .unwrap();
+        let endpoint = c
+            .query_row(
+                "SELECT endpoint_id FROM connections WHERE id=?1",
+                [origin.connection_id()],
+                |r| r.get::<_, String>(0),
+            )
+            .unwrap();
+        (revision, endpoint)
+    };
+    let command = TransitionCommand {
+        payload_extensions: Default::default(),
+        operation_id: "endpoint-intent-with-live-pcm".into(),
+        conversation_id: f.cid.clone(),
+        session_id: "session".into(),
+        connection_id: Some(origin.connection_id().into()),
+        expected_revision: revision,
+        intent: TransitionIntent::Replace {
+            retained_connid: "intent-retained".into(),
+            endpoint_id: Some(source_endpoint),
+            candidate_connid: None,
+            video: None,
+        },
+    };
+    signed.command = PeerCommand::Transition(command.clone());
+    // This metadata-only policy check performs no DML, acquires no domain
+    // fences, and grants no media rights. The fixture must pass it BEFORE IO.
+    f.store.check_peer_authority(&signed).expect("current source/retained/endpoint metadata must reach replacement authority selection before PCM counterexample");
+    let credential = f.keys[0].clone();
+    let actor = f.store.revalidate(&credential).unwrap().identity_id;
+    let store = Arc::new(f.store);
+    let (snapshot, mut watcher) = publication(&store, &origin);
+    let io = current(&snapshot);
+    assert!(io.target().offer["streams_offered"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|s| s["kind"] == "audio"));
+    let stamp = io.snapshot_stamp().unwrap();
+    let epoch = io.packet_epoch().unwrap();
+    let proof =
+        store.admit_peer_authority(&signed, &AuthorityWait::new(Duration::from_millis(100)));
+    let result = proof
+        .as_ref()
+        .map_err(|e| e.code.clone())
+        .and_then(|proof| {
+            store
+                .admit_transition_with_peer(&credential, command.clone(), proof)
+                .map_err(|e| e.code)
+        });
+    let original_survived = epoch.current();
+    let old = snapshot.admit_original(stamp);
+    let external = rusqlite::Connection::open(store.path()).unwrap();
+    external.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let replay = proof
+        .as_ref()
+        .map_err(|e| e.code.clone())
+        .and_then(|proof| {
+            store
+                .admit_transition_with_peer(&credential, command, proof)
+                .map_err(|e| e.code)
+        });
+    external.execute_batch("ROLLBACK").unwrap();
+    let replay_survived = epoch.current() && old.as_ref().is_ok_and(|read| read.current());
+    drop(old);
+    drop(proof);
+    let scope = AuthorityScope::identity(&actor, AuthorityMode::Write).unwrap();
+    let blocked = store.try_acquire_authority(&[scope.clone()]);
+    let was_revoked = !epoch.current();
+    drop(io);
+    let writer = store
+        .acquire_authority(&[scope], &AuthorityWait::new(Duration::from_secs(1)))
+        .unwrap();
+    store
+        .connection_with_authority(&writer)
+        .unwrap()
+        .execute(
+            "UPDATE credentials SET revoked=1 WHERE id=?1",
+            [&credential],
+        )
+        .unwrap();
+    drop(writer);
+    let stale_refused = snapshot.admit_original(stamp).is_err();
+    watcher.shutdown().unwrap();
+    assert!(
+        original_survived && replay_survived,
+        "immutable replacement intent/replay revoked original queued PCM authority"
+    );
+    let first = result.unwrap();
+    assert_eq!(first.state, OperationState::Accepted);
+    assert!(first.effects.is_empty());
+    assert_eq!(replay.unwrap(), first);
+    assert_eq!(blocked.err().unwrap().code, "authority-busy");
+    assert!(was_revoked && stale_refused && !epoch.current());
+}
+
+#[test]
+fn exact_command_custody_probe_detects_shared_aliases_without_counting_independent_admissions() {
+    let (f, mut request, _) = parent(true, true);
+    request.command = PeerCommand::Binding;
+    let original = admit(&f, &request).unwrap();
+    let retained = original.retained_custody_probe_for_test();
+    let alias = Store::peer_scopes(&original).clone();
+    let independent = admit(&f, &request).unwrap();
+    assert!(!Arc::ptr_eq(
+        Store::peer_scopes(&original),
+        Store::peer_scopes(&independent)
+    ));
+    assert!(retained());
+    drop(original);
+    assert!(
+        retained(),
+        "a borrowed original Read alias must be detected"
+    );
+    drop(alias);
+    assert!(
+        !retained(),
+        "independently admitted healthy Readers must not retain the original scope set"
+    );
+    assert!(independent.current());
+    assert!(
+        !retained(),
+        "observing a retired original set must not borrow a fresh admission"
+    );
 }

@@ -80,6 +80,7 @@ pub use received_dtmf::{
 mod peer;
 pub(crate) use peer::{current_control_record, operation_source_scopes, peer_operation_scopes};
 mod admission;
+pub(crate) mod intent_birth;
 pub(crate) use admission::transition_admission_scopes;
 mod cleanup;
 pub use cleanup::CleanupSettlement;
@@ -234,8 +235,24 @@ impl Store {
         let authority = self.transition_admission_authority(credential, &request, held)?;
         let mut c = self.connection()?;
         c.bind_available_mutation_authority(self, &authority)?;
+        let replay_only = {
+            let actor = actor_from_connection(&c, credential)?;
+            match rows::find(
+                &c,
+                &authority::tenant(&c, &actor)?,
+                &actor.identity_id,
+                &request.operation_id,
+            )? {
+                Some(row) => intent_birth::accepted_replay(&c, &row, self)?,
+                None => false,
+            }
+        };
         let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .transaction_with_behavior(if replay_only {
+                TransactionBehavior::Deferred
+            } else {
+                TransactionBehavior::Immediate
+            })
             .map_err(|_| Error::storage())?;
         let actor = actor_from_connection(&tx, credential)?;
         if let Some(peer) = peer {
@@ -262,11 +279,34 @@ impl Store {
                     "Operation result expired; this ID cannot execute again",
                 ));
             }
-            workers::recover_one(&tx, &old, &self.transition_runtime, self, &authority)?;
+            if replay_only {
+                if !intent_birth::accepted_replay(&tx, &old, self)? {
+                    return Err(Error::new(
+                        "authority-busy",
+                        "Original operation now requires current mutation authority",
+                    ));
+                }
+            } else {
+                if intent_birth::endpoint(&rows::request(&old)?)
+                    && !self.authority_covers(&authority, &admission::mutation_row_scopes(&old)?)
+                {
+                    return Err(Error::new(
+                        "authority-busy",
+                        "Original operation now requires current mutation authority",
+                    ));
+                }
+                workers::recover_one(&tx, &old, &self.transition_runtime, self, &authority)?;
+            }
             let result = rows::view(&tx, &actor, rows::by_record(&tx, &old.record.record_id)?)?;
             actor_from_connection(&tx, credential)?;
             if let Some(peer) = peer {
                 self.require_peer_source(&tx, peer, credential)?;
+            }
+            if replay_only && !intent_birth::accepted_replay(&tx, &old, self)? {
+                return Err(Error::new(
+                    "authority-busy",
+                    "Original replay crossed its current cutoff",
+                ));
             }
             tx.commit().map_err(|_| Error::storage())?;
             return Ok(result);
@@ -279,10 +319,14 @@ impl Store {
         let sources = authority::admission(&tx, &actor, &request, self)?;
         if !self.authority_covers(
             &authority,
-            &admission::request_scopes(&actor.identity_id, &request)?,
+            &admission::new_request_scopes(self, &tx, &actor, &request)?,
         ) {
             return Err(Error::new(
-                "authority-unavailable",
+                if intent_birth::endpoint(&request) {
+                    "authority-busy"
+                } else {
+                    "authority-unavailable"
+                },
                 "Operation admission authority changed",
             ));
         }
@@ -294,6 +338,14 @@ impl Store {
             ));
         }
         let record = format!("opr_{}", uuid::Uuid::new_v4());
+        let birth =
+            if intent_birth::eligible(&tx, &actor, &request, self)? {
+                Some(self.authority_writer_boundary.replacement_intent_birth(
+                    self, &tx, &authority, credential, &request, &record,
+                )?)
+            } else {
+                None
+            };
         tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,conversation_id,session_id,connection_id,expected_revision,intent_json,state,created_at,updated_at,expires_at,ledger_version) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,'accepted',?12,?12,?13,1)",params![record,tenant,actor.identity_id,request.operation_id,hash,request.intent.required_scope(),request.conversation_id,request.session_id,request.connection_id,request.expected_revision,intent,crate::now(),request.expires_at]).map_err(|_|Error::storage())?;
         authority::freeze(&tx, &record, &sources)?;
         native_returns::admitted(&tx, self, &actor, &request, &record, &hash)?;
@@ -327,6 +379,10 @@ impl Store {
         }
         let saved = rows::by_record(&tx, &record)?;
         let result = rows::view(&tx, &actor, saved)?;
+        if birth.is_some() && request.expires_at <= crate::now() {
+            return Err(Error::forbidden());
+        }
+        drop(birth);
         fault("admit:before-commit", &request.operation_id);
         tx.commit().map_err(|_| Error::storage())?;
         fault("admit:after-commit", &request.operation_id);

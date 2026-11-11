@@ -2,6 +2,8 @@
 //! while waiting or across a handler/network await. Locks are advisory: every
 //! supported Store authority writer must participate in this protocol.
 mod diagnostics;
+#[cfg(any(test, feature = "test-support"))]
+mod raw_probe;
 use connect_protocol::{Error, Result};
 use diagnostics::{Admission, ImmediateBusy};
 use fs2::FileExt;

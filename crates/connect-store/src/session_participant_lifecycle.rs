@@ -172,7 +172,15 @@ pub(crate) fn observed_join(
 /// rows. The caller holds the complete Conversation/member Reads through DML.
 pub(crate) fn reconcile_is_unchanged(c: &Connection, store: &Store, sid: &str) -> Result<bool> {
     if !crate::session_reconnect::connected_now(c, store, sid)? {
-        return Ok(false);
+        // No actual loss mutation exists before a started reconnect boundary.
+        // This is a DML absence witness, never a fabricated connected lifetime.
+        let loss: bool = c.query_row(
+            "SELECT EXISTS(SELECT 1 FROM session_reconnect_boundaries b JOIN session_started_facts f ON f.session_id=b.session_id JOIN sessions s ON s.id=b.session_id WHERE b.session_id=?1 AND b.lost_at_millis IS NULL AND s.state='active')",
+            [sid], |r|r.get(0),
+        ).map_err(|_|Error::storage())?;
+        if loss {
+            return Ok(false);
+        }
     }
     let pending: bool = c.query_row(
         "SELECT EXISTS(SELECT 1 FROM session_connected_presence presence WHERE presence.session_id=?1 AND presence.state='joined' AND (NOT EXISTS(SELECT 1 FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN sessions s ON s.id=sp.session_id WHERE sp.session_id=presence.session_id AND sp.participant_id=presence.participant_id AND sp.membership_epoch=presence.membership_epoch AND sp.state='present' AND s.state IN ('accepted','ready','active')) OR NOT EXISTS(SELECT 1 FROM connections c WHERE c.session_id=presence.session_id AND c.participant_id=presence.participant_id AND c.membership_epoch=presence.membership_epoch AND c.state NOT IN ('retired','failed','interrupted'))))", [sid], |r| r.get(0),

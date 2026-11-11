@@ -1773,6 +1773,21 @@ fn preparation_begin_permit_authorizes_only_exact_positive_ledger() {
     let permit = boundary
         .native_phase_ledger(&f.store, &tx, &held, key(attempt, Stage::Begin))
         .unwrap();
+    for action in [
+        "intent-root",
+        "intent-member-birth",
+        "intent-endpoint-birth",
+    ] {
+        let authorized: bool = tx.query_row(
+            "SELECT connect_store_native_phase_ledger_v1(?1,?2,NULL,'intent-birth',?3,NULL,NULL)",
+            rusqlite::params![action,record,""], |row| row.get(0),
+        ).unwrap();
+        assert!(
+            !authorized,
+            "actual non-intent Begin permit authorized {action}"
+        );
+    }
+
     assert!(
         tx.execute(submit, [&effect]).is_err(),
         "effect cannot submit before exact started step"

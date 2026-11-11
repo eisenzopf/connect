@@ -1,0 +1,14 @@
+{
+  "format": "connect/g6-058-store-intent-checkpoint/1",
+  "recorded_at": "2026-11-11T12:26:14.233470+00:00",
+  "scope": "Store schema128 intent-only admission and exact custody diagnostics; no media or matrix pass claimed",
+  "source12_workspace_sha256": "e4bef26ed414e42396b6f31c4ad2ae4755085f28b58fe588c98d502fae9ddb41",
+  "source_lock_sha256": "68b2ade75dfb289bfce3c23ad21c2a14e6bf65089258ce66430e82bb910de7e5",
+  "all_store_source_files_unchanged_since_test": true,
+  "matched_store_file_count": 667,
+  "exact_tests_passed": 91,
+  "exact_tests_failed": 0,
+  "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
+  "runtime_receipt_sha256": "ca32710c381a52cb893fb88edde5732e3cb1cda064af3702e6483125281f4368",
+  "limits": "Component receipt includes additional uncommitted Service/server fixture changes; this commit checkpoints only byte-identical Store implementation. Full workload/matrix still pending."
+}

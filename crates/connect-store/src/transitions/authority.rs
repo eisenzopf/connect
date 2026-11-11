@@ -292,6 +292,30 @@ pub(super) fn admission(
     }
     Ok(sources)
 }
+pub(super) fn intent_birth_rows(c: &Connection, record: &str, sources: &Sources) -> Result<String> {
+    let mut rows = Vec::new();
+    for (pid, (identity, epoch)) in &sources.members {
+        let tuple: String = c
+            .query_row(
+                "SELECT json_array(?1,?2,?3,?4)",
+                params![record, pid, identity, epoch],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        rows.push(format!("member:{tuple}"));
+    }
+    for (endpoint, revision) in &sources.endpoints {
+        let tuple: String = c
+            .query_row(
+                "SELECT json_array(?1,?2,?3)",
+                params![record, endpoint, revision],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        rows.push(format!("endpoint:{tuple}"));
+    }
+    Ok(rows.join("\n"))
+}
 pub(super) fn freeze(c: &Connection, record: &str, sources: &Sources) -> Result<()> {
     for (pid, (identity, epoch)) in &sources.members {
         c.execute(

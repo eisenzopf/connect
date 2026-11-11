@@ -71,6 +71,18 @@ pub(super) fn require_row(
     }
     Ok(())
 }
+pub(super) fn new_request_scopes(
+    store: &Store,
+    c: &Connection,
+    actor: &Actor,
+    request: &TransitionRequest,
+) -> Result<Vec<AuthorityScope>> {
+    if super::intent_birth::eligible(c, actor, request, store)? {
+        super::intent_birth::readers(c, actor, request)
+    } else {
+        request_scopes(&actor.identity_id, request)
+    }
+}
 pub(crate) fn transition_admission_scopes(
     store: &Store,
     c: &Connection,
@@ -87,7 +99,11 @@ pub(crate) fn transition_admission_scopes(
                 && crate::private_provider::recovery_disposition(c, &row, store)?.is_some();
             let recover_consultation = row.native_consultation
                 && super::native_consultations::recovery_disposition(c, &row, store)?.is_some();
-            let mut result = if replacement_row(&row)? || recover_provider || recover_consultation {
+            let immutable_replay = super::intent_birth::accepted_replay(c, &row, store)?;
+            let mut result = if (replacement_row(&row)? && !immutable_replay)
+                || recover_provider
+                || recover_consultation
+            {
                 mutation_row_scopes(&row)?
             } else {
                 row_scopes(&row)?
@@ -122,7 +138,7 @@ pub(crate) fn transition_admission_scopes(
             false,
         );
     }
-    let mut result = request_scopes(&actor.identity_id, request)?;
+    let mut result = new_request_scopes(store, c, actor, request)?;
     result.extend(authority::admission_readers(c, actor, request, store)?);
     Ok(result)
 }

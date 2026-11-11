@@ -189,6 +189,15 @@ pub struct PeerAuthorityGuard {
     native_member: Option<(String, u64)>,
 }
 impl PeerAuthorityGuard {
+    /// Observe only this admission's exact scope-set custody. Healthy media
+    /// publications from other admissions may share kernel Read descriptions,
+    /// but cannot keep this distinct guard-set allocation alive. The probe owns
+    /// no guard, exposes no scopes, and can never upgrade into authority.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn retained_custody_probe_for_test(&self) -> impl Fn() -> bool + Send + Sync + 'static {
+        let original = Arc::downgrade(&self._scopes);
+        move || original.strong_count() != 0
+    }
     pub fn key_id(&self) -> &str {
         &self.request.key_id
     }

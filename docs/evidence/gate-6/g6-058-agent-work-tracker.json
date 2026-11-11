@@ -1,16 +1,16 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-11T10:09:15.345780+00:00",
-  "revision": 5,
+  "updated_at": "2026-11-11T12:25:02.786942+00:00",
+  "revision": 9,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "update-pending",
-    "content_revision": 5,
-    "verified_at": "2026-11-11T10:39:51.116113+00:00",
+    "sync_status": "verified",
+    "content_revision": 9,
+    "verified_at": "2026-11-11T12:25:38.701739+00:00",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -96,15 +96,15 @@
       ],
       "depends_on": [],
       "status": "component-verified",
-      "implementation_state": "8/8newData-controls-pass;combined-media-and-matrix-pending",
+      "implementation_state": "90/90Storepass;combined-workload-and-matrix-pending",
       "proposed_fix": "Complete narrow same-transaction positive Data ledger capture; preserve current grant and PCM custody without an authority Writer when authority is unchanged.",
       "required_evidence": "Old path reproduces epoch invalidation; fixed path preserves actual PCM grant/custody; revoke, expiry, uncertainty, lifecycle fallback, credential rotation and SQL boundary negatives still pass.",
       "coordinator_review": {
         "status": "pending",
-        "root_cause_confirmed": false,
+        "root_cause_confirmed": true,
         "failure_mapping_verified": true,
         "architecture_conformance": "independent-source-review-passed;runtime-media-followthrough-pending",
-        "counterexample_verified": false,
+        "counterexample_verified": true,
         "regression_verified": true,
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
@@ -120,11 +120,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt03.json",
           "result": "81/82passed;8/8newData-controls-pass",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components09.json",
+          "result": "90Store+6Servicepassed;4signedfixturefailures;allownersjoined",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
+          "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:19:33.021885+00:00",
+      "updated_at": "2026-11-11T12:25:02.786942+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -147,17 +157,17 @@
       "depends_on": [
         "P1.1"
       ],
-      "status": "in-progress",
-      "implementation_state": "remaining-immutable-replacement-intent-Writer-conflict-confirmed;guarded-candidate-under-review",
+      "status": "component-verified",
+      "implementation_state": "90/90Storepass;combined-workload-and-matrix-pending",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
         "status": "pending",
-        "root_cause_confirmed": false,
+        "root_cause_confirmed": true,
         "failure_mapping_verified": true,
         "architecture_conformance": "pending",
-        "counterexample_verified": false,
-        "regression_verified": false,
+        "counterexample_verified": true,
+        "regression_verified": true,
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
@@ -166,11 +176,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt03.json",
           "result": "81/82passed;8/8newData-controls-pass",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components09.json",
+          "result": "90Store+6Servicepassed;4signedfixturefailures;allownersjoined",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
+          "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-11T12:25:02.786942+00:00",
       "mapped_check_count": 8,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -191,7 +211,7 @@
       ],
       "depends_on": [],
       "status": "in-progress",
-      "implementation_state": "draft-uncompiled-untested",
+      "implementation_state": "5/5preparedreauthcontrols pass; postauth scene-read Busygap confirmed; correctioninprogress",
       "proposed_fix": "Distinguish temporary Busy from permanent refusal and retry only authorization of the same prepared owner within its original deadline.",
       "required_evidence": "Actual signed Data subscription under held writer: one prepare/activation/effect; positive release, negative revoke/expiry/permanent refusal/cancel; old media remains usable.",
       "coordinator_review": {
@@ -204,10 +224,26 @@
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components09.json",
+          "result": "90Store+6Servicepassed;4signedfixturefailures;allownersjoined",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components10.json",
+          "result": "1of4signedpassed;3fixturefailuresdiagnosed;no matrixeffect",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
+          "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-11T12:25:02.786942+00:00",
       "mapped_check_count": 45,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -270,8 +306,8 @@
       "depends_on": [
         "P2.1"
       ],
-      "status": "in-progress",
-      "implementation_state": "root-cause-partly-unresolved",
+      "status": "component-verified",
+      "implementation_state": "3/3actualsignedRTC SQLcases pass; full programme andmatrixpending",
       "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
       "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
       "coordinator_review": {
@@ -284,10 +320,26 @@
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components09.json",
+          "result": "90Store+6Servicepassed;4signedfixturefailures;allownersjoined",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components10.json",
+          "result": "1of4signedpassed;3fixturefailuresdiagnosed;no matrixeffect",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
+          "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-11T12:25:02.786942+00:00",
       "mapped_check_count": 66,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -339,11 +391,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt03.json",
           "result": "81/82passed;8/8newData-controls-pass",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components09.json",
+          "result": "90Store+6Servicepassed;4signedfixturefailures;allownersjoined",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
+          "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:19:33.021885+00:00",
+      "updated_at": "2026-11-11T12:25:02.786942+00:00",
       "mapped_check_count": 16,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -605,7 +667,7 @@
         "P2.1"
       ],
       "status": "in-progress",
-      "implementation_state": "fixture-incomplete-do-not-build",
+      "implementation_state": "fullprogramme attempted; exact3fixtureassert wrong(actual4); strict actualpublicrevision fixpendingruntime",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -618,10 +680,26 @@
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components09.json",
+          "result": "90Store+6Servicepassed;4signedfixturefailures;allownersjoined",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components10.json",
+          "result": "1of4signedpassed;3fixturefailuresdiagnosed;no matrixeffect",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
+          "result": "108/112pass;91Store6Service5UCTP3RTC+3purepass;4nativefail",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-11T12:25:02.786942+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -2992,5 +3070,21 @@
     "reviewer": "/root/media_blockers",
     "scope": "Read-only repo/primary-standard audit",
     "status": "proposed contract recorded; code conformance remains unverified"
+  },
+  "focused_checkpoint": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components12.json",
+    "passed": 108,
+    "failed": 4,
+    "all_original_groups_joined": true,
+    "rtc_signed_real_sql": "3/3passed",
+    "full62s_programme": "failed invented exact revision before complete programme; no pass",
+    "matrix_effect": "not-tested"
+  },
+  "focused_signed_checkpoint": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components10.json",
+    "rtc_captured_start": "passed",
+    "native_postcommit_data": "stale-fixture-revision corrected; runtime pending",
+    "rtc_prestart": "exact-custody oracle under implementation/review",
+    "matrix_effect": "not-tested"
   }
 }
