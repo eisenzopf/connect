@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T14:15:47.500646+00:00",
-  "run_status": "Store18 passed102/102: exact positive historical Commit capture preserves original audio epoch, while real revoke/expiry/Writer and exact SQL byte/nonce/unit controls remain enforced. All original groups joined; source/binary unchanged. Next: default Service compile and combined130-check batch including actual62s programme. Latest complete full workload remains115/116 with genuine video FPS and cleanup correlation failures; full matrix unchanged v2150/32cells,287passed101failed44blocked.",
+  "updated": "2026-11-11T15:15:47.574343+00:00",
+  "run_status": "Fresh frozen batch17 completed127/130 checks; original groups joined and source/binaries unchanged. All123pure, signedData,2shortnative and1RTC pass.2RTC validReadySQLBusy failures and native return private-readiness timeout remain. Full programme aborted~48s with2/4moves; no fresh62squality/End verdict. Full matrix unchanged:v2150/32cells,287passed101failed44blocked.",
   "blockers": [
     {
       "id": "B01",
@@ -1561,7 +1561,7 @@
     {
       "id": "B191",
       "title": "Data completion may invalidate live audio custody",
-      "status": "Positive Data ledger and immutable intent preserve actual PCM custody in old/fixed controls; all91 Store checks pass. Full workload video deficits remain separately open.",
+      "status": "102Store controls pass; actual first two handoffs produce1positiveReader and1Writerfallback. Actual fallback reason and quality effect remain open.",
       "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced."
@@ -1601,7 +1601,7 @@
     {
       "id": "B196",
       "title": "Incomplete workload coverage in composite resource checks",
-      "status": "One actual62s native cycle completed4moves/8Data directions; End correlation fails. Three-cycle OS budgets, exact owner closure and10-renderer browser coverage remain unqualified.",
+      "status": "All130 original groups joined, but fresh17 native programme aborted~48s with2/4moves. No62s quality/End or three-cycle OS qualification.",
       "change": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff."
@@ -1609,7 +1609,7 @@
     {
       "id": "B197",
       "title": "Recorded original-owner failures paired with uncertain target deadlines",
-      "status": "All3 real signed RTC SQL regressions pass: captured Start, initial StartRead and typed not-begun. Original receipts, one Start and old media retained. Matrix pending.",
+      "status": "Start capture/probe and private decode remain verified; fresh17 fails2/3 signed cases at later valid Ready/status SQL contention (B199). Earlier all3 pass was not durable proof.",
       "change": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains."
@@ -1617,10 +1617,26 @@
     {
       "id": "B198",
       "title": "Focused fixture omits matrix Data and full retirement sequence",
-      "status": "Full native programme actually ran62s with4moves/8Data directions.115/116focusedchecks pass; failing workload includes real quality deficits and cleanup correlation. No new matrix run.",
+      "status": "Full4move/62s fixture is wired; fresh17 abortsreturn preparation~48s after2moves (B200). All6purefixture controls pass;62s quality and End branch not qualified.",
       "change": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
       "next": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open."
+    },
+    {
+      "id": "B199",
+      "title": "Valid Ready SQL contention straddles volatile capture",
+      "status": "Cause confirmed at two one-shot Ready SQL reads; fresh batch17 two signed RTC cases fail Ready/status. Existing logs do not distinguish before versus after capture.",
+      "change": "Implement narrow original-only grant-free Ready wait with fresh authorization on typedBusy, exactly-once capture and separate read-only result recovery. Keep original deadlines and physical bindings.",
+      "evidence": "g6-058-v216-components17.json: all123pure pass; Start probes/SQL owner joins/private decode/invalidReady refusals succeed, then validReady encounters primarySQLBusy and same-root status staysPreparing.",
+      "next": "Media owner401 API/Service fix; independent fixture review, pre/postcapture exclusion and revoke/expiry/cancel controls; fullbatch retest."
+    },
+    {
+      "id": "B200",
+      "title": "Unpublished direct-route validation treats contention as permanent Backpressure",
+      "status": "Native return route0 stops with Media(Backpressure) before Ready; route4 receives media. Source points to publisher.state.try_lock WouldBlock before route creation/publication; exact runtime leaf is not tagged yet.",
+      "change": "Private typed publisher-validation exclusion mapped ONLY at unpublished preroll boundary to existing MetadataBusy recovery. Ordinary subscriptions retain Backpressure, all permanent errors remain terminal.",
+      "evidence": "g6-058-v216-components17.json: return candidate0 zero inbound/no verified receiver notice; target4 decodes191frames; original8s candidate deadline aborts programme~48s.",
+      "next": "Fixture/Core owner stages402 with actual held-lock and original-cutoff/security tests; coordinator reviews and integrates after401, then fullnative workload and matrix."
     }
   ],
   "workplan_tasks": [
@@ -5763,10 +5779,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v215.json"
   },
   "current_focused_verification": {
-    "passed": 115,
-    "planned": 116,
-    "scope": "Source13:91Store,10Service,5UCTP,1signedData,3RTCsigned,2shortnative,3programmecontrols passed; full62s native workload failed.",
-    "next": "Four real clean-video FPS failures and End correlation remain; correct both before the next complete matrix."
+    "passed": 127,
+    "planned": 130,
+    "scope": "Source17:102Store,10Service,5UCTP,6purefixture,1RTC,1signedData,2shortnative pass.2RTCReady and1native return fail.",
+    "next": "Implement narrow grant-free Ready wait/revalidation; diagnose missing return receiver and actual Writer fallback, then verify/batch retest beforefull32."
   },
   "current_workplan_tasks": [
     "S107",

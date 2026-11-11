@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-11T14:15:47.500646+00:00",
-  "revision": 13,
+  "updated_at": "2026-11-11T15:15:47.574343+00:00",
+  "revision": 14,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 13,
-    "verified_at": "2026-11-11T14:16:21.465Z",
+    "content_revision": 14,
+    "verified_at": "2026-11-11T15:24:10.948Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -158,7 +158,7 @@
         "P1.1"
       ],
       "status": "component-verified",
-      "implementation_state": "102/102 Store controls pass; exact first positive Commit metadata preserves original audio epoch; real revoke/Writer/byte/unit/nonce controls pass; actual programme/matrix pending",
+      "implementation_state": "102/102 Store pass; actual two captures observed1Reader(Session1),1Writerfallback(Session0); exact fallback reason under investigation; no matrix effect proven",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
@@ -196,18 +196,30 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-store-attempt18.json",
           "result": "102/102 pass; original groups joined; source/binary unchanged",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
+          "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T14:15:47.500646+00:00",
+      "updated_at": "2026-11-11T15:15:47.574343+00:00",
       "mapped_check_count": 8,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
         "A01",
         "A06",
         "A07"
-      ]
+      ],
+      "current_action": {
+        "owner": "/root/v198_resources",
+        "reviewer": "/root",
+        "cause": "Actual Session0 capture retained Writer; exact false predicate is unlogged. Expected old-source retirement before delayed historical capture is a hypothesis, not proven runtime cause.",
+        "fix": "Bounded static eligibility reasons; assess exact current continuation authority for sealed positive historical old-source-retired receipt while preserving fresh target and exact live audience deltas.",
+        "verification": "Old behavior counterexample after genuine old-source retirement, fresh unaffected grant preserved, no old-source IO revival; all retained-retired/revoked/canceled/unknown/revision/generation/expiry negatives retained."
+      }
     },
     {
       "id": "P2.1",
@@ -321,8 +333,8 @@
       "depends_on": [
         "P2.1"
       ],
-      "status": "component-verified",
-      "implementation_state": "3/3actualsignedRTC SQLcases pass; full programme andmatrixpending",
+      "status": "cause-confirmed",
+      "implementation_state": "Valid Ready encounters one-shot pre/postcapture SQLBusy; Start probes/private decode pass; exact capture side ambiguous. Narrow grant-free Ready reauthorization wait in implementation.",
       "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
       "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
       "coordinator_review": {
@@ -355,11 +367,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
           "result": "115/116passed;full62squality+cleanupremainfailed",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
+          "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:53:36.260177+00:00",
+      "updated_at": "2026-11-11T15:15:47.574343+00:00",
       "mapped_check_count": 66,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -373,7 +390,14 @@
         "A09",
         "A10",
         "A11"
-      ]
+      ],
+      "current_action": {
+        "owner": "/root/media_blockers",
+        "reviewer": "/root/fixture_blockers",
+        "cause": "Valid Ready uses one-shot SQL reads before and after volatile capture; shared503 leaves capture side ambiguous.",
+        "fix": "Narrow original-only grant-free ReplacementReady wait kind; fresh current authorization on typedBusy, no proof held across wait, original cutoffs, exactly-once gate capture and separately retry read-only result projection.",
+        "verification": "Strict UCTP kind/marker/alias/reply negatives; Service cancellation/expiry/permanent refusal; actual signed pre/postcapture SQL exclusion and onceStart/SDP/capture/ownership."
+      }
     },
     {
       "id": "P3.2",
@@ -585,7 +609,7 @@
         "P3.1"
       ],
       "status": "diagnosing",
-      "implementation_state": "actualfull62s clean2/3 loseFPSat18/43;senderlocalcadence30fps; downstreamloss+decoder gating; exactcausepending",
+      "implementation_state": "Return private route0 has zero inbound/receiver notice; route4 receives191frames. Fullprogramme aborts~48s. Prior source13 realvideo deficits unresolved; no new quality verdict.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -603,11 +627,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
           "result": "115/116passed;full62squality+cleanupremainfailed",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
+          "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:53:36.260177+00:00",
+      "updated_at": "2026-11-11T15:15:47.574343+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -615,7 +644,14 @@
         "A03",
         "A04",
         "A09"
-      ]
+      ],
+      "current_action": {
+        "owner": "/root/fixture_blockers",
+        "reviewer": "/root",
+        "cause": "Return candidate stops with Media(Backpressure) before Ready; source-derived exact unpublished validate_direct publisher-state try_lock WouldBlock. Runtime leaf tagging still needed.",
+        "fix": "Core402 private typed publisher-validation exclusion only; map at pre-route preroll boundary to existing MetadataBusy retry with current scope release/fresh authorization and original deadline. Ordinary subscriptions keep original Backpressure behavior.",
+        "verification": "Actual held publisher mutex, zero route publication on refusal, recovery under original deadline, poison/revoke/revision/expiry/cancel remain terminal, full native4move62s regression."
+      }
     },
     {
       "id": "P6.1",
@@ -632,8 +668,8 @@
         "P3.2",
         "P4.2"
       ],
-      "status": "in-progress",
-      "implementation_state": "nativefunctionalcycleexecuted; Endcorrelation andfull3cycleOS/browserownershippending",
+      "status": "diagnosing",
+      "implementation_state": "All130 original groups joined, but native workload aborted~48s with2/4handoffs; full workload/End/OS coverage unqualified.",
       "proposed_fix": "Separate missing-handoff coverage from resource leaks; retain required10browserrenderer owners and all actual natural joins.",
       "required_evidence": "All3completecycles, exact original/replacement receipts, zero Session-owned physical owners/tasks/pools, helper/client joins and unchanged end/cleanup deadlines.",
       "coordinator_review": {
@@ -651,11 +687,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
           "result": "115/116passed;full62squality+cleanupremainfailed",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
+          "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:53:36.260177+00:00",
+      "updated_at": "2026-11-11T15:15:47.574343+00:00",
       "mapped_check_count": 41,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": []
@@ -709,8 +750,8 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "in-progress",
-      "implementation_state": "actual62s4moves8Data complete;publictotals>1440;quality andcleanupcorrelationfail",
+      "status": "diagnosing",
+      "implementation_state": "127/130 focusedpass; all123pure+signedData+2shorts+1RTC pass;2Ready and fullnative return fail; complete62s/End verification remains open.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -743,11 +784,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
           "result": "115/116passed;full62squality+cleanupremainfailed",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
+          "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:53:36.260177+00:00",
+      "updated_at": "2026-11-11T15:15:47.574343+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -779,7 +825,7 @@
         "P7.1"
       ],
       "status": "assigned",
-      "implementation_state": "held-not-ready",
+      "implementation_state": "Normal Service and combined ordinarydebug builds pass; frozen130 runs127pass3fail; source/binaries/groups stable. Next Ready/return fixes need fresh review and batch.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -792,10 +838,16 @@
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
-      "verification_runs": [],
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
+          "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
+          "matrix_result": false
+        }
+      ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-11T15:15:47.574343+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [

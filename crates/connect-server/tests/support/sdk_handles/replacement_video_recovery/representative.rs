@@ -1,4 +1,4 @@
-//! Short production integration of the actual matrix media topology.
+//! Production regression of the actual matrix topology; the full-programme selector also runs the original 62-second workload.
 //! Four physical/signing clients, two Sessions, six sources and four original
 //! replacements, including return to the same original Device. This is a real codec/Store regression, not a matrix result.
 use super::*;
@@ -11,7 +11,11 @@ use tokio_util::sync::CancellationToken;
 const SOURCE_FOR_RECEIVER: [usize; 6] = [3, 0, 1, 2, 5, 4];
 const OWNER: [usize; 6] = [0, 1, 2, 3, 0, 1];
 const SESSION: [usize; 6] = [0, 0, 0, 0, 1, 1];
-const FRAMES: u32 = 780;
+const FRAMES: u32 = 62 * 30;
+#[path = "representative_data.rs"]
+mod data;
+#[path = "representative_programme.rs"]
+mod programme;
 const AGE: Duration = Duration::from_millis(200);
 type Work = tokio::task::JoinHandle<std::result::Result<(), String>>;
 
@@ -64,12 +68,12 @@ fn short() -> RequestOptions {
 }
 
 /// Bounded scalar observation. The full media stays with its original reader.
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 struct Progress {
     encoded_frames: u64,
-    encoded_bins: [u16; 26],
+    encoded_bins: [u16; 62],
     published_frames: u64,
-    published_bins: [u16; 26],
+    published_bins: [u16; 62],
     published_video_packets: u64,
     published_audio_packets: u64,
     video_read_events: u64,
@@ -92,6 +96,9 @@ struct Progress {
     previous_decode: Option<(u32, connect_client::VideoSequenceRange)>,
     current_decode: Option<(u32, connect_client::VideoSequenceRange)>,
     assembly: connect_client::VideoAssemblyDiagnostics,
+    public: bool,
+    public_since: Option<Instant>,
+    public_bins: [u16; 62],
     frames: u64,
     keys: u64,
     fragmented_keys: u64,
@@ -105,9 +112,56 @@ struct Progress {
     last_key: Option<Instant>,
     timestamp: Option<u32>,
     epoch: Option<sdk::VideoReceiveEpoch>,
-    // Twenty-six one-second bins, including setup, cover both bounded rounds of this short
-    // integration. No per-packet diagnostic history is retained.
-    bins: [u16; 26],
+    // Fixed programme bins; no per-packet diagnostic history is retained.
+    bins: [u16; 62],
+}
+impl Default for Progress {
+    fn default() -> Self {
+        Self {
+            encoded_frames: Default::default(),
+            encoded_bins: [0; 62],
+            published_frames: Default::default(),
+            published_bins: [0; 62],
+            published_video_packets: Default::default(),
+            published_audio_packets: Default::default(),
+            video_read_events: Default::default(),
+            video_packets: Default::default(),
+            assembled_frames: Default::default(),
+            assembled_keys: Default::default(),
+            decode_attempts: Default::default(),
+            audio_read_events: Default::default(),
+            audio_packets: Default::default(),
+            received_datagrams: Default::default(),
+            other_datagrams: Default::default(),
+            video_losses: Default::default(),
+            late_video_packets: Default::default(),
+            skipped_delta_frames: Default::default(),
+            recovered_keys: Default::default(),
+            feedback_requests: Default::default(),
+            publisher_feedback_received: Default::default(),
+            publisher_feedback_used: Default::default(),
+            video_waiting_key: Default::default(),
+            previous_decode: Default::default(),
+            current_decode: Default::default(),
+            assembly: Default::default(),
+            public: false,
+            public_since: None,
+            public_bins: [0; 62],
+            frames: Default::default(),
+            keys: Default::default(),
+            fragmented_keys: Default::default(),
+            audio_samples: Default::default(),
+            audio_peak_samples: Default::default(),
+            audio_run_nonincreases: Default::default(),
+            audio_last_nonincrease: Default::default(),
+            last_video: Default::default(),
+            last_audio: Default::default(),
+            last_key: Default::default(),
+            timestamp: Default::default(),
+            epoch: Default::default(),
+            bins: [0; 62],
+        }
+    }
 }
 type SharedProgress = Arc<Mutex<Progress>>;
 
@@ -123,7 +177,7 @@ fn old_playout_quality_failures(
 ) -> Vec<String> {
     assert_eq!(before.len(), 6);
     assert_eq!(during.len(), 6);
-    assert!(last_bin <= 26, "original programme measurement bound");
+    assert!(last_bin <= 62, "original programme measurement bound");
     let mut failures = Vec::new();
     if first_bin >= last_bin {
         failures.push(format!(
@@ -199,9 +253,9 @@ fn old_playout_quality_retains_multiple_receiver_bins_and_still_refuses() {
             last_video: Some(move_started),
             last_audio: Some(move_started),
             audio_samples: 2880,
-            bins: [30; 26],
-            encoded_bins: [30; 26],
-            published_bins: [30; 26],
+            bins: [30; 62],
+            encoded_bins: [30; 62],
+            published_bins: [30; 62],
             ..Progress::default()
         };
         6
@@ -764,8 +818,9 @@ async fn send_original(
     stream: &sdk::Stream,
     packet: sdk::RtpPacket,
     retirement: &RetirementWitness,
+    until: Instant,
 ) -> bool {
-    match stream.send_rtp(packet, short()).await {
+    match stream.send_rtp(packet, programme::request(until)).await {
         Ok(_) => true,
         Err(error) if error.kind == sdk::ErrorKind::Unsupported && retirement.committed() => {
             eprintln!("representative original publisher observed exact recorded source retirement source={}",retirement.source);
@@ -775,7 +830,7 @@ async fn send_original(
     }
 }
 
-fn record_frame_bin(bins: &mut [u16; 26], at: Instant, began: Instant) {
+fn record_frame_bin(bins: &mut [u16; 62], at: Instant, began: Instant) {
     let bin = at.saturating_duration_since(began).as_secs() as usize;
     if let Some(count) = bins.get_mut(bin) {
         *count = count.saturating_add(1);
@@ -785,19 +840,19 @@ fn record_frame_bin(bins: &mut [u16; 26], at: Instant, began: Instant) {
 #[test]
 fn frame_input_bins_keep_original_second_boundaries_and_programme_limit() {
     let began = Instant::now();
-    let mut bins = [0; 26];
+    let mut bins = [0; 62];
     for elapsed in [
         Duration::ZERO,
         Duration::from_millis(999),
         Duration::from_secs(1),
-        Duration::from_secs(25),
-        Duration::from_secs(26),
+        Duration::from_secs(61),
+        Duration::from_secs(62),
     ] {
         record_frame_bin(&mut bins, began + elapsed, began);
     }
     assert_eq!(bins[0], 2);
     assert_eq!(bins[1], 1);
-    assert_eq!(bins[25], 1);
+    assert_eq!(bins[61], 1);
     assert_eq!(bins.iter().sum::<u16>(), 4);
     bins[2] = u16::MAX;
     record_frame_bin(&mut bins, began + Duration::from_secs(2), began);
@@ -828,6 +883,9 @@ fn observe_video(
     state.timestamp = Some(frame.timestamp_rtp);
     state.epoch = Some(epoch);
     record_frame_bin(&mut state.bins, arrived, began);
+    if state.public && state.public_since.is_some_and(|at| arrived >= at) {
+        record_frame_bin(&mut state.public_bins, arrived, began);
+    }
 }
 fn observe_audio(progress: &SharedProgress, decoder: &readiness_audio::Decoder, decoded: bool) {
     if !decoded {
@@ -891,8 +949,7 @@ fn selected_opus() -> readiness_audio::Decoder {
 fn spawn_publisher(
     connection: &sdk::Connection,
     source: usize,
-    binary: &Path,
-    raw: &Path,
+    master: &programme::Source,
     progress: SharedProgress,
     stop: CancellationToken,
     retirement: Arc<RetirementWitness>,
@@ -901,178 +958,57 @@ fn spawn_publisher(
 ) -> Vec<Work> {
     let video = connection.stream_by_id(format!("representative-video-{source}").parse().unwrap());
     let voice = connection.stream_by_id(format!("representative-audio-{source}").parse().unwrap());
-    let mut encoder = encoder(binary, raw);
-    let video_stop = stop.clone();
-    let video_retirement = retirement.clone();
-    let video_progress = progress.clone();
-    let video = tokio::spawn(async move {
-        let result = AssertUnwindSafe(async {
-            tokio::time::sleep_until(began).await;
-            let mut tick =
-                tokio::time::interval_at(began, Duration::from_nanos(1_000_000_000 / 30));
-            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-            let mut sequence = 0u16;
-            let mut feedback = None;
-            'frames: for index in 0..FRAMES {
-                if video_retirement.observed() {
-                    break;
-                }
-                loop {
-                    tokio::select! {
-                        _ = video_stop.cancelled() => break 'frames,
-                        _ = tick.tick() => break,
-                        request = video.receive_video_feedback(short()) => match request {
-                            Ok(request) => {
-                                video_progress.lock().unwrap().publisher_feedback_received += 1;
-                                feedback = Some(request);
-                            }
-                            Err(error) if error.kind == sdk::ErrorKind::Deadline
-                                && error.certainty == sdk::Certainty::ReadOnly => {}
-                            Err(error) if error.kind == sdk::ErrorKind::Unsupported
-                                && video_retirement.committed() => break 'frames,
-                            Err(error) => panic!("original publisher feedback failed: {error:?}"),
-                        }
-                    }
-                }
-                assert!(Instant::now() < cutoff, "original media programme cutoff");
-                let requested = if let Some(request) = feedback.take() {
-                    if request.ssrc() != 0x74000000 + source as u32 {
-                        false
-                    } else {
-                        match video.video_feedback_is_current(&request) {
-                            Ok(current) => current,
-                            Err(error)
-                                if error.kind == sdk::ErrorKind::Unsupported
-                                    && video_retirement.committed() =>
-                            {
-                                break 'frames
-                            }
-                            Err(error) => {
-                                panic!("original publisher feedback currency failed: {error:?}")
-                            }
-                        }
-                    }
-                } else {
-                    false
-                };
-                if requested {
-                    video_progress.lock().unwrap().publisher_feedback_used += 1;
-                }
-                let force = index % 30 == 0 || requested;
-                let bytes = timeout_at(cutoff, encoder.frame(index, force))
-                    .await
-                    .unwrap();
-                {
-                    let mut measured = video_progress.lock().unwrap();
-                    measured.encoded_frames += 1;
-                    record_frame_bin(&mut measured.encoded_bins, Instant::now(), began);
-                }
-                if force {
-                    assert!(
-                        bytes.len() > 2000,
-                        "real keyframe must need at least three RTP fragments"
-                    );
-                }
-                let parts = bytes.chunks(1000).collect::<Vec<_>>();
-                let mut ended = false;
-                for (part, payload) in parts.iter().enumerate() {
-                    let mut body = vec![if part == 0 { 0x10 } else { 0 }];
-                    body.extend_from_slice(payload);
-                    let packet = sdk::RtpPacket::new(
-                        u32::from(sequence),
-                        rtp(
-                            96,
-                            sequence,
-                            index * 3000,
-                            0x74000000 + source as u32,
-                            part + 1 == parts.len(),
-                            &body,
-                        ),
-                    )
-                    .unwrap();
-                    if !timeout_at(cutoff, send_original(&video, packet, &video_retirement))
-                        .await
-                        .unwrap()
-                    {
-                        ended = true;
-                        break;
-                    }
-                    video_progress.lock().unwrap().published_video_packets += 1;
-                    sequence = sequence.wrapping_add(1);
-                }
-                if ended {
-                    break;
-                }
-                {
-                    let mut measured = video_progress.lock().unwrap();
-                    measured.published_frames += 1;
-                    record_frame_bin(&mut measured.published_bins, Instant::now(), began);
-                }
-            }
-        })
-        .catch_unwind()
-        .await
-        .map_err(panic_text);
-        // Explicit original encoder shutdown/wait even if a source assertion fails.
-        let joined = finish_encoder(encoder).await;
-        result.and(if joined {
-            Ok(())
-        } else {
-            Err("original publisher encoder needed forced cleanup".into())
-        })
-    });
-    let audio = tokio::spawn(async move {
+    let mut samples = master.subscribe();
+    let requested = master.force_key.clone();
+    vec![tokio::spawn(async move {
         AssertUnwindSafe(async {
-            let mut encoder =
-                opus::Encoder::new(48000, opus::Channels::Mono, opus::Application::Voip).unwrap();
-            let mut tick = tokio::time::interval_at(began, Duration::from_millis(20));
-            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-            let mut index = 0u16;
+            let mut sequence = 0u32;
             loop {
-                tokio::select! {biased; _=stop.cancelled()=>break,_=tick.tick()=>{}}
-                if retirement.observed() {
-                    break;
+                if retirement.observed() { break; }
+                tokio::select! {
+                    biased;
+                    _ = stop.cancelled() => break,
+                    request = video.receive_video_feedback(short()) => match request {
+                        Ok(request) => {
+                            progress.lock().unwrap().publisher_feedback_received += 1;
+                            if request.ssrc() == 0x74000000 + source as u32 && video.video_feedback_is_current(&request).unwrap() {
+                                requested.store(true, Ordering::Release);
+                                progress.lock().unwrap().publisher_feedback_used += 1;
+                            }
+                        }
+                        Err(error) if error.kind == sdk::ErrorKind::Deadline && error.certainty == sdk::Certainty::ReadOnly => {}
+                        Err(error) if error.kind == sdk::ErrorKind::Unsupported && retirement.committed() => break,
+                        Err(error) => panic!("original publisher feedback failed: {error:?}"),
+                    },
+                    sample = samples.recv() => {
+                        let sample = sample.expect("original programme master output must not overflow or disappear");
+                        let until = cutoff.min(sample.captured + AGE);
+                        assert!(Instant::now() < until, "actual original source sample age");
+                        if sample.video {
+                            let parts = sample.bytes.chunks(1000).collect::<Vec<_>>();
+                            for (part, bytes) in parts.iter().enumerate() {
+                                let mut body = vec![if part == 0 {0x10} else {0}];body.extend_from_slice(bytes);
+                                let packet = programme::video_packet(sequence,sample.index * 3000,
+                                    0x74000000 + source as u32,part + 1 == parts.len(),&body);
+                                if !timeout_at(until,send_original(&video,packet,&retirement,until)).await.unwrap() {return;}
+                                sequence = sequence.checked_add(1).expect("original native video datagram counter");
+                                progress.lock().unwrap().published_video_packets += 1;
+                            }
+                            let mut measured = progress.lock().unwrap();
+                            measured.published_frames += 1;
+                            record_frame_bin(&mut measured.published_bins,Instant::now(),began);
+                        } else {
+                            let sequence = sample.index as u16;
+                            let packet = sdk::RtpPacket::new(sample.index,rtp(111,sequence,sample.index*960,
+                                0x61000000+source as u32,false,&sample.bytes)).unwrap();
+                            if !timeout_at(until,send_original(&voice,packet,&retirement,until)).await.unwrap() {return;}
+                            progress.lock().unwrap().published_audio_packets += 1;
+                        }
+                    }
                 }
-                assert!(Instant::now() < cutoff, "original audio programme cutoff");
-                let hz = 330.0 + source as f32 * 110.0;
-                let pcm = (0..960)
-                    .map(|n| {
-                        ((f32::from(index) * 960.0 + n as f32) * hz * std::f32::consts::TAU
-                            / 48000.0)
-                            .sin()
-                            * 10000.0
-                    })
-                    .map(|v| v as i16)
-                    .collect::<Vec<_>>();
-                let mut bytes = [0u8; 1276];
-                let size = encoder.encode(&pcm, &mut bytes).unwrap();
-                let packet = sdk::RtpPacket::new(
-                    u32::from(index),
-                    rtp(
-                        111,
-                        index,
-                        u32::from(index) * 960,
-                        0x61000000 + source as u32,
-                        false,
-                        &bytes[..size],
-                    ),
-                )
-                .unwrap();
-                if !timeout_at(cutoff, send_original(&voice, packet, &retirement))
-                    .await
-                    .unwrap()
-                {
-                    break;
-                }
-                progress.lock().unwrap().published_audio_packets += 1;
-                index = index.wrapping_add(1);
             }
-        })
-        .catch_unwind()
-        .await
-        .map_err(panic_text)
-    });
-    vec![video, audio]
+        }).catch_unwind().await.map_err(panic_text)
+    })]
 }
 
 fn spawn_original_receiver(
@@ -1189,8 +1125,9 @@ async fn attach_candidate(
         let offer=json!({"substrate":"quic","capabilities":{
             "audio_codecs":[{"name":"opus","params":{"sample_rate":48000,"channels":1}}],
             "video_codecs":[{"name":"vp8","params":{"sample_rate":90000,"channels":0}}],
-            "max_streams_per_connection":8,"video_feedback":"rtcp-pli-epoch/1"},
+            "data_protocols":["binary"],"max_streams_per_connection":8,"video_feedback":"rtcp-pli-epoch/1"},
             "streams_offered":[
+                {"id":format!("representative-{phase}-data-{index}"),"kind":"data","direction":"sendrecv","codec_preferences":["binary"]},
                 {"id":format!("representative-{phase}-audio-{index}"),"kind":"audio","direction":"sendrecv","codec_preferences":["opus"]},
                 {"id":format!("representative-{phase}-video-{index}"),"kind":"video","direction":"sendonly","codec_preferences":["vp8"]},
                 {"id":format!("representative-{phase}-incoming-{index}"),"kind":"video","direction":"recvonly","codec_preferences":["vp8"]}]});
@@ -1223,7 +1160,7 @@ fn spawn_candidate(
     source: usize,
     inbound: usize,
     binary: &Path,
-    raw: &Path,
+    master: &programme::Source,
     progress: SharedProgress,
     stop: CancellationToken,
     began: Instant,
@@ -1236,57 +1173,49 @@ fn spawn_candidate(
     let retirement = candidate.retirement.as_ref().unwrap().clone();
     let mut io = candidate.io.take().unwrap();
     let (voice, camera, incoming) = (candidate.voice, candidate.camera, candidate.incoming);
-    let mut encoder = encoder(binary, raw);
+    let mut samples = master.subscribe();
+    let requested = master.force_key.clone();
+    let source_end = began + Duration::from_secs(programme::SECONDS as u64);
     let mut decoder = LiveDecoder::open(binary, inbound);
     tokio::spawn(async move {
         let result=AssertUnwindSafe(async {
-            let mut audio_encoder=opus::Encoder::new(48000,opus::Channels::Mono,opus::Application::Voip).unwrap();
             let mut audio=selected_opus();let mut continuity=DecodeHistory::default();
-            let mut epoch=None;let mut audio_index=0u16;let mut video_index=0u32;let mut sequence=0u16;
-            let mut audio_tick=tokio::time::interval(Duration::from_millis(20));
-            let mut video_tick=tokio::time::interval(Duration::from_nanos(1_000_000_000/30));
-            audio_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-            video_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            let mut epoch=None;let mut sequence=0u32;
             loop {
                 // This original physical may stop only after its own exact
                 // later replacement really committed. No pre-Ready forecast
                 // or renewed deadline can retire a generation-two candidate.
                 if retirement.observed() {break;}
                 tokio::select! {
+                    biased;
                     _=stop.cancelled()=>break,
-                    _=audio_tick.tick()=>{
-                        let pcm=(0..960).map(|n|((f32::from(audio_index)*960.0+n as f32)*(330.0+source as f32*110.0)*
-                            std::f32::consts::TAU/48000.0).sin()*10000.0).map(|v|v as i16).collect::<Vec<_>>();
-                        let mut bytes=[0u8;1276];let count=audio_encoder.encode(&pcm,&mut bytes).unwrap();
-                        io.send(&pack(&MediaDatagram{flags:0,stream_local_id:voice,seq:u32::from(audio_index),
-                            payload:rtp(111,audio_index,u32::from(audio_index)*960,0x71000000+source as u32,false,&bytes[..count]).into()})).unwrap();
-                        progress.lock().unwrap().published_audio_packets+=1;
-                        audio_index=audio_index.wrapping_add(1);
-                    },
-                    _=video_tick.tick()=>{
-                        let force=video_index%30==0 || force_key.swap(false,Ordering::AcqRel)
-                            || io.take_keyframe_request(camera,0x74000000+source as u32).unwrap();
-                        let frame=timeout_at(cutoff,encoder.frame(video_index,force)).await.unwrap();
-                        {
-                            let mut measured=progress.lock().unwrap();
-                            measured.encoded_frames+=1;
-                            record_frame_bin(&mut measured.encoded_bins,Instant::now(),began);
+                    sample=samples.recv()=>{
+                        let sample=sample.expect("same original source master cannot overflow");
+                        let until=cutoff.min(source_end).min(sample.captured+AGE);
+                        assert!(Instant::now()<until,"actual candidate source sample age and original62s publication cutoff");
+                        if force_key.swap(false,Ordering::AcqRel)
+                            || io.take_keyframe_request(camera,0x74000000+source as u32).unwrap() {
+                            requested.store(true,Ordering::Release);
                         }
-                        if force {assert!(frame.len()>2000,"candidate publisher also uses genuinely fragmented keyframes");}
-                        for (part,bytes) in frame.chunks(1000).enumerate() {
-                            let mut body=vec![if part==0 {0x10} else {0}];body.extend_from_slice(bytes);
-                            io.send(&pack(&MediaDatagram{flags:0,stream_local_id:camera,seq:u32::from(sequence),
-                                payload:rtp(96,sequence,video_index*3000,0x74000000+source as u32,
-                                    (part+1)*1000>=frame.len(),&body).into()})).unwrap();
-                            progress.lock().unwrap().published_video_packets+=1;
-                            sequence=sequence.wrapping_add(1);
-                        }
-                        {
+                        if sample.video {
+                            for (part,bytes) in sample.bytes.chunks(1000).enumerate() {
+                                let mut body=vec![if part==0 {0x10} else {0}];body.extend_from_slice(bytes);
+                                assert!(Instant::now()<until,"original source fragment publication cutoff");
+                                io.send(&pack(&MediaDatagram{flags:0,stream_local_id:camera,seq:sequence,
+                                    payload:rtp(96,sequence as u16,sample.index*3000,0x74000000+source as u32,
+                                        (part+1)*1000>=sample.bytes.len(),&body).into()})).unwrap();
+                                sequence=sequence.checked_add(1).expect("candidate native video datagram counter");
+                                progress.lock().unwrap().published_video_packets+=1;
+                            }
                             let mut measured=progress.lock().unwrap();
                             measured.published_frames+=1;
                             record_frame_bin(&mut measured.published_bins,Instant::now(),began);
+                        } else {
+                            io.send(&pack(&MediaDatagram{flags:0,stream_local_id:voice,seq:sample.index,
+                                payload:rtp(111,sample.index as u16,sample.index*960,
+                                    0x61000000+source as u32,false,&sample.bytes).into()})).unwrap();
+                            progress.lock().unwrap().published_audio_packets+=1;
                         }
-                        video_index+=1;assert!(video_index<FRAMES);
                     },
                     packet=io.receive()=>{
                         let packet=match packet {
@@ -1334,19 +1263,12 @@ fn spawn_candidate(
             retirement.source,
             io.verified_video_receiver_notice_count_for_test()
         );
-        let encoder_join = finish_encoder(encoder).await;
         let decoder_join = decoder.close().await;
-        result
-            .and(if encoder_join {
-                Ok(())
-            } else {
-                Err("candidate publisher encoder needed forced cleanup".into())
-            })
-            .and(if decoder_join {
-                Ok(())
-            } else {
-                Err("candidate decoder did not finish successfully".into())
-            })
+        result.and(if decoder_join {
+            Ok(())
+        } else {
+            Err("candidate decoder did not finish successfully".into())
+        })
     })
 }
 fn fresh(progress: &Progress) -> bool {
@@ -1420,14 +1342,28 @@ async fn wait_original_playout(
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates(
 ) {
-    representative(false).await;
+    representative(false, false).await;
 }
 #[cfg(feature = "test-support")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held() {
-    representative(true).await;
+    representative(true, false).await;
 }
-async fn representative(force_allocation_overlap: bool) {
+#[tokio::test(flavor = "multi_thread", worker_threads = 6)]
+async fn signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners(
+) {
+    // This outer fixture bound includes setup and ten seconds of idle. Every
+    // programme/control/capture phase retains its separate original cutoff.
+    let entered = Instant::now();
+    representative(false, true).await;
+    // Never drop the owning fixture future at an outer timeout: every actual
+    // task/codec/client must join even if the final bounded verdict fails.
+    assert!(
+        entered.elapsed() < Duration::from_secs(180),
+        "full fixture exceeded setup/programme/cleanup bound after owned joins"
+    );
+}
+async fn representative(force_allocation_overlap: bool, full_programme: bool) {
     assert_eq!(std::env::consts::ARCH, "aarch64");
     assert!(
         matches!(std::env::consts::OS, "linux" | "macos"),
@@ -1445,7 +1381,15 @@ async fn representative(force_allocation_overlap: bool) {
                 .try_init();
         });
     }
-    let f = Fixture::with_native_end_scope("EdDSA", 16).await;
+    let mut f = Fixture::with_native_end_scope("EdDSA", 16).await;
+    if full_programme {
+        f.server.shutdown().await.unwrap();
+        f.config.limits.message_bytes = 64 * 1024;
+        f.server = RunningCanonicalServer::start(f.config.clone())
+            .await
+            .unwrap();
+        f.client.endpoint = f.server.address;
+    }
     let (binary, raw) = codec_inputs(f.temp.path()).await;
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let mut identities = vec![f.client.identity_id.clone(), f.peer.identity_id.clone()];
@@ -1483,7 +1427,7 @@ async fn representative(force_allocation_overlap: bool) {
                 &f,
                 id,
                 700 + n,
-                vec!["audio".into(), "video".into()],
+                vec!["audio".into(), "video".into(), "data".into()],
                 participant_scope.clone(),
             )
         })
@@ -1493,7 +1437,7 @@ async fn representative(force_allocation_overlap: bool) {
             &f,
             &identities[0],
             704,
-            vec!["audio".into(), "video".into()],
+            vec!["audio".into(), "video".into(), "data".into()],
             participant_scope.clone(),
         );
     let endpoints = [&configs[0].device_id, &replacement_config.device_id].map(|device| {
@@ -1542,14 +1486,14 @@ async fn representative(force_allocation_overlap: bool) {
                 .clone()
         })
         .collect::<Vec<_>>();
-    let caps = json!({"audio":["opus"],"video":["vp8"]});
+    let caps = json!({"audio":["opus"],"video":["vp8"],"data":["reliable-ordered"]});
     let mut sessions = Vec::new();
     for (sid, roles) in [vec![0usize, 1, 2, 3], vec![0, 1]].into_iter().enumerate() {
         let session = room
             .invite(
                 format!("representative-session-{sid}").parse().unwrap(),
                 roles[1..].iter().map(|&i| pids[i].clone()).collect(),
-                sdk::SessionMedium::VoiceVideo,
+                sdk::SessionMedium::TextChat,
                 "simultaneous real media integration".into(),
                 caps.clone(),
                 mutation(&format!("representative-invite-{sid}")),
@@ -1576,6 +1520,27 @@ async fn representative(force_allocation_overlap: bool) {
             .await
             .unwrap();
         }
+        let before = session.refresh(options()).await.unwrap();
+        assert_eq!(before.media, vec![Medium::Data]);
+        session
+            .update(
+                sdk::SessionUpdate::MediumUpgrade(NonEmpty {
+                    first: Medium::Audio,
+                    rest: vec![Medium::Video],
+                }),
+                before.topology_revision,
+                mutation(&format!("representative-upgrade-{sid}")),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        let after = session.refresh(options()).await.unwrap();
+        assert_eq!(
+            after.media,
+            vec![Medium::Audio, Medium::Data, Medium::Video]
+        );
         sessions.push(session);
     }
     assert_eq!(sessions[0].conversation_id(), sessions[1].conversation_id());
@@ -1592,6 +1557,12 @@ async fn representative(force_allocation_overlap: bool) {
                 codecs: single("opus".into()),
             },
             rest: vec![
+                sdk::OfferedStream {
+                    id: format!("representative-data-{index}").parse().unwrap(),
+                    kind: Medium::Data,
+                    direction: Direction::Sendrecv,
+                    codecs: single("binary".into()),
+                },
                 sdk::OfferedStream {
                     id: format!("representative-video-{index}").parse().unwrap(),
                     kind: Medium::Video,
@@ -1632,24 +1603,54 @@ async fn representative(force_allocation_overlap: bool) {
             .unwrap()
             .stream_revision
             .unwrap();
-        connection
-            .subscribe(
-                NonEmpty {
-                    first: StreamSelector::Stream(
-                        format!("representative-audio-{source}").parse().unwrap(),
-                    ),
-                    rest: vec![StreamSelector::Stream(
-                        format!("representative-video-{source}").parse().unwrap(),
-                    )],
-                },
-                revision,
-                mutation(&format!("representative-select-{index}")),
-            )
-            .await
-            .unwrap()
-            .wait(options())
-            .await
-            .unwrap();
+        let mut selection_stage = "submit";
+        let selection = async {
+            let operation = connection
+                .subscribe(
+                    NonEmpty {
+                        first: StreamSelector::Stream(
+                            format!("representative-audio-{source}").parse().unwrap(),
+                        ),
+                        rest: vec![
+                            StreamSelector::Stream(
+                                format!("representative-video-{source}").parse().unwrap(),
+                            ),
+                            StreamSelector::Stream(
+                                format!("representative-data-{source}").parse().unwrap(),
+                            ),
+                        ],
+                    },
+                    revision,
+                    mutation(&format!("representative-select-{index}")),
+                )
+                .await?;
+            selection_stage = "wait-original";
+            operation.wait(options()).await?;
+            Ok::<(), sdk::Error>(())
+        }
+        .await;
+        if let Err(error) = selection {
+            data::selection_failure(
+                &f,
+                connection,
+                &format!("representative-select-{index}"),
+                selection_stage,
+                &error,
+            );
+            // A setup refusal must still close every exact already-offered
+            // peer and join the host before propagating that first error.
+            for client in &clients {
+                let joined = client.close(options()).await;
+                eprintln!("representative failed initial selection SDK join={joined:?}");
+            }
+            let joined = f.server.shutdown().await;
+            eprintln!("representative failed initial selection server join={joined:?}");
+            panic!(
+                "original initial subscription failed: {error:?}; problem={:?}; observation={:?}",
+                error.problem, error.observation
+            );
+        }
+
         original_binding_diagnostics("after-subscribe", connection, index);
     }
     let mut control_scope = Scope::collaboration(vec!["*".into()]);
@@ -1672,6 +1673,11 @@ async fn representative(force_allocation_overlap: bool) {
     let progress = (0..6)
         .map(|_| Arc::new(Mutex::new(Progress::default())))
         .collect::<Vec<_>>();
+    for measured in &progress {
+        let mut observed = measured.lock().unwrap();
+        observed.public = true;
+        observed.public_since = Some(Instant::now());
+    }
     let stop = CancellationToken::new();
     let retirements = (0..6)
         .map(|index| {
@@ -1683,15 +1689,28 @@ async fn representative(force_allocation_overlap: bool) {
         })
         .collect::<Vec<_>>();
     let began = Instant::now() + Duration::from_millis(100);
-    let programme_cutoff = began + Duration::from_secs(26);
+    let programme_cutoff = began + Duration::from_secs(programme::SECONDS as u64);
+    let read_cutoff = programme_cutoff + Duration::from_millis(200);
+    let join_cutoff = programme_cutoff + Duration::from_secs(5);
+    let mut masters = Vec::new();
     phase_timing("programme-anchor", began, None, None);
     let mut works = Vec::new();
     for index in 0..6 {
-        works.extend(spawn_publisher(
-            &connections[index],
+        let (master, owners) = programme::source(
             index,
             &binary,
             &raw[index],
+            progress[index].clone(),
+            stop.clone(),
+            began,
+            programme_cutoff,
+        );
+        works.extend(owners);
+        masters.push(master);
+        works.extend(spawn_publisher(
+            &connections[index],
+            index,
+            &masters[index],
             progress[index].clone(),
             stop.clone(),
             retirements[index].clone(),
@@ -1707,12 +1726,13 @@ async fn representative(force_allocation_overlap: bool) {
             stop.clone(),
             retirements[index].clone(),
             began,
-            programme_cutoff,
+            read_cutoff,
         ));
     }
     let mut targets = Vec::<Candidate>::new();
     let mut target_progress = Vec::<SharedProgress>::new();
     let mut quality_failures = Vec::new();
+    let mut task_failures = Vec::new();
     let work=AssertUnwindSafe(async {
         wait_original_playout(&progress,&connections,began+Duration::from_secs(8)).await;
         // Warm up two genuine seconds before measuring the first preparation.
@@ -1726,6 +1746,9 @@ async fn representative(force_allocation_overlap: bool) {
         let mut previous_targets:[Option<usize>;2]=[None,None];
         let mut completed_originals=Vec::new();
         for round in 0..2usize {
+            if full_programme {
+                tokio::time::sleep_until(began+Duration::from_secs(programme::MOVES[round])).await;
+            }
             let stream_phase=if round==0 {"target"} else {"return"};
             let source_generation=round as u64+1;
             let generation=source_generation+1;
@@ -1844,8 +1867,8 @@ async fn representative(force_allocation_overlap: bool) {
                 attach_candidate(&mut right[0],&commands[1],&roots[1],4,stream_phase,source_generation,&f.config.database,move_cutoff));
             }
             for (sid,&index) in [0usize,4].iter().enumerate() {
-                works.push(spawn_candidate(&mut targets[first+sid],index,SOURCE_FOR_RECEIVER[index],&binary,&raw[index],
-                    target_progress[first+sid].clone(),stop.clone(),began,programme_cutoff));
+                works.push(spawn_candidate(&mut targets[first+sid],index,SOURCE_FOR_RECEIVER[index],&binary,&masters[index],
+                    target_progress[first+sid].clone(),stop.clone(),began,read_cutoff));
             }
             let held_until=Instant::now()+Duration::from_secs(2);
             assert!(held_until<move_cutoff);
@@ -1886,6 +1909,7 @@ async fn representative(force_allocation_overlap: bool) {
                     Some(NativeDecodedVideoReadiness{decoded_frames:observed.frames,decoded_keyframes:observed.keys})).unwrap();
                 submit(&mut targets[first+sid].client,&ready,&mut controllers[sid],&commands[sid],&roots[sid],move_cutoff).await;
             }
+            let mut committed_revisions=[0u64;2];
             for (sid,&index) in [0usize,4].iter().enumerate() {
                 let done=timeout_at(move_cutoff,completed(&f,&mut controllers[sid],&commands[sid])).await.unwrap();
                 assert_eq!(done.record_id,roots[sid].record_id);assert_eq!(done.operation_id,roots[sid].operation_id);
@@ -1895,6 +1919,10 @@ async fn representative(force_allocation_overlap: bool) {
                 assert_eq!(value["result"]["device_id"],target_config.device_id);
                 assert_eq!(value["result"]["endpoint_id"],endpoints[if round==0 {1}else{0}]);
                 targets[first+sid].preparation.as_ref().unwrap().activation_from_completed(&value).unwrap();
+                let committed_revision=value["result"]["readiness"]["stream_revision"].as_u64().unwrap();
+                assert!(committed_revision>targets[first+sid].preparation.as_ref().unwrap().stream_revision(),
+                    "same signed completed root readiness must advance its exact private preparation");
+                committed_revisions[sid]=committed_revision;
                 timeout_at(move_cutoff,async {
                     loop {
                         let (state,actual_generation):(String,u64)=rusqlite::Connection::open_with_flags(&f.config.database,
@@ -1912,6 +1940,11 @@ async fn representative(force_allocation_overlap: bool) {
                     }
                 }).await.expect("exact original source must retire within same original move deadline");
                 active_sources[index]=targets[first+sid].preparation.as_ref().unwrap().connection_id().unwrap().into();
+                active_progress[index].lock().unwrap().public=false;
+                {
+                    let mut observed=target_progress[first+sid].lock().unwrap();
+                    observed.public=true;observed.public_since=Some(Instant::now());
+                }
                 completed_originals.push((sid,commands[sid].clone(),roots[sid].record_id.clone(),generation,value["result"].clone()));
             }
             let public_at_commit=clone_progress(&active_progress);
@@ -1941,6 +1974,16 @@ async fn representative(force_allocation_overlap: bool) {
                 assert_eq!(session.id(),sessions[sid].id());
             }
             eprintln!("representative round={round} original_moves=2 generation={generation} old_preparation_fps_min=24 private_decoded_opus_min=2880 move_deadline_ms=8000 elapsed_ms={}",move_started.elapsed().as_millis());
+            if full_programme {
+                for (sid,&index) in [0usize,4].iter().enumerate() {
+                    let candidate_id=targets[first+sid].preparation.as_ref().unwrap().connection_id().unwrap().to_owned();
+                    data::exchange(&mut targets[first+sid].client,&commands[sid],candidate_id,committed_revisions[sid],
+                        &connections[SOURCE_FOR_RECEIVER[index]],&connections[index+1],
+                        &pids[OWNER[index]],&pids[OWNER[index+1]],index,stream_phase,
+                        programme_cutoff.min(Instant::now()+Duration::from_secs(8))).await;
+                }
+            }
+
         }
         assert_eq!(completed_originals.len(),4);
         // Re-read every exact original root after both later operations. A
@@ -1956,12 +1999,26 @@ async fn representative(force_allocation_overlap: bool) {
                 [record.as_ref().unwrap().as_str()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
             assert_eq!((effects,confirmed,repeated),(7,7,0),"each original movement has exactly one confirmed effect per phase");
         }
-        eprintln!("representative-six-source verified participants=4 sessions=2 sources=6 original_moves=4 generations=1,2,3 returned_original_device={} private_decoders=4 original_deadline_ms=8000 old_preparation_fps_min=24 genuine_opus_samples_min=2880 fragmented_vp8=true programme_bound_seconds=26",configs[0].device_id);
+        if full_programme {
+            tokio::time::sleep_until(programme_cutoff).await;
+            assert!(Instant::now()>=programme_cutoff,"original 62-second programme must actually elapse");
+            stop.cancel();
+            assert!(Instant::now()<=read_cutoff,"read-stop issuance stays before original 62.2-second cutoff");
+            // Join the actual original media/codec owners BEFORE any current
+            // Connection end, exactly as stopAndJoin in the matrix workload.
+            // No timeout drops a JoinHandle; a late physical join remains failed.
+            while let Some(owner)=works.pop() {
+                match owner.await { Ok(Ok(()))=>{},result=>task_failures.push(format!("{result:?}")) }
+            }
+            if Instant::now()>join_cutoff {task_failures.push("full programme owner join exceeded original67s cutoff".into());}
+            quality_failures.extend(programme::quality(&progress,&target_progress));
+            data::end_current(&connections,&mut targets,&previous_targets,&sessions,join_cutoff).await;
+        }
+        eprintln!("representative-six-source verified participants=4 sessions=2 sources=6 original_moves=4 generations=1,2,3 returned_original_device={} private_decoders=4 original_deadline_ms=8000 old_preparation_fps_min=24 genuine_opus_samples_min=2880 fragmented_vp8=true programme_bound_seconds=62",configs[0].device_id);
     }).catch_unwind().await;
     // Preserve original work failure, then join every exact original task and
     // decoder before propagating it. No forced process can qualify this test.
     stop.cancel();
-    let mut task_failures = Vec::new();
     for task in works {
         // All work has its unchanged programme cutoff, and each codec owns a
         // bounded shutdown+wait. Never drop a live JoinHandle on a timeout.
@@ -1969,6 +2026,10 @@ async fn representative(force_allocation_overlap: bool) {
             Ok(Ok(())) => {}
             value => task_failures.push(format!("{value:?}")),
         }
+    }
+    if full_programme && Instant::now() > join_cutoff {
+        task_failures
+            .push("original programme owners did not join before original 67-second cutoff".into());
     }
     // Scalar final snapshots run only after every original codec/media task
     // joins. They neither retain media nor add work to a measured frame path.
@@ -1984,26 +2045,61 @@ async fn representative(force_allocation_overlap: bool) {
     // End both real Session owners using their current public topology. These
     // commands also exercise the shared original client after both handoffs.
     for (sid, session) in sessions.iter().enumerate() {
-        let end = async {
-            let before = session.refresh(options()).await?;
+        if full_programme && work.is_ok() && Instant::now() >= join_cutoff {
+            task_failures.push(
+                "original Session control retirement deadline expired; no renewed success budget"
+                    .into(),
+            );
+            break;
+        }
+        let end = AssertUnwindSafe(async {
+            let before = session
+                .refresh(if full_programme && work.is_ok() {
+                    programme::request(join_cutoff)
+                } else {
+                    options()
+                })
+                .await?;
+            if before.state == "ended" {
+                return Ok::<_, sdk::Error>(());
+            }
             session
                 .end(
                     0,
                     "representative original cleanup".into(),
                     before.topology_revision,
-                    mutation(&format!("representative-session-end-{sid}")),
+                    if full_programme && work.is_ok() {
+                        programme::mutation_at(
+                            &format!("representative-session-end-{sid}"),
+                            join_cutoff,
+                        )
+                    } else {
+                        mutation(&format!("representative-session-end-{sid}"))
+                    },
                 )
                 .await?
-                .wait(options())
+                .wait(if full_programme && work.is_ok() {
+                    programme::request(join_cutoff)
+                } else {
+                    options()
+                })
                 .await?;
             Ok::<_, sdk::Error>(())
-        }
+        })
+        .catch_unwind()
         .await;
-        if let Err(error) = end {
-            task_failures.push(format!("original Session cleanup: {error:?}"));
+        match end {
+            Ok(Ok(())) => {}
+            Ok(Err(error)) => task_failures.push(format!("original Session cleanup: {error:?}")),
+            Err(error) => task_failures.push(panic_text(error)),
         }
     }
-    let drained = tokio::time::timeout(Duration::from_secs(5), async {
+    let drain_until = if full_programme && work.is_ok() {
+        join_cutoff
+    } else {
+        Instant::now() + Duration::from_secs(5)
+    };
+    let drained = tokio::time::timeout_at(drain_until, async {
         loop {
             let snapshot = f.server.service.canonical_runtime_snapshot().unwrap();
             if snapshot.live_sessions == 0
@@ -2019,14 +2115,34 @@ async fn representative(force_allocation_overlap: bool) {
     if drained.is_err() {
         task_failures.push("original Session runtime owners did not drain".into());
     }
+    drop(masters);
     for target in targets {
         if let Err(error) = target.client.shutdown().await {
             task_failures.push(format!("original target shutdown: {error}"));
         }
     }
     for client in clients {
-        if let Err(error) = client.close(options()).await {
+        let close_request = if full_programme && work.is_ok() && Instant::now() < join_cutoff {
+            programme::request(join_cutoff)
+        } else {
+            // Failure cleanup still joins; it can never renew the success bound.
+            options()
+        };
+        if let Err(error) = client.close(close_request).await {
             task_failures.push(format!("original SDK shutdown: {error}"));
+        }
+    }
+    if full_programme {
+        // This proof is AFTER every original Session/runtime/media/codec/raw
+        // peer/SDK close. Ten seconds of idle cannot hide late physical joins.
+        let all_original_joined = Instant::now();
+        if all_original_joined > join_cutoff {
+            task_failures.push(format!("all original physical/control/client owners joined at programme_ms={} beyond unchanged67000 cutoff",
+                all_original_joined.saturating_duration_since(began).as_millis()));
+        }
+        let idle = AssertUnwindSafe(programme::idle(&f)).catch_unwind().await;
+        if let Err(error) = idle {
+            task_failures.push(panic_text(error));
         }
     }
     eprintln!(

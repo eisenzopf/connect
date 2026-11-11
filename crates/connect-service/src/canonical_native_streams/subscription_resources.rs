@@ -83,7 +83,10 @@ impl Runtime {
             // blocking admission. It may never activate after the original cap.
             phase = "authorize-activation";
             let original = resource.invocation_cancellation();
-            let fresh=current_scene::capture(deadline,[&self.stop,&physical_cancel,&original],||async {
+            let fresh=current_scene::capture(deadline,[&self.stop,&physical_cancel,&original],|| {
+            // Type erasure only: this SAME attempt future is awaited and joined
+            // by capture; no task, cancellation select or custody is introduced.
+            let attempt: std::pin::Pin<Box<dyn std::future::Future<Output = Result<Arc<StreamInvocation>>> + Send + '_>> = Box::pin(async {
             let resumed = resource
                 .reauthorize_subscription_resource_preparation_observing(
                     &self.stop,
@@ -179,6 +182,8 @@ impl Runtime {
                 }
             }
 
+            });
+            attempt
             }).await?;
             // Same original selected resources and routes; fresh permission and
             // expected revision are checked at the existing atomic Core commit.
