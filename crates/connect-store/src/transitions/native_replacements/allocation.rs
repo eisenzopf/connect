@@ -41,6 +41,9 @@ pub struct NativeReplacementAllocationAttempt {
     target: String,
     expected: serde_json::Value,
 }
+pub struct NativeReplacementAllocationUncertain {
+    attempt: NativeReplacementAllocationAttempt,
+}
 pub struct NativeReplacementAllocated {
     attempt: NativeReplacementAllocationAttempt,
     observation: String,
@@ -48,9 +51,13 @@ pub struct NativeReplacementAllocated {
 redacted!(
     NativeReplacementAllocationRead,
     NativeReplacementAllocationAttempt,
+    NativeReplacementAllocationUncertain,
     NativeReplacementAllocated
 );
 impl NativeReplacementAllocationAttempt {
+    pub fn uncertain(self) -> NativeReplacementAllocationUncertain {
+        NativeReplacementAllocationUncertain { attempt: self }
+    }
     pub fn record_id(&self) -> &str {
         &self.prepared.record
     }
@@ -391,12 +398,6 @@ impl Store {
         if !read.current() || read.source.selection().origin.record != prepared.record {
             return Err(Error::forbidden());
         }
-        if !self.authority_covers(
-            Self::peer_scopes(proof),
-            &Self::peer_scopes(proof).mutation_scopes(),
-        ) {
-            return Err(Error::forbidden());
-        }
         let mut c = self.try_connection()?;
         self.begin_native_replacement_allocation_in(&mut c, prepared, credential, proof, read)
     }
@@ -414,16 +415,14 @@ impl Store {
         if !read.current() || read.source.selection().origin.record != prepared.record {
             return Err(Error::forbidden());
         }
-        if !self.authority_covers(
-            Self::peer_scopes(proof),
-            &Self::peer_scopes(proof).mutation_scopes(),
-        ) {
-            return Err(Error::forbidden());
-        }
         c.bind_available_mutation_authority(self, Self::peer_scopes(proof))?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        let required = self.native_replacement_resource_begin_scopes(&tx, &prepared.record)?;
+        if !self.authority_covers(Self::peer_scopes(proof), &required) {
+            return Err(Error::forbidden());
+        }
         let saved = current_prepared(self, &tx, prepared)?;
         let (_, descriptor) = target_facts(self, &tx, prepared, credential, proof, &saved)?;
         if read.descriptor != descriptor || !read.current() {
@@ -446,14 +445,41 @@ impl Store {
         expected["target_operation_id"] = descriptor["intent"]["operation_id"].clone();
         expected["target_key_id"] = descriptor["key_id"].clone();
         expected["allocated"] = serde_json::json!(true);
+        let (_, _, mutation) = self.native_replacement_bookkeeping_scopes(&tx, &prepared.record)?;
+        let permit = if self.authority_covers(Self::peer_scopes(proof), &mutation) {
+            None
+        } else {
+            Some(
+                self.authority_writer_boundary
+                    .native_resource_begin_ledger(
+                        self,
+                        &tx,
+                        proof,
+                        read.source(),
+                        crate::authority_writer_boundary::phase_ledger::Key {
+                            record: prepared.record.clone(),
+                            phase: "allocate",
+                            attempt: attempt.clone(),
+                            effect: effect.clone(),
+                            expected: target.clone(),
+                            runtime: prepared.runtime.clone(),
+                            reservation: prepared.reservation.clone(),
+                            digest: prepared.hash.clone(),
+                            stage: crate::authority_writer_boundary::phase_ledger::Stage::Begin,
+                        },
+                        &target,
+                    )?,
+            )
+        };
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,'native-replacement-allocate',?1,'none','prepared',?3)",params![effect,prepared.record,target]).map_err(|_|Error::storage())?;
         tx.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,'allocate',?2,?3)",params![prepared.record,attempt,effect]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='allocate'",[&prepared.record]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_|Error::storage())?;
         native_handoffs::touch(&tx, &prepared.record, self)?;
-        if !read.current() {
+        if !read.current() || !proof.current() {
             return Err(Error::forbidden());
         }
+        drop(permit);
         tx.commit().map_err(|_| Error::storage())?;
         Ok((
             NativeReplacementAllocationAttempt {
@@ -481,7 +507,15 @@ impl Store {
         &self,
         attempt: NativeReplacementAllocationAttempt,
     ) -> Result<()> {
-        self.record_replacement_allocation(&attempt, None, None)
+        self.native_replacement_allocation_capture_uncertain(&attempt.uncertain())
+    }
+    /// Retry attribution for the SAME immutable possible allocation. This owns
+    /// no current domain proof and can never authorize another physical action.
+    pub fn native_replacement_allocation_capture_uncertain(
+        &self,
+        captured: &NativeReplacementAllocationUncertain,
+    ) -> Result<()> {
+        self.record_replacement_allocation(&captured.attempt, None, None)
             .map(|_| ())
     }
     pub fn record_native_replacement_allocated(
@@ -578,6 +612,16 @@ impl Store {
         } else {
             if old.is_some() {
                 return Err(conflict());
+            }
+            let recorded: bool = tx
+                .query_row(
+                    "SELECT state='unknown' FROM operation_effects WHERE id=?1",
+                    [&attempt.effect],
+                    |row| row.get(0),
+                )
+                .map_err(|_| Error::storage())?;
+            if recorded {
+                return Ok(row.record);
             }
             tx.execute(
                 "UPDATE operation_effects SET state='unknown' WHERE id=?1 AND state='submitting'",

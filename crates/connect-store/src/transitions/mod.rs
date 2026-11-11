@@ -22,7 +22,8 @@ mod native_replacements;
 mod replacement_source;
 pub use native_replacements::{
     NativeReplacementAllocated, NativeReplacementAllocationAttempt,
-    NativeReplacementAllocationRead, NativeReplacementAudienceCapture, NativeReplacementCandidate,
+    NativeReplacementAllocationRead, NativeReplacementAllocationUncertain,
+    NativeReplacementAudienceCapture, NativeReplacementCandidate,
     NativeReplacementCandidateRetirement, NativeReplacementCommitAttempt,
     NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain,
     NativeReplacementCommitted, NativeReplacementMediaAttempt, NativeReplacementMediaCapture,

@@ -2122,6 +2122,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/gate6-private-activate-retain-installed-rules.patch",
       "sha256": "cff759c629bde9d588af95e094ec475b11bf109117b49c9a3e4109c17baee702"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-replacement-retire-captured-authority.patch",
+      "sha256": "4660a30e640f3d17b1cc1398ed2feeaf7de87c9815a0b3c972b7098d1799cce2"
     }
   ]
 }

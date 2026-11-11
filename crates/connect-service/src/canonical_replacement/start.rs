@@ -96,8 +96,18 @@ impl Runtime {
                 ));
             }
             // Exact historical replay performs no new Core scene mutation.
-            self.record_started_replacement_with_peer(&previous, a.clone())
-                .await?;
+            if let Err(error) = self
+                .record_started_replacement_with_peer(&previous, a.clone())
+                .await
+            {
+                // A first historical capture can require a Writer after the
+                // root became uncertain. Retire the original reply proof,
+                // settle that same receipt, and preserve the scoped refusal.
+                let retirement = super::allocation::retire_replacement_authority(a);
+                self.record_started_replacement(&previous).await?;
+                retirement?;
+                return Err(error);
+            }
             let store = self.media.store.clone();
             let a = a.clone();
             let key = credential.to_owned();
@@ -376,7 +386,7 @@ impl Runtime {
                     }
                 }
                 // All callback captures have joined and dropped their aliases.
-                // Release this exact fresh Writer BEFORE the original retry pause.
+                // Release this exact current proof BEFORE the original retry pause.
                 drop(admission);
             }
             tokio::select! { biased;
@@ -466,7 +476,7 @@ impl Runtime {
             }
             let resource_streams=outcome.accepted.iter().map(|s|s.as_str().to_owned()).collect::<Vec<_>>();
             let observation=serde_json::json!({"candidate":id.as_str(),"generation":policy.pending.generation(),"stream_revision":controller.revision(),"streams":resource_streams,"resources_prepared":true,"prepared_muted":true,"media_ready":false});
-            // Seal the original authenticated writer metadata while the signed
+            // Seal the original authenticated command metadata while the signed
             // invocation exists. Keep it dormant through private preparation.
             let lifecycle=self.prepare_replacement_native_lifecycle(&id,&a,&physical).map_err(|error| {
                 tracing::debug!(target:"connect_service::canonical_replacement", stage="lifecycle-capture", code=%error.code, "Replacement resource start refused");
@@ -478,17 +488,51 @@ impl Runtime {
             Ok(value) => value,
             Err(error) => {
                 let uncertain = Arc::new(attempt.uncertain());
-                *allocated
-                    .failed_start
-                    .lock()
-                    .map_err(|_| Error::storage())? = Some(uncertain.clone());
+                let registered = match allocated.failed_start.lock() {
+                    Ok(mut slot) => {
+                        *slot = Some(uncertain.clone());
+                        true
+                    }
+                    Err(_) => false,
+                };
                 saved.handle.cancel();
+                let retirement = super::allocation::retire_replacement_authority(a);
                 let store = self.media.store.clone();
-                store_call(move || store.native_replacement_start_uncertain(&uncertain)).await?;
+                let first = uncertain.clone();
+                match self
+                    .owned_store_call(move || store.native_replacement_start_uncertain(&first))
+                    .await
+                {
+                    Ok(()) => {}
+                    Err(error)
+                        if matches!(
+                            error.code.as_str(),
+                            "authority-busy" | "storage-unavailable"
+                        ) =>
+                    {
+                        retry_metadata(&self.stop, || {
+                            let store = self.media.store.clone();
+                            let uncertain = uncertain.clone();
+                            self.owned_store_call(move || {
+                                store.native_replacement_start_uncertain(&uncertain)
+                            })
+                        })
+                        .await?;
+                    }
+                    Err(error) => return Err(error),
+                }
+                retirement?;
+                if !registered {
+                    return Err(Error::storage());
+                }
                 return Err(error);
             }
         };
         tracing::debug!(target:"connect_service::canonical_replacement",stage="capture","Replacement resource start");
+        // `observation` is constructed solely from the exact accepted plan,
+        // after current generation==pending and controller revision==2 checks.
+        // Store independently compares the same selected stream tuple; no
+        // caller-supplied observation or recoverable transport error enters it.
         let receipt = Arc::new(attempt.started(observation)?);
         let started = Arc::new(StartedReplacement {
             receipt,
@@ -501,7 +545,20 @@ impl Runtime {
             phases: Default::default(),
             preparation: OnceLock::new(),
         });
-        *allocated.started.lock().map_err(|_| Error::storage())? = Some(started.clone());
+        let registered = match allocated.started.lock() {
+            Ok(mut slot) => {
+                *slot = Some(started.clone());
+                true
+            }
+            Err(_) => false,
+        };
+        if !registered {
+            saved.handle.cancel();
+            let retirement = super::allocation::retire_replacement_authority(a);
+            self.record_started_replacement(&started).await?;
+            retirement?;
+            return Err(Error::storage());
+        }
         let record = self.record_started_replacement(&started).await?;
         tracing::debug!(target:"connect_service::canonical_replacement",stage="origin","Replacement resource start");
         let origin = retry_metadata(&self.stop, || {
@@ -581,7 +638,7 @@ impl Runtime {
             let store = self.media.store.clone();
             let receipt = started.receipt.clone();
             let a = a.clone();
-            store_call(move || {
+            self.owned_store_call(move || {
                 store.record_native_replacement_started_with_peer(&receipt, proof(&a)?)
             })
         })
@@ -594,7 +651,7 @@ impl Runtime {
         retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
             let receipt = started.receipt.clone();
-            store_call(move || store.record_native_replacement_started(&receipt))
+            self.owned_store_call(move || store.record_native_replacement_started(&receipt))
         })
         .await
     }

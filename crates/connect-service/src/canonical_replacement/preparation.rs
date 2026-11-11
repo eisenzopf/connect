@@ -83,6 +83,7 @@ impl Drop for NativeReplayCustody {
                     origin: root.origin.clone(),
                     plan: root.plan.clone(),
                     recorded: AtomicBool::new(root.recorded.load(Ordering::Acquire)),
+                    failed_allocation: root.failed_allocation.clone(),
                     deadline: root.deadline,
                     telephone: std::sync::Mutex::new(
                         root.telephone

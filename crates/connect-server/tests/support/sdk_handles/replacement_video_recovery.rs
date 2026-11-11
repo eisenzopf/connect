@@ -1107,7 +1107,7 @@ async fn exercise(mode: u8) {
         f.temp.path(),
         matches!(
             mode,
-            18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33
+            18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35
         ),
     )
     .await;
@@ -1268,12 +1268,13 @@ async fn exercise(mode: u8) {
         None
     };
     #[cfg(feature = "test-support")]
-    let preparation_custody_probe = if (26..=33).contains(&mode) {
+    let preparation_custody_probe = if (26..=35).contains(&mode) {
         use connect_service::canonical_media_projection_fixture::PreparationCustodyPhase;
         let phase = match mode {
             26 | 28 => PreparationCustodyPhase::Attach,
             30 | 31 => PreparationCustodyPhase::AllocationCapture,
             32 | 33 => PreparationCustodyPhase::Activate,
+            34 | 35 => PreparationCustodyPhase::AllocationReply,
             _ => PreparationCustodyPhase::Signal,
         };
         Some(
@@ -1333,6 +1334,44 @@ async fn exercise(mode: u8) {
         assert!(
             observed.is_ok(),
             "actual allocation capture custody failed: {observed:?}"
+        );
+        assert!(encoder_closed.is_ok(), "original encoder did not close");
+        replacement_closed.unwrap();
+        publisher_closed.unwrap();
+        subscriber_closed.unwrap();
+        server_closed.unwrap();
+        return;
+    }
+    #[cfg(feature = "test-support")]
+    if matches!(mode, 34 | 35) {
+        let probe = preparation_custody_probe.unwrap();
+        let observed = preparation_custody::allocation_reply(
+            &f,
+            &probe,
+            &mut replacement,
+            &command,
+            &root,
+            offer,
+            &old_send,
+            &retained_recv,
+            &first,
+            &mut original_sequence,
+            &previous_retained_epoch,
+            &original_preparation,
+            mode == 35,
+        )
+        .await;
+        drop(probe);
+        let encoder_closed =
+            futures_util::FutureExt::catch_unwind(std::panic::AssertUnwindSafe(encoder.close()))
+                .await;
+        let replacement_closed = replacement.shutdown().await;
+        let publisher_closed = publisher.close(options()).await;
+        let subscriber_closed = subscriber.close(options()).await;
+        let server_closed = f.server.shutdown().await;
+        assert!(
+            observed.is_ok(),
+            "actual final allocation reply custody failed: {observed:?}"
         );
         assert!(encoder_closed.is_ok(), "original encoder did not close");
         replacement_closed.unwrap();
@@ -2236,3 +2275,14 @@ async fn signed_private_activate_revocation_cuts_original_epoch_and_drains_real_
 #[cfg(feature = "memory-diagnostics")]
 #[path = "replacement_video_recovery/heap_lifecycle.rs"]
 mod heap_lifecycle;
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_allocation_final_reply_preserves_actual_old_route_and_original_queued_epoch() {
+    exercise(34).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_allocation_final_reply_source_revocation_drains_io_and_refuses_same_original() {
+    exercise(35).await;
+}

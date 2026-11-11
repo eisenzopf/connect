@@ -3,13 +3,13 @@ use super::*;
 use crate::{NativeReplacementPreparationRead, NativeReplacementSelection};
 pub use allocation::{
     NativeReplacementAllocated, NativeReplacementAllocationAttempt,
-    NativeReplacementAllocationRead, NativeReplacementAudienceCapture,
-    NativeReplacementCommitAttempt, NativeReplacementCommitNotSubmitted,
-    NativeReplacementCommitUncertain, NativeReplacementCommitted, NativeReplacementMediaAttempt,
-    NativeReplacementMediaCapture, NativeReplacementMediaOrigin, NativeReplacementMediaPhase,
-    NativeReplacementMediaRead, NativeReplacementSceneRead, NativeReplacementStartAttempt,
-    NativeReplacementStartOrigin, NativeReplacementStartRead, NativeReplacementStartUncertain,
-    NativeReplacementStarted,
+    NativeReplacementAllocationRead, NativeReplacementAllocationUncertain,
+    NativeReplacementAudienceCapture, NativeReplacementCommitAttempt,
+    NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain,
+    NativeReplacementCommitted, NativeReplacementMediaAttempt, NativeReplacementMediaCapture,
+    NativeReplacementMediaOrigin, NativeReplacementMediaPhase, NativeReplacementMediaRead,
+    NativeReplacementSceneRead, NativeReplacementStartAttempt, NativeReplacementStartOrigin,
+    NativeReplacementStartRead, NativeReplacementStartUncertain, NativeReplacementStarted,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Weak;
@@ -246,6 +246,24 @@ impl Store {
     /// Exact persisted ledger footprint, not a current execution/IO grant.
     /// Callers retain/rederive their separate current selection Read facts.
     /// No identity/key/member row changes with these operation-local writes.
+    pub(crate) fn native_replacement_resource_begin_scopes(
+        &self,
+        c: &Connection,
+        record: &str,
+    ) -> Result<Vec<crate::AuthorityScope>> {
+        let (cid, owner, mutation) = self.native_replacement_bookkeeping_scopes(c, record)?;
+        let enrolled: bool = c.query_row(
+            "SELECT EXISTS(SELECT 1 FROM client_enrollments e JOIN operations o ON o.tenant_id=e.tenant_id AND o.owner_id=e.issuer_identity_id AND o.operation_id=e.complete_operation_id WHERE o.record_id=?1)",
+            [record], |row| row.get(0),
+        ).map_err(|_| Error::storage())?;
+        if enrolled {
+            return Ok(mutation);
+        }
+        Ok(vec![
+            crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Read)?,
+            crate::AuthorityScope::conversation(&cid, crate::AuthorityMode::Read)?,
+        ])
+    }
     pub(crate) fn native_replacement_bookkeeping_scopes(
         &self,
         c: &Connection,

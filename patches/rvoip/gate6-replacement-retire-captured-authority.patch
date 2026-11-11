@@ -1,0 +1,245 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/subscription_tests.rs
+@@ -538,3 +538,110 @@
+         assert!(matches!(a.resume_replacement_allocation(fresh),Err(DispatchError::Authority)));
+     }
+ }
++
++
++#[tokio::test]
++async fn replacement_capture_retirement_releases_real_original_and_reply_guards_after_cancel_or_expiry(
++) {
++    for state in 0..3 {
++        let (mut a, policy, grants, replay) = allocation_with_policy().await;
++        let reply = result(&a);
++        let slot = a.reply_authority.clone();
++        if state == 1 {
++            a.invocation.cancel();
++        }
++        if state == 2 {
++            a._lease.deadline = Some(Instant::now() - Duration::from_millis(1));
++        }
++        assert!(grants.clone().try_write_owned().is_err());
++        a.retire_replacement_authority().unwrap();
++        drop(grants.clone().try_write_owned().expect(
++            "consuming capture retirement releases BOTH real domain aliases even after refusal",
++        ));
++        assert!(slot.resource_only());
++        assert!(
++            slot.for_replies(&[reply]).is_err(),
++            "retirement never restores a positive result"
++        );
++        let lease = slot.0.lock();
++        let resource = lease.authority::<ResourcePreparation>().unwrap();
++        assert!(resource.kind == PreparationKind::ReplacementAllocation);
++        assert!(
++            resource.permits(&resource.original).is_err(),
++            "retirement never grants parameter IO"
++        );
++        assert_eq!(policy.calls.load(Ordering::Acquire), 0);
++        assert_eq!(replay.usage().0, 1);
++    }
++}
++
++#[tokio::test]
++async fn rejected_replacement_conversions_release_retained_reply_guard_at_the_requested_cutoff() {
++    // Both consuming conversions can refuse at supports_native_negotiation
++    // before their later deadline/stream validations. The reply slot outlives
++    // the consumed original exactly as it does in the real dispatcher.
++    for media in [false, true] {
++        for state in 0..4 {
++            let (mut a, policy, grants, replay) = allocation_with_policy().await;
++            if media {
++                let mut original = a.envelope.original().clone();
++                original["payload"]["replacement_preparation"]["profile"] =
++                    json!("connect-replacement-media-v1");
++                a.envelope = Envelope::from_value(original).unwrap();
++            }
++            let reply = result(&a);
++            let slot = a.reply_authority.clone();
++            let requested = if state == 2 {
++                Instant::now() - Duration::from_millis(1)
++            } else {
++                Instant::now() + Duration::from_millis(500)
++            };
++            if state == 0 {
++                a.invocation.cancel();
++            }
++            if state == 1 {
++                a._lease.deadline = Some(Instant::now() - Duration::from_millis(1));
++            }
++            if media {
++                // state3 exercises a current command with invalid parameters;
++                // the remaining states fail currentness/deadline first.
++                let participant = if state == 3 {
++                    String::new()
++                } else {
++                    "part_alice".into()
++                };
++                assert!(a
++                    .into_resource_preparation(
++                        participant,
++                        ["audio".into()].into_iter().collect(),
++                        requested
++                    )
++                    .is_err());
++            } else {
++                if state == 3 {
++                    a.exchange = None;
++                }
++                assert!(a.into_replacement_allocation_wait(requested).is_err());
++            }
++            drop(
++                grants
++                    .clone()
++                    .try_write_owned()
++                    .expect("rejected consuming transition must release actual final reply Read"),
++            );
++            assert!(slot.for_replies(&[reply]).is_err());
++            let lease = slot.0.lock();
++            assert!(
++                lease.deadline().unwrap() <= requested,
++                "refusal metadata cannot outlive the rejected requested bound"
++            );
++            let resource = lease.authority::<ResourcePreparation>().unwrap();
++            assert!(resource.permits(&resource.original).is_err());
++            if state == 2 {
++                assert!(!lease.current());
++            }
++            assert_eq!(policy.calls.load(Ordering::Acquire), 0);
++            assert_eq!(replay.usage().0, 1);
++        }
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation.rs
+@@ -97,36 +97,92 @@
+         mut self,
+         requested: Instant,
+     ) -> Result<(Self, Instant), DispatchError> {
++        // A consumed post-effect owner must release its shared reply guard even
++        // if currentness or expiry makes the conversion itself refuse.
++        if self.replacement_capture_binding() {
++            self.retire_replacement_reply(requested);
++        }
+         if !self.supports_native_negotiation()
+             || self.envelope.kind() != "connection.offer"
+             || self.envelope.original()["payload"]["replacement_preparation"]["profile"]
+                 != "connect-replacement-preparation-v1"
+             || self.envelope.original()["payload"]["replacement_preparation"]["operation_record_id"]
+-                .as_str().is_none_or(str::is_empty)
++                .as_str()
++                .is_none_or(str::is_empty)
+             || self._lease.authority::<ResourcePreparation>().is_some()
+         {
+             return Err(DispatchError::Authority);
+         }
+         let deadline = self.resource_preparation_cutoff(requested);
+-        if deadline <= Instant::now() { return Err(DispatchError::Closed); }
++        if deadline <= Instant::now() {
++            return Err(DispatchError::Closed);
++        }
+         let cancellation = self.invocation.child_token();
+         let resource = ResourcePreparation {
+             kind: PreparationKind::ReplacementAllocation,
+-            marker: Arc::new(()), original: self.envelope.clone(),
+-            participant: String::new(), streams: BTreeSet::new(),
+-            cancellation, deadline,
++            marker: Arc::new(()),
++            original: self.envelope.clone(),
++            participant: String::new(),
++            streams: BTreeSet::new(),
++            cancellation,
++            deadline,
+         };
+         let mut reply = resource.clone();
+         reply.cancellation = self.origin.lifetime.child_token();
+         let reply_current = reply.cancellation.clone();
+         let current = resource.cancellation.clone();
+         self.reply_authority.note_resource_preparation();
+-        self.reply_authority.replace(AuthorityLease::checking(reply, deadline,
+-            move || !reply_current.is_cancelled()));
+-        self._lease = AuthorityLease::checking(resource, deadline,
+-            move || !current.is_cancelled());
++        self.reply_authority
++            .replace(AuthorityLease::checking(reply, deadline, move || {
++                !reply_current.is_cancelled()
++            }));
++        self._lease = AuthorityLease::checking(resource, deadline, move || !current.is_cancelled());
+         Ok((self, deadline))
+     }
++    fn replacement_capture_binding(&self) -> bool {
++        let marker = &self.envelope.original()["payload"]["replacement_preparation"];
++        self.envelope.kind() == "connection.offer"
++            && marker.as_object().is_some_and(|value| value.len() == 2)
++            && matches!(
++                marker["profile"].as_str(),
++                Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1")
++            )
++            && marker["operation_record_id"]
++                .as_str()
++                .is_some_and(|value| !value.is_empty())
++    }
++    fn retire_replacement_reply(&self, requested: Instant) {
++        let deadline = self.resource_preparation_cutoff(requested);
++        let cancellation = self.origin.lifetime.child_token();
++        let current = cancellation.clone();
++        // This existing wait kind permits only exact scoped refusals. No
++        // AuthorizedEnvelope containing this marker is returned by retirement.
++        let resource = ResourcePreparation {
++            kind: PreparationKind::ReplacementAllocation,
++            marker: Arc::new(()),
++            original: self.envelope.clone(),
++            participant: String::new(),
++            streams: BTreeSet::new(),
++            cancellation,
++            deadline,
++        };
++        self.reply_authority.note_resource_preparation();
++        self.reply_authority
++            .replace(AuthorityLease::checking(resource, deadline, move || {
++                !current.is_cancelled()
++            }));
++    }
++    /// Consume the exact original replacement invocation after a captured
++    /// effect. Cancellation and expiry cannot keep its application/reply domain
++    /// guards alive. This returns no new invocation or positive result rights.
++    pub fn retire_replacement_authority(self) -> Result<(), DispatchError> {
++        if !self.replacement_capture_binding() {
++            return Err(DispatchError::Authority);
++        }
++        self.retire_replacement_reply(self.origin.deadline);
++        Ok(())
++    }
++
+     /// Resume only the same privately sealed allocation wait. The actual fresh
+     /// policy proof, never the wait marker, authorizes the original effect and
+     /// reply. Neither the command identity nor its original deadline changes.
+@@ -134,11 +190,15 @@
+         mut self,
+         authority: Arc<ResourceActivationAuthority>,
+     ) -> Result<Self, DispatchError> {
+-        let resource = self._lease.authority::<ResourcePreparation>()
++        let resource = self
++            ._lease
++            .authority::<ResourcePreparation>()
+             .ok_or(DispatchError::Authority)?;
+         if resource.kind != PreparationKind::ReplacementAllocation
+             || !self.resource_activation_current(&authority)
+-        { return Err(DispatchError::Authority); }
++        {
++            return Err(DispatchError::Authority);
++        }
+         let reply_current = authority.clone();
+         self.reply_authority.replace(AuthorityLease {
+             _guard: authority.lease._guard.clone(),
+@@ -163,6 +223,9 @@
+         streams: BTreeSet<String>,
+         deadline: Instant,
+     ) -> Result<Self, DispatchError> {
++        if self.replacement_capture_binding() {
++            self.retire_replacement_reply(deadline);
++        }
+         if !self.supports_native_negotiation()
+             || self.envelope.kind() != "connection.offer"
+             || self.envelope.original()["payload"]

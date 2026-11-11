@@ -38,13 +38,13 @@ fn fixture_scene(
     let expected = attempt.expected_allocation().clone();
     let captured = Arc::new(attempt.allocated(expected).unwrap());
     drop(read);
-    // Reuse the original admitted writer: taking another writer here while
-    // this proof lives would self-exclude instead of recording this capture.
+    // The exact positive immutable capture uses the original admitted Read.
+    // Unknown and real mutations acquire their separate actual Writer.
     assert!(f.store.authority_covers(
         Store::peer_scopes(&proof),
         &[crate::AuthorityScope::conversation(
             &command.conversation_id,
-            crate::AuthorityMode::Write
+            crate::AuthorityMode::Read
         )
         .unwrap(),]
     ));
@@ -344,7 +344,14 @@ fn replacement_start_rejects_ready_assertion_and_cleanup_after_a_possible_commit
 fn uncertain_native_resource_start_needs_exact_local_retirement_and_cannot_settle_commit() {
     for (cancelled, committing) in [(false, false), (true, false), (false, true)] {
         let (f, key, command, allocated, request) = fixture();
-        let proof = f.admit(&request);
+        let proof = f
+            .store
+            .admit_peer_authority_mode(
+                &request,
+                &crate::AuthorityWait::new(std::time::Duration::from_secs(2)),
+                true,
+            )
+            .unwrap();
         let read = f
             .store
             .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
@@ -1145,7 +1152,14 @@ fn replacement_start_typed_deferral_never_accepts_expired_or_wrong_original_auth
 #[test]
 fn replacement_start_after_sql_admission_error_is_never_a_typed_prebegin_deferral() {
     let (f, _, _, allocated, request) = fixture();
-    let proof = f.admit(&request);
+    let proof = f
+        .store
+        .admit_peer_authority_mode(
+            &request,
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(2)),
+            true,
+        )
+        .unwrap();
     let read = f
         .store
         .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)

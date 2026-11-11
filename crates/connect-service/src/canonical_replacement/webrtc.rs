@@ -141,6 +141,7 @@ impl ReplacementSource for Source {
 }
 #[derive(Default)]
 struct Owned {
+    invocation: Option<Arc<AuthorizedEnvelope>>,
     root: Option<Arc<PreparedReplacement>>,
     quarantined: Option<rvoip_core::staged_streams::QuarantinedInitialMedia>,
     allocated: Option<Arc<AllocatedReplacement>>,
@@ -190,6 +191,15 @@ impl Runtime {
         let start: OriginalWorker<'_, Reply> =
             Box::pin(self.webrtc_replacement_start(a, &physical, &credential, &mut owned));
         let result = start.await;
+        let retirement = owned
+            .invocation
+            .take()
+            .map(super::allocation::retire_replacement_authority);
+        // Initial quarantine is metadata only and owns no current grants. Its
+        // rollback must precede historical Writer admission on every failure.
+        if result.is_err() {
+            drop(owned.quarantined.take());
+        }
         if let Err(error) = &result {
             tracing::debug!(target: "connect_service::canonical_replacement",
                 operation_id = ?owned.root.as_ref().map(|root| &root.handle.intent().operation_id),
@@ -257,7 +267,7 @@ impl Runtime {
         }
         // Metadata failures cannot skip joining the original physical owner.
         // Retain the first failure, attempt every owned cleanup, then report it.
-        let mut failure = None;
+        let mut failure = retirement.and_then(Result::err);
         if let Some(root) = &owned.root {
             if !root.handle.is_committed() {
                 root.handle.cancel();
@@ -275,10 +285,34 @@ impl Runtime {
                     }
                 }
             }
+            // Shutdown cannot skip the original owned historical callback.
+            // Only transient historical failures enter the existing bounded
+            // retry; no physical start or new attempt is repeated.
             let store = self.media.store.clone();
-            if let Err(error) =
-                store_call(move || store.native_replacement_start_uncertain(&uncertain)).await
+            let first = uncertain.clone();
+            let settled = match self
+                .owned_store_call(move || store.native_replacement_start_uncertain(&first))
+                .await
             {
+                Ok(()) => Ok(()),
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "authority-busy" | "storage-unavailable"
+                    ) =>
+                {
+                    retry_metadata(&self.stop, || {
+                        let store = self.media.store.clone();
+                        let uncertain = uncertain.clone();
+                        self.owned_store_call(move || {
+                            store.native_replacement_start_uncertain(&uncertain)
+                        })
+                    })
+                    .await
+                }
+                Err(error) => Err(error),
+            };
+            if let Err(error) = settled {
                 cleanup_diagnostic(&owned, "uncertain-start-record", &error);
                 failure.get_or_insert(error);
             }
@@ -512,6 +546,7 @@ impl Runtime {
             })
             .await?
         };
+        owned.invocation = Some(a.clone());
         owned.attempt = Some(attempt);
         owned.root = Some(root.clone());
         owned.allocated = Some(allocated.clone());
@@ -575,6 +610,7 @@ impl Runtime {
                 .map_err(denied)?,
         );
         drop(read);
+        drop(owned.invocation.take());
         let a = Arc::try_unwrap(a)
             .map_err(|_| Error::new("conflict", "Original RTC invocation is still shared"))?
             .into_resource_preparation(
@@ -789,6 +825,9 @@ impl Runtime {
             .map(|s| s.requested.logical_id.as_str().to_owned())
             .collect::<Vec<_>>();
         let observation = serde_json::json!({"candidate":id.as_str(),"generation":source.policy.pending.generation(),"stream_revision":2,"streams":streams,"resources_prepared":true,"prepared_muted":true,"media_ready":false});
+        // The exact selected stream tuple and fixed revision2 above match the
+        // immutable Store expected_resources; no peer-provided observation is
+        // accepted at this post-cut metadata construction.
         let receipt = Arc::new(
             owned
                 .attempt
@@ -807,7 +846,13 @@ impl Runtime {
             phases: Default::default(),
             preparation: OnceLock::new(),
         });
-        *allocated.started.lock().map_err(|_| Error::storage())? = Some(started.clone());
+        let registered = match allocated.started.lock() {
+            Ok(mut slot) => {
+                *slot = Some(started.clone());
+                true
+            }
+            Err(_) => false,
+        };
         // The physical cut and exact receipt are complete. Historical recording
         // may need a Writer if cancellation/uncertainty settles concurrently.
         // Drop all activation readers before recording this same receipt.
@@ -818,6 +863,9 @@ impl Runtime {
         let receipt = started.receipt.clone();
         self.owned_store_call(move || store.record_native_replacement_started(&receipt))
             .await?;
+        if !registered {
+            return Err(Error::storage());
+        }
         // The original resources and their immutable capture already exist.
         // Temporary command-SQL exclusion must reobserve only this origin read,
         // never configure/mute, start recording, or the once-only physical IO.

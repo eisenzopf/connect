@@ -39,6 +39,17 @@ fn proof(a: &AuthorizedEnvelope) -> Result<&connect_store::PeerAuthorityGuard> {
 }
 // One finite control-stage observation on the original error path. No payload,
 // identity, new admission, retry or timing budget is introduced.
+pub(super) fn retire_replacement_authority(a: Arc<AuthorizedEnvelope>) -> Result<()> {
+    let original = Arc::try_unwrap(a).map_err(|_| {
+        Error::new(
+            "conflict",
+            "Original replacement capture invocation is still shared",
+        )
+    })?;
+    original
+        .retire_replacement_authority()
+        .map_err(|_| Error::forbidden())
+}
 fn allocation_refused(stage: &'static str, error: Error) -> Error {
     let code = match error.code.as_str() {
         "authority-busy" => "authority-busy",
@@ -332,7 +343,8 @@ impl Runtime {
             authority.retained(),
         ) {
             drop(read);
-            self.record_allocation_uncertain_with_peer(attempt, a.clone())
+            drop(_roles);
+            self.record_allocation_uncertain(&saved, attempt, a)
                 .await
                 .map_err(|error| allocation_refused("capture-uncertain", error))?;
             return Err(allocation_refused("core-attach", error));
@@ -346,7 +358,9 @@ impl Runtime {
             _read: read,
         };
         if !target._read.current() {
-            self.record_allocation_uncertain_with_peer(attempt, a.clone())
+            drop(target);
+            drop(_roles);
+            self.record_allocation_uncertain(&saved, attempt, a)
                 .await
                 .map_err(|error| allocation_refused("capture-uncertain", error))?;
             return Err(Error::forbidden());
@@ -366,7 +380,8 @@ impl Runtime {
                     // fresh offer must not silently retry the allocation effect.
                     drop(target);
                     saved.handle.cancel();
-                    self.record_allocation_uncertain_with_peer(attempt, a.clone())
+                    drop(_roles);
+                    self.record_allocation_uncertain(&saved, attempt, a)
                         .await
                         .map_err(|error| allocation_refused("capture-uncertain", error))?;
                     return Err(error);
@@ -398,7 +413,8 @@ impl Runtime {
         drop(target);
         if !valid {
             saved.handle.cancel();
-            self.record_allocation_uncertain_with_peer(attempt, a.clone())
+            drop(_roles);
+            self.record_allocation_uncertain(&saved, attempt, a)
                 .await
                 .map_err(|error| allocation_refused("capture-uncertain", error))?;
             return Err(Error::new(
@@ -410,7 +426,8 @@ impl Runtime {
             Ok(observation) => observation,
             Err(error) => {
                 saved.handle.cancel();
-                self.record_allocation_uncertain_with_peer(attempt, a.clone())
+                drop(_roles);
+                self.record_allocation_uncertain(&saved, attempt, a)
                     .await
                     .map_err(|error| allocation_refused("capture-uncertain", error))?;
                 return Err(allocation_refused("capture-observation", error));
@@ -423,7 +440,8 @@ impl Runtime {
             Ok(receipt) => Arc::new(receipt),
             Err((attempt, error)) => {
                 saved.handle.cancel();
-                self.record_allocation_uncertain_with_peer(attempt, a.clone())
+                drop(_roles);
+                self.record_allocation_uncertain(&saved, attempt, a)
                     .await
                     .map_err(|error| allocation_refused("capture-uncertain", error))?;
                 return Err(allocation_refused("capture-validation", error));
@@ -450,9 +468,11 @@ impl Runtime {
             // This capture has no registry owner to recover it. Preserve the
             // original historical outcome before reporting failed publication.
             saved.handle.cancel();
-            self.record_allocated_replacement_with_peer(&allocated, a)
+            let retirement = retire_replacement_authority(a);
+            self.record_allocated_replacement(&allocated)
                 .await
                 .map_err(|error| allocation_refused("capture", error))?;
+            retirement?;
             return Err(allocation_refused(
                 "capture-owner-registry",
                 Error::storage(),
@@ -484,9 +504,15 @@ impl Runtime {
                 Error::new("conflict", "Original allocation invocation is still shared"),
             )
         })?;
-        let (a, cutoff) = original
-            .into_replacement_allocation_wait(saved.deadline)
-            .map_err(|_| allocation_refused("capture-suspend", Error::forbidden()))?;
+        let (a, cutoff) = match original.into_replacement_allocation_wait(saved.deadline) {
+            Ok(value) => value,
+            Err(_) => {
+                // The consuming conversion has retired both original guards
+                // even when cancellation/expiry rejects further reply rights.
+                self.record_allocated_replacement(allocated).await?;
+                return Err(allocation_refused("capture-suspend", Error::forbidden()));
+            }
+        };
         #[cfg(feature = "test-support")]
         self.pause_original_allocation_capture_for_test(saved, &a, cutoff)
             .await;
@@ -495,6 +521,18 @@ impl Runtime {
         self.record_allocated_replacement(allocated)
             .await
             .map_err(|error| allocation_refused("capture", error))?;
+        #[cfg(feature = "test-support")]
+        if let Some(probe) = self.media.take_preparation_custody_probe_for_test(
+            &saved.origin.request().operation_id,
+            crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase::AllocationReply,
+        ) {
+            let expected = &saved.plan["expected_preparation"];
+            if let (Some(target), Some(source)) = (
+                expected["retained"].as_str().and_then(|id| self.media.origin(&ConnectionId::from_string(id.to_owned()))),
+                expected["source"].as_str().and_then(|id| self.media.origin(&ConnectionId::from_string(id.to_owned()))),
+            ) { probe.set_original_route(target, source); }
+            probe.pause(&self.stop, &a.invocation_cancellation(), cutoff, None).await;
+        }
         let root_cancel = saved.handle.cancellation();
         let invocation_cancel = a.invocation_cancellation();
         let current = || {
@@ -610,41 +648,48 @@ impl Runtime {
         }
     }
 
-    async fn record_allocation_uncertain_with_peer(
+    async fn record_allocation_uncertain(
         &self,
+        saved: &PreparedReplacement,
         attempt: connect_store::NativeReplacementAllocationAttempt,
         a: Arc<AuthorizedEnvelope>,
     ) -> Result<()> {
-        let attempt = Arc::new(attempt);
-        retry_metadata(&self.stop, || {
-            let store = self.media.store.clone();
-            let attempt = attempt.clone();
-            let a = a.clone();
-            // The existing owned call registry retains the actual blocking
-            // handle if its waiter is dropped. Only this original historical
-            // receipt repeats; no Core allocation or transport is replayed.
-            self.owned_store_call(move || {
-                store.native_replacement_allocation_uncertain_with_peer(&attempt, proof(&a)?)
-            })
-        })
-        .await
-    }
-    async fn record_allocated_replacement_with_peer(
-        &self,
-        allocated: &AllocatedReplacement,
-        a: Arc<AuthorizedEnvelope>,
-    ) -> Result<connect_protocol::transitions::OperationRecord> {
-        let record = retry_metadata(&self.stop, || {
-            let store = self.media.store.clone();
-            let receipt = allocated.receipt.clone();
-            let a = a.clone();
-            store_call(move || {
-                store.record_native_replacement_allocated_with_peer(&receipt, proof(&a)?)
-            })
-        })
-        .await?;
-        allocated.recorded.store(true, Ordering::Release);
-        Ok(record)
+        let capture = Arc::new(attempt.uncertain());
+        // The watcher retains this exact no-IO capture across any failed first
+        // settlement. There is exactly one allocation effect for this root.
+        let retirement = retire_replacement_authority(a);
+        saved
+            .failed_allocation
+            .set(capture.clone())
+            .map_err(|_| Error::storage())?;
+        // The opaque receipt owns no media/read. Normal unique ownership retires
+        // both guards first. An unexpected retained alias can only delay this
+        // bounded historical retry; it cannot discard or recreate the capture.
+        let store = self.media.store.clone();
+        let first = capture.clone();
+        match self
+            .owned_store_call(move || store.native_replacement_allocation_capture_uncertain(&first))
+            .await
+        {
+            Ok(()) => {}
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "authority-busy" | "storage-unavailable"
+                ) =>
+            {
+                retry_metadata(&self.stop, || {
+                    let store = self.media.store.clone();
+                    let capture = capture.clone();
+                    self.owned_store_call(move || {
+                        store.native_replacement_allocation_capture_uncertain(&capture)
+                    })
+                })
+                .await?;
+            }
+            Err(error) => return Err(error),
+        }
+        retirement
     }
     pub(super) async fn record_allocated_replacement(
         &self,

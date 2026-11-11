@@ -20,7 +20,7 @@ pub(crate) struct Key {
     pub digest: String,
     pub stage: Stage,
 }
-struct ResourceTarget<'a>(Option<&'a str>);
+struct ResourceTarget<'a>(Option<&'a str>, Option<&'a crate::PeerAuthorityGuard>);
 pub(super) struct Active {
     key: Key,
     nonce: u64,
@@ -120,7 +120,10 @@ impl State {
                     && revision.is_none();
             }
             let action_matches = match action {
-                "effect-birth" | "effect-submit" => key.stage == Stage::Begin,
+                "effect-birth"
+                | "effect-submit"
+                | "resource-step-birth"
+                | "resource-step-start" => key.stage == Stage::Begin,
                 "prepare-step-start" | "prepare-effect-submit" => {
                     key.phase == "prepare" && key.stage == Stage::Begin
                 }
@@ -189,7 +192,45 @@ impl State {
             connection,
             proof,
             key,
-            Some(ResourceTarget(target)),
+            Some(ResourceTarget(target, None)),
+            None,
+        )
+    }
+
+    /// Exact signed dormant resource journal Begin. The fixed caller retains
+    /// its complete current source/target Read through this original SQL unit.
+    pub(crate) fn native_resource_begin_ledger<'a>(
+        self: &Arc<Self>,
+        store: &Store,
+        connection: &'a Connection,
+        proof: &crate::PeerAuthorityGuard,
+        source: &'a crate::NativeReplacementPreparationRead,
+        key: Key,
+        target: &str,
+    ) -> Result<Permit<'a>> {
+        if key.stage != Stage::Begin
+            || !matches!(key.phase, "allocate" | "start")
+            || key.expected != target
+            || !proof.current()
+        {
+            return Err(Error::forbidden());
+        }
+        if !source.current() || source.selection().origin.record_id() != key.record {
+            return Err(Error::forbidden());
+        }
+        let required = source.selection().scopes(store, connection, false)?;
+        let (_, _, signed, _) = crate::peer_authority::checked(store, connection, &proof.request)?;
+        if !store.authority_covers(Store::peer_scopes(proof), &required)
+            || !store.authority_covers(Store::peer_scopes(proof), &signed)
+        {
+            return Err(Error::forbidden());
+        }
+        self.native_phase_ledger_in(
+            store,
+            connection,
+            Store::peer_scopes(proof),
+            key,
+            Some(ResourceTarget(Some(target), Some(proof))),
             None,
         )
     }
@@ -287,41 +328,52 @@ impl State {
         } else {
             None
         };
-        if let Some(ResourceTarget(target)) = resource_target {
-            let plan: Option<String> = connection.query_row(
+        if let Some(ResourceTarget(target, begin_proof)) = resource_target {
+            if key.stage == Stage::Begin {
+                self.require_resource_begin(
+                    store,
+                    connection,
+                    &key,
+                    begin_proof.ok_or_else(Error::forbidden)?,
+                    target.ok_or_else(Error::forbidden)?,
+                )?;
+            } else {
+                let plan: Option<String> = connection.query_row(
                 "SELECT n.plan_json FROM native_replacement_steps s JOIN native_replacements n ON n.operation_record_id=s.operation_record_id JOIN operations o ON o.record_id=n.operation_record_id JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase=?2 AND s.attempt_id=?3 AND s.effect_id=?4 AND s.started=1 AND s.observation_json IS NULL AND o.lease_owner=n.reservation_id AND o.lease_expires_at=n.expires_at AND e.provider='native-replacement-'||s.phase AND e.correlation_key=CASE s.phase WHEN 'prepare' THEN s.operation_record_id ELSE e.id END AND e.idempotency_mode='none' AND e.state='submitting' AND e.attempt=1 AND e.submission_generation=1 AND e.provider_ref IS NULL AND e.observation_json IS ?5 AND e.compensates_effect_id IS NULL AND NOT EXISTS(SELECT 1 FROM native_replacement_steps later WHERE later.operation_record_id=s.operation_record_id AND (later.phase='commit' OR (s.phase='allocate' AND later.phase='start') OR (s.phase='prepare' AND later.phase!='prepare')))",
                 rusqlite::params![key.record,key.phase,key.attempt,key.effect,target], |r|r.get(0),
             ).optional().map_err(|_|Error::storage())?;
-            let plan: serde_json::Value = serde_json::from_str(&plan.ok_or_else(Error::forbidden)?)
-                .map_err(|_| Error::storage())?;
-            let expected = match (key.phase, target) {
-                ("prepare", None) => plan["expected_preparation"].clone(),
-                ("allocate", Some(target)) => {
-                    let target: serde_json::Value =
-                        serde_json::from_str(target).map_err(|_| Error::storage())?;
-                    let mut expected = plan["expected_preparation"].clone();
-                    expected["target_operation_id"] = target["intent"]["operation_id"].clone();
-                    expected["target_key_id"] = target["key_id"].clone();
-                    expected["allocated"] = serde_json::json!(true);
-                    expected
+                let plan: serde_json::Value =
+                    serde_json::from_str(&plan.ok_or_else(Error::forbidden)?)
+                        .map_err(|_| Error::storage())?;
+                let expected = match (key.phase, target) {
+                    ("prepare", None) => plan["expected_preparation"].clone(),
+                    ("allocate", Some(target)) => {
+                        let target: serde_json::Value =
+                            serde_json::from_str(target).map_err(|_| Error::storage())?;
+                        let mut expected = plan["expected_preparation"].clone();
+                        expected["target_operation_id"] = target["intent"]["operation_id"].clone();
+                        expected["target_key_id"] = target["key_id"].clone();
+                        expected["allocated"] = serde_json::json!(true);
+                        expected
+                    }
+                    ("start", Some(target)) => {
+                        let target: serde_json::Value =
+                            serde_json::from_str(target).map_err(|_| Error::storage())?;
+                        let streams = target["intent"]["offer"]["streams_offered"]
+                            .as_array()
+                            .ok_or_else(Error::forbidden)?
+                            .iter()
+                            .map(|stream| stream["id"].clone())
+                            .collect::<Vec<_>>();
+                        serde_json::json!({"candidate":candidate,"generation":generation,"stream_revision":2,"streams":streams,"resources_prepared":true,"prepared_muted":true,"media_ready":false})
+                    }
+                    _ => return Err(Error::forbidden()),
+                };
+                if !expected.is_object()
+                    || key.expected != crate::provisioning::canonical_json(&expected)?
+                {
+                    return Err(Error::forbidden());
                 }
-                ("start", Some(target)) => {
-                    let target: serde_json::Value =
-                        serde_json::from_str(target).map_err(|_| Error::storage())?;
-                    let streams = target["intent"]["offer"]["streams_offered"]
-                        .as_array()
-                        .ok_or_else(Error::forbidden)?
-                        .iter()
-                        .map(|stream| stream["id"].clone())
-                        .collect::<Vec<_>>();
-                    serde_json::json!({"candidate":candidate,"generation":generation,"stream_revision":2,"streams":streams,"resources_prepared":true,"prepared_muted":true,"media_ready":false})
-                }
-                _ => return Err(Error::forbidden()),
-            };
-            if !expected.is_object()
-                || key.expected != crate::provisioning::canonical_json(&expected)?
-            {
-                return Err(Error::forbidden());
             }
         } else if key.phase == "prepare" {
             let valid: bool = connection.query_row(
@@ -385,5 +437,93 @@ impl State {
             nonce,
             _connection: std::marker::PhantomData,
         })
+    }
+    fn require_resource_begin(
+        &self,
+        store: &Store,
+        c: &Connection,
+        key: &Key,
+        proof: &crate::PeerAuthorityGuard,
+        target: &str,
+    ) -> Result<()> {
+        let descriptor: serde_json::Value =
+            serde_json::from_str(target).map_err(|_| Error::forbidden())?;
+        if crate::provisioning::canonical_json(&descriptor)? != target {
+            return Err(Error::forbidden());
+        }
+        let credential = descriptor["credential_id"]
+            .as_str()
+            .ok_or_else(Error::forbidden)?;
+        store.require_peer_source(c, proof, credential)?;
+        let crate::PeerCommand::NativeConnectionOffer(intent) = &proof.request.command else {
+            return Err(Error::forbidden());
+        };
+        let mut intent = intent.clone();
+        intent.normalize()?;
+        let profile = if key.phase == "allocate" {
+            "connect-replacement-preparation-v1"
+        } else {
+            "connect-replacement-media-v1"
+        };
+        let saved: Option<(String, String, String, String)> = c.query_row(
+            "SELECT n.plan_json,o.operation_id,o.conversation_id,o.session_id FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND o.command_type='connection.replace' AND o.state='preparing' AND o.cancel_requested=0 AND o.tombstoned=0 AND o.worker_runtime=?2 AND o.lease_owner=n.reservation_id AND o.lease_expires_at=n.expires_at AND n.runtime_epoch=?3 AND n.reservation_id=?4 AND n.plan_digest=?5 AND n.expires_at>?6 AND o.expires_at>?6 AND NOT EXISTS(SELECT 1 FROM connections live WHERE live.id=n.candidate_connection_id AND live.state IN ('ready','active','held')) AND NOT EXISTS(SELECT 1 FROM native_replacement_lifetimes live WHERE live.operation_record_id=n.operation_record_id) AND NOT EXISTS(SELECT 1 FROM native_replacement_steps later WHERE later.operation_record_id=n.operation_record_id AND (later.phase='commit' OR later.phase=?7 OR (?7='allocate' AND later.phase='start'))) AND NOT EXISTS(SELECT 1 FROM native_replacement_media_steps later WHERE later.operation_record_id=n.operation_record_id) AND NOT EXISTS(SELECT 1 FROM client_enrollments e WHERE e.tenant_id=o.tenant_id AND e.issuer_identity_id=o.owner_id AND e.complete_operation_id=o.operation_id)",
+            rusqlite::params![key.record,store.transition_runtime,key.runtime,key.reservation,key.digest,crate::now(),key.phase],
+            |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?)),
+        ).optional().map_err(|_| Error::storage())?;
+        let (saved, operation, cid, sid) = saved.ok_or_else(Error::forbidden)?;
+        let plan: serde_json::Value = serde_json::from_str(&saved).map_err(|_| Error::storage())?;
+        let expected = serde_json::json!({"intent":intent,"credential_id":credential,"key_id":proof.request.key_id,"algorithm":proof.request.algorithm,"public_key":proof.key.public_key,"device_id":proof.key.device_id,"endpoint_id":plan["expected_preparation"]["endpoint"],"endpoint_revision":plan["target_endpoint_revision"]});
+        if descriptor != expected
+            || !proof
+                .request
+                .credentials
+                .iter()
+                .any(|value| value == credential)
+            || intent.offer["replacement_preparation"]
+                .as_object()
+                .map(|value| value.len())
+                != Some(2)
+            || intent.offer["replacement_preparation"]["profile"] != profile
+            || intent.offer["replacement_preparation"]["operation_record_id"] != key.record
+            || intent.operation_id != operation
+            || intent.conversation_id != cid
+            || intent.session_id != sid
+            || intent.connection_id != plan["candidate_connection_id"]
+            || intent.expected_revision != Some(0)
+            || proof.key.device_id != plan["expected_preparation"]["device"]
+            || proof.request.device.id != proof.key.device_id
+        {
+            return Err(Error::forbidden());
+        }
+        let predecessor = if key.phase == "allocate" {
+            "prepare"
+        } else {
+            "allocate"
+        };
+        let mut previous = plan["expected_preparation"].clone();
+        let previous_target = if key.phase == "start" {
+            previous["target_operation_id"] = descriptor["intent"]["operation_id"].clone();
+            previous["target_key_id"] = descriptor["key_id"].clone();
+            previous["allocated"] = serde_json::json!(true);
+            let mut original = descriptor.clone();
+            original["intent"]["offer"]["replacement_preparation"]["profile"] =
+                serde_json::json!("connect-replacement-preparation-v1");
+            Some(crate::provisioning::canonical_json(&original)?)
+        } else {
+            None
+        };
+        let previous = crate::provisioning::canonical_json(&previous)?;
+        let confirmed: bool = c.query_row(
+            "SELECT EXISTS(SELECT 1 FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id WHERE s.operation_record_id=?1 AND s.phase=?2 AND s.started=1 AND s.observation_json=?3 AND e.provider='native-replacement-'||s.phase AND e.correlation_key=CASE s.phase WHEN 'prepare' THEN s.operation_record_id ELSE e.id END AND e.idempotency_mode='none' AND e.state='confirmed' AND e.attempt=1 AND e.submission_generation=1 AND e.observation_json IS ?4 AND e.provider_ref IS NULL AND e.compensates_effect_id IS NULL)",
+            rusqlite::params![key.record,predecessor,previous,previous_target], |row| row.get(0),
+        ).map_err(|_| Error::storage())?;
+        let unused: bool = c.query_row(
+            "SELECT NOT EXISTS(SELECT 1 FROM operation_effects e WHERE e.id=?1 OR (e.operation_record_id=?2 AND e.provider='native-replacement-'||?3)) AND NOT EXISTS(SELECT 1 FROM native_replacement_steps s WHERE s.attempt_id=?4 OR s.effect_id=?1)",
+            rusqlite::params![key.effect,key.record,key.phase,key.attempt], |row| row.get(0),
+        ).map_err(|_| Error::storage())?;
+        if !confirmed || !unused || !proof.current() {
+            return Err(Error::forbidden());
+        }
+        Ok(())
     }
 }

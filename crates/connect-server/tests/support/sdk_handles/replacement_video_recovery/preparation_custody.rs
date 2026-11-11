@@ -691,3 +691,161 @@ pub(super) async fn allocation_capture(
     }
     observed
 }
+
+/// One actual signed allocation: pause AFTER confirmed immutable capture and
+/// retain real old-route IO while only its fresh final reply is authorized.
+pub(super) async fn allocation_reply(
+    f: &Fixture,
+    probe: &PreparationCustodyProbe,
+    client: &mut CanonicalClient,
+    command: &TransitionCommand,
+    root: &connect_client::canonical::payloads::OperationUpdated,
+    offer: Value,
+    sender: &sdk::Stream,
+    receiver: &sdk::Stream,
+    original_key: &[u8],
+    sequence: &mut u16,
+    original_epoch: &sdk::VideoReceiveEpoch,
+    original: &readiness::OriginalPreparation,
+    revoke_source: bool,
+) -> std::result::Result<(), String> {
+    let finished = Arc::new(AtomicBool::new(false));
+    let done = finished.clone();
+    let allocation = async {
+        let result = AssertUnwindSafe(client.allocate_native_replacement_target(
+            command,
+            root,
+            serde_json::from_value(offer).unwrap(),
+        ))
+        .catch_unwind()
+        .await;
+        done.store(true, Ordering::Release);
+        result
+    };
+    let observe = async {
+        let mut held = None;
+        let mut before = None;
+        let observed = AssertUnwindSafe(async {
+            tokio::time::timeout_at(original.cutoff, probe.entered()).await
+                .map_err(|_| "original confirmed allocation never reached final reply boundary".to_owned())?;
+            let captured = allocation_step(f, &original.record_id).map_err(|e| e.to_string())?;
+            if (&*captured.state, captured.attempt, captured.submission_generation, captured.observation)
+                != ("confirmed", 1, 1, true) {
+                return Err("reply boundary did not follow exactly one confirmed allocation".to_owned());
+            }
+            before = Some(captured);
+            let (target, source) = probe.original_route().map_err(|e| e.code)?;
+            let weak = Arc::downgrade(&f.server.store);
+            let snapshot = loop {
+                let weak = weak.clone(); let target_origin = target.clone(); let source_origin = source.clone();
+                match f.server.store.try_register_native_media_snapshot_for(&target, Some(&source), move || {
+                    weak.upgrade().ok_or_else(connect_protocol::Error::forbidden)?
+                        .try_native_media_read(&target_origin, Some(&source_origin))
+                }) {
+                    Ok(value) => break value,
+                    Err(error) if error.code == "authority-busy" && tokio::time::Instant::now() < original.cutoff => tokio::task::yield_now().await,
+                    Err(error) => return Err(format!("original reply route enrollment: {}", error.code)),
+                }
+            };
+            held = Some(loop {
+                match snapshot.admit() {
+                    Ok(value) => break value,
+                    Err(error) if error.code == "authority-busy" && tokio::time::Instant::now() < original.cutoff => tokio::task::yield_now().await,
+                    Err(error) => return Err(format!("original reply route publication: {}", error.code)),
+                }
+            });
+            let stamp = held.as_ref().unwrap().snapshot_stamp().ok_or("actual original stamp missing")?;
+            let epoch = held.as_ref().unwrap().packet_epoch().ok_or("actual original epoch missing")?;
+            let (bytes, wire_epoch) = tokio::time::timeout_at(original.cutoff, async {
+                publish_timestamp(sender, original_key, 1500, sequence).await;
+                receive_timestamp(receiver, 1500).await
+            }).await.map_err(|_| "old video failed before final reply release".to_owned())?;
+            if bytes != original_key || &wire_epoch != original_epoch { return Err("final reply fixture changed original media identity".into()); }
+            decode_old_route(f.temp.path(), "allocation-reply-held-key.ivf", &bytes, original.cutoff).await?;
+            if revoke_source {
+                // Use the actual original source credential. The replacement's
+                // signed physical credential stays live for its scoped refusal.
+                let store = f.server.store.clone(); let admin = f.admin.clone(); let key = f.client.credential.clone();
+                let committed = Arc::new(AtomicBool::new(false)); let wrote = committed.clone();
+                let withdraw = tokio::task::spawn_blocking(move || {
+                    let admin = store.authenticate(&admin)?;
+                    let credential = store.authenticate(&key)?.credential_id;
+                    let result = store.revoke(&admin, &credential);
+                    wrote.store(result.is_ok(), Ordering::Release);
+                    result
+                });
+                // Always drain IO and join the actual writer before reporting
+                // any assertion; a retained Read never preserves a revoked grant.
+                let invalidated = tokio::time::timeout_at(original.cutoff, async {
+                    while epoch.current() { tokio::task::yield_now().await; }
+                }).await.is_ok();
+                let early_commit = committed.load(Ordering::Acquire);
+                let refused = snapshot.admit_original(stamp).is_err();
+                drop(held.take());
+                let withdrawn = withdraw.await.map_err(|e| format!("source withdrawal join: {e}"))?
+                    .map_err(|e| format!("source withdrawal: {}", e.code));
+                withdrawn?;
+                if !invalidated || early_commit || !refused || epoch.current() {
+                    return Err("real source withdrawal failed exact epoch invalidation/IO drain".into());
+                }
+                probe.release();
+                return Ok(());
+            }
+            probe.release();
+            // The OLD reply Writer invalidates this epoch before blocking on
+            // actual held IO. Drop IO when that happens, join the actor, then
+            // report the precise stamp regression rather than a reply timeout.
+            let completed = tokio::time::timeout_at(original.cutoff, async {
+                while !finished.load(Ordering::Acquire) && epoch.current() { tokio::task::yield_now().await; }
+            }).await.is_ok();
+            let survived = epoch.current();
+            drop(held.take());
+            if !completed { return Err("original final reply exceeded its unchanged cutoff".into()); }
+            if !survived { return Err("final allocation reply revoked the actual original queued video epoch without changing public media".into()); }
+            let io = snapshot.admit_original(stamp).map_err(|e| format!("same original stamp after final reply: {}", e.code))?;
+            if !io.current() || !epoch.current() { return Err("final reply replaced original media epoch".into()); }
+            let (bytes, wire_epoch) = tokio::time::timeout_at(original.cutoff, async {
+                publish_timestamp(sender, original_key, 1501, sequence).await;
+                receive_timestamp(receiver, 1501).await
+            }).await.map_err(|_| "old video stopped after final reply".to_owned())?;
+            if bytes != original_key || &wire_epoch != original_epoch { return Err("final reply changed old video ownership".into()); }
+            decode_old_route(f.temp.path(), "allocation-reply-complete-key.ivf", &bytes, original.cutoff).await?;
+            readiness::assert_same_original_preparation(original, &readiness::original_cutoff(f, root));
+            Ok::<(), String>(())
+        }).catch_unwind().await;
+        drop(held.take());
+        probe.release();
+        let left = tokio::time::timeout_at(original.cutoff, probe.left())
+            .await
+            .is_ok();
+        let result = observed.unwrap_or_else(|_| {
+            Err("actual final reply assertion panicked (see retained assertion)".into())
+        });
+        (result, before, left)
+    };
+    let (allocation, (observed, before, left)) = tokio::join!(allocation, observe);
+    if !left {
+        return Err("original final reply probe did not leave".into());
+    }
+    let allocation = allocation.map_err(|_| "original allocation actor panicked".to_owned())?;
+    match (revoke_source, allocation) {
+        (true, Err(connect_client::ClientError::Application(error)))
+            if error.code == "forbidden" => {}
+        (true, _) => {
+            return Err("withdrawn original source did not produce exact scoped forbidden".into())
+        }
+        (false, Ok(reply))
+            if reply.record_id.as_ref() == root.record_id.as_ref()
+                && reply.operation_id == root.operation_id => {}
+        (false, Ok(_)) => {
+            return Err("final allocation reply changed original operation identity".into())
+        }
+        (false, Err(error)) => return Err(format!("original allocation final reply: {error}")),
+    }
+    let before = before.ok_or("original confirmed capture was not observed")?;
+    let after = allocation_step(f, &original.record_id).map_err(|e| e.to_string())?;
+    if before != after {
+        return Err("final reply repeated or changed original confirmed allocation effect".into());
+    }
+    observed
+}

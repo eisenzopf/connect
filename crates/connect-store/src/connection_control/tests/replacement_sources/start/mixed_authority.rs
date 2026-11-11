@@ -4,7 +4,7 @@ use crate::{AuthorityMode, AuthorityScope, AuthorityWait};
 use std::time::Duration;
 
 #[test]
-fn replacement_start_keeps_identity_readers_and_records_with_exact_conversation_writer() {
+fn replacement_start_keeps_identity_readers_and_records_with_exact_current_read() {
     let (f, _, command, allocated, request) = fixture();
     let identities = f
         .keys
@@ -21,7 +21,7 @@ fn replacement_start_keeps_identity_readers_and_records_with_exact_conversation_
         )
         .unwrap();
     let proof = f.admit(&request);
-    assert!(f.store.authority_covers(
+    assert!(!f.store.authority_covers(
         Store::peer_scopes(&proof),
         &[AuthorityScope::conversation(&command.conversation_id, AuthorityMode::Write).unwrap()]
     ));
@@ -82,7 +82,7 @@ fn replacement_start_keeps_identity_readers_and_records_with_exact_conversation_
 }
 
 #[test]
-fn replacement_start_same_conversation_reader_blocks_without_an_attempt_then_original_succeeds() {
+fn replacement_start_coexists_with_conversation_reader_and_still_excludes_real_writer() {
     let (f, _, command, allocated, request) = fixture();
     let before = Store::inspect_snapshot(f.store.path()).unwrap();
     let reader = f
@@ -93,14 +93,21 @@ fn replacement_start_same_conversation_reader_blocks_without_an_attempt_then_ori
         )
         .unwrap()])
         .unwrap();
-    let refused = f
-        .store
-        .admit_peer_authority(&request, &AuthorityWait::new(Duration::from_millis(20)));
-    assert_eq!(refused.err().unwrap().code, "authority-busy");
+    let proof = f.admit(&request);
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
     assert_eq!(f.count("native_replacement_steps"), 2);
-    drop(reader);
-    let proof = f.admit(&request);
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[AuthorityScope::conversation(
+                &command.conversation_id,
+                AuthorityMode::Write
+            )
+            .unwrap()])
+            .err()
+            .unwrap()
+            .code,
+        "authority-busy"
+    );
     let read = f
         .store
         .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
@@ -133,6 +140,7 @@ fn replacement_start_same_conversation_reader_blocks_without_an_attempt_then_ori
         "reconciliation-required"
     );
     assert_eq!(f.count("native_replacement_steps"), 3);
+    drop(reader);
 }
 
 #[test]

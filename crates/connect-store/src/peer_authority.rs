@@ -773,7 +773,7 @@ impl Store {
         request: &PeerAuthorityRequest,
         wait: &AuthorityWait,
     ) -> Result<PeerAuthorityGuard> {
-        let mutation = matches!(&request.command, PeerCommand::NativeConnectionOffer(intent)
+        let replacement_resource = matches!(&request.command, PeerCommand::NativeConnectionOffer(intent)
             if matches!(intent.offer["replacement_preparation"]["profile"].as_str(),
                 Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1")));
         // Only the original replacement-media admission opts into the existing
@@ -786,8 +786,8 @@ impl Store {
         self.admit_peer_authority_scoped(
             request,
             observed_wait.as_ref().unwrap_or(wait),
-            mutation,
-            replacement_start,
+            false,
+            replacement_resource,
         )
     }
     pub(crate) fn admit_peer_authority_mode(
@@ -798,14 +798,14 @@ impl Store {
     ) -> Result<PeerAuthorityGuard> {
         self.admit_peer_authority_scoped(request, wait, mutation, false)
     }
-    // Only initial replacement-media bookkeeping narrows its mutation footprint.
-    // Explicit post-resource activation and every other caller keep their mode.
+    // Only these original dormant resource profiles use the exact ledger scope.
+    // Explicit mutation callers keep their actual Write mode.
     fn admit_peer_authority_scoped(
         &self,
         request: &PeerAuthorityRequest,
         wait: &AuthorityWait,
         mutation: bool,
-        replacement_start: bool,
+        replacement_resource: bool,
     ) -> Result<PeerAuthorityGuard> {
         #[cfg(feature = "test-support")]
         let observed_wait = self.peer_read_waits.wait(request, wait)?;
@@ -813,22 +813,22 @@ impl Store {
         let wait = &observed_wait;
         let current = |c: &Connection| -> Result<_> {
             let (metadata, key, mut scopes, expires_at) = checked(self, c, request)?;
-            if replacement_start {
+            if replacement_resource {
                 let PeerCommand::NativeConnectionOffer(intent) = &request.command else {
                     return Err(Error::forbidden());
                 };
                 let record = intent.offer["replacement_preparation"]["operation_record_id"]
                     .as_str()
                     .ok_or_else(Error::forbidden)?;
-                let (cid, _owner, required) =
-                    self.native_replacement_bookkeeping_scopes(c, record)?;
-                if intent.offer["replacement_preparation"]["profile"]
-                    != "connect-replacement-media-v1"
-                    || cid != intent.conversation_id
+                let (cid, _, _) = self.native_replacement_bookkeeping_scopes(c, record)?;
+                if !matches!(
+                    intent.offer["replacement_preparation"]["profile"].as_str(),
+                    Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1")
+                ) || cid != intent.conversation_id
                 {
                     return Err(Error::forbidden());
                 }
-                scopes.extend(required);
+                scopes.extend(self.native_replacement_resource_begin_scopes(c, record)?);
                 scopes = AuthorityScope::merged(&scopes)?;
             } else if mutation {
                 scopes = scopes.iter().map(AuthorityScope::write_scope).collect();

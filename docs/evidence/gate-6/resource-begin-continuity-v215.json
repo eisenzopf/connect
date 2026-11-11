@@ -1,0 +1,84 @@
+{
+  "format": "connect/gate6-resource-begin-continuity/1",
+  "updated": "2026-11-11T03:30:50.606432+00:00",
+  "status": "Integrated Store126 and recorded protocol patch398 plus Service guard retirement. First controls: Store92/93 (one explicit Writer fixture correction now applied), protocol13/13. Combined signed/cadence pending.",
+  "scope": "Local macOS arm64 Store controls using actual default replacement-profile admission and retained published original-media IO; this is not cryptographic signed wire or matrix qualification.",
+  "before": {
+    "receipt": ".local/gate-6/v215-batch-verification/resource-begin-old-resource_begin_old-results.json",
+    "receipt_sha256": "6d9f90685113662112f167b6854f5eee2360fe3082167d85fafc43bf063b19b2",
+    "source_sha256": "e7b95a599222d803f52c0a0a493bdda2773a82ce01b45fea5a6927149ade516d",
+    "summary": {
+      "selected": 2,
+      "completed": 2,
+      "passed": 0,
+      "failed": 2
+    },
+    "expected_failure": "original signed resource admission excluded actual unchanged public media IO: authority-busy",
+    "rows": [
+      {
+        "test": "connection_control::tests::replacement_sources::allocation::resource_begin::signed_allocation_read_begin_preserves_original_snapshot_epoch_and_live_io",
+        "exit_code": 101,
+        "source_unchanged": true,
+        "binary_unchanged": true,
+        "group_absent": true,
+        "log_sha256": "8027bca54dc514c4c993fc32dd5ac3e49cd055ff3499e2f91617b7abf442f481"
+      },
+      {
+        "test": "connection_control::tests::replacement_sources::allocation::resource_begin::signed_start_read_begin_preserves_original_snapshot_epoch_and_live_io",
+        "exit_code": 101,
+        "source_unchanged": true,
+        "binary_unchanged": true,
+        "group_absent": true,
+        "log_sha256": "cd64252a7811d1021d888c86d4581ae620e666e24544a6bc8abbe79c10a73b41"
+      }
+    ]
+  },
+  "implementation_plan": [
+    "Exact same-transaction nonce for dormant Allocate/Start effect and step bookkeeping; preserve original media Read authority and current signed facts.",
+    "Drop original application and shared reply guards before historical failure settlement; retain same immutable original effect receipt and cutoff.",
+    "Retain actual Writer authority for public state change, cancellation, Unknown, enrollment mutation and general audience/Commit."
+  ],
+  "required_verification": [
+    "Old controls pass after the fix without revoking original queued media.",
+    "Wrong binding, raw writes, collisions, expiry, cancellation, revocation and actual historical Writer remain fail-closed.",
+    "Signed resource/error/replay controls pass without retained guard deadlock.",
+    "Both combined media scenarios meet unchanged decoded quality requirements before full32."
+  ],
+  "matrix_claim": "Latest full v214 remains 0/32 cells; no new full matrix run.",
+  "task_owned_capacity_recovery": {
+    "receipt": ".local/gate-6/v215-next-retired-cache-inventory/reclaim-receipt.json",
+    "sha256": "62bdf5b7606ea32fc6b755b8d536b9ee282a577eb927c0c4646f0a753f4f63e1",
+    "deleted_obsolete_objects": 14553,
+    "physical_free_before": 36821848064,
+    "physical_free_after": 48870395904,
+    "shipping_floor_satisfied_at_observation": true,
+    "scope": "Exact retired build objects only; current build outputs, source, dependency archives, databases and evidence preserved."
+  },
+  "recorded_source_lock_sha256": "bf052f95787d1bf2d175ed2758d92fdec64d723e2010c3da49c524f871e84571",
+  "verification": {
+    "store_initial": {
+      "receipt": ".local/gate-6/v215-batch-verification/resource-begin-fixed398-resource_begin_fixed_store-results.json",
+      "sha256": "26009d741add359cb239c8d8e844ad284bc381ec0a53f7449667d2aec20f4599",
+      "summary": {
+        "selected": 93,
+        "completed": 93,
+        "passed": 92,
+        "failed": 1
+      },
+      "all_original_owners_joined": true
+    },
+    "protocol": {
+      "receipt": ".local/gate-6/v215-batch-verification/resource-retirement398-resource_retirement_uctp-results.json",
+      "sha256": "5521fddfb13f5372bbcb0c0d73fc1cdd92a8f3984bc6d81fd1215ec703677f52",
+      "summary": {
+        "selected": 13,
+        "completed": 13,
+        "passed": 13,
+        "failed": 0
+      },
+      "all_original_owners_joined": true
+    }
+  },
+  "fixture_correction": "The Writer-exclusion control now explicitly admits mutation authority; all exclusion and drop assertions remain. Retest pending.",
+  "coverage_limit": "The Service failed-allocation receipt slot and watcher recovery are source-reviewed; its underlying Unknown SQL retry/drain and actual protocol guard release are unit-tested. No separate Service fault-injection run of the new slot."
+}

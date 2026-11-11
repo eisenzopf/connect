@@ -88,7 +88,14 @@ fn replacement_initial_read_cancellation_and_expiry_join_without_start_effect() 
 #[test]
 fn replacement_initial_read_rechecks_source_withdrawal_after_sql_wait_without_start() {
     let (f, _, _, allocated, request) = fixture();
-    let proof = f.admit(&request);
+    let proof = f
+        .store
+        .admit_peer_authority_mode(
+            &request,
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(2)),
+            true,
+        )
+        .unwrap();
     let effects_before = f.count("operation_effects");
     // The real supplied writer authorizes this mutation; no raw SQL exemption.
     let sql = f

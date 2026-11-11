@@ -313,7 +313,7 @@ impl Store {
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let (_, _, required) = self.native_replacement_bookkeeping_scopes(&tx, &prepared.record)?;
+        let required = self.native_replacement_resource_begin_scopes(&tx, &prepared.record)?;
         if !self.authority_covers(Self::peer_scopes(proof), &required) {
             return Err(Error::forbidden());
         }
@@ -351,12 +351,38 @@ impl Store {
             .map(|v| v["id"].clone())
             .collect::<Vec<_>>();
         let expected = serde_json::json!({"candidate":saved["candidate_runtime_id"],"generation":saved["generation"],"stream_revision":2,"streams":streams,"resources_prepared":true,"prepared_muted":true,"media_ready":false});
+        let (_, _, mutation) = self.native_replacement_bookkeeping_scopes(&tx, &prepared.record)?;
+        let permit = if self.authority_covers(Self::peer_scopes(proof), &mutation) {
+            None
+        } else {
+            Some(
+                self.authority_writer_boundary
+                    .native_resource_begin_ledger(
+                        self,
+                        &tx,
+                        proof,
+                        read.source(),
+                        crate::authority_writer_boundary::phase_ledger::Key {
+                            record: prepared.record.clone(),
+                            phase: "start",
+                            attempt: attempt.clone(),
+                            effect: effect.clone(),
+                            expected: target.clone(),
+                            runtime: prepared.runtime.clone(),
+                            reservation: prepared.reservation.clone(),
+                            digest: prepared.hash.clone(),
+                            stage: crate::authority_writer_boundary::phase_ledger::Stage::Begin,
+                        },
+                        &target,
+                    )?,
+            )
+        };
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,'native-replacement-start',?1,'none','prepared',?3)",params![effect,prepared.record,target]).map_err(|_|Error::storage())?;
         tx.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,'start',?2,?3)",params![prepared.record,attempt,effect]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='start'",[&prepared.record]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_|Error::storage())?;
         native_handoffs::touch(&tx, &prepared.record, self)?;
-        if !read.current() {
+        if !read.current() || !proof.current() {
             return Err(Error::forbidden());
         }
         let attempt = NativeReplacementStartAttempt {
@@ -370,6 +396,7 @@ impl Store {
         // Any attribution/current-validation failure rolls back this begin too;
         // no committed once-only attempt is lost behind a second SQL admission.
         let origin = webrtc::start_origin(self, &tx, &attempt, &read)?;
+        drop(permit);
         tx.commit().map_err(|_| Error::storage())?;
         Ok(Some((attempt, read, origin)))
     }

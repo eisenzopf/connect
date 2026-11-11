@@ -2,6 +2,7 @@
 use super::custody::*;
 use super::*;
 use crate::{NativeReplacementPrepared, PeerAuthorityRequest};
+mod resource_begin;
 use connect_protocol::transitions::{EffectState, OperationState};
 
 pub(super) fn prepared_target() -> (
@@ -659,7 +660,14 @@ fn replacement_target_rejects_non_duplex_audio_unsupported_media_and_unprovision
 #[test]
 fn replacement_mutation_owner_drop_restores_independent_established_packet_reads() {
     let (f, _, _, _, request, sources) = prepared_target_scene();
-    let proof = f.admit(&request);
+    let proof = f
+        .store
+        .admit_peer_authority_mode(
+            &request,
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+            true,
+        )
+        .unwrap();
     let blocked = f
         .store
         .try_native_media_read(&sources[0], None)
@@ -958,8 +966,10 @@ fn signed_allocation_host_metadata_refusal_is_before_dml_and_preserves_original_
         .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
         .unwrap();
     drop(read);
+    drop(proof);
+    let uncertain = attempt.uncertain();
     f.store
-        .native_replacement_allocation_uncertain_with_peer(&attempt, &proof)
+        .native_replacement_allocation_capture_uncertain(&uncertain)
         .unwrap();
     assert_eq!(f.count("native_replacement_steps"), 2);
 }
@@ -967,7 +977,14 @@ fn signed_allocation_host_metadata_refusal_is_before_dml_and_preserves_original_
 #[test]
 fn signed_allocation_uncertain_sql_refusal_retains_same_attempt_and_records_unknown_once() {
     let (f, _, _, prepared, request) = prepared_target();
-    let proof = f.admit(&request);
+    let proof = f
+        .store
+        .admit_peer_authority_mode(
+            &request,
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(2)),
+            true,
+        )
+        .unwrap();
     let (attempt, read) = f
         .store
         .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
@@ -1025,10 +1042,11 @@ fn signed_allocation_bad_capture_returns_same_attempt_for_original_uncertainty()
     assert_eq!(error.code, "conflict");
     assert_eq!(attempt.record_id(), original_record);
     assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
-    f.store
-        .native_replacement_allocation_uncertain_with_peer(&attempt, &proof)
-        .unwrap();
     drop(proof);
+    let uncertain = attempt.uncertain();
+    f.store
+        .native_replacement_allocation_capture_uncertain(&uncertain)
+        .unwrap();
     let record = f
         .store
         .execute_operation_action(

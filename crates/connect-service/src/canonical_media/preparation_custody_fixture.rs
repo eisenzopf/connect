@@ -8,6 +8,7 @@ pub enum PreparationCustodyPhase {
     Attach,
     Signal,
     AllocationCapture,
+    AllocationReply,
     Activate,
 }
 impl PreparationCustodyPhase {
@@ -16,6 +17,7 @@ impl PreparationCustodyPhase {
             Self::Attach => "attach",
             Self::Signal => "signal",
             Self::AllocationCapture => "allocation-capture",
+            Self::AllocationReply => "allocation-reply",
             Self::Activate => "activate",
         }
     }
@@ -37,6 +39,7 @@ pub(crate) struct Probe {
     release: CancellationToken,
     left: CancellationToken,
     observation: Mutex<Option<PreparationCustodyObservation>>,
+    original_route: Mutex<Option<(Arc<NativeMediaOrigin>, Arc<NativeMediaOrigin>)>>,
 }
 pub struct PreparationCustodyProbe {
     probe: Arc<Probe>,
@@ -52,6 +55,16 @@ impl PreparationCustodyProbe {
     }
     pub async fn left(&self) {
         self.probe.left.cancelled().await;
+    }
+    pub fn original_route(
+        &self,
+    ) -> connect_protocol::Result<(Arc<NativeMediaOrigin>, Arc<NativeMediaOrigin>)> {
+        self.probe
+            .original_route
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?
+            .clone()
+            .ok_or_else(connect_protocol::Error::forbidden)
     }
     pub fn observation(&self) -> connect_protocol::Result<PreparationCustodyObservation> {
         self.probe
@@ -84,6 +97,15 @@ impl Drop for Leaving {
     }
 }
 impl Probe {
+    pub(crate) fn set_original_route(
+        &self,
+        target: Arc<NativeMediaOrigin>,
+        source: Arc<NativeMediaOrigin>,
+    ) {
+        if let Ok(mut route) = self.original_route.lock() {
+            *route = Some((target, source));
+        }
+    }
     /// The original production Invocation remains on its owner's stack here.
     /// On cancellation/expiry return to the ORIGINAL Core call, whose normal
     /// currentness refusal is captured by that owner; never bypass its capture.
@@ -130,6 +152,7 @@ impl Policy {
             release: CancellationToken::new(),
             left: CancellationToken::new(),
             observation: Mutex::new(None),
+            original_route: Mutex::new(None),
         });
         probes.insert(key.clone(), Arc::downgrade(&probe));
         Ok(PreparationCustodyProbe {

@@ -51,6 +51,8 @@ pub(crate) struct PreparedReplacement {
     pub(crate) telephone:
         std::sync::Mutex<Option<Arc<crate::telephone_replacement::allocation::Allocated>>>,
     allocated: std::sync::Mutex<Option<Arc<allocation::AllocatedReplacement>>>,
+    failed_allocation:
+        std::sync::OnceLock<Arc<connect_store::NativeReplacementAllocationUncertain>>,
 }
 impl Drop for PreparedReplacement {
     fn drop(&mut self) {
@@ -508,6 +510,7 @@ impl Runtime {
             deadline,
             telephone: std::sync::Mutex::new(None),
             allocated: std::sync::Mutex::new(None),
+            failed_allocation: Default::default(),
         });
         self.replacements
             .lock()
@@ -604,6 +607,17 @@ impl Runtime {
     }
     async fn watch_replacement(self: &Arc<Self>, record: String, saved: Arc<PreparedReplacement>) {
         loop {
+            // A failed original allocation owns one immutable historical receipt.
+            // Reobserve it even when its first settlement lost a SQL/cancel race;
+            // this never allocates/configures another physical candidate.
+            if let Some(capture) = saved.failed_allocation.get().cloned() {
+                let store = self.media.store.clone();
+                let _ = self
+                    .owned_store_call(move || {
+                        store.native_replacement_allocation_capture_uncertain(&capture)
+                    })
+                    .await;
+            }
             let captured = saved
                 .allocated
                 .lock()
