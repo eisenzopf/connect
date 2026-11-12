@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T03:30:30.191745+00:00",
-  "run_status": "All175 focused cases executed:162 passed,13 failed,0 skipped; source/binaries stable and original groups joined. Both confirmed causes now have independently source-reviewed corrections: exact Ready consuming-dispatch profile and initialAV same-owner absolute8s fault reads. Ordinary/full62 media limits remain unchanged. Same175 retry is preparing.52GiB total retired build objects cleaned; D2about49GiB free. The plan and full32 remain open; v215 still0/32.",
+  "updated": "2026-11-12T04:06:47.358539+00:00",
+  "run_status": "Latest full focused run20:171/175 passed,4 failed,0 skipped; all original groups joined with stable source/binaries. Full62 reached4moves,4positive-reader historical captures andData, but failed video24FPS bins and current End quality-event demux. Three fixture corrections now pass7/7 targeted controls, including real ReadySQL and ordinaryinitialAV; they do not change the full175 verdict. Genuine audio/video quality deficits remain under causal investigation.52GiB cleanup complete. The plan is open; latest full matrix remainsv2150/32.",
   "blockers": [
     {
       "id": "B01",
@@ -1585,25 +1585,25 @@
     {
       "id": "B194",
       "title": "Setup subscription authority refusal hidden by broad media-offers phase",
-      "status": "Initial AV fixture correction independently source-reviewed: same original8s fault cutoff retains old receiver owners through deliberate authority withdrawal, then strict fresh media/SQL-capture checks. Real Writer and second SQL Busy faults retained. Runtime pending.",
+      "status": "Ordinary initialAV now passes real Writer+SQL faults, fresh decoded media and exact linked confirmed native effect/closed attempt. Original browser setup profiles still await full matrix.",
       "change": "ExistingB190 completefreshscene Busyfactory handles the transient path without effect replay. Add true ordinaryinitialAV two-real-fault regression; no initial native_start retry proposed.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-initial-av-fixture-fix.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
       "next": "Run actual ordinaryAV currentWriter+sceneSQLfault case with decodedunaffectedmedia and originaljoins; preserve allpermanent/currentnegativecontrols."
     },
     {
       "id": "B195",
       "title": "Decoded media deficits beyond handoff success",
-      "status": "Real downstream loss: clean receivers2/3 decode12/19 and19/16FPS in seconds18/43 (minimum24) while local senders submit30FPS. Both routes are Session0. Exact packet/grant/Core cause under investigation; quality bar retained.",
+      "status": "Actual20 completes4moves yet short audio snapshot960<2880 and full62 clean video3bins below24FPS. Historical captures allReader; actual public movement cuts remain. Cause not yet proven; controlled counter and bounded audio header diagnostics planned.",
       "change": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json; g6-058-v216-media-quality-next-fix-plan.json",
       "next": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun."
     },
     {
       "id": "B196",
       "title": "Incomplete workload coverage in composite resource checks",
-      "status": "All175 actually executed in batch19, with stable source/binaries and joined original groups:162 passed,13 failed. Full62 aborted at first Ready, so programme quality, End and OS matrix qualification remain open.",
+      "status": "Full20 all175 executed;171pass4fail; full62/4moves/Data observed and original processes joined. Actual full End and OS matrix qualification remain open.",
       "change": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
       "next": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff."
     },
     {
@@ -1617,17 +1617,17 @@
     {
       "id": "B198",
       "title": "Focused fixture omits matrix Data and full retirement sequence",
-      "status": "Full175 selection ran completely.159 pure controls passed;13 workload failures remain. Full62 stopped at first Ready before any Commit or Data; empty quality arrays are unevaluated. Next combined run will contain the reviewed dispatcher and initial AV fixture corrections.",
+      "status": "Full20 all175 ran:171pass4fail.7targeted fixture controls now pass; no combined verdict promotion. Full62 video QoE and actual End/matrix still require a final qualified run.",
       "change": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json; g6-058-v216-fixture-controls21.json",
       "next": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open."
     },
     {
       "id": "B199",
       "title": "Valid Ready SQL contention straddles volatile capture",
-      "status": "UCTP Ready units pass11/11, but combined19 exposed the outer handler retaining an Arc for Ready. The exact Ready profile is now in its unique-transfer lane; strict marker checks, actual fresh authority and existing replies are unchanged. Runtime proof pending.",
+      "status": "Exact Ready dispatch correction clears signed409s; actual Ready pre/post SQL and revoke controls pass. Fixture resume9/10 ordering and staleCAS clobber corrected; deterministic unit+signedReadySQL now pass. Full combined/matrix followthrough pending.",
       "change": "Implement narrow original-only grant-free Ready wait with fresh authorization on typedBusy, exactly-once capture and separate read-only result recovery. Keep original deadlines and physical bindings.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-ready-dispatch-fix.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
       "next": "Final175:16Servicecontrols,11actualsignedRTCvariants, ordinaryinitialAV andfull62programme; originaldeadlines/once-onlycapture/currentnegativechecks retained."
     },
     {
@@ -17383,6 +17383,12 @@
       "passed": 11,
       "planned": 11,
       "evidence": "g6-058-v216-uctp24-verification.json"
+    },
+    {
+      "name": "Three fixture regressions (5pure,2signed)",
+      "passed": 7,
+      "planned": 7,
+      "evidence": "g6-058-v216-fixture-controls21.json"
     }
   ],
   "current_production_check": {
@@ -17405,5 +17411,21 @@
     "not_executed": 0,
     "all_original_groups_joined": true,
     "matrix_qualified": false
-  }
+  },
+  "completed_v216_components20_actual": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
+    "executed": 175,
+    "passed": 171,
+    "failed": 4,
+    "not_executed": 0,
+    "matrix_qualified": false
+  },
+  "fixture_controls21": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
+    "executed": 7,
+    "passed": 7,
+    "failed": 0,
+    "matrix_qualified": false
+  },
+  "next_media_fix_plan": "docs/evidence/gate-6/g6-058-v216-media-quality-next-fix-plan.json"
 }

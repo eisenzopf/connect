@@ -34,6 +34,17 @@ pub(super) fn classify(
         return Err("uncorrelated-command-frame");
     }
     match frame["type"].as_str() {
+        Some("connection.quality") => {
+            // Native lifecycle statistics share this authenticated connection.
+            // They cannot acknowledge or complete the pending End command.
+            let quality: rvoip_uctp::v2::payloads::ConnectionQuality =
+                serde_json::from_value(frame["payload"].clone())
+                    .map_err(|_| "malformed-native-quality-fact")?;
+            if !frame["operation_id"].is_null() || quality.interval_ms == 0 {
+                return Err("invalid-native-quality-fact");
+            }
+            Ok(Class::Live("connection.quality"))
+        }
         Some("stream.closed") => {
             // NativeLifecycleRegistration emits these actual end facts without
             // in_reply_to. They never replace an operation.updated + ACK.
@@ -104,6 +115,27 @@ mod tests {
             );
         }
         assert!(classify(&closed(), "stream.subscribe", &s, "original-request").is_err());
+        let quality = json!({"type":"connection.quality","cid":"cid","sid":"sid","connid":"connection",
+            "payload":{"interval_ms":1000,"streams":[]}});
+        assert_eq!(
+            classify(&quality, "connection.end", &s, "original-request"),
+            Ok(Class::Live("connection.quality"))
+        );
+        assert!(classify(&quality, "stream.subscribe", &s, "original-request").is_err());
+        for field in ["cid", "sid", "connid", "in_reply_to", "operation_id"] {
+            let mut foreign = quality.clone();
+            foreign[field] = json!("foreign");
+            assert!(classify(&foreign, "connection.end", &s, "original-request").is_err());
+        }
+        for (field, value) in [
+            ("interval_ms", json!(false)),
+            ("streams", json!(false)),
+            ("interval_ms", json!(0)),
+        ] {
+            let mut malformed = quality.clone();
+            malformed["payload"][field] = value;
+            assert!(classify(&malformed, "connection.end", &s, "original-request").is_err());
+        }
     }
     #[test]
     fn only_strict_distinct_reconciliation_hint_is_a_noncompletion_observation() {

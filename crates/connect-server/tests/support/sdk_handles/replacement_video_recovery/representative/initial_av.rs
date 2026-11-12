@@ -479,9 +479,13 @@ async fn signed_initial_six_source_av_subscription_releases_both_busy_boundaries
         masters[SOURCE_FOR_RECEIVER[TARGET]].force_key.store(true,Ordering::Release);
         decoded(&progress,&[0,2,TARGET],Some(&before),until).await;
         let sql=rusqlite::Connection::open_with_flags(&f.config.database,rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-        let row:(String,u64,String,u64,u64,u64,u64)=sql.query_row("SELECT o.record_id,COUNT(e.id),o.state,MAX(e.attempt),MAX(e.submission_generation),COUNT(e.observation_json),c.generation FROM operations o JOIN operation_effects e ON e.operation_record_id=o.record_id JOIN connections c ON c.id=o.connection_id WHERE o.operation_id=?1 AND o.command_type='stream.subscribe'",[OPERATION],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?))).unwrap();
+        // Native-stream records the captured outcome in operations.result_json
+        // and confirms its linked effect state; generic effect.observation_json
+        // is not this provider's outcome store. Require one actual CONFIRMED
+        // effect, exact native effect linkage, and the original closed attempt.
+        let row:(String,u64,String,u64,u64,u64,u64,u64,u64)=sql.query_row("SELECT o.record_id,COUNT(e.id),o.state,MAX(e.attempt),MAX(e.submission_generation),SUM(CASE WHEN e.provider='native-stream' AND e.state='confirmed' AND n.effect_id=e.id THEN 1 ELSE 0 END),c.generation,n.closed,n.effect_started FROM operations o JOIN operation_effects e ON e.operation_record_id=o.record_id JOIN native_stream_operations n ON n.operation_record_id=o.record_id JOIN connections c ON c.id=o.connection_id WHERE o.operation_id=?1 AND o.command_type='stream.subscribe'",[OPERATION],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?,r.get(8)?))).unwrap();
         assert_eq!(done.snapshot.record_id.as_ref().unwrap().as_str(),row.0);
-        assert_eq!((row.1,row.2.as_str(),row.3,row.4,row.5,row.6),(1,"completed",1,1,1,1));
+        assert_eq!((row.1,row.2.as_str(),row.3,row.4,row.5,row.6,row.7,row.8),(1,"completed",1,1,1,1,1,1));
         let replacements:u64=sql.query_row("SELECT COUNT(*) FROM native_replacements",[],|r|r.get(0)).unwrap();assert_eq!(replacements,0,"initial ordinary selection cannot be a replacement fixture");drop(sql);
         assert!(Instant::now()<until,"all actual initial AV fault/SDK/decode/receipt proofs must finish before the ONE original eight-second cutoff");
         eprintln!("initial AV original subscription: actual_sources=6 sessions=2 identities=4 original_mutation_submissions=1 effect_attempts=1 admission_probe={} scene_probe={} decoded_old_routes=0,2 decoded_target=3; no full62/matrix claim",admission.load(Ordering::Acquire),scene.load(Ordering::Acquire));

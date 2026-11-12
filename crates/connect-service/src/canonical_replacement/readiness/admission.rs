@@ -81,6 +81,20 @@ where
     }
 }
 
+// Linearize the test rendezvous transition. In particular, a stale observed
+// dropped phase3/7 must never overwrite its companion's resume9/10.
+#[cfg(any(test, feature = "test-support"))]
+fn enter_probe(value: &std::sync::atomic::AtomicUsize, from: usize, entered: usize) -> bool {
+    value
+        .compare_exchange(
+            from,
+            entered,
+            std::sync::atomic::Ordering::AcqRel,
+            std::sync::atomic::Ordering::Acquire,
+        )
+        .is_ok()
+}
+
 #[cfg(feature = "test-support")]
 pub(super) async fn probe(
     value: Option<&std::sync::atomic::AtomicUsize>,
@@ -92,8 +106,7 @@ pub(super) async fn probe(
 ) -> Result<()> {
     use std::sync::atomic::Ordering;
     if let Some(value) = value {
-        if value.load(Ordering::Acquire) == from {
-            value.store(entered, Ordering::Release);
+        if enter_probe(value, from, entered) {
             while value.load(Ordering::Acquire) == entered {
                 if Instant::now() >= until || cancellation.iter().any(|t| t.is_cancelled()) {
                     return Err(Error::forbidden());
@@ -133,6 +146,30 @@ mod tests {
     }
     #[tokio::test]
     async fn busy_ready_metadata_drops_each_proof_before_fresh_admission_and_one_capture() {
+        // Reproduce the exact stale-observation ordering without sleeps:
+        // the companion publishes9/10 after our load of3/7 but BEFORE entry.
+        // A plain store of entered would lose the original resume here.
+        for (dropped, resume) in [(3, 9), (7, 10)] {
+            let probe = AtomicUsize::new(dropped);
+            let observed = probe.load(Ordering::Acquire);
+            probe.store(resume, Ordering::Release);
+            assert!(!enter_probe(&probe, observed, observed));
+            assert_eq!(probe.load(Ordering::Acquire), resume);
+            probe.store(dropped, Ordering::Release);
+            assert!(enter_probe(&probe, dropped, dropped));
+            probe.store(resume, Ordering::Release);
+            assert!(!enter_probe(&probe, dropped, dropped));
+            assert_eq!(probe.load(Ordering::Acquire), resume);
+        }
+        // Ordinary forward transitions still enter exactly once.
+        for (from, entered, released) in [(0, 1, 2), (4, 5, 6)] {
+            let probe = AtomicUsize::new(from);
+            assert!(enter_probe(&probe, from, entered));
+            assert_eq!(probe.load(Ordering::Acquire), entered);
+            probe.store(released, Ordering::Release);
+            assert!(!enter_probe(&probe, from, entered));
+            assert_eq!(probe.load(Ordering::Acquire), released);
+        }
         let t = tokens();
         let held = Arc::new(AtomicUsize::new(0));
         let calls = AtomicUsize::new(0);

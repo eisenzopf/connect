@@ -33,6 +33,33 @@ async fn reached(
     }
 }
 
+// Resume markers deliberately are not numerically monotonic. Accept only the
+// exact original resume and its known intervening phase, never an arbitrary
+// larger value (including the custody-failure marker99).
+async fn reached_after_resume(
+    probe: &AtomicUsize,
+    resume: usize,
+    expected: usize,
+    until: tokio::time::Instant,
+) -> TestResult<()> {
+    loop {
+        let actual = probe.load(Ordering::Acquire);
+        let reached = matches!((resume, expected, actual), (9, 5, 5) | (10, 8, 8));
+        let pending = matches!((resume, expected, actual), (9, 5, 9 | 4) | (10, 8, 10));
+        if reached && tokio::time::Instant::now() < until {
+            return Ok(());
+        }
+        if !pending || tokio::time::Instant::now() >= until {
+            return Err(format!(
+                "same original Ready resume={resume} expected={expected} actual={actual}"
+            )
+            .into());
+        }
+        tokio::time::sleep_until(until.min(tokio::time::Instant::now() + Duration::from_millis(1)))
+            .await;
+    }
+}
+
 fn original_resources(
     f: &Fixture,
     record: &str,
@@ -92,8 +119,9 @@ pub(super) async fn settle_both_under_real_sql_exclusion(
             assert_eq!(original_resources(f,record)?,original);
             release.take().unwrap().send(()).map_err(|_|"original Ready SQL owner already ended")?;
             worker.take().unwrap().await??;
-            probe.store(if dropped==3 {9} else {10},Ordering::Release);
-            reached(&probe,after,until).await?;
+            let resume=if dropped==3 {9} else {10};
+            probe.store(resume,Ordering::Release);
+            reached_after_resume(&probe,resume,after,until).await?;
             assert_eq!(original_resources(f,record)?,original);
         }
         assert_eq!(probe.load(Ordering::Acquire),8);
@@ -268,8 +296,8 @@ fn original_ready_update_matches(original: &Value, reply: &Value) -> bool {
         && reply["payload"]["command_type"] == "connection.replace"
 }
 
-#[test]
-fn ready_refusal_scope_requires_all_four_original_resources_and_exact_update_record() {
+#[tokio::test]
+async fn ready_refusal_scope_requires_all_four_original_resources_and_exact_update_record() {
     let original = json!({"cid":"c","sid":"s","connid":"n","operation_id":"op",
         "payload":{"replacement_preparation":{"operation_record_id":"record"}}});
     let reply = json!({"cid":"c","sid":"s","connid":"n","operation_id":"op",
@@ -298,4 +326,50 @@ fn ready_refusal_scope_requires_all_four_original_resources_and_exact_update_rec
         .unwrap()
         .remove("operation_record_id");
     assert!(!original_ready_update_matches(&missing, &reply));
+
+    use std::{future::Future, task::Poll};
+    // Poll the ACTUAL waiter while the original resume is still visible. The
+    // former numeric-order waiter returned an error on this very first poll.
+    // A separate initial4 case proves that intervening phase is also pending.
+    for (initial, resume, expected, intermediate) in
+        [(9, 9, 5, Some(4)), (4, 9, 5, None), (10, 10, 8, None)]
+    {
+        let probe = AtomicUsize::new(initial);
+        let cutoff = tokio::time::Instant::now() + Duration::from_secs(1);
+        let mut waiter = Box::pin(reached_after_resume(&probe, resume, expected, cutoff));
+        let first_poll = std::future::poll_fn(|cx| Poll::Ready(waiter.as_mut().poll(cx))).await;
+        assert!(first_poll.is_pending(), "valid original resume was refused");
+        let advance = async {
+            if let Some(phase) = intermediate {
+                probe.store(phase, Ordering::Release);
+                tokio::task::yield_now().await;
+            }
+            probe.store(expected, Ordering::Release);
+        };
+        // Both original futures remain owned and joined by this unit; no task
+        // or timer can survive an assertion or acquire a renewed cutoff.
+        let (result, ()) = tokio::join!(waiter, advance);
+        result.unwrap();
+        assert_eq!(probe.load(Ordering::Acquire), expected);
+        assert!(tokio::time::Instant::now() < cutoff);
+    }
+    for (resume, expected, invalid) in [
+        (9, 5, vec![0, 1, 2, 3, 6, 7, 8, 10, 99]),
+        (10, 8, vec![0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 99]),
+    ] {
+        for phase in invalid {
+            let probe = AtomicUsize::new(phase);
+            let cutoff = tokio::time::Instant::now() + Duration::from_secs(1);
+            assert!(reached_after_resume(&probe, resume, expected, cutoff)
+                .await
+                .is_err());
+            assert_eq!(probe.load(Ordering::Acquire), phase);
+        }
+        let probe = AtomicUsize::new(expected);
+        let expired = tokio::time::Instant::now();
+        assert!(reached_after_resume(&probe, resume, expected, expired)
+            .await
+            .is_err());
+        assert_eq!(probe.load(Ordering::Acquire), expected);
+    }
 }

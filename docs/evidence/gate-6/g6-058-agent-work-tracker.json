@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T03:34:39.003157+00:00",
-  "revision": 25,
+  "updated_at": "2026-11-12T04:06:47.358539+00:00",
+  "revision": 28,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 25,
-    "verified_at": "2026-11-12T03:36:21.726Z",
+    "content_revision": 28,
+    "verified_at": "2026-11-12T04:08:30.158Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -301,8 +301,8 @@
         "B194"
       ],
       "depends_on": [],
-      "status": "independent-source-reviewed",
-      "implementation_state": "Initial AV fixture timing cause confirmed independently. Its same original8s fault cutoff now keeps the SAME receivers alive during deliberate global authority withdrawal; both real faults and fresh decoded proof retained. Ordinary/full62 readers remain1s. Fixed runtime pending.",
+      "status": "component-verified",
+      "implementation_state": "The ordinary initial AV signed regression now passes both actual contention faults, fresh decoded old/target media, exactly linked confirmed native effect, closed original attempt and cleanup. Its former generic observation-column oracle was incorrect. Browser matrix followthrough remains pending.",
       "proposed_fix": "Retain same prepared subscription across definite complete-scene Busy after all fresh proofs drop; preserve permanent refusals, original deadline and one activation. No initial offer retry or mutation resubmission.",
       "required_evidence": "All three WT missing-programme cases linked to original commands; causal regression for each distinct cause, original-effect recovery and no duplicate media admission.",
       "coordinator_review": {
@@ -325,11 +325,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
           "result": "175/175 executed;162 pass,13 fail. Source/binaries stable; original groups joined. No full matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
+          "result": "All175 executed;171 passed,4 failed; source/binaries unchanged and original groups joined.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
+          "result": "7/7 targeted controls, including5pure+actualReadySQL+ordinaryinitialAV. Not full175 or matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T03:30:14.946732+00:00",
+      "updated_at": "2026-11-12T04:06:47.358539+00:00",
       "mapped_check_count": 29,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -355,8 +365,8 @@
       "depends_on": [
         "P2.1"
       ],
-      "status": "independent-source-reviewed",
-      "implementation_state": "Actual19 exposes deterministic Ready dispatcher Arc alias conflict in12 workloads. Exact Ready profile added to consuming lane and independently reviewed; actual fixed regression pending.",
+      "status": "component-verified",
+      "implementation_state": "Ready dispatch ownership is verified in batch20. The remaining real pre/post SQL case and exact resume/CAS counterexamples now pass targeted controls21 after fixing its fixture latch; deadlines and once-only capture retained. Combined final qualification remains open.",
       "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
       "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
       "coordinator_review": {
@@ -409,11 +419,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
           "result": "175/175 executed;162 pass,13 fail. Source/binaries stable; original groups joined. No full matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
+          "result": "All175 executed;171 passed,4 failed; source/binaries unchanged and original groups joined.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
+          "result": "7/7 targeted controls, including5pure+actualReadySQL+ordinaryinitialAV. Not full175 or matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T03:30:14.946732+00:00",
+      "updated_at": "2026-11-12T04:06:47.358539+00:00",
       "mapped_check_count": 66,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -598,8 +618,8 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "assigned",
-      "implementation_state": "measured-failures-open",
+      "status": "diagnosing",
+      "implementation_state": "Actual short workload completed4moves but one preparation snapshot had960 consecutive decoded samples versus2880. Exact SSRC/sequence/timestamp reset cause is not yet observed. Bounded diagnostic proposal staged; quality limits unchanged.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
@@ -617,11 +637,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
           "result": "115/116passed;full62squality+cleanupremainfailed",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
+          "result": "All175 executed;171 passed,4 failed; source/binaries unchanged and original groups joined.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:53:36.260177+00:00",
+      "updated_at": "2026-11-12T04:06:47.358539+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -635,8 +660,8 @@
       "id": "P5.2",
       "plan_id": "P5",
       "title": "Eliminate decoded video and handoff readiness deficits",
-      "owner_agent": "/root/media_blockers",
-      "independent_reviewer": "/root/fixture_blockers",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/media_blockers",
       "coordinator": "/root",
       "blocker_ids": [
         "B195",
@@ -646,8 +671,8 @@
       "depends_on": [
         "P3.1"
       ],
-      "status": "component-verified",
-      "implementation_state": "Core22passed19/19including4controlsloop7actualprivateprepublicationlockleaves; oldpublishercounterreproduced; normal404prepared. Genuinefull62FPS/gaps/identity/End/matrixremainpending.",
+      "status": "diagnosing",
+      "implementation_state": "Actual full62 reached4moves and4positive-reader historical captures, yet clean video routes2/3 miss24FPS in3handoff bins. Real movement Write cuts still exist; broad Write held over pre-effect SQL is a mapped mechanism requiring a controlled counter. No production cause-fix claim yet.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -685,11 +710,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-core22-verification.json",
           "result": "19/19passed; actualoldandprivatevideo path, custody/deadline/currentnegativecontrols; nofullQoEclaim",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
+          "result": "All175 executed;171 passed,4 failed; source/binaries unchanged and original groups joined.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T15:15:47.574343+00:00",
+      "updated_at": "2026-11-12T04:06:47.358539+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -722,7 +752,7 @@
         "P4.2"
       ],
       "status": "diagnosing",
-      "implementation_state": "All130 original groups joined, but native workload aborted~48s with2/4handoffs; full workload/End/OS coverage unqualified.",
+      "implementation_state": "All175 executed in batch20; full62 media and4moves/Data completed, but current End rejected legitimate connection.quality events. Typed noncompletion demux now passes pure controls; actual full End/67s qualification still pending.",
       "proposed_fix": "Separate missing-handoff coverage from resource leaks; retain required10browserrenderer owners and all actual natural joins.",
       "required_evidence": "All3completecycles, exact original/replacement receipts, zero Session-owned physical owners/tasks/pools, helper/client joins and unchanged end/cleanup deadlines.",
       "coordinator_review": {
@@ -745,11 +775,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
           "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
+          "result": "All175 executed;171 passed,4 failed; source/binaries unchanged and original groups joined.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
+          "result": "7/7 targeted controls, including5pure+actualReadySQL+ordinaryinitialAV. Not full175 or matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T15:15:47.574343+00:00",
+      "updated_at": "2026-11-12T04:06:47.358539+00:00",
       "mapped_check_count": 41,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": []
@@ -806,7 +846,7 @@
         "P2.1"
       ],
       "status": "diagnosing",
-      "implementation_state": "All175 executed on frozen source bbcf57f6:162 passed,13 failed; no skips.159 pure passed. Twelve failures share Ready dispatch ownership; one initial AV fixture timing mismatch. Full62 aborted before Commit/quality; no matrix promotion.",
+      "implementation_state": "Latest full focused run20:171/175 passed with no skips and joined original owners. Three fixture corrections have7/7 targeted controls; these do not promote full175 or matrix verdicts. Audio and video quality deficits remain.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -849,11 +889,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
           "result": "175/175 executed;162 pass,13 fail. Source/binaries stable; original groups joined. No full matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
+          "result": "All175 executed;171 passed,4 failed; source/binaries unchanged and original groups joined.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
+          "result": "7/7 targeted controls, including5pure+actualReadySQL+ordinaryinitialAV. Not full175 or matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T03:30:14.946732+00:00",
+      "updated_at": "2026-11-12T04:06:47.358539+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -885,7 +935,7 @@
         "P7.1"
       ],
       "status": "component-verified",
-      "implementation_state": "Batch19 completed162/175 with all original groups joined. Both Ready dispatcher and initialAV fixture corrections are independently source-reviewed; same175 next-batch metadata/fixture audit passed.52GiB retired build-object cleanup complete. Combined verification and full32 remain pending.",
+      "implementation_state": "Three subsequent fixture fixes are independently reviewed and7/7 targeted unit/signed regressions passed on stable source with all original owners joined.52GiB cleanup complete. Product quality cause investigation and final frozen175/32 qualification remain open.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -923,11 +973,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
           "result": "175/175 executed;162 pass,13 fail. Source/binaries stable; original groups joined. No full matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
+          "result": "All175 executed;171 passed,4 failed; source/binaries unchanged and original groups joined.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
+          "result": "7/7 targeted controls, including5pure+actualReadySQL+ordinaryinitialAV. Not full175 or matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T03:30:14.946732+00:00",
+      "updated_at": "2026-11-12T04:06:47.358539+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -3265,5 +3325,6 @@
     "native_postcommit_data": "stale-fixture-revision corrected; runtime pending",
     "rtc_prestart": "exact-custody oracle under implementation/review",
     "matrix_effect": "not-tested"
-  }
+  },
+  "next_media_fix_plan": "docs/evidence/gate-6/g6-058-v216-media-quality-next-fix-plan.json"
 }

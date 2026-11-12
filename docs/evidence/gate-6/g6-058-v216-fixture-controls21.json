@@ -1,0 +1,205 @@
+{
+  "format": "connect/three-fixture-controls21-sanitized/1",
+  "created_at": "2026-11-12T04:05:51.063109+00:00",
+  "scope": "Five pure controls and two actual signed regressions only. Not the175 combined qualification or32 cells.",
+  "summary": {
+    "expected": 7,
+    "executed": 7,
+    "passed": 7,
+    "failed": 0
+  },
+  "raw_receipt_sha256": "1ea06d708aa6f0304b8eca5cad45a205b3479ab1f712b953110fa0e969519991",
+  "runner_sha256": "8f8b469113271efba09b821146dccd2ae27b30b333a21b70d9da43424c25f168",
+  "source_seal_sha256": "afefa9826c196b63e9a2bf52aa725336e4c4028973af7c4a36f051e8b5e39f91",
+  "source_base_revision": "31f531b8658e09af115ea7763843a704bf6819d6",
+  "source_workspace_sha256": "f83d88f194e45435970f587c9014e8ebe29921b965b263f7c99b4a751bf3e300",
+  "source_lock_sha256": "bef0ccbe4fa72c4a5656ee066134ef48ab007c91f2299b8a8ad248bffbe738c5",
+  "source_unchanged": true,
+  "all_original_groups_joined": true,
+  "original_controller": {
+    "tool_session": 77837,
+    "actual_wait_returned": true,
+    "actual_exit_code": 0
+  },
+  "build": {
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 124.43969675002154,
+    "source_unchanged": true,
+    "log_sha256": "751c467525dfe612db9fe850ec30bd5a5949bd4d2a47ffa6b89e2399ee974b4a",
+    "stderr_sha256": "e7f81ab018b2d74aa1049c19a39335ad961dbbfd9017b52205b8108cc3351fa2"
+  },
+  "artifacts": [
+    {
+      "group": 1,
+      "binary_sha256": "4f8960f4e6d7bf44ac382a2d473b7f421149c0bd337a50f0eaf849c7e0563534"
+    },
+    {
+      "group": 4,
+      "binary_sha256": "d183b15e0b574618c543729027c42ccd90c9c2463894f1f182182669051efb90"
+    },
+    {
+      "group": 5,
+      "binary_sha256": "282013f8b58d5a766abcf50ff2856bd4c083778a87d7a33a0fb4c09b277c8c82"
+    }
+  ],
+  "tests": [
+    {
+      "group": 1,
+      "test": "canonical_replacement::readiness::admission::tests::busy_ready_metadata_drops_each_proof_before_fresh_admission_and_one_capture",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "explicit_ignored_execution": false,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "b6d09b9039da102ac3d1a43b7f118b913fa1a6102ebca152af37e0262ca0c42c",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.05431579099968076
+    },
+    {
+      "group": 4,
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_original_ready_survives_pre_and_post_capture_sql_without_replaying_effects",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "explicit_ignored_execution": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "b09bc4dbc66d30279fbdf3d5711a4beaee70d67c993b67168b33bda9c2ae4282",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 4.703495500027202
+    },
+    {
+      "group": 4,
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::ready_sql::ready_refusal_scope_requires_all_four_original_resources_and_exact_update_record",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "explicit_ignored_execution": false,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "709b6050c9c9c16387faa1cb8af1874f92ab54889752bf3b1cfe2b7028c1df3e",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.01861208293121308
+    },
+    {
+      "group": 5,
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::data::end_facts::tests::exact_native_end_fact_does_not_complete_or_replace_original_reply",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "explicit_ignored_execution": false,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "01dfd045948aa7339fe58e5cd12c7a3fa91062bf135cf8edd105b40a44b5432a",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.012367957970127463
+    },
+    {
+      "group": 5,
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::data::end_facts::tests::only_strict_distinct_reconciliation_hint_is_a_noncompletion_observation",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "explicit_ignored_execution": false,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "f4946657e06099cba247ad77f5842163c4254ee4ec04fae72494dbbde0fe3aa6",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.011851625051349401
+    },
+    {
+      "group": 5,
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::data::end_facts::tests::unknown_error_foreign_and_malformed_facts_remain_fatal",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "explicit_ignored_execution": false,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "970af79c252278c1fd6ad6f1ffa5c313e85a4066f2e698ab2cf3f3bf6dda52bb",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.01066433300729841
+    },
+    {
+      "group": 5,
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::initial_av::signed_initial_six_source_av_subscription_releases_both_busy_boundaries_without_replaying_original",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "explicit_ignored_execution": false,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "861e647d0bd3c7dd585d8f544d77898e95adb5482f0c217cfc8f4c8efb4c88de",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 22.3183980419999
+    }
+  ],
+  "applied_formatted_source_review_sha256": "6f887d30756433708c770d841247525ed7287e6c572d1341a424615a9aa101f9",
+  "combined175_qualified": false,
+  "matrix_qualified": false,
+  "limits": [
+    "Five pure controls and two signed regressions only; no aggregation into the175 verdict.",
+    "Ready postcapture SQL and ordinary initialAV now pass on exact working source. End demux has pure evidence; full original End remains to rerun.",
+    "Audio discontinuity and full-programme video deficits remain open."
+  ]
+}

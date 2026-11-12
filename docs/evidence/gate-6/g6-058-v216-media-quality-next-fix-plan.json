@@ -1,0 +1,75 @@
+{
+  "format": "connect/media-quality-next-fix-plan/1",
+  "status": "Investigation and causal counters required; no acceptance change or production fix claim",
+  "updated_at": "2026-11-12T04:05:51.063109+00:00",
+  "coordinator": "/root",
+  "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components20.json",
+  "baseline": {
+    "executed": 175,
+    "passed": 171,
+    "failed": 4,
+    "not_executed": 0
+  },
+  "fixture_followthrough": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
+  "open_product_requirements": [
+    "B195 decoded audio/video quality",
+    "B196 complete actual End/cleanup programme",
+    "B198 coherent175 and32-cell qualification"
+  ],
+  "tasks": [
+    {
+      "id": "P5.1",
+      "owner": "/root/media_blockers",
+      "reviewer": "/root/v198_resources",
+      "cause_status": "Unresolved; actual short-run old receiver1 only960 consecutive samples versus2880 during private preparation, before that case Ready/Commit.",
+      "next": "Bounded actual previous/current audio SSRC,sequence,timestamp and decoder-reset reason evidence; distinguish clock-origin rollover, reordering and missing packets before changing production code.",
+      "invariants": [
+        "No source-quantum attribution claim",
+        "Keep2880 decoded samples, freshness and all quality bounds",
+        "No payload or unbounded diagnostics"
+      ]
+    },
+    {
+      "id": "P5.2",
+      "owner": "/root/v198_resources",
+      "reviewer": "/root/media_blockers",
+      "cause_status": "Mapped mechanism, not proven packet-loss cause: actual public Core/Store movement still holds broad authority Write, including across a blocking pre-effect SQL admission. Historical capture Reader fixes do not remove these real cuts.",
+      "actual_failures": [
+        "Full route2 sec18=18FPS,sec43=20FPS; route3 sec18=22FPS; minimum24. Route3 sec43=24 passes.",
+        "All4 actual historical captures used positive-reader; all4 physical moves completed."
+      ],
+      "timing_correction": "Full programme uses representative(false,true): no deliberate coordinator hold. Bins18/43 span Ready and actual Commit; quality snapshot before Ready does not prove loss before Commit.",
+      "next": "Reproduce exact pre-effect SQL wait under an already-held real movement Writer, and correlate Writer-acquired/SQL-dispatch/SQL-return/Core-enter/Writer-drop with real publication refusals and public packet-age/sequence evidence.",
+      "proposed_scope": "Consider pre-effect SQL availability/nonblocking exact begin plus full release and fresh same-root plan retry ONLY before effect begins. No replay after begun; no arbitrary removal of current Write custody.",
+      "invariants": [
+        "Do not hold SQL while waiting for file authority",
+        "Dropping Writer does not by itself prove a revoked snapshot is usable while SQL remains held",
+        "Fine connection fencing needs complete reader,writer,DML and revocation coverage; no arbitrary RecordWrite substitution",
+        "Keep original root deadlines and all membership,key,device,scope and expiry negatives"
+      ]
+    }
+  ],
+  "qualification_order": [
+    "Prove cause with a controlled counter and independent review",
+    "Implement only verified cause fixes and unit-test positive and negative cases",
+    "Run all175 unchanged selectors/fixtures on one final frozen source, including full62 last",
+    "Require evaluated decoded quality,4moves,Data,original End/joins and budgets",
+    "Then normal shipping/preflight and all32cells/all432checks locally on Mac/nativeARM Linux"
+  ],
+  "G6_054": "Remains parked",
+  "full_matrix_latest": {
+    "run": "v215",
+    "passed_cells": 0,
+    "cells": 32,
+    "checks_passed": 287,
+    "checks_failed": 101,
+    "checks_blocked": 44
+  },
+  "disk_now_free_bytes": {
+    "/": 30755360768,
+    "/Volumes/D2-2019": 51396169728
+  },
+  "public_commit_sql_counter_design_sha256": "41d4b8e9e092bb75b12931bc6a122411338e96fcfaa4bf5f388fa0676f3be030",
+  "video_write_window_analysis_sha256": "2fb5a65c01715575140aebda7eb276fc91fa212c298e0f60300c8c8f32eb52ea",
+  "audio_diagnostic_proposal_sha256": "718a27b886b2663a3cad37568fbe2fa93bf97c91259cff727a55fc5a7f35b97c"
+}
