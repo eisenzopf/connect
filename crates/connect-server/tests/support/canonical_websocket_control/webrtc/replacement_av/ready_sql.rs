@@ -42,7 +42,7 @@ fn original_resources(
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
     )?;
     let mut statement = sql.prepare("SELECT provider,id,attempt,submission_generation,state FROM operation_effects WHERE operation_record_id=?1 AND provider IN ('native-replacement-prepare','native-replacement-allocate','native-replacement-start','native-replacement-attach','native-replacement-activate') ORDER BY provider")?;
-    let rows = statement
+    let rows: Vec<(String, String, u64, u64, String)> = statement
         .query_map([record], |r| {
             Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?))
         })?

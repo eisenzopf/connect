@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-components18-compilation/1",
+  "created_at": "2026-11-12T03:10:12.738701+00:00",
+  "result": "compile failed; zero runtime cases executed",
+  "normal_default_check": "passed0.855s",
+  "combined_owner": {
+    "exit_code": 101,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 1880.4664113339968,
+    "source_unchanged": true,
+    "workspace_sha256": "b2c16a7e60f7f0a214654ea80e9515d082cf11ce0b35188dacdb540ee7cd0d09",
+    "log_sha256": "210c5dd896a70826f26e174edfd1ecb879645f4dbfcc05e746a5b8cb64df87f5",
+    "stderr_sha256": "1be896e065684241ccba140c9f2ca4142c3ac52e98a19071cbec0463926c0445"
+  },
+  "terminal": {
+    "all_original_groups_joined": true,
+    "remaining_original_groups": [],
+    "source_after_sha256": "10746b1fc6c2cb117655533479d3275cd53f41bb2c2d7dc652b6ac3818e08f82",
+    "source_unchanged": true,
+    "selection_sha256": "10a2453ed64f7eadb7583eeba2912d3f69caf427cbc8ddd7017d81f561ee423e"
+  },
+  "error": "E0282 ready_sql.rs47 r.get4 lacks explicit String element type before row.4.as_str.",
+  "fix": "One test-only Vec<(String,String,u64,u64,String)> annotation; SQL/assertions/production/deadlines unchanged.",
+  "review_sha256": "1adb1aaa7753415a75bf536f63e3bf10642edcf7cbd6acc2fd0d6c1e482fa525",
+  "runtime_executed": 0,
+  "retry": "Newbatch19retainsall175selectors/fixtures; original18receiptsunchanged."
+}
