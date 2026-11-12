@@ -143,17 +143,29 @@ class OwnedSdkHelper(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((observed.exception.kind,observed.exception.certainty),('protocol','uncertain'))
 
     async def test_structured_error_retains_recorded_observation_without_diagnostics_or_helper_loss(self):
-        helper=await self.helper({'mode':'refuse','observation':{'state':'completed','private':['private-raw-body']}})
-        with self.assertRaises(SdkError) as observed:
-            await helper.request(intent(),OPTIONS,lambda v:v,KEY,True)
-        error=observed.exception
-        self.assertEqual((error.kind,error.certainty),('receipt-unavailable','recorded'))
-        self.assertEqual(error.operation,KEY);self.assertEqual(error.observation['state'],'completed')
-        self.assertNotIn('private-raw-body',str(error)+repr(error)+repr(error.problem))
-        with self.assertRaises(TypeError):error.observation['state']='foreign'
-        with self.assertRaises(AttributeError):error.certainty='uncertain'
-        await helper.request({'type':'capabilities_refresh'},OPTIONS,lambda v:v)
-        self.assertFalse(helper._closed)
+        for kind,certainty,observation in [
+                ('receipt-unavailable','recorded',{'state':'completed','private':['private-raw-body']}),
+                ('backpressure','not-submitted',None)]:
+            with self.subTest(kind=kind):
+                helper=await self.helper({'mode':'refuse','kind':kind,'certainty':certainty,'observation':observation})
+                with self.assertRaises(SdkError) as observed:
+                    await helper.request(intent(),OPTIONS,lambda v:v,KEY,True)
+                error=observed.exception
+                self.assertEqual((error.kind,error.certainty),(kind,certainty))
+                self.assertEqual(error.operation,KEY)
+                self.assertNotIn('private-raw-body',str(error)+repr(error)+repr(error.problem))
+                if certainty=='recorded':
+                    self.assertEqual(error.observation['state'],'completed')
+                    with self.assertRaises(TypeError):error.observation['state']='foreign'
+                else:
+                    self.assertIsNone(error.observation)
+                with self.assertRaises(AttributeError):error.certainty='uncertain'
+                original_process=helper._process
+                self.assertIsNotNone(original_process)
+                await helper.request({'type':'capabilities_refresh'},OPTIONS,lambda v:v)
+                self.assertFalse(helper._closed)
+                self.assertIs(helper._process,original_process)
+                self.assertIsNone(original_process.returncode)
 
     async def test_error_correlation_cannot_substitute_another_logical_id_command_or_scope(self):
         exact=KEY._wire()

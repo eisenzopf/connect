@@ -1,0 +1,19 @@
+{
+  "format": "connect/approved-retired-test-binary-cleanup/1",
+  "selected_count": 62,
+  "selected_allocated_bytes": 16106696704,
+  "header_and_identity_revalidated": true,
+  "open_inventory_complete": true,
+  "selected_open_count": 0,
+  "before_available_bytes": 29838708736,
+  "deleted_count": 62,
+  "complete": true,
+  "all_selected_absent": true,
+  "after_available_bytes": 45945323520,
+  "observed_available_gain_bytes": 16106614784,
+  "deleted_journal_sha256": "88e05259a2f517d4b103ff01002fe7da2afa2de81ea46ca8c78b94b55dd3d32e",
+  "scope": "Exact62 independently libtest-marked ARM64 Cargo test executables from established retired cache; four normal CLI files preserved. All selected singlelink, fresh identities/headers and process-image open descriptors checked; currentwarm cache and sharedhardlinks untouched.",
+  "raw_receipt_sha256": "4cf3208f0ab5cdceccf62e2101899de3de8ef373ea7001197623df990a4968d0",
+  "prior_object_cleanup_selected_bytes": 64424509440,
+  "cumulative_selected_bytes": 80531206144
+}

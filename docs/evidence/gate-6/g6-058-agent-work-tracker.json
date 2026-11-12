@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T05:56:28.461078+00:00",
-  "revision": 32,
+  "updated_at": "2026-11-12T06:51:35.252815+00:00",
+  "revision": 33,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -619,7 +619,7 @@
         "P2.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Pre-IO MetadataBusy audio retention and earlier-lease preservation implemented on recorded408 graph. Four intended old defects reproduced (old29 three plus corrected31 earlier lease; original old29 case1 remains unqualified). Fixed12/12 real Opus/native/epoch/deadline/terminal-IO controls pass; source/binaries stable and all original owners joined. Public decoded-quality recovery remains unproven. CanonicalClient64KiB shared datagram queue can evict older accepted audio on video pressure; non-evicting queue and bounded waits staged for next controlled verification.",
+      "implementation_state": "Pre-IO retention12/12 and native non-evicting/SDK/raw transport8/8 independently verified. Both actual old64KiB QUIC audio-eviction counters now pass, with unchanged packet bytes, deadlines, current binding/gate checks and terminal submitted IO. Node53/Python67, types and contracts pass. These fix verified mechanisms; decoded fullprogramme and actual32cell effect still pending.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
@@ -667,11 +667,26 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-audio-retention-fixed32.json",
           "result": "12/12 fixed controls pass; both builds succeed, source/binaries unchanged and all original groups joined.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-native-queue-old-counter33.json",
+          "result": "Both actual controlled64KiB QUIC paths reproduce exact accepted-audio eviction after original cleanup.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-native-queue-fixed36.json",
+          "result": "8/8 fixed transport/SDK/raw controls passed; source/binary/owner stable, sameold counteroracles now pass.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-client-language37.json",
+          "result": "Eight language checks pass:Node53,Python67, exact43 intended type errors; original extraction failure preserved and independently re-adjudicated without rerunning.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T05:56:28.461078+00:00",
+      "updated_at": "2026-11-12T06:51:35.252815+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -843,7 +858,7 @@
         "P6.1"
       ],
       "status": "assigned",
-      "implementation_state": "Cumulative60GiB reviewed retired build-object deletion complete (latest8GiB measured8.60GB available-space gain). Active cache/source/evidence/DB/VM preserved. Fresh shipping and VM capacity checks remain required after compilation.",
+      "implementation_state": "60GiB retired object caches plus16,106,696,704B verifiedretired test binaries deleted and measured, active/shared caches preserved; four ordinary CLI binaries excluded. Compilation consumes headroom; fresh normalshipping/VM capacity checks remain required.",
       "proposed_fix": "Retain approved per-role/aggregate RSS and original numeric process/FD/thread capacities; trends diagnostic and separate soak unaffected.",
       "required_evidence": "1GiB server/4GiB browser/1GiB helper/6GiB aggregate; exact original resource-pool restoration and source-bound server thread exception; no incomplete cycle counted as pass.",
       "coordinator_review": {
@@ -859,7 +874,7 @@
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T05:56:28.461078+00:00",
+      "updated_at": "2026-11-12T06:51:35.252815+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": []
@@ -880,8 +895,8 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "diagnosing",
-      "implementation_state": "Latest full focused run20:171/175 passed with no skips and joined original owners. Three fixture corrections have7/7 targeted controls; these do not promote full175 or matrix verdicts. Audio and video quality deficits remain.",
+      "status": "in-progress",
+      "implementation_state": "All currentlyverified cause fixes integrated and component-tested: fixture7, audio diagnostics4, CommitSQL7, retention12, nativequeue8, plus8languagechecks. Next one coherent206case frozen regression preserving all175originals/11explicitignored/full62last.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -938,7 +953,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:06:47.358539+00:00",
+      "updated_at": "2026-11-12T06:51:35.252815+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -970,7 +985,7 @@
         "P7.1"
       ],
       "status": "component-verified",
-      "implementation_state": "Three subsequent fixture fixes are independently reviewed and7/7 targeted unit/signed regressions passed on stable source with all original owners joined.52GiB cleanup complete. Product quality cause investigation and final frozen175/32 qualification remain open.",
+      "implementation_state": "Final corrective batch source reviewed and actual component/language checks passed on equal complete source36/37, including all220tracked generated TypeScript files. Final docs/evidence commit and clean HEAD binding precede206; keep that tested HEAD unchanged throughARMshipping/full32 if206green.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1022,7 +1037,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:06:47.358539+00:00",
+      "updated_at": "2026-11-12T06:51:35.252815+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [

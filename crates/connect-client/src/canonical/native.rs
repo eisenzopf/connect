@@ -227,9 +227,7 @@ impl CanonicalClient {
         {
             return Err(ClientError::Protocol);
         }
-        self.connection
-            .send_datagram(bytes.to_vec().into())
-            .map_err(|_| ClientError::Transport)
+        super::native_admission::try_submit(&self.connection, bytes)
     }
     /// The SDK has already matched its exact selected receive epoch. Syntax and
     /// current physical-peer authority are checked again at actual submission.
@@ -245,9 +243,7 @@ impl CanonicalClient {
         {
             return Err(ClientError::Protocol);
         }
-        self.connection
-            .send_datagram(bytes.to_vec().into())
-            .map_err(|_| ClientError::Transport)
+        super::native_admission::try_submit(&self.connection, bytes)
     }
     /// The SDK owns this atomic read alongside its independently owned signed reader.
     /// Idle media has no frame deadline; current peer authority still gates both ends.

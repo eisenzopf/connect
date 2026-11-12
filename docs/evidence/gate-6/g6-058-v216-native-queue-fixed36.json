@@ -1,0 +1,111 @@
+{
+  "format": "connect/independent-fixed-native-queue36-components/1",
+  "state": "EIGHT FIXED COMPONENT CONTROLS VERIFIED",
+  "actual_summary": {
+    "expected": 8,
+    "executed": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "original_results_sha256": "47f8db4a2bef31f8d49e37ddea90d185e316b51de47d5418ca368b2070de81b0",
+  "source_sha256": "f00b68fe44b3c26eb2dc0891d75cb3bd5580c77c17809fed7dfa5ebcb9b1d3fd",
+  "binary_sha256": "0ee5aaa047e6ac8ce3965e9f6a8efa3c711b07b50da46aafa17dc02b87c2d8a0",
+  "inventory_sha256": "fc34bd10e5cc88df4e1e08426f806048f22baf29c5cbe84c4a38993724eb2463",
+  "normal_default_client_check_passed": true,
+  "default_client_artifact_without_test_support_or_memory_diagnostics": true,
+  "combined_build_passed": true,
+  "unit_actual_features": [
+    "test-support"
+  ],
+  "unit_profile": {
+    "opt_level": "0",
+    "debuginfo": 2,
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "test": true
+  },
+  "source_and_binaries_unchanged_reported": true,
+  "all_original_groups_joined": true,
+  "cases": [
+    {
+      "selector": "canonical::tests::native_queue::canonical_media_video_burst_does_not_evict_accepted_original_audio",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "1b1cec5ed8c20032760f9df30353df376f71de2da2d39d7cc4ebf97a603badfa"
+    },
+    {
+      "selector": "canonical::tests::native_queue::raw_native_owner_video_burst_does_not_evict_accepted_original_audio",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "55f2dc201c914551b50bca7e5ad5c1ffba139a2dda945dff8100b18853ab64d9"
+    },
+    {
+      "selector": "sdk::worker::media_admission::tests::deferred_sdk_original_retains_one_encoding_sequence_and_reply_owner",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "a8baa67b04bc3e0bde226ea7b1ca318b09884cca9657dc9775b5e426d1ad80fc"
+    },
+    {
+      "selector": "sdk::worker::media_admission::tests::pending_cache_exclusion_never_blocks_control_and_expiry_or_cancel_prevents_enqueue",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "aade17dd46876c5cda33b8a2f3da7e2b37bf04e2a729bf20a895a22e8df887d4"
+    },
+    {
+      "selector": "sdk::worker::media_admission::tests::pending_binding_changes_and_noncapacity_errors_are_terminal_without_reexecution",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "9bb4b38757532dcc8ed688806a627d47565403952099bd82191848f0d83e5bc9"
+    },
+    {
+      "selector": "canonical::transport_budget_tests::canonical_default_transport_reserves_declared_video_send_and_receive_budget",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "0a183fbafdd0b502d41269fa3cb1e52cda72242437cddc90c4730fb85764036d"
+    },
+    {
+      "selector": "canonical::native_io::tests::native_io_send_until_keeps_original_deadline_and_actual_duplex_bytes",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "81b1b741b740f05d5610e76badbf0d073ab28ee767e218cbc53c45cbd45c2197"
+    },
+    {
+      "selector": "canonical::native_io::tests::native_io_capacity_wait_cancellation_and_wake_recheck_expiry_or_close_before_enqueue",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "ba36cae29a2f4c94d7cd24d7d5ce8f249140ad5cd7b5b2423b869c203bde1631"
+    }
+  ],
+  "old_counter_evidence_sha256": "2ae82d2a82a10588a1569c94373feea73897a127d9e089953a277cff8f22c578",
+  "causal_assessment": {
+    "same_two_old_oracles_now_pass": true,
+    "capacity": "Controlled counter explicitly remains64KiB; production default76032B/profile is independently tested, not used to make the queue counter pass.",
+    "sdk_controls": 3,
+    "default_config_control": 1,
+    "raw_io_controls": 2
+  },
+  "limits": [
+    "Instrumented unit binary has Client/test-support; default shipping feature check is separate.",
+    "Actual synthetic transport preservation/control custody only; no decoded QoE/actual25 loss-cause, full206, shipping or full32 qualification.",
+    "Parent original controller closure reported separately; no synthetic PID/group closure inferred."
+  ],
+  "qualification": {
+    "components8": true,
+    "combined206": false,
+    "full32": false
+  },
+  "actions": {
+    "build": 0,
+    "test": 0,
+    "source_mutation": 0,
+    "guest": 0
+  }
+}

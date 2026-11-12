@@ -15,6 +15,26 @@ native sends use a bounded queue of 64. The language adapter must preserve those
 bounds, current binding/direction checks and typed gaps. It must not create an
 unbounded secondary queue to conceal a slow application.
 
+Canonical native producers use atomic non-evicting QUIC enqueue. Synchronous raw
+sends report `MediaBackpressure` when capacity is unavailable; that datagram was
+not submitted and cannot evict older accepted audio. The typed SDK retains one
+encoded original under its fixed caller/entry (at most 200 ms) and authentication
+cutoff while continuing signed control and native reception. It rechecks the exact
+binding, stream generation and gate before each attempt, and never retransmits an
+accepted prefix or changes RTP clocks. Feedback requests consume their original
+serial once; a local capacity refusal is terminal `backpressure`/`not-submitted`.
+Canonical peers also use the existing encoded-video physical profile: the shared
+send buffer and receive buffer each hold 64 maximum encoded-video datagrams
+(currently 76,032 bytes), packet loss threshold 64, time threshold 4, and the
+existing BBR congestion controller. These bounded profile settings preserve the
+recorded quality/latency/resource limits. Buffer capacity alone does not prevent
+old-datagram eviction; atomic non-evicting enqueue provides that guarantee.
+
+Node/Python preserve this error distinction. The local entry-age cap does not
+prove the application's source capture age; pass the original capture deadline
+through request options. Raw `send_until` similarly requires that original cutoff.
+
+
 Live RTP and source-clock packets also expire after 200 ms in the Rust receive
 inbox. Resuming a paused reader discards expired packets and reports their loss
 as a typed gap before any remaining current packets; it cannot restart their

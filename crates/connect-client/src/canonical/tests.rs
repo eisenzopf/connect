@@ -5,6 +5,7 @@ use super::*;
 use tokio::sync::Notify;
 mod auth_refresh;
 pub(super) mod native_media;
+mod native_queue;
 mod owned_signaling;
 mod public_audio_subscription;
 mod sdk_administration;
@@ -378,9 +379,20 @@ pub(super) async fn controlled(
     let mut tls = rvoip_uctp::substrate::dev_client_config_trusting(&cert).unwrap();
     tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
     let mut endpoint = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
-    endpoint.set_default_client_config(quinn::ClientConfig::new(Arc::new(
+    let mut client_config = quinn::ClientConfig::new(Arc::new(
         quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap(),
-    )));
+    ));
+    if matches!(
+        fault,
+        Fault::NativeDatagrams(native_media::Traffic::QueuePressure)
+    ) {
+        // Exact production CanonicalClient media capacity at the old condition.
+        // This override belongs only to the controlled transport counter.
+        let mut budget = quinn::TransportConfig::default();
+        budget.datagram_send_buffer_size(64 * 1024);
+        client_config.transport_config(Arc::new(budget));
+    }
+    endpoint.set_default_client_config(client_config);
     let connection = endpoint
         .connect(address, "localhost")
         .unwrap()

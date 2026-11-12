@@ -102,6 +102,7 @@ pub enum ErrorKind {
     Deadline,
     Cancelled,
     TransportUncertain,
+    Backpressure,
     Unsupported,
     Conflict,
     Application,

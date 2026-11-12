@@ -1,0 +1,64 @@
+{
+  "format": "connect/independent-old-quic-queue33-adjudication/1",
+  "state": "BOTH INTENDED OLD LOCAL-QUEUE COUNTEREXAMPLES REPRODUCED",
+  "raw_results_sha256": "828881bb2772421da3bca7f71d4b616a9f71f6c6e8b4e2e7cffba680a285e73e",
+  "source_sha256": "c9b345fe4128df988115608aa572932713132efd9ce52bc85e4986ca6bdbe94d",
+  "actual_summary": {
+    "expected": 2,
+    "executed": 2,
+    "passed": 0,
+    "failed": 2
+  },
+  "default_Client_check_passed": true,
+  "default_Client_artifact_without_test_support_or_memory_diagnostics_verified": true,
+  "combined_workspace_build_passed": true,
+  "unit_actual_features": [
+    "test-support"
+  ],
+  "unit_normal_opt0_debug2_verified": true,
+  "unit_feature_does_not_bypass_syntax_or_current_authority_checks": true,
+  "source_and_binaries_unchanged": true,
+  "all_original_groups_joined": true,
+  "binary_sha256": "a9e8b1c25cf27414c26f9c4ecc734e2d6b1963fdfff7e0bb60dd7db479344b0a",
+  "counter_source_review_sha256": "b08bfa5e82d70a00ad4c8996b0acd74b0636191eb3a37ba0611262be7f39e29a",
+  "cases": [
+    {
+      "selector": "canonical::tests::native_queue::canonical_media_video_burst_does_not_evict_accepted_original_audio",
+      "actual_test_passed": false,
+      "ignored": 0,
+      "log_sha256": "1f3a68b7bc17259912d1251a6a957f5327a8e78dc4b9d675862cfe529d4dc083",
+      "intended_final_audio_preservation_oracle_reproduced": true,
+      "observed_audio_count": 0,
+      "required_original_audio_count": 1,
+      "preconditions_and_original_client_server_closure_before_oracle_passed": true
+    },
+    {
+      "selector": "canonical::tests::native_queue::raw_native_owner_video_burst_does_not_evict_accepted_original_audio",
+      "actual_test_passed": false,
+      "ignored": 0,
+      "log_sha256": "1c8e00b2f612ca1b0b431e46b29ea4907e7cebc15275df5e94e5cb03e844b11f",
+      "intended_final_audio_preservation_oracle_reproduced": true,
+      "observed_audio_count": 0,
+      "required_original_audio_count": 1,
+      "preconditions_and_original_client_server_closure_before_oracle_passed": true
+    }
+  ],
+  "causal_scope": [
+    "Actual controlled postauth CanonicalClient/rawowner synchronous producer; independent64KiB transport configuration",
+    "Audioacceptedfirst,128subsequentvideo enqueueattempts inonecurrentthread poll withnoawait; existingQuinnFIFO send(true) evictsoldunsentbytes",
+    "Originalquery/pressure/nonzeroactualserverobservations andordinaryclient/serverclosure allpassedbeforeexactaudio-listfailure"
+  ],
+  "limits": [
+    "No syntheticpayload/RTPheaderbytes/rawIDs/paths copied",
+    "Testsfailedintentionally, not counted as passes",
+    "Unitbinary is instrumentedClient/test-support; defaultprodcheck separatelyverified, no default-unit-feature claim",
+    "No Core/serverauthentication/codec/QoE oractual25causation claim",
+    "Samefixedcounters andSDK/raw controls plusfull206/full32 stillpending"
+  ],
+  "actions": {
+    "reviewer_build": 0,
+    "reviewer_test": 0,
+    "source_mutation": 0,
+    "guest": 0
+  }
+}

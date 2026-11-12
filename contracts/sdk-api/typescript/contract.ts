@@ -70,6 +70,7 @@ export type ErrorKind =
     | "deadline"
     | "cancelled"
     | "transport-uncertain"
+    | "backpressure"
     | "unsupported"
     | "conflict"
     | "application"

@@ -8,6 +8,7 @@ export type CanonicalErrorKind =
     | "deadline"
     | "cancelled"
     | "transport-uncertain"
+    | "backpressure"
     | "unsupported"
     | "conflict"
     | "application"

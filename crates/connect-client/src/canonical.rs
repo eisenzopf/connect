@@ -228,18 +228,7 @@ impl CanonicalClient {
                 .client_bind(config.endpoint.is_ipv6()),
         )
         .map_err(|_| ClientError::Transport)?;
-        let mut transport = quinn::TransportConfig::default();
-        transport.max_concurrent_bidi_streams(0u32.into());
-        transport.max_concurrent_uni_streams(0u32.into());
-        // Negotiate the bounded native media substrate. Actual routes still
-        // require the signed offer/answer and current media authority.
-        transport.datagram_receive_buffer_size(Some(64 * 1024));
-        transport.datagram_send_buffer_size(64 * 1024);
-        transport.max_idle_timeout(Some(
-            Duration::from_secs(30)
-                .try_into()
-                .map_err(|_| ClientError::Configuration)?,
-        ));
+        let transport = native_transport_config()?;
         let mut client_config = quinn::ClientConfig::new(Arc::new(
             quinn::crypto::rustls::QuicClientConfig::try_from(tls)
                 .map_err(|_| ClientError::Configuration)?,
@@ -1014,6 +1003,7 @@ mod capabilities;
 mod dtmf;
 pub mod http;
 mod native;
+mod native_admission;
 mod native_io;
 mod native_readiness;
 mod native_video;
@@ -1043,3 +1033,41 @@ mod session_invitations;
 pub use session_invitations::SessionInvitationAnswer;
 
 pub(crate) mod exchange;
+
+// Shared construction keeps actual default media capacity independently
+// inspectable without opening a peer or changing the controlled counter budget.
+fn native_transport_config() -> Result<quinn::TransportConfig> {
+    let mut transport = quinn::TransportConfig::default();
+    transport.max_concurrent_bidi_streams(0u32.into());
+    transport.max_concurrent_uni_streams(0u32.into());
+    // Negotiate the bounded native media substrate. Actual routes still
+    // require the signed offer/answer and current media authority.
+    let media_capacity = rvoip_quic::apply_encoded_video_transport_budget(&mut transport);
+    transport.datagram_receive_buffer_size(Some(media_capacity));
+    transport.max_idle_timeout(Some(
+        Duration::from_secs(30)
+            .try_into()
+            .map_err(|_| ClientError::Configuration)?,
+    ));
+    Ok(transport)
+}
+#[cfg(test)]
+mod transport_budget_tests {
+    use super::*;
+    #[test]
+    fn canonical_default_transport_reserves_declared_video_send_and_receive_budget() {
+        let config = native_transport_config().unwrap();
+        let declared = 64 * (rvoip_core::video_bridge::MAX_VIDEO_RTP_BYTES + 8);
+        // Inspect actual Quinn configuration, not just the helper's return
+        // constant. These are locked-version public Debug field names.
+        let actual = format!("{config:?}");
+        assert!(
+            actual.contains(&format!("datagram_send_buffer_size: {declared}")),
+            "{actual}"
+        );
+        assert!(
+            actual.contains(&format!("datagram_receive_buffer_size: Some({declared})")),
+            "{actual}"
+        );
+    }
+}

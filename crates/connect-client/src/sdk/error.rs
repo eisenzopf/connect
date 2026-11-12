@@ -10,6 +10,8 @@ pub enum ErrorKind {
     Deadline,
     Cancelled,
     TransportUncertain,
+    /// Local native media capacity refusal; the datagram was not submitted.
+    Backpressure,
     Unsupported,
     Conflict,
     Application,
@@ -93,6 +95,7 @@ impl Error {
     }
     pub(super) fn transport(error: crate::ClientError, operation: Option<&OperationKey>) -> Self {
         use crate::ClientError as E;
+        let submitted = !matches!(&error, E::MediaBackpressure);
         let kind = match error {
             E::Configuration => ErrorKind::Configuration,
             E::Authentication => ErrorKind::Authentication,
@@ -100,9 +103,10 @@ impl Error {
             E::Cancelled => ErrorKind::Cancelled,
             E::Protocol => ErrorKind::Protocol,
             E::Transport | E::MediaEnded => ErrorKind::TransportUncertain,
+            E::MediaBackpressure => ErrorKind::Backpressure,
             E::Application(_) => ErrorKind::Application,
         };
-        Self::request(kind, operation, true)
+        Self::request(kind, operation, submitted)
     }
 }
 pub type Result<T> = std::result::Result<T, Error>;

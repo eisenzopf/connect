@@ -66,7 +66,7 @@ class CanonicalProblem:
     reason: str
 
 class ConnectError(Exception):
-    kind: Literal['validation', 'configuration', 'trust', 'authentication', 'protocol', 'deadline', 'cancelled', 'transport-uncertain', 'unsupported', 'conflict', 'application', 'receipt-unavailable', 'resync-required', 'cleanup-incomplete']
+    kind: Literal['validation', 'configuration', 'trust', 'authentication', 'protocol', 'deadline', 'cancelled', 'transport-uncertain', 'backpressure', 'unsupported', 'conflict', 'application', 'receipt-unavailable', 'resync-required', 'cleanup-incomplete']
     certainty: Literal['not-submitted', 'refused', 'uncertain', 'recorded', 'read-only']
     operation: OperationKey | None
     problem: CanonicalProblem | None

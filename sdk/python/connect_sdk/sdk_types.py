@@ -38,9 +38,9 @@ OperationState: TypeAlias = Literal["accepted", "preparing", "ready", "committin
 DeliveryState: TypeAlias = Literal["queued", "accepted", "delivered", "read", "failed", "unknown"]
 DeliveryProvenance: TypeAlias = Literal["journal", "client_reported", "provider_observation", "local_attempt"]
 Json: TypeAlias = Union[None, bool, int, float, str, Sequence["Json"], Mapping[str, "Json"]]
-ErrorKind: TypeAlias = Literal["validation", "configuration", "trust", "authentication", "protocol", "deadline", "cancelled", "transport-uncertain", "unsupported", "conflict", "application", "receipt-unavailable", "resync-required", "cleanup-incomplete"]
+ErrorKind: TypeAlias = Literal["validation", "configuration", "trust", "authentication", "protocol", "deadline", "cancelled", "transport-uncertain", "backpressure", "unsupported", "conflict", "application", "receipt-unavailable", "resync-required", "cleanup-incomplete"]
 Certainty: TypeAlias = Literal["not-submitted", "refused", "uncertain", "recorded", "read-only"]
-ERROR_KINDS = frozenset(("validation", "configuration", "trust", "authentication", "protocol", "deadline", "cancelled", "transport-uncertain", "unsupported", "conflict", "application", "receipt-unavailable", "resync-required", "cleanup-incomplete"))
+ERROR_KINDS = frozenset(("validation", "configuration", "trust", "authentication", "protocol", "deadline", "cancelled", "transport-uncertain", "backpressure", "unsupported", "conflict", "application", "receipt-unavailable", "resync-required", "cleanup-incomplete"))
 CERTAINTIES = frozenset(("not-submitted", "refused", "uncertain", "recorded", "read-only"))
 
 

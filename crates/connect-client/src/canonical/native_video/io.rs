@@ -94,6 +94,12 @@ impl NativeVideoDatagrams {
     pub fn send(&self, bytes: &[u8]) -> Result<()> {
         self.io.send(bytes)
     }
+    /// Wait for non-evicting local space for one original RTP/clock datagram.
+    /// Use the original source capture/publication cutoff. Cancellation before
+    /// enqueue submits nothing; this does not authorize or confirm server IO.
+    pub async fn send_until(&self, bytes: &[u8], until: Instant) -> Result<()> {
+        self.io.send_until(bytes, until).await
+    }
     /// Start a fresh application decoder for one selected receiving video stream.
     /// Returns the exact monotonic boundary: older raw packets may still be
     /// returned for custody, but cannot bootstrap this decoder's recovery state.

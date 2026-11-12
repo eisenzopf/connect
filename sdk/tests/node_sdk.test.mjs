@@ -65,10 +65,16 @@ test('decisions retain their own IDs and scope separately from the target refere
  });
 });
 test('structured SDK errors retain trust, missing receipts and recorded certainty without raw diagnostics',async()=>{
- for(const [kind,certainty]of [['trust','not-submitted'],['receipt-unavailable','recorded'],['authentication','refused']])await fixture({mode:'refuse',kind,certainty},async client=>{
+ for(const [kind,certainty]of [['trust','not-submitted'],['receipt-unavailable','recorded'],['authentication','refused'],['backpressure','not-submitted']])await fixture({mode:'refuse',kind,certainty},async(client,dir)=>{
   const operation=client.operations.restore(saved(),client.operationKinds.message_send);
   await assert.rejects(operation.wait(opts),e=>{error(kind,certainty)(e);assert.equal(e.operation.operationId,'original');assert.equal(e.problem.reason,'receipt-expired');return true;});
+  const originalPid=await readFile(join(dir,'pid'),'utf8');
   assert.equal((await operation.status(opts)).state,'completed');
+  if(kind==='backpressure'){
+   await client.capabilities.refresh(opts);
+   assert.equal(await readFile(join(dir,'pid'),'utf8'),originalPid);
+   assert.deepEqual((await calls(dir)).map(r=>r.request.action.type),['operation','operation','capabilities_refresh']);
+  }
  });
 });
 test('invalid typed inputs and already aborted mutations never write the helper',async()=>{

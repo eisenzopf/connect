@@ -1490,7 +1490,7 @@ fn spawn_candidate(
         let result=AssertUnwindSafe(async {
             let mut audio=selected_opus();let mut continuity=DecodeHistory::default();
             let mut epoch=None;let mut sequence=0u32;
-            loop {
+            'live: loop {
                 // This original physical may stop only after its own exact
                 // later replacement really committed. No pre-Ready forecast
                 // or renewed deadline can retire a generation-two candidate.
@@ -1510,9 +1510,19 @@ fn spawn_candidate(
                             for (part,bytes) in sample.bytes.chunks(1000).enumerate() {
                                 let mut body=vec![if part==0 {0x10} else {0}];body.extend_from_slice(bytes);
                                 assert!(Instant::now()<until,"original source fragment publication cutoff");
-                                io.send(&pack(&MediaDatagram{flags:0,stream_local_id:camera,seq:sequence,
+                                let datagram=pack(&MediaDatagram{flags:0,stream_local_id:camera,seq:sequence,
                                     payload:rtp(96,sequence as u16,sample.index*3000,0x74000000+source as u32,
-                                        (part+1)*1000>=sample.bytes.len(),&body).into()})).unwrap();
+                                        (part+1)*1000>=sample.bytes.len(),&body).into()});
+                                let submitted=tokio::select! { biased;
+                                    _=stop.cancelled()=>break 'live,
+                                    result=io.send_until(&datagram,until)=>result,
+                                };
+                                match submitted {
+                                    Ok(())=>{},
+                                    Err(connect_client::ClientError::Transport|connect_client::ClientError::MediaEnded)
+                                        if retirement.committed()=>break 'live,
+                                    Err(error)=>panic!("original candidate video submission failed before exact retirement: {error:?}"),
+                                }
                                 sequence=sequence.checked_add(1).expect("candidate native video datagram counter");
                                 progress.lock().unwrap().published_video_packets+=1;
                             }
@@ -1520,9 +1530,19 @@ fn spawn_candidate(
                             measured.published_frames+=1;
                             record_frame_bin(&mut measured.published_bins,Instant::now(),began);
                         } else {
-                            io.send(&pack(&MediaDatagram{flags:0,stream_local_id:voice,seq:sample.index,
+                            let datagram=pack(&MediaDatagram{flags:0,stream_local_id:voice,seq:sample.index,
                                 payload:rtp(111,sample.index as u16,sample.index*960,
-                                    0x61000000+source as u32,false,&sample.bytes).into()})).unwrap();
+                                    0x61000000+source as u32,false,&sample.bytes).into()});
+                            let submitted=tokio::select! { biased;
+                                _=stop.cancelled()=>break 'live,
+                                result=io.send_until(&datagram,until)=>result,
+                            };
+                            match submitted {
+                                Ok(())=>{},
+                                Err(connect_client::ClientError::Transport|connect_client::ClientError::MediaEnded)
+                                    if retirement.committed()=>break 'live,
+                                Err(error)=>panic!("original candidate audio submission failed before exact retirement: {error:?}"),
+                            }
                             progress.lock().unwrap().published_audio_packets+=1;
                         }
                     },

@@ -6,6 +6,8 @@ pub enum ClientError {
     Configuration,
     #[error("Native transport disconnected or failed TLS verification")]
     Transport,
+    #[error("Native media queue is full; this datagram was not submitted")]
+    MediaBackpressure,
     #[error("The remote media leg ended")]
     MediaEnded,
     #[error("Request deadline expired; acceptance is unknown; preserve the logical request ID")]

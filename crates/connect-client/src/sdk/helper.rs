@@ -513,6 +513,7 @@ pub fn error_json(error: &Error) -> Value {
         ErrorKind::Deadline => "deadline",
         ErrorKind::Cancelled => "cancelled",
         ErrorKind::TransportUncertain => "transport-uncertain",
+        ErrorKind::Backpressure => "backpressure",
         ErrorKind::Unsupported => "unsupported",
         ErrorKind::Conflict => "conflict",
         ErrorKind::Application => "application",

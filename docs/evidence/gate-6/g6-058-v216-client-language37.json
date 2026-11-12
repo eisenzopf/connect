@@ -1,0 +1,113 @@
+{
+  "format": "connect/redacted-language37-components/1",
+  "scope": "Fresh language/runtime/public type/declaration controls; original generated runtime and all checks share one source seal.",
+  "summary": {
+    "expected": 8,
+    "executed": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "rows": [
+    {
+      "name": "fresh-typescript-runtime",
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "original_joined": true,
+      "log_sha256": "f6ea279e1bcf369805db5e0aaea8d5b71fdac16bad265e77d5b6ff179cbeed02"
+    },
+    {
+      "name": "current-node-public-types",
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "original_joined": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "node-current-helper-and-media-parsers",
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "original_joined": true,
+      "log_sha256": "10b755b7ad0919d242dc054c74b5fdf674eff8aeff905d66e80dd40106e3dd76",
+      "tap_summary": {
+        "tests": 53,
+        "pass": 53,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "name": "python-current-helper-and-media-parsers",
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "original_joined": true,
+      "log_sha256": "7a58b7b6738c4fa3814e948ec5966443554908035ace7eadc203b0496178f887",
+      "executed": 67,
+      "passed_tests": 67,
+      "failed": 0,
+      "skipped": 0,
+      "declared_id_set_exact": true,
+      "same_log_parser_corrected": true
+    },
+    {
+      "name": "python-current-public-types-positive",
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "original_joined": true,
+      "log_sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb"
+    },
+    {
+      "name": "python-current-public-types-negative",
+      "exit_code": 1,
+      "expected_exit": 1,
+      "passed": true,
+      "original_joined": true,
+      "log_sha256": "efe3feeb0795d04c3db74791bd25260416e6f3990b4348697bf9d6a2d701da66",
+      "expected_negative_diagnostics": {
+        "arg-type": 28,
+        "attr-defined": 9,
+        "misc": 6
+      },
+      "diagnostic_count": 43
+    },
+    {
+      "name": "shared-schema-and-declaration-source-contract",
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "original_joined": true,
+      "log_sha256": "be3a2ca8cef358eaf61903ecf304f72e7b31f5765ded828ff7dcc91de95d69ca"
+    },
+    {
+      "name": "shared-typescript-python-rust-declaration-compilers",
+      "exit_code": 0,
+      "expected_exit": 0,
+      "passed": true,
+      "original_joined": true,
+      "log_sha256": "b601021c3371e8a4fc2c1b756c0f21086dca49269e6047797e08b6bef97f0e05"
+    }
+  ],
+  "tracked_generated_outputs": {
+    "files": 220,
+    "sha256": "517900b5a1f580911b764a0e4b54a2f6935c5ef023d7774b1fc3fef738b91131",
+    "stable_after_generation": true
+  },
+  "source_sha256": "f00b68fe44b3c26eb2dc0891d75cb3bd5580c77c17809fed7dfa5ebcb9b1d3fd",
+  "source_unchanged": true,
+  "all_original_groups_joined": true,
+  "actual_tests_rerun": false,
+  "original_extractor_failure_preserved": true,
+  "independent_adjudication_sha256": "288a5464db601ac33b5ca8ba3216e41209aa202213a229620135e97c6c0797b8",
+  "qualification": {
+    "language_components": true,
+    "rust_components": false,
+    "combined206": false,
+    "full32": false
+  }
+}

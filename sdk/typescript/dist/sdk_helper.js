@@ -290,6 +290,7 @@ export class SdkHelper {
                         "deadline",
                         "cancelled",
                         "transport-uncertain",
+                        "backpressure",
                         "unsupported",
                         "conflict",
                         "application",

@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T05:56:28.461078+00:00",
+  "updated": "2026-11-12T06:51:35.252815+00:00",
   "run_status": "Two actual old-code Commit SQL counters reproduced avoidable media epoch invalidation and Writer custody parked on primary SQL, with original cleanup complete. The bounded pre-effect fix is now being applied. Audio diagnostics passed4/4 actual Opus controls. Latest complete focused run remains171/175; subsequent7/7 fixture controls remain separate. No new matrix pass or decoded QoE cause-fix is claimed. Local Mac/nativeARM Linux only; all quality thresholds retained.",
   "blockers": [
     {
@@ -5782,7 +5782,7 @@
     "passed": 171,
     "planned": 175,
     "scope": "Complete focused batch20: all175 executed,4 failed (short native audio, full62 video/End, RTC latch, initialAV fixture expectation). Later component evidence is separate.",
-    "next": "Separate subsequent evidence: fixture7/7, Opus diagnostics4/4, CommitSQL7/7, retention12/12. Verify localQUIC non-evicting submission and bounded waits, then final frozen expanded suite preserving all175 originals/full62last, followed by localARM full32/432."
+    "next": "Final corrective source batch fullycomponent-tested. Freeze and executeall206 Rustcases retaining175originals,11explicitignored/full62last, then normalshipping/preflight/all32/432 locally. No newmatrixresult."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17395,6 +17395,30 @@
       "passed": 4,
       "planned": 4,
       "evidence": "g6-058-v216-audio-controls23.json"
+    },
+    {
+      "name": "Commit SQL pre-effect admission",
+      "passed": 7,
+      "planned": 7,
+      "evidence": "g6-058-v216-commit-sql-fixed27.json"
+    },
+    {
+      "name": "Audio retention and earlier lease",
+      "passed": 12,
+      "planned": 12,
+      "evidence": "g6-058-v216-audio-retention-fixed32.json"
+    },
+    {
+      "name": "Native non-evicting submission and bounded waits",
+      "passed": 8,
+      "planned": 8,
+      "evidence": "g6-058-v216-native-queue-fixed36.json"
+    },
+    {
+      "name": "Fresh language/runtime/type/contract checks",
+      "passed": 8,
+      "planned": 8,
+      "evidence": "g6-058-v216-client-language37.json"
     }
   ],
   "current_production_check": {
@@ -17468,10 +17492,28 @@
       "/root/media_blockers"
     ],
     "reviewer": "/root/fixture_blockers",
-    "next": "Old localQUIC burst counter, atomic non-evicting admission, SDK retained original command and raw bounded wait; independent negative controls before full combined qualification."
+    "next": "Fixed8/8 and freshlanguage8/8 verified; finalfrozen206cohort/full32 actualquality follows."
   },
   "additional_cleanup28": {
     "evidence": "docs/evidence/gate-6/g6-058-v216-cleanup28.json",
     "cumulative_selected_deleted_gib": 60
+  },
+  "native_queue_fixed36": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-native-queue-fixed36.json",
+    "passed": 8,
+    "executed": 8,
+    "matrix_qualified": false
+  },
+  "client_language37": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-client-language37.json",
+    "checks_passed": 8,
+    "node_tests_passed": 53,
+    "python_tests_passed": 67,
+    "matrix_qualified": false
+  },
+  "retired_test_binary_cleanup": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-retired-test-binary-cleanup.json",
+    "selected_bytes": 16106696704,
+    "preserved_normal_cli_files": 4
   }
 }

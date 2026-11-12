@@ -1,0 +1,35 @@
+{
+  "format": "connect/native-queue-integration-attempts/1",
+  "matrix_qualified": false,
+  "attempt34": {
+    "default_client_check_exit": 0,
+    "build_exit": 101,
+    "runtime_controls_executed": 0,
+    "source_unchanged": true,
+    "all_original_groups_joined": true,
+    "receipt_sha256": "f87bd6b7fbbd07a0cd53b04d5dfa5bd51ed3e721259cc161b999858e062ea0f7",
+    "cause": "E0004: exhaustive server CLI mapping omitted new ClientError::MediaBackpressure.",
+    "correction": "Add explicit media-backpressure/non-submission mapping; preserve Application and all original uncertainty branches. Independently reviewed6ae36f4d; fixed36 build and8controls passed."
+  },
+  "attempt35": {
+    "generation_exit": 0,
+    "source_unchanged": false,
+    "all_original_groups_joined": true,
+    "receipt_sha256": "8717f8c05b74387495f7be6bb9bb3778670d635ead43bae84f067e8f59d8470e",
+    "cause": "Runner incorrectly assumed generated TypeScript distribution ignored; four tracked generated vocabulary outputs changed after seal. No language validation qualified.",
+    "correction": "Declare exact four generation outputs, prepare runtime first, then seal all complete source and220distribution files before validation."
+  },
+  "attempt37_extractor": {
+    "python_runtime_exit": 0,
+    "original_extractor_pass": false,
+    "expected_python_tests": 67,
+    "old_inline_matches": 49,
+    "source_unchanged": true,
+    "all_original_language_groups_joined": true,
+    "receipt_sha256": "722947945913072bd1b547761162f430c23bd87aaf379207064a82c6bdfab9ac",
+    "cause": "Asyncio diagnostics split18 successful unittest ok lines; original67tests all passed.",
+    "correction": "Independently adjudicate same immutable log using exact67headers and matching terminal results. Preserve original failed extractor result, no test rerun.",
+    "corrective_review_sha256": "288a5464db601ac33b5ca8ba3216e41209aa202213a229620135e97c6c0797b8",
+    "actual_language_checks_passed": 8
+  }
+}

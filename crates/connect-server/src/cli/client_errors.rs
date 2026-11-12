@@ -15,6 +15,10 @@ pub(super) fn client_error(error: ClientError) -> Error {
         ClientError::Protocol => {
             Error::new("protocol", "Response violates the negotiated contract")
         }
+        ClientError::MediaBackpressure => Error::new(
+            "media-backpressure",
+            "Native media queue is full; datagram was not submitted",
+        ),
         ClientError::Transport
         | ClientError::MediaEnded
         | ClientError::Timeout

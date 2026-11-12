@@ -9,6 +9,9 @@ pub(super) struct LocalGate {
     revision: StreamRevision,
 }
 impl LocalGate {
+    pub(super) fn stamp(&self) -> u64 {
+        self.revision.get()
+    }
     pub fn direction(&self, base: Direction) -> Direction {
         let sends = matches!(base, Direction::Sendonly | Direction::Sendrecv)
             && self.active

@@ -1,7 +1,7 @@
 {
   "format": "connect/media-quality-next-fix-plan/1",
-  "status": "SQL7/7 and audio retention12/12 controls verified; source-proven native queue eviction correction staged; decoded full-quality and matrix qualification pending",
-  "updated_at": "2026-11-12T05:56:28.461078+00:00",
+  "status": "All currentlyverified corrective mechanisms implemented and unit/contract-tested; finalfrozen206/full32 empirical qualification next",
+  "updated_at": "2026-11-12T06:51:35.252815+00:00",
   "coordinator": "/root",
   "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components20.json",
   "baseline": {
@@ -21,8 +21,8 @@
       "id": "P5.1",
       "owner": "/root/media_blockers",
       "reviewer": "/root/v198_resources",
-      "cause_status": "Four pre-IO retention/earlier-lease defects reproduced with exact old counters; fixed12/12 pass. Separate native shared64KiB sendqueue silently evicts accepted datagrams under pressure; actual25 decoded gaps not yet conclusively attributed.",
-      "next": "Execute actual localQUIC eviction counter, verify non-evicting submission plus originalbytes/deadline/cancellation/current-binding waits, then final full combined programme preserving all original quality bounds.",
+      "cause_status": "Retention12/12 and native queue8/8 fixes verified against actualoldcounter failures; languagechecks8/8, Node53/Python67 passed. Source25 originalQoE rootcauseattribution remains empirical untilcompleteprogramme.",
+      "next": "Freeze finalclean HEAD and executeall206including complete62programme last; requireoriginalquality/End/Data/cleanup/budgets, then all32/432 onlocalMac/ARM.",
       "invariants": [
         "No source-quantum attribution claim",
         "Keep2880 decoded samples, freshness and all quality bounds",
@@ -52,7 +52,7 @@
   "qualification_order": [
     "Prove cause with a controlled counter and independent review",
     "Implement only verified cause fixes and unit-test positive and negative cases",
-    "Run one expanded suite preserving all175 original selectors/fixtures, all new cause/negative controls, and full62 last, on one final frozen source.",
+    "Run all206 exact Rust selectors, preserving175/130predecessors, all11explicitignored and unchangedfull62 programme last onfinalfrozen source.",
     "Require evaluated decoded quality,4moves,Data,original End/joins and budgets",
     "Then normal shipping/preflight and all32cells/all432checks locally on Mac/nativeARM Linux"
   ],

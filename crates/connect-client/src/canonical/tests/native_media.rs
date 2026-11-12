@@ -6,8 +6,35 @@ pub(crate) enum Traffic {
     ClockThenPcm,
     ForeignClock,
     ClockOnly,
+    QueuePressure,
 }
 pub(super) async fn emit(traffic: Traffic, connection: &quinn::Connection, ready: &Notify) {
+    if matches!(traffic, Traffic::QueuePressure) {
+        let until = tokio::time::Instant::now() + Duration::from_secs(2);
+        let mut observed = Vec::new();
+        loop {
+            let quiet = if observed.is_empty() {
+                until
+            } else {
+                until.min(tokio::time::Instant::now() + Duration::from_millis(50))
+            };
+            match tokio::time::timeout_at(quiet, connection.read_datagram()).await {
+                Ok(Ok(bytes)) => observed.push(bytes.to_vec()),
+                Ok(Err(_)) => return,
+                Err(_) => break,
+            }
+        }
+        let audio = observed
+            .iter()
+            .filter(|b| b.get(9) == Some(&111))
+            .cloned()
+            .collect::<Vec<_>>();
+        let summary =
+            serde_json::to_vec(&json!({"datagrams":observed.len(),"audio":audio})).unwrap();
+        connection.send_datagram_wait(summary.into()).await.unwrap();
+        ready.notify_one();
+        return;
+    }
     if matches!(traffic, Traffic::VideoFeedback) {
         let bytes = tokio::time::timeout(Duration::from_secs(2), connection.read_datagram())
             .await

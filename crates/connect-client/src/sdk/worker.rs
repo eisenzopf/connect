@@ -4,6 +4,7 @@ mod codecs;
 mod controls;
 mod data;
 mod events;
+mod media_admission;
 mod reconciliations;
 mod selections;
 mod video_epochs;
@@ -48,7 +49,7 @@ pub(super) struct Shared {
     task: Mutex<Option<tokio::task::JoinHandle<crate::Result<()>>>>,
 }
 enum MediaSend {
-    Packet(MediaPacket),
+    Packet(media_admission::Encoded),
     Keyframe(media::feedback::KeyframeTarget),
 }
 struct MediaCommand {
@@ -131,6 +132,7 @@ impl Shared {
         let owned_native = native.clone();
         let task = tokio::spawn(async move {
             let mut active: Vec<InFlight> = Vec::new();
+            let mut pending_media: Option<media_admission::Pending> = None;
             let mut reconciliations = reconciliations::Driver::default();
             let mut events = events::Driver::default();
             let failure = loop {
@@ -158,6 +160,7 @@ impl Shared {
                 if !active.is_empty() && tokio::time::Instant::now() >= next_deadline {
                     break ErrorKind::Deadline;
                 }
+                let media_wakeup = pending_media.as_ref().map(|p| p.wakeup());
                 // Fair selection keeps both packet directions and control live.
                 tokio::select! {
                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
@@ -259,28 +262,40 @@ impl Shared {
                             Err(error)=>break Error::transport(peer.with_owned_signaling_cause(error),None).kind,
                         }
                     }
-                    command=media_receiver.recv()=> {
+                    _=tokio::time::sleep_until(media_wakeup.unwrap_or_else(||tokio::time::Instant::now()+Duration::from_secs(60))),if media_wakeup.is_some()=>{
+                        let mut pending=pending_media.take().expect("media wake owns one pending original");
+                        match pending.try_send(&peer,&owned_native,&stopping) {
+                            Ok(None)=>pending_media=Some(pending),
+                            Ok(Some(value))=>pending.finish(Ok(value)),
+                            Err(error)=>pending.finish(Err(error)),
+                        }
+                    },
+                    command=media_receiver.recv(),if pending_media.is_none()=> {
                         let Some(command)=command else{break ErrorKind::Cancelled;};
                         if command.reply.is_closed() || command.signal.is_cancelled() || stopping.is_cancelled() || tokio::time::Instant::now()>=command.expires {
                             let kind=if tokio::time::Instant::now()>=command.expires{ErrorKind::Deadline}else{ErrorKind::Cancelled};
                             let _=command.reply.send(Err(Error::media(kind,false)));continue;
                         }
-                        let result=(|| {
-                            let binding=native_binding(&owned_native,&command.key)?;
-                            let transport_error=|e| {
-                                let kind=Error::transport(e,None).kind;
-                                Error::media(kind,!matches!(kind,ErrorKind::Protocol|ErrorKind::Validation|ErrorKind::Configuration))
-                            };
-                            match &command.packet {
-                                MediaSend::Packet(packet)=>{
-                                    let (bytes,datagram_sequence)=media::encode(&binding,packet)?;
-                                    peer.send_native_media_datagram(&bytes).map_err(transport_error)?;
-                                    Ok(LocalMediaSubmission{datagram_sequence})
-                                },
-                                MediaSend::Keyframe(target)=>owned_media.send_keyframe(&binding,target,|bytes|peer.send_owned_video_feedback(bytes).map_err(transport_error)),
-                            }
-                        })();
-                        let _=command.reply.send(result);
+                        match &command.packet {
+                            MediaSend::Packet(_)=>{
+                                let mut pending=media_admission::Pending::new(command);
+                                match pending.try_send(&peer,&owned_native,&stopping) {
+                                    Ok(None)=>pending_media=Some(pending),
+                                    Ok(Some(value))=>pending.finish(Ok(value)),
+                                    Err(error)=>pending.finish(Err(error)),
+                                }
+                            },
+                            MediaSend::Keyframe(target)=>{
+                                // This call consumes one feedback serial. A capacity
+                                // refusal is explicit NotSubmitted and terminal here;
+                                // never re-run it to generate another request implicitly.
+                                let result=native_binding(&owned_native,&command.key).and_then(|binding|
+                                    owned_media.send_keyframe(&binding,target,|bytes|
+                                        peer.send_owned_video_feedback(bytes).map_err(|error|
+                                            Error::media(Error::transport(error,None).kind,false))));
+                                let _=command.reply.send(result);
+                            },
+                        }
                     }
                     command=receiver.recv()=> {
                         let command=match command {Some(command)=>command,None=>break ErrorKind::Cancelled};
@@ -337,6 +352,9 @@ impl Shared {
             owned_data.end();
             owned_invitations.end(failure);
             events.end(failure);
+            if let Some(pending) = pending_media.take() {
+                pending.finish(Err(Error::media(failure, false)));
+            }
             media_receiver.close();
             while let Some(command) = media_receiver.recv().await {
                 let _ = command.reply.send(Err(Error::media(failure, false)));
@@ -432,10 +450,11 @@ impl Shared {
         if self.closed.load(Ordering::Acquire) || options.signal.is_cancelled() {
             return Err(Error::media(ErrorKind::Cancelled, false));
         }
-        // Validate all retained packet/report bytes before entering the bounded queue.
-        let binding = native_binding(&self.native, &key)?;
-        media::encode(&binding, &packet)?;
-        self.queue_media(key, MediaSend::Packet(packet), options)
+        let expires = self.media_deadline(&options);
+        // Encode ONCE under the exact current binding, before channel capacity
+        // can wait. No queued command can adopt a later hop/generation/gate.
+        let encoded = media_admission::Encoded::capture(&self.native, &key, &packet)?;
+        self.queue_media(key, MediaSend::Packet(encoded), options, expires)
             .await
     }
     pub(super) async fn request_keyframe(
@@ -447,9 +466,10 @@ impl Shared {
         if self.closed.load(Ordering::Acquire) || options.signal.is_cancelled() {
             return Err(Error::media(ErrorKind::Cancelled, false));
         }
+        let expires = self.media_deadline(&options);
         native_binding(&self.native, &key)?;
         let target = self.media.keyframe_target(&key)?;
-        self.queue_media(key, MediaSend::Keyframe(target), options)
+        self.queue_media(key, MediaSend::Keyframe(target), options, expires)
             .await
     }
     pub(super) async fn receive_video_feedback(
@@ -484,13 +504,23 @@ impl Shared {
         }
         self.media.feedback_is_current(key, request)
     }
+    fn media_deadline(&self, options: &RequestOptions) -> tokio::time::Instant {
+        let now = tokio::time::Instant::now();
+        let authority = (self.authority_expires - chrono::Utc::now())
+            .to_std()
+            .unwrap_or_default();
+        now + options
+            .timeout
+            .min(Duration::from_millis(200))
+            .min(authority)
+    }
     async fn queue_media(
         &self,
         key: streams::StreamKey,
         packet: MediaSend,
         options: RequestOptions,
+        expires: tokio::time::Instant,
     ) -> Result<LocalMediaSubmission> {
-        let expires = tokio::time::Instant::now() + options.timeout;
         let permit = tokio::select! {biased;
             _=options.signal.cancelled()=>return Err(Error::media(ErrorKind::Cancelled,false)),
             result=tokio::time::timeout_at(expires,self.media_requests.reserve())=>result.map_err(|_|Error::media(ErrorKind::Deadline,false))?.map_err(|_|Error::media(ErrorKind::Cancelled,false))?
@@ -715,6 +745,12 @@ fn native_binding(
     let cache = cache
         .lock()
         .map_err(|_| Error::media(ErrorKind::Protocol, false))?;
+    native_binding_in(&cache, key).map(|(binding, _)| binding)
+}
+fn native_binding_in(
+    cache: &NativeCache,
+    key: &streams::StreamKey,
+) -> Result<(media::Binding, Option<(u64, Option<u64>)>)> {
     let entry = cache
         .get(&key.connection_id)
         .ok_or_else(|| Error::media(ErrorKind::Unsupported, false))?;
@@ -734,10 +770,22 @@ fn native_binding(
     if let Some(gate) = entry.gates.get(&key.stream_id) {
         stream.direction = gate.direction(stream.direction);
     }
-    Ok(media::Binding {
-        stream,
-        clock: entry.selected.source_clock,
-    })
+    let generation = entry.generations.get(&key.stream_id).map(|generation| {
+        (
+            *generation,
+            entry
+                .gates
+                .get(&key.stream_id)
+                .map(controls::LocalGate::stamp),
+        )
+    });
+    Ok((
+        media::Binding {
+            stream,
+            clock: entry.selected.source_clock,
+        },
+        generation,
+    ))
 }
 
 fn observe_end(

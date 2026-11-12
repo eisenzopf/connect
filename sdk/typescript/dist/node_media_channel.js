@@ -177,6 +177,7 @@ const errorKinds = new Set([
     "deadline",
     "cancelled",
     "transport-uncertain",
+    "backpressure",
     "unsupported",
     "conflict",
     "application",

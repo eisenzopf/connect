@@ -64,6 +64,7 @@ const reasons = new Set([
     "cancelled",
     "protocol",
     "transport-uncertain",
+    "backpressure",
     "configuration",
     "validation",
     "trust",

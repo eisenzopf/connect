@@ -343,6 +343,7 @@ impl OwnedSignaling {
         inbox.failure.as_ref().map(|error| match error {
             ClientError::Configuration => ClientError::Configuration,
             ClientError::Transport => ClientError::Transport,
+            ClientError::MediaBackpressure => ClientError::MediaBackpressure,
             ClientError::MediaEnded => ClientError::MediaEnded,
             ClientError::Timeout => ClientError::Timeout,
             ClientError::Cancelled => ClientError::Cancelled,
