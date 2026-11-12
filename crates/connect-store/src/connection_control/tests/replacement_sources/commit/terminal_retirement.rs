@@ -101,7 +101,7 @@ fn replacement_cleanup_defers_without_blocking_other_current_packet_reads() {
     let m = fixture(true);
     let (_, origin) = installed(&m);
     let absent = Gone(origin.runtime_connection_id().into(), origin.generation());
-    assert_passive_read_deferral(&m, || {
+    assert_passive_read_deferral(&m, &origin, || {
         m.f.store
             .settle_native_replacement_cleanup(&origin, &absent)
     });

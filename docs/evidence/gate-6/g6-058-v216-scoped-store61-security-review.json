@@ -1,0 +1,59 @@
+{
+  "format": "connect/independent-media-store61-causal-security-adjudication/1",
+  "status": "COMPLETE_TARGETED_STORE_COMPONENT_185_OF_185_QUALIFIED",
+  "adjudicator": "media_blockers independent of Rootexecution; owncounter/cache authored, source independently reviewed Resource/Fixture receipts retained",
+  "results_sha256": "386aabddb3da3085223f938f0355356415f3289060ff72a0439ec85c3893f841",
+  "source_sha256": "ca46f8e70fbef97500b10dc405bfc66b727d6862abdee0064b897ffbc121adc4",
+  "source_after_sha256": "ca46f8e70fbef97500b10dc405bfc66b727d6862abdee0064b897ffbc121adc4",
+  "selection_sha256": "cfd8dbfc91f5764ddedf4c4cb51f3a376a3e12fc3ae3168a3a09ff51a6e0108e",
+  "binding_sha256": "8f79678c8e5b961fb6fe45e114643a8a9a0df30df87ca01405257a49e53a1d38",
+  "runner_sha256": "f27fa0cfd670666ac81b2920e0021d4d27c2a490b56a971145167a2feb745078",
+  "artifact_sha256": "23b8bb163728e5b9520f2639d6e4a941f174f1e95b5c4b485826743cace8d69d",
+  "artifact_profile": {
+    "opt_level": "0",
+    "debuginfo": 2,
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "test": true
+  },
+  "artifact_features": [
+    "test-support"
+  ],
+  "counts": {
+    "expected": 185,
+    "dispatched": 185,
+    "actual_executed": 185,
+    "passed": 185,
+    "ordinary_failed": 0,
+    "unqualified": 0,
+    "unexecuted": 0
+  },
+  "checks": [
+    "All185exact1test/0ignored/0failed individual summaries andlogSHAs verified",
+    "Original152 exactprefix+3newMetadata+29existingWatcher+1compact test, no selection loss/duplication",
+    "FullcurrentbinarySHA reread matchesclosedartifact beforefollowingbuild replacement",
+    "ExactStoremanifest/libartifact opt0debug2testprofile verified;185testgroups+build+inventory freshESRCH andRootnaturaljoinrecords checked",
+    "Allrun/selection/binding/helper/source inputs hashes, sourceBefore==After andcurrenttestedStorecodeguard hashes verified"
+  ],
+  "coverage": {
+    "logical_and_current_authority": "Original152 exactprefix retained, real signed Allocate/Start/Ready/resume/mutation-mode dependencies/current-core roles tested; no missing setup stage masked",
+    "closed_SQL_permit": "SQL6Begin/Ready2 actualopaque witness andfulleffects/forgedidentity/endpoint/typedJSON/storageclass/foreignrow/Unitnonce/rollback/expiry controls allpassed",
+    "lifecycle_and_revoke": "AlreadyJoined pendingclaim continuity +no-newJoin, naturaloperator/source expiry/cancel/noOtherLive/liveOthers scanner, realCID/Identity revocation andforeignStore refusal allpassed",
+    "scoped_four_phases": "Physical/publicReady/originalcleanup/adoptedreturncleanup trueheldWriter andhealthyoriginalepoch/stamp/freshpair+affectedirreversiblefence oracles passed",
+    "typed_watcher": "Exactsameold56counter testsource nowpasses3realmetadata variants; trueexternalKernelWriter/knownblockedknowledge/namespace/storage/expiryfailclosed; all29existingwatcher testspassed",
+    "compact_guard": "AddedactualSQLite footprint guard testpassed, allOLD/NEW delegatedsubject andvictim checks retained; originalcollision/authoritative rowguard negatives inretained152passed",
+    "performance": "Original127fullwall45628us underunchanged50ms; oneobservationnotlatencymargin/fullmedia guarantee"
+  },
+  "old_counter_reference": {
+    "path": ".local/gate-6/v216-scoped-old56/media-counter-adjudication.json",
+    "sha256": "c213f661ce7ac6f540e7ffefeb94c95b9571f35e8000a3c02ffcecce54d87780",
+    "proven": "Oldkind0 actualmetadata\u2192compoundcontinuityfailure; fixedidenticalchild nowall3pass, no claimed oldkind1/2qualification"
+  },
+  "performance_first_fullwall_us": 45628,
+  "not_qualified": [
+    "No decodedPCM/RTP/VP8FPS/audio-skew/full62programme quality proof fromStoreunits",
+    "No full294 seven-artifact component qualification yet",
+    "No full32 matrix/cohort/resource qualification or publication",
+    "No retrospectiveexactsubtype attribution of old24/53QoE or compilerbenefitclaim"
+  ]
+}

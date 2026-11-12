@@ -156,66 +156,98 @@ fn commit_begin_sql_reacquire_defers_without_parking_full_scene_writer() {
     let origin = m.origin.clone();
     let sources = m.sources.clone();
     let started = m.started.clone();
-    let source = m.sources[1].clone();
+    let source = m.sources[0].clone();
+    let healthy_source = m.sources[1].clone();
     let store = Arc::new(m.f.store);
-    let (snapshot, mut watcher) = publication(&store, &source);
+    let register = |input: &Arc<NativeMediaOrigin>| {
+        let weak = Arc::downgrade(&store);
+        let origin = input.clone();
+        store
+            .register_native_media_snapshot_for(input, None, move || {
+                weak.upgrade()
+                    .ok_or_else(Error::forbidden)?
+                    .try_native_media_read(&origin, None)
+            })
+            .unwrap()
+    };
+    let snapshot = register(&source);
+    let healthy_snapshot = register(&healthy_source);
+    let mut watcher = store.start_media_authorization_watcher().unwrap();
     let io = admit(&snapshot);
     let epoch = io.packet_epoch().unwrap();
-    drop(io); // Let the REAL full SceneWriter acquire; cached metadata is not IO.
+    let stamp = io.snapshot_stamp().unwrap();
+    drop(io); // Only the affected original must drain for its exact Writer.
+    let healthy_io = admit(&healthy_snapshot);
+    let healthy_epoch = healthy_io.packet_epoch().unwrap();
+    let healthy_stamp = healthy_io.snapshot_stamp().unwrap();
+    assert!(healthy_io.current() && healthy_epoch.current());
     let read_scope =
-        crate::AuthorityScope::conversation(source.conversation_id(), crate::AuthorityMode::Read)
+        crate::AuthorityScope::connection(source.connection_id(), crate::AuthorityMode::Read)
             .unwrap();
     let until = Instant::now() + Duration::from_secs(2);
     let (entered, ready) = std::sync::mpsc::sync_channel(1);
     let (release, resume) = std::sync::mpsc::sync_channel(1);
     let (done, finished) = std::sync::mpsc::sync_channel(1);
-    let (arrived, returned_while_sql_held, writer_released, old_epoch_revoked, before, joined) =
-        std::thread::scope(|workers| {
-            let worker = workers.spawn(|| {
-                let result = Store::with_native_replacement_commit_entry_probe_for_test(
-                    "begin-sql",
-                    move || {
-                        let _ = entered.send(());
-                        let _ =
-                            resume.recv_timeout(until.saturating_duration_since(Instant::now()));
-                    },
-                    || {
-                        let read = scene(&store, &origin, &sources, until)?;
-                        let result = store.begin_native_replacement_commit(origin.clone(), &read);
-                        drop(read); // The SAME failed original must release its complete Writer.
-                        result
-                    },
-                );
-                let _ = done.send(());
-                result
-            });
-            let arrived = ready.recv_timeout(Duration::from_secs(1)).is_ok();
-            let sql = if arrived {
-                store.connection().ok()
-            } else {
-                None
-            };
-            let _ = release.send(());
-            let returned = finished.recv_timeout(Duration::from_millis(100)).is_ok();
-            let shared = store.try_acquire_authority(std::slice::from_ref(&read_scope));
-            let writer_released = shared.is_ok();
-            drop(shared);
-            let old_epoch_revoked = !epoch.current();
-            let before = counts(&store, &operation);
-            drop(sql); // Old blocking owner ALWAYS gets released before join/assertion.
-            let joined = worker.join();
-            (
-                arrived,
-                returned,
-                writer_released,
-                old_epoch_revoked,
-                before,
-                joined,
-            )
+    let (
+        arrived,
+        returned_while_sql_held,
+        writer_released,
+        old_epoch_revoked,
+        healthy_during,
+        before,
+        joined,
+    ) = std::thread::scope(|workers| {
+        let worker = workers.spawn(|| {
+            let result = Store::with_native_replacement_commit_entry_probe_for_test(
+                "begin-sql",
+                move || {
+                    let _ = entered.send(());
+                    let _ = resume.recv_timeout(until.saturating_duration_since(Instant::now()));
+                },
+                || {
+                    let read = scene(&store, &origin, &sources, until)?;
+                    let result = store.begin_native_replacement_commit(origin.clone(), &read);
+                    drop(read); // The SAME failed original must release its complete Writer.
+                    result
+                },
+            );
+            let _ = done.send(());
+            result
         });
+        let arrived = ready.recv_timeout(Duration::from_secs(1)).is_ok();
+        let sql = if arrived {
+            store.connection().ok()
+        } else {
+            None
+        };
+        let _ = release.send(());
+        let returned = finished.recv_timeout(Duration::from_millis(100)).is_ok();
+        let shared = store.try_acquire_authority(std::slice::from_ref(&read_scope));
+        let writer_released = shared.is_ok();
+        drop(shared);
+        let old_epoch_revoked = !epoch.current() && snapshot.admit_original(stamp).is_err();
+        let healthy_original = healthy_snapshot.admit_original(healthy_stamp);
+        let healthy_during = healthy_io.current()
+            && healthy_epoch.current()
+            && healthy_original.as_ref().is_ok_and(|read| read.current());
+        drop(healthy_original);
+        let before = counts(&store, &operation);
+        drop(sql); // Old blocking owner ALWAYS gets released before join/assertion.
+        let joined = worker.join();
+        (
+            arrived,
+            returned,
+            writer_released,
+            old_epoch_revoked,
+            healthy_during,
+            before,
+            joined,
+        )
+    });
     let result = match joined {
         Ok(result) => result,
         Err(panic) => {
+            drop(healthy_io);
             watcher.shutdown().unwrap();
             std::panic::resume_unwind(panic);
         }
@@ -239,16 +271,26 @@ fn commit_begin_sql_reacquire_defers_without_parking_full_scene_writer() {
         }
     };
     let once = counts(&store, &operation);
+    let healthy_original = healthy_snapshot.admit_original(healthy_stamp);
+    let healthy_before_negative_cleanup = healthy_io.current()
+        && healthy_epoch.current()
+        && healthy_original.as_ref().is_ok_and(|read| read.current());
+    drop(healthy_original);
+    drop(healthy_io);
+    // Negative NotSubmitted settlement deliberately retains its broad metadata
+    // Writer. The unaffected survival claim is measured BEFORE that separate
+    // broad cleanup, but after the actual SQL refusal + same-root Begin retry.
     let settled = attempt.and_then(|attempt| settle_not_submitted(&store, &started, attempt));
-    let old_epoch_still_revoked = !epoch.current();
+    let old_epoch_still_revoked = !epoch.current() && snapshot.admit_original(stamp).is_err();
     let shutdown = watcher.shutdown();
     shutdown.unwrap();
     settled.unwrap();
     assert!(
         arrived,
-        "the actual full Writer must precede the primary-SQL race"
+        "the actual affected Connection Writer must precede the primary-SQL race"
     );
     assert_eq!(before.unwrap(), (0, 0));
+    assert!(healthy_during&&healthy_before_negative_cleanup,"same unaffected source1 epoch/stamp/current read changed during failed SQL Begin or same-root retry");
     assert!(
         old_epoch_revoked && old_epoch_still_revoked,
         "a real Writer announcement must never revive the original queued stamp"
@@ -259,7 +301,7 @@ fn commit_begin_sql_reacquire_defers_without_parking_full_scene_writer() {
         "same original root begins exactly one Commit attempt"
     );
     assert!(returned_while_sql_held && writer_released,
-        "pre-effect Commit begin parked its full scene Writer behind primary SQL before any Commit step/Core IO");
+        "pre-effect Commit begin parked its affected Connection Writer behind primary SQL before any Commit step/Core IO");
     assert_eq!(first_code.as_deref(), Some("authority-busy"));
     // A shared file probe proves Writer release only. It is deliberately NOT
     // presented as proof of fresh media publication/IO while SQL stayed held.

@@ -1,0 +1,45 @@
+{
+  "format": "connect/scoped-guard-performance/1",
+  "scope": "Measured normal opt0/debug2 Store unit samples; no worst-case latency/media or matrix claim",
+  "before59": {
+    "total_us": 76793,
+    "transaction_body_us": 64758,
+    "operations_prepare_us": [
+      7407,
+      7145,
+      7131,
+      7099
+    ],
+    "operations_step_us": [
+      214,
+      208,
+      200,
+      190
+    ],
+    "log_sha256": "be387f6a36fc22a57e0052949d1ea2b4cf344e2152dbf5107ceca341dcf5876d"
+  },
+  "compact60": {
+    "total_us": 47143,
+    "transaction_body_us": 34905,
+    "actual_focused_tests": 2,
+    "passed": 2,
+    "unchanged_limit_ms": 50,
+    "independent_receipt_sha256": "e0ae7a82ff5869bc85cf8ffc982bcd5eb58cb482b9c6a023d2a0a058675efccd"
+  },
+  "final61": {
+    "total_us": 45628,
+    "transaction_body_us": 34091,
+    "authority_wait_us": 614,
+    "complete_store_passed": 185,
+    "complete_store_expected": 185,
+    "unchanged_limit_ms": 50,
+    "log_sha256": "3a3a4a1f47b9bdbd83b9adeb648d1eef6cbdcc82bf2a78877ea75394c64c5b32"
+  },
+  "changes": [
+    "Evaluate unchanged exact own-row exception once across all OLD/NEW footprint checks; retain every subject and unconditional collision-victim/Unit/installation check",
+    "Reuse only compiled SQL programs for three private row/tuple helpers through existing bounded32 perConnection cache; always bind/execute current SQL and checks"
+  ],
+  "acceptance_changes": false,
+  "full_regression_qualified": false,
+  "matrix_qualified": false
+}

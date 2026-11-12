@@ -1,3 +1,4 @@
+mod probe_metadata;
 use super::*;
 use crate::authority_fences::{AuthorityMode, AuthorityWait, Manager};
 use std::sync::{atomic::AtomicUsize, mpsc};
@@ -472,11 +473,14 @@ fn scope_probe_has_one_healthy_call_and_deduplicated_busy_fallback() {
         }
     });
     let input = [a.clone(), b.clone(), a.clone()];
-    assert!(registry.blocked_external_scopes(&input).unwrap().is_empty());
+    assert!(registry
+        .blocked_external_scopes(&input)
+        .unwrap()
+        .is_some_and(|scopes| scopes.is_empty()));
     assert_eq!(calls.lock().unwrap().len(), 1);
     calls.lock().unwrap().clear();
     busy_scope.store(true, Ordering::Release);
-    assert!(registry.blocked_external_scopes(&input).unwrap() == vec![b]);
+    assert!(registry.blocked_external_scopes(&input).unwrap() == Some(vec![b]));
     let calls = calls.lock().unwrap();
     assert_eq!(calls.len(), 3); // One aggregate + exactly two unique scopes.
     assert_eq!(calls[0].len(), 2);

@@ -6,12 +6,14 @@ use connect_protocol::transitions::{EffectState, OperationState};
 use std::sync::Arc;
 mod continuation;
 mod publication_sql;
+mod scoped_handoff;
 mod writer_boundary;
 struct Movement {
     f: Fixture,
     key: String,
     command: TransitionCommand,
     started: Arc<NativeReplacementStarted>,
+    start_origin: Arc<crate::NativeReplacementStartOrigin>,
     origin: Arc<NativeReplacementMediaOrigin>,
     sources: Vec<Arc<NativeMediaOrigin>>,
     target_request: crate::PeerAuthorityRequest,
@@ -27,12 +29,10 @@ fn fixture_scoped(ready: bool, extra_operations: &[&str]) -> Movement {
 // It supplies no authority and never replaces the actual packet read below.
 fn assert_passive_read_deferral<T: Send>(
     m: &Movement,
+    affected: &Arc<NativeMediaOrigin>,
     call: impl FnOnce() -> crate::Result<T> + Send,
 ) {
-    let held =
-        m.f.store
-            .try_native_media_read(&m.sources[1], None)
-            .unwrap();
+    let held = m.f.store.try_native_media_read(affected, None).unwrap();
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let (entered, ready) = std::sync::mpsc::sync_channel(1);
     let (release, resume) = std::sync::mpsc::sync_channel(1);
@@ -48,8 +48,9 @@ fn assert_passive_read_deferral<T: Send>(
         });
         let in_flight = ready.recv_timeout(std::time::Duration::from_millis(100)) == Ok(false)
             && !attempt.is_finished();
-        // In the waited old retirement path the original writer is still
-        // reserved here. A fresh, unrelated live source must remain readable.
+        // The affected connection Read blocks its exact retirement Writer.
+        // A fresh, unrelated live source must remain readable while that
+        // original admission is paused; no CID-wide exclusion is expected.
         let packet = m.f.store.try_native_media_read(&m.sources[1], None);
         let packet_current = packet.as_ref().is_ok_and(|read| read.current());
         let packet_refusal = packet
@@ -182,11 +183,11 @@ fn captured_projection_refuses_contention_without_parking_packet_readers() {
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let effects = m.f.count("operation_effects");
 
-    // An existing valid packet read must cause immediate metadata deferral,
+    // An existing affected-source packet read must cause immediate deferral,
     // rather than closing fresh packet admission for DEFAULT_WAIT's two seconds.
     let held =
         m.f.store
-            .try_native_media_read(&m.sources[1], None)
+            .try_native_media_read(&m.sources[0], None)
             .unwrap();
     let started = std::time::Instant::now();
     assert_eq!(
@@ -282,11 +283,11 @@ fn captured_projection_drains_short_packet_readers_without_long_writer_parking()
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let effects = m.f.count("operation_effects");
 
-    // A reader which cannot drain must still release the pending writer soon,
+    // An affected-source reader which cannot drain releases the writer soon,
     // leave current packets authorized and make no partial metadata change.
     let held =
         m.f.store
-            .try_native_media_read(&m.sources[1], None)
+            .try_native_media_read(&m.sources[0], None)
             .unwrap();
     let began = std::time::Instant::now();
     let refused =
@@ -306,7 +307,7 @@ fn captured_projection_drains_short_packet_readers_without_long_writer_parking()
 
     let held =
         m.f.store
-            .try_native_media_read(&m.sources[1], None)
+            .try_native_media_read(&m.sources[0], None)
             .unwrap();
     let authority = m.f.store.authority.clone();
     let admissions = authority.test_admission_attempts();
@@ -486,6 +487,35 @@ fn candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_m
     assert!(!ids.contains(&fresh_runtime));
     assert!(!ids.iter().any(|id| id == old.runtime_connection_id()));
 }
+fn assert_resource_peer_dependencies(
+    f: &Fixture,
+    command: &TransitionCommand,
+    request: &crate::PeerAuthorityRequest,
+    proof: &crate::PeerAuthorityGuard,
+) {
+    let TransitionIntent::Replace {
+        retained_connid, ..
+    } = &command.intent
+    else {
+        panic!("replacement fixture requires an original Replace command")
+    };
+    let crate::PeerCommand::NativeConnectionOffer(target) = &request.command else {
+        panic!("replacement fixture requires the actual signed target offer")
+    };
+    for (role, connection) in [
+        ("original-source", command.connection_id.as_deref().unwrap()),
+        ("original-retained", retained_connid.as_str()),
+        ("signed-candidate", target.connection_id.as_str()),
+    ] {
+        let required =
+            crate::AuthorityScope::connection(connection, crate::AuthorityMode::Read).unwrap();
+        assert!(
+            f.store.authority_covers(Store::peer_scopes(proof), &[required]),
+            "signed replacement resource proof omitted exact {role} Connection Read before Allocate/Start"
+        );
+    }
+}
+
 fn fixture_prepared(
     ready: bool,
     scene: (
@@ -499,6 +529,7 @@ fn fixture_prepared(
 ) -> Movement {
     let (f, key, command, prepared, mut request, sources) = scene;
     let proof = f.admit(&request);
+    assert_resource_peer_dependencies(&f, &command, &request, &proof);
     let (attempt, read) = f
         .store
         .begin_native_replacement_allocation_with_peer(&prepared, &request.credentials[0], &proof)
@@ -515,11 +546,12 @@ fn fixture_prepared(
     };
     intent.offer["replacement_preparation"]["profile"] = json!("connect-replacement-media-v1");
     let proof = f.admit(&request);
+    assert_resource_peer_dependencies(&f, &command, &request, &proof);
     let read = f
         .store
         .native_replacement_start_read_with_peer(&allocated, &request.credentials[0], &proof)
         .unwrap();
-    let (attempt, read, _) = f
+    let (attempt, read, start_origin) = f
         .store
         .begin_native_replacement_start_with_read(allocated, &request.credentials[0], &proof, read)
         .unwrap();
@@ -559,6 +591,7 @@ fn fixture_prepared(
         key,
         command,
         started,
+        start_origin,
         origin,
         sources,
         target_request: request,

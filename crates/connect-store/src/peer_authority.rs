@@ -416,6 +416,10 @@ pub(crate) fn checked(
                 ))?)
             }
             PeerCommand::NativeConnectionOffer(intent) => {
+                scopes.push(AuthorityScope::connection(
+                    &intent.connection_id,
+                    AuthorityMode::Read,
+                )?);
                 // A replacement source may be an independently owned current
                 // SIP route. This metadata only completes the signed interval;
                 // the exact target/preparation and source still validate below.
@@ -782,9 +786,6 @@ impl Store {
         request: &PeerAuthorityRequest,
         wait: &AuthorityWait,
     ) -> Result<PeerAuthorityGuard> {
-        let replacement_resource = matches!(&request.command, PeerCommand::NativeConnectionOffer(intent)
-            if matches!(intent.offer["replacement_preparation"]["profile"].as_str(),
-                Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1")));
         // Only the original replacement-media admission opts into the existing
         // bounded refusal-stage diagnostic. Clone the SAME wait/cancellation
         // owner: no deadline, permission, retry or acquisition behavior changes.
@@ -792,12 +793,7 @@ impl Store {
             if intent.offer["replacement_preparation"]["profile"].as_str()
                 == Some("connect-replacement-media-v1"));
         let observed_wait = replacement_start.then(|| wait.clone().observe_projection());
-        self.admit_peer_authority_scoped(
-            request,
-            observed_wait.as_ref().unwrap_or(wait),
-            false,
-            replacement_resource,
-        )
+        self.admit_peer_authority_scoped(request, observed_wait.as_ref().unwrap_or(wait), false)
     }
     pub(crate) fn admit_peer_authority_mode(
         &self,
@@ -805,17 +801,21 @@ impl Store {
         wait: &AuthorityWait,
         mutation: bool,
     ) -> Result<PeerAuthorityGuard> {
-        self.admit_peer_authority_scoped(request, wait, mutation, false)
+        self.admit_peer_authority_scoped(request, wait, mutation)
     }
-    // Only these original dormant resource profiles use the exact ledger scope.
+    // These exact original replacement resource/readiness profiles reuse
+    // current source/retained Reads. Ready does not acquire a resource-Begin
+    // SQL permit; that separate constructor still accepts Allocate/Start only.
     // Explicit mutation callers keep their actual Write mode.
     fn admit_peer_authority_scoped(
         &self,
         request: &PeerAuthorityRequest,
         wait: &AuthorityWait,
         mutation: bool,
-        replacement_resource: bool,
     ) -> Result<PeerAuthorityGuard> {
+        let replacement_resource = matches!(&request.command, PeerCommand::NativeConnectionOffer(intent)
+            if matches!(intent.offer["replacement_preparation"]["profile"].as_str(),
+                Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1" | "connect-replacement-ready-v1")));
         #[cfg(feature = "test-support")]
         let observed_wait = self.peer_read_waits.wait(request, wait)?;
         #[cfg(feature = "test-support")]
@@ -832,14 +832,21 @@ impl Store {
                 let (cid, _, _) = self.native_replacement_bookkeeping_scopes(c, record)?;
                 if !matches!(
                     intent.offer["replacement_preparation"]["profile"].as_str(),
-                    Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1")
+                    Some(
+                        "connect-replacement-preparation-v1"
+                            | "connect-replacement-media-v1"
+                            | "connect-replacement-ready-v1"
+                    )
                 ) || cid != intent.conversation_id
                 {
                     return Err(Error::forbidden());
                 }
                 scopes.extend(self.native_replacement_resource_begin_scopes(c, record)?);
                 scopes = AuthorityScope::merged(&scopes)?;
-            } else if mutation {
+            }
+            if mutation {
+                // Explicit mutation callers keep their original broad modes,
+                // including the complete added Connection dependencies.
                 scopes = scopes.iter().map(AuthorityScope::write_scope).collect();
             }
             Ok((metadata, key, scopes, expires_at))

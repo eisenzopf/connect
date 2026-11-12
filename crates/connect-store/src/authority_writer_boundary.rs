@@ -4,9 +4,11 @@
 //! methods still check the principal, intent and fresh rows. It requires an
 //! actual same-Store Write proof, pinned by this exact SQL unit, for the row
 //! footprint supplied by persistent schema triggers. The private phase ledger
-//! permit is a narrower exact-transaction exception for gain-only phase metadata;
-//! it never permits a state, authorization, lease or audience change. It never acquires a fence
-//! or reads SQL from inside SQLite.
+//! permit is a narrower exact-transaction exception for gain-only phase metadata.
+//! A separate sealed scoped-handoff permit additionally pins real Connection and
+//! Record Writers plus complete current Readers for exact native move/retirement
+//! row deltas. It never converts a Connection proof into a Conversation Writer.
+//! Neither permit acquires fences or reads SQL from inside SQLite.
 use crate::{AuthorityGuardSet, AuthorityMode, AuthorityScope, Store};
 use connect_protocol::{Error, Result};
 use rusqlite::{functions::FunctionFlags, Connection};

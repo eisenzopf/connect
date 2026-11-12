@@ -19,6 +19,7 @@ pub(crate) mod consultation_source;
 pub use consultation_source::{NativeConsultationOrigin, NativeConsultationTarget};
 mod handoff_source;
 mod native_replacements;
+pub(crate) use native_replacements::preserves_joined_presence as native_replacement_preserves_joined_presence;
 mod replacement_source;
 pub use native_replacements::{
     NativeReplacementAllocated, NativeReplacementAllocationAttempt,

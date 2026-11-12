@@ -82,10 +82,15 @@ pub struct NativeMediaOrigin {
     metadata: snapshot::MetadataToken,
     snapshot_hints: Arc<[AuthorityScope]>,
 }
-fn native_snapshot_hints(conversation: &str, identity: &str) -> Result<Arc<[AuthorityScope]>> {
+fn native_snapshot_hints(
+    conversation: &str,
+    identity: &str,
+    connection: &str,
+) -> Result<Arc<[AuthorityScope]>> {
     Ok(vec![
         AuthorityScope::identity(identity, AuthorityMode::Read)?,
         AuthorityScope::conversation(conversation, AuthorityMode::Read)?,
+        AuthorityScope::connection(connection, AuthorityMode::Read)?,
     ]
     .into())
 }
@@ -436,6 +441,20 @@ fn native_view_error(name: &str, mut error: Error) -> Error {
     error
 }
 fn facts_for(
+    store: &Store,
+    c: &Connection,
+    origin: &NativeMediaOrigin,
+    purpose: ReadPurpose,
+) -> Result<(PeerConnectionProjection, Vec<AuthorityScope>, i64)> {
+    let (projection, mut scopes, expiry) =
+        facts_for_without_connection_dependency(store, c, origin, purpose)?;
+    scopes.push(AuthorityScope::connection(
+        origin.connection_id(),
+        AuthorityMode::Read,
+    )?);
+    Ok((projection, AuthorityScope::merged(&scopes)?, expiry))
+}
+fn facts_for_without_connection_dependency(
     store: &Store,
     c: &Connection,
     origin: &NativeMediaOrigin,
@@ -871,6 +890,7 @@ impl Store {
             snapshot_hints: native_snapshot_hints(
                 &intent.conversation_id,
                 &proof.metadata.actor.identity_id,
+                &intent.connection_id,
             )?,
         }))
     }

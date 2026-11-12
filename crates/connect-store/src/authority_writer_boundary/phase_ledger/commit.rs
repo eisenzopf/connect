@@ -119,11 +119,26 @@ pub(crate) fn decision(
     c: &Connection,
     captured: &crate::NativeReplacementCommitted,
 ) -> Result<Decision> {
+    Ok(admission_preview(store, c, captured)?.0)
+}
+
+/// Effect-free scope metadata from the SAME complete eligibility derivation.
+/// These are dependencies for a fresh admission, never a held proof or grant.
+/// The real same-Unit constructor repeats every current fact independently.
+pub(crate) fn admission_preview(
+    store: &Store,
+    c: &Connection,
+    captured: &crate::NativeReplacementCommitted,
+) -> Result<(Decision, Vec<AuthorityScope>)> {
     let (facts, reason) = decision_facts(store, c, captured, None)?;
-    Ok(Decision {
+    let decision = Decision {
         reader: facts.is_some(),
         reason,
-    })
+    };
+    Ok((
+        decision,
+        facts.map(|facts| facts.required).unwrap_or_default(),
+    ))
 }
 
 pub(super) fn matches(
@@ -223,6 +238,7 @@ impl State {
             reservation_root: None,
             candidate_audience: None,
             commit_capture: Some(facts.capture),
+            scoped_capture: None,
             _proof: proof.clone(),
         });
         Ok(Permit {

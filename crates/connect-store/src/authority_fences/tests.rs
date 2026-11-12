@@ -1,3 +1,4 @@
+mod connection_scope;
 use super::*;
 use crate::{Scope, Store};
 use connect_protocol::{provisioning::*, Limits, Operation, Outcome};
@@ -52,6 +53,7 @@ pub(super) fn waiting(store: &Store, scope: &AuthorityScope) {
             Kind::Identity => b"identity",
             Kind::Conversation => b"conversation",
             Kind::Record => b"record",
+            Kind::Connection => b"connection",
         },
         scope.id.as_bytes(),
     )

@@ -104,6 +104,11 @@ pub(super) fn scopes(
     }
     if let Some(mut retained) = crate::transitions::retained_native_stream_scopes(c, actor, intent)?
     {
+        retained.extend(connection_dependencies(
+            c,
+            intent,
+            store.limits.connections,
+        )?);
         if intent.command == connect_protocol::native_streams::Command::Dtmf {
             retained.extend(dtmf_scene_scopes(store, c, intent)?);
         }
@@ -137,6 +142,11 @@ pub(super) fn scopes(
         &intent.conversation_id,
         AuthorityMode::Read,
     )?;
+    scopes.extend(connection_dependencies(
+        c,
+        intent,
+        store.limits.connections,
+    )?);
     if intent.command == connect_protocol::native_streams::Command::Dtmf {
         scopes.extend(dtmf_scene_scopes(store, c, intent)?);
     }
@@ -161,6 +171,44 @@ pub(super) fn scopes(
             &intent.session_id,
         )?);
     }
+    AuthorityScope::merged(&scopes)
+}
+// Complete read coverage for later public/current pair capture under this
+// exact command interval. This grants neither a source selector nor media IO.
+fn connection_dependencies(
+    c: &Connection,
+    intent: &Intent,
+    limit: usize,
+) -> Result<Vec<AuthorityScope>> {
+    let mut statement = c.prepare(
+        "SELECT c.id FROM connections c JOIN sessions s ON s.id=c.session_id WHERE c.session_id=?1 AND s.conversation_id=?2 AND c.state NOT IN ('retired','failed','interrupted') ORDER BY c.id LIMIT ?3",
+    ).map_err(|_|Error::storage())?;
+    let ids = statement
+        .query_map(
+            params![
+                intent.session_id,
+                intent.conversation_id,
+                limit.saturating_add(1)
+            ],
+            |row| row.get::<_, String>(0),
+        )
+        .map_err(|_| Error::storage())?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|_| Error::storage())?;
+    if ids.len() > limit {
+        return Err(Error::new(
+            "capacity-exceeded",
+            "Native metadata scene exceeds Connection limit",
+        ));
+    }
+    let mut scopes = ids
+        .iter()
+        .map(|id| AuthorityScope::connection(id, AuthorityMode::Read))
+        .collect::<Result<Vec<_>>>()?;
+    scopes.push(AuthorityScope::connection(
+        &intent.connection_id,
+        AuthorityMode::Read,
+    )?);
     AuthorityScope::merged(&scopes)
 }
 fn dtmf_scene_scopes(

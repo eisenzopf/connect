@@ -485,6 +485,14 @@ fn bound(c: &Connection, store: &Store, lease: &NativeHandoffLease) -> Result<ro
     rows::by_record(c, &origin.record)
 }
 fn event(c: &Connection, row: &rows::Saved, store: &Store) -> Result<()> {
+    if row.native_replacement
+        && (row.record.state != OperationState::Preparing || row.record.cancel_requested)
+    {
+        if let (Some(cid), Some(sid)) = (&row.record.conversation_id, &row.record.session_id) {
+            crate::session_participant_lifecycle::reconcile(c, store, cid, sid, None)?;
+        }
+    }
+
     if !crate::conversations::capacity(c, 1, 0, store)? {
         return Err(Error::new(
             "capacity-exceeded",

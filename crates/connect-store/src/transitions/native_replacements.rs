@@ -57,6 +57,8 @@ macro_rules! redacted {($($name:ident),*)=>{$(impl std::fmt::Debug for $name {fn
 pub(super) mod candidate;
 pub use candidate::{NativeReplacementCandidate, NativeReplacementCandidateRetirement};
 mod allocation;
+mod presence;
+pub(crate) use presence::preserves_joined_presence;
 mod telephone;
 pub use telephone::{
     TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
@@ -256,13 +258,36 @@ impl Store {
             "SELECT EXISTS(SELECT 1 FROM client_enrollments e JOIN operations o ON o.tenant_id=e.tenant_id AND o.owner_id=e.issuer_identity_id AND o.operation_id=e.complete_operation_id WHERE o.record_id=?1)",
             [record], |row| row.get(0),
         ).map_err(|_| Error::storage())?;
-        if enrolled {
-            return Ok(mutation);
-        }
-        Ok(vec![
-            crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Read)?,
-            crate::AuthorityScope::conversation(&cid, crate::AuthorityMode::Read)?,
-        ])
+        let request = rows::for_authority(c, record)?.request()?;
+        let TransitionIntent::Replace {
+            retained_connid, ..
+        } = &request.intent
+        else {
+            return Err(Error::forbidden());
+        };
+        let source = request
+            .connection_id
+            .as_deref()
+            .ok_or_else(Error::forbidden)?;
+        let mut scopes = if enrolled {
+            mutation
+        } else {
+            vec![
+                crate::AuthorityScope::identity(&owner, crate::AuthorityMode::Read)?,
+                crate::AuthorityScope::conversation(&cid, crate::AuthorityMode::Read)?,
+            ]
+        };
+        // Allocate/Start re-resolve the exact original source and retained
+        // media under this signed target proof. Those reads require BOTH
+        // logical connection dependencies, in addition to the target's own
+        // Connection Read admitted by NativeConnectionOffer. These are current
+        // exclusion dependencies only; the sealed selection still validates
+        // every original incarnation, credential, role and resource fact.
+        scopes.extend([
+            crate::AuthorityScope::connection(source, crate::AuthorityMode::Read)?,
+            crate::AuthorityScope::connection(retained_connid, crate::AuthorityMode::Read)?,
+        ]);
+        crate::AuthorityScope::merged(&scopes)
     }
     pub(crate) fn native_replacement_bookkeeping_scopes(
         &self,

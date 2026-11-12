@@ -35,6 +35,7 @@ enum Kind {
     Identity,
     Conversation,
     Record,
+    Connection,
 }
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AuthorityMode {
@@ -91,6 +92,10 @@ impl AuthorityScope {
     }
     pub(crate) fn record(id: &str, mode: AuthorityMode) -> Result<Self> {
         Self::new(Kind::Record, id, mode)
+    }
+    /// Logical Connection dependency, distinct from runtime and Record identities.
+    pub(crate) fn connection(id: &str, mode: AuthorityMode) -> Result<Self> {
+        Self::new(Kind::Connection, id, mode)
     }
     fn new(kind: Kind, id: &str, mode: AuthorityMode) -> Result<Self> {
         if id.is_empty()
@@ -297,6 +302,18 @@ impl Drop for AuthorityTiming {
     }
 }
 impl AuthorityGuardSet {
+    /// Metadata for a fresh admission, never a conversion of this proof.
+    /// The caller must acquire the entire returned footprint independently.
+    pub(crate) fn read_scopes(&self) -> Vec<AuthorityScope> {
+        self.scopes
+            .keys()
+            .map(|(kind, id)| AuthorityScope {
+                kind: *kind,
+                id: id.clone(),
+                mode: AuthorityMode::Read,
+            })
+            .collect()
+    }
     pub(crate) fn snapshot_read_scopes(&self) -> Result<Vec<AuthorityScope>> {
         if self
             .scopes
@@ -394,11 +411,9 @@ impl Manager {
         // The manager never strongly owns the registry. Its probe holds only
         // a weak manager, avoiding a manager/worker/snapshot ownership cycle.
         let manager = Arc::downgrade(self);
-        let registry = crate::media_authorization::Registry::new(move |scopes| {
+        let registry = crate::media_authorization::Registry::new_with_probe(move |scopes| {
             let manager = manager.upgrade().ok_or_else(Error::forbidden)?;
-            let probe = manager.try_acquire(scopes)?;
-            drop(probe);
-            Ok(())
+            manager.observe_external_scope_probe(scopes)
         });
         *saved = Arc::downgrade(&registry);
         Ok(registry)
@@ -461,6 +476,84 @@ impl Manager {
         managers.insert(name, Arc::downgrade(&manager));
         Ok(manager)
     }
+    /// Deterministic real metadata exclusion. No kernel Writer or state DML is
+    /// fabricated; the watcher runs its actual normal probe while this is held.
+    #[cfg(test)]
+    pub(crate) fn with_probe_metadata_exclusion_for_test<T>(
+        &self,
+        scope: &AuthorityScope,
+        kind: u8,
+        observe: impl FnOnce() -> T,
+    ) -> T {
+        match kind {
+            0 => {
+                let _held = self.readers.write().unwrap();
+                observe()
+            }
+            1 => {
+                let _held = self.file_identities.write().unwrap();
+                observe()
+            }
+            2 => {
+                // Model an ordinarily evicted metadata entry, retaining all
+                // original file descriptions and pathname identity unchanged.
+                let name = format!(
+                    "{}.admission",
+                    self.name(&(scope.kind, scope.id.clone())).unwrap()
+                );
+                self.file_identities.write().unwrap().remove(&name);
+                let _held = self.file_identities.read().unwrap();
+                observe()
+            }
+            _ => panic!("unknown test metadata exclusion"),
+        }
+    }
+    #[cfg(test)]
+    pub(crate) fn with_external_probe_writer_for_test<T>(
+        &self,
+        scope: &AuthorityScope,
+        observe: impl FnOnce() -> T,
+    ) -> T {
+        let name = self.name(&(scope.kind, scope.id.clone())).unwrap();
+        let file = self.file(&format!("{name}.admission")).unwrap();
+        lock_admission(
+            &file,
+            AuthorityMode::Write,
+            Some(&AuthorityWait::new(Duration::from_secs(1))),
+        )
+        .unwrap();
+        // A distinct actual kernel description, with no local WriterNotice.
+        // The resource still has original real Readers, so no DML can follow.
+        let result = observe();
+        FileExt::unlock(&file).unwrap();
+        result
+    }
+    #[cfg(test)]
+    pub(crate) fn replace_probe_namespace_for_test(&self, scope: &AuthorityScope) {
+        let name = self.name(&(scope.kind, scope.id.clone())).unwrap();
+        let path = self.directory.join(format!("{name}.admission"));
+        fs::rename(
+            &path,
+            self.directory.join(format!("{name}.replaced-for-test")),
+        )
+        .unwrap();
+        let mut options = OpenOptions::new();
+        options.read(true).write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        drop(options.open(path).unwrap());
+    }
+    #[cfg(test)]
+    pub(crate) fn poison_probe_metadata_for_test(&self) -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _held = self.readers.write().unwrap();
+            panic!("controlled reader-registry poison");
+        }))
+        .is_err()
+    }
     #[cfg(test)]
     pub(crate) fn test_admission_attempts(&self) -> u64 {
         self.admission_attempts.load(Ordering::Relaxed)
@@ -493,6 +586,42 @@ impl Manager {
         wait: Option<&AuthorityWait>,
     ) -> Result<Arc<AuthorityGuardSet>> {
         let mut diagnostic = Admission::new(wait);
+        self.acquire_with_diagnostic(scopes, wait, &mut diagnostic)
+    }
+    // Observation only: a successful read is dropped before returning. An
+    // unavailable metadata map does not prove a kernel Writer is pending.
+    fn observe_external_scope_probe(
+        self: &Arc<Self>,
+        scopes: &[AuthorityScope],
+    ) -> Result<crate::media_authorization::ProbeObservation> {
+        use crate::media_authorization::ProbeObservation;
+        let mut diagnostic = Admission::new(None);
+        match self.acquire_with_diagnostic(scopes, None, &mut diagnostic) {
+            Ok(held) => {
+                drop(held);
+                Ok(ProbeObservation::Clear)
+            }
+            Err(error) if error.code == "authority-busy" => match diagnostic.immediate_cause() {
+                Some(ImmediateBusy::KernelAdmission | ImmediateBusy::KernelResource) => {
+                    Ok(ProbeObservation::Blocked)
+                }
+                Some(
+                    ImmediateBusy::IdentityLookup
+                    | ImmediateBusy::IdentityPublication
+                    | ImmediateBusy::ReaderRegistry,
+                ) => Ok(ProbeObservation::Deferred),
+                None => Err(error),
+            },
+            Err(error) => Err(error),
+        }
+    }
+    #[track_caller]
+    fn acquire_with_diagnostic(
+        self: &Arc<Self>,
+        scopes: &[AuthorityScope],
+        wait: Option<&AuthorityWait>,
+        diagnostic: &mut Admission,
+    ) -> Result<Arc<AuthorityGuardSet>> {
         #[cfg(test)]
         self.admission_attempts.fetch_add(1, Ordering::Relaxed);
         if let Some(wait) = wait {
@@ -549,14 +678,25 @@ impl Manager {
             let name = self.name(key)?;
             diagnostic.stage = "open-admission";
             let admission =
-                self.lock_file_with_wait(&format!("{name}.admission"), wait, &mut diagnostic)?;
+                self.lock_file_with_wait(&format!("{name}.admission"), wait, diagnostic)?;
             diagnostic.stage = "lock-admission";
             lock_admission(admission.file(), *mode, wait)
                 .inspect_err(|error| diagnostic.busy(ImmediateBusy::KernelAdmission, error))?;
             if *mode == AuthorityMode::Write {
                 diagnostic.stage = "open-resource";
-                let resource =
-                    self.file_with_wait(&format!("{name}.resource"), wait, &mut diagnostic)?;
+                // The metadata LRU may have evicted this name while its
+                // original shared description is still live. Bind this open
+                // to that exact descriptor's identity; release the temporary
+                // alias before any pathname IO or exclusive resource wait.
+                let live_reader_identity = self
+                    .live_reader_identity(&name, wait)
+                    .inspect_err(|error| diagnostic.busy(ImmediateBusy::ReaderRegistry, error))?;
+                let resource = self.file_with_wait_expected(
+                    &format!("{name}.resource"),
+                    wait,
+                    diagnostic,
+                    live_reader_identity,
+                )?;
                 diagnostic.stage = "lock-resource";
                 lock_with(&resource, wait)
                     .inspect_err(|error| diagnostic.busy(ImmediateBusy::KernelResource, error))?;
@@ -566,9 +706,11 @@ impl Manager {
                 });
             } else {
                 diagnostic.stage = "read-resource";
-                let resource = self.read_resource(&name, wait, || {
-                    self.lock_file_with_wait(&format!("{name}.resource"), wait, &mut diagnostic)
-                })?;
+                let resource = self
+                    .read_resource(&name, wait, || {
+                        self.lock_file_with_wait(&format!("{name}.resource"), wait, diagnostic)
+                    })
+                    .inspect_err(|error| diagnostic.busy(ImmediateBusy::ReaderRegistry, error))?;
                 drop(admission);
                 held.push(Held::Read {
                     _resource: resource,
@@ -634,6 +776,25 @@ impl Manager {
         drop(readers);
         Ok(resource)
     }
+    fn live_reader_identity(
+        &self,
+        name: &str,
+        wait: Option<&AuthorityWait>,
+    ) -> Result<Option<LockFileIdentity>> {
+        let resource = {
+            let readers = self.reader_registry(wait, || self.readers.try_read())?;
+            readers.get(name).and_then(Weak::upgrade)
+        };
+        let identity = resource
+            .as_ref()
+            .map(|resource| {
+                let metadata = resource.file().metadata().map_err(|_| Error::storage())?;
+                self.lock_file_identity(&metadata)
+            })
+            .transpose();
+        drop(resource);
+        identity
+    }
     fn reader_registry<T>(
         &self,
         wait: Option<&AuthorityWait>,
@@ -668,6 +829,7 @@ impl Manager {
             Kind::Identity => b"identity".as_slice(),
             Kind::Conversation => b"conversation".as_slice(),
             Kind::Record => b"record".as_slice(),
+            Kind::Connection => b"connection".as_slice(),
         };
         let name = opaque(&self.secret, domain, key.1.as_bytes())?;
         // A busy/full metadata map falls back to deriving the same name. It
@@ -731,6 +893,15 @@ impl Manager {
         wait: Option<&AuthorityWait>,
         diagnostic: &mut Admission,
     ) -> Result<File> {
+        self.file_with_wait_expected(name, wait, diagnostic, None)
+    }
+    fn file_with_wait_expected(
+        &self,
+        name: &str,
+        wait: Option<&AuthorityWait>,
+        diagnostic: &mut Admission,
+        live_reader_identity: Option<LockFileIdentity>,
+    ) -> Result<File> {
         // Retain only immutable inode metadata across opens. Never keep a
         // map guard across filesystem IO, kernel admission or another scope.
         let remembered = self
@@ -738,6 +909,15 @@ impl Manager {
             .inspect_err(|error| diagnostic.busy(ImmediateBusy::IdentityLookup, error))?
             .get(name)
             .map(|entry| entry.identity);
+        if live_reader_identity
+            .is_some_and(|identity| remembered.is_some_and(|remembered| remembered != identity))
+        {
+            return Err(Error::new(
+                "authority-unavailable",
+                "Authority file changed",
+            ));
+        }
+        let remembered = live_reader_identity.or(remembered);
         let path = self.directory.join(name);
         let before = match fs::symlink_metadata(&path) {
             Ok(meta) => Some(self.lock_file_identity(&meta)?),

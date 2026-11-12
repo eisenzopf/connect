@@ -301,6 +301,16 @@ impl Store {
                 return Ok(());
             }
         }
+        if self.try_settle_native_offer_cleanup_scoped(
+            lease,
+            observation,
+            &expected,
+            &owner,
+            immediate,
+            wait,
+        )? {
+            return Ok(());
+        }
         let scopes = {
             let c = connection()?;
             admission::mutation_row_scopes(&bound(&c, lease)?)?
@@ -383,5 +393,187 @@ impl Store {
         workers::invalidate(&tx, &lease.record)?;
         tx.commit().map_err(|_| Error::storage())?;
         Ok(())
+    }
+}
+
+impl NativeOfferLease {
+    pub(crate) fn scoped_original_retire_facts(
+        &self,
+        store: &Store,
+        c: &Connection,
+    ) -> Result<crate::authority_writer_boundary::phase_ledger::scoped::WitnessFacts> {
+        use crate::authority_writer_boundary::phase_ledger::scoped::WitnessFacts;
+        let owner = store.require_runtime_owner()?;
+        if self.runtime != store.runtime_epoch() || !owner.current() {
+            return Err(Error::forbidden());
+        }
+        self.media_binding().historical(c, store)?;
+        // Private/handoff cleanup retains the established broad footprint.
+        // Narrow retirement is proved only for an ordinary public source;
+        // inherited private floors also exclude a formerly public primary.
+        let public_offer: bool = c
+            .query_row(
+                "SELECT json_type(offer_json,'$.private_consultation') IS NULL AND json_type(offer_json,'$.handoff_preparation') IS NULL FROM connection_offers WHERE connection_id=?1",
+                [&self.connection],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        if !public_offer
+            || crate::connection_control::private_consultation::replacement_lineage::floor(
+                c,
+                &self.connection,
+            )?
+            .is_some()
+        {
+            return Err(Error::forbidden());
+        }
+        let row = bound(c, self)?;
+        if row.record.state != OperationState::Completed
+            || row.record.cancel_requested
+            || row.tombstoned
+        {
+            return Err(Error::forbidden());
+        }
+        let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_connection_lifetimes life JOIN connections v ON v.id=life.connection_id WHERE life.operation_record_id=?1 AND life.connection_id=?2 AND life.runtime_epoch=?3 AND life.generation=?4 AND ((life.retired=0 AND v.generation=life.generation AND v.observed_runtime_id=life.runtime_epoch AND v.state IN ('ready','active','held')) OR (life.retired=1 AND v.generation=life.generation+1 AND v.state='retired' AND v.observed_runtime_id IS NULL AND v.observed_at IS NULL AND v.readiness_json IS NULL)))",params![self.record,self.connection,self.runtime,self.generation],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if !exact {
+            return Err(Error::forbidden());
+        }
+        let cid = row
+            .record
+            .conversation_id
+            .as_deref()
+            .ok_or_else(Error::forbidden)?;
+        let mut required =
+            crate::authority_admission::conversation_scopes(c, cid, crate::AuthorityMode::Read)?;
+        required.extend([
+            crate::AuthorityScope::identity(&row.owner, crate::AuthorityMode::Read)?,
+            crate::AuthorityScope::connection(&self.connection, crate::AuthorityMode::Write)?,
+            crate::AuthorityScope::record(&self.record, crate::AuthorityMode::Write)?,
+        ]);
+        Ok(WitnessFacts {
+            record: self.record.clone(),
+            runtime: self.runtime.clone(),
+            source: self.connection.clone(),
+            candidate: None,
+            required: crate::AuthorityScope::merged(&required)?,
+            until: None,
+            attempt: Some(self.attempt.clone()),
+            effect: Some(self.effect.clone()),
+            expected: Some(crate::provisioning::canonical_json(
+                &serde_json::json!({"runtime_connection_id":self.core_connection,"generation":self.generation}),
+            )?),
+            reservation: None,
+            digest: None,
+        })
+    }
+}
+
+impl Store {
+    fn try_settle_native_offer_cleanup_scoped(
+        &self,
+        lease: &NativeOfferLease,
+        observation: &dyn NativeOfferRuntimeObservation,
+        expected: &NativeOfferObservation,
+        owner: &Arc<crate::InstallationOwnership>,
+        immediate: bool,
+        wait: Option<&crate::AuthorityWait>,
+    ) -> Result<bool> {
+        use crate::authority_writer_boundary::phase_ledger::scoped::{self, Witness};
+        let facts = {
+            let c = if let Some(wait) = wait {
+                self.try_connection_with_wait(wait)?
+            } else {
+                self.try_connection()?
+            };
+            match lease.scoped_original_retire_facts(self, &c) {
+                Ok(facts) => facts,
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "forbidden" | "unauthorized" | "conflict" | "not-ready"
+                    ) =>
+                {
+                    return Ok(false);
+                }
+                Err(error) => return Err(error),
+            }
+        };
+        let default_wait = crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT);
+        let held = if immediate {
+            self.try_acquire_authority(&facts.required)?
+        } else {
+            self.acquire_authority(&facts.required, wait.unwrap_or(&default_wait))?
+        };
+        // Never park an acquired mutation proof behind primary SQL. A miss is
+        // pre-DML Busy and all original guards leave with this invocation.
+        let mut c = self.try_connection()?;
+        c.bind_available_mutation_authority(self, &held)?;
+        let tx = c
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| Error::storage())?;
+        let fresh = match lease.scoped_original_retire_facts(self, &tx) {
+            Ok(facts) => facts,
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "forbidden" | "unauthorized" | "conflict" | "not-ready"
+                ) =>
+            {
+                return Ok(false);
+            }
+            Err(error) => return Err(error),
+        };
+        if !self.authority_covers(&held, &fresh.required) {
+            return Ok(false);
+        }
+        let plan = scoped::retire_plan(self, &tx, Witness::OriginalRetire(lease))?;
+        let permit = self
+            .authority_writer_boundary
+            .native_scoped_mutation_ledger(self, &tx, &held, plan)?;
+        tx.execute("UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=?1 AND retired=0",[&lease.record]).map_err(|_|Error::storage())?;
+        let retired: bool = tx
+            .query_row(
+                "SELECT state='retired' FROM connections WHERE id=?1",
+                [&lease.connection],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        if !retired {
+            let changed=tx.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND generation=?2 AND observed_runtime_id=?3 AND state IN ('ready','active','held')",params![lease.connection,lease.generation,lease.runtime]).map_err(|_|Error::storage())?;
+            if changed != 1 {
+                return Err(Error::forbidden());
+            }
+        }
+        let row = bound(&tx, lease)?;
+        let cid = row
+            .record
+            .conversation_id
+            .as_deref()
+            .ok_or_else(Error::forbidden)?;
+        let sid = row
+            .record
+            .session_id
+            .as_deref()
+            .ok_or_else(Error::forbidden)?;
+        if !crate::session_participant_lifecycle::reconcile_is_unchanged(&tx, self, sid)? {
+            // This function returns only AFTER transaction/SQL/proof drops.
+            // The outer method then derives a fresh genuine broad Writer for
+            // the SAME absence receipt; no physical effect is repeated.
+            return Ok(false);
+        }
+        if !retired {
+            fact(&tx, self, &row, "connection_retired")?;
+        }
+        crate::session_participant_lifecycle::reconcile(&tx, self, cid, sid, None)?;
+        if observation.observe()? != *expected || !owner.current() {
+            return Err(Error::forbidden());
+        }
+        if let Some(wait) = wait {
+            wait.check()?;
+        }
+        workers::invalidate(&tx, &lease.record)?;
+        drop(permit);
+        tx.commit().map_err(|_| Error::storage())?;
+        Ok(true)
     }
 }

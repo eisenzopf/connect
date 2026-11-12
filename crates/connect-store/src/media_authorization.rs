@@ -18,7 +18,16 @@ const MAX_PUBLICATIONS: usize = 4096;
 const MAX_WRITERS: usize = 1024;
 const MAX_REFRESH_PER_TURN: usize = 8;
 static NEXT_SLOT: AtomicU64 = AtomicU64::new(1);
-type Probe = dyn Fn(&[AuthorityScope]) -> Result<()> + Send + Sync;
+/// A metadata-map miss is not evidence of a pending kernel Writer. Deferred
+/// observation preserves existing knowledge and cached, fenced authority only;
+/// it never authorizes a new publication or extends an original lifetime.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ProbeObservation {
+    Clear,
+    Blocked,
+    Deferred,
+}
+type Probe = dyn Fn(&[AuthorityScope]) -> Result<ProbeObservation> + Send + Sync;
 type Refresh<T> = dyn Fn() -> Result<Prepared<T>> + Send + Sync;
 
 /// This callback is on media delivery. It must perform no SQL, filesystem,
@@ -554,8 +563,20 @@ pub(crate) struct Registry {
     original_idle_waits: AtomicUsize,
 }
 impl Registry {
+    // Existing synthetic kernel-probe controls retain their explicit Busy
+    // meaning. Production Manager composition uses the typed observer below.
+    #[cfg(test)]
     pub(crate) fn new(
         probe: impl Fn(&[AuthorityScope]) -> Result<()> + Send + Sync + 'static,
+    ) -> Arc<Self> {
+        Self::new_with_probe(move |scopes| match probe(scopes) {
+            Ok(()) => Ok(ProbeObservation::Clear),
+            Err(error) if error.code == "authority-busy" => Ok(ProbeObservation::Blocked),
+            Err(error) => Err(error),
+        })
+    }
+    pub(crate) fn new_with_probe(
+        probe: impl Fn(&[AuthorityScope]) -> Result<ProbeObservation> + Send + Sync + 'static,
     ) -> Arc<Self> {
         Arc::new(Self {
             control: Mutex::new(Control {
@@ -713,25 +734,30 @@ impl Registry {
         }
         self.changed.notify_all();
     }
-    fn blocked_external_scopes(&self, scopes: &[AuthorityScope]) -> Result<Vec<AuthorityScope>> {
+    // None means this whole observation is inconclusive. Preserve previous
+    // blocked scopes/failure knowledge; never clear them from partial evidence.
+    fn blocked_external_scopes(
+        &self,
+        scopes: &[AuthorityScope],
+    ) -> Result<Option<Vec<AuthorityScope>>> {
         let scopes = AuthorityScope::merged(scopes)?;
         if scopes.is_empty() {
-            return Ok(Vec::new());
+            return Ok(Some(Vec::new()));
         }
-        match (self.probe)(&scopes) {
-            Ok(()) => return Ok(Vec::new()),
-            Err(error) if error.code == "authority-busy" => {}
-            Err(error) => return Err(error),
+        match (self.probe)(&scopes)? {
+            ProbeObservation::Clear => return Ok(Some(Vec::new())),
+            ProbeObservation::Deferred => return Ok(None),
+            ProbeObservation::Blocked => {}
         }
         let mut blocked = Vec::new();
         for scope in scopes {
-            match (self.probe)(std::slice::from_ref(&scope)) {
-                Ok(()) => {}
-                Err(error) if error.code == "authority-busy" => blocked.push(scope),
-                Err(error) => return Err(error),
+            match (self.probe)(std::slice::from_ref(&scope))? {
+                ProbeObservation::Clear => {}
+                ProbeObservation::Blocked => blocked.push(scope),
+                ProbeObservation::Deferred => return Ok(None),
             }
         }
-        Ok(blocked)
+        Ok(Some(blocked))
     }
     pub(crate) fn start_watcher(self: &Arc<Self>, interval: Duration) -> Result<OwnedWatcher> {
         if self.stopped()
@@ -773,12 +799,14 @@ impl Registry {
                         .flat_map(|scopes| scopes.to_vec())
                         .collect::<Vec<_>>();
                     let blocked = registry.blocked_external_scopes(&scopes);
-                    {
+                    let deferred = matches!(&blocked, Ok(None));
+                    if !deferred {
                         let Ok(mut state) = registry.control.lock() else {
                             return;
                         };
                         let (external_scopes, external_failed) = match &blocked {
-                            Ok(scopes) => (scopes.as_slice(), false),
+                            Ok(Some(scopes)) => (scopes.as_slice(), false),
+                            Ok(None) => unreachable!("deferred observation handled above"),
                             Err(_) => (&[][..], true),
                         };
                         // A scope-set change matters even when both probes are
@@ -795,7 +823,7 @@ impl Registry {
                         }
                     }
                     match &blocked {
-                        Ok(scopes) if !scopes.is_empty() => {
+                        Ok(Some(scopes)) if !scopes.is_empty() => {
                             for slot in &slots {
                                 slot.revoke_for(scopes);
                             }
@@ -820,7 +848,10 @@ impl Registry {
                         }
                         Err(_) => return,
                     };
-                    if !slots.is_empty() {
+                    // An inconclusive turn neither publishes nor renews any
+                    // factory result. Existing publication still owns its real
+                    // kernel Readers; expiry/cancellation remain immediate.
+                    if !deferred && !slots.is_empty() {
                         for offset in 0..slots.len().min(MAX_REFRESH_PER_TURN) {
                             if registry.stopped() {
                                 break;
@@ -843,11 +874,12 @@ impl Registry {
                     // used by producers, including registrations that do not
                     // advance the writer sequence. Keep the original eight-
                     // factory limit and probe before every following turn.
-                    if state
-                        .slots
-                        .iter()
-                        .filter_map(Weak::upgrade)
-                        .any(|slot| slot.refresh_ready(&state))
+                    if !deferred
+                        && state
+                            .slots
+                            .iter()
+                            .filter_map(Weak::upgrade)
+                            .any(|slot| slot.refresh_ready(&state))
                     {
                         drop(state);
                         continue;

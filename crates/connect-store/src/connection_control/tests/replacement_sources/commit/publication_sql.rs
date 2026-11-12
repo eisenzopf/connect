@@ -305,7 +305,7 @@ fn public_activation_immediate_writer_releases_sql_on_real_reader_busy_and_progr
     let capture = activation_barrier::captured(&m);
     let held =
         m.f.store
-            .try_native_media_read(&m.sources[1], None)
+            .try_native_media_read(&m.sources[0], None)
             .unwrap();
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let result =

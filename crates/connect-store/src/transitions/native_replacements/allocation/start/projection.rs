@@ -219,6 +219,37 @@ impl Store {
         timing.admitted = true;
         Ok((held, c))
     }
+    /// Pure eligibility preview owns no authority. Initial SQL acquisition and
+    /// subsequent real admission share the existing five-millisecond budget;
+    /// only expensive pure fact CPU between them is uncharged. A successful
+    /// preview is counted by its real admission, while a refused preview is
+    /// recorded at the existing initial-derive boundary.
+    pub(super) fn try_replacement_publication_preview<T>(
+        &self,
+        counters: Option<&AdmissionCounters>,
+        preview: impl FnOnce(&Connection) -> Result<T>,
+    ) -> Result<(T, std::time::Duration)> {
+        let mut timing = AdmissionTiming {
+            counters,
+            elapsed: [0; 4],
+            failed_stage: None,
+            refusal: 0,
+            admitted: false,
+        };
+        let began = std::time::Instant::now();
+        let wait = replacement_capture_wait();
+        let result = timing.step(0, || {
+            let c = self.try_connection_with_wait(&wait)?;
+            // Snapshot before expensive eligibility reads. This is a remainder,
+            // not a renewed five-millisecond window or an authority lifetime.
+            let remaining = std::time::Duration::from_millis(5).saturating_sub(began.elapsed());
+            preview(&c).map(|value| (value, remaining))
+        });
+        if result.is_ok() {
+            timing.counters = None;
+        }
+        result
+    }
     /// Final replacement publication (ready or stopped) keeps its SQL Unit through immediate
     /// full Writer admission. There is no primary-SQL reacquire gap after the
     /// WriterNotice. Kernel/file admission NEVER waits while SQL is owned;
@@ -227,6 +258,7 @@ impl Store {
     pub(super) fn try_replacement_publication_projection<'a>(
         &'a self,
         counters: Option<&AdmissionCounters>,
+        remaining: Option<std::time::Duration>,
         derive: impl Fn(&Connection) -> Result<Vec<AuthorityScope>>,
     ) -> Result<(Arc<AuthorityGuardSet>, ConnectionGuard<'a>)> {
         let mut timing = AdmissionTiming {
@@ -239,6 +271,7 @@ impl Store {
         // Preserve the existing five-millisecond SQL admission bound. This
         // proof owns no file Writer during SQL admission/footprint derivation.
         let wait = replacement_capture_wait();
+        let wait = remaining.map_or_else(|| wait.clone(), |remaining| wait.bounded(remaining));
         let (c, scopes) = timing.step(0, || {
             let c = self.try_connection_with_wait(&wait)?;
             let scopes = derive(&c)?;

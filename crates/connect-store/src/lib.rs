@@ -204,7 +204,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 129;
+pub const SCHEMA_VERSION: u32 = 130;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 // Compiled operation/source SQL only; never a row, transaction or grant cache.
 const OPERATION_SQL_CACHE_CAPACITY: usize = 32;
@@ -659,6 +659,10 @@ impl Store {
             "../migrations/129_positive_native_commit_capture.sql"
         ))
         .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/130_scoped_native_handoff_mutation.sql"
+        ))
+        .map_err(|_| Error::storage())?;
         authority_writer_boundary::schema::install(&tx)?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
@@ -1060,3 +1064,6 @@ pub use replacement_scene_snapshot::{
     NativeReplacementSceneSnapshot, NativeReplacementSceneSnapshotEpoch,
     NativeReplacementSceneSnapshotLease,
 };
+
+#[cfg(test)]
+mod scoped_phase_timing;

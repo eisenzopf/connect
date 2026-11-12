@@ -95,6 +95,7 @@ impl State {
             reservation_root: None,
             candidate_audience: None,
             commit_capture: None,
+            scoped_capture: None,
             _proof: proof.clone(),
         });
         Ok(Permit {

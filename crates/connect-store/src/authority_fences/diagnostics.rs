@@ -19,6 +19,7 @@ pub(super) enum ImmediateBusy {
     IdentityPublication,
     KernelAdmission,
     KernelResource,
+    ReaderRegistry,
 }
 impl ImmediateBusy {
     fn name(self) -> &'static str {
@@ -27,10 +28,11 @@ impl ImmediateBusy {
             Self::IdentityPublication => "file-identity-publication",
             Self::KernelAdmission => "kernel-admission-lock",
             Self::KernelResource => "kernel-resource-lock",
+            Self::ReaderRegistry => "reader-registry",
         }
     }
     fn sample(self) -> Option<usize> {
-        static COUNTS: [AtomicUsize; 4] = [const { AtomicUsize::new(0) }; 4];
+        static COUNTS: [AtomicUsize; 5] = [const { AtomicUsize::new(0) }; 5];
         // Powers of two preserve sparse visibility across a busy programme.
         // Each cause emits at most 25 records per process.
         COUNTS[self as usize]
@@ -71,14 +73,21 @@ impl Admission {
     }
     pub fn busy(&mut self, cause: ImmediateBusy, error: &Error) {
         if self.immediate && error.code == "authority-busy" {
-            self.immediate_busy = Some(cause);
+            self.immediate_busy.get_or_insert(cause);
         }
+    }
+    // Always captured at the actual failure leaf, even when tracing/sampling
+    // is disabled. Only this typed cause distinguishes exclusion intent from
+    // unavailable local metadata; public acquisition errors stay unchanged.
+    pub(super) fn immediate_cause(&self) -> Option<ImmediateBusy> {
+        self.immediate_busy
     }
     pub fn scope(&mut self, kind: Kind, mode: AuthorityMode) {
         self.kind = match kind {
             Kind::Identity => "identity",
             Kind::Conversation => "conversation",
             Kind::Record => "record",
+            Kind::Connection => "connection",
         };
         self.write = mode == AuthorityMode::Write;
         self.stage = "scope-deadline";

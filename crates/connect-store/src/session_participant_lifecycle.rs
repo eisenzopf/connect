@@ -182,10 +182,50 @@ pub(crate) fn reconcile_is_unchanged(c: &Connection, store: &Store, sid: &str) -
             return Ok(false);
         }
     }
-    let pending: bool = c.query_row(
-        "SELECT EXISTS(SELECT 1 FROM session_connected_presence presence WHERE presence.session_id=?1 AND presence.state='joined' AND (NOT EXISTS(SELECT 1 FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN sessions s ON s.id=sp.session_id WHERE sp.session_id=presence.session_id AND sp.participant_id=presence.participant_id AND sp.membership_epoch=presence.membership_epoch AND sp.state='present' AND s.state IN ('accepted','ready','active')) OR NOT EXISTS(SELECT 1 FROM connections c WHERE c.session_id=presence.session_id AND c.participant_id=presence.participant_id AND c.membership_epoch=presence.membership_epoch AND c.state NOT IN ('retired','failed','interrupted'))))", [sid], |r| r.get(0),
-    ).map_err(|_| Error::storage())?;
-    Ok(!pending)
+    Ok(!has_departed_presence(c, store, sid)?)
+}
+
+/// Read-only withdrawal witness for the existing bounded lifecycle sweep.
+/// A valid replacement preserves only a previously observed appearance; it
+/// does not enter connected_now or manufacture readiness/Session activation.
+pub(crate) fn has_departed_presence(c: &Connection, store: &Store, sid: &str) -> Result<bool> {
+    let mut statement=c.prepare_cached(
+        "SELECT presence.participant_id,presence.membership_epoch,EXISTS(SELECT 1 FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN sessions s ON s.id=sp.session_id WHERE sp.session_id=presence.session_id AND sp.participant_id=presence.participant_id AND sp.membership_epoch=presence.membership_epoch AND sp.state='present' AND s.state IN ('accepted','ready','active')) FROM session_connected_presence presence WHERE presence.session_id=?1 AND presence.state='joined' AND NOT EXISTS(SELECT 1 FROM connections c WHERE c.session_id=presence.session_id AND c.participant_id=presence.participant_id AND c.membership_epoch=presence.membership_epoch AND c.state NOT IN ('retired','failed','interrupted'))",
+    ).map_err(|_|Error::storage())?;
+    let missing = statement
+        .query_map([sid], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, u64>(1)?,
+                row.get::<_, bool>(2)?,
+            ))
+        })
+        .map_err(|_| Error::storage())?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|_| Error::storage())?;
+    // Explicit departure also withdraws an appearance even if a stale route
+    // still exists. Keep that original admitted-condition separately.
+    let departed:bool=c.query_row(
+        "SELECT EXISTS(SELECT 1 FROM session_connected_presence presence WHERE presence.session_id=?1 AND presence.state='joined' AND NOT EXISTS(SELECT 1 FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN sessions s ON s.id=sp.session_id WHERE sp.session_id=presence.session_id AND sp.participant_id=presence.participant_id AND sp.membership_epoch=presence.membership_epoch AND sp.state='present' AND s.state IN ('accepted','ready','active')))",
+        [sid],|row|row.get(0),
+    ).map_err(|_|Error::storage())?;
+    if departed {
+        return Ok(true);
+    }
+    for (participant, epoch, admitted) in missing {
+        if !admitted
+            || !crate::transitions::native_replacement_preserves_joined_presence(
+                c,
+                store,
+                sid,
+                &participant,
+                epoch,
+            )?
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 /// Runs inside the mutation/observed-retirement transaction, never from silence.
@@ -212,7 +252,12 @@ pub(crate) fn reconcile(
     for (pid, epoch, old) in rows {
         let admitted:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM session_participants sp JOIN participants p ON p.participant_id=sp.participant_id AND p.membership_epoch=sp.membership_epoch AND p.active=1 JOIN sessions s ON s.id=sp.session_id WHERE sp.session_id=?1 AND sp.participant_id=?2 AND sp.membership_epoch=?3 AND sp.state='present' AND s.state IN ('accepted','ready','active'))",params![sid,pid,epoch],|r|r.get(0)).map_err(|_|Error::storage())?;
         let live:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM connections WHERE session_id=?1 AND participant_id=?2 AND membership_epoch=?3 AND state NOT IN ('retired','failed','interrupted'))",params![sid,pid,epoch],|r|r.get(0)).map_err(|_|Error::storage())?;
-        if admitted && live {
+        if admitted
+            && (live
+                || crate::transitions::native_replacement_preserves_joined_presence(
+                    c, store, sid, &pid, epoch,
+                )?)
+        {
             continue;
         }
         let (original, members) = stored(c, cid, sid, &old)?;

@@ -120,6 +120,7 @@ impl Store {
                 binding.credentials.last().ok_or_else(Error::forbidden)?,
             )?
             .identity_id,
+            &intent.connection_id,
         )?;
         Ok(Arc::new(NativeMediaOrigin {
             snapshot_hints,
@@ -161,13 +162,40 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        self.settle_replacement_retirement(
+        let NativeMediaAdmission::Replacement {
+            core, generation, ..
+        } = &origin.attempt
+        else {
+            return Err(Error::forbidden());
+        };
+        let expected = crate::NativeOfferObservation::Retired {
+            runtime_connection_id: core.clone(),
+            generation: *generation,
+        };
+        if absent.observe()? != expected {
+            return Err(Error::forbidden());
+        }
+        if self.settle_replacement_retirement_mode(
             &origin.attempt,
             origin.conversation_id(),
             origin.session_id(),
             absent,
             false,
+            true,
+            Some(origin),
+        )? {
+            return Ok(());
+        }
+        self.settle_replacement_retirement_mode(
+            &origin.attempt,
+            origin.conversation_id(),
+            origin.session_id(),
+            absent,
+            false,
+            true,
+            None,
         )
+        .map(|_| ())
     }
 
     fn settle_replacement_retirement(
@@ -178,6 +206,28 @@ impl Store {
         absent: &dyn crate::NativeOfferRuntimeObservation,
         successor: bool,
     ) -> Result<()> {
+        self.settle_replacement_retirement_mode(
+            attempt,
+            conversation,
+            session,
+            absent,
+            successor,
+            false,
+            None,
+        )
+        .map(|_| ())
+    }
+    fn settle_replacement_retirement_mode(
+        &self,
+        attempt: &NativeMediaAdmission,
+        conversation: &str,
+        session: &str,
+        absent: &dyn crate::NativeOfferRuntimeObservation,
+        successor: bool,
+        absence_checked: bool,
+        scoped_origin: Option<&NativeMediaOrigin>,
+    ) -> Result<bool> {
+        use crate::authority_writer_boundary::phase_ledger::scoped::{self, Witness};
         let NativeMediaAdmission::Replacement {
             record,
             runtime,
@@ -197,9 +247,38 @@ impl Store {
             runtime_connection_id: core.clone(),
             generation: *generation,
         };
-        if absent.observe()? != expected {
+        if !absence_checked && absent.observe()? != expected {
             return Err(Error::forbidden());
         }
+        let scoped_facts = if let Some(origin) = scoped_origin {
+            let c = self.try_connection()?;
+            let facts = match origin.scoped_replacement_retire_facts(self, &c) {
+                Ok(facts) => facts,
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "forbidden" | "unauthorized" | "conflict" | "not-ready"
+                    ) =>
+                {
+                    return Ok(false);
+                }
+                Err(error) => return Err(error),
+            };
+            let settled:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM connections v JOIN native_connection_lifetimes life ON life.connection_id=v.id WHERE life.operation_record_id=?1 AND life.retired=1 AND v.state='retired')",[record],|r|r.get(0)).map_err(|_|Error::storage())?;
+            drop(c);
+            if settled {
+                return self.replacement_retirement_read_noop(
+                    origin,
+                    absent,
+                    &expected,
+                    &owner,
+                    &facts.required,
+                );
+            }
+            Some(facts)
+        } else {
+            None
+        };
         // Physical retirement already happened; project only its exact absence.
         // Share capture projection's five-millisecond acquisition budget: release
         // initial SQL before briefly reserving file admission so short overlapping
@@ -208,7 +287,9 @@ impl Store {
         // another SQL owner. This budget excludes the transaction's duration and
         // provides no general original-cutoff progress guarantee for long readers.
         let wait = crate::authority_admission::passive_projection_wait();
-        let scopes = {
+        let scopes = if let Some(facts) = &scoped_facts {
+            facts.required.clone()
+        } else {
             let c = self.try_connection_with_wait(&wait)?;
             crate::authority_admission::conversation_scopes(&c, conversation, AuthorityMode::Write)?
         };
@@ -218,11 +299,22 @@ impl Store {
         let held = admission?;
         let mut c = self.try_connection()?;
         c.bind_available_mutation_authority(self, &held)?;
-        let current = crate::authority_admission::conversation_scopes(
-            &c,
-            conversation,
-            AuthorityMode::Write,
-        )?;
+        let current = if let Some(origin) = scoped_origin {
+            match origin.scoped_replacement_retire_facts(self, &c) {
+                Ok(facts) => facts.required,
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "forbidden" | "unauthorized" | "conflict" | "not-ready"
+                    ) =>
+                {
+                    return Ok(false);
+                }
+                Err(error) => return Err(error),
+            }
+        } else {
+            crate::authority_admission::conversation_scopes(&c, conversation, AuthorityMode::Write)?
+        };
         if !self.authority_covers(&held, &current) {
             return Err(Error::new(
                 "authority-busy",
@@ -233,6 +325,26 @@ impl Store {
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         attempt.replacement_historical(&tx)?;
+        let permit = if let Some(origin) = scoped_origin {
+            let plan = scoped::retire_plan(self, &tx, Witness::ReplacementRetire(origin))?;
+            if plan.transitions.is_empty() {
+                if !crate::session_participant_lifecycle::reconcile_is_unchanged(
+                    &tx, self, session,
+                )? {
+                    return Ok(false);
+                }
+                if absent.observe()? != expected || !owner.current() {
+                    return Err(Error::forbidden());
+                }
+                return Ok(true);
+            }
+            Some(
+                self.authority_writer_boundary
+                    .native_scoped_mutation_ledger(self, &tx, &held, plan)?,
+            )
+        } else {
+            None
+        };
         let retired: bool = tx
             .query_row(
                 "SELECT state='retired' FROM connections WHERE id=?1",
@@ -240,7 +352,7 @@ impl Store {
                 |r| r.get(0),
             )
             .map_err(|_| Error::storage())?;
-        tx.execute("UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=?1 AND connection_id=?2",params![record,connection]).map_err(|_| Error::storage())?;
+        tx.execute("UPDATE native_connection_lifetimes SET retired=1 WHERE operation_record_id=?1 AND connection_id=?2 AND retired=0",params![record,connection]).map_err(|_| Error::storage())?;
         if !retired {
             // A local Session end/leave fences its original route before the
             // physical owner joins. That exact one-generation terminal slot
@@ -315,21 +427,167 @@ impl Store {
                 tx.execute("INSERT INTO journal(id,recipient,conversation_id,kind,operation_record_id,resource_revision,data_json,source_json) VALUES(?1,?2,?3,'connection_retired',?4,?5,?6,?7)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),recipient,conversation,record,value.revision,data.to_string(),serde_json::json!({"kind":"connect-native-runtime","correlation_id":value.connection_id}).to_string()]).map_err(|_| Error::storage())?;
             }
         }
+        if scoped_origin.is_some()
+            && !crate::session_participant_lifecycle::reconcile_is_unchanged(&tx, self, session)?
+        {
+            return Ok(false);
+        }
+        let current = if let Some(origin) = scoped_origin {
+            origin.scoped_replacement_retire_facts(self, &tx)?.required
+        } else {
+            crate::authority_admission::conversation_scopes(
+                &tx,
+                conversation,
+                AuthorityMode::Write,
+            )?
+        };
         if absent.observe()? != expected
             || !owner.current()
-            || !self.authority_covers(
-                &held,
-                &crate::authority_admission::conversation_scopes(
-                    &tx,
-                    conversation,
-                    AuthorityMode::Write,
-                )?,
-            )
+            || !self.authority_covers(&held, &current)
         {
             return Err(Error::forbidden());
         }
         crate::session_participant_lifecycle::reconcile(&tx, self, conversation, session, None)?;
+        drop(permit);
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(())
+        Ok(true)
+    }
+}
+
+impl NativeMediaOrigin {
+    pub(crate) fn scoped_replacement_retire_facts(
+        &self,
+        store: &Store,
+        c: &Connection,
+    ) -> Result<crate::authority_writer_boundary::phase_ledger::scoped::WitnessFacts> {
+        use crate::authority_writer_boundary::phase_ledger::scoped::WitnessFacts;
+        let NativeMediaAdmission::Replacement {
+            record,
+            attempt,
+            effect,
+            runtime,
+            connection,
+            core,
+            generation,
+        } = &self.attempt
+        else {
+            return Err(Error::forbidden());
+        };
+        let owner = store.require_runtime_owner()?;
+        if runtime != store.runtime_epoch()
+            || !owner.current()
+            || self
+                .owner
+                .upgrade()
+                .is_none_or(|old| !Arc::ptr_eq(&old, &owner))
+        {
+            return Err(Error::forbidden());
+        }
+        self.attempt.replacement_historical(c)?;
+        // Do not infer a private/isolated source's complete denial footprint
+        // from only its logical connection. Those paths remain broad.
+        if self.intent.offer.get("private_consultation").is_some()
+            || self.intent.offer.get("handoff_preparation").is_some()
+            || crate::connection_control::private_consultation::replacement_lineage::floor(
+                c, connection,
+            )?
+            .is_some()
+        {
+            return Err(Error::forbidden());
+        }
+        let exact:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM operations o JOIN native_connection_lifetimes life ON life.operation_record_id=o.record_id JOIN connections v ON v.id=life.connection_id WHERE o.record_id=?1 AND o.state='completed' AND o.cancel_requested=0 AND o.tombstoned=0 AND life.connection_id=?2 AND life.runtime_epoch=?3 AND life.generation=?4 AND ((life.retired=0 AND v.generation=life.generation AND v.observed_runtime_id=life.runtime_epoch AND v.state IN ('ready','active','held')) OR (life.retired=1 AND v.generation=life.generation+1 AND v.state='retired' AND v.observed_runtime_id IS NULL AND v.observed_at IS NULL AND v.readiness_json IS NULL)))",params![record,connection,runtime,generation],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if !exact {
+            return Err(Error::forbidden());
+        }
+        let owner_id: String = c
+            .query_row(
+                "SELECT owner_id FROM operations WHERE record_id=?1",
+                [record],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        let mut required = crate::authority_admission::conversation_scopes(
+            c,
+            self.conversation_id(),
+            AuthorityMode::Read,
+        )?;
+        required.extend([
+            AuthorityScope::identity(&owner_id, AuthorityMode::Read)?,
+            AuthorityScope::connection(connection, AuthorityMode::Write)?,
+            AuthorityScope::record(record, AuthorityMode::Write)?,
+        ]);
+        Ok(WitnessFacts {
+            record: record.clone(),
+            runtime: runtime.clone(),
+            source: connection.clone(),
+            candidate: None,
+            required: AuthorityScope::merged(&required)?,
+            until: None,
+            attempt: Some(attempt.clone()),
+            effect: Some(effect.clone()),
+            expected: Some(crate::provisioning::canonical_json(
+                &serde_json::json!({"runtime_connection_id":core,"generation":generation}),
+            )?),
+            reservation: None,
+            digest: None,
+        })
+    }
+}
+
+impl Store {
+    /// Already committed exact absence can be an effect-free historical read.
+    /// This read never suppresses a genuine lifecycle withdrawal.
+    fn replacement_retirement_read_noop(
+        &self,
+        origin: &NativeMediaOrigin,
+        absent: &dyn crate::NativeOfferRuntimeObservation,
+        expected: &crate::NativeOfferObservation,
+        owner: &Arc<InstallationOwnership>,
+        scopes: &[AuthorityScope],
+    ) -> Result<bool> {
+        let reads = scopes
+            .iter()
+            .map(AuthorityScope::read_scope)
+            .collect::<Vec<_>>();
+        let wait = crate::authority_admission::passive_projection_wait();
+        let held = self.acquire_authority(&reads, &wait)?;
+        let mut c = self.try_connection()?;
+        let tx = c
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Deferred)
+            .map_err(|_| Error::storage())?;
+        let fresh = match origin.scoped_replacement_retire_facts(self, &tx) {
+            Ok(facts) => facts,
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "forbidden" | "unauthorized" | "conflict" | "not-ready"
+                ) =>
+            {
+                return Ok(false);
+            }
+            Err(error) => return Err(error),
+        };
+        let current = fresh
+            .required
+            .iter()
+            .map(AuthorityScope::read_scope)
+            .collect::<Vec<_>>();
+        let settled:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM connections v JOIN native_connection_lifetimes life ON life.connection_id=v.id WHERE life.operation_record_id=?1 AND life.retired=1 AND v.state='retired')",[origin.offer_record_id()],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if !settled
+            || !self.authority_covers(&held, &current)
+            || !crate::session_participant_lifecycle::reconcile_is_unchanged(
+                &tx,
+                self,
+                origin.session_id(),
+            )?
+        {
+            return Ok(false);
+        }
+        if absent.observe()? != *expected || !owner.current() {
+            return Err(Error::forbidden());
+        }
+        // Roll back the read snapshot, retaining no new state or authority.
+        drop(tx);
+        Ok(true)
     }
 }

@@ -161,7 +161,10 @@ impl Store {
                 continue;
             }
             let live = connected_now(&tx, self, &sid)?;
-            if (live && deadline.is_some()) || (!live && deadline.is_none_or(|d| d <= now)) {
+            if crate::session_participant_lifecycle::has_departed_presence(&tx, self, &sid)?
+                || (live && deadline.is_some())
+                || (!live && deadline.is_none_or(|d| d <= now))
+            {
                 pending.push((cid, sid));
             }
         }
@@ -188,6 +191,7 @@ impl Store {
             if phase == "active"
                 && connected_now(&c, self, sid)?
                 && c.query_row("SELECT EXISTS(SELECT 1 FROM session_reconnect_boundaries WHERE session_id=?1 AND lost_at_millis IS NULL AND deadline_millis IS NULL)", [sid], |r| r.get::<_, bool>(0)).map_err(|_| Error::storage())?
+                && !crate::session_participant_lifecycle::has_departed_presence(&c,self,sid)?
             {
                 return Ok(false);
             }
@@ -209,9 +213,14 @@ impl Store {
         }
         if connected_now(&tx, self, sid)? {
             connected(&tx, sid)?;
+            crate::session_participant_lifecycle::reconcile(&tx, self, cid, sid, None)?;
         } else {
             let now = chrono::Utc::now().timestamp_millis();
             observe_loss(&tx, self, sid, now)?;
+            // Logical appearance withdrawal does not wait for the Session's
+            // separate reconnect grace. A valid bounded replacement retains
+            // its prior joined fact; expiry/cancel cannot preserve a ghost.
+            crate::session_participant_lifecycle::reconcile(&tx, self, cid, sid, None)?;
             let deadline: i64 = tx
                 .query_row(
                     "SELECT deadline_millis FROM session_reconnect_boundaries WHERE session_id=?1",

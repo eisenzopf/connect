@@ -100,7 +100,117 @@ fn record_same_capture(
 #[test]
 fn first_positive_commit_capture_preserves_unaffected_audio_io_and_original_queued_epoch() {
     let m = fixture(true);
+    // Ready is a current metadata/read admission, not a fabricated decoder or
+    // physical completion. Its untrusted wire observation grants no readiness.
+    let mut ready_request = m.target_request.clone();
+    let crate::PeerCommand::NativeConnectionOffer(target) = &mut ready_request.command else {
+        panic!("actual replacement target offer required")
+    };
+    target.offer["replacement_preparation"]["profile"] = json!("connect-replacement-ready-v1");
+    target.offer["replacement_preparation"]["readiness"] = json!({
+        "nonce":"controlled-store-readiness", "source_generation":m.sources[0].generation(),
+        "target_generation":m.sources[0].generation()+1, "stream_revision":2,
+        "audio":{"stream_id":"audio","decoded_samples":1}
+    });
+    let candidate = target.connection_id.clone();
+    let ready_proof = m.f.admit(&ready_request);
+    for connection in [
+        m.sources[0].connection_id(),
+        m.sources[1].connection_id(),
+        candidate.as_str(),
+    ] {
+        assert!(
+            m.f.store.authority_covers(
+                Store::peer_scopes(&ready_proof),
+                &[
+                    crate::AuthorityScope::connection(connection, crate::AuthorityMode::Read)
+                        .unwrap()
+                ]
+            ),
+            "Ready peer proof omitted exact original Connection Read"
+        );
+    }
+    let ready_read =
+        m.f.store
+            .native_replacement_ready_read_with_peer(
+                &m.started,
+                &ready_request.credentials[0],
+                &ready_proof,
+            )
+            .unwrap();
+    assert!(ready_read.source().current());
+    drop(ready_read);
+    drop(ready_proof);
+    // Internal Start continuation uses the mode-aware admission entrypoint.
+    // It needs the same exact connection Readers as the original peer path.
+    let start_origin = &m.start_origin;
+    let resumed =
+        m.f.store
+            .resume_native_replacement_start_authority(
+                start_origin,
+                &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+            )
+            .unwrap();
+    let resumed_read =
+        m.f.store
+            .native_replacement_start_read_under(start_origin, &resumed)
+            .unwrap();
+    assert!(resumed_read.current());
+    drop(resumed_read);
+    drop(resumed);
+    // Explicit mutation mode must NOT be downgraded by resource classification.
+    let writer =
+        m.f.store
+            .admit_peer_authority_mode(
+                &m.target_request,
+                &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+                true,
+            )
+            .unwrap();
+    for connection in [
+        m.sources[0].connection_id(),
+        m.sources[1].connection_id(),
+        candidate.as_str(),
+    ] {
+        assert!(
+            m.f.store.authority_covers(
+                Store::peer_scopes(&writer),
+                &[
+                    crate::AuthorityScope::connection(connection, crate::AuthorityMode::Write)
+                        .unwrap()
+                ]
+            ),
+            "explicit mutation lost a required Connection Writer"
+        );
+    }
+    assert!(m.f.store.authority_covers(
+        Store::peer_scopes(&writer),
+        &[crate::AuthorityScope::conversation(&m.f.cid, crate::AuthorityMode::Write).unwrap()]
+    ));
+    drop(writer);
     let captured = capture(&m);
+    {
+        let c = m.f.store.connection().unwrap();
+        let (decision, dependencies) =
+            crate::authority_writer_boundary::phase_ledger::commit::admission_preview(
+                &m.f.store, &c, &captured,
+            )
+            .unwrap();
+        assert!(decision.reader);
+        for connection in [
+            m.sources[0].connection_id(),
+            m.sources[1].connection_id(),
+            candidate.as_str(),
+        ] {
+            assert!(
+                dependencies.contains(
+                    &crate::AuthorityScope::connection(connection, crate::AuthorityMode::Read)
+                        .unwrap()
+                ),
+                "positive capture preview lost an exact Connection Read dependency"
+            );
+        }
+    }
     let source = m.sources[1].clone();
     let store = Arc::new(m.f.store);
     let (snapshot, mut watcher) = publication(&store, &source);

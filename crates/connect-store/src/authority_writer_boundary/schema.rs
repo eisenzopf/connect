@@ -42,46 +42,64 @@ fn identifier(value: &str) -> Result<String> {
 fn guard(kind: &str, id: &str) -> String {
     format!("{FUNCTION}('{kind}',{id})")
 }
-fn footprint(table: &Table, row: &str, skip: &str) -> Result<String> {
-    let mut sql = String::new();
-    if table.table == "installation" {
-        return Ok(format!(
-            "SELECT {};",
-            guard("exclusive-installation", "NULL")
-        ));
-    }
-    let bases = table
-        .scope_queries_for_each_row
-        .iter()
-        .filter(|q| q.role == "base" || q.role == "non-conversation-owner-fallback")
-        .map(|q| q.id_sql.replace("{row}", row))
-        .collect::<Vec<_>>();
-    if table.must_resolve_base_scope {
-        if bases.is_empty() {
-            return Err(Error::storage());
+/// Evaluate the exact mutation exception once, then visit every required
+/// subject of every row. Arithmetic (not AND/OR) keeps later guards mandatory;
+/// each delegated-subject aggregate visits every matching ID and maps no rows
+/// to zero. Collision victims use their own unskipped one-row footprint below.
+fn footprint_many(table: &Table, rows: &[&str], skip: &str) -> Result<String> {
+    let mut checks = Vec::new();
+    for row in rows {
+        if table.table == "installation" {
+            checks.push(guard("exclusive-installation", "NULL"));
+            continue;
         }
-        sql.push_str(&format!(
-            "SELECT CASE WHEN NOT ({skip}) AND NOT EXISTS({}) THEN {} ELSE 1 END;",
-            bases.join(" UNION ALL "),
-            guard("unresolved-row", "NULL")
-        ));
+        let bases = table
+            .scope_queries_for_each_row
+            .iter()
+            .filter(|q| q.role == "base" || q.role == "non-conversation-owner-fallback")
+            .map(|q| q.id_sql.replace("{row}", row))
+            .collect::<Vec<_>>();
+        if table.must_resolve_base_scope {
+            if bases.is_empty() {
+                return Err(Error::storage());
+            }
+            checks.push(format!(
+                "CASE WHEN NOT EXISTS({}) THEN {} ELSE 1 END",
+                bases.join(" UNION ALL "),
+                guard("unresolved-row", "NULL")
+            ));
+        }
+        for query in &table.scope_queries_for_each_row {
+            let kind = match query.kind.as_str() {
+                "Identity" => "identity",
+                "Conversation" => "conversation",
+                "Record" => "record",
+                _ => return Err(Error::storage()),
+            };
+            let ids = query.id_sql.replace("{row}", row);
+            checks.push(format!(
+                "(SELECT COALESCE(sum({}),0) FROM ({ids}))",
+                guard(kind, "id")
+            ));
+        }
     }
-    for query in &table.scope_queries_for_each_row {
-        let kind = match query.kind.as_str() {
-            "Identity" => "identity",
-            "Conversation" => "conversation",
-            "Record" => "record",
-            _ => return Err(Error::storage()),
-        };
-        let ids = query.id_sql.replace("{row}", row);
-        // The aggregate forces evaluation for every required delegated subject,
-        // not merely the first row of a scalar subquery.
-        sql.push_str(&format!(
-            "SELECT COALESCE(sum({}),0) FROM ({ids}) WHERE NOT ({skip});",
-            guard(kind, "id")
-        ));
+    if checks.is_empty() {
+        return Err(Error::storage());
     }
-    Ok(sql)
+    let checks = checks
+        .into_iter()
+        .map(|check| format!("({check})"))
+        .collect::<Vec<_>>()
+        .join(" + ");
+    // Installation never accepts the dormant/scoped row exception.
+    Ok(if table.table == "installation" {
+        format!("SELECT {checks};")
+    } else {
+        format!("SELECT CASE WHEN ({skip}) THEN 1 ELSE {checks} END;")
+    })
+}
+fn footprint(table: &Table, row: &str, skip: &str) -> Result<String> {
+    footprint_many(table, &[row], skip)
 }
 fn collision_predicate(connection: &Connection, table: &str) -> Result<String> {
     let quoted = identifier(table)?;
@@ -693,6 +711,26 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
     }
     "0".into()
 }
+/// Exact original-Unit row deltas; no Connection=>Conversation implication.
+fn scoped_handoff(table: &str, action: &str) -> Option<String> {
+    use phase_ledger::scoped::{trigger_tuple, Table as ScopedTable};
+    let table_kind = ScopedTable::from_name(table)?;
+    if !matches!(action, "insert" | "update") {
+        return None;
+    }
+    let old = if action == "update" {
+        trigger_tuple(table_kind, "OLD")
+    } else {
+        "NULL".into()
+    };
+    let new = trigger_tuple(table_kind, "NEW");
+    // Ordinary writes never materialize the typed row tuple. The cheap active
+    // probe is only a hint to evaluate the mandatory exact comparison below.
+    Some(format!(
+        "CASE WHEN {f}('scoped-row-active','{table}','{action}','scoped-handoff',NULL,NULL,NULL) THEN {f}('scoped-row','{table}','{action}','scoped-handoff',json_array({old},{new}),NULL,NULL) ELSE 0 END",
+        f = phase_ledger::FUNCTION
+    ))
+}
 fn definitions(connection: &Connection) -> Result<Vec<(String, String, String)>> {
     let map: Map =
         serde_json::from_str(include_str!("footprints.json")).map_err(|_| Error::storage())?;
@@ -715,6 +753,13 @@ fn definitions(connection: &Connection) -> Result<Vec<(String, String, String)>>
         if columns != map.all_tables[&table].columns.iter().cloned().collect() {
             return Err(Error::storage());
         }
+        if let Some(encoded) = phase_ledger::scoped::Table::from_name(&table) {
+            // A newly added column may not escape the exact OLD/NEW capture.
+            let encoded: BTreeSet<_> = encoded.columns().iter().map(|c| c.to_string()).collect();
+            if encoded != columns {
+                return Err(Error::storage());
+            }
+        }
         let policy = map.tables.iter().find(|policy| policy.table == table);
         let collisions = if policy.is_some() {
             collision_predicate(connection, &table)?
@@ -728,17 +773,21 @@ fn definitions(connection: &Connection) -> Result<Vec<(String, String, String)>>
                 let skip = if table == "journal" && action == "insert" {
                     "1".into()
                 } else {
-                    dormant(&table, action, &collisions)
+                    let ordinary = dormant(&table, action, &collisions);
+                    if let Some(exact) = scoped_handoff(&table, action) {
+                        format!("({ordinary}) OR ({exact})")
+                    } else {
+                        ordinary
+                    }
                 };
-                for row in if action == "update" {
-                    vec!["OLD", "NEW"]
+                let rows: &[&str] = if action == "update" {
+                    &["OLD", "NEW"]
                 } else if action == "insert" {
-                    vec!["NEW"]
+                    &["NEW"]
                 } else {
-                    vec!["OLD"]
-                } {
-                    body.push_str(&footprint(policy, row, &skip)?);
-                }
+                    &["OLD"]
+                };
+                body.push_str(&footprint_many(policy, rows, &skip)?);
                 if action == "insert" || action == "update" {
                     let collision_rows = if action == "update" {
                         format!(
@@ -819,3 +868,6 @@ pub(crate) fn validate(connection: &Connection) -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod footprint_tests;

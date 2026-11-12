@@ -5,6 +5,7 @@ use super::*;
 pub(super) mod not_submitted;
 mod recovery;
 mod retired_source;
+mod scoped_mutation;
 pub use not_submitted::NativeReplacementCommitNotSubmitted;
 use recovery::{Projection, ProjectionFacts};
 
@@ -420,9 +421,72 @@ mod activation_capture_tests {
     }
 }
 
+impl NativeReplacementSceneRead {
+    /// Complete original scene facts remain Read dependencies. Only the old
+    /// and new native endpoint incarnations are changed by this exact move.
+    /// This emits metadata for a NEW admission and grants no IO by itself.
+    fn supports_scoped_commit(&self) -> bool {
+        let Some(source) = self.media.source.source().native() else {
+            return false;
+        };
+        if self
+            .media
+            .source
+            .context()
+            .candidate_connection_id
+            .is_some()
+        {
+            return false;
+        }
+        let ordinary_originals = [source.target(), self.media.source.retained().target()]
+            .iter()
+            .all(|view| {
+                view.private_consultation.is_none()
+                    && !view.handoff_preparation
+                    && !view.publication_suspended
+            });
+        // The fresh candidate constructor deliberately marks publication
+        // suspended until the genuine public projection. That exact preparing
+        // state is required here; it is not an unsupported private original.
+        let target = &self.media.target;
+        ordinary_originals
+            && target.private_consultation.is_none()
+            && !target.handoff_preparation
+            && target.publication_suspended
+            && target.connection.state == "preparing"
+            && target.connection.revision == 0
+    }
+    fn scoped_commit_scopes(&self) -> Result<Vec<AuthorityScope>> {
+        if !self.supports_scoped_commit() {
+            // Unsupported private/claimed/telephone cases retain the original
+            // broad Writer before admission; no late SQL or reader upgrade.
+            let mut scopes = self.media.interval.mutation_scopes();
+            scopes.push(AuthorityScope::record(
+                &self.media.source.context().operation_record_id,
+                crate::AuthorityMode::Write,
+            )?);
+            return AuthorityScope::merged(&scopes);
+        }
+        let context = self.media.source.context();
+        let mut scopes = self.media.interval.read_scopes();
+        scopes.extend([
+            AuthorityScope::connection(&context.source_connection_id, crate::AuthorityMode::Write)?,
+            AuthorityScope::connection(
+                &self.media.target.connection.connection_id,
+                crate::AuthorityMode::Write,
+            )?,
+            AuthorityScope::record(&context.operation_record_id, crate::AuthorityMode::Write)?,
+        ]);
+        AuthorityScope::merged(&scopes)
+    }
+}
+
 impl Store {
-    /// Acquire the complete current scene Writer for one original Commit.
-    /// It covers the independent operator, old/retained owners and target peer.
+    /// Acquire complete current scene Readers and exact changed Connection /
+    /// operation Record Writers for one original native Commit.
+    /// It retains complete current scene authorization Readers, including the
+    /// independent operator/retained owners, plus exact changed Connection and
+    /// operation Record Writers. Unsupported scopes retain the broad path.
     /// An effect-free SQL availability preview belongs AFTER deriving and
     /// dropping the complete provisional read, BEFORE any WriterNotice. The
     /// preview grants nothing; actual begin still owns its SAME fresh Unit.
@@ -432,7 +496,7 @@ impl Store {
         sources: &[Arc<crate::NativeMediaOrigin>],
     ) -> Result<NativeReplacementSceneRead> {
         let provisional = self.try_native_replacement_scene_read(origin, sources)?;
-        let scopes = provisional.media.interval.mutation_scopes();
+        let scopes = provisional.scoped_commit_scopes()?;
         let expiry = provisional.media.source.expires_at();
         drop(provisional);
         #[cfg(test)]
@@ -444,7 +508,7 @@ impl Store {
         self.native_replacement_scene_with_interval(origin, sources, None, Some((&writer, expiry)))
     }
     /// Persist the single commit attempt before entering Core while retaining
-    /// the full current Writer through the physical movement fence.
+    /// the complete current mixed mutation proof through physical movement.
     /// failure to enter primary SQL is a definite pre-effect Busy, never a wait.
     pub fn begin_native_replacement_commit(
         &self,
@@ -470,7 +534,7 @@ impl Store {
         let p = &origin.started.attempt.allocated.attempt.prepared;
         if !read.current()
             || read.media.source.selection().origin.record != p.record
-            || !self.authority_covers(&read.media.interval, &read.media.interval.mutation_scopes())
+            || !self.authority_covers(&read.media.interval, &read.scoped_commit_scopes()?)
         {
             return Err(Error::forbidden());
         }
@@ -566,11 +630,32 @@ impl Store {
         }))?;
         let attempt = format!("nmc_{}", uuid::Uuid::new_v4());
         let effect = format!("nre_{}", uuid::Uuid::new_v4());
+        let recorded_at = crate::now();
+        let permit = if read.supports_scoped_commit()
+            && !self.authority_covers(&read.media.interval, &read.media.interval.mutation_scopes())
+        {
+            let plan = scoped_mutation::begin_plan(
+                self,
+                &tx,
+                &origin,
+                read,
+                &attempt,
+                &effect,
+                &expected,
+                recorded_at,
+            )?;
+            Some(
+                self.authority_writer_boundary
+                    .native_scoped_mutation_ledger(self, &tx, &read.media.interval, plan)?,
+            )
+        } else {
+            None
+        };
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,'native-replacement-commit',?1,'none','prepared',?3)",params![effect,p.record,expected]).map_err(|_|Error::storage())?;
         tx.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,'commit',?2,?3)",params![p.record,attempt,effect]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='commit'",[&p.record]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_|Error::storage())?;
-        native_handoffs::touch(&tx, &p.record, self)?;
+        native_handoffs::touch_at(&tx, &p.record, self, recorded_at)?;
         let activation = self.replacement_activation_metadata(
             crate::peer_authority::ReplacementActivationInput {
                 record: p.record.clone(),
@@ -587,6 +672,7 @@ impl Store {
         if !read.current() {
             return Err(Error::forbidden());
         }
+        drop(permit);
         tx.commit().map_err(|_| Error::storage())?;
         Ok(Some(NativeReplacementCommitAttempt {
             origin,
@@ -682,14 +768,19 @@ impl Store {
         // full policy derivation must not consume the shared five-millisecond
         // SQL/file admission window. The immediate SQL try adds no wait, and
         // its guard drops here before that original admission window starts.
-        let preview = if let Some(capture) = positive {
+        let (preview, preview_required) = if let Some(capture) = positive {
             let c = self.try_connection()?;
-            crate::authority_writer_boundary::phase_ledger::commit::decision(self, &c, capture)?
+            crate::authority_writer_boundary::phase_ledger::commit::admission_preview(
+                self, &c, capture,
+            )?
         } else {
-            crate::authority_writer_boundary::phase_ledger::commit::Decision {
-                reader: false,
-                reason: "non-positive-observation",
-            }
+            (
+                crate::authority_writer_boundary::phase_ledger::commit::Decision {
+                    reader: false,
+                    reason: "non-positive-observation",
+                },
+                Vec::new(),
+            )
         };
         let (held, mut c) = self.try_replacement_capture_projection(diagnostics, |c| {
             let row = rows::by_record(c, &p.record)?;
@@ -701,6 +792,13 @@ impl Store {
             } else {
                 admission::mutation_row_scopes(&row)?
             };
+            if eligible {
+                // Preserve every dependency from the full preview (including
+                // source/retained/candidate Connection Reads). Rebuilding only
+                // row/CID scopes would make the actual constructor correctly
+                // reject the otherwise-current historical receipt.
+                scopes.extend(preview_required.iter().cloned());
+            }
             if audience.is_some() {
                 scopes.extend(crate::authority_admission::conversation_scopes(
                     c,
@@ -822,6 +920,14 @@ impl Store {
     }
 }
 
+struct ScopedPublicationHint {
+    reads: Vec<AuthorityScope>,
+    until: i64,
+}
+enum PublicationAttempt {
+    Applied(Option<Arc<crate::NativeMediaOrigin>>),
+    NeedsBroad,
+}
 enum ActivationObservation<'a> {
     Installed(&'a dyn crate::NativeReplacementInstallationObservation),
     Stopped(&'a dyn crate::NativeOfferRuntimeObservation),
@@ -913,22 +1019,120 @@ impl Store {
             return Err(Error::forbidden());
         }
         let activation = live.map(NativeReplacementCommitted::activation);
-        let target = &p.facts.target;
         drop(observation.require(
             activation.map(AsRef::as_ref),
-            &target.runtime_connection_id,
-            target.connection.generation,
+            &p.facts.target.runtime_connection_id,
+            p.facts.target.connection.generation,
         )?);
+        if !owner.current() {
+            return Err(Error::forbidden());
+        }
+        // Effect-free expensive fact preview occurs before the unchanged five
+        // millisecond SQL/file admission budget. It supplies only a footprint
+        // hint; the sealed witness repeats all facts in the actual Write TX.
+        let (hint, mut remaining) = if let Some(captured) =
+            live.filter(|_| !stopped && p.facts.private_successor.is_none())
+        {
+            self.try_replacement_publication_preview(
+                Some(&captured.activation_diagnostics),
+                |c| {
+            let current:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM operations o JOIN native_replacements n ON n.operation_record_id=o.record_id WHERE o.record_id=?1 AND o.state='preparing' AND o.cancel_requested=0 AND o.tombstoned=0 AND o.expires_at>?2 AND n.expires_at>?2 AND n.runtime_epoch=?3 AND NOT EXISTS(SELECT 1 FROM connections WHERE id=n.candidate_connection_id) AND NOT EXISTS(SELECT 1 FROM native_replacement_candidates claim WHERE claim.operation_record_id=o.record_id OR claim.candidate_connection_id=n.candidate_connection_id))",params![p.record,crate::now(),self.runtime_epoch()],|r|r.get(0)).map_err(|_|Error::storage())?;
+            if !current
+                || !matches!(
+                    captured
+                        .attempt
+                        .origin
+                        .started
+                        .attempt
+                        .allocated
+                        .attempt
+                        .prepared
+                        .selection
+                        .source(),
+                    crate::NativeReplacementSourceOrigin::Native(_)
+                )
+            {
+                Ok(None)
+            } else {
+                match captured.commit_ledger_authority_decision(self, c, None) {
+                    Ok((reads, until, _)) => Ok(Some(ScopedPublicationHint { reads, until })),
+                    Err(error)
+                        if matches!(
+                            error.code.as_str(),
+                            "forbidden" | "unauthorized" | "conflict" | "not-ready"
+                        ) =>
+                    {
+                        Ok(None)
+                    }
+                    Err(error) => Err(error),
+                }
+            }
+                },
+            ).map(|(hint, remaining)| (hint, Some(remaining)))?
+        } else {
+            (None, None)
+        };
+        if let Some(hint) = hint {
+            match self.project_replacement_metadata_in(
+                p,
+                live,
+                &observation,
+                Some(&hint),
+                remaining.take(),
+            )? {
+                PublicationAttempt::Applied(origin) => return Ok(origin),
+                PublicationAttempt::NeedsBroad => {}
+            }
+        }
+        match self.project_replacement_metadata_in(p, live, &observation, None, remaining)? {
+            PublicationAttempt::Applied(origin) => Ok(origin),
+            PublicationAttempt::NeedsBroad => Err(Error::forbidden()),
+        }
+    }
+    fn project_replacement_metadata_in(
+        &self,
+        p: &Projection,
+        live: Option<&NativeReplacementCommitted>,
+        observation: &ActivationObservation<'_>,
+        hint: Option<&ScopedPublicationHint>,
+        remaining: Option<std::time::Duration>,
+    ) -> Result<PublicationAttempt> {
+        let owner = self.require_runtime_owner()?;
+        let stopped = observation.stopped();
+        if live.is_none() && (!stopped || p.runtime == self.runtime_epoch()) {
+            return Err(Error::forbidden());
+        }
+        let activation = live.map(NativeReplacementCommitted::activation);
+        let target = &p.facts.target;
         let (held, mut c) = self.try_replacement_publication_projection(
             live.map(|capture| &capture.activation_diagnostics),
+            remaining,
             |c| {
                 let row = rows::by_record(c, &p.record)?;
                 let mut scopes = admission::row_scopes(&row)?;
                 scopes.extend(crate::authority_admission::conversation_scopes(
                     c,
                     &target.connection.conversation_id,
-                    crate::AuthorityMode::Write,
+                    if hint.is_some() {
+                        crate::AuthorityMode::Read
+                    } else {
+                        crate::AuthorityMode::Write
+                    },
                 )?);
+                if let Some(hint) = hint {
+                    scopes.extend(hint.reads.iter().map(AuthorityScope::read_scope));
+                    scopes.extend([
+                        AuthorityScope::connection(
+                            row.record.connection_id.as_deref().ok_or_else(invalid)?,
+                            crate::AuthorityMode::Write,
+                        )?,
+                        AuthorityScope::connection(
+                            &target.connection.connection_id,
+                            crate::AuthorityMode::Write,
+                        )?,
+                        AuthorityScope::record(&p.record, crate::AuthorityMode::Write)?,
+                    ]);
+                }
                 AuthorityScope::merged(&scopes)
             },
         )?;
@@ -939,6 +1143,8 @@ impl Store {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         timing.body();
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("publication-body-start");
         let row = rows::by_record(&tx, &p.record)?;
         admission::require_row(self, &held, &row)?;
         let exact:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit' JOIN operation_effects e ON e.id=s.effect_id AND e.state='confirmed' WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4 AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND s.observation_json=?7 AND e.observation_json=?8)",params![p.record,p.runtime,p.reservation,p.hash,p.attempt,p.effect,p.observation,p.expected],|r|r.get(0)).map_err(|_| Error::storage())?;
@@ -964,7 +1170,9 @@ impl Store {
             if stopped {
                 drop(tx);
                 timing.unchanged();
-                return Ok(live.map(|capture| capture.activation().origin().clone()));
+                return Ok(PublicationAttempt::Applied(
+                    live.map(|capture| capture.activation().origin().clone()),
+                ));
             }
             let origin = self.replacement_established_origin(
                 &tx,
@@ -981,7 +1189,7 @@ impl Store {
             )?;
             drop(tx);
             timing.unchanged();
-            return Ok(Some(origin));
+            return Ok(PublicationAttempt::Applied(Some(origin)));
         }
         if !matches!(
             row.record.state,
@@ -1004,6 +1212,73 @@ impl Store {
             .map_err(|_| Error::storage())
             .and_then(|v| serde_json::from_str(&v).map_err(|_| Error::storage()))?;
         let source = row.record.connection_id.as_ref().ok_or_else(invalid)?;
+        let recorded_at = crate::now();
+        let current_revision: u64 = tx
+            .query_row(
+                "SELECT topology_revision FROM sessions WHERE id=?1",
+                [&target.connection.session_id],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        let topology_revision = current_revision
+            .checked_add(1)
+            .filter(|v| *v < 9_007_199_254_740_991)
+            .ok_or_else(conflict)?;
+        let retained_connection_id = rows::request(&row)?.intent.retained().to_owned();
+        let result = scoped_mutation::publication_result(
+            p,
+            source,
+            &retained_connection_id,
+            topology_revision,
+            stopped,
+        )?;
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("publication-root-activation-result");
+        let mut scoped_until = None;
+        let permit = if let Some(hint) = hint {
+            let captured = live.ok_or_else(Error::forbidden)?;
+            let facts = match captured.scoped_final_ready_facts(self, &tx, &held) {
+                Ok(facts) => facts,
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "forbidden" | "unauthorized" | "conflict" | "not-ready"
+                    ) =>
+                {
+                    return Ok(PublicationAttempt::NeedsBroad);
+                }
+                Err(error) => return Err(error),
+            };
+            #[cfg(test)]
+            crate::scoped_phase_timing::mark("publication-outer-current-witness");
+            let until = facts.until.ok_or_else(Error::forbidden)?.min(hint.until);
+            scoped_until = Some(until);
+            let ready: serde_json::Value =
+                serde_json::from_str(&p.observation).map_err(|_| Error::storage())?;
+            let plan = scoped_mutation::ready_plan(
+                &tx,
+                p,
+                captured,
+                facts.required,
+                until,
+                &descriptor,
+                &intent,
+                &ready["readiness"].to_string(),
+                &result,
+                topology_revision,
+                recorded_at,
+            )?;
+            #[cfg(test)]
+            crate::scoped_phase_timing::mark("publication-row-plan");
+            Some(
+                self.authority_writer_boundary
+                    .native_scoped_mutation_ledger(self, &tx, &held, plan)?,
+            )
+        } else {
+            None
+        };
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("publication-permit-returned");
         // The immutable lifetime triggers bind the actual captured admission
         // before its retirement fence. These intermediate rows stay inside this
         // transaction, behind its complete authority writer: the stopped path
@@ -1011,7 +1286,7 @@ impl Store {
         let state = "ready";
         let generation = target.connection.generation;
         let observed_runtime = Some(p.runtime.as_str());
-        let observed_at = Some(crate::now());
+        let observed_at = Some(recorded_at);
         let ready: serde_json::Value =
             serde_json::from_str(&p.observation).map_err(|_| Error::storage())?;
         let readiness = Some(ready["readiness"].to_string());
@@ -1043,7 +1318,7 @@ impl Store {
             if changed != 1 {
                 return Err(conflict());
             }
-            let changed=tx.execute("UPDATE connection_offers SET runtime_connection_id=?2,operation_id=?3,credential_id=?4,offer_json=?5,created_at=?6 WHERE connection_id=?1 AND runtime_connection_id=?7 AND operation_id=?8 AND credential_id=?9",params![target.connection.connection_id,target.runtime_connection_id,intent.operation_id,descriptor["credential_id"].as_str().ok_or_else(invalid)?,offer.to_string(),crate::now(),claim["core"].as_str().ok_or_else(invalid)?,claim["operation"].as_str().ok_or_else(invalid)?,claim["credential"].as_str().ok_or_else(invalid)?]).map_err(|_|Error::storage())?;
+            let changed=tx.execute("UPDATE connection_offers SET runtime_connection_id=?2,operation_id=?3,credential_id=?4,offer_json=?5,created_at=?6 WHERE connection_id=?1 AND runtime_connection_id=?7 AND operation_id=?8 AND credential_id=?9",params![target.connection.connection_id,target.runtime_connection_id,intent.operation_id,descriptor["credential_id"].as_str().ok_or_else(invalid)?,offer.to_string(),recorded_at,claim["core"].as_str().ok_or_else(invalid)?,claim["operation"].as_str().ok_or_else(invalid)?,claim["credential"].as_str().ok_or_else(invalid)?]).map_err(|_|Error::storage())?;
             if changed != 1 {
                 return Err(conflict());
             }
@@ -1053,7 +1328,7 @@ impl Store {
             // Only the exact original retired lifetime and unchanged physical
             // mapping can supply historical lineage; a newer live source cannot.
             tx.execute("INSERT INTO connections(id,session_id,participant_id,membership_epoch,identity_id,tenant_id,endpoint_id,generation,replaces,state,revision,observed_runtime_id,observed_at,readiness_json) SELECT ?1,?2,?3,?4,?5,tenant_id,?6,?7,id,?13,1,?8,?9,?10 FROM connections WHERE id=?11 AND (generation BETWEEN ?12 AND ?12+1 OR (?14 AND state='retired' AND generation>?12 AND observed_runtime_id IS NULL AND readiness_json IS NULL AND EXISTS(SELECT 1 FROM native_connection_lifetimes l JOIN connection_offers m ON m.connection_id=l.connection_id WHERE l.connection_id=connections.id AND l.generation=?12 AND l.runtime_epoch=?15 AND l.retired=1 AND m.runtime_connection_id=?16)))",params![target.connection.connection_id,target.connection.session_id,target.connection.participant_id,target.connection.membership_epoch,target.identity_id,target.connection.endpoint_id,generation,observed_runtime,observed_at,readiness,source,saved["source_generation"].as_u64().ok_or_else(invalid)?,state,live.is_none() && stopped,p.runtime,ready["movement"]["source"].as_str().ok_or_else(invalid)?]).map_err(|_| Error::storage())?;
-            tx.execute("INSERT INTO connection_offers(connection_id,runtime_connection_id,operation_id,credential_id,offer_json,created_at) VALUES(?1,?2,?3,?4,?5,?6)",params![target.connection.connection_id,target.runtime_connection_id,intent.operation_id,descriptor["credential_id"].as_str().ok_or_else(invalid)?,offer.to_string(),crate::now()]).map_err(|_| Error::storage())?;
+            tx.execute("INSERT INTO connection_offers(connection_id,runtime_connection_id,operation_id,credential_id,offer_json,created_at) VALUES(?1,?2,?3,?4,?5,?6)",params![target.connection.connection_id,target.runtime_connection_id,intent.operation_id,descriptor["credential_id"].as_str().ok_or_else(invalid)?,offer.to_string(),recorded_at]).map_err(|_| Error::storage())?;
         }
         let old_retired: bool = tx
             .query_row(
@@ -1065,25 +1340,15 @@ impl Store {
         // Never touch the retained peer. Old cleanup may already have recorded
         // this exact retirement while the captured result awaited projection.
         tx.execute(
-            "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
+            "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1 AND retired=0",
             [source],
         )
         .map_err(|_| Error::storage())?;
         tx.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND generation=?2 AND state!='retired'",params![source,saved["source_generation"].as_u64().ok_or_else(invalid)?]).map_err(|_| Error::storage())?;
         // The physical effect already happened under its original revision
         // fence. Later metadata mutations cannot erase it or cause replay.
-        let current_revision: u64 = tx
-            .query_row(
-                "SELECT topology_revision FROM sessions WHERE id=?1",
-                [&target.connection.session_id],
-                |r| r.get(0),
-            )
-            .map_err(|_| Error::storage())?;
-        let topology_revision = current_revision
-            .checked_add(1)
-            .filter(|v| *v < 9_007_199_254_740_991)
-            .ok_or_else(conflict)?;
-        let changed=tx.execute("UPDATE sessions SET topology_revision=?2,updated_at=?3 WHERE id=?1 AND topology_revision=?4",params![target.connection.session_id,topology_revision,crate::now(),current_revision]).map_err(|_|Error::storage())?;
+
+        let changed=tx.execute("UPDATE sessions SET topology_revision=?2,updated_at=?3 WHERE id=?1 AND topology_revision=?4",params![target.connection.session_id,topology_revision,recorded_at,current_revision]).map_err(|_|Error::storage())?;
         if changed != 1 {
             return Err(conflict());
         }
@@ -1094,13 +1359,7 @@ impl Store {
             )
             .map_err(|_| Error::storage())?;
         }
-        let retained_connection_id = rows::request(&row)?.intent.retained().to_owned();
-        let retired = if stopped {
-            vec![source.clone(), target.connection.connection_id.clone()]
-        } else {
-            vec![source.clone()]
-        };
-        let result = serde_json::json!({"activation_state":if stopped { "stopped" } else { "ready" },"retained_connection_ids":[retained_connection_id],"admitted_connection_ids":[target.connection.connection_id],"retired_connection_ids":retired,"conversation_revision":null,"connection_id":target.connection.connection_id,"replaces":source,"generation":target.connection.generation,"participant_id":target.connection.participant_id,"membership_epoch":target.connection.membership_epoch,"endpoint_id":target.connection.endpoint_id,"device_id":target.device_id,"readiness":if stopped { serde_json::Value::Null } else { ready["readiness"].clone() },"physical_readiness":ready["readiness"],"native_activation":ready["native_activation"],"session_revision":topology_revision});
+
         tx.execute(
             "UPDATE operations SET state='completed',result_json=?2 WHERE record_id=?1",
             params![p.record, result.to_string()],
@@ -1126,8 +1385,21 @@ impl Store {
                 return Err(conflict());
             }
         }
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("publication-main-dml");
+        if hint.is_some()
+            && !crate::session_participant_lifecycle::reconcile_is_unchanged(
+                &tx,
+                self,
+                &target.connection.session_id,
+            )?
+        {
+            return Ok(PublicationAttempt::NeedsBroad);
+        }
         workers::invalidate(&tx, &p.record)?;
-        native_handoffs::touch(&tx, &p.record, self)?;
+        native_handoffs::touch_at(&tx, &p.record, self, recorded_at)?;
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("publication-lifecycle-and-touch");
         for connection in [source.as_str(), target.connection.connection_id.as_str()] {
             if connection == source && old_retired {
                 continue;
@@ -1141,6 +1413,8 @@ impl Store {
                 tx.execute("INSERT INTO journal(id,recipient,conversation_id,kind,operation_record_id,resource_revision,data_json,source_json) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",params![format!("evt_{}",uuid::Uuid::new_v4().simple()),recipient,row.record.conversation_id,if connection==source || stopped {"connection_retired"}else{"connection_ready"},p.record,value.revision,data.to_string(),serde_json::json!({"kind":"connect-native-runtime","correlation_id":value.connection_id}).to_string()]).map_err(|_| Error::storage())?;
             }
         }
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("publication-journal");
         let origin = if stopped {
             live.map(|capture| capture.activation().origin().clone())
         } else {
@@ -1176,10 +1450,21 @@ impl Store {
             &target.runtime_connection_id,
             target.connection.generation,
         )?;
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("publication-origin-and-installed-owner");
+        // No SQL follows until COMMIT. The Unit independently pins the full
+        // proof; release this &tx-borrowing permit before moving tx into the
+        // installed-owner callback, retaining its exact scalar cutoff below.
+        drop(permit);
         let commit: Box<dyn FnOnce() -> Result<()> + '_> = Box::new(|| {
             if !owner.current() {
                 return Err(Error::forbidden());
             }
+            if scoped_until.is_some_and(|until| crate::now() >= until) {
+                return Err(Error::forbidden());
+            }
+            #[cfg(test)]
+            crate::scoped_phase_timing::mark("publication-before-commit");
             timing.committing();
             tx.commit().map_err(|_| Error::storage())
         });
@@ -1189,8 +1474,12 @@ impl Store {
             commit()?;
         }
         timing.committed();
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("publication-committed");
         drop(installation);
-        Ok(origin)
+        tracing::debug!(target:"connect_store::native_commit_capture",record=%p.record,
+            mode=if hint.is_some(){"scoped-writer"}else{"broad-writer"},"Final replacement metadata publication committed");
+        Ok(PublicationAttempt::Applied(origin))
     }
 }
 
@@ -1230,5 +1519,172 @@ impl NativeReplacementCommitted {
         }
         self.audience = Some(audience);
         Ok(self)
+    }
+}
+
+impl NativeReplacementMediaOrigin {
+    pub(crate) fn scoped_commit_begin_facts(
+        &self,
+        store: &Store,
+        c: &Connection,
+        read: &NativeReplacementSceneRead,
+    ) -> Result<crate::authority_writer_boundary::phase_ledger::scoped::WitnessFacts> {
+        use crate::authority_writer_boundary::phase_ledger::scoped::WitnessFacts;
+        let p = &self.started.attempt.allocated.attempt.prepared;
+        if !read.current()
+            || read.media.source.selection().origin.record != p.record
+            || !read.supports_scoped_commit()
+        {
+            return Err(Error::forbidden());
+        }
+        let (_, saved, required, until) = media_facts(store, c, self)?;
+        let ctx = read.media.source.context();
+        if !store.authority_covers(&read.media.interval, &required)
+            || read.media.target.runtime_connection_id
+                != saved["candidate_runtime_id"].as_str().ok_or_else(invalid)?
+            || !read.has_current_source(&ctx.source_runtime_connection_id)
+            || read
+                .existing(&ctx.retained_runtime_connection_id, None)
+                .is_none()
+        {
+            return Err(Error::forbidden());
+        }
+        let confirmed:u32=c.query_row("SELECT count(*) FROM native_replacement_media_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id AND e.state='confirmed' WHERE s.operation_record_id=?1 AND s.started=1 AND s.observation_json IS NOT NULL",[&p.record],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if confirmed != 3 {
+            return Err(Error::forbidden());
+        }
+        let revision = saved["expected_preparation"]["participant_revision"]
+            .as_u64()
+            .and_then(|v| v.checked_add(1))
+            .filter(|v| *v <= 9_007_199_254_740_991)
+            .ok_or_else(invalid)?;
+        let expected = crate::provisioning::canonical_json(&serde_json::json!({
+            "operation_id":ctx.operation_record_id,"session":ctx.session_id,
+            "participant":ctx.participant_id,"membership_epoch":ctx.membership_epoch,
+            "source":ctx.source_runtime_connection_id,"candidate":saved["candidate_runtime_id"],
+            "retained":ctx.retained_runtime_connection_id,"endpoint":ctx.target_endpoint_id,
+            "device":ctx.target_device_id,"generation":saved["generation"],
+            "participant_revision":revision,"role":ctx.role,"confirmation":saved["confirmation"]
+        }))?;
+        Ok(WitnessFacts {
+            record: p.record.clone(),
+            runtime: p.runtime.clone(),
+            source: ctx.source_connection_id.clone(),
+            candidate: Some(read.media.target.connection.connection_id.clone()),
+            required: read.scoped_commit_scopes()?,
+            until: Some(until.min(read.media.source.expires_at())),
+            attempt: None,
+            effect: None,
+            expected: Some(expected),
+            reservation: Some(p.reservation.clone()),
+            digest: Some(p.hash.clone()),
+        })
+    }
+}
+impl NativeReplacementCommitted {
+    pub(crate) fn scoped_final_ready_facts(
+        &self,
+        store: &Store,
+        c: &Connection,
+        proof: &Arc<AuthorityGuardSet>,
+    ) -> Result<crate::authority_writer_boundary::phase_ledger::scoped::WitnessFacts> {
+        use crate::authority_writer_boundary::phase_ledger::scoped::WitnessFacts;
+        let a = &self.attempt;
+        let p = &a.origin.started.attempt.allocated.attempt.prepared;
+        if a.private_successor.is_some()
+            || !matches!(
+                p.selection.source(),
+                crate::NativeReplacementSourceOrigin::Native(_)
+            )
+        {
+            return Err(Error::forbidden());
+        }
+        let absent:bool=c.query_row("SELECT NOT EXISTS(SELECT 1 FROM connections WHERE id=?1) AND NOT EXISTS(SELECT 1 FROM native_replacement_candidates WHERE operation_record_id=?2 OR candidate_connection_id=?1)",params![a.target.connection.connection_id,p.record],|r|r.get(0)).map_err(|_|Error::storage())?;
+        if !absent {
+            return Err(Error::forbidden());
+        }
+        let (mut required, until, _) =
+            self.commit_ledger_authority_decision(store, c, Some(proof))?;
+        let source = p
+            .selection
+            .origin
+            .request()
+            .connection_id
+            .clone()
+            .ok_or_else(Error::forbidden)?;
+        required.extend([
+            AuthorityScope::connection(&source, crate::AuthorityMode::Write)?,
+            AuthorityScope::connection(
+                &a.target.connection.connection_id,
+                crate::AuthorityMode::Write,
+            )?,
+            AuthorityScope::record(&p.record, crate::AuthorityMode::Write)?,
+        ]);
+        Ok(WitnessFacts {
+            record: p.record.clone(),
+            runtime: p.runtime.clone(),
+            source,
+            candidate: Some(a.target.connection.connection_id.clone()),
+            required: AuthorityScope::merged(&required)?,
+            until: Some(until),
+            attempt: Some(a.attempt.clone()),
+            effect: Some(a.effect.clone()),
+            expected: Some(a.expected.clone()),
+            reservation: Some(p.reservation.clone()),
+            digest: Some(p.hash.clone()),
+        })
+    }
+}
+
+#[cfg(test)]
+impl NativeReplacementCommitted {
+    /// The same production Ready plan, from this actual sealed capture and
+    /// fresh supplied SQL/proof. No caller row/ID/JSON can mint provenance.
+    pub(crate) fn scoped_ready_plan_for_test<'a>(
+        &'a self,
+        store: &Store,
+        c: &Connection,
+        proof: &Arc<AuthorityGuardSet>,
+    ) -> Result<crate::authority_writer_boundary::phase_ledger::scoped::Plan<'a>> {
+        let p = Projection::from_capture(self)?;
+        let facts = self.scoped_final_ready_facts(store, c, proof)?;
+        let descriptor: serde_json::Value =
+            serde_json::from_str(&p.descriptor).map_err(|_| Error::storage())?;
+        let intent: connect_protocol::connection_control::OfferIntent =
+            serde_json::from_value(descriptor["intent"].clone()).map_err(|_| Error::storage())?;
+        let ready: serde_json::Value =
+            serde_json::from_str(&p.observation).map_err(|_| Error::storage())?;
+        let row = rows::by_record(c, &p.record)?;
+        let source = row
+            .record
+            .connection_id
+            .as_deref()
+            .ok_or_else(Error::forbidden)?;
+        let retained = rows::request(&row)?.intent.retained().to_owned();
+        let topology: u64 = c
+            .query_row(
+                "SELECT topology_revision FROM sessions WHERE id=?1",
+                [&p.facts.target.connection.session_id],
+                |r| r.get(0),
+            )
+            .map_err(|_| Error::storage())?;
+        let topology = topology
+            .checked_add(1)
+            .filter(|v| *v < 9_007_199_254_740_991)
+            .ok_or_else(Error::forbidden)?;
+        let result = scoped_mutation::publication_result(&p, source, &retained, topology, false)?;
+        scoped_mutation::ready_plan(
+            c,
+            &p,
+            self,
+            facts.required,
+            facts.until.ok_or_else(Error::forbidden)?,
+            &descriptor,
+            &intent,
+            &ready["readiness"].to_string(),
+            &result,
+            topology,
+            crate::now(),
+        )
     }
 }

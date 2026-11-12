@@ -62,6 +62,10 @@ fn pending_facts(
         .continuation_authority(store, c, &meta.actor.identity_id)
         .map_err(|e| native_view_error("continuation original authority", e))?;
     scopes.extend(original_scopes);
+    scopes.push(AuthorityScope::connection(
+        origin.connection_id(),
+        AuthorityMode::Read,
+    )?);
     expiry = expiry.min(original_expiry).min(origin.expires_at);
     let member =
         crate::audience::member(c, &meta.actor.identity_id, origin.conversation_id(), true)?;

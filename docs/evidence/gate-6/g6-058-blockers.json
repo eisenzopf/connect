@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T14:27:27.969604+00:00",
-  "run_status": "Latest scoped Store run53 executed147/152passed,5failed,0unrun; all original process/source/binary/input guards verified. Earlier complete media cohort24 remains239/241 with two videoFPS failures. Exact Begin, capture, cleanup, expiry and cache controls now pass. Intermittent physical/public media-epoch boundaries, Ready transaction cost and two fixture corrections remain open. New watcher metadata/real-writer distinction needs deterministic old/fixed verification. Lastmatrix remainsv2150/32; local Mac/ARM only.",
+  "updated": "2026-11-12T15:05:18.617252+00:00",
+  "run_status": "Complete Store61 PASSES185/185,0failed/ignored/unexecuted. All53tested source paths/114namespace guards, original controller/child owners, binary and inputs verified. All five Store53 failures corrected; true revocation/expiry/collision/rollback controls retained. Unchanged50ms Ready sample45.628ms. Batch commit then complete294 including both decoded62s programmes; no new media or matrix qualification. Lastcomplete media239/241, lastmatrixv2150/32; localMac/nativeARM only.",
   "blockers": [
     {
       "id": "B01",
@@ -1561,12 +1561,12 @@
     {
       "id": "B191",
       "title": "Data completion may invalidate live audio custody",
-      "status": "Implementing: scoped batch applied,147/152Store checks pass; physical/public unrelated-media proofs still open.",
+      "status": "Component-verified185/185; actual decoded media and matrix qualification pending.",
       "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json; g6-058-v216-components19.json",
-      "next": "Prove deterministic watcher metadata-vs-kernel writer classification; correct affected-reader and actualClose fixtures; profile Ready transaction body. All155 Store controls, full264 and32/432remain required.",
+      "next": "Batch commit exact185-tested source then full294, both62s programmes and samecleanHEADlocalARM/all32. Do not promote mapped failures before actual workload evidence.",
       "causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
-      "latest_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store53-independent.json"
+      "latest_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store61-independent.json"
     },
     {
       "id": "B192",
@@ -3251,7 +3251,7 @@
       "owner": "/root/v198_resources",
       "dependencies": [],
       "solution": "Use a narrow transaction-bound ledger capability for exact positive Data completion under complete current Readers; verify lifecycle reconciliation is a no-op, otherwise use the original Writer path. Keep uncertainty, cancellation and genuine authorization changes on the Writer path. Audit remaining ledger/status/metrics writes for the same unnecessary invalidation.",
-      "status": "Scoped batch applied; Store53passes147/152. Both cleanup epoch-preservation tests and exactBegin/capture controls pass; intermittent physical/Public boundaries and watcher probe classification remain open.",
+      "status": "CompleteStore61passes185/185; four scoped handoff phases/real revocation/metadata-vs-writer controls verified. Actual media and matrix effects remain pending.",
       "completion": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3383,7 +3383,7 @@
         "S112"
       ],
       "solution": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
-      "status": "Lastcomplete239/241, latestStore147/152. Five failures open; three new watcher controls make nextStore155/full264. All32/432still pending on qualifiedfrozenbatch.",
+      "status": "CompleteStore185/185passes. Lastcomplete239/241media; batchcommit/full294thenall32/432pending. No acceptance change.",
       "completion": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -5784,7 +5784,7 @@
     "passed": 239,
     "planned": 241,
     "scope": "Last complete media/component cohort24,224pure+17workloads/11explicitignored executed;2videoFPS failures. Subsequent Store53 is147/152 and is not a whole-cohort pass.",
-    "next": "Finish remaining scoped Store failures and three watcher controls, then complete264 regression and all32/432 on one frozen qualified source. No acceptance changes."
+    "next": "CompleteStore185/185nowpasses. Batchcommitthenfull294andbothactualmedia programmes, followedbysamecleancommitARMshipping/all32/432. Previouscomplete239/241andmatrix0/32unchangeduntilretest."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17457,6 +17457,12 @@
       "passed": 147,
       "planned": 152,
       "evidence": "g6-058-v216-scoped-store53-independent.json"
+    },
+    {
+      "name": "Complete scoped Store61: all185 controls pass; combined media/matrix pending",
+      "passed": 185,
+      "planned": 185,
+      "evidence": "g6-058-v216-scoped-store61-independent.json"
     }
   ],
   "current_production_check": {

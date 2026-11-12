@@ -691,6 +691,10 @@ fn physical_facts(
     super::credential_refresh::require_epoch(store, c, origin)?;
     let attempt_expiry = origin.attempt.current(c, store)?;
     let (meta, key, mut scopes, expires_at) = checked(store, c, &origin.binding)?;
+    scopes.push(AuthorityScope::connection(
+        origin.connection_id(),
+        AuthorityMode::Read,
+    )?);
     if require_media {
         meta.actor.require("connection.offer")?;
     }

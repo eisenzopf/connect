@@ -123,7 +123,7 @@ fn capture_media(
     let start = &origin.started.attempt;
     let selection = &start.allocated.attempt.prepared.selection;
     let source = selection.native_packet_facts(store, c)?;
-    let (member, saved, scopes, expiry) = media_facts_with_packet_capture(
+    let (member, saved, mut scopes, expiry) = media_facts_with_packet_capture(
         store,
         c,
         origin,
@@ -142,6 +142,10 @@ fn capture_media(
         &saved,
         &descriptor,
     )?;
+    scopes.push(AuthorityScope::connection(
+        &target.connection.connection_id,
+        crate::AuthorityMode::Read,
+    )?);
     let expiry = expiry.min(source.expires_at());
     Ok((MediaFacts { source, target }, scopes, expiry))
 }

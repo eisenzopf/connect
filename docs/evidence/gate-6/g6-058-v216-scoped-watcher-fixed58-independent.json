@@ -1,0 +1,337 @@
+{
+  "format": "connect/scoped-fixed58-independent-adjudication/1",
+  "reviewer": "/root/fixture_blockers",
+  "status": "ACTUAL36_OF36_TARGETED_PASS_ONLY",
+  "inputs": {
+    "results_sha256": "150d99c84e2b7488d2a4964a65d77d4adc9c47914647afa11d4ff8ef962d1a85",
+    "source_sha256": "f2fffe5f35b9f52e7b1473fb83090c0230d989bda02c67237e220c18850c2c81",
+    "driver_sha256": "7e9ec4aa7a2fe30600da9a77552b83c16a1aae25243d9601b1e5b62f1a692324",
+    "helper_sha256": "dd7045e3fb873e61039b18d3f53cf6e11c159b1e7470665fc427d843a6810fed",
+    "build_log_sha256": "43002a25266df2b39907686d15966f75c52e0751cdae74ddb30fc23622df7311",
+    "binary_sha256": "c89f6b9b6bf71647df02b15830c2cc7238b28464a50e7d6a437e81851ae06d09",
+    "binary_freshly_rehashed_equal": true
+  },
+  "actual": {
+    "expected": 36,
+    "executed": 36,
+    "passed": 36,
+    "failed": 0,
+    "ignored": 0,
+    "unexecuted": 0,
+    "existing_watcher_module": 29,
+    "new_watcher_controls": 3,
+    "affected_previous_controls": 4,
+    "build_exit": 0,
+    "all_original_groups_joined": true,
+    "source_unchanged": true,
+    "binary_unchanged": true,
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    },
+    "features": [
+      "test-support"
+    ]
+  },
+  "phase_markers": {
+    "PhysicalCommit": {
+      "full_writer_checkpoint": "true",
+      "original_current": "true",
+      "original_stamp_current": "true",
+      "fresh_pair_current": "true",
+      "queued_epoch_current": "true",
+      "affected_fenced": "true",
+      "old_epoch_never_restored": "true",
+      "affected_still_fenced_before_shutdown": "true",
+      "within_original_cutoff": "true",
+      "lifecycle_unchanged": "true",
+      "controlled_store_flow_facts": "true",
+      "cleanup_joined": "true"
+    },
+    "PublicReady": {
+      "full_writer_checkpoint": "true",
+      "original_current": "true",
+      "original_stamp_current": "true",
+      "fresh_pair_current": "true",
+      "queued_epoch_current": "true",
+      "affected_fenced": "true",
+      "old_epoch_never_restored": "true",
+      "affected_still_fenced_before_shutdown": "true",
+      "within_original_cutoff": "true",
+      "lifecycle_unchanged": "false",
+      "controlled_store_flow_facts": "true",
+      "cleanup_joined": "true"
+    }
+  },
+  "scope_limits": [
+    "All29 existing watcher tests and3 new controls passed, including all3 local metadata exclusion kind assertions and real kernelWriter/namespace/storage/originalexpiry negatives. OLD56 independently qualified only kind0; no retrospective promotion of old kind1/2.",
+    "Prior107 affectedSource0/healthy1 and147 genuine completedRoot+actualCIDClose fixture corrections passed.",
+    "Both actual Physical/Public preservation checkpoints passed with same healthy original epoch/stamp and affected fencing. This is controlled real Store flow metadata/IO authority evidence, not decoded media. PublicReady lifecycle_unchanged=false is preserved as observed; no claim every phase leaves topology/lifecycle unchanged.",
+    "Prior57 build failed before tests due2 old Option-return API callers; this58 uses reviewed mechanical caller updates.",
+    "This targeted36 result does not execute or qualify all184 Store selectors;127 wholeAPI50ms wall performance test remains outside this target and unresolved."
+  ],
+  "qualification": {
+    "targeted36": true,
+    "completeStore184": false,
+    "complete293": false,
+    "decoded_media": false,
+    "matrix": false
+  },
+  "rows": [
+    {
+      "index": 0,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::commit_begin_sql_reacquire_defers_without_parking_full_scene_writer",
+      "passed": true,
+      "log_sha256": "81a03a41a878a263d352d2787d7a4e60ff9aefb87fb04aec435b4ddb25c5ea31",
+      "original_owner_joined": true
+    },
+    {
+      "index": 1,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::physical_commit_writer_preserves_unaffected_original_av_pair_epoch_and_stamp",
+      "passed": true,
+      "log_sha256": "43d183c26fc6e4cd342b047a3ae88aad7cf82558cfea3c7499330b0d907d69c8",
+      "original_owner_joined": true
+    },
+    {
+      "index": 2,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::public_ready_writer_preserves_unaffected_original_av_pair_epoch_and_stamp",
+      "passed": true,
+      "log_sha256": "6098019fd247d706d2feb25470febe9ca726e9272182fadd82d4f0b02d9f22e0",
+      "original_owner_joined": true
+    },
+    {
+      "index": 3,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::negatives::true_conversation_and_identity_writers_still_fence_original_av_epochs_without_restore",
+      "passed": true,
+      "log_sha256": "1a934853138a15089c6d0a2caa05c2967c88136cf6f08bc57a95f6e50d260231",
+      "original_owner_joined": true
+    },
+    {
+      "index": 4,
+      "selector": "media_authorization::tests::publication_requires_boundary_worker_and_original_owner",
+      "passed": true,
+      "log_sha256": "44e9766da58cc97f63758250130056de701d3569c3635d58da4caf02071c3035",
+      "original_owner_joined": true
+    },
+    {
+      "index": 5,
+      "selector": "media_authorization::tests::media_admission_does_not_enter_control_mutex_or_refresh_projection",
+      "passed": true,
+      "log_sha256": "dcff45c52ce038d8321399f0c4a173e455c49a6c20255a64649af2fbca60e400",
+      "original_owner_joined": true
+    },
+    {
+      "index": 6,
+      "selector": "media_authorization::tests::local_writer_revokes_before_wait_and_drains_actual_io_without_renewing_queued_stamp",
+      "passed": true,
+      "log_sha256": "b85df68256efc5bce80a0b0946d9839a7f33a6dc0f58b06a6639d0d25f76937c",
+      "original_owner_joined": true
+    },
+    {
+      "index": 7,
+      "selector": "media_authorization::tests::monotonic_original_expiry_refuses_even_before_watcher_reaps_publication",
+      "passed": true,
+      "log_sha256": "9684eb34bc24f2f04a4cfb3a6912e87cd64962e06c2c1f6ab1b54663dca13b70",
+      "original_owner_joined": true
+    },
+    {
+      "index": 8,
+      "selector": "media_authorization::tests::queued_epoch_owns_no_fence_and_last_handle_withdrawal_revokes_it",
+      "passed": true,
+      "log_sha256": "b66b97887be19d3ff2dd9597d4059b0c16e11545d27036592c2aa687733aa79e",
+      "original_owner_joined": true
+    },
+    {
+      "index": 9,
+      "selector": "media_authorization::tests::unchanged_definitive_denial_waits_for_next_write_outcome_instead_of_polling_sql",
+      "passed": true,
+      "log_sha256": "aca9865ff3ec8c08de4b5c7d32d3b12e83a41d22ea518923d549bc16aa80e7c1",
+      "original_owner_joined": true
+    },
+    {
+      "index": 10,
+      "selector": "media_authorization::tests::route_miss_registration_refuses_control_contention_without_running_factory",
+      "passed": true,
+      "log_sha256": "ec8fd9d15474679d57e7379acae6dfad083268cfdc396f275a88b47f13a29c0d",
+      "original_owner_joined": true
+    },
+    {
+      "index": 11,
+      "selector": "media_authorization::tests::lifetime_observation_distinguishes_refresh_from_refusal_and_never_revives_original_epoch",
+      "passed": true,
+      "log_sha256": "b5e70c215d7bf466ccbbb157927a7aab2fe64faeff621484100768239eb61d0d",
+      "original_owner_joined": true
+    },
+    {
+      "index": 12,
+      "selector": "media_authorization::tests::original_failed_lifetime_refresh_cannot_publish_across_a_racing_writer_sequence",
+      "passed": true,
+      "log_sha256": "af90dc74bfd431f8ccfc0fd091044f8c1f41d221b987e3ce3b6923b2a7bb9bb4",
+      "original_owner_joined": true
+    },
+    {
+      "index": 13,
+      "selector": "media_authorization::tests::packet_availability_drops_without_pinning_registry_and_never_resurrects",
+      "passed": true,
+      "log_sha256": "72383a622d506b657cbe6668ef1aa4dac6aaa863911db91aa4e16fa2676d005c",
+      "original_owner_joined": true
+    },
+    {
+      "index": 14,
+      "selector": "media_authorization::tests::scope_probe_has_one_healthy_call_and_deduplicated_busy_fallback",
+      "passed": true,
+      "log_sha256": "11f6496ee39d527938ed7c7489a54bdc1471e02368374cf6cf0ac949d0feb54e",
+      "original_owner_joined": true
+    },
+    {
+      "index": 15,
+      "selector": "media_authorization::tests::hard_external_probe_failure_still_revokes_every_scope_and_old_epoch",
+      "passed": true,
+      "log_sha256": "b03a7d54af9a86aefe40337d07aaaee52a0b0429f7b18a12fb2ffdd8f7fd34ab",
+      "original_owner_joined": true
+    },
+    {
+      "index": 16,
+      "selector": "media_authorization::tests::immutable_scope_probe_names_reuse_the_published_vector_without_holding_a_fence",
+      "passed": true,
+      "log_sha256": "ed2d9df4bcf5a2006722763b85851cf3b2e0a149a3ce2d0c7bf79276917de843",
+      "original_owner_joined": true
+    },
+    {
+      "index": 17,
+      "selector": "media_authorization::tests::missing_publication_ignores_disjoint_cid_writer_but_matching_writer_still_drains_io",
+      "passed": true,
+      "log_sha256": "8d94efe9ada7ded6013362f17569c92dae035ffcb9143c0e1bf1a19a9f74535f",
+      "original_owner_joined": true
+    },
+    {
+      "index": 18,
+      "selector": "media_authorization::tests::successful_fenced_refresh_publishes_across_disjoint_writer_sequence_change",
+      "passed": true,
+      "log_sha256": "09a370ccd15e590f7a72b67104d86df22c41e8bdc2b8eb2dec4f686319772ee1",
+      "original_owner_joined": true
+    },
+    {
+      "index": 19,
+      "selector": "media_authorization::tests::discovered_dependency_writer_prevents_publication_and_drains_prepared_read",
+      "passed": true,
+      "log_sha256": "2d4f2dbf88f73a8a35077875b9d4f3854eb84cb36b9c7318c441e8b1ae93c1e8",
+      "original_owner_joined": true
+    },
+    {
+      "index": 20,
+      "selector": "media_authorization::tests::external_scope_intent_allows_disjoint_missing_publication_without_local_notice",
+      "passed": true,
+      "log_sha256": "bfbd64facc1f47e61c7bdadfab0969d24a5ff7721ce31434fcac875357dcd9b7",
+      "original_owner_joined": true
+    },
+    {
+      "index": 21,
+      "selector": "media_authorization::tests::definitive_failure_with_unknown_footprint_stays_uncached_across_unrelated_writer",
+      "passed": true,
+      "log_sha256": "cf1833f24213b3ae27ee479d7488683ac6a63de10c195f7d4c7b3096849d88e4",
+      "original_owner_joined": true
+    },
+    {
+      "index": 22,
+      "selector": "media_authorization::tests::definitive_missing_route_failure_is_not_cached_while_disjoint_writer_active",
+      "passed": true,
+      "log_sha256": "f1df9528f8eaf371577103e1e02b9d94aebed69e4536896b45ac93ae8ef4c399",
+      "original_owner_joined": true
+    },
+    {
+      "index": 23,
+      "selector": "media_authorization::tests::cached_unknown_footprint_denial_is_cleared_by_disjoint_writer_then_refetched",
+      "passed": true,
+      "log_sha256": "920f7e5c3543500fd5e343bb0bcd191f422338094ad5b4aba049eec15966fb78",
+      "original_owner_joined": true
+    },
+    {
+      "index": 24,
+      "selector": "media_authorization::tests::known_definitive_failure_waits_for_disjoint_writer_outcome_before_reprojection",
+      "passed": true,
+      "log_sha256": "6d3a0dacceffbc869120535d33f01c25b6dc95bfc42974626e7ed9c9203dd33c",
+      "original_owner_joined": true
+    },
+    {
+      "index": 25,
+      "selector": "media_authorization::tests::native_custody_erasure_keeps_same_allocation_and_last_io_reader",
+      "passed": true,
+      "log_sha256": "66dc174c250f83de9d0fbea51055a757bbb45b79672179bb1147d85acf088355",
+      "original_owner_joined": true
+    },
+    {
+      "index": 26,
+      "selector": "media_authorization::tests::native_custody_erasure_checks_original_facts_and_cannot_borrow_successor",
+      "passed": true,
+      "log_sha256": "865c4c15de5eb476aa399e22e706a6596b50f1482626bf92b67f6e4324d419b6",
+      "original_owner_joined": true
+    },
+    {
+      "index": 27,
+      "selector": "media_authorization::tests::native_custody_erasure_preserves_original_expiry_and_runtime_drop",
+      "passed": true,
+      "log_sha256": "586e9ac08a16a84a4d81de03cbd9263f70523c02eea85283f95fc54ab01aa119",
+      "original_owner_joined": true
+    },
+    {
+      "index": 28,
+      "selector": "media_authorization::tests::missing_publication_backlog_remains_ready_after_one_bounded_refresh_turn",
+      "passed": true,
+      "log_sha256": "fdeb926cef1bb208187b9b88c56bd870258496fbcfb4e6b28caac5f22a995e0c",
+      "original_owner_joined": true
+    },
+    {
+      "index": 29,
+      "selector": "media_authorization::tests::registration_during_refresh_is_ready_even_without_a_writer_sequence_change",
+      "passed": true,
+      "log_sha256": "eb5a93bf0c13861f20a6e4a6a8056fe8d560b6112c8df8d34cf7043635dac535",
+      "original_owner_joined": true
+    },
+    {
+      "index": 30,
+      "selector": "media_authorization::tests::withdrawn_publication_does_not_spin_or_borrow_old_epoch_during_original_writer",
+      "passed": true,
+      "log_sha256": "c6d798f572463921ef9556ecf699564b17bbe66574cb3d6ebd6582f3b9d23a35",
+      "original_owner_joined": true
+    },
+    {
+      "index": 31,
+      "selector": "media_authorization::tests::deferred_or_definitive_refusal_keeps_original_wait_instead_of_busy_spinning",
+      "passed": true,
+      "log_sha256": "f791472e10568b7bede2a17e21e4d0be08a5cefe1ddde2889da8ccbfa4d75878",
+      "original_owner_joined": true
+    },
+    {
+      "index": 32,
+      "selector": "media_authorization::tests::original_worker_probes_and_refreshes_next_batch_without_an_intervening_idle_wait",
+      "passed": true,
+      "log_sha256": "2750bf8b07c96785208dbdc903fdd8ceb863a98344c38d2793a1be85105ae9d3",
+      "original_owner_joined": true
+    },
+    {
+      "index": 33,
+      "selector": "media_authorization::tests::probe_metadata::local_metadata_exclusion_preserves_same_original_epoch_and_stamp_without_writer_intent",
+      "passed": true,
+      "log_sha256": "a752d6a7359188a1a3f5ea96847009ef64061cdbd9c93aa566309911e913e5a0",
+      "original_owner_joined": true
+    },
+    {
+      "index": 34,
+      "selector": "media_authorization::tests::probe_metadata::true_external_kernel_writer_still_revokes_only_affected_original_and_never_restores_it",
+      "passed": true,
+      "log_sha256": "5e392b8ed4e8351a87c36c4560d482498e13ab00269e05f36c731ef519acb8df",
+      "original_owner_joined": true
+    },
+    {
+      "index": 35,
+      "selector": "media_authorization::tests::probe_metadata::namespace_storage_and_original_expiry_stay_fail_closed_without_epoch_renewal",
+      "passed": true,
+      "log_sha256": "5398707a4f02764d676ff9a271d0cd65960f4a97e55ce3c5d2ea815583723b00",
+      "original_owner_joined": true
+    }
+  ]
+}

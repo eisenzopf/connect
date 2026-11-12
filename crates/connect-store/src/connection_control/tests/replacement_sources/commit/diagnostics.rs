@@ -26,11 +26,11 @@ fn projection_diagnostics_distinguish_sql_mutex_authority_and_transaction_refusa
     assert_eq!(metrics["activation"]["failed_authority_wait"], 0);
     assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
 
-    // A real retained packet reader blocks the complete Conversation writer.
+    // A real affected-source packet reader blocks its exact Connection Writer.
     // It remains current and is never retained by the diagnostic counters.
     let held =
         m.f.store
-            .try_native_media_read(&m.sources[1], None)
+            .try_native_media_read(&m.sources[0], None)
             .unwrap();
     let began = std::time::Instant::now();
     assert_eq!(
@@ -102,7 +102,7 @@ fn captured_projection_drains_brief_primary_sql_exclusion_within_original_admiss
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let effects = m.f.count("operation_effects");
     let began = std::time::Instant::now();
-    let first = std::thread::scope(|workers| {
+    let (first, phases) = std::thread::scope(|workers| {
         let (locked, ready) = std::sync::mpsc::sync_channel(0);
         let (release, released) = std::sync::mpsc::sync_channel(0);
         let store = &m.f.store;
@@ -117,13 +117,17 @@ fn captured_projection_drains_brief_primary_sql_exclusion_within_original_admiss
         });
         ready.recv().unwrap();
         release.send(()).unwrap();
-        let result =
+        let (result, phases) = crate::scoped_phase_timing::collect(|| {
             m.f.store
-                .project_native_replacement_committed(&capture, &MetadataOnlyInstalled);
+                .project_native_replacement_committed(&capture, &MetadataOnlyInstalled)
+        });
         holder.join().unwrap();
-        result
+        (result, phases)
     });
     let elapsed = began.elapsed();
+    eprintln!(
+        "original Ready body phase timings (microseconds, bounded static labels): {phases:?}"
+    );
     let admitted = first.is_ok();
     let code = first
         .as_ref()
@@ -131,8 +135,9 @@ fn captured_projection_drains_brief_primary_sql_exclusion_within_original_admiss
         .map(|e| e.code.as_str())
         .unwrap_or("ok");
     eprintln!(
-        "original projection short SQL exclusion: admitted={admitted} code={code} elapsed_us={}",
-        elapsed.as_micros()
+        "original projection short SQL exclusion: admitted={admitted} code={code} elapsed_us={} first_attempt_diagnostics={}",
+        elapsed.as_micros(),
+        capture.projection_diagnostics()
     );
     if !admitted {
         assert_eq!(
@@ -198,7 +203,7 @@ fn initial_projection_sql_wait_keeps_refusals_effect_free_and_current_installati
 
     let held =
         m.f.store
-            .try_native_media_read(&m.sources[1], None)
+            .try_native_media_read(&m.sources[0], None)
             .unwrap();
     let began = std::time::Instant::now();
     let error =

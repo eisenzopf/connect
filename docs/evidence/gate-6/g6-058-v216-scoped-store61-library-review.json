@@ -1,0 +1,190 @@
+{
+  "format": "connect/independent-v198-final-store61-results-review/1",
+  "status": "QUALIFIED_STORE_COMPONENT_185_OF_185_PASS",
+  "review_scope": "Read-only actual final185 execution/artifacts/source/current Row SQL cache; full294 and matrix unqualified",
+  "inputs": {
+    ".local/gate-6/v216-scoped-precommit61/results.json": "386aabddb3da3085223f938f0355356415f3289060ff72a0439ec85c3893f841",
+    ".local/gate-6/v216-scoped-precommit61/results-sanitized.json": "3b6dda30dd5f9ecb805562b2307c5766d4e0c8475d7f436c9ce6d457723dfadd",
+    ".local/gate-6/v216-scoped-precommit61/source.json": "ca46f8e70fbef97500b10dc405bfc66b727d6862abdee0064b897ffbc121adc4",
+    ".local/gate-6/v216-scoped-precommit61/source-after.json": "ca46f8e70fbef97500b10dc405bfc66b727d6862abdee0064b897ffbc121adc4",
+    ".local/gate-6/v216-scoped-precommit61/selection.json": "cfd8dbfc91f5764ddedf4c4cb51f3a376a3e12fc3ae3168a3a09ff51a6e0108e",
+    ".local/gate-6/v216-scoped-precommit61/binding.json": "8f79678c8e5b961fb6fe45e114643a8a9a0df30df87ca01405257a49e53a1d38",
+    ".local/gate-6/v216-scoped-precommit61/run.py": "f27fa0cfd670666ac81b2920e0021d4d27c2a490b56a971145167a2feb745078",
+    ".local/gate-6/v216-scoped-precommit61/workflow48.py": "dd7045e3fb873e61039b18d3f53cf6e11c159b1e7470665fc427d843a6810fed",
+    ".local/gate-6/v216-scoped-precommit61/build.jsonl": "617c1776eede062d7daa6ccea45e685179fea81b40997dcc2c6015ec7c9ed854",
+    ".local/gate-6/v216-scoped-precommit61/build.stderr": "e28ee22466942b84293479399652e7c0b0dfc44fbe8949578f9d48305c967bca",
+    ".local/gate-6/v216-scoped-precommit61/inventory.log": "0c15b3b66b391ce5a360a1244031ad624b713cc2ace124454f278af369093bff",
+    ".local/gate-6/v216-scoped-precommit61/combined-manifest.json": "1c7bf3f0fdd20cbf0f985a8e0b47cba85c9bf6ae4b881ba975655b3bea85f697",
+    ".local/gate-6/v216-scoped-precommit61/formatted-binding.json": "2b2f2c246e66477b3bf96de62c8c8c2b1b618ed150c3e3e46d588d7843d1a3cd",
+    ".local/gate-6/v216-scoped-precommit61/namespace.json": "446088508fd3c63aad068a3c3350012c27f5cb58361d819bb80ae168ee967f7c",
+    ".local/gate-6/scoped-guard-compact-expression-v216-candidate/manifest.json": "cd54e91e7ecdbb1b3e7e5396eb9cd493ab4ba87ce69f5e5d3350e9a4cfdc4540",
+    ".local/gate-6/scoped-statement-cache-optional-v216-candidate/manifest.json": "a378770b0aa30d3053bc6d8bd5811cf2bf016c01bd7d3e8dad1402f604a53109"
+  },
+  "actual_original_outer_owner": {
+    "tool_session": 8337,
+    "exit_code": 0,
+    "joined": true,
+    "source": "Coordinator actual write_stdin closure message; no invented OS PID/PGID"
+  },
+  "build_owner": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "-p",
+      "connect-store",
+      "--lib",
+      "--features",
+      "test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "pid": 55106,
+    "pgid": 55106,
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "group_observation": {
+      "group_absent": true,
+      "method": "killpg-ESRCH",
+      "permission_refused": false
+    },
+    "elapsed_seconds": 9.515599207952619,
+    "log_sha256": "617c1776eede062d7daa6ccea45e685179fea81b40997dcc2c6015ec7c9ed854",
+    "stderr_sha256": "e28ee22466942b84293479399652e7c0b0dfc44fbe8949578f9d48305c967bca",
+    "source_unchanged": true
+  },
+  "inventory_owner": {
+    "command": [
+      "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/connect_store-35a8eb164f3f01ae",
+      "--list"
+    ],
+    "pid": 55214,
+    "pgid": 55214,
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "group_observation": {
+      "group_absent": true,
+      "method": "killpg-ESRCH",
+      "permission_refused": false
+    },
+    "elapsed_seconds": 1.1395568340085447,
+    "log_sha256": "0c15b3b66b391ce5a360a1244031ad624b713cc2ace124454f278af369093bff",
+    "selected_each_once": true
+  },
+  "artifact_freshly_rehashed": {
+    "binary": "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/connect_store-35a8eb164f3f01ae",
+    "binary_sha256": "23b8bb163728e5b9520f2639d6e4a941f174f1e95b5c4b485826743cace8d69d",
+    "actual_features": [
+      "test-support"
+    ],
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    }
+  },
+  "summary": {
+    "expected": 185,
+    "dispatched": 185,
+    "actual_executed": 185,
+    "passed": 185,
+    "ordinary_failed": 0,
+    "unqualified": 0,
+    "unexecuted": 0
+  },
+  "source_workspace_sha256": "f2631ce24e5a4b8b76cd81fbcf5929164ca60df4ca0de292edb5897f3b220928",
+  "base_revision": "4ef9d76298a729f7687df603b7ec2088967c644d",
+  "source_lock_sha256": "67cb03487b91182be0a7421057bedcf099b1f4f61a329a6706325f56ed82b212",
+  "normal_generation": 411,
+  "source_guards_freshly_verified": {
+    "formatted_current_source_paths": 53,
+    "namespace_paths": 114,
+    "sealed_provenance_inputs": 75,
+    "initial_final_source_seals_equal": true,
+    "all_case_logs_match": 185
+  },
+  "row_guard_and_cache_proof": {
+    "typed_tuple_json_bytes_storage_classes_and_reject_delete_pk_table": [
+      139,
+      140
+    ],
+    "opaque_Begin_current_unit_store_purpose_full_five_delta_collision_and_rollback_expiry": [
+      141,
+      142,
+      143,
+      144
+    ],
+    "opaque_FinalReady_forgery_and_real_short_cutoff_rollback": [
+      145,
+      146
+    ],
+    "genuine_broad_revoke_no_ghost_presence_no_foreign_store_no_grace_renewal": [
+      147,
+      148,
+      149,
+      150,
+      151
+    ],
+    "all_selected_original_and_added_controls_passed": true,
+    "cache_scope": "Only row_tuple/row_snapshot/Transition-pair compiled SQL programs in existing per-Connection32 cache; exact current parameters/current row step/typed comparisons and opaque witnesses remain fresh"
+  },
+  "timing_observation": {
+    "original_wall_limit_us": 50000,
+    "actual_first_publication_wall_us": 45628,
+    "headroom_us": 4372,
+    "actual_activation_attempts": 1,
+    "actual_activation_transaction": {
+      "begin_failed": 0,
+      "begin_us": 3,
+      "body_aborted": 0,
+      "body_us": 34091,
+      "commit_failed": 0,
+      "commit_us": 536,
+      "committed": 1,
+      "unchanged": 0
+    },
+    "phases_us": {
+      "publication-body-start": 10824,
+      "publication-root-activation-result": 733,
+      "publication-outer-current-witness": 7090,
+      "publication-row-plan": 1410,
+      "scoped-ctor-envelope": 85,
+      "scoped-ctor-opaque-witness": 9116,
+      "scoped-ctor-strict-validation": 1466,
+      "scoped-ctor-complete-coverage": 18,
+      "scoped-ctor-typed-current-chain": 543,
+      "scoped-ctor-slot-installed": 1,
+      "publication-permit-returned": 7,
+      "publication-main-dml": 4572,
+      "publication-lifecycle-and-touch": 4967,
+      "publication-journal": 3924,
+      "publication-origin-and-installed-owner": 142,
+      "publication-before-commit": 12,
+      "publication-committed": 537,
+      "call-returned": 46
+    },
+    "fixed60_uncached_compact_wall_us": 47143,
+    "old59_unfactored_wall_us": 76793
+  },
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "binary_unchanged": true,
+  "input_files_unchanged": true,
+  "component_qualified": true,
+  "full_cohort_qualified": false,
+  "matrix_qualified": false,
+  "limits": [
+    "These are actual component results, not full294, decoded-media/FPS or full32 qualification",
+    "Timing samples establish these executions only, not worst-case CPU bound or guaranteed cache speedup",
+    "No new author source/candidate/producer edits, builds or tests during run; this new ignored receipt written only after original8337 actual exit0/join release"
+  ]
+}

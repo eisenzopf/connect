@@ -885,7 +885,12 @@ impl Store {
         sources: &[Arc<crate::NativeMediaOrigin>],
     ) -> Result<NativeReplacementSceneRead> {
         let provisional = self.try_native_replacement_scene_read(origin, sources)?;
-        let scopes = provisional.media.interval.mutation_scopes();
+        let mut scopes = provisional.media.interval.mutation_scopes();
+        scopes.push(AuthorityScope::record(
+            &provisional.media.source.context().operation_record_id,
+            crate::AuthorityMode::Write,
+        )?);
+        let scopes = AuthorityScope::merged(&scopes)?;
         let expiry = provisional.media.source.expires_at();
         drop(provisional);
         #[cfg(test)]

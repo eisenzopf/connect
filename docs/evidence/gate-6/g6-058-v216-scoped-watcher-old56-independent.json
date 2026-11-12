@@ -1,0 +1,60 @@
+{
+  "format": "connect/watcher-old56-independent-adjudication/1",
+  "reviewer": "/root/fixture_blockers",
+  "status": "ACTUAL_KIND0_CAUSAL_FAILURE_QUALIFIED; OTHER_CONTROL_DIAGNOSTIC_FAILED",
+  "inputs": {
+    "results_sha256": "4f95ae53563a9e9caa04ae62290937e9d708af964c90b66db45e37da6eacbf82",
+    "source_sha256": "a0e3e68c59b9c21a1085da8ad0ae574e7899d34b6f30bfbdd617d3d6de6df39b",
+    "driver_sha256": "34e7dc7d45ded42c96edc6549ace8f466317028ec6259510443a1fdc6fc1b7a5",
+    "logs": [
+      {
+        "path": "case-127.log",
+        "sha256": "2143a5382eedff1befbb05419f771965320134b2d48b7c52ceda4f7ebfc317fa"
+      },
+      {
+        "path": "case-000.log",
+        "sha256": "38eb557356938453e797c35708762cab343752c0565bb9c124e8299952095ecb"
+      }
+    ]
+  },
+  "actual": {
+    "build_exit": 0,
+    "executed": 2,
+    "passed": 0,
+    "failed": 2,
+    "selected_watcher_old_counter": 1,
+    "qualified_old_causal_failures": 1,
+    "diagnostic_wall_failures": 1,
+    "source_unchanged": true,
+    "binary_unchanged": true,
+    "all_original_groups_joined": true,
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    },
+    "test_support": true
+  },
+  "watcher_counter": {
+    "kind0": "QUALIFIED: initial live original authority and repeated watcher progress under actual reader-registry exclusion, no WriterNotice prerequisite passed, then intended SAME original epoch/stamp survival assertion failed.",
+    "all_three_watcher_shutdowns_completed_before_final_assert": true,
+    "kinds1_and2": "Loop bodies and shutdowns completed before final assertion loop, but their prerequisite/final assertions were not evaluated after kind0 panic. No independent causal qualification claimed.",
+    "old55": "Build101/zero tests remains unqualified; v2 only fixes cfg attribute."
+  },
+  "timing_diagnostic": {
+    "admitted": true,
+    "whole_api_elapsed_us": 77056,
+    "activation_authority_wait_us": 655,
+    "activation_transaction_body_us": 64788,
+    "original_50ms_wall_assertion": "FAILED_UNCHANGED",
+    "bounded_phase_observation": "Existing first-call trace places substantial time in current witness/permit/main DML/lifecycle; does not promote admission success to test pass or change 5ms acquisition budget."
+  },
+  "qualification": {
+    "store_component": false,
+    "media": false,
+    "full_cohort": false,
+    "matrix": false
+  }
+}
