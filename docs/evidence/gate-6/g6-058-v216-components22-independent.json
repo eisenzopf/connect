@@ -1,0 +1,2222 @@
+{
+  "format": "connect/independent-full206-adjudication/1",
+  "state": "205 PASS /1 FAIL; DOWNSTREAM ADMISSION BLOCKED",
+  "source_revision": "257bcdf3e178ace4b36ea77423bab2a432f9208c",
+  "source_sha256": "f8c53ae7f75eb8cfc01c3c573c114b89fae83c270dc1d77d022c913beceb6fe5",
+  "source_lock_sha256": "c55d34411c6d3e979da9d6b77531bc4baf76c9ba03c41dc91e30ffed7c25b55a",
+  "workspace_sha256": "b41c13b4be297da4f9aa8ddf9a095daf5830dd9c8c645a77aade3225e06dd0e7",
+  "original_results_sha256": "fb539be228120472f5b8d858a87df085b3c1e592fcf28d71e5aedcd799d5a9e0",
+  "sanitized_components_sha256": "6c9b0829490e594b17f767cf1fa1d057398421f821c0ce4fd53655a2071c7ceb",
+  "reviewed_sanitizer_sha256": "71ace229dc9d26dc60fade4a7c6fcbb1b8cdeb55771966fea251bf571976281f",
+  "summary": {
+    "selected": 206,
+    "executed": 206,
+    "passed": 205,
+    "failed": 1,
+    "not_executed": 0
+  },
+  "scope": {
+    "pure_selected": 190,
+    "signed_or_workload_selected": 16,
+    "pure_executed": 190,
+    "signed_or_workload_executed": 16,
+    "ignored_rtc_selected": 11,
+    "ignored_rtc_executed": 11
+  },
+  "four_builds_qualified": true,
+  "source_binaries_stable": true,
+  "all_original_groups_joined": true,
+  "full62_actually_last": true,
+  "full_programme": {
+    "actual_log_sha256": "ca2f0eca474a3566550c34feb082c64bdef44f6ae2689059ed520d10b1cbc95c",
+    "failed": true,
+    "quality_evaluated": true,
+    "full_six_routes_sixty_bins_observed": true,
+    "quality_route_totals": [
+      {
+        "route": 0,
+        "decoded_frames": 1762,
+        "actual_bins": 60,
+        "minimum_actual_bin": 14,
+        "total1440_met": true,
+        "per_bin24_gated": false,
+        "per_bin24_met": null
+      },
+      {
+        "route": 1,
+        "decoded_frames": 1771,
+        "actual_bins": 60,
+        "minimum_actual_bin": 13,
+        "total1440_met": true,
+        "per_bin24_gated": false,
+        "per_bin24_met": null
+      },
+      {
+        "route": 2,
+        "decoded_frames": 1785,
+        "actual_bins": 60,
+        "minimum_actual_bin": 19,
+        "total1440_met": true,
+        "per_bin24_gated": true,
+        "per_bin24_met": false
+      },
+      {
+        "route": 3,
+        "decoded_frames": 1778,
+        "actual_bins": 60,
+        "minimum_actual_bin": 19,
+        "total1440_met": true,
+        "per_bin24_gated": true,
+        "per_bin24_met": false
+      },
+      {
+        "route": 4,
+        "decoded_frames": 1760,
+        "actual_bins": 60,
+        "minimum_actual_bin": 10,
+        "total1440_met": true,
+        "per_bin24_gated": false,
+        "per_bin24_met": null
+      },
+      {
+        "route": 5,
+        "decoded_frames": 1765,
+        "actual_bins": 60,
+        "minimum_actual_bin": 13,
+        "total1440_met": true,
+        "per_bin24_gated": false,
+        "per_bin24_met": null
+      }
+    ],
+    "only_recorded_failed_quality_assertions": [
+      {
+        "route": 2,
+        "second": 44,
+        "frames": 19,
+        "minimum": 24
+      },
+      {
+        "route": 3,
+        "second": 44,
+        "frames": 19,
+        "minimum": 24
+      }
+    ],
+    "moving_route_bin_metrics_are_diagnostic": true,
+    "actual_four_commit_captures": {
+      "required_original_records": 4,
+      "observations": [
+        {
+          "line": 165,
+          "record_sha256": "200cca37f2b96b6b67864084a03ee6426efadce8ec04df171d5721ae72f4d7f5",
+          "mode": "positive-reader",
+          "preview_reason": "live-original",
+          "transaction_reason": "live-original"
+        },
+        {
+          "line": 203,
+          "record_sha256": "477ade202bcc192bc329f27338ab0c60ffc546423739d4d4c9471dddc6bb9c54",
+          "mode": "positive-reader",
+          "preview_reason": "live-original",
+          "transaction_reason": "live-original"
+        },
+        {
+          "line": 338,
+          "record_sha256": "c3c7c17330dbb33476ac476db68f9f2fea5ee786e5179d001d29582e01e687ff",
+          "mode": "positive-reader",
+          "preview_reason": "live-original",
+          "transaction_reason": "live-original"
+        },
+        {
+          "line": 371,
+          "record_sha256": "3d4dcd7f585424e5b0ee981cb32e2025075c35c5420a5c4bb4b422cbb6708412",
+          "mode": "positive-reader",
+          "preview_reason": "live-original",
+          "transaction_reason": "live-original"
+        }
+      ],
+      "distinct_records_observed": 4,
+      "all_four_original_records_observed": true,
+      "mode_and_both_reasons_present": true,
+      "missing_records": 0,
+      "no_fixture_expected_value_used_as_observation": true
+    },
+    "completed_rounds": [
+      {
+        "round": 0,
+        "moves": 2,
+        "generation": 2
+      },
+      {
+        "round": 1,
+        "moves": 2,
+        "generation": 3
+      }
+    ],
+    "data_exchanges": [
+      {
+        "index": 0,
+        "phase": "target",
+        "incoming_exact_bytes": 65536,
+        "outgoing_exact_bytes": 65536,
+        "mutation_replays": 0
+      },
+      {
+        "index": 4,
+        "phase": "target",
+        "incoming_exact_bytes": 65536,
+        "outgoing_exact_bytes": 65536,
+        "mutation_replays": 0
+      },
+      {
+        "index": 0,
+        "phase": "return",
+        "incoming_exact_bytes": 65536,
+        "outgoing_exact_bytes": 65536,
+        "mutation_replays": 0
+      },
+      {
+        "index": 4,
+        "phase": "return",
+        "incoming_exact_bytes": 65536,
+        "outgoing_exact_bytes": 65536,
+        "mutation_replays": 0
+      }
+    ],
+    "bounded_audio_header_history": [
+      {
+        "stage": "before",
+        "round": 0,
+        "receiver": 0,
+        "consecutive_samples": 720000,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 750,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "before",
+        "round": 0,
+        "receiver": 1,
+        "consecutive_samples": 720000,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 750,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "before",
+        "round": 0,
+        "receiver": 2,
+        "consecutive_samples": 720000,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 750,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "before",
+        "round": 0,
+        "receiver": 3,
+        "consecutive_samples": 720000,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 750,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "before",
+        "round": 0,
+        "receiver": 4,
+        "consecutive_samples": 720000,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 750,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "before",
+        "round": 0,
+        "receiver": 5,
+        "consecutive_samples": 720000,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 750,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "during",
+        "round": 0,
+        "receiver": 0,
+        "consecutive_samples": 865920,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 902,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "during",
+        "round": 0,
+        "receiver": 1,
+        "consecutive_samples": 865920,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 902,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "during",
+        "round": 0,
+        "receiver": 2,
+        "consecutive_samples": 865920,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 902,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "during",
+        "round": 0,
+        "receiver": 3,
+        "consecutive_samples": 865920,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 902,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "during",
+        "round": 0,
+        "receiver": 4,
+        "consecutive_samples": 865920,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 902,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "during",
+        "round": 0,
+        "receiver": 5,
+        "consecutive_samples": 865920,
+        "resets": 0,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 0,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 902,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": []
+      },
+      {
+        "stage": "before",
+        "round": 1,
+        "receiver": 0,
+        "consecutive_samples": 906240,
+        "resets": 9,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 9,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 1156,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18374260,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 2880,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18773306,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 6720,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19836844,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19992648,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20192615,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20891805,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21033516,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21172801,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "before",
+        "round": 1,
+        "receiver": 1,
+        "consecutive_samples": 906240,
+        "resets": 10,
+        "ssrc_changes": 1,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 10,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 1974,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18591346,
+            "header_delta": {
+              "same_ssrc": false,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 12480,
+              "same_source_interpretation_only": false
+            },
+            "reset_flags": {
+              "ssrc_changed": true,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18772614,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 6720,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19811221,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19970292,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20191624,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20891434,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21010231,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21172635,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "before",
+        "round": 1,
+        "receiver": 2,
+        "consecutive_samples": 906240,
+        "resets": 10,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 10,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 1975,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18552004,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 11520,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18751058,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 5760,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19831883,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19992010,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20191209,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20891211,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21032893,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21175752,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "before",
+        "round": 1,
+        "receiver": 3,
+        "consecutive_samples": 906240,
+        "resets": 10,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 10,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 1975,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18552239,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 11520,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18751290,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 5760,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19832328,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19992228,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20191434,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20891748,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21033306,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21152574,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "before",
+        "round": 1,
+        "receiver": 4,
+        "consecutive_samples": 906240,
+        "resets": 10,
+        "ssrc_changes": 1,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 9,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 1154,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18575986,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 5760,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18754122,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 6720,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19835327,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19976301,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20195978,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20913901,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21033696,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21155726,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "before",
+        "round": 1,
+        "receiver": 5,
+        "consecutive_samples": 906240,
+        "resets": 10,
+        "ssrc_changes": 1,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 10,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 1975,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18594503,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18754394,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 13440,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19815029,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19975824,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20174407,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20914152,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21018391,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21154429,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "during",
+        "round": 1,
+        "receiver": 0,
+        "consecutive_samples": 1100160,
+        "resets": 9,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 9,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 1358,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18374260,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 2880,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18773306,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 6720,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19836844,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19992648,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20192615,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20891805,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21033516,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21172801,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "during",
+        "round": 1,
+        "receiver": 1,
+        "consecutive_samples": 58560,
+        "resets": 11,
+        "ssrc_changes": 1,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 11,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 2175,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18772614,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 6720,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19811221,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19970292,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20191624,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20891434,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21010231,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21172635,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 42833587,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "during",
+        "round": 1,
+        "receiver": 2,
+        "consecutive_samples": 1100160,
+        "resets": 10,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 10,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 2177,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18552004,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 11520,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18751058,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 5760,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19831883,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19992010,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20191209,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20891211,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21032893,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21175752,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "during",
+        "round": 1,
+        "receiver": 3,
+        "consecutive_samples": 1100160,
+        "resets": 10,
+        "ssrc_changes": 0,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 10,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 2177,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18552239,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 11520,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18751290,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 5760,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19832328,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19992228,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20191434,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20891748,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21033306,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21152574,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "during",
+        "round": 1,
+        "receiver": 4,
+        "consecutive_samples": 1100160,
+        "resets": 10,
+        "ssrc_changes": 1,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 9,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 1356,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 18575986,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 5760,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 18754122,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 6720,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19835327,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 19976301,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20195978,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20913901,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21033696,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21155726,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      },
+      {
+        "stage": "during",
+        "round": 1,
+        "receiver": 5,
+        "consecutive_samples": 41280,
+        "resets": 13,
+        "ssrc_changes": 1,
+        "sequence_discontinuities": 0,
+        "timestamp_discontinuities": 13,
+        "last_accepted_header_delta": {
+          "accepted_decode_serial": 2173,
+          "header_delta": {
+            "same_ssrc": true,
+            "sequence_delta_u16": 1,
+            "timestamp_delta_u32": 960,
+            "same_source_interpretation_only": true
+          },
+          "reset_flags": {
+            "ssrc_changed": false,
+            "sequence_discontinuity": false,
+            "timestamp_discontinuity": false
+          }
+        },
+        "recent_reset_deltas": [
+          {
+            "elapsed_us": 19975824,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20174407,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 20914152,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21018391,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 21154429,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 41935521,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 2880,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 42934327,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          },
+          {
+            "elapsed_us": 43195400,
+            "header_delta": {
+              "same_ssrc": true,
+              "sequence_delta_u16": 1,
+              "timestamp_delta_u32": 1920,
+              "same_source_interpretation_only": true
+            },
+            "reset_flags": {
+              "ssrc_changed": false,
+              "sequence_discontinuity": false,
+              "timestamp_discontinuity": true
+            }
+          }
+        ]
+      }
+    ],
+    "audio_preparation_quality_failures_recorded": 0,
+    "scoped_source_path_proofs": {
+      "evidence_unit_hashes": {
+        "representative.rs": "abccf1e9d1b60132e6b4b39e3c67418049a9a4d55ed3159b7f1cbc3f234cfa60",
+        "representative_data.rs": "2c4c77dd582519429c63bc4c19dfeb82b00bdc8ffb9b5bf4b85f08c7d037e0cc",
+        "representative_programme.rs": "5aff725461b454f30abfab055026458eaf6682eff760640af0bc998326a85927"
+      },
+      "verified_work_completion_log_line": 602,
+      "proof_kind": "Source-path inference from the actual post-work marker and final deferred-quality-only panic, not blanket successful-case credit.",
+      "four_original_historical_results_unchanged_after_later_return": true,
+      "each_original_movement_seven_confirmed_effects_once": true,
+      "actual_original62s_elapsed_and_stop_issued_by62_2s": true,
+      "six_original_current_End_calls_settled_and_public_retirement_observed_before67s": true,
+      "both_original_Sessions_ended_and_runtime_drained": true,
+      "all_media_codec_raw_peer_SDK_original_joins_before67s": true,
+      "strong_runtime_owner_counts_zero_through_actual10s_idle": true,
+      "task_failures_empty": true,
+      "server_shutdown_returned_ok_after_idle": true,
+      "server_shutdown_is_not_claimed_within67s": true,
+      "all_checks_reached_before_final_quality_panic": true
+    },
+    "codec_join_observations": {
+      "original_encoder_natural_joins": 6,
+      "original_decoder_clean_natural_joins": 10,
+      "forced_joins": 0
+    },
+    "source_proof_locations": {
+      "historical_roots_and_effects": "representative.rs:2319",
+      "62s_stop_and_media_join": "representative.rs:2334",
+      "all_current_End_public_retirements": "representative_data.rs:255",
+      "Session_runtime_client67s_and_idle": "representative.rs:2378",
+      "deferred_quality_assertion_after_cleanup": "representative.rs:2489"
+    }
+  },
+  "initial_av": {
+    "post_sql_video_watermarks": [
+      {
+        "route": 0,
+        "source_rtp_threshold": 273000
+      },
+      {
+        "route": 2,
+        "source_rtp_threshold": 273000
+      }
+    ],
+    "post_sql_watermark_marker_valid": true,
+    "threshold_assertions_observed_while_sql_held": true,
+    "decoded_at_or_above_threshold_while_sql_held_source_assertion_qualified": true,
+    "source_quantum_audio_attribution_claimed": false,
+    "completed_single_request_and_effect_marker": true,
+    "admission_probe": 4,
+    "scene_probe": 4,
+    "cleanup_failure_array_empty": true,
+    "server_shutdown_returned_ok": true,
+    "all_original_5s_cleanup_assertions_qualified_by_case_pass": true,
+    "qualified": true,
+    "limitation": "Native actual initialAV factory regression only; no browser/full62/matrix or source-quantum audio claim."
+  },
+  "overall_qualification": {
+    "full206": false,
+    "shipping": false,
+    "full32": false,
+    "downstream_activation": false
+  },
+  "limits": [
+    "The focused workload remains failed; successful control/cleanup subproofs never promote it.",
+    "No root cause inferred for the two19FPS bins; no threshold/window changes or selective rerun credit.",
+    "Moving routes0/1/4/5 per-bin metrics remain diagnostic; all6 met total1440, only retained2/3 gate each24FPS bin.",
+    "Audio24snapshots prove their observed boundaries and preparation checks, not fullmatrix audio/skew/OS qualification.",
+    "Source-inferred End/67s proofs refine conservative sanitizer case-pass flags; original sanitized output and receipts are unchanged.",
+    "No raw credentials, operation/connection IDs, absolute source paths, RTP headers or packet payloads copied."
+  ],
+  "actions": {
+    "build": 0,
+    "test": 0,
+    "source_mutation": 0,
+    "guest": 0
+  }
+}

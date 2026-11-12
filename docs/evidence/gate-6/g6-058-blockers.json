@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T06:51:35.252815+00:00",
+  "updated": "2026-11-12T07:30:31.657094+00:00",
   "run_status": "Two actual old-code Commit SQL counters reproduced avoidable media epoch invalidation and Writer custody parked on primary SQL, with original cleanup complete. The bounded pre-effect fix is now being applied. Audio diagnostics passed4/4 actual Opus controls. Latest complete focused run remains171/175; subsequent7/7 fixture controls remain separate. No new matrix pass or decoded QoE cause-fix is claimed. Local Mac/nativeARM Linux only; all quality thresholds retained.",
   "blockers": [
     {
@@ -5779,10 +5779,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v215.json"
   },
   "current_focused_verification": {
-    "passed": 171,
-    "planned": 175,
-    "scope": "Complete focused batch20: all175 executed,4 failed (short native audio, full62 video/End, RTC latch, initialAV fixture expectation). Later component evidence is separate.",
-    "next": "Final corrective source batch fullycomponent-tested. Freeze and executeall206 Rustcases retaining175originals,11explicitignored/full62last, then normalshipping/preflight/all32/432 locally. No newmatrixresult."
+    "passed": 205,
+    "planned": 206,
+    "scope": "Complete source257bcdf3/408,190pure+16workloads/11ignored all executed. Solefailure: full62 publicroutes2/3 sec44=19FPS<24.",
+    "next": "Verify finalactivation pre-TX Write/SQL admission counter and scope-preserving fix; unitnegatives, then completecohort beforeall32/432. No activation basedon205/206."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17515,5 +17515,13 @@
     "evidence": "docs/evidence/gate-6/g6-058-v216-retired-test-binary-cleanup.json",
     "selected_bytes": 16106696704,
     "preserved_normal_cli_files": 4
+  },
+  "completed_v216_components22_actual": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components22.json",
+    "independent": "docs/evidence/gate-6/g6-058-v216-components22-independent.json",
+    "passed": 205,
+    "executed": 206,
+    "failed": 1,
+    "matrix_qualified": false
   }
 }

@@ -1,13 +1,13 @@
 {
   "format": "connect/media-quality-next-fix-plan/1",
-  "status": "All currentlyverified corrective mechanisms implemented and unit/contract-tested; finalfrozen206/full32 empirical qualification next",
-  "updated_at": "2026-11-12T06:51:35.252815+00:00",
+  "status": "Actualfull206205pass1fail; finalactivation pre-TX Writer/SQL gap undercontrolledcounter investigation; unchanged video24FPS requirement",
+  "updated_at": "2026-11-12T07:30:31.657094+00:00",
   "coordinator": "/root",
-  "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components20.json",
+  "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components22.json",
   "baseline": {
-    "executed": 175,
-    "passed": 171,
-    "failed": 4,
+    "executed": 206,
+    "passed": 205,
+    "failed": 1,
     "not_executed": 0
   },
   "fixture_followthrough": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
@@ -33,13 +33,13 @@
       "id": "P5.2",
       "owner": "/root/v198_resources",
       "reviewer": "/root/media_blockers",
-      "cause_status": "Both actual old-code pre-effect SQL/fence counters reproduced; production preview/nonblocking begin passes both and five additional negatives.",
+      "cause_status": "Three actual finalactivation acquiredWriter\u2192SQLreacquire failures inbadbin44; sourcepaired routes2/3 missing/incompleteRTP amplifiedbykeyframe gating, no recorded decoder reset. Correlation not causation.",
       "actual_failures": [
         "Full route2 sec18=18FPS,sec43=20FPS; route3 sec18=22FPS; minimum24. Route3 sec43=24 passes.",
         "All4 actual historical captures used positive-reader; all4 physical moves completed."
       ],
       "timing_correction": "Full programme uses representative(false,true): no deliberate coordinator hold. Bins18/43 span Ready and actual Commit; quality snapshot before Ready does not prove loss before Commit.",
-      "next": "Independent fixed27 adjudication, followed by full frozen combined programme to establish actual media effect.",
+      "next": "Controlled finalactivation counter then specialized no-waitfullauthority/retainedUnit proposal with unchanged current rederive/SQLguard/footprint/originalcutoff; verify negatives before fullcohort.",
       "proposed_scope": "Consider pre-effect SQL availability/nonblocking exact begin plus full release and fresh same-root plan retry ONLY before effect begins. No replay after begun; no arbitrary removal of current Write custody.",
       "invariants": [
         "Do not hold SQL while waiting for file authority",

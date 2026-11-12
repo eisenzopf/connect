@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T06:51:35.252815+00:00",
-  "revision": 33,
+  "updated_at": "2026-11-12T07:30:31.657094+00:00",
+  "revision": 34,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -619,7 +619,7 @@
         "P2.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Pre-IO retention12/12 and native non-evicting/SDK/raw transport8/8 independently verified. Both actual old64KiB QUIC audio-eviction counters now pass, with unchanged packet bytes, deadlines, current binding/gate checks and terminal submitted IO. Node53/Python67, types and contracts pass. These fix verified mechanisms; decoded fullprogramme and actual32cell effect still pending.",
+      "implementation_state": "Full206 empirical run: original short audio and initialAV pass; full62 records no audio quality failure, all handoffs/Data/End/cleanup complete. Twelve retention and eight transport controls verified. Sole remaining programme defect is two video bins, not an audio gate failure.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
@@ -686,7 +686,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T06:51:35.252815+00:00",
+      "updated_at": "2026-11-12T07:30:31.657094+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -711,8 +711,8 @@
       "depends_on": [
         "P3.1"
       ],
-      "status": "component-verified",
-      "implementation_state": "Production pre-effect SQL preview and typed nonblocking Commit admission implemented. Both old-code counterexamples now pass, plus five permanent-error/cancellation/deadline/cleanup negatives:7/7. Actual decoded quality and matrix effect remain unverified.",
+      "status": "diagnosing",
+      "implementation_state": "Final206 executed205pass1fail. Full62 onlygated errors: unchanged publicroutes2/3 second44 each19FPS against24; encoded/published sourcebins30, decoded error counters exclude recorded decoder resets. Finalactivation metadata had three acquiredWriter\u2192SQLreacquire failures before mutation in badbin; scope-preserving admission counter/fix being staged. Actual19FPS causality not yet proven.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -765,11 +765,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-commit-sql-fixed27.json",
           "result": "7/7 actual fixed Store/Service controls pass; normal production check passes; source/binaries stable and all original owners joined.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components22.json",
+          "result": "All206executed205pass1fail; full62 onlytwo19FPS bins. Allothergates independentlysource/logverified; no matrixqualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T05:21:47.733156+00:00",
+      "updated_at": "2026-11-12T07:30:31.657094+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -779,11 +784,12 @@
         "A09"
       ],
       "current_action": {
-        "owner": "/root",
-        "reviewer": "/root/fixture_blockers",
-        "cause": "Two actual pre-effect SQL admission/fence defects reproduced before fix.",
-        "fix": "SQL availability preview before Writer intent; typed definite-no-attempt retry releases full Writer/roles and keeps original root deadline.",
-        "verification": "7/7 controls passed; full decoded programme and matrix effect pending."
+        "owner": "/root/v198_resources",
+        "reviewer": "/root/media_blockers",
+        "coordinator": "/root",
+        "cause": "Final public activation metadata path drops initialSQL, announces fullCID Writer, then can loseSQL reacquire before DML. Actual3 failures captured; decoded video causality remains conditional.",
+        "fix": "Investigate specialized retain-originalSQLUnit plus zero-file-wait fullWriter, sameUnit current rederive and guarded samecapture projection; no waitingfilelocks underSQL/no footprint downgrade/no physicalCore replay.",
+        "verification": "Controlled actual unaffectedVP8 StoreIO/epoch counter plus heldreader/revoke/rollback/deadline/progress negatives before one complete rerun; retain24FPS/200ms."
       }
     },
     {
@@ -802,7 +808,7 @@
         "P4.2"
       ],
       "status": "diagnosing",
-      "implementation_state": "All175 executed in batch20; full62 media and4moves/Data completed, but current End rejected legitimate connection.quality events. Typed noncompletion demux now passes pure controls; actual full End/67s qualification still pending.",
+      "implementation_state": "Full206 complete with alloriginalselectors/11explicitignored; all4handovers/4historicalpositive-reader receipts/4bidirectional64KiB exchanges/currentEnd-retirement and bounded originaljoin path independently verified. Fullcase staysfailed forvideo19FPS; no incompletecase promoted.",
       "proposed_fix": "Separate missing-handoff coverage from resource leaks; retain required10browserrenderer owners and all actual natural joins.",
       "required_evidence": "All3completecycles, exact original/replacement receipts, zero Session-owned physical owners/tasks/pools, helper/client joins and unchanged end/cleanup deadlines.",
       "coordinator_review": {
@@ -839,7 +845,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:06:47.358539+00:00",
+      "updated_at": "2026-11-12T07:30:31.657094+00:00",
       "mapped_check_count": 41,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": []
@@ -858,7 +864,7 @@
         "P6.1"
       ],
       "status": "assigned",
-      "implementation_state": "60GiB retired object caches plus16,106,696,704B verifiedretired test binaries deleted and measured, active/shared caches preserved; four ordinary CLI binaries excluded. Compilation consumes headroom; fresh normalshipping/VM capacity checks remain required.",
+      "implementation_state": "Additional69 retiredtest binaries16GiB deleted onlyafter206originalgroupsjoined; measured17.1789GB gain, D2available59.689GB atcleanup completion. Active/shared caches and ordinaryCLI aliases preserved. Fresh shipping/VM floors stillmandatory.",
       "proposed_fix": "Retain approved per-role/aggregate RSS and original numeric process/FD/thread capacities; trends diagnostic and separate soak unaffected.",
       "required_evidence": "1GiB server/4GiB browser/1GiB helper/6GiB aggregate; exact original resource-pool restoration and source-bound server thread exception; no incomplete cycle counted as pass.",
       "coordinator_review": {
@@ -874,7 +880,7 @@
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T06:51:35.252815+00:00",
+      "updated_at": "2026-11-12T07:30:31.657094+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": []
@@ -896,7 +902,7 @@
         "P2.1"
       ],
       "status": "in-progress",
-      "implementation_state": "All currentlyverified cause fixes integrated and component-tested: fixture7, audio diagnostics4, CommitSQL7, retention12, nativequeue8, plus8languagechecks. Next one coherent206case frozen regression preserving all175originals/11explicitignored/full62last.",
+      "implementation_state": "Complete frozen206 run on257bcdf3/408:205pass1fail, no skippedcases. One fullprogramme video deficit remains; all handoffs/Data/End/joins verified separately. Reopenvideo correction; no shipping/full32activation.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -953,7 +959,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T06:51:35.252815+00:00",
+      "updated_at": "2026-11-12T07:30:31.657094+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -985,7 +991,7 @@
         "P7.1"
       ],
       "status": "component-verified",
-      "implementation_state": "Final corrective batch source reviewed and actual component/language checks passed on equal complete source36/37, including all220tracked generated TypeScript files. Final docs/evidence commit and clean HEAD binding precede206; keep that tested HEAD unchanged throughARMshipping/full32 if206green.",
+      "implementation_state": "Committed257bcdf3/408 source produced complete205/206run; allsource/binary/original-owner guards passed. Its testedsource stayspreserved as evidence; next correctivebatch must be independentlyunit-tested/recommitted/requalified.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1037,7 +1043,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T06:51:35.252815+00:00",
+      "updated_at": "2026-11-12T07:30:31.657094+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [

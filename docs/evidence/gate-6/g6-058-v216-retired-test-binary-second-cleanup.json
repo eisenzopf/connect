@@ -1,0 +1,17 @@
+{
+  "format": "connect/approved-retired-test-binary-cleanup/1",
+  "selected_count": 69,
+  "selected_allocated_bytes": 17179062272,
+  "header_and_identity_revalidated": true,
+  "open_inventory_complete": true,
+  "selected_open_count": 0,
+  "before_available_bytes": 42510123008,
+  "deleted_count": 69,
+  "complete": true,
+  "all_selected_absent": true,
+  "after_available_bytes": 59689037824,
+  "observed_available_gain_bytes": 17178914816,
+  "deleted_journal_sha256": "82668ec08b86f9c351e965121fdf9d2f3b209e72098858d5853bd194e5eecdbb",
+  "scope": "Exact69 additional independently libtest-marked ARM64 test executables in same retired cache; singlelink/closed identities rechecked. All connect-CLI aliases, activewarm/shared caches, source/data/evidence preserved. Deleted only after original206 owners joined.",
+  "raw_receipt_sha256": "be95949b73cbed6080ccef855c33a25eba24c4d4f60f45333ae5be224f3ece3a"
+}
