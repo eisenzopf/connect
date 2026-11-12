@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T15:05:18.617252+00:00",
-  "run_status": "Complete Store61 PASSES185/185,0failed/ignored/unexecuted. All53tested source paths/114namespace guards, original controller/child owners, binary and inputs verified. All five Store53 failures corrected; true revocation/expiry/collision/rollback controls retained. Unchanged50ms Ready sample45.628ms. Batch commit then complete294 including both decoded62s programmes; no new media or matrix qualification. Lastcomplete media239/241, lastmatrixv2150/32; localMac/nativeARM only.",
+  "updated": "2026-11-12T16:30:24.110646+00:00",
+  "run_status": "Complete294 executed all294:292passed,2failed,0unrun. Both full62 decoded-quality verdicts passed; ES256 programme passed fully. EdDSA final original-owner joins took67514ms beyond unchanged67000ms; PublicReady counter refused before publication. The follow-up three-file test-only batch passes Store185 and four pure owner/retirement helpers. New complete296 remains required before same-clean-commit nativeARM shipping and all32/432. Lastmatrix remainsv2150/32; localMac/nativeARM only.",
   "blockers": [
     {
       "id": "B01",
@@ -1561,12 +1561,12 @@
     {
       "id": "B191",
       "title": "Data completion may invalidate live audio custody",
-      "status": "Component-verified185/185; actual decoded media and matrix qualification pending.",
+      "status": "Store185 component-verified; focused full62 quality passed both algorithms; complete296 and matrix pending.",
       "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json; g6-058-v216-components19.json",
-      "next": "Batch commit exact185-tested source then full294, both62s programmes and samecleanHEADlocalARM/all32. Do not promote mapped failures before actual workload evidence.",
+      "next": "Commit exact55 guarded source images after Store185+helper4 verification, then complete296 including bothfull62 LAST. No cutoff/quality relaxation or prior failure promotion.",
       "causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
-      "latest_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store61-independent.json"
+      "latest_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store62-independent.json"
     },
     {
       "id": "B192",
@@ -5781,10 +5781,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v215.json"
   },
   "current_focused_verification": {
-    "passed": 239,
-    "planned": 241,
-    "scope": "Last complete media/component cohort24,224pure+17workloads/11explicitignored executed;2videoFPS failures. Subsequent Store53 is147/152 and is not a whole-cohort pass.",
-    "next": "CompleteStore185/185nowpasses. Batchcommitthenfull294andbothactualmedia programmes, followedbysamecleancommitARMshipping/all32/432. Previouscomplete239/241andmatrix0/32unchangeduntilretest."
+    "passed": 292,
+    "planned": 294,
+    "scope": "Actual complete25: all294executed, bothfull62qualityPASS; two failures retained. New test-only follow-up independently passes185Store+4helper controls.",
+    "next": "Commit exact tested batch, then complete296 with both full62 programmes LAST; same clean HEAD through nativeARM shipping/all32 if green."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17602,8 +17602,8 @@
     "scope": "Numeric diagnostic correctness and default feature availability only; not a media-loss cure or full run of 241 tests qualification."
   },
   "next_complete_cohort": {
-    "expected": 241,
-    "pure": 224,
+    "expected": 296,
+    "pure": 279,
     "workloads": 17,
     "explicit_ignored_rtc": 11,
     "both_full62_adjacent_last": true,
@@ -17676,10 +17676,12 @@
   },
   "handoff_authority_followthrough": {
     "plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
-    "status": "Four intended old causal failures qualified; production changes remain ignored drafts and unverified",
+    "status": "Store185 + helper4 component-verified; actual294292/294 with both full62 quality PASS; complete296 and full32 pending",
     "source_boundary_report_sha256": "335e837a3a5ab4cc114f392234bc674d59927561d836eaf186cd51c6561e0096",
     "old_causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
-    "full_matrix_qualified": false
+    "full_matrix_qualified": false,
+    "latest_component_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store62.json",
+    "latest_independent_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store62-independent.json"
   },
   "scoped_handoff_old49": {
     "evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
@@ -17687,5 +17689,14 @@
     "unqualified": 0,
     "all_original_groups_joined": true,
     "fixed_or_media_qualification": false
+  },
+  "completed_v216_components25_actual": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components25.json",
+    "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components25-independent.json",
+    "executed": 294,
+    "passed": 292,
+    "failed": 2,
+    "qualified": false,
+    "matrix_qualified": false
   }
 }

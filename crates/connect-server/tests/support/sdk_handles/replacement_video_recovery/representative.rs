@@ -18,6 +18,8 @@ mod data;
 mod programme;
 #[path = "representative_retirement.rs"]
 mod retirement;
+#[path = "representative_shutdown.rs"]
+mod shutdown;
 #[path = "representative_video_diagnostics.rs"]
 mod video_diagnostics;
 const AGE: Duration = Duration::from_millis(200);
@@ -2149,6 +2151,9 @@ async fn representative_with_algorithm(
     let mut target_progress = Vec::<SharedProgress>::new();
     let mut quality_failures = Vec::new();
     let mut task_failures = Vec::new();
+    // Numeric control-only checkpoints: print after all original owners join.
+    let mut cleanup_times = Vec::with_capacity(12);
+    let mut final_quality_pending = false;
     let work=AssertUnwindSafe(async {
         wait_original_playout(&progress,&connections,began+Duration::from_secs(8)).await;
         // Warm up two genuine seconds before measuring the first preparation.
@@ -2421,6 +2426,7 @@ async fn representative_with_algorithm(
             tokio::time::sleep_until(programme_cutoff).await;
             assert!(Instant::now()>=programme_cutoff,"original 62-second programme must actually elapse");
             stop.cancel();
+            cleanup_times.push(("programme-stop-issued", Instant::now()));
             assert!(Instant::now()<=read_cutoff,"read-stop issuance stays before original 62.2-second cutoff");
             // Join the actual original media/codec owners BEFORE any current
             // Connection end, exactly as stopAndJoin in the matrix workload.
@@ -2428,9 +2434,14 @@ async fn representative_with_algorithm(
             while let Some(owner)=works.pop() {
                 match owner.await { Ok(Ok(()))=>{},result=>task_failures.push(format!("{result:?}")) }
             }
+            cleanup_times.push(("media-codec-owners-joined", Instant::now()));
             if Instant::now()>join_cutoff {task_failures.push("full programme owner join exceeded original67s cutoff".into());}
-            quality_failures.extend(programme::quality(&progress,&target_progress));
+            // These fixed bins cannot change after all actual media owners join.
+            // Observe them after physical cleanup; their same strict verdict
+            // still applies before the final result, without spending join grace.
+            final_quality_pending = true;
             data::end_current(&connections,&mut targets,&previous_targets,&sessions,join_cutoff).await;
+            cleanup_times.push(("current-connection-ends-settled", Instant::now()));
         }
         eprintln!("representative-six-source verified participants=4 sessions=2 sources=6 original_moves=4 generations=1,2,3 returned_original_device={} private_decoders=4 original_deadline_ms=8000 old_preparation_fps_min=24 genuine_opus_samples_min=2880 fragmented_vp8=true programme_bound_seconds=62",configs[0].device_id);
     }).catch_unwind().await;
@@ -2449,17 +2460,6 @@ async fn representative_with_algorithm(
         task_failures
             .push("original programme owners did not join before original 67-second cutoff".into());
     }
-    // Scalar final snapshots run only after every original codec/media task
-    // joins. They neither retain media nor add work to a measured frame path.
-    for (index, measured) in clone_progress(&progress).iter().enumerate() {
-        eprintln!(
-            "representative original final route={index} expected_source={} progress={measured:?}",
-            SOURCE_FOR_RECEIVER[index]
-        );
-    }
-    for (index, measured) in clone_progress(&target_progress).iter().enumerate() {
-        eprintln!("representative candidate final index={index} progress={measured:?}");
-    }
     // End both real Session owners using their current public topology. These
     // commands also exercise the shared original client after both handoffs.
     if full_programme && work.is_ok() {
@@ -2475,6 +2475,7 @@ async fn representative_with_algorithm(
             }
         }
         task_failures.extend(retired.failures);
+        cleanup_times.push(("session-retirement-settled", Instant::now()));
     } else {
         for (sid, session) in sessions.iter().enumerate() {
             if full_programme && work.is_ok() && Instant::now() >= join_cutoff {
@@ -2550,31 +2551,110 @@ async fn representative_with_algorithm(
     if drained.is_err() {
         task_failures.push("original Session runtime owners did not drain".into());
     }
+    cleanup_times.push(("runtime-drained", Instant::now()));
     drop(masters);
-    for target in targets {
-        if let Err(error) = target.client.shutdown().await {
-            task_failures.push(format!("original target shutdown: {error}"));
-        }
+    // Each target/client is one independent original physical peer. Start all
+    // closes before waiting on any peer's QUIC drain; retain every result and
+    // join all original futures even if an earlier peer refuses or panics.
+    let success_cleanup = full_programme && work.is_ok();
+    let mut closes = Vec::with_capacity(targets.len() + clients.len());
+    for (index, target) in targets.into_iter().enumerate() {
+        closes.push(shutdown::OriginalClose::new(
+            "target",
+            index,
+            Box::pin(async move {
+                // Preserve the original Candidate's non-client owner/drop
+                // ordering through its exact native peer drain.
+                let client = target.client;
+                let owned = (
+                    target.io,
+                    target.preparation,
+                    target.force_key,
+                    target.retirement,
+                );
+                let result = client
+                    .shutdown()
+                    .await
+                    .map_err(|error| format!("original target shutdown: {error}"));
+                drop(owned);
+                result
+            }),
+        ));
     }
-    for client in clients {
-        let close_request = if full_programme && work.is_ok() && Instant::now() < join_cutoff {
-            programme::request(join_cutoff)
-        } else {
-            // Failure cleanup still joins; it can never renew the success bound.
-            options()
-        };
-        if let Err(error) = client.close(close_request).await {
-            task_failures.push(format!("original SDK shutdown: {error}"));
-        }
+    for (index, client) in clients.into_iter().enumerate() {
+        closes.push(shutdown::OriginalClose::new(
+            "sdk",
+            index,
+            Box::pin(async move {
+                let close_request = if success_cleanup && Instant::now() < join_cutoff {
+                    programme::request(join_cutoff)
+                } else {
+                    // Failure cleanup still joins; it cannot renew qualification.
+                    options()
+                };
+                client
+                    .close(close_request)
+                    .await
+                    .map_err(|error| format!("original SDK shutdown: {error}"))
+            }),
+        ));
     }
+    cleanup_times.push(("peer-close-join-start", Instant::now()));
+    let closed =
+        shutdown::join_originals(closes, began, full_programme.then_some(join_cutoff)).await;
+    task_failures.extend(closed.failures);
+    let all_original_joined = Instant::now();
+    cleanup_times.push(("all-original-owners-joined", all_original_joined));
     if full_programme {
         // This proof is AFTER every original Session/runtime/media/codec/raw
         // peer/SDK close. Ten seconds of idle cannot hide late physical joins.
-        let all_original_joined = Instant::now();
         if all_original_joined > join_cutoff {
             task_failures.push(format!("all original physical/control/client owners joined at programme_ms={} beyond unchanged67000 cutoff",
                 all_original_joined.saturating_duration_since(began).as_millis()));
         }
+    }
+    if final_quality_pending {
+        cleanup_times.push(("quality-observation-started", Instant::now()));
+        match std::panic::catch_unwind(AssertUnwindSafe(|| {
+            programme::quality(&progress, &target_progress)
+        })) {
+            Ok(failures) => quality_failures.extend(failures),
+            Err(panic) => task_failures.push(format!(
+                "original deferred quality observation: {}",
+                panic_text(panic)
+            )),
+        }
+        cleanup_times.push(("quality-observation-completed", Instant::now()));
+    }
+    for (phase, at) in cleanup_times {
+        eprintln!(
+            "representative cleanup phase={phase} programme_us={}",
+            at.saturating_duration_since(began).as_micros()
+        );
+    }
+    for peer in closed.observations {
+        eprintln!("representative original peer close kind={} index={} entered_us={} returned_us={} ok={} original_cutoff_us={:?}",peer.kind,peer.index,peer.entered_us,peer.returned_us,peer.ok,peer.original_cutoff_us);
+    }
+    // Scalar final snapshots run only after every original codec/media task
+    // and physical peer joins. Failure cannot skip the server's original join.
+    let final_progress = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        for (index, measured) in clone_progress(&progress).iter().enumerate() {
+            eprintln!(
+            "representative original final route={index} expected_source={} progress={measured:?}",
+            SOURCE_FOR_RECEIVER[index]
+        );
+        }
+        for (index, measured) in clone_progress(&target_progress).iter().enumerate() {
+            eprintln!("representative candidate final index={index} progress={measured:?}");
+        }
+    }));
+    if let Err(panic) = final_progress {
+        task_failures.push(format!(
+            "original deferred progress observation: {}",
+            panic_text(panic)
+        ));
+    }
+    if full_programme {
         let idle = AssertUnwindSafe(programme::idle(&f)).catch_unwind().await;
         if let Err(error) = idle {
             task_failures.push(panic_text(error));

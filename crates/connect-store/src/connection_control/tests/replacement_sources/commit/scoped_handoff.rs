@@ -654,6 +654,24 @@ fn run(kind: Kind) {
     let before_database = Store::inspect_snapshot(store.path()).unwrap();
     let snapshot = register_pair(&store, &healthy_target, Some(&healthy_source));
     let affected_snapshot = register_pair(&store, &affected, None);
+    // Establish the REAL affected-source resource exclusion BEFORE watcher
+    // startup or live IO admission, so a setup refusal has no owner to leak.
+    // This guard has no NativeMediaRead grant and does not alter healthy1/2.
+    let first_public_reader = if matches!(kind, Kind::PublicReady) {
+        let scope =
+            crate::AuthorityScope::connection(affected.connection_id(), crate::AuthorityMode::Read)
+                .unwrap();
+        let reader = store
+            .acquire_authority(
+                std::slice::from_ref(&scope),
+                &crate::AuthorityWait::new(Duration::from_millis(5)),
+            )
+            .unwrap();
+        assert!(store.authority_covers(&reader, std::slice::from_ref(&scope)));
+        Some(reader)
+    } else {
+        None
+    };
     let mut watcher = store.start_media_authorization_watcher().unwrap();
     let original = admit(&snapshot);
     let old = admit(&affected_snapshot);
@@ -700,6 +718,9 @@ fn run(kind: Kind) {
     // The affected epoch remains queued, but it must not pin Writer admission.
     drop(old);
     let until = Instant::now() + Duration::from_secs(2);
+    let forced_first_refusal = std::sync::atomic::AtomicBool::new(false);
+    let forced_reader_released = std::sync::atomic::AtomicBool::new(false);
+    let forced_first_calls = AtomicUsize::new(0);
     let (entered, events) = mpsc::sync_channel(2);
     let (release, resume) = mpsc::sync_channel(1);
     let probe = Rendezvous {
@@ -710,7 +731,7 @@ fn run(kind: Kind) {
         release: Mutex::new(resume),
         until,
     };
-    let pre_effect_registry_retries = AtomicUsize::new(0);
+    let pre_effect_metadata_retries = AtomicUsize::new(0);
     let admission_trace = admission_trace::buffer();
     let refused_attempts = Mutex::new(Vec::<serde_json::Value>::new());
     let (
@@ -723,12 +744,32 @@ fn run(kind: Kind) {
         within_original_cutoff,
     ) = std::thread::scope(|workers| {
         let worker = workers.spawn(|| {
+            let mut first_public_reader = first_public_reader;
+            let mut previous_refusal: Option<Error> = None;
             let result = loop {
+                // The same original absolute cutoff applies before EVERY API
+                // invocation, including after a bounded metadata-only pause.
+                if matches!(kind, Kind::PublicReady) && Instant::now() >= until {
+                    break Err(previous_refusal.take().unwrap_or_else(|| {
+                        Error::new("authority-busy", "Original public Ready counter cutoff expired")
+                    }));
+                }
+                if previous_refusal.is_some() {
+                    let same = snapshot.admit_original(stamp);
+                    let still_current = original.current()
+                        && epoch.current()
+                        && same.as_ref().is_ok_and(|r| r.current());
+                    drop(same);
+                    if !still_current {
+                        break Err(previous_refusal.take().unwrap());
+                    }
+                }
                 let before_admission = if let Call::Public(capture) = &call {
                     Some(capture.projection_diagnostics())
                 } else {
                     None
                 };
+                let forced_reader_held_for_call = first_public_reader.is_some();
                 let result = if matches!(kind, Kind::PublicReady) {
                     admission_trace::capture(&admission_trace, || {
                         call.run(&store, &affected, &probe)
@@ -736,49 +777,116 @@ fn run(kind: Kind) {
                 } else {
                     call.run(&store, &affected, &probe)
                 };
-                if let (Call::Public(capture), Err(error)) = (&call, &result) {
+                let after_admission = if let Call::Public(capture) = &call {
+                    Some(capture.projection_diagnostics())
+                } else {
+                    None
+                };
+                let reached_authority_wait = before_admission.as_ref()
+                    .zip(after_admission.as_ref()).is_some_and(|(before, after)| {
+                        match (
+                            before["activation"]["failed_authority_wait"].as_u64(),
+                            after["activation"]["failed_authority_wait"].as_u64(),
+                        ) {
+                            (Some(a), Some(b)) => b > a,
+                            _ => false,
+                        }
+                    });
+                if forced_reader_held_for_call {
+                    forced_first_calls.fetch_add(1, Ordering::SeqCst);
+                    // An earlier pure SQL/metadata refusal does not prove a
+                    // Writer reached its real exclusion. Keep pressure through
+                    // only safe pre-admission retries; after the first actual
+                    // authority-wait failure, drain before any final retry.
+                    if reached_authority_wait || !result.as_ref().err()
+                        .is_some_and(|e| e.code == "authority-busy") {
+                        drop(first_public_reader.take());
+                        forced_reader_released.store(true, Ordering::SeqCst);
+                    }
+                }
+                // Public Ready is metadata-only here: Core install/captured
+                // physical outcome already exists outside this retry loop.
+                // Prove refusal BEFORE checkpoint/publisher/COMMIT, rather
+                // than inferring safety from an unproven Busy subtype.
+                let before_checkpoint = !probe.emitted.load(Ordering::SeqCst);
+                let no_publisher = probe.publications.load(Ordering::SeqCst) == 0;
+                let no_commit = before_admission
+                    .as_ref()
+                    .zip(after_admission.as_ref())
+                    .is_some_and(|(before, after)| {
+                        ["activation", "capture"].iter().all(|phase| {
+                            match (
+                                before[*phase]["transaction"]["committed"].as_u64(),
+                                after[*phase]["transaction"]["committed"].as_u64(),
+                            ) {
+                                (Some(a), Some(b)) => a == b,
+                                _ => false,
+                            }
+                        })
+                    });
+                let unchanged = if matches!(kind, Kind::PublicReady) && result.is_err() {
+                    Some(Store::inspect_snapshot(store.path()).map(|snapshot| snapshot == before_database))
+                } else {
+                    None
+                };
+                let same_current = if matches!(kind, Kind::PublicReady) {
+                    let same = snapshot.admit_original(stamp);
+                    let current = same.as_ref().is_ok_and(|r| r.current());
+                    drop(same);
+                    current
+                } else {
+                    false
+                };
+                let healthy_current = original.current() && epoch.current() && same_current;
+                let retry_safe = matches!(kind, Kind::PublicReady)
+                    && result.as_ref().err().is_some_and(|e| e.code == "authority-busy")
+                    && before_checkpoint
+                    && no_publisher
+                    && no_commit
+                    && unchanged.as_ref().is_some_and(|r| r.as_ref().is_ok_and(|same| *same))
+                    && healthy_current
+                    && Instant::now() < until;
+                if forced_reader_held_for_call && reached_authority_wait {
+                    forced_first_refusal.store(retry_safe, Ordering::SeqCst);
+                }
+                if let (Call::Public(_), Err(error)) = (&call, &result) {
                     let mut attempts = refused_attempts.lock().unwrap();
                     if attempts.len() < 32 {
-                        let unchanged = Store::inspect_snapshot(store.path())
-                            .map(|snapshot| snapshot == before_database);
                         attempts.push(json!({
                             "code":error.code, "message":error.message,
-                            "before":before_admission, "after":capture.projection_diagnostics(),
-                            "final_installed_checkpoint":probe.emitted.load(Ordering::SeqCst),
+                            "before":before_admission, "after":after_admission,
+                            "final_installed_checkpoint":!before_checkpoint,
                             "publisher_callbacks":probe.publications.load(Ordering::SeqCst),
-                            "durable_snapshot_unchanged":unchanged.as_ref().ok(),
-                            "snapshot_error":unchanged.as_ref().err().map(|e|(&e.code,&e.message))
+                            "committed_counters_unchanged":no_commit,
+                            "durable_snapshot_unchanged":unchanged.as_ref().and_then(|r|r.as_ref().ok()),
+                            "snapshot_error":unchanged.as_ref().and_then(|r|r.as_ref().err()).map(|e|(&e.code,&e.message)),
+                            "same_original_io_epoch_stamp_current":healthy_current,
+                            "retry_safe_prepublication":retry_safe,
+                            "forced_affected_connection_reader_held_for_call":forced_reader_held_for_call,
+                            "forced_reader_released_before_final_retry":forced_reader_released.load(Ordering::SeqCst),
+                            "actual_authority_wait_failure_observed":reached_authority_wait
                         }));
                     }
                 }
-                if matches!(kind, Kind::PublicReady)
-                    && !probe.emitted.load(Ordering::SeqCst)
-                    && result.as_ref().err().is_some_and(|e| {
-                        e.code == "authority-busy"
-                            && e.message == "Current authority reader registry is busy"
-                    })
-                    && Instant::now() < until
-                    && original.current()
-                    && epoch.current()
-                {
-                    let same = snapshot.admit_original(stamp);
-                    let same_current = same.as_ref().is_ok_and(|r| r.current());
-                    drop(same);
-                    if !same_current {
-                        break result;
-                    }
-                    pre_effect_registry_retries.fetch_add(1, Ordering::SeqCst);
-                    // SAME immutable capture and original2s cutoff; no complete
-                    // Writer checkpoint/publisher was reached. Never retry a
-                    // kernel refusal, later error, effect or completed callback.
+                if retry_safe {
+                    pre_effect_metadata_retries.fetch_add(1, Ordering::SeqCst);
+                    previous_refusal = result.err();
+                    // SAME opaque capture, healthy original publication and
+                    // absolute2s cutoff. Never rerun physical work or retry
+                    // after held checkpoint, publisher entry, COMMIT, changed
+                    // durable state, permanent refusal or original epoch cut.
                     std::thread::sleep(
                         Duration::from_millis(1)
                             .min(until.saturating_duration_since(Instant::now())),
                     );
                     continue;
                 }
+                drop(first_public_reader.take());
                 break result;
             };
+            // Also drain on original-cutoff/epoch refusal before notifying the
+            // main owner; no reader survives worker join or final assertions.
+            drop(first_public_reader);
             let _ = entered.send(false);
             result
         });
@@ -839,7 +947,7 @@ fn run(kind: Kind) {
         !old_epoch.current() && affected_snapshot.admit_original(old_stamp).is_err();
     if matches!(kind, Kind::PublicReady) {
         // All original worker/IO/watcher owners have joined before formatting
-        // these bounded scalar events. No additional retry is introduced.
+        // these bounded scalar events. Decisions above remain prepublication only.
         eprintln!(
             "scoped-public-admission events={:?} refused_attempts={} publisher_callbacks={}",
             admission_trace::snapshot(&admission_trace),
@@ -848,10 +956,19 @@ fn run(kind: Kind) {
         );
     }
     eprintln!(
-        "scoped-handoff pre_effect_reader_registry_retries={} original_cutoff_unchanged=true",
-        pre_effect_registry_retries.load(Ordering::SeqCst)
+        "scoped-handoff pre_effect_metadata_retries={} original_cutoff_unchanged=true",
+        pre_effect_metadata_retries.load(Ordering::SeqCst)
     );
     eprintln!("scoped-handoff phase={kind:?} full_writer_checkpoint={held_checkpoint} first_error={:?} original_current={survived} original_stamp_current={same_stamp} fresh_pair_current={fresh_pair} queued_epoch_current={queued_survived} affected_fenced={affected_fenced} old_epoch_never_restored={old_epoch_never_restored} affected_still_fenced_before_shutdown={affected_still_fenced_before_shutdown} within_original_cutoff={within_original_cutoff} lifecycle_unchanged={} controlled_store_flow_facts=true cleanup_joined=true",first_result.as_ref().err().map(|e|(&e.code,&e.message)),before_lifecycle==after_lifecycle);
+    if matches!(kind, Kind::PublicReady) {
+        eprintln!(
+            "scoped-public-forced-exclusion calls={} safe_actual_authority_refusal={} reader_released_before_final_retry={} metadata_retries={}",
+            forced_first_calls.load(Ordering::SeqCst),
+            forced_first_refusal.load(Ordering::SeqCst),
+            forced_reader_released.load(Ordering::SeqCst),
+            pre_effect_metadata_retries.load(Ordering::SeqCst)
+        );
+    }
     assert!(within_original_cutoff, "actual original/stamp/fresh observation exceeded unchanged2s cutoff; causal result unqualified");
     assert!(
         affected_fenced && affected_still_fenced_before_shutdown && old_epoch_never_restored,
@@ -879,6 +996,13 @@ fn run(kind: Kind) {
     );
     if matches!(kind, Kind::OriginalCleanup | Kind::AdoptedCleanup) {
         assert_eq!(before_lifecycle,after_lifecycle,"valid current bounded handoff must preserve existing joined appearance until its real successor publishes or the claim expires/cancels");
+    }
+    if matches!(kind, Kind::PublicReady) {
+        assert!(forced_first_calls.load(Ordering::SeqCst) >= 1
+            && forced_first_refusal.load(Ordering::SeqCst)
+            && forced_reader_released.load(Ordering::SeqCst)
+            && pre_effect_metadata_retries.load(Ordering::SeqCst) >= 1,
+            "actual affected Connection Reader did not force a safe authority refusal and an original bounded metadata retry");
     }
 }
 #[test]

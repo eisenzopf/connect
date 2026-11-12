@@ -1,0 +1,89 @@
+{
+  "format": "connect/original-peer-helper4-independent-adjudication/1",
+  "reviewer": "/root/fixture_blockers",
+  "status": "ACTUAL4_OF4_HELPER_COMPONENT_PASS_ONLY",
+  "inputs": {
+    "results_sha256": "6693036231f8834ddb42acb64c88f4f218d3bfbd2e2038169df16e2364464caa",
+    "runner_sha256": "21b8da9a912c1b92a840c88afa26b08285232b8bcb28020735151b23b4bba7c9",
+    "manifest_sha256": "231ba2fd27454aefaf9e682ec351ca65980691fb5bb609c15c4636d93c5ab330",
+    "source_before_sha256": "d65e352a019d075a6422733a3c5835277f25ac9fb768225833d6f64eeb87b894",
+    "source_after_sha256": "d65e352a019d075a6422733a3c5835277f25ac9fb768225833d6f64eeb87b894",
+    "root_controller_closure_sha256": "25e87d011d0ef76608bfac0a9740cc98f28629b997437cbc2d259a9f59e1682f",
+    "binary_sha256": "724db04e9ef136a58a40a67fccfebe470880605e6c7f0ae808f2d38b93fc363a",
+    "binary_live_freshly_rehashed_equal": true
+  },
+  "actual": {
+    "expected": 4,
+    "dispatched": 4,
+    "actual_executed": 4,
+    "passed": 4,
+    "normal_prepare_exit": 0,
+    "exact_original25_combined_graph_build_exit": 0,
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    },
+    "features": [
+      "cli",
+      "default",
+      "test-support"
+    ],
+    "original_commands": 7,
+    "all_original_groups_joined": true,
+    "source_and_inputs_unchanged": true,
+    "binary_unchanged": true,
+    "inventory_each_exact_once": true,
+    "Root_original_tool1383_exit": 0,
+    "Root_original_tool1383_joined": true
+  },
+  "source_equivalence": {
+    "all3_active_reviewed_test_images_match": true,
+    "same_coherent_Store62_code_preserved": true
+  },
+  "qualification": {
+    "four_pure_helpers": true,
+    "full296": false,
+    "physical_native67s": false,
+    "decoded_media": false,
+    "ARM_shipping": false,
+    "matrix": false
+  },
+  "limits": [
+    "Two new shutdown controls and two retained Session-retirement controls passed via actual original gated-future/helper implementations.",
+    "No physical SDK/native peer/process drain or67s programme qualification is inferred; full296 will exercise those unchanged deadlines.",
+    "Old full294 EdDSA67514ms failure remains unqualified; this component does not replace that result."
+  ],
+  "rows": [
+    {
+      "index": 0,
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::shutdown::tests::all_eight_original_closes_enter_before_any_protocol_drain_is_released",
+      "passed": true,
+      "log_sha256": "3c45822d733fc3fda3b5830a594a76510dcde7564eb9a86c5c2c2ec86e2f6d8a",
+      "original_owner_joined": true
+    },
+    {
+      "index": 1,
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::shutdown::tests::early_close_errors_and_expired_cutoff_still_join_every_original_without_renewal",
+      "passed": true,
+      "log_sha256": "32eb1436ac47baa517106d841c25c3790e879e07bdc3a585650bd2bfd0af6eca",
+      "original_owner_joined": true
+    },
+    {
+      "index": 2,
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::retirement::tests::session_retirement_batches_all_current_reads_and_submissions_before_waits",
+      "passed": true,
+      "log_sha256": "4370732d65808c22424c91979abd6163cd1b91ffd6792f5da9d193aaecfe340d",
+      "original_owner_joined": true
+    },
+    {
+      "index": 3,
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::retirement::tests::session_retirement_joins_original_phase_siblings_and_preserves_errors_and_cutoff",
+      "passed": true,
+      "log_sha256": "932984fdbfb01227a53520a4d91504e21f402abeaed33cd43a044d3dc1952947",
+      "original_owner_joined": true
+    }
+  ]
+}

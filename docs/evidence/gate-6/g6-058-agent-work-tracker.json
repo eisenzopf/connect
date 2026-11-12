@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T15:05:18.617252+00:00",
-  "revision": 49,
+  "updated_at": "2026-11-12T16:30:24.110646+00:00",
+  "revision": 53,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 49,
-    "verified_at": "2026-11-12T15:03:07.583Z",
+    "content_revision": 53,
+    "verified_at": "2026-11-12T16:30:24.110646+00:00",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json",
-    "readback_evidence_sha256": "97e7a2f361bb505defd773fef434269f2729a44db954dd48e8e8cf6d96efdb50"
+    "readback_evidence_sha256": "dd93c49a791b3082f0e75e18b9d8dede212964205093fbfacdf495865399c11a"
   },
   "baseline": {
     "run": "v215",
@@ -163,7 +163,7 @@
         "P1.1"
       ],
       "status": "component-verified",
-      "implementation_state": "Complete Store61 passes185/185 with all owners and source/binary/input guards intact. Four scoped handoff phases preserve original healthy epochs/stamps and fence changed connections. Typed row/Unit/nonce/rollback/collision, real revocation/expiry, lifecycle withdrawal and metadata-vs-kernel watcher controls pass. All five prior Store53 failures pass. Unchanged50ms timing passes45.628ms. Full294 decoded media and actual32-cell effect remain pending.",
+      "implementation_state": "Store62 passes all185 exact controls after the test-only PublicReady fixture correction. Its real affected Connection Reader forces a safe authority refusal; four same-capture metadata retries preserve the healthy original IO, epoch and stamp and reach one publication under the unchanged2s cutoff. Complete294 separately ran292/294: both full62 decoded-quality checks pass, but the old Public counter and EdDSA67.514s cleanup failed. New coherent296 remains required; no matrix effect is qualified.",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
@@ -244,6 +244,13 @@
           "result": "185/185passed;0failed/ignored/unexecuted; original controller0joined; exact source/binary/input guards preserved",
           "source_revision": "4ef9d76298a729f7687df603b7ec2088967c644d",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store62.json",
+          "independent_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store62-independent.json",
+          "result": "185/185 actual PASS; deterministicPublicV3 forced refusal+4safe retries; allguards/owners intact; Serverhelpers/media/matrix not qualified",
+          "source_revision": "fad36f78ebf02be2ecffabe618699183a9ce10c3",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -251,7 +258,7 @@
         "b2b64ea5"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T15:05:18.617252+00:00",
+      "updated_at": "2026-11-12T16:30:24.110646+00:00",
       "mapped_check_count": 8,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -266,7 +273,7 @@
         "coordinator": "/root",
         "cause": "Before Writer admission, all four broad footprints permanently revoke original healthy media epochs for unchanged source/target bindings. These Store counterexamples support the actual pre-packetizer loss diagnosis; exact late Core NotReady leaf is not separately logged.",
         "fix": "New logical Connection authority domain; preserve complete identity/conversation/scene Reads; exact affected Connection and operation Record Writes. Closed same-Unit/nonce typed row transitions validate opaque original receipts, immutable stored outcomes, real current authorization and exact rows. Preserve valid existing pending-handoff appearance only; cancellation/expiry withdraw via actual state-change paths/sweep. Genuine lifecycle changes retain broad fencing.",
-        "verification": "Source unit verification complete. Batch commit all tested source/evidence, then full294 and both actual62s programmes on that exact commit. If green, preserve cleanHEAD through ARM shipping/full32. No media or matrix pass inferred from Store units."
+        "verification": "Actual25 passes292/294 and both full62 decoded quality checks; two fixture corrections applied and unit-verified Store185+helper4. Commit exact tested source/evidence then full296. If green, preserve clean HEAD through local nativeARM shipping/full32; physical67s cure and matrix remain unqualified."
       },
       "counter_test_owner": "/root/fixture_blockers",
       "followthrough_plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json"
@@ -697,7 +704,7 @@
         "P2.1"
       ],
       "status": "combined-workload-verified",
-      "implementation_state": "The previously failing allocation-overlap case passed in complete241. Neither full programme reported an audio quality failure. Source-quantum diagnostics and untested quality remain separate; matrix not qualified.",
+      "implementation_state": "The allocation-overlap regression and all focused audio assertions passed in complete294. Both full62 programmes reached all four real private Opus barriers and12 during snapshots each above2880 consecutive decoded samples. No uninterrupted end-to-end audio, no-reset or matrix qualification is inferred.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
@@ -789,7 +796,7 @@
         "257bcdf3"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T12:03:37.029798+00:00",
+      "updated_at": "2026-11-12T16:30:24.110646+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -823,7 +830,7 @@
         "P3.1"
       ],
       "status": "diagnosing",
-      "implementation_state": "Complete241 has only two full-video failures: five bins below24FPS. Exact four-flow conservation locates every missing packet at Core/queued authority or age checks before packetization, with no residual transport deficit. Scoped handoff authority followthrough assigned underP1.2.",
+      "implementation_state": "Both EdDSA and ES256 full62 programmes evaluated all six60-bin public observations; all route totals exceeded1440 frames and retained routes2/3 met the unchanged24FPS bins. Both quality-failure arrays were empty. Moving-route bins remain diagnostic under the reviewed focused oracle. Matrix coverage remains pending.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -911,7 +918,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T12:03:37.029798+00:00",
+      "updated_at": "2026-11-12T16:30:24.110646+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -961,7 +968,7 @@
         "P4.2"
       ],
       "status": "diagnosing",
-      "implementation_state": "Full run of 229 tests completed all four movements, historical captures and Data exchanges on both signing profiles, but three cases failed: short audio, both full-programme video verdicts and EdDSA cleanup. ES256 cleanup and idle passed. Capacity and diagnostic component evidence remain separate from full media and matrix qualification.",
+      "implementation_state": "Complete294 executed every case and joined all original process groups. ES256 full62 passed; EdDSA quality, four moves, Data, current End and both Session retirement checks passed, but all physical/control/client owners joined at67.514s beyond the unchanged67s bound. The same-code test-only joined-close/diagnostic-order correction passes four pure helper controls; physical67s proof awaits complete296.",
       "proposed_fix": "Separate missing-handoff coverage from resource leaks; retain required10browserrenderer owners and all actual natural joins.",
       "required_evidence": "All3completecycles, exact original/replacement receipts, zero Session-owned physical owners/tasks/pools, helper/client joins and unchanged end/cleanup deadlines.",
       "coordinator_review": {
@@ -998,7 +1005,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T07:30:31.657094+00:00",
+      "updated_at": "2026-11-12T16:30:24.110646+00:00",
       "mapped_check_count": 41,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": []
@@ -1057,7 +1064,7 @@
         "P2.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Complete241 executed239pass2fail; all224 component cases and15of17 workloads passed, including all11 explicitly enabled RTC cases. Both full programmes satisfy movement/Data/retirement assertions but fail videoFPS. Scoped authority fix and causal controls precede next full cohort.",
+      "implementation_state": "Complete294 executed292pass2fail with stable source/binaries and all original owners joined. Its pure controls passed276/277 and signed/full workloads16/17; all11 ignored RTC lanes executed. The two failures are the PublicReady prepublication Busy fixture and late EdDSA final joins. The three-file test-only follow-up passes Store185 and four helper controls. Commit exact tested images, then run complete296 with both full62 programmes adjacent LAST.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -1126,11 +1133,18 @@
           "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
           "result": "239/241; per-task assertions only, no matrix qualification",
           "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5"
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components25.json",
+          "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components25-independent.json",
+          "result": "292/294; all294executed; onlyPubliccounter andEdDSA67514>67000 finaljoinfailed; ESfullpass; alloriginalowners/source/binariesintact",
+          "source_revision": "fad36f78ebf02be2ecffabe618699183a9ce10c3",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T12:03:37.029798+00:00",
+      "updated_at": "2026-11-12T16:30:24.110646+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -3605,6 +3619,10 @@
       "at": "2026-11-12T15:05:18.617252+00:00",
       "by": "/root",
       "action": "Accepted complete185/185 Store61 with exact-source/owner/input evidence and independent reviews. All prior five Store failures pass; watcher oldkind0 cause reproduced/fixed and all existing29 plus3 new watcher controls pass; SQLguard compacting/compiled-program reuse keep50ms case45.628ms. No acceptance or matrix change. Batch commit and full294/localARM32 next. Mobile49verified."
+    },
+    {
+      "at": "2026-11-12T16:30:24.110646+00:00",
+      "action": "Recorded actual292/294 complete25, both full62 quality passes, two failures retained; reviewed three-file fixture batch verified Store185 and helper4. Batch commit then full296; all145 mappings preserved; no matrix promotion."
     }
   ],
   "tracking_review": {
@@ -3697,32 +3715,30 @@
   },
   "handoff_authority_followthrough": {
     "plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
-    "status": "COMPONENT-VERIFIED185/185; decoded-media/full294/matrix pending",
+    "status": "Store185 + helper4 component-verified; actual294292/294 with both full62 quality PASS; complete296 and full32 pending",
     "actual_video_boundary_report_sha256": "335e837a3a5ab4cc114f392234bc674d59927561d836eaf186cd51c6561e0096",
     "all_145_original_failure_mappings_retained": true,
     "old_causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
-    "latest_component_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store61.json",
-    "latest_independent_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store61-independent.json",
+    "latest_component_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store62.json",
+    "latest_independent_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store62-independent.json",
     "actual_component": {
       "expected": 185,
       "executed": 185,
       "passed": 185,
       "failed": 0,
-      "unexecuted": 0,
       "all_original_groups_joined": true,
       "source_binary_inputs_unchanged": true,
-      "source_head": "4ef9d76298a729f7687df603b7ec2088967c644d",
-      "normal_generation": 411
+      "source_base_revision": "fad36f78ebf02be2ecffabe618699183a9ce10c3",
+      "normal_generation": 411,
+      "guarded_formatted_code_paths": 55
     },
     "diagnostic_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-diagnostic54.json",
     "open_failures": [],
     "next": {
-      "all_store_regressions_required": true,
       "future_store_expected": 185,
       "component_qualified": true,
-      "future_complete_regression_expected": 294,
+      "future_complete_regression_expected": 296,
       "future_qualified": false,
-      "local_arm_only": true,
       "full_matrix_cells": 32,
       "matrix_qualified": false
     },
@@ -3731,10 +3747,6 @@
     "watcher_all_three_fixed_controls_pass": true,
     "performance_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-performance61.json",
     "all_five_store53_failures_pass_in_complete61": true,
-    "remaining_qualification": [
-      "New clean batch commit preserving all53 tested source paths",
-      "Complete294 regression including both full62 programmes LAST",
-      "Same clean commit through local nativeARM shipping and all32/432 matrix checks"
-    ]
+    "remaining_qualification": "Complete296 including all17 workloads/both full62 and unchanged67s original-owner cleanup, then same clean source nativeARM shipping/all32/432. Lastmatrixv2150/32."
   }
 }
