@@ -1,7 +1,7 @@
 {
   "format": "connect/media-quality-next-fix-plan/1",
-  "status": "Complete229226pass3fail; threeparallelcausalworkstreams assigned before nextbatch, no matrixadmission.",
-  "updated_at": "2026-11-12T08:45:40.622649+00:00",
+  "status": "Full run of 229 tests remains 226/229. Audio and cleanup component controls pass36/36; video loss remains diagnosing. Diagnostic45 component evidence is accepted: four Rust controls and three parser tests passed. Qualification of the next complete 241-test run remains pending. No matrix admission.",
+  "updated_at": "2026-11-12T11:01:04.718110+00:00",
   "coordinator": "/root",
   "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components23.json",
   "baseline": {
@@ -12,50 +12,66 @@
   },
   "fixture_followthrough": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
   "open_product_requirements": [
-    "B195 decoded audio/video quality",
-    "B196 complete actual End/cleanup programme",
-    "B198 coherent175 and32-cell qualification"
+    "B195: actual decoded audio/video quality on the unchanged full workload",
+    "B196: real complete End/cleanup and resource proof",
+    "B198: coherent241 and all 32/all432 qualification"
   ],
   "tasks": [
     {
       "id": "P5.1",
       "owner": "/root/media_blockers",
       "reviewer": "/root/v198_resources",
-      "cause_status": "Shortoverlapaudio20msloss beforeReady/Commit; consumedProbe checksglobalregistrybeforefindingitsgroupgone. Controlledcounterpending, noactualleafclaim.",
-      "next": "Retireexactconsumedobserver withatomicfastpath; currentactive/cancel/failedcommit negatives; old/fixedactualingresscontrols thencompletebatch.",
+      "cause_status": "A controlled old43 case proves the consumed Audio preparation probe can reject original ingress under the real Registry lock. Fixed44 passes actual PCMU capture/publication/decode plus current-refusal negatives. Exact native Opus/full run of 229 tests quantum attribution remains unproved.",
+      "next": "Retain the exact consumed-object fast path and current authority/generation guards; verify original native audio thresholds in complete run of 241 tests. Do not promote the scoped PCMU result to a QoE cure.",
       "invariants": [
         "No source-quantum attribution claim",
         "Keep2880 decoded samples, freshness and all quality bounds",
         "No payload or unbounded diagnostics"
-      ]
+      ],
+      "status": "component-verified"
     },
     {
       "id": "P5.2",
-      "owner": "/root/v198_resources",
+      "owner": "/root/fixture_blockers",
       "reviewer": "/root/media_blockers",
-      "cause_status": "SameSQLUnitcontrolsallpassbutbothfull62stillfailvideo. ExactRTP/PLIrecovery leaf unproved.",
+      "cause_status": "Both full run of 229 tests video verdicts still fail. PLI is requested, received and used, but existing cumulative counters do not identify the exact drop boundary. Diagnostic graph411 records bounded numeric stage evidence; it does not repair media loss.",
       "actual_failures": [
-        "Full206 publicroutes2and3 programme second44 each19FPS versus24; source encoding/publication30FPS.",
-        "Fixed39 newcounter failed completeWriter admission precondition before SQLfault; exact refusal stage unmeasured.",
-        "Fixed39 transaction diagnostic expected1 unchanged transaction for actual readonly duplicate capture (0transactions)."
+        "Full run of 229 tests EdDSA: retained receiver2 seconds18=15 and43=22 FPS; receiver3 second18=16, minimum 24.",
+        "Full run of 229 tests ES256: receiver2 seconds18=18,43=14 and46=20 FPS; receiver3 second43=19, minimum 24.",
+        "All original source totals meet 1440; matching failures in different runs are not a controlled causal comparison."
       ],
       "timing_correction": "Full programme uses representative(false,true): no deliberate coordinator hold. Bins18/43 span Ready and actual Commit; quality snapshot before Ready does not prove loss before Commit.",
-      "next": "FixturetracesrealrawautoPLI/recovery/sourcekeyrequests withMediareview beforepatch; noFPSrelaxation.",
-      "proposed_scope": "Consider pre-effect SQL availability/nonblocking exact begin plus full release and fresh same-root plan retry ONLY before effect begins. No replay after begun; no arbitrary removal of current Write custody.",
+      "next": "Finish accepted closed45 diagnostic/default-feature checks, then measure the complete run of 241 tests programme with actual ingress/Core/transport/recovery timelines before selecting any further production fix.",
+      "proposed_scope": "Only source-backed diagnostics are added now. Any production change requires an actual causal counter and independent review; no generic replay, threshold change or removal of required Writer custody.",
       "invariants": [
         "Do not hold SQL while waiting for file authority",
         "Dropping Writer does not by itself prove a revoked snapshot is usable while SQL remains held",
         "Fine connection fencing needs complete reader,writer,DML and revocation coverage; no arbitrary RecordWrite substitution",
         "Keep original root deadlines and all membership,key,device,scope and expiry negatives"
+      ],
+      "status": "diagnosing"
+    },
+    {
+      "id": "P3.2",
+      "owner": "/root/v198_resources",
+      "reviewer": "/root/media_blockers",
+      "status": "component-verified",
+      "cause_status": "Old43 reproduces the serial helper ordering hazard. Fixed44 verifies both current reads before End submissions, and both original End submissions before waits, while joining siblings and preserving errors/cutoff. The exact historical full run of 229 tests deadline holder is not claimed.",
+      "next": "Run actual EdDSA and ES256 full programmes in complete run of 241 tests and require real Session/SDK/runtime retirement by the original 67-second cutoff.",
+      "invariants": [
+        "Same original Client and logical mutation IDs",
+        "Current topology and authority checks retained",
+        "No new cutoff or timeout-drop of original work",
+        "All phase siblings and cleanup owners joined"
       ]
     }
   ],
   "qualification_order": [
-    "Prove cause with a controlled counter and independent review",
-    "Implement only verified cause fixes and unit-test positive and negative cases",
-    "Run all206 exact Rust selectors, preserving175/130predecessors, all11explicitignored and unchangedfull62 programme last onfinalfrozen source.",
-    "Require evaluated decoded quality,4moves,Data,original End/joins and budgets",
-    "Then normal shipping/preflight and all32cells/all432checks locally on Mac/nativeARM Linux"
+    "Accept exact old-condition counterexamples and independent source review without inferring a full QoE cure.",
+    "Bind closed45 actual four Rust controls, three isolated parser controls, four-crate default feature checks, source/binary stability and all original joins.",
+    "Root commits and binds one clean final graph411 source. Run all241 selectors:224 pure controls,17 workloads, all 11 explicit ignored RTC cases and both full62 signing profiles adjacent last. Retain all 229/206/198/175/130 originals.",
+    "Require evaluated decoded audio/video quality, all four movements, bidirectional Data, actual End/retirement, original owner joins and unchanged time/resource budgets.",
+    "Only actual241 tests passing with exact source/binary/owner proof admits normal shipping/preflight and all 32cells/all432checks locally on Mac/nativeARM Linux; preserve the same tested commit."
   ],
   "G6_054": "Remains parked",
   "full_matrix_latest": {
@@ -72,5 +88,34 @@
   },
   "public_commit_sql_counter_design_sha256": "41d4b8e9e092bb75b12931bc6a122411338e96fcfaa4bf5f388fa0676f3be030",
   "video_write_window_analysis_sha256": "2fb5a65c01715575140aebda7eb276fc91fa212c298e0f60300c8c8f32eb52ea",
-  "audio_diagnostic_proposal_sha256": "718a27b886b2663a3cad37568fbe2fa93bf97c91259cff727a55fc5a7f35b97c"
+  "audio_diagnostic_proposal_sha256": "718a27b886b2663a3cad37568fbe2fa93bf97c91259cff727a55fc5a7f35b97c",
+  "old43": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-old-counters43.json",
+    "passed": 1,
+    "expected_failures": 2,
+    "expected_outcomes_matched": 3
+  },
+  "fixed44": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json",
+    "passed": 36,
+    "executed": 36,
+    "all_original_groups_joined": true,
+    "scope": "34 Core controls plus two pure cleanup helpers; no full native QoE qualification"
+  },
+  "diagnostic45": {
+    "status": "component-verified",
+    "expected_rust_controls": 4,
+    "executed": 4,
+    "passed": 4,
+    "expected_parser_controls": 3,
+    "parser_passed": 3,
+    "default_four_crate_features_verified": true,
+    "all_original_groups_joined": true,
+    "source_and_binary_stable": true,
+    "evidence": "docs/evidence/gate-6/g6-058-v216-diagnostic-controls45.json",
+    "evidence_sha256": "1b4624ced0874d1f43a4d9882362e64e701b938c88493686b7204c6a4e31af8b",
+    "actual_results_sha256": "8f440900825fac0d014db98b60320e6f134209c80bd7ef6e8cb8172b4c76548e",
+    "scope": "Numeric diagnostic correctness and default feature availability only; not a media-loss cure or full run of 241 tests qualification."
+  },
+  "capacity_note": "Previously recorded free-byte snapshot is historical, not a current preflight. Root must recheck physical floors before builders/shipping/matrix; no budget reduction."
 }

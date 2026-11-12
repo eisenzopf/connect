@@ -1,0 +1,274 @@
+{
+  "format": "connect/video-diagnostic-controls45-independent-adjudication/1",
+  "reviewer": "media_blockers",
+  "decision": "actual4Rust and3parser passed; normal feature separation verified; no QoE qualification",
+  "raw_results_sha256": "8f440900825fac0d014db98b60320e6f134209c80bd7ef6e8cb8172b4c76548e",
+  "source_seal_sha256": "50ce4899ad820d1d9c8f11b2d62af2e2bbb097edce508f72a7ab4e96285e2bef",
+  "workspace_sha256": "1ad065e2719fb5a6951a9401b9cf03fee1f23672eb52cd9b8ac5d377a6ed3699",
+  "source_lock_sha256": "67cb03487b91182be0a7421057bedcf099b1f4f61a329a6706325f56ed82b212",
+  "prepared_generation": 411,
+  "diagnostic_candidate_manifest_sha256": "fb607ee9598de88d73054a0ccf2a1476dbfa4b28fe5f180235b54f9c314330d1",
+  "runner_sha256": "34ced5b2ea6de7643c4447633a3fd013b958f726c6d540c3469177bde644eb1c",
+  "summary": {
+    "rust_expected": 4,
+    "rust_executed": 4,
+    "rust_passed": 4,
+    "rust_failed": 0,
+    "rust_ignored": 0,
+    "parser_executed": 3,
+    "parser_passed": 3
+  },
+  "builds": [
+    {
+      "group": "default",
+      "exit_code": 0,
+      "elapsed_seconds": 871.0714071659604,
+      "owner_naturally_joined": true,
+      "source_stable": true,
+      "stdout_sha256": "984d41299fa1cd8b15ad5637d976778a1702bb9d3afd3d6f89d8fc14e876888b",
+      "stderr_sha256": "adcf6a94e4602aa187fdd0057345ddb67fefbdcfa643f73ae152a96688da68b9"
+    },
+    {
+      "group": "core",
+      "exit_code": 0,
+      "elapsed_seconds": 372.5848542919848,
+      "owner_naturally_joined": true,
+      "source_stable": true,
+      "stdout_sha256": "bc2ae9eb4d706431efb667a38623829edde904fbf0b5b6de6af80b20b14ea6f3",
+      "stderr_sha256": "15375508f4b9d30e2f1065a90659cb21f75cf2a104c08edf8e3f96ec13eb87c9"
+    },
+    {
+      "group": "uctp",
+      "exit_code": 0,
+      "elapsed_seconds": 367.22866937494837,
+      "owner_naturally_joined": true,
+      "source_stable": true,
+      "stdout_sha256": "2248e7c7c3411b849e7c71f25f36f302dcea645bfdd27cc9885ebb972b8bdcb4",
+      "stderr_sha256": "6a866f42a6ffc9262bc2ec8490906be7281e26684a1182ca5cfad05c79a36b61"
+    },
+    {
+      "group": "combined",
+      "exit_code": 0,
+      "elapsed_seconds": 1843.9013254579622,
+      "owner_naturally_joined": true,
+      "source_stable": true,
+      "stdout_sha256": "5592def05efdc337588e16ded8a0ba361a934f1e1136b2b553d391d181628449",
+      "stderr_sha256": "06dcddcea8b1e9f1541421fdf7a5e6cb3b28880ba99469edc3a1ea4fc7b7cd66"
+    }
+  ],
+  "default_feature_proof": [
+    {
+      "package": "connect-service",
+      "normal_library_artifact_verified": true,
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": false
+      },
+      "features": []
+    },
+    {
+      "package": "connect-client",
+      "normal_library_artifact_verified": true,
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": false
+      },
+      "features": []
+    },
+    {
+      "package": "rvoip-core",
+      "normal_library_artifact_verified": true,
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": false
+      },
+      "features": [
+        "default",
+        "identity",
+        "media",
+        "opus",
+        "rtp",
+        "sip",
+        "uctp",
+        "vcon"
+      ]
+    },
+    {
+      "package": "rvoip-uctp",
+      "normal_library_artifact_verified": true,
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": false
+      },
+      "features": []
+    }
+  ],
+  "rows": [
+    {
+      "index": 0,
+      "group": "rvoip-core",
+      "selector": "staged_streams::video_boundary::tests::core_video_boundary_counters_distinguish_forward_refusal_and_unpublished_events",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [
+        "default",
+        "identity",
+        "media",
+        "opus",
+        "rtp",
+        "sip",
+        "test-support",
+        "uctp",
+        "vcon"
+      ],
+      "binary_sha256": "80b6d438543ae42099db8c922beed85f86e69644fb62edb0df9365fc2fa57374",
+      "log_sha256": "eb3de82f4bf8fabbac335c7620af65f55e4a3ce248f6808d226b2866ddd88c9f",
+      "inventory_sha256": "650920375079aab9f925a798567e53b2386a4e154007b8adc6378391afdc1bb5",
+      "emitted_artifact_matched": true,
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 1,
+      "group": "rvoip-uctp",
+      "selector": "staged_media::video_diagnostic::tests::numeric_video_boundary_diagnostics_isolate_ports_stages_and_unreported_slots",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [],
+      "binary_sha256": "1b695ebdb20cbd132f57394079ae632ed4b1bb08dd15f7086803a888923c3fcf",
+      "log_sha256": "08bc6557a1dd1a73f8c05a591bbe1325bec75cddb3ab1543f5a77d8942c58fd7",
+      "inventory_sha256": "0f9e78788f5b5ae9a98686fd2806acc328ccb111a8a2861d495f397fdaafd1b8",
+      "emitted_artifact_matched": true,
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 2,
+      "group": "connect-client",
+      "selector": "canonical::native_video::io::diagnostic::tests::raw_video_recovery_diagnostics_remain_numeric_bounded_and_owner_local",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [
+        "test-support"
+      ],
+      "binary_sha256": "0dc023776fe6eac510c3fae562890534073d63d26c2cf4edb60d4ee44f65d08f",
+      "log_sha256": "47a6b98a8f558661cab9456d17ba2518635b0c22a470533c819a8e418dac8dcb",
+      "inventory_sha256": "89c2e4bfd31d895dd3b34fe4283593476dbc718ad894de141f371b3f2b922436",
+      "emitted_artifact_matched": true,
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 3,
+      "group": "connect-server",
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::video_diagnostics::video_recovery_history_keeps_actual_stage_source_clock_and_fixed_numeric_limit",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [
+        "cli",
+        "default",
+        "test-support"
+      ],
+      "binary_sha256": "014d8f470515fdc85e23316e1ca3731e944b968273c57e9e301893a54738e42b",
+      "log_sha256": "8f65d85f02e0f6c92ca897edbf57415875ecd0ad54826cc965cb7a34772de970",
+      "inventory_sha256": "dad5101601ecf21208f410a4935fab92097fae4f1ac2e28670856da2fce76a5d",
+      "emitted_artifact_matched": true,
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    }
+  ],
+  "parser": {
+    "exit_code": 0,
+    "actual_Ran_tests": 3,
+    "actual_OK": true,
+    "log_sha256": "146e9bb10b5fdb931aeb3f91da37e76c81f64dc423263896fd9b7d138f5dfa77",
+    "runner_sha256": "ea7d3f546a32be22531f561d0a14fca4125c7285dcaaeae200dace255bb707af",
+    "extractor_sha256": "cec41769c154c084f3028f6a21a72991ea64177c23e7cab3755df2f1255b8b5a",
+    "original_owner_naturally_joined": true
+  },
+  "verification": {
+    "current_workspace6039_entries_rehashed": true,
+    "current_upstream_files_rehashed": {
+      "rvoip": 575,
+      "parley": 3
+    },
+    "source_lock_rehashed": true,
+    "every_selector_once_in_actual_inventory": true,
+    "all_test_log_hashes_verified": true,
+    "current_emitted_binary_hashes_verified": true,
+    "actual_artifact_manifest_package_target_profile_features_matched": true,
+    "default4normal_profiles_no_test_support_or_memory_diagnostics": true,
+    "parser_helpers_rehashed_and_actual_Ran3_OK_verified": true,
+    "all_original_child_groups_joined": true,
+    "source_and_binaries_stable": true,
+    "original_controller_tool_session": 82964,
+    "original_controller_exit_code": 0,
+    "original_controller_join_witness": "SHA-bound Root actual original tool82964 exit0/wait/join closure, not a substitute process-absence check"
+  },
+  "scope_limits": [
+    "Four pure Rust controls validate bounded numeric diagnostics, stage/scope/unknown/overflow distinctions, and genuine source-clock metadata; they do not execute real full62 media programmes.",
+    "Default compilation proves Service/Client/Core/UCTP normal library artifacts contain no test-support or memory-diagnostics feature. UCTP own-manifest pure control executes with features[]; instrumented combined graph feature wiring remains explicit.",
+    "Parser actual three isolated controls passed; their fixtures do not constitute actual programme packet evidence.",
+    "Lifetime field erasure compiles; combined build1843.901seconds versus prior44server1834.721seconds is not a controlled comparison and establishes no compile-speed benefit.",
+    "Actual full229 remains226pass3fail; no audio/video/67s/OS/full241/full32/432/shipping qualification follows."
+  ],
+  "qualification": {
+    "diagnostic_controls_passed": true,
+    "full241_qualified": false,
+    "full62_qoe_fixed": false,
+    "matrix_qualified": false,
+    "shipping_admission": false
+  },
+  "privacy": {
+    "raw_paths_identifiers_credentials_pids_payloads_included": false
+  },
+  "original_owner_closure_sha256": "40c9cbfe0baec3cf2ef50e78caff57da08c03ae4134f4e9481e730a9080de40a"
+}

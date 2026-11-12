@@ -1,0 +1,600 @@
+{
+  "format": "connect/fixed-owned-controls44-independent-adjudication/1",
+  "reviewer": "/root/fixture_blockers",
+  "decision": "actual scoped36/36 accepted; no full programme or matrix qualification",
+  "raw_results_sha256": "dd12e9e0304badff8db75602faa2454149f0056f2d53426194d2e4aa496b0c37",
+  "selection_sha256": "f802407b6b2be9898ca875de9c985e27e13db0056455aa1dd1440d8220d6a04e",
+  "source_seal_sha256": "c0b5db64d25efb7d110bcd41e0c4f848a522fd031e5171380f50bfa33995b25d",
+  "source_lock_sha256": "03b835220b201da127f6d3c8e66cbf1a9d1f8221157c57654264681224b7bf31",
+  "prepared_generation": 410,
+  "summary": {
+    "expected": 36,
+    "executed": 36,
+    "passed": 36,
+    "failed": 0,
+    "ignored": 0,
+    "unexecuted": 0,
+    "groups": {
+      "core": 34,
+      "server_pure": 2
+    }
+  },
+  "builds": [
+    {
+      "group": "core",
+      "exit_code": 0,
+      "elapsed_seconds": 349.932,
+      "original_owner_naturally_joined": true,
+      "source_stable": true,
+      "stdout_sha256": "245a3efe533183925773c873a02acfec9914a3d0337461d28ff843ce184973d6",
+      "stderr_sha256": "c9b90e461ed6ee2ae2dbfb1dbccb39a264593b153aa6bf364379da4460f88ce2"
+    },
+    {
+      "group": "server",
+      "exit_code": 0,
+      "elapsed_seconds": 1834.721,
+      "original_owner_naturally_joined": true,
+      "source_stable": true,
+      "stdout_sha256": "85d9ca39e2b335af2e2ebba7530ba40e5fbc924f571ab6b3427d270d49e20ca7",
+      "stderr_sha256": "1eea3c2231185dab957b3a3959e93ca611a09cd24cca61ac9560808a139e22b1"
+    }
+  ],
+  "emitted_artifacts": {
+    "core": {
+      "artifact_profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "artifact_features": [
+        "default",
+        "identity",
+        "media",
+        "opus",
+        "rtp",
+        "sip",
+        "test-support",
+        "uctp",
+        "vcon"
+      ],
+      "binary_sha256": "e080a3dc5a0e75aebdd0da21124708d8b2f7bce737735255accecad5e8c72775",
+      "emitted_artifact_matched": true,
+      "inventory_sha256": "b0694d230c5083e7ae68f59a81c5120da457e5fa63b493e49077bf85073a80f7"
+    },
+    "server": {
+      "artifact_profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "artifact_features": [
+        "cli",
+        "default",
+        "test-support"
+      ],
+      "binary_sha256": "355c4df52fb629893510a05f3875b34137b304c22a45db9f9204db604c9f2855",
+      "emitted_artifact_matched": true,
+      "inventory_sha256": "e4f80d53315ecddbf06a05391871968bbe421dca12825871679d93561f341cd3"
+    }
+  },
+  "verification": {
+    "exact_order_and_selection": true,
+    "every_selector_once_in_actual_inventory": true,
+    "each_actual_summary_one_pass_zero_fail_zero_ignored": true,
+    "all_case_log_hashes_verified": true,
+    "actual_emitted_binary_hashes_independently_rechecked": true,
+    "all_original_groups_joined": true,
+    "source_unchanged": true,
+    "case_binary_unchanged": true,
+    "original_controller_joined": true,
+    "controller_exit_code": 0,
+    "controller_closure_witness": "coordinator reported original closure; child owners independently bound in results"
+  },
+  "old_fixed_causal_comparison": {
+    "old_generation": 409,
+    "old_results_sha256": "f74715e18c2226f4627d780613206067934614232b4dd7a9ea95b51047901587",
+    "old_summary": {
+      "executed": 3,
+      "passed": 1,
+      "failed": 2,
+      "expected_outcomes_matched": 3
+    },
+    "audio_old_counter": {
+      "log_sha256": "7c16e2b89bc36347c46400d4b0bf5083b034d3eafbe8528a1b5ddab7f2b87e79",
+      "group_consumed": true,
+      "same_probe_owner_alive": true,
+      "ordinary_capture_error": "Model(Conflict)",
+      "cleanup_remaining": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "intended_final_oracle_failed": true
+    },
+    "audio_fixed_counter": {
+      "log_sha256": "063dac13a502b5cc0b30ba72cd64085e0c8cc1e0a2545f9d5bf81f55c6327d31",
+      "group_consumed": true,
+      "same_probe_owner_alive": true,
+      "ordinary_capture_error": null,
+      "actual_original_submission_succeeded": true,
+      "actual_pcmu_decoded_mean": 1820,
+      "cleanup_remaining": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "actual_final_oracle_passed": true
+    },
+    "cleanup_old_counter": {
+      "log_sha256": "cafffacd11e0e3efa5f7d4407df5763d08ce757f1806a861c646688a639624e2",
+      "actual_first_phase_order_control_failed": true,
+      "second_error_cutoff_control_already_passed": true
+    },
+    "cleanup_fixed_controls": {
+      "actual_both_phase_order_and_error_cutoff_controls_passed": true,
+      "evidence_kind": "pure futures/helper unit controls; no actual two-Session full-programme End latency claim"
+    }
+  },
+  "scope_limits": [
+    "Actual Audio probe control is real PCMU160-sample Core fixture; enabling Opus artifact feature does not turn this control into Opus960/network QoE evidence.",
+    "Retained34 Core tests include four new consumed-probe/object-identity controls and two newly selected existing audio-preroll controls plus28 originals.",
+    "Two server controls test the actual phase-helper ordering, sibling joining, errors and cutoff with bounded futures. They do not execute the real full62 programme or establish all SDK/Session joins under67seconds.",
+    "This scoped result does not repair, erase or promote prior full229226/229. Remaining full programme audio/video/cleanup acceptance requires a new complete frozen cohort.",
+    "No matrix/shipping/ARM/full32 activation is authorized by these36 controls."
+  ],
+  "qualification": {
+    "component_controls_passed": true,
+    "full_cohort_green": false,
+    "full_62_qoe_fixed": false,
+    "native_67_second_cleanup_qualified": false,
+    "matrix_qualified": false,
+    "downstream_activation_allowed": false
+  },
+  "rows": [
+    {
+      "index": 0,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_audio_old_and_new_lock_collisions_preserve_plan_and_old_pcm",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "89acbd1f5d905da788b29cf7e5c7f8a72270254e61f5c29b4da4522e5d1c627c",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 1,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_capture_preserves_original_sequence_on_each_scene_lock",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "cf4b6e77210dba480beb560b7bd7d7cea635f3cab7a872f16287159fd3c1ccaf",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 2,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_observation_does_not_consume_event_at_capture_or_final_scene_check",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "84419a6b2f036e9e76368e726ee4bc8768a73cb87839a4dffebac3d89ac6944e",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 3,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_original_pre_media_and_sequence_gap_refusals_remain",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "2cb7e1766d385c6dfa8f13371680c5541e69fc7e3ff26385834b3842f17df59a",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 4,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_poisoned_state_is_refused_without_retry_or_old_retirement",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "7c3968189c894c4e557a82616af4530193ebf7096c2bf5b91f9911010be62c42",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 5,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_readiness_deferral_preserves_full_and_partial_confirmation",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "a6fcd1ab97643b254816bd81741a9657cadee9f5ad91215ce9fec7da6ba3d54f",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 6,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_real_revision_and_binding_refusals_are_never_busy",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "0bf8e02d79d4c88cdac039fcc55483c86040b3889281366c4d7924aee719a04a",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 7,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_video_old_and_new_lock_collisions_preserve_intent",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "344f77a1af963f3b1ca05eff47374624115478eb5470fa35f56d7bbe5557c854",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 8,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::replacement_metadata_collision_retries_original_plan_and_preserves_refusals",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "c6a77d37226c793dc52da63072a6eaa512481b4535bc6efea962ea4a46d24755",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 9,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_defers_before_routes_and_same_capture_recovers",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "7b672e7fe7e6803c811365d980d8d3edd4e4eb7d4f3f97d1d95ea6d4473f8d5d",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 10,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_does_not_bypass_cancel_revocation_or_expected_revision",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "b1af85b773b217e035c92e14b8ffbc351c7de18f724273d1121c788cea348f3d",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 11,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_poisoned_metadata_and_invalid_mapping_are_terminal_before_routes",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "87dc80ef3dac51a7c4740307887be1165e29c12db8941b26318d7fddc604df8a",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 12,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_exclusion_does_not_bypass_cancel_revocation_or_expected_revision",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "756c8ae1a8889a0ac53c5f9b67e5b1e792a9579a914c6ec3b0cba11e24f5e431",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 13,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_exclusion_is_unpublished_preserves_ordinary_mapping_and_recovers",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "7a25def6717789d0cb5beb378f803c237d24efc26a7d1aff4eceae8a353fb98f",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 14,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_poison_and_original_expiry_remain_terminal_before_routes",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "5cad00bc6344462ea7120baf107954cca42827c8019c183f222e11c8fc9a7bac",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 15,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::unpublished_private_metadata_leaves_release_all_custody_and_recover_same_capture_with_fresh_proof",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "2b813023d298cd90174df9b1009dff6d5097845ea481aaf35045423aa7bd86d5",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 16,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::unpublished_private_metadata_cannot_extend_original_expiry_or_bypass_cancellation",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "ae26f67ec98ca90f42a52d4ff3fbab252229c4b6e0614629da66e32b9e9133a4",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 17,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::unpublished_private_metadata_preserves_current_policy_revision_and_selection_refusals",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "e9390dee225d976e8b276c8332bc5ae87003a36b86ac5d33ed40f429d0b78340",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 18,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::poisoned_private_metadata_is_terminal_and_ordinary_original_stamp_keeps_its_contract",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "64f7ef3340bb1b049518570260cc700b6d3cad3fa52afbeaa95a4fecad08aaf6",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 19,
+      "group": "core",
+      "selector": "staged_streams::tests::packet_epochs::queued_audio_source_epoch_is_not_renewed_after_revocation_and_restoration",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "2ca2aa3da1873cc1169b01ff8647744db56326d067a0e20c0a39eea98897d690",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 20,
+      "group": "core",
+      "selector": "staged_streams::tests::packet_epochs::queued_audio_recipient_epoch_is_not_renewed_after_revocation_and_restoration",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "3d26b5404a5342c9dfb5d1c29dd7204867d681de5486bcaf3f8eace899da8b95",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 21,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::metadata_busy_retains_same_opus_packet_pcm_and_timestamp_at_all_prepublication_stages",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "747874f86b2d2c74e465a6dd1abf58eef22d0ea7c1bbae86a87c0e859da20ac2",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 22,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::metadata_busy_retention_cannot_restore_revoked_changed_or_expired_original_pcm",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "c967f074c392ef0b9d08e4efb1ca52551982a8746719c45dd9d668f6aadc120d",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 23,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::permanent_audio_refusals_never_enter_metadata_retry_or_resurrect_original",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "fcad68e2954bd2a20cfb1ff0e065e253dfb52967fa07fb58ff3a722cb208b6cd",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 24,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::ready_audio_metadata_busy_returns_exact_original_and_never_retries_submitted_io_error",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "cebdb221db1111172db4b3317582c55264be4b747c5c656f430ef745d565224a",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 25,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::ready_audio_busy_cannot_forget_earlier_successful_source_lease_expiry",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "66fa96c8d200a323fe62dab74d2d87591cc8035b220522860095ff84b58ba0ea",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 26,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::generic_audio_metadata_busy_retries_fresh_once_and_keeps_real_refusals_terminal",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "ad3699c5283e14c1ddc6d416bce9dbd7b97ee308b02d8299fb903394e2a21c9f",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 27,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::generic_audio_retry_keeps_original_age_and_does_not_retry_submitted_metadata_busy",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "e6442c46d14af14ddd6e00582f9b4c6c786aeee0427a9296041da0924e3adc90",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 28,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::consumed_probe::consumed_endpoint_probe_kept_alive_after_commit_never_shadows_original_public_audio",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "063dac13a502b5cc0b30ba72cd64085e0c8cc1e0a2545f9d5bf81f55c6327d31",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 29,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::consumed_probe::active_and_failed_endpoint_preparation_stay_closed_and_retirement_never_grants_revoked_audio",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "305ceb0549d92ab57cfa78c8597bd07b3c5ca988d4f2f96352b5760b64cc23b6",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 30,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::consumed_probe::consumed_endpoint_probe_does_not_bypass_current_revocation_or_retired_original_generation",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "65cfa4b315c3aaa9475f1b973ae00a99d8c89abf8ac431ea2fa7e8eafb2c9cdb",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 31,
+      "group": "core",
+      "selector": "staged_streams::audience::consumed_probe_metadata_tests::endpoint_probe_retirement_is_exact_object_and_never_reactivates_a_consumed_clone",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "83c816697be712b031f7c22f4eca69bff9c381c42e50f4b7f786410cd9cfe463",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 32,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::audio_preroll::private_audio_preroll_commit_retires_private_fences_and_preserves_new_ordinary_audio",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "3a4a465623d7cb66cfc266b70cdfec77021188c1161d2e15eafd1a8a955ead59",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 33,
+      "group": "core",
+      "selector": "staged_streams::tests::private_consult::replacement::audio_preroll::private_audio_preroll_failed_commit_never_adopts_an_invalid_private_stamp",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "5d432e739d9d98936386a9ceb3c599e85a3097340d31ed7490c135cc8860f38d",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 34,
+      "group": "server",
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::retirement::tests::session_retirement_batches_all_current_reads_and_submissions_before_waits",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "50c8e9e547b259459c10b98b1e7c984228e4d00fc0318cd9618aacf51631d6e2",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    },
+    {
+      "index": 35,
+      "group": "server",
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::retirement::tests::session_retirement_joins_original_phase_siblings_and_preserves_errors_and_cutoff",
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256": "01cf48e6fe96bb2f91a442eb47275c83a8e55602115aa088d28594d6e9c04696",
+      "source_and_binary_stable": true,
+      "original_owner_naturally_joined": true
+    }
+  ],
+  "privacy": {
+    "raw_identifiers_paths_credentials_pids_or_payloads_included": false
+  }
+}

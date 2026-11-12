@@ -1,0 +1,65 @@
+{
+  "decision": "SOURCE/BINDING ACCEPT checkpoint42 materialized v2; no workload/matrix promotion",
+  "reviewer": "media_blockers",
+  "manifest_sha256": "b6332e833c12f9eb4f458c5266efbbf4f8a8af5564344e32a66c4eb87ce18d20",
+  "files": [
+    {
+      "path": "docs/evidence/gate-6/g6-058-agent-work-tracker.json",
+      "before_sha256": "52073ca866948291aa0b6914bf24e7b94b0be31d2952277962d25056ad9808e0",
+      "after_sha256": "86094852ffb317443241da85b4ca92d6b1864f12443586b58be3f0e6b18acdb6"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-blockers.json",
+      "before_sha256": "a14f23fbcbfabbae32c9371c3512959b8b707e13c81197e065d6938f72d7bfa4",
+      "after_sha256": "f32ffbef3fbc83001b02fad482d9e61d5680344827c6871759441a0486c0ad83"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback.json",
+      "before_sha256": "bec40ef6bca49dc80df271245ec466982f6b5efeb6cee827921ea6999936e9f6",
+      "after_sha256": "597a51e1c8ca587321a53dfb1a8a9610937260fd9c2b2bdcbce9aea59310f58e"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-diagnostic-controls45.json",
+      "before_sha256": null,
+      "after_sha256": "1b4624ced0874d1f43a4d9882362e64e701b938c88493686b7204c6a4e31af8b"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json",
+      "before_sha256": null,
+      "after_sha256": "ab15e5965a900f562148824137bda3589f31ed07592f833625e0fdce6a434c8a"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-media-quality-next-fix-plan.json",
+      "before_sha256": "4fde710088b4afe54cc82447b265fb3d759103121f4ad5ae93ca872a81e33de7",
+      "after_sha256": "ed6ba34d5a97cf27165870a7bb01ee414554e40563756c54812c0953817c2349"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-old-counters43.json",
+      "before_sha256": null,
+      "after_sha256": "4dfb04b851022ef6e2b9518d2bce071d998f991857a3bcbb806fb1676954a8bf"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-warm-libtest-cleanup46.json",
+      "before_sha256": null,
+      "after_sha256": "f90f737a24e16e6859ce8b469594cb6b2b80eb076e09dd5b386ddc7cdd658d36"
+    }
+  ],
+  "implementation_code_commit": "c2eb8edbad1e9c05a880cbef65396c2313e26d6a",
+  "prior_template_review_sha256": "55c1fff31b92557ee15ba715ca6aa9da5fb73695e6ee8a5aab1bdcf7f7512668",
+  "diagnostic45_adjudication_sha256": "1b4624ced0874d1f43a4d9882362e64e701b938c88493686b7204c6a4e31af8b",
+  "mobile_readback_sha256": "597a51e1c8ca587321a53dfb1a8a9610937260fd9c2b2bdcbce9aea59310f58e",
+  "verified": [
+    "All8 overlay after hashes, existing tracked before hashes/new-file absence and no __ROOT placeholders checked. Typed checkpoint revision42/mobile42 and diagnostic counts4Rust/3parser/default4 verified.",
+    "All15 actual task assignments/dependencies/invariants and145 exact failure mappings, baselinev2150/32 and full229226/3 preserved; full241/matrix flags stay false.",
+    "Diagnostic45/Fixed44 canonical evidence byte-equal independent accepted sanitized evidence. Old43 retains1pass+2expected failures, no promotion to3ordinarypass.",
+    "6039 current workspace files and declared upstream bytes/modes independently rehashed against actual45 source seal. Prepared digests and source-lock411 match. HEAD is the sole seal metadata difference: current c2eb8edb versus precommit45base. This is not full241 evidence.",
+    "Mobile receipt records actual42 with7 managed paragraph readbacks, retains all15states, references exact code/batch and explicitly leaves241/full32/QoE open. Live connector action is attributed to Root, not replayed by this reviewer.",
+    "Cleanup46 sanitizer agrees actual receipt plus selected/protected/journal/lsof hashes;42entries, physical gain8,635,588,608bytes, current identities preserved, floor true, original90152exit0/join coordinator witness.",
+    "Four stale current45pending prose clauses corrected in v2; genuine241/video/realcleanup/matrix pending conditions retained.",
+    "No erasure compile-speed gain, no diagnostic-as-QoE-fix, no hidden threshold/clock/budget/scope change."
+  ],
+  "limits": [
+    "No tracked documents applied by reviewer; no build/test/connector edit/cleanup execution. Root must apply reviewed bytes and run existing document generator check.",
+    "Next full241 producer must bind final clean documentation checkpoint HEAD explicitly. Actual45 component evidence cannot qualify modified whole checkpoint as full programme source."
+  ]
+}

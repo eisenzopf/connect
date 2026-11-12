@@ -1,0 +1,78 @@
+{
+  "format": "connect/old-owned-controls43-sanitized/1",
+  "scope": "Controlled consumed Audio preparation probe and original Session helper phase ordering; no matrix/QoE proof",
+  "summary": {
+    "executed": 3,
+    "passed": 1,
+    "failed": 2,
+    "expected_failures": 2,
+    "expected_outcomes_matched": 3,
+    "ignored": 0
+  },
+  "raw_results_sha256": "f74715e18c2226f4627d780613206067934614232b4dd7a9ea95b51047901587",
+  "source_seal_sha256": "9bce0c42ba79ad0130515a8ebca084d43e3dd7e2bdfb861da1fbf4a955ed0299",
+  "source_lock_generation": 409,
+  "verification": {
+    "builds_passed": 2,
+    "source_unchanged": true,
+    "recorded_binaries_unchanged": true,
+    "all_original_groups_naturally_joined": true,
+    "case_log_hashes_verified": true
+  },
+  "rows": [
+    {
+      "index": 0,
+      "selector": "staged_streams::tests::private_consult::replacement::consumed_probe::consumed_endpoint_probe_kept_alive_after_commit_never_shadows_original_public_audio",
+      "actual_pass": false,
+      "expected_pass": false,
+      "expected_outcome_matched": true,
+      "log_sha256": "7c16e2b89bc36347c46400d4b0bf5083b034d3eafbe8528a1b5ddab7f2b87e79",
+      "source_and_binary_stable": true,
+      "owner_naturally_joined": true
+    },
+    {
+      "index": 1,
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::retirement::tests::session_retirement_batches_all_current_reads_and_submissions_before_waits",
+      "actual_pass": false,
+      "expected_pass": false,
+      "expected_outcome_matched": true,
+      "log_sha256": "cafffacd11e0e3efa5f7d4407df5763d08ce757f1806a861c646688a639624e2",
+      "source_and_binary_stable": true,
+      "owner_naturally_joined": true
+    },
+    {
+      "index": 2,
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::retirement::tests::session_retirement_joins_original_phase_siblings_and_preserves_errors_and_cutoff",
+      "actual_pass": true,
+      "expected_pass": true,
+      "expected_outcome_matched": true,
+      "log_sha256": "657991f8aa730292868b41334ddc1d47500a0e411aa3a554909300165bf63475",
+      "source_and_binary_stable": true,
+      "owner_naturally_joined": true
+    }
+  ],
+  "causal_oracles": [
+    {
+      "case": 0,
+      "scope": "real PCMU160 Core consumed-probe fixture",
+      "result": "Exact final original-capture oracle fails after real Commit, exact consumed group, retained live probe, old-original refusal and zero remaining controller cleanup. Actual error is Model(Conflict).",
+      "not_claimed": "Opus960, network attribution or full native QoE"
+    },
+    {
+      "case": 1,
+      "scope": "actual Session retirement helper with controlled phase futures",
+      "result": "Old serial path begins End before both current reads and begins a wait before both End submissions. Intended ordering assertions fail; sibling cleanup remains joined.",
+      "not_claimed": "Exact historical full229 holder or real 67-second workload recovery"
+    },
+    {
+      "case": 2,
+      "scope": "existing helper error/cutoff control",
+      "result": "Already passes on old helper; retained again in fixed44."
+    }
+  ],
+  "matrix_qualified": false,
+  "full_cohort_green": false,
+  "privacy": {
+    "raw_ids_paths_credentials_pids_or_payloads_included": false
+  }
+}
