@@ -1,0 +1,37 @@
+{
+  "format": "connect/data-control-coherent-focused253/1",
+  "updated_at": "2026-11-12T19:18:27.139027+00:00",
+  "base_head": "74d82e0f3b0437c0f21ed00894c703308556dafc",
+  "source_lock_sha256": "7ce0e041be488d6e699139333d2e0d5b3b98e88c276bfacac6b35c83fd6e758d",
+  "normal_generation": 414,
+  "source_namespace_count": 143,
+  "Store70": {
+    "expected": 214,
+    "dispatched": 214,
+    "actual_executed": 214,
+    "passed": 214,
+    "ordinary_failed": 0,
+    "unqualified": 0,
+    "unexecuted": 0
+  },
+  "Core71": {
+    "expected": 39,
+    "dispatched": 39,
+    "actual_executed": 39,
+    "passed": 39,
+    "ordinary_failed": 0,
+    "unqualified": 0,
+    "unexecuted": 0
+  },
+  "total_passed": 253,
+  "source_after_guards_sha256": "6b8906871dba0ced0f4cffeffacc1324d864b114372566425ec35d85100bec4b",
+  "same_exact_code_guard_map": true,
+  "both_root_controllers_exit0_joined": true,
+  "component_qualified": true,
+  "full329_qualified": false,
+  "shipping_qualified": false,
+  "matrix_qualified": false,
+  "ready_latency_us": 36038,
+  "unchanged_ready_limit_us": 50000,
+  "next": "New clean commit, full329, nativeARM shipping, all32/432; no cell promotion from components"
+}

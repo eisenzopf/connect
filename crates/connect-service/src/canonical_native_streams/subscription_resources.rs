@@ -188,15 +188,22 @@ impl Runtime {
             // Same original selected resources and routes; fresh permission and
             // expected revision are checked at the existing atomic Core commit.
             phase = "activate-once";
+            let subscription_observation = native
+                .media_controller(&id)
+                .ok()
+                .and_then(|owner| fresh.begin_subscription_observation(&owner));
             let outcome = tokio::select! { biased;
                 _ = self.stop.cancelled() => return Err(Error::forbidden()),
                 result = prepared.activate_with_held(fresh.clone()) => result.map_err(resource_error)?,
             };
+            let historical = subscription_observation
+                .as_ref()
+                .and_then(|o| o.unchanged_av(lease.expected_revision(), outcome.revision));
             fresh.remember_confirmed_selection();
             // Do not retain activation authority in the outer reply slot while
             // the original historical outcome needs its short metadata writer.
             drop(fresh);
-            Ok((outcome, resource))
+            Ok((outcome, resource, historical))
         };
         let result = work.await;
         if let Err(error) = &result {
@@ -204,11 +211,16 @@ impl Runtime {
                 phase, code=%error.code, "Original subscription resource phase stopped");
         }
         let (captured, resource, original_error) = match result {
-            Ok((outcome, resource)) => match lease.committed(
-                outcome.revision,
-                outcome.resources_changed,
-                captured_projection(&self, &id, outcome.revision),
-            ) {
+            Ok((outcome, resource, observation)) => match {
+                let revision = outcome.revision;
+                super::subscription_observation::capture(
+                    lease,
+                    &resource,
+                    outcome,
+                    observation,
+                    || captured_projection(&self, &id, revision),
+                )
+            } {
                 Ok(receipt) => (
                     CapturedStreamOutcome::Committed(receipt),
                     Some(resource),

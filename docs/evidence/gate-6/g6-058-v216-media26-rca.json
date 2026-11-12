@@ -1,0 +1,40 @@
+{
+  "format": "connect/media26-sanitized-authority-rca/1",
+  "source_report_sha256": "880a573ac810e03505b9a3f0df5952ad6f1380e839a63b5b10a5a4237e528eb5",
+  "original_runtime_sha256": "053d5521edf1e369be1e24efe530e2ebc5fd9cfa6b2ad37f23a0acf5e62d7c17",
+  "actual_whole_result": {
+    "completed": 296,
+    "passed": 295,
+    "failed": 1
+  },
+  "case": {
+    "profile": "ES256",
+    "group": 5,
+    "index": 15,
+    "route": 2,
+    "source": 1,
+    "session": 0,
+    "source_rtp_ssrc": 1946157057,
+    "output_rtp_ssrc": 3290811884,
+    "source_generation": 1,
+    "output_connection_generation": 1,
+    "quality_failure": "second46 changing frames21<24",
+    "task_failures": []
+  },
+  "source_cadence_frames_per_second": 30,
+  "source1_publisher_and_Core_capture_packets": 8135,
+  "observed_loss": {
+    "queued_authority_fragments": [
+      6079,
+      6080
+    ],
+    "frame": 1387,
+    "first_requested_recovery_keyframe": 1390,
+    "first_recovery_keyframe_authority_dropped_fragment": 6091,
+    "successful_later_keyframe": 1396,
+    "recovery_gap_approx_ms": 260
+  },
+  "cause_proven": "Authority packet-admission refusals, not encoder cadence or pending-age drops. Separate old-code real DataGate counter proves broad historical recording can revoke an unchanged original AV epoch.",
+  "operation_attribution_limit": "Exact late Data control name is inference from sequential caller and timing; operationID/variant was unlogged and ephemeralDB deleted. No assertion of precise durable-operation identity.",
+  "fix_component_scope": "Closed Data-only recorder plus actual Core unchanged-AV witness passes253 focused checks. Full decoded quality and matrix effect remain pending."
+}

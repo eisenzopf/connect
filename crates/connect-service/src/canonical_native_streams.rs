@@ -73,6 +73,8 @@ enum Observed {
     Codecs(rvoip_uctp::v2::native_negotiation::NativeOfferOutcome),
     Gates(rvoip_uctp::v2::native_control::NativeControlOutcome),
 }
+pub(crate) mod subscription_observation;
+
 /// Original engine outcome retained by the same control worker after command
 /// readers leave. Recording these values can never invoke the engine again.
 pub(crate) enum CapturedStreamOutcome {
@@ -690,6 +692,16 @@ impl Runtime {
                     }
                 }
             } else if let Some(invocation) = invocation {
+                // Bind metadata observation to the actual installed controller
+                // BEFORE Core runs, not to a post-hoc revision/binding read.
+                let subscription_observation = if !gates && !codecs {
+                    native
+                        .media_controller(&id)
+                        .ok()
+                        .and_then(|owner| invocation.begin_subscription_observation(&owner))
+                } else {
+                    None
+                };
                 let outcome = tokio::select! {
                     r=async {
                         if gates {native.control_native_media(&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Gates)}
@@ -697,6 +709,12 @@ impl Runtime {
                         else {native.subscribe_native_media(&self.core,&id,a.clone(),invocation.clone(),deadline).await.map(Observed::Streams)}
                     }=>r,
                     _=self.stop.cancelled()=>Err(rvoip_uctp::v2::native_negotiation::NativeOfferError::Cancelled),
+                };
+                let historical = match (&outcome, subscription_observation.as_ref()) {
+                    (Ok(Observed::Streams(outcome)), Some(observation)) => {
+                        observation.unchanged_av(lease.expected_revision(), outcome.revision)
+                    }
+                    _ => None,
                 };
                 if outcome.is_ok() {
                     invocation.remember_confirmed_selection();
@@ -712,11 +730,12 @@ impl Runtime {
                             }
                         }
                     }
-                    Ok(Observed::Streams(outcome)) => lease.committed(
-                        outcome.revision,
-                        outcome.resources_changed,
-                        captured_projection(&self, &id, outcome.revision),
-                    ),
+                    Ok(Observed::Streams(outcome)) => {
+                        let revision = outcome.revision;
+                        subscription_observation::capture(lease, &a, outcome, historical, || {
+                            captured_projection(&self, &id, revision)
+                        })
+                    }
                     Ok(Observed::Codecs(outcome)) => match codec_bindings(&outcome.bindings) {
                         Ok(bindings) => lease.codecs_committed(outcome.revision, bindings),
                         Err(error) => {

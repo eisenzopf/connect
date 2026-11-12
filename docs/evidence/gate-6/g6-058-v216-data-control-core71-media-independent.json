@@ -1,0 +1,48 @@
+{
+  "format": "connect/independent-media-core71-adjudication/1",
+  "qualified": true,
+  "scope": "Actual Core39 lib controls on normal414 only; no signed transport/full329/full32 or FPS qualification",
+  "results_sha256": "2c1fbe3a53afd66dce78df4ba71673bcb14d71697bfc3d310e3718a011454da3",
+  "root_join_sha256": "8b860f5dac51e371a28e73f1d81710c79ae227619ed1b9dc0211acbe5b57469b",
+  "source_sha256": "48ff6a2ce75aac8e8d4a8bd3a16b2c41009f2e570f77d438a8dedddbd6485693",
+  "source_after_sha256": "48ff6a2ce75aac8e8d4a8bd3a16b2c41009f2e570f77d438a8dedddbd6485693",
+  "binding_sha256": "96536611283d2ef02518c851600dff1dccbde8c7c5ecab57c105227c67c7daca",
+  "selection_sha256": "0dcfc1e752cc68361b34df3117b840a1a4dcb1d73e7dad4ef39f0c4528be6a77",
+  "binary_sha256": "f68cb5b5218c38eeb5c1bd383426667347b6e429d907f5a31ec9a60babd5dd0b",
+  "normal_generation": 414,
+  "source_lock_sha256": "7ce0e041be488d6e699139333d2e0d5b3b98e88c276bfacac6b35c83fd6e758d",
+  "summary": {
+    "expected": 39,
+    "dispatched": 39,
+    "actual_executed": 39,
+    "passed": 39,
+    "ordinary_failed": 0,
+    "unqualified": 0,
+    "unexecuted": 0
+  },
+  "checks": {
+    "all39_exact_once_pass_logs_and_original_owners": true,
+    "build_and_inventory_original_groups_joined": true,
+    "source143_current_and_provenance_hashes": true,
+    "normal_debug_profile_test_support_opus": true,
+    "original_root_tool54991_exit0_joined": true,
+    "new_actual_routing_and_resource_path_controls4": [
+      "staged_streams::tests::media_scene::subscriptions::av_observation::routing_data_commit_observation_preserves_real_original_av_and_exact_incarnation",
+      "staged_streams::tests::media_scene::subscriptions::av_observation::av_change_cancelled_commit_and_old_observer_cannot_issue_data_continuity",
+      "staged_streams::tests::media_scene::subscriptions::av_observation::prepared_data_resource_commit_observes_same_original_av_ports_and_no_adapter_replay",
+      "staged_streams::tests::media_scene::subscriptions::av_observation::selection_continuity_keeps_future_wildcards_membership_and_unknown_exclusions_exact"
+    ],
+    "std_helper_compiled_in_actual_test_body": true
+  },
+  "limits": [
+    "Actual Core65/68 failed builds remain immutable zero-test history.",
+    "The new tests exercise actual Core PCMU and visual delivery/model identity; not signed transport or full VP8 QoE.",
+    "Store70 and complete329 coherent414 source qualification remain pending; no shipping/matrix advancement."
+  ],
+  "actions": {
+    "builds": false,
+    "tests": false,
+    "active_edits": false,
+    "bound_input_or_result_mutation": false
+  }
+}

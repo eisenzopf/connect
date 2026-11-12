@@ -1,0 +1,49 @@
+{
+  "format": "connect/complete296-coordinator-checkpoint/1",
+  "updated_at": "2026-11-12T18:37:09.203299+00:00",
+  "source_revision": "74d82e0f3b0437c0f21ed00894c703308556dafc",
+  "original_runtime_sha256": "053d5521edf1e369be1e24efe530e2ebc5fd9cfa6b2ad37f23a0acf5e62d7c17",
+  "summary": {
+    "selected": 296,
+    "executed": 296,
+    "passed": 295,
+    "failed": 1,
+    "ignored": 0,
+    "unexecuted": 0
+  },
+  "scope_breakdown": {
+    "pure_expected": 279,
+    "pure_passed": 279,
+    "pure_failed": 0,
+    "workloads_expected": 17,
+    "workloads_passed": 16,
+    "workloads_failed": 1,
+    "Store_expected": 185,
+    "Store_passed": 185,
+    "Store_failed": 0,
+    "all11_ignored_RTC_explicitly_executed": true
+  },
+  "failures": [
+    {
+      "group": 5,
+      "index": 15,
+      "kind": "ES256 retained public video bin below unchanged threshold",
+      "route": 2,
+      "second": 46,
+      "actual_decoded_changing_frames": 21,
+      "minimum": 24,
+      "task_failures": [],
+      "cleanup_and10s_idle_passed": true
+    }
+  ],
+  "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components26-independent.json",
+  "independent_evidence_sha256": "e4d1c1d589430bb0294d9636bad37650b509daa6a119f1054a3afbb80a550661",
+  "both_original_full62_cleanup_us": {
+    "EdDSA": 64564234,
+    "ES256": 65238607
+  },
+  "unchanged_cleanup_limit_us": 67000000,
+  "EdDSA_complete_programme_passed": true,
+  "ES256_complete_programme_passed": false,
+  "matrix_qualified": false
+}

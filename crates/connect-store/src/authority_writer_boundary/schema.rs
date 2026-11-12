@@ -714,16 +714,21 @@ fn dormant(table: &str, action: &str, collisions: &str) -> String {
 /// Exact original-Unit row deltas; no Connection=>Conversation implication.
 fn scoped_handoff(table: &str, action: &str) -> Option<String> {
     use phase_ledger::scoped::{trigger_tuple, Table as ScopedTable};
-    let table_kind = ScopedTable::from_name(table)?;
+    let tuple = |alias| match ScopedTable::from_name(table) {
+        Some(kind) => Some(trigger_tuple(kind, alias)),
+        None => phase_ledger::data_control::Table::from_name(table)
+            .map(|kind| phase_ledger::data_control::trigger_tuple(kind, alias)),
+    };
+    tuple("OLD")?;
     if !matches!(action, "insert" | "update") {
         return None;
     }
     let old = if action == "update" {
-        trigger_tuple(table_kind, "OLD")
+        tuple("OLD")?
     } else {
         "NULL".into()
     };
-    let new = trigger_tuple(table_kind, "NEW");
+    let new = tuple("NEW")?;
     // Ordinary writes never materialize the typed row tuple. The cheap active
     // probe is only a hint to evaluate the mandatory exact comparison below.
     Some(format!(
@@ -760,6 +765,12 @@ fn definitions(connection: &Connection) -> Result<Vec<(String, String, String)>>
                 return Err(Error::storage());
             }
         }
+        if let Some(encoded) = phase_ledger::data_control::Table::from_name(&table) {
+            let encoded: BTreeSet<_> = encoded.columns().iter().map(|c| c.to_string()).collect();
+            if encoded != columns {
+                return Err(Error::storage());
+            }
+        }
         let policy = map.tables.iter().find(|policy| policy.table == table);
         let collisions = if policy.is_some() {
             collision_predicate(connection, &table)?
@@ -775,7 +786,13 @@ fn definitions(connection: &Connection) -> Result<Vec<(String, String, String)>>
                 } else {
                     let ordinary = dormant(&table, action, &collisions);
                     if let Some(exact) = scoped_handoff(&table, action) {
-                        format!("({ordinary}) OR ({exact})")
+                        if phase_ledger::data_control::Table::from_name(&table).is_some() {
+                            // A closed Data permit consumes each actual row once.
+                            // Dormant exceptions cannot skip that consumption.
+                            format!("(CASE WHEN {f}('data-control-active','',NULL,'data-control',NULL,NULL,NULL) THEN 0 ELSE ({ordinary}) END) OR ({exact})", f=phase_ledger::FUNCTION)
+                        } else {
+                            format!("({ordinary}) OR ({exact})")
+                        }
                     } else {
                         ordinary
                     }
@@ -806,6 +823,18 @@ fn definitions(connection: &Connection) -> Result<Vec<(String, String, String)>>
                         ));
                     }
                 }
+            }
+            if policy.is_none()
+                && matches!(
+                    table.as_str(),
+                    "native_stream_operations" | "native_stream_snapshots"
+                )
+            {
+                // These remain ordinary registered-Unit bookkeeping outside the
+                // closed Data capture. During it, even bookkeeping must match
+                // its complete immutable OLD/NEW tuple; DELETE is never allowed.
+                let exact = scoped_handoff(&table, action).unwrap_or_else(|| "0".into());
+                body.push_str(&format!("SELECT CASE WHEN {f}('data-control-active','',NULL,'data-control',NULL,NULL,NULL) THEN CASE WHEN ({exact}) THEN 1 ELSE RAISE(ABORT,'Captured Data control row mismatch') END ELSE 1 END;",f=phase_ledger::FUNCTION));
             }
             if table == "native_replacement_media_steps" && action == "insert" {
                 // Retained phase rows cannot be implicitly deleted by REPLACE,

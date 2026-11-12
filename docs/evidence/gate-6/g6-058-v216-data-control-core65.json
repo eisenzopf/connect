@@ -1,0 +1,36 @@
+{
+  "format": "connect/data-control-core65-sanitized/1",
+  "scope": "Core39 actual units only; no full cohort/media/full32 qualification",
+  "base_revision": "74d82e0f3b0437c0f21ed00894c703308556dafc",
+  "source_lock_sha256": "313d74120eb732671f35ec2d9ba7e35f58cb411b82241abc16eb8b2f79c73487",
+  "normal_generation": 412,
+  "original_results_sha256": "624569ab931e3704090cae49a7ae05ee4d3ab4fc2442f44f022495716225a128",
+  "inputs": {
+    "runner_sha256": "73025d7e16e07fe2ff17640d80310774079536b4de1c99ee96f83f1d4c4cbe3a",
+    "binding_sha256": "ba6841c1b585802fabeeefe9fc4a40a91336ebaa6ae74d750696dbecfee07bb8",
+    "selection_sha256": "336434e3ab2eae2baa9dc3a0e502d03607c7b3c42f2e95705b0f6b93bf6d33b0",
+    "helper_sha256": "70d0c06c99ea3048562f79de05fc0d337dc17b9488ea73400a5778ff79de3c4a",
+    "source_sha256": "382725d34e7554b27cd92179f051812a1876d60ee48f4f548f42027d040549f6"
+  },
+  "build_exit": 101,
+  "build_profile_verified": false,
+  "inventory_all_selected_once": false,
+  "summary": {
+    "expected": 39,
+    "dispatched": 0,
+    "actual_executed": 0,
+    "passed": 0,
+    "ordinary_failed": 0,
+    "unqualified": 0,
+    "unexecuted": 39
+  },
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "binary_unchanged": false,
+  "input_files_unchanged": true,
+  "component_qualified": false,
+  "full_cohort_qualified": false,
+  "matrix_qualified": false,
+  "error_class": "AssertionError",
+  "rows": []
+}

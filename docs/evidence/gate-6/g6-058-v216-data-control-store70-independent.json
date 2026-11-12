@@ -1,0 +1,2292 @@
+{
+  "format": "connect/data-control-store70-independent-closed-adjudication/1",
+  "reviewer": "/root/fixture_blockers",
+  "status": "ACTUAL_ALL214_COMPONENT_QUALIFIED",
+  "original_results_sha256": "f327b0cad53d1c872bf27447d21c13ee453c2c05fcb83f34c7f898ea1a32ea4d",
+  "root_original_closure_sha256": "b2eeed43d313c4277788a03f950a8f596b05212b8ef726c4b44d1acb34f145c2",
+  "source": {
+    "base_revision": "74d82e0f3b0437c0f21ed00894c703308556dafc",
+    "code_commit_pending": true,
+    "normal_generation": 414,
+    "source_lock_sha256": "7ce0e041be488d6e699139333d2e0d5b3b98e88c276bfacac6b35c83fd6e758d",
+    "namespace_guards_reverified": 143,
+    "all_current_workspace_files_reverified": 6105,
+    "before_after_equal": true,
+    "all_sealed_inputs_and_provenance_reverified": true
+  },
+  "actual_summary": {
+    "expected": 214,
+    "dispatched": 214,
+    "actual_executed": 214,
+    "passed": 214,
+    "ordinary_failed": 0,
+    "unqualified": 0,
+    "unexecuted": 0
+  },
+  "build": {
+    "exit_code": 0,
+    "elapsed_seconds": 0.2371193750295788,
+    "single_actual_artifact_inventory_verified": true,
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    },
+    "features": [
+      "test-support"
+    ]
+  },
+  "binary": {
+    "sha256": "7e3d1b675ef296aaa4ba4a6b357adbc0fc45e8b549a035425940852321eb1d6d",
+    "live_bytes_reverified_after_closure": true
+  },
+  "owners": {
+    "actual_original_root_tool_session_id": 84533,
+    "actual_original_root_wait_returned": true,
+    "actual_original_root_exit_code": 0,
+    "all_build_inventory_214original_case_waits_natural_groups_verified": true
+  },
+  "retained213": {
+    "each_once": true,
+    "all_passed": true
+  },
+  "new_ready_control": {
+    "index": 213,
+    "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_ready_controls::scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_validation",
+    "actual_executed": 1,
+    "passed": true,
+    "exit_code": 0,
+    "log_sha256": "8e7765fec37b52bde88063fc288575fdf576fa56b32e1b5e0e149b2df64410aa",
+    "original_child_wait_natural_group_absent": true,
+    "source_binary_input_stable": true
+  },
+  "new_Data10": {
+    "passed": 10,
+    "expected": 10,
+    "scope": "Opaque Data firstCOMMIT/read-only replay/typed Unit+proof+descriptor and AV negative authority controls. No full programme/decoder/QoE cure inferred."
+  },
+  "retained127_timing": {
+    "admitted": true,
+    "code": "ok",
+    "wall_us": 36038,
+    "original_wall_limit_us": 50000,
+    "first_attempt_diagnostics": {
+      "activation": {
+        "admitted": 1,
+        "attempts": 1,
+        "authority_busy": 0,
+        "authority_wait_us": 573,
+        "derive_after_us": 317,
+        "derive_before_us": 348,
+        "failed_authority_wait": 0,
+        "failed_derive_after": 0,
+        "failed_derive_before": 0,
+        "failed_scope_revalidation": 0,
+        "failed_sql_reacquire": 0,
+        "incomplete": 0,
+        "permanent_refusal": 0,
+        "sql_reacquire_us": 0,
+        "storage_unavailable": 0,
+        "transaction": {
+          "begin_failed": 0,
+          "begin_us": 3,
+          "body_aborted": 0,
+          "body_us": 24542,
+          "commit_failed": 0,
+          "commit_us": 655,
+          "committed": 1,
+          "unchanged": 0
+        }
+      },
+      "capture": {
+        "admitted": 1,
+        "attempts": 1,
+        "authority_busy": 0,
+        "authority_wait_us": 118,
+        "derive_after_us": 283,
+        "derive_before_us": 290,
+        "failed_authority_wait": 0,
+        "failed_derive_after": 0,
+        "failed_derive_before": 0,
+        "failed_scope_revalidation": 0,
+        "failed_sql_reacquire": 0,
+        "incomplete": 0,
+        "permanent_refusal": 0,
+        "sql_reacquire_us": 7,
+        "storage_unavailable": 0,
+        "transaction": {
+          "begin_failed": 0,
+          "begin_us": 3,
+          "body_aborted": 0,
+          "body_us": 3441,
+          "commit_failed": 0,
+          "commit_us": 327,
+          "committed": 1,
+          "unchanged": 0
+        }
+      },
+      "format": "connect/replacement-projection-diagnostics/1"
+    }
+  },
+  "queued210_result": {
+    "index": 210,
+    "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::native_data_birth_preserves_original_message_and_one_attempt_under_same_read",
+    "actual_executed": 1,
+    "passed": true,
+    "exit_code": 0,
+    "log_sha256": "f7f3fcfea67dd74fc970d298992e8a008b87c573c755a739998a15dce193da16",
+    "original_child_wait_natural_group_absent": true,
+    "source_binary_input_stable": true
+  },
+  "failures": [],
+  "all214_outcomes_preserved": true,
+  "component_qualified": true,
+  "Core39_qualified": false,
+  "full329_qualified": false,
+  "shipping_qualified": false,
+  "matrix_qualified": false,
+  "rows": [
+    {
+      "index": 0,
+      "selector": "authority_writer_boundary::tests::actual_row_refuses_missing_read_foreign_and_wrong_identity_writers",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "df47dc6048d3287a64c435f82415ceba08f2a0f28a3dabdb5622f10c08941716",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 1,
+      "selector": "authority_writer_boundary::tests::cached_statement_steps_the_current_exact_unit_permit",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "59df6ee7f987261d2ae7ae5f11111ccceeb8eb69208e985731b96beed5381e0b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 2,
+      "selector": "authority_writer_boundary::tests::message_birth::live_message_birth_rejects_commit_and_read_only_or_autocommit_admission",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "cbd1cb9c09cb178a9beef7266a6ec88d30a8b3a2933f7ac51102291fd57b84ef",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 3,
+      "selector": "authority_writer_boundary::tests::message_birth::message_birth_is_exact_connection_namespace_and_never_an_old_parent_or_replace_permit",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "02940f8bb48d31763f463ca42ffa10512e85783ba4a57e2d179fb1e458fc6b86",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 4,
+      "selector": "authority_writer_boundary::tests::message_birth::new_message_append_never_waits_for_or_invalidates_original_conversation_read",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ef2153856d5d8a36c99a9f81717975e872e7178f10c70e9d35c869ebbf2b9bc7",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 5,
+      "selector": "authority_writer_boundary::tests::message_birth::new_message_guard_schema_requires_current_version_and_never_converts_previous",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "bb85c6c92fc65ecc44170797bcb307c417c5a90794de963f34f8f36caec7cc01",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 6,
+      "selector": "authority_writer_boundary::tests::message_birth::rollback_invalidates_message_nonce_and_stale_drop_cannot_clear_successor",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c94d4d0d98a1fa828cd8f4256d940e2b004f99879f6fc58c0295b852afc7dc07",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 7,
+      "selector": "authority_writer_boundary::tests::message_birth::savepoint_restore_of_old_parent_keeps_original_sql_unit_writer_pinned",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9aa6af85a43dd2bce604b02befb48c13bbce2505b4f0c6304a3217b3a957e015",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 8,
+      "selector": "authority_writer_boundary::tests::native_flow_phase_and_join_projection_preserve_permissions_but_control_mutations_need_write",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0a5265554814e71ccaa3db96932672845c3e7949da20e29271c028cda39d59da",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 9,
+      "selector": "authority_writer_boundary::tests::original_journal_append_fills_metadata_but_cannot_rewrite_a_saved_export_prefix",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "cf6b384faf52b01c698cecd46adaf5acc9d4258d9ae07fe7ae1c3a53ce9db689",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 10,
+      "selector": "authority_writer_boundary::tests::parent_birth::invited_session_birth_is_exact_kind_shape_and_never_old_parent_extension",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "08bf1102eb017f9e6610bab8b7e5cf1ddf685d2529332bdb42161167e2d370b7",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 11,
+      "selector": "authority_writer_boundary::tests::parent_birth::parent_birth_hooks_reject_commit_and_rollback_stale_nonce_for_each_kind",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9c1800a977947c9140a20ad6ab603152100f59bd137a01cea775478ee12d4154",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 12,
+      "selector": "authority_writer_boundary::tests::parent_birth::parent_birth_refuses_foreign_connection_wrong_cid_and_raw_external_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "bc7a97e59ab21057584a709fb1cbce506a3d85656463e94de46fe93f722cc584",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 13,
+      "selector": "authority_writer_boundary::tests::parent_birth::public_invited_provider_session_and_pending_call_preserve_original_read_and_replay",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "60a49f34c2ee7c7dfcb7c4c42dfd3d791af578ee258524e079eb523c89ff3ccc",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 14,
+      "selector": "authority_writer_boundary::tests::raw_sql_cannot_revoke_a_live_store_credential",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "a3509eb4aa1ab8f300c28e0a4de078b6d15b0ee5016ab2b51d932e798465f637",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 15,
+      "selector": "authority_writer_boundary::tests::sql_unit_pins_the_original_writer_and_rolls_back_before_releasing_it",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "96fda8e4bca8f1bb04b19813502c9cebd9ef90c78747fca9d33456733404de09",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 16,
+      "selector": "authority_writer_boundary::tests::update_or_replace_cannot_erase_another_identity_with_only_the_source_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d27bf729b37cf7cf5165fe71c7dd68412894c6bbe624d8584942d821989837c7",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 17,
+      "selector": "authority_writer_boundary::tests::watcher_cannot_enable_after_a_guard_trigger_or_schema_table_changes",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7229fc93650f77e071001056208012368accef27cdfe175d9b9c37a82ff4f1f5",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 18,
+      "selector": "connection_control::tests::credential_refresh_writer::credential_epoch_mutation_waits_for_original_media_and_reuses_its_exact_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "be3b551bb80cbcb0c88ee70abca150d0922b192df98808b4a597510c7b49f3b1",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 19,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_admission_atomically_keeps_one_message_and_original_audience_without_a_publication_effect",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "12ac37f5c234fa1c39bbb2629f676146849dadb8de626f10bd092f9c861c9064",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 20,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_all_replay_keeps_original_epoch_snapshots_after_presence_changes",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3c256146ec701cec806a9cfe58c5bcbfd5504d3f8300c691457590c3b6d62bea",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 21,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_attempt_cannot_be_completed_as_a_subscription",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "feb5dba45155e87eeb88c2a9c36e1a9110b49a875208b74c3a65b27535644e3b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 22,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_cancel_before_publication_keeps_durable_message_and_never_starts_an_effect",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "53ad598442f16874ca7cfdaf73a5c343967ad33c31a3fd5ad561ad03d60579a3",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 23,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_capacity_refusal_leaves_no_partial_message_or_identity",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5c2a6d63377fdbf4172d5d39f7322e30cb06a85c1fcd3d83eb60717ceed5c21d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 24,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_captured_queue_receipt_recovers_after_cancel_and_storage_failure_without_reviving_parent",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "52e9dcda4e7ce861aa364260b8b2215bf9327ef533e8f1d2aa6fbff5c4334e5a",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 25,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_changed_identity_scope_encoding_audience_and_extensions_conflict_before_new_work",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b5ce1a87757ac9b19c75190ffe0078697c845bfcd4c6a51ad896c16ce04524f5",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 26,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_journal_failure_rolls_back_message_audience_and_root_then_same_id_recovers",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "397d3f957bbb94cf76aa11fbf3f7aa3d38b44489fb8903a0dec8bd3bc7002e4c",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 27,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_message_does_not_enqueue_an_ambient_provider_route",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8549b31192494cb1cfe420171cb69c8e915756bcef9407f4127e260c6905fd3e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 28,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_queue_receipt_is_local_admission_without_stream_revision_or_delivery_claim",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c355fe630afe5a5d27cddf17ca814733c6eab8a04650ceb5e4454e53e47c4e8b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 29,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_shares_message_and_logical_identity_namespaces_with_ordinary_messages",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d95a479e346febb23124295d20978f76fc8e2f7b87a18e719d5eeec961b08d77",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 30,
+      "selector": "connection_control::tests::native_stream_authority::data_custody::native_data_successor_preserves_uncertainty_message_and_original_effect_without_resubmission",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "db5925125db64a1fd4b777b7ec72d3b1ad2f3c2f1361191f332e9c0a0c02c92e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 31,
+      "selector": "connection_control::tests::native_stream_authority::data_reads::native_data_read_cancellation_and_source_revocation_stop_queued_delivery_without_new_identity",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8b6c1990f17607937c08b0c57ce3ba1257a3d73ebceae56c97ee27c483fb29c4",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 32,
+      "selector": "connection_control::tests::native_stream_authority::data_reads::native_data_read_connection_creation_does_not_grant_subscription_permission",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "770996f27e536cc995f8a17125d216b37f8ff971fd94a91c3f9a05f8bb6dd5f6",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 33,
+      "selector": "connection_control::tests::native_stream_authority::data_reads::native_data_read_current_target_permission_presence_and_data_floor_are_independent",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6a02b016a4ed9ec4e977a43707d3ca455d8ba2c5bfbf1897006a89088d0e5fa4",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 34,
+      "selector": "connection_control::tests::native_stream_authority::data_reads::native_data_read_exact_intent_and_original_audience_cannot_be_substituted",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "2ad2ed9e726ebd8a80edca33c2a45c40545a95cbe117dc5eeeefdee203f2e87e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 35,
+      "selector": "connection_control::tests::native_stream_authority::data_reads::native_data_read_held_current_check_uses_no_store_lock_and_fresh_contention_refuses",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "127c6c20229ee231fc3e32da874dae4ddf51be27c75bee7149de484761097ee9",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 36,
+      "selector": "connection_control::tests::native_stream_authority::data_reads::native_data_read_requires_one_begun_original_message_and_has_no_writer_effect",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "83b476fa2864faedd2700f38116531dddd3976201d7e0fe200fe950c31228cda",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 37,
+      "selector": "connection_control::tests::native_stream_authority::data_reads::original_publication_metadata_does_not_queue_behind_unrelated_command_sql",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3981b23835e5a72199c0af87e3fdf21066fa3014135712c18f4bab721909c401",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 38,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_callback_refuses_store_contention_immediately_and_retries_same_identity",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b8423867e85a3d89eb78e9841e779b4f737b57ca7601b07b061f993f4da3ea9f",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 39,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_capacity_is_reserved_before_write_and_exchanged_for_exactly_one_fact",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f89db853ca4bbf8b428bbf85489ac7ba49d3aa1b980118fa22661856fc64ebe0",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 40,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_genuine_unaddressed_target_cannot_reserve_or_record_a_write_and_refusal_releases_without_facts",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b63b3eefd59465a9c33bedb131ca7a3a7ab5ba1a1a5fec64112226618f3a9967",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 41,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_historical_fact_survives_cancel_revocation_and_retired_target_without_revival",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "45d83095e80acf8350f320a0ceb59ea1ee5eff48ba7100989c9e31753d82b9fe",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 42,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refusal_before_admission_is_recorded_but_cannot_become_written",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "487c3c562d36ebfddb75371b1428dcddee5b2fc429c03127bd2a2a11dc594fbe",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 43,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refuses_wrong_source_message_operation_target_and_store_without_facts",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8b9aa8129b264c1b9758d9b573008f04727428b251d86e51c0acb0117e2d526e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 44,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_reserves_before_io_and_records_one_typed_local_fact_without_completing_queue_work",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "680980937fa1987fa32d00efabed7f0af3cc5dffb05f7ed346660b7e9b77e6f2",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 45,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_sqlite_writer_contention_never_waits_and_preserves_pending_identity",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7e5e83dda3d2f86c01af6d7c108a74eca770dedf89d06cc51f13debf3961fe0b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 46,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_storage_failure_retains_original_reservation_and_same_callback_recovers",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "528c8ca933617d87fa5f2bdb038a0bba463a72ae24de9024ad2a66d2c1d118cf",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 47,
+      "selector": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_successor_marks_only_pending_original_writes_unknown_and_rejects_old_tokens",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0a21b1c6aba4acdcc9565d8a6f886afcd92e782a8d1281a42403a68494f0f7fc",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 48,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::queued_completion_releases_only_its_slot_and_never_restarts_the_original_effect",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "821757a09c163b28ce7d7910495cd45758e83403d8bb279aa56c4a8fdd3c3ee6",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 49,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::queued_completion_unblocks_credential_rotation_only_under_its_real_current_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7f895357d28f9fcc6c11b87836a98bb39372b5fcd6bfb3936ae65b3c94b0dcc2",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 50,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::queued_data_completion_and_exact_replay_preserve_actual_pcm_io_and_queued_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "38829419f31019ffeeb70aba2228bf8fffc16063e374649eec13e7be5e148581",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 51,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::queued_data_lifecycle_witness_refusal_uses_the_existing_historical_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "768cc3b9d90098220a4a0a3a6f25ba6916d893ea7e76ff45fc56ed3be34a344e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 52,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::queued_positive_permit_is_bound_to_actual_unit_proof_and_rollback_nonce",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9a71c5f86eaddbebcd6ccb3b90a88727f17463fb36339b413cc5e91264c3eea8",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 53,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::queued_positive_permit_rejects_unrelated_sql_and_exact_outcome_rewrites",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0c9864faf2c8381a40dece1b9aa25ce7fa6e927ad1d987a7f93b20d3c18fea6c",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 54,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::real_credential_writer_drains_pcm_io_and_cannot_revive_original_queued_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5656273f49324b45f2894a4dfd37ae7f212de7c1d24dd6ccd99fef5fb3d9bdc5",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 55,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::uncertain_data_outcome_keeps_the_real_writer_boundary",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "cdda280d64f992d15e30ac5c08e5b18e303f13e0127849a13c36f40f936169ad",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 56,
+      "selector": "transitions::tests::authority_rows::authority_rows_do_not_render_the_public_journal_page",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "db364d15b94257762c514bf68d6c8ba4ef7ee543e62a0eb13949f7a87e418467",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 57,
+      "selector": "transitions::tests::authority_rows::authority_rows_preserve_effects_uncertainty_and_full_public_status",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "384310895159e75f32f0f8f7d53e96e5be88262627f984b0294c71d0fe7b29f4",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 58,
+      "selector": "transitions::tests::authority_rows::authority_rows_still_refuse_current_scope_and_connection_epoch_changes",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "fb3d4089703b52b7ca9444b8198b8d98ff48dde6823968c4ea5f772abae95f54",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 59,
+      "selector": "transitions::tests::authority_rows::decision_source_authorization_omits_history_but_preserves_current_permission",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "928ba594765de832b43ea7dba07c51f1f001c10a723d1da3605f8d8262e94c91",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 60,
+      "selector": "transitions::tests::authority_rows::source_scope_admission_does_not_render_status_history_or_relax_claims",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6e56ca02e7d56559b1860e288ce811d5b172a288afc1664e7d0c70073d52a87b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 61,
+      "selector": "transitions::tests::peer_operations::canonical_message_receipt_proof_retains_typed_scope_and_refuses_extra_session_assertion",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "74e33e53cd4476e31e7cff2120383b7df5a5941afa3c5fea6b9f38e6fb14cfd6",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 62,
+      "selector": "transitions::tests::peer_operations::canonical_operation_cancel_replay_and_attributed_reconciliation_share_current_durable_receipts",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "837125880e6546d79cfdd46d8e13912ae2f7fe9a4412b821b806a3df7b390718",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 63,
+      "selector": "transitions::tests::peer_operations::canonical_operation_decisions_reject_nested_mutations_and_bound_malformed_source_depth_and_cycles",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4f95537347c43b12e2b82c455f61e7850bbcbae9b6a8b072c3b5ad48c83dbecb",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 64,
+      "selector": "transitions::tests::peer_operations::canonical_operation_get_keeps_nonconversation_provisioning_projection_source_current",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "463a809aa6083146a2913aacbd135866c5be06e287042a056fa79b8a8009a5f7",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 65,
+      "selector": "transitions::tests::peer_operations::canonical_operation_get_requires_both_recovery_permission_and_current_original_command_scope",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "18a3033957222db1b5321c19ea32befba9627357aeb2185bb12c145525987814",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 66,
+      "selector": "transitions::tests::peer_operations::canonical_operation_get_retains_pending_invitation_projection_identity_until_delivery",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "2ada1c1f55863c9ac181dad143db92780b807ffc19aaffbc2e3a2c4d078fba8d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 67,
+      "selector": "transitions::tests::peer_operations::canonical_operation_held_get_does_not_reenter_behind_queued_key_retirement",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "18641f8a5568a3c142b5d6c217412f769a2459dc4a3ac1e517738aded80689ce",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 68,
+      "selector": "transitions::tests::peer_operations::canonical_operation_lazy_get_recovers_possible_submission_once_without_reclaim_or_resubmit",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0e64a11da1816609860745aa6faac0266e5278ec37698d4cc6fb3d63c9930cf2",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 69,
+      "selector": "transitions::tests::peer_operations::canonical_operation_proof_covers_real_target_sources_and_refuses_spoofed_resource_assertions",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3d06429e8226825a5dc88117033f237d9c55ddbd0fcb5d82e9cf7321b17fe3aa",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 70,
+      "selector": "transitions::tests::peer_operations::canonical_operation_proof_is_not_substitutable_for_another_action_target_credential_or_root",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4321e4da97f86b0313b07e4d539274b4499cc50663b362373e5b8e20d73f90c4",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 71,
+      "selector": "transitions::tests::peer_operations::canonical_operation_source_expiry_during_sql_wait_rolls_back_lazy_recovery_and_decision",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e7160b579061609e160c9cb25f8c3838436a8257d5b4ae3492c4c805e97d6c65",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 72,
+      "selector": "transitions::tests::peer_operations::canonical_transition_admission_reuses_exact_proof_and_never_renews_original_expiry",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e3add35cd211accce3271a65fb9d54bc760dd35e65f1bc6a08eeed592c5cc501",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 73,
+      "selector": "transitions::tests::peer_operations::canonical_transition_proof_binds_every_resource_and_intent_without_fallback",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c9e23b6a09c867831cd1cdb8a7593e526a6d4c2182e67bc5e31a8fcd46128e14",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 74,
+      "selector": "transitions::tests::peer_operations::canonical_transition_replay_uses_existing_http_expiry_without_operation_get_permission",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "bf453d5d967cc31689eccef9ec7bc75dc65079bd67b47258a96e39031da3da75",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 75,
+      "selector": "transitions::tests::peer_operations::canonical_transition_source_readers_block_target_writers_but_not_unrelated_identity",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9b1021596edf7cdceb0fec6f8f5b341a65431c70f87003743d23155cf058fc0d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 76,
+      "selector": "transitions::tests::peer_operations::endpoint_replacement_admits_only_immutable_intent_while_current_packet_readers_remain_owned",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "00f60d2080824c69366fe0a4749f30ceb37a601cfeba9c56f0cb656560893381",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 77,
+      "selector": "transitions::tests::peer_operations::http_transition_command_replay_preserves_expiry_and_checks_operation_resource_claims",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d5ae24ecb8eaf14e6633f0d30923d3664f62d2b4188d7c191b476a4e11eb94f3",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 78,
+      "selector": "transitions::tests::peer_operations::operation_row_reads_keep_bindings_commits_rollback_and_schema_current",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "82498dc293ef21c4073539450821b6ad6ee7209ff7d47a538e22b136c847f309",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 79,
+      "selector": "transitions::tests::peer_operations::packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "372a95a944ba7455afcc007d54fcdbcb6cebfe91cccbac24fc7e91606fcffa10",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 80,
+      "selector": "transitions::tests::concurrent_workers_and_duplicate_submission_have_one_external_attempt",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9bdf7486e10685ed6f4ccb6cc593bfc54b76537984919a8cd3e16e07d5a57556",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 81,
+      "selector": "transitions::tests::authority_tests::operation_admission_leases_effects_cancel_and_reconcile_wait_for_delivery",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "95505f0d15c01ebf4d367a171489594f3dbd5da3f241ddae198f5bd4ea6a1d3f",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 82,
+      "selector": "transitions::tests::peer_operations::intent_birth::intent_replay_is_deferred_and_never_restarts_or_releases_reservations",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "70a3cc87a47c038bd45f33c21874f09f5bc80c6b6fa546108a496b6b80451c31",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 83,
+      "selector": "transitions::tests::peer_operations::intent_birth::intent_no_started_boundary_is_exactly_noop_but_actual_loss_requires_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d169b1296d4731a1d6e820ded2393276bd3e3c729f98f86b89845f3493b768bb",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 84,
+      "selector": "transitions::tests::peer_operations::intent_birth::intent_birth_permit_rejects_foreign_unit_forged_rows_and_unique_victims",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "34e50ffb97f15b8e22017144a1aec3c9f70881ee6f188c16b1669bd20382d75f",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 85,
+      "selector": "transitions::tests::peer_operations::intent_birth::intent_pending_departure_refuses_read_birth_even_without_a_started_boundary",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4b3315ee5314a9cd799b5166cd99b55d02bb5acbcfc03fa0ffb51eefc283e7fd",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 86,
+      "selector": "transitions::tests::peer_operations::intent_birth::intent_birth_never_uses_read_custody_to_bypass_current_credential_or_endpoint_refusal",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "79399bb7e38fec409ca9dd6db24aabff4c92519128140c7fc69bbc1159b07798",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 87,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::immutable_endpoint_intent_and_exact_replay_preserve_original_pcm_grant_until_real_revoke",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "70493484ca9432833cee706676481c46fc0859c5ff0605ff2f3eefffb4610c73",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 88,
+      "selector": "connection_control::tests::replacement_sources::custody::preparation_begin_permit_authorizes_only_exact_positive_ledger",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "51c33423990037d033bd190352d96385822e50c3dda9f3a0bcf33075c4517a20",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 89,
+      "selector": "authority_fences::raw_probe::tests::raw_exclusive_probe_detects_both_shared_and_exclusive_original_guards_without_dml",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "eeca77efb8d11fd7acf75a1efdb02c2c6ca4b5d53a26ce5a331a6d67658a51fc",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 90,
+      "selector": "connection_control::tests::native_stream_authority::queued_capture::exact_command_custody_probe_detects_shared_aliases_without_counting_independent_admissions",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "dd61bbe60fe1cd4ac2a9ece79ad81d821ce9fb8d380bf1ea154fc581748e8539",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 91,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::first_positive_commit_capture_preserves_unaffected_audio_io_and_original_queued_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b945c033fabe803d6254b26879a2a3f6994be06e2f7e13f24e17d9579d551348",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 92,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::positive_commit_capture_does_not_preserve_epoch_across_real_credential_revocation",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f0833dbd182c6cfda8c839b7f8424dc1380d9b64c4244923e93e3cf007c22dd5",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 93,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::unknown_cancelled_and_retired_commit_captures_keep_writer_custody",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6371ed306af6a88350313c483dfc677c5f6de70cfbafecec00bcbb8b0acb2707",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 94,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::naturally_expired_positive_commit_capture_remains_historical_writer_only",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6497808228827a750e8f0f088760b8533f996634bd6d5c3cdfd04d0a74d52f8b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 95,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::positive_commit_permit_rejects_foreign_units_arbitrary_rows_and_unique_victims",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "dc812aa7705af6b35782b9399e0f933c384881ad9bf93090200af489e8fa9f54",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 96,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_capture_permit_rollback_nonce_and_commit_boundaries_remain_exact",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "109e16a323e2789aa1007fb61c053ea00da3e6e0d4519da560c4f78c23e6b03b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 97,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::existing_or_claimed_dormant_candidate_cannot_enter_positive_commit_reader_path",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d8fc88365c169e60e27601d0279a4bd951f094f9ea82377b557f2802f7fc4925",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 98,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_commit_refuses_read_only_scene_without_starting_an_effect",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7007bcbf9f6cc67eb76bb0ab87567b56685444eb943c0ec429c8e61eaf10e933",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 99,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::first_known_commit_capture_still_requires_writer_and_records_once_after_io_drains",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "57be279e8a5f94b5e61eb731b266cbd8c2965771bc50f28b933dc9961bc0ab48",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 100,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::recorded_commit_replay_preserves_actual_media_read_and_original_queued_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "1b2a25650e311b05fa4fe7a6a61809340e35b9a330bf21cc864e2105daf603ba",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 101,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_write_drains_old_readers_then_rederives_and_commits_once",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "35fc34470770a135a1bb2cc11ab84a73cdf48da2e9a949f5c217707298d8d294",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 102,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::source_retirement::known_commit_after_real_old_retirement_preserves_fresh_healthy_audio_epoch_without_old_io",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f9430976149eabd918fab73a4e202a319e0d97aa7d426a9847afa4cdd74cf67d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 103,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::source_retirement::retired_original_capture_requires_current_original_authority_and_exact_retirement_tuple",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "14570ed5adb41b2c6c56bec3e4a61fbf3e8ef79277b72b911a6dc41c68dbb632",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 104,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::source_retirement::retired_original_mapping_and_lifetime_cannot_be_forged_for_positive_capture",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "af7d0b71040a4f8b1f862c87eda16c1c4b6902b49b387e04cea462acffbb1b13",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 105,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::source_retirement::known_commit_after_real_replacement_origin_retirement_preserves_new_healthy_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f09fee999232f6aa0199006b6e60004b88b7d9791d5e5de2df30cc00c7e4a1ff",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 106,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::commit_sql_busy_after_scene_derive_preserves_unaffected_audio_io_and_original_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "078751b92a6ff4fc4d0c1dabc041eff14c1f49327ac6fb32a0ac8f0880d7155c",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 107,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::commit_begin_sql_reacquire_defers_without_parking_full_scene_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8186cf5b3e50f23f1571ca8cc3c04f5e74b35cb0cf4a8a40407217c29a3b474e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 108,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::read_only_commit_refusal_cannot_masquerade_as_definite_sql_deferral",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ef5493249fc74415d085e8c6d0cb4f78825a8e8689c2a9601c4792442193372b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 109,
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::commit_begin_sql_body_error_is_terminal_and_rolls_back_original_attempt",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f40c121375a36c953410a4fc65ac2db2745d29152e66b371df29249c0a2c069f",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 110,
+      "selector": "connection_control::tests::replacement_sources::commit::publication_sql::public_activation_completed_writer_keeps_primary_sql_through_publication",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c078b288d3c2ba97b694750dfd31e700eabd5137297df046d22fbc85b8304dca",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 111,
+      "selector": "connection_control::tests::replacement_sources::commit::publication_sql::public_activation_immediate_writer_releases_sql_on_real_reader_busy_and_progresses_after_drain",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c7441e2302daa2724583de00bd7f9ca7d3e5e11e2f14c65f9fabbd70ac2ec77b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 112,
+      "selector": "connection_control::tests::replacement_sources::commit::activation::reserved_activation_metadata_is_inactive_until_exact_durable_completion_and_rechecks_revocation",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c621f91daccb899ff5b07d1f48ff65e9dc12377a212fb2ee8083a9a3233fa013",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 113,
+      "selector": "connection_control::tests::replacement_sources::commit::activation::uncertain_commit_metadata_cannot_activate_a_route_or_reserve_data",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "094771affc783c878394095903db6d82561f5263c6d04b4d07cdb4b416cd82b5",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 114,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::readiness_requires_exact_installation_before_and_at_commit_and_failed_final_write_rolls_back",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "839c4f5f91950868b336c4d56d5081de2605c62f8c7d202557281f42a5028809",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 115,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::stopped_before_activation_preserves_known_move_without_ready_or_retained_route_retirement",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "215c09d06016f5e4a8341f40a36df26c0e0aadf857e01cf2ff3cadd94deec70e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 116,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::only_known_current_pending_activation_is_temporary_and_revocation_remains_permanent",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9bf7d28938bb01539d3ac1752c00e5fabdf255946ac0f3abc5fc3e46ade9fe47",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 117,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::installation_custody_survives_until_the_ready_transaction_is_visible",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b3038aba8a039af1125473c90c826c984d934063f1855263e708f8506ac4216b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 118,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::final_publication_callback_refusal_rolls_back_without_ready_and_original_retry_commits_once",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7b8dbbb40f435e8799f371a636c96b0932433025de4ca897037b332e6b719040",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 119,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "2e6b60fbd696f1d2a1f3bf53530d9aedacf7c634d3f4c9645751556406271601",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 120,
+      "selector": "connection_control::tests::replacement_sources::commit::active_recovery::successor_retires_established_replacement_without_rewriting_receipt_or_reviving_authority",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "814904adfa7651062f22903e92cdbcd94baee5925963e720fef7d71e59bbe1fc",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 121,
+      "selector": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_defers_without_blocking_other_current_packet_reads",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "2533429a8630258a417d0582c71c43d588a1418bb98171e62b6ae440a34ee625",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 122,
+      "selector": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_releases_writer_when_sql_or_transaction_is_busy",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e83162f05c5e588c52989e6962ed5c7e26a8045c950d20577fadcfce6e2258d0",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 123,
+      "selector": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_finishes_original_fenced_session_end_and_leave_after_target_revoke",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "014a7d1191cae312e432af7849c764adf34900b4d0137121e6237079a015f04f",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 124,
+      "selector": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_refuses_wrong_absence_and_unexplained_local_fences_without_changes",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "af9ca692c198cc1253d6613620e1d5ddd0e4b3dca2890080e5f0abead47562d6",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 125,
+      "selector": "connection_control::tests::replacement_sources::commit::transaction_diagnostics::transaction_diagnostics_separate_begin_body_commit_and_unchanged_replay",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e13c26966aae0e2745e98615db6c7371dd9ca7b67f6404f19b24db4b6ffe6294",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 126,
+      "selector": "connection_control::tests::replacement_sources::commit::diagnostics::projection_diagnostics_distinguish_sql_mutex_authority_and_transaction_refusals",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "23a91b8c173f1570fbd7625119bcdb8348799854b3883a57ffc6af6d5e1bdc13",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 127,
+      "selector": "connection_control::tests::replacement_sources::commit::diagnostics::captured_projection_drains_brief_primary_sql_exclusion_within_original_admission_budget",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d58ddb257015e77291db985c01e8f4c8857db94c683b41f511ae228c2d99b791",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 128,
+      "selector": "connection_control::tests::replacement_sources::commit::diagnostics::initial_projection_sql_wait_keeps_refusals_effect_free_and_current_installation_required",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "10d6969171be3a0eff2617d4e38d7ddf99b8df2662fbdaa813dc3796f8f299d1",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 129,
+      "selector": "connection_control::tests::replacement_sources::commit::captured_projection_refuses_contention_without_parking_packet_readers",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "411073eeb3d6296772d0424c98a48f21afdffc72e66fde01fc68bb9fd6701369",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 130,
+      "selector": "connection_control::tests::replacement_sources::commit::captured_projection_drains_short_packet_readers_without_long_writer_parking",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "aa6ab25487642185bd6f8b8c32453d3e3ff7195c30bdfe0f42a705bae56f5639",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 131,
+      "selector": "connection_control::tests::replacement_sources::commit::captured_projection_releases_writer_when_sql_reacquire_is_busy",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9dbcd574d8feded154baa6098d313ae21db483775e42c338299d3f991ca4ab67",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 132,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::physical_commit_writer_preserves_unaffected_original_av_pair_epoch_and_stamp",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "15386143e670569c3768ba111c325da04b3575a2a7d29662cc9d2db63679af83",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 133,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::public_ready_writer_preserves_unaffected_original_av_pair_epoch_and_stamp",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "83cc690c207b7e82d7d08e7661dbc0bbf389f8165e826f1566f8b960d5d93e76",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 134,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::original_custodian_cleanup_preserves_current_pending_handoff_presence_and_unaffected_av_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ac0a8ac5d158a64db654d9712a5650e0b40fb6c8ff3376db9a3b34f621ecc52d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 135,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::adopted_return_cleanup_preserves_current_pending_handoff_presence_and_unaffected_av_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "131905842690ba1ed062157777165759146f3c5bfe1751fb43858bcd0b9f67b0",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 136,
+      "selector": "authority_fences::tests::connection_scope::connection_namespace_is_distinct_and_fifty_peer_fences_survive_identity_cache_eviction",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6d8c7ff67331756078b0883725aad7ab9ebaec2c73c9efd19ab3cbf853ae56d2",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 137,
+      "selector": "authority_fences::tests::connection_scope::connection_writer_excludes_affected_pair_fences_without_excluding_unrelated_pair",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "665019f876cee87a69fbd67ddcbb7e1dab673a3c936131fa075ce2c8a912f140",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 138,
+      "selector": "authority_fences::tests::connection_scope::evicted_connection_resource_still_matches_same_manager_live_reader_descriptor",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ee1e6bbc4a4cec4eb1d693b8ec620bcd520c0c1c3c42e4c74226caa875d5af43",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 139,
+      "selector": "authority_writer_boundary::phase_ledger::scoped::typed_tuple_tests::scoped_tuples_preserve_json_text_bytes_and_sqlite_storage_classes",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8663bdfbbc4f48571cb3dfdb73bebf663651a683231fde7b2686cc7dbe461296",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 140,
+      "selector": "authority_writer_boundary::phase_ledger::scoped::typed_tuple_tests::scoped_transitions_reject_delete_primary_key_and_table_changes",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6db70c09254972d1fa00ac8fbc5bb060de88e012ef8ed5d847819eaae18c697c",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 141,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_controls::scoped_begin_requires_exact_unit_store_purpose_and_live_opaque_witness",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "56300868a435d9c4991772a1eb49ff3f3f434a928fe7b55350b55e1b23bef8b4",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 142,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_controls::scoped_begin_exact_five_deltas_reject_extra_columns_foreign_rows_replace_and_delete",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f9defb8e3524a595716c270c59efa202fd4b14ee1c70235fd8f67b6af21077bf",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 143,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_controls::scoped_actual_commit_begin_persists_one_effect_and_started_attempt_with_full_current_facts",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c1d8b240298ddf403419baf1a3e67ea00483db6018890e9439c4d8df6a049463",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 144,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_controls::scoped_rollback_and_expiry_cannot_revive_rows_or_clear_a_new_nonce",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e042889cbd2dbb967c973e313c948390577c7def1a4ac94037cba603f8b4368d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 145,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_ready_controls::scoped_final_ready_constructor_rejects_forged_future_rows_under_actual_current_witness",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "47d9c6a794dbede045f7c5827c5a2d89983f1497b3d1aa2b4e468bd80926bd2b",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 146,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_ready_controls::actual_ready_publisher_cannot_commit_after_original_short_operator_expiry",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5b7faa21d10e0a70eaa04a8351071d641ccd4d496343cf7d9ba4268538d151e3",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 147,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::negatives::true_conversation_and_identity_writers_still_fence_original_av_epochs_without_restore",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "18bf34017b1f053abaefe24c98994a8a289d84473d1e1477d440e01db677e6b6",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 148,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::negatives::expired_cancelled_and_terminal_claims_cannot_preserve_ghost_joined_presence",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8059effc767df05b601fddb2dc5cbd78fe34cac80f774856e69c317356f717e8",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 149,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::negatives::foreign_store_cannot_use_original_handoff_or_media_read_as_authority",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7f576385412651f302e5e9cc99a8b1d94b2ba35315c1a26dc736ab5ad42a0d15",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 150,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::negatives::real_last_owner_pending_presence_expires_or_cancels_without_renewing_session_grace",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9586922cc8626e59de00e52e5ef157ac029b3e1f326290844706052f1a7c62a2",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 151,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::negatives::bounded_replacement_claim_never_creates_an_unobserved_joined_appearance",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f4a0819efff85e3efd1ada8d54bbea6f8278802ae2929f3ca73b0b004bc9c4f9",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 152,
+      "selector": "media_authorization::tests::probe_metadata::local_metadata_exclusion_preserves_same_original_epoch_and_stamp_without_writer_intent",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "a04968ce86db9efdbf5fc6f5f7e2f3eacac5c9a19c12684c82649f43881d9043",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 153,
+      "selector": "media_authorization::tests::probe_metadata::true_external_kernel_writer_still_revokes_only_affected_original_and_never_restores_it",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "19c9479ea4f75e8c3607145989e131fc5853e2aca68d9ececdff2f1b2d4476b8",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 154,
+      "selector": "media_authorization::tests::probe_metadata::namespace_storage_and_original_expiry_stay_fail_closed_without_epoch_renewal",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d9fc5966196c6847cd541b9504d36aad97c655af0b0e1103b5a1353cf8ab037e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 155,
+      "selector": "media_authorization::tests::publication_requires_boundary_worker_and_original_owner",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "af9ea35b72276f28522aea0daf79dd78edc723b9e082840b73d171d8377f2f8f",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 156,
+      "selector": "media_authorization::tests::media_admission_does_not_enter_control_mutex_or_refresh_projection",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b27a5688fdae350f4e879983d28eb36c3d4df1862efe72130d033529c3b63798",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 157,
+      "selector": "media_authorization::tests::local_writer_revokes_before_wait_and_drains_actual_io_without_renewing_queued_stamp",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e4e716288b1a33205ea13f217b3dfa8030f7be30634042537678a7c7c3d037f3",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 158,
+      "selector": "media_authorization::tests::monotonic_original_expiry_refuses_even_before_watcher_reaps_publication",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f24545b18722f90ed06eb066115caa8de33bf84d3bbcc0363ed6264c632cc9eb",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 159,
+      "selector": "media_authorization::tests::queued_epoch_owns_no_fence_and_last_handle_withdrawal_revokes_it",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f6a0d46be9c4e6ab55f0905ea72eb2f112a7af5dce4856a79b5ce304f7b66b4d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 160,
+      "selector": "media_authorization::tests::unchanged_definitive_denial_waits_for_next_write_outcome_instead_of_polling_sql",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3f9906fe4d7fd7de04ee417496196bb9c4893ab1e3ed16b7d5428abd84b5c74f",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 161,
+      "selector": "media_authorization::tests::route_miss_registration_refuses_control_contention_without_running_factory",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "a9650b475b8b4736be0f5aa41617c5a993d0c16129b5d890857491e43e16cf6c",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 162,
+      "selector": "media_authorization::tests::lifetime_observation_distinguishes_refresh_from_refusal_and_never_revives_original_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0b1f0df367c23beea044efe0d012279c7b7cee770e282333799f3c752fccd5fb",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 163,
+      "selector": "media_authorization::tests::original_failed_lifetime_refresh_cannot_publish_across_a_racing_writer_sequence",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c7d80e95433a5148dc804287f8569eed7a84ead71e01dac256f059fd3e42cc27",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 164,
+      "selector": "media_authorization::tests::packet_availability_drops_without_pinning_registry_and_never_resurrects",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "66d46ae99ec47d9827beafa21e50d91e83c015a1f6e44cd5938524453ffccb79",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 165,
+      "selector": "media_authorization::tests::scope_probe_has_one_healthy_call_and_deduplicated_busy_fallback",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5b7c266b8fa47a004625c823b7776b9a98658fe9eef58576d62cccd36b84d54d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 166,
+      "selector": "media_authorization::tests::hard_external_probe_failure_still_revokes_every_scope_and_old_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d620b9e6d39bc2792289c56b7430641ee9d2f13374a4213e4f37cf10e0c08e70",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 167,
+      "selector": "media_authorization::tests::immutable_scope_probe_names_reuse_the_published_vector_without_holding_a_fence",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ec52544281f1b95f5ef8600a56c28815849813cd883cfbd5cf05207e3d88d7ed",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 168,
+      "selector": "media_authorization::tests::missing_publication_ignores_disjoint_cid_writer_but_matching_writer_still_drains_io",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "74e341f5aedf7d96252158d481ef858b1472ac5d7fa84ea674f048a6763ae0ef",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 169,
+      "selector": "media_authorization::tests::successful_fenced_refresh_publishes_across_disjoint_writer_sequence_change",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "bdc6a3fe82c278a60caa630e531e9da9b0506543028f3d82c78cfb72b3e9e292",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 170,
+      "selector": "media_authorization::tests::discovered_dependency_writer_prevents_publication_and_drains_prepared_read",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "522074f9ad87b6aef49e569f55583f0349693507b488fb74f39f1e2ab440e1a1",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 171,
+      "selector": "media_authorization::tests::external_scope_intent_allows_disjoint_missing_publication_without_local_notice",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "2474647e3f5163539c925f9d8b4a872f5b0df89c705c7cc1118ff8ac60f8b473",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 172,
+      "selector": "media_authorization::tests::definitive_failure_with_unknown_footprint_stays_uncached_across_unrelated_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "099b2b50555efa26c8f01a5fcd0d7b79d17842a255e58be8e00fda693a8ba386",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 173,
+      "selector": "media_authorization::tests::definitive_missing_route_failure_is_not_cached_while_disjoint_writer_active",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "aa07e24be97536a03707ff63ff09d31febc4b6a8609ef50c2d875c7eb02f8597",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 174,
+      "selector": "media_authorization::tests::cached_unknown_footprint_denial_is_cleared_by_disjoint_writer_then_refetched",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0b7de49dd8ee152924718313a194de4ed84d23503f448165cedbfbe4e92006cd",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 175,
+      "selector": "media_authorization::tests::known_definitive_failure_waits_for_disjoint_writer_outcome_before_reprojection",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "809a796b8a466e2030ee44617c98bcca845f313ece10c18b66e6250a332838ce",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 176,
+      "selector": "media_authorization::tests::native_custody_erasure_keeps_same_allocation_and_last_io_reader",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6f17502b5f71dfda2ace5051a00b879c5ccfc5e791a92246064016f9dac5a8a8",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 177,
+      "selector": "media_authorization::tests::native_custody_erasure_checks_original_facts_and_cannot_borrow_successor",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "de4ccaf4f26cb5e79c1b97191f22bdc04724dd933a59c3de2064e2d1c48ac010",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 178,
+      "selector": "media_authorization::tests::native_custody_erasure_preserves_original_expiry_and_runtime_drop",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b27e0a7fc1ccb9951ca706fb3a5a9f5114fa5d3a817ee21dd92e20ccd4f4f1df",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 179,
+      "selector": "media_authorization::tests::missing_publication_backlog_remains_ready_after_one_bounded_refresh_turn",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "1cdd716d11cac0845c91c58e6a877dd122d60d8ba9df4bcb6f73efef1bc7ae4e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 180,
+      "selector": "media_authorization::tests::registration_during_refresh_is_ready_even_without_a_writer_sequence_change",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3d0a1ce15006cad661c1531594abb421d190ac1d95f42723e5b298b77f4a0abd",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 181,
+      "selector": "media_authorization::tests::withdrawn_publication_does_not_spin_or_borrow_old_epoch_during_original_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "3d715f35305806c57f0ded48abe40c2a18ef001bb69bb151e495b42355004252",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 182,
+      "selector": "media_authorization::tests::deferred_or_definitive_refusal_keeps_original_wait_instead_of_busy_spinning",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d9da35e693e7b5743a024fd4630a33941950d943eae6ee73bf5b3b3cfc7d1635",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 183,
+      "selector": "media_authorization::tests::original_worker_probes_and_refreshes_next_batch_without_an_intervening_idle_wait",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f3b98c22e685db1c246ff1073141f9b3256eebe8f24d620cc6d4ae434794e9f4",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 184,
+      "selector": "authority_writer_boundary::schema::footprint_tests::combined_mutation_footprint_checks_all_subjects_and_keeps_victims_unconditional",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f6655918794a2fbd770cfe5dbc25e276d1e93b31cadfa85181ae4c8e25c6428d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 185,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::captured_data_only_gate_records_under_original_command_and_same_connection_pcm_readers",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d4886d1b436ec498268a34e3b595ffb6b47929b5e74e81c98179b49ddcb07af8",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 186,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::captured_audio_gate_codec_and_subscription_still_fence_original_media_epochs",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "71391a0077dca35899853c3da070a770308e7be3d5b3cbd912d154c3a70d68e8",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 187,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::public_controls::completed_data_gate_replay_is_read_only_under_newer_audio_state_and_new_original_epoch",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0009893410568089ef85fa6b408376ce1251eb9a05054912af8363c8e6ca7be8",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 188,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::public_controls::cancelled_and_unknown_data_gate_captures_keep_real_writer_fencing_before_historical_recording",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4dd9fd3d85368b5823f2a71acfb042dbc2d872805ccffa72fe39f1ed26e60854",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 189,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::public_controls::data_target_with_audio_observation_cannot_borrow_data_permit_or_change_durable_rows",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0c8847324b79e123fcac5446385cea027ac64e05bbdc4b9230ea61f37e81a4a6",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 190,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::public_controls::immutable_data_gate_attempt_forgeries_are_refused_and_original_receipt_still_records_under_readers",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "6dbb9953ab3e08379ce6ff81b0f520349be3d66752f2cab4cbf0a94623959e3e",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 191,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::permit::data_gate_permit_requires_same_store_unit_complete_proof_and_drops_on_rollback",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0b28270d38e44f00c8ddeebdea67b27790f244faca20959d950cf09fe5431af4",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 192,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::permit::data_gate_exact_rows_deny_authority_edits_wrong_types_deletes_and_replace_victims",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "584e408b44e52c5c2f21c3138d3e887f9830eaf8e9f0dd72c8f4202fd2eeecb9",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 193,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::permit::data_gate_same_receipt_completion_between_preview_and_admission_stays_read_only",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b90e501c4126872cf49e9443f62d3fc6255897b6ed5200f6aab30133c34f2a61",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 194,
+      "selector": "connection_control::tests::native_stream_authority::data_gate_capture::permit::data_subscription_descriptor_insert_stale_recovery_and_victims_stay_exact_and_nongrant",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d2a5b13540ba8c3478b265c7760a3be26c5226f1311b416dfbcfb2295e9ea4fa",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 195,
+      "selector": "connection_control::tests::native_stream_authority::gates::gate_capture_replay_keeps_original_outcome_without_resetting_a_newer_state",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "ee56b3daef79e1b4eb7b2ae309fe723423705fb2eccf52eaf5998ee49a65a97f",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 196,
+      "selector": "connection_control::tests::native_stream_authority::gates::gate_capture_refuses_wrong_action_target_generation_and_codec_receipt",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "212d2b040730224724d3c4f58ffb39294fe21fc827649138a7928fa6f2930cb1",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 197,
+      "selector": "connection_control::tests::native_stream_authority::gates::gate_captured_outcome_rolls_back_with_journal_then_recovers_original_after_cancel",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "602b6d5cf872797f71f7a68230f937dca6e8fd18ecf1119350649da84e3c853d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 198,
+      "selector": "connection_control::tests::native_stream_authority::gates::gate_historical_completion_cannot_revive_retired_or_successor_runtime",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "b0d9404f301ec0e66fd64413d2a77aa1c61793ddd8de9b99f4c9215655e1678d",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 199,
+      "selector": "connection_control::tests::native_stream_authority::gates::gate_replay_and_status_require_current_update_permission",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "5b30bee2ea6c7beb4462ec25802e596c6b82f923ec1698015ead775bbbba34b0",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 200,
+      "selector": "connection_control::tests::native_stream_authority::codecs::native_codec_custody_keeps_exact_original_intent_one_effect_and_actual_binding_metadata",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e489e3a5704e0e14b6512fe89d3055e5b7df0258c372db2f4c2079916704bcb7",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 201,
+      "selector": "connection_control::tests::native_stream_authority::codecs::native_codec_permission_is_separate_from_creating_the_connection_and_is_current_on_status",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "bb875a818231164d458ff661758a6796731a4646a288ab31459681812d736ff2",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 202,
+      "selector": "connection_control::tests::native_stream_authority::codecs::native_codec_captured_result_records_after_journal_failure_cancellation_and_actual_retirement_without_revival",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9e0f5c49612e44ae46aa010e440162ce15bb8e90c0ca3d3c4c0c00e4f315bdc3",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 203,
+      "selector": "connection_control::tests::native_stream_authority::codecs::native_codec_restart_retains_unknown_original_effect_and_rejects_old_captured_success",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e2e5b344347c9afb0d9f84627dfa762343879e0243d6aefb48fc338168fe43e8",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 204,
+      "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::native_subscription_birth_preserves_media_read_then_records_original_once_with_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "2ea2a5c7c4f9fe348a8cb577bbe88c9ca4fbab274dc3e2728e0e81d8d12570b2",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 205,
+      "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::native_subscription_birth_refuses_foreign_member_effect_and_authority_edits",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8908531ad27c350b73b7764398e73c7fc4e80493533d33e60d531b8c17a0eac7",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 206,
+      "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::native_subscription_definitive_preflight_refusal_has_no_effect_and_no_writer",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8d8e9e381d9cbd03300f9be87c962d8d716dbf6fe3f47e3e32162c0e1ed48c35",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 207,
+      "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::native_subscription_historical_no_effect_and_uncertain_require_original_read_release",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0fb25bb85184412a113da12f34827992fe6ba1de5c3713bd78d1a0a9dc4ba509",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 208,
+      "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::native_subscription_captured_outcome_after_revocation_never_revives_retired_generation",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d57f2dcc227537ff85bdd513ef09ca903a80aef3b690ead2e97d6beb0b66a714",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 209,
+      "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::native_control_family_birth_never_reacquires_a_writer_under_original_read",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "81cf3e7545b1a9c741f1de8b966bd03d9301cbf7e59319b61982653e20ba3abd",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 210,
+      "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::native_data_birth_preserves_original_message_and_one_attempt_under_same_read",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "f7f3fcfea67dd74fc970d298992e8a008b87c573c755a739998a15dce193da16",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 211,
+      "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::native_reconciliation_birth_keeps_original_selector_and_exact_original_read",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d169bc670109dca761f1b5571839206d41ff39d28de72d208eac1dcc7334bfbd",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 212,
+      "selector": "connection_control::tests::native_stream_authority::subscription_bookkeeping::captured_stream_outcomes_recover_journal_capacity_without_replaying_original_attempt",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "aa87bfefba94b95d915800bfe84216eb47d025bbabd7ef007a40519f477a29c9",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    },
+    {
+      "index": 213,
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_ready_controls::scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_validation",
+      "actual_executed": 1,
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "8e7765fec37b52bde88063fc288575fdf576fa56b32e1b5e0e149b2df64410aa",
+      "original_child_wait_natural_group_absent": true,
+      "source_binary_input_stable": true
+    }
+  ]
+}

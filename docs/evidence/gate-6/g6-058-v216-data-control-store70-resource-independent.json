@@ -1,0 +1,197 @@
+{
+  "format": "connect/store70-independent-actual-adjudication/1",
+  "reviewer": "/root/v198_resources",
+  "status": "ACCEPT_COMPONENT_ONLY",
+  "reviewed_at": "2026-11-12T19:16:06.332496+00:00",
+  "actual_results_sha256": "f327b0cad53d1c872bf27447d21c13ee453c2c05fcb83f34c7f898ea1a32ea4d",
+  "root_controller_joined_sha256": "b2eeed43d313c4277788a03f950a8f596b05212b8ef726c4b44d1acb34f145c2",
+  "original_controller_tool_session": 84533,
+  "original_controller_exit": 0,
+  "base_revision": "74d82e0f3b0437c0f21ed00894c703308556dafc",
+  "source_generation": 414,
+  "source_lock_sha256": "7ce0e041be488d6e699139333d2e0d5b3b98e88c276bfacac6b35c83fd6e758d",
+  "inputs": {
+    "runner_sha256": "d9a77454cb142aa90a438e9b81ce04fcba8a9aa8c4a2bbe19e7f63744b9064d6",
+    "binding_sha256": "8e320d80d1c15c9d0f7389ee6a729ba62cf48d99df0e6289804ad9d1bb153732",
+    "selection_sha256": "891dca84ba6fe6feb0aeb08c218416d6eb80d960039cf96948ee9c89c2244b00",
+    "helper_sha256": "70d0c06c99ea3048562f79de05fc0d337dc17b9488ea73400a5778ff79de3c4a",
+    "source_sha256": "48ff6a2ce75aac8e8d4a8bd3a16b2c41009f2e570f77d438a8dedddbd6485693"
+  },
+  "current_namespace_guards_verified": 143,
+  "workspace_before_after_seals_byte_identical": true,
+  "workspace_sealed_file_count": 6105,
+  "current_guard_scope": "All143 namespace bytes freshly hashed; whole-workspace before/after seals compared byte-for-byte, not another whole-workspace scan during frozen completed source.",
+  "summary": {
+    "expected": 214,
+    "dispatched": 214,
+    "actual_executed": 214,
+    "passed": 214,
+    "ordinary_failed": 0,
+    "unqualified": 0,
+    "unexecuted": 0
+  },
+  "retained_original185_exact_prefix": true,
+  "retained_previous213_exact_prefix": true,
+  "data_new_controls_passed": 10,
+  "legacy_variant_controls_passed": {
+    "gates": 5,
+    "codecs": 4,
+    "subscription_bookkeeping": 9
+  },
+  "new_ready_selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_ready_controls::scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_validation",
+  "new_ready_log_sha256": "8e7765fec37b52bde88063fc288575fdf576fa56b32e1b5e0e149b2df64410aa",
+  "owners_verified": {
+    "build": 1,
+    "inventory": 1,
+    "tests": 214,
+    "all_recorded_natural_waits": true,
+    "all216_groups_independently_absent_now": true,
+    "root_original_tool_join_bound": true
+  },
+  "logs_verified": {
+    "build_json": true,
+    "build_stderr": true,
+    "inventory": true,
+    "all214_case_hashes_and_exact_one_pass_summaries": true
+  },
+  "binary": {
+    "binary": "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/connect_store-35a8eb164f3f01ae",
+    "binary_sha256": "7e3d1b675ef296aaa4ba4a6b357adbc0fc45e8b549a035425940852321eb1d6d",
+    "actual_features": [
+      "test-support"
+    ],
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    }
+  },
+  "binary_full_sha_freshly_verified": true,
+  "build_seconds": 0.2371193750295788,
+  "ready127": {
+    "log_sha256": "d58ddb257015e77291db985c01e8f4c8857db94c683b41f511ae228c2d99b791",
+    "wall_us": 36038,
+    "unchanged_bound_us": 50000,
+    "headroom_us": 13962,
+    "phase_evidence": [
+      {
+        "label": "publication-body-start",
+        "delta_us": 10697,
+        "elapsed_us": 10697
+      },
+      {
+        "label": "publication-root-activation-result",
+        "delta_us": 740,
+        "elapsed_us": 11438
+      },
+      {
+        "label": "scoped-ready-current-witness",
+        "delta_us": 7374,
+        "elapsed_us": 18813
+      },
+      {
+        "label": "scoped-ready-pure-plan",
+        "delta_us": 1285,
+        "elapsed_us": 20098
+      },
+      {
+        "label": "scoped-ctor-envelope",
+        "delta_us": 74,
+        "elapsed_us": 20172
+      },
+      {
+        "label": "scoped-ctor-opaque-witness",
+        "delta_us": 1,
+        "elapsed_us": 20174
+      },
+      {
+        "label": "scoped-ctor-strict-validation",
+        "delta_us": 957,
+        "elapsed_us": 21131
+      },
+      {
+        "label": "scoped-ctor-complete-coverage",
+        "delta_us": 19,
+        "elapsed_us": 21151
+      },
+      {
+        "label": "scoped-ctor-typed-current-chain",
+        "delta_us": 542,
+        "elapsed_us": 21693
+      },
+      {
+        "label": "scoped-ctor-slot-installed",
+        "delta_us": 1,
+        "elapsed_us": 21694
+      },
+      {
+        "label": "publication-permit-returned",
+        "delta_us": 7,
+        "elapsed_us": 21702
+      },
+      {
+        "label": "publication-main-dml",
+        "delta_us": 4705,
+        "elapsed_us": 26407
+      },
+      {
+        "label": "publication-lifecycle-and-touch",
+        "delta_us": 4785,
+        "elapsed_us": 31193
+      },
+      {
+        "label": "publication-journal",
+        "delta_us": 3895,
+        "elapsed_us": 35088
+      },
+      {
+        "label": "publication-origin-and-installed-owner",
+        "delta_us": 141,
+        "elapsed_us": 35229
+      },
+      {
+        "label": "publication-before-commit",
+        "delta_us": 6,
+        "elapsed_us": 35235
+      },
+      {
+        "label": "publication-committed",
+        "delta_us": 655,
+        "elapsed_us": 35891
+      },
+      {
+        "label": "call-returned",
+        "delta_us": 33,
+        "elapsed_us": 35925
+      }
+    ],
+    "single_current_witness_timing_label": true,
+    "ctor_consumption_us": 1,
+    "interpretation": "Actual current source and bounded phase evidence show one constructor-owned fresh Ready derivation; general constructor independently rederives, as source-reviewed. This is one runtime measurement, not a future latency guarantee."
+  },
+  "source_inputs_unchanged": true,
+  "component_qualified": true,
+  "full_media_cohort_qualified": false,
+  "matrix_qualified": false,
+  "limitations": [
+    "All214Store and prerequisiteCore39 controls passed on identical414 source; full329/32cells not qualified by this receipt.",
+    "No media FPS/latency/resource acceptance change or full-programme cure is claimed."
+  ],
+  "review_actions": "Read/hash/parse/group-observe only; new ignored receipt outside bound70 inputs; no source edits, execution, build, or tests.",
+  "core71_prerequisite": {
+    "results_sha256": "2c1fbe3a53afd66dce78df4ba71673bcb14d71697bfc3d310e3718a011454da3",
+    "root_joined_sha256": "8b860f5dac51e371a28e73f1d81710c79ae227619ed1b9dc0211acbe5b57469b",
+    "original_root_tool": 54991,
+    "actual39_passed": true,
+    "all39_case_log_hashes_and_exact_one_pass_summaries": true,
+    "binary_sha256": "f68cb5b5218c38eeb5c1bd383426667347b6e429d907f5a31ec9a60babd5dd0b",
+    "binary_fresh_fullsha_verified": true,
+    "all41_original_child_groups_independently_absent": true,
+    "same_complete_source_seal_as_store70": true,
+    "source_generation": 414,
+    "source_lock_sha256": "7ce0e041be488d6e699139333d2e0d5b3b98e88c276bfacac6b35c83fd6e758d",
+    "qualification_scope": "ActualCore39 component; no full329/media/matrix claim."
+  }
+}

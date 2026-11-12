@@ -1,0 +1,183 @@
+{
+  "format": "connect/store67-independent-actual-adjudication/1",
+  "reviewer": "/root/v198_resources",
+  "status": "ACCEPT_COMPONENT_ONLY",
+  "reviewed_at": "2026-11-12T19:00:03.478606+00:00",
+  "actual_results_sha256": "9f8291bd586c408fe7f55b65e3dbaae835b1aba666f4eea34911ff9cebb44653",
+  "root_controller_joined_sha256": "158bd53c45adbe428c21ab34c9163e9c1f852ecc91ca61996ffc866e17cff627",
+  "original_controller_tool_session": 27268,
+  "original_controller_exit": 0,
+  "base_revision": "74d82e0f3b0437c0f21ed00894c703308556dafc",
+  "source_generation": 413,
+  "source_lock_sha256": "f4cbf5c868f30b817284a6b279f8441fca5a6568d949de8f5da7d5a321ab7414",
+  "inputs": {
+    "runner_sha256": "e8e343d3bd01d4821d915e4392b4a984f1ec302ab9c5c8c5bcfc98e1bd21a18b",
+    "binding_sha256": "42ae59b385f177a0e49e8c50a91519e10f5a127a7408d54814e719fbfc114ed8",
+    "selection_sha256": "2e16df1b363fd31ae9049757c8c2dd81dde0cfe8eda87ac75ad8c6218d675b18",
+    "helper_sha256": "70d0c06c99ea3048562f79de05fc0d337dc17b9488ea73400a5778ff79de3c4a",
+    "source_sha256": "07be30b8055f5feb17bc11260c1b344c1212223ff09039dbf6cde89a095266d8"
+  },
+  "current_namespace_guards_verified": 142,
+  "workspace_before_after_seals_byte_identical": true,
+  "workspace_sealed_file_count": 6100,
+  "current_guard_scope": "All142 namespace bytes freshly hashed; full6100file before/after seals compared byte-for-byte, not another whole-workspace scan during Core68.",
+  "summary": {
+    "expected": 214,
+    "dispatched": 214,
+    "actual_executed": 214,
+    "passed": 214,
+    "ordinary_failed": 0,
+    "unqualified": 0,
+    "unexecuted": 0
+  },
+  "retained_original185_exact_prefix": true,
+  "retained_previous213_exact_prefix": true,
+  "data_new_controls_passed": 10,
+  "legacy_variant_controls_passed": {
+    "gates": 5,
+    "codecs": 4,
+    "subscription_bookkeeping": 9
+  },
+  "new_ready_selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_ready_controls::scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_validation",
+  "new_ready_log_sha256": "825b2492a530eadfdc27b25472da03c2d856483e93edb02682e1914f9da8a73b",
+  "owners_verified": {
+    "build": 1,
+    "inventory": 1,
+    "tests": 214,
+    "all_recorded_natural_waits": true,
+    "all216_groups_independently_absent_now": true,
+    "root_original_tool_join_bound": true
+  },
+  "logs_verified": {
+    "build_json": true,
+    "build_stderr": true,
+    "inventory": true,
+    "all214_case_hashes_and_exact_one_pass_summaries": true
+  },
+  "binary": {
+    "binary": "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/connect_store-35a8eb164f3f01ae",
+    "binary_sha256": "7e3d1b675ef296aaa4ba4a6b357adbc0fc45e8b549a035425940852321eb1d6d",
+    "actual_features": [
+      "test-support"
+    ],
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    }
+  },
+  "binary_full_sha_freshly_verified": true,
+  "build_seconds": 27.04159262496978,
+  "ready127": {
+    "log_sha256": "50d00e98fc4c7afb78a26230f716dd78c3123451374d154c37f51d657f0dbb0b",
+    "wall_us": 35841,
+    "unchanged_bound_us": 50000,
+    "headroom_us": 14159,
+    "phase_evidence": [
+      {
+        "label": "publication-body-start",
+        "delta_us": 11125,
+        "elapsed_us": 11125
+      },
+      {
+        "label": "publication-root-activation-result",
+        "delta_us": 750,
+        "elapsed_us": 11875
+      },
+      {
+        "label": "scoped-ready-current-witness",
+        "delta_us": 6883,
+        "elapsed_us": 18758
+      },
+      {
+        "label": "scoped-ready-pure-plan",
+        "delta_us": 1246,
+        "elapsed_us": 20005
+      },
+      {
+        "label": "scoped-ctor-envelope",
+        "delta_us": 73,
+        "elapsed_us": 20078
+      },
+      {
+        "label": "scoped-ctor-opaque-witness",
+        "delta_us": 1,
+        "elapsed_us": 20080
+      },
+      {
+        "label": "scoped-ctor-strict-validation",
+        "delta_us": 948,
+        "elapsed_us": 21029
+      },
+      {
+        "label": "scoped-ctor-complete-coverage",
+        "delta_us": 18,
+        "elapsed_us": 21047
+      },
+      {
+        "label": "scoped-ctor-typed-current-chain",
+        "delta_us": 540,
+        "elapsed_us": 21588
+      },
+      {
+        "label": "scoped-ctor-slot-installed",
+        "delta_us": 1,
+        "elapsed_us": 21589
+      },
+      {
+        "label": "publication-permit-returned",
+        "delta_us": 7,
+        "elapsed_us": 21596
+      },
+      {
+        "label": "publication-main-dml",
+        "delta_us": 4684,
+        "elapsed_us": 26281
+      },
+      {
+        "label": "publication-lifecycle-and-touch",
+        "delta_us": 4767,
+        "elapsed_us": 31049
+      },
+      {
+        "label": "publication-journal",
+        "delta_us": 3876,
+        "elapsed_us": 34925
+      },
+      {
+        "label": "publication-origin-and-installed-owner",
+        "delta_us": 142,
+        "elapsed_us": 35067
+      },
+      {
+        "label": "publication-before-commit",
+        "delta_us": 5,
+        "elapsed_us": 35073
+      },
+      {
+        "label": "publication-committed",
+        "delta_us": 600,
+        "elapsed_us": 35674
+      },
+      {
+        "label": "call-returned",
+        "delta_us": 28,
+        "elapsed_us": 35702
+      }
+    ],
+    "single_current_witness_timing_label": true,
+    "ctor_consumption_us": 1,
+    "interpretation": "Actual current source and bounded phase evidence show one constructor-owned fresh Ready derivation; general constructor independently rederives, as source-reviewed. This is one runtime measurement, not a future latency guarantee."
+  },
+  "source_inputs_unchanged": true,
+  "component_qualified": true,
+  "full_media_cohort_qualified": false,
+  "matrix_qualified": false,
+  "limitations": [
+    "All214Storecontrols passed; Core68/full329/32cells not qualified by this receipt.",
+    "No media FPS/latency/resource acceptance change or full-programme cure is claimed."
+  ],
+  "review_actions": "Read/hash/parse/group-observe only; new ignored receipt outside bound67 inputs; no source edits, execution, build, or tests."
+}

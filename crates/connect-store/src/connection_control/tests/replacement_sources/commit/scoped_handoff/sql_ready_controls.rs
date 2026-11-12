@@ -480,3 +480,126 @@ fn actual_ready_publisher_cannot_commit_after_original_short_operator_expiry() {
     );
     assert_eq!(c.query_row("SELECT count(*) FROM operation_effects WHERE operation_record_id=?1 AND provider='native-replacement-commit'",[&captured.commit_ledger_key().record],|r|r.get::<_,u64>(0)).unwrap(),1);
 }
+
+#[test]
+fn scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_validation() {
+    let setup = setup(true);
+    let m = &setup.movement;
+    let captured = activation_barrier::captured(m);
+    let target = captured.activation().target();
+    let mut required = {
+        let c = m.f.store.connection().unwrap();
+        captured
+            .commit_ledger_authority_decision(&m.f.store, &c, None)
+            .unwrap()
+            .0
+    };
+    required.extend([
+        crate::AuthorityScope::connection(
+            m.sources[0].connection_id(),
+            crate::AuthorityMode::Write,
+        )
+        .unwrap(),
+        crate::AuthorityScope::connection(
+            &target.connection.connection_id,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap(),
+        crate::AuthorityScope::record(
+            &captured.commit_ledger_key().record,
+            crate::AuthorityMode::Write,
+        )
+        .unwrap(),
+    ]);
+    let healthy =
+        m.f.store
+            .try_native_media_read(&setup.healthy_target, Some(&setup.healthy_source))
+            .unwrap();
+    let proof = m.f.store.try_acquire_authority(&required).unwrap();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let boundary = &m.f.store.authority_writer_boundary;
+    // A real SQLite Write transaction is insufficient without the registered
+    // primary Unit. Closed inputs cannot establish that custody.
+    let foreign = Connection::open(m.f.store.path()).unwrap();
+    foreign.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let inputs = captured
+        .scoped_ready_inputs_for_test(&foreign, i64::MAX)
+        .unwrap();
+    assert!(boundary
+        .native_final_ready_mutation_ledger(&m.f.store, &foreign, &proof, &captured, inputs)
+        .is_err());
+    foreign.execute_batch("ROLLBACK").unwrap();
+    drop(foreign);
+    let mut c = m.f.store.connection().unwrap();
+    c.bind_available_mutation_authority(&m.f.store, &proof)
+        .unwrap();
+    let tx = c
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    let inputs = captured
+        .scoped_ready_inputs_for_test(&tx, i64::MAX)
+        .unwrap();
+    let (permit, until) = boundary
+        .native_final_ready_mutation_ledger(&m.f.store, &tx, &proof, &captured, inputs.clone())
+        .unwrap()
+        .expect("genuine closed inputs must construct a usable permit FIRST");
+    assert!(until < i64::MAX && until > crate::now());
+    drop(permit);
+    let changes = tx.total_changes();
+    for fault in [
+        "expired",
+        "credential",
+        "operation",
+        "readiness",
+        "result",
+        "topology",
+    ] {
+        let mut forged = inputs.clone();
+        match fault {
+            "expired" => forged.hint_until = crate::now() - 1,
+            "credential" => forged.descriptor["credential_id"] = json!("foreign-credential"),
+            "operation" => forged.intent.operation_id = "foreign-operation".into(),
+            "readiness" => forged.readiness = json!({"stream_revision": 999}).to_string(),
+            "result" => forged.result["forged_extra_result"] = json!(true),
+            "topology" => forged.topology += 1,
+            _ => unreachable!(),
+        }
+        assert!(
+            boundary
+                .native_final_ready_mutation_ledger(&m.f.store, &tx, &proof, &captured, forged)
+                .is_err(),
+            "closed input forgery accepted: {fault}"
+        );
+        assert_eq!(
+            tx.total_changes(),
+            changes,
+            "fixed planning path must execute no DML"
+        );
+        assert!(!tx.is_autocommit() && healthy.current());
+    }
+    let (permit, again) = boundary
+        .native_final_ready_mutation_ledger(&m.f.store, &tx, &proof, &captured, inputs)
+        .unwrap()
+        .unwrap();
+    assert_eq!(again, until);
+    drop(permit);
+    // General callers still exercise the independent witness derivation.
+    let plan = captured
+        .scoped_ready_plan_for_test(&m.f.store, &tx, &proof)
+        .unwrap();
+    let permit = boundary
+        .native_scoped_mutation_ledger(&m.f.store, &tx, &proof, plan)
+        .unwrap();
+    drop(permit);
+    tx.rollback().unwrap();
+    drop(c);
+    drop(proof);
+    assert!(healthy.current());
+    drop(healthy);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    let published =
+        m.f.store
+            .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
+            .unwrap();
+    assert_eq!(published.connection_id(), target.connection.connection_id);
+}

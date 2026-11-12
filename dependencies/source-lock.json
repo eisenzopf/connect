@@ -2200,6 +2200,24 @@
       "path": "patches/rvoip/connect-video-boundary-diagnostics.patch",
       "sha256": "575dba399d143f0298f9640bf291a78583f02fcac68ede51066c76b49e51751b",
       "source": "Opt-in test-support numeric video pipeline diagnostics: typed adapter/by-medium and exact port boundaries, preowner/forward/preprimary errors, PLI/history/keyframe timelines. No payload/grant/retry/clock/deadline/acceptance changes. All new ordinary shipping work cfg-disabled; explicit UCTP->Core test-support forwarding."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-data-subscription-av-observation.patch",
+      "sha256": "9e061640732d6484cb578fd50df95be54c1ba30fee86647983ead5f38db21af3",
+      "source": "Historical unchanged Audio/Video/Screen subscription commit observation, privately sealed at actual Core routing/resource publication under existing guards; exact controller incarnation/generation/revisions, AV model/ports/routes/selection future/wildcards/exclusions, and actual remote Data source IDs. No new authorization, packet work, deadline or capability expansion. Four actual commit/equality controls."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-data-subscription-observation-test-module-path.patch",
+      "sha256": "c8e923c58e5adaef6648c483f7a969df46759f854ce7539b9abd0bda3625725a",
+      "source": "Test-only explicit path for unchanged AV subscription observation controls, matching adjacent subscription child modules. Fixes actual Core65 E0583; no production behavior, test oracle, selector, authorization or deadline changes."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-data-subscription-observation-std-panic-controls.patch",
+      "sha256": "ad1d9d76132cf5e880834c802b0a04da4dca07c5fbd5ce807f672fcae11ea73f",
+      "source": "Test-only std poll_fn/pin/catch_unwind helper for original AV subscription observer controls. Replaces unavailable futures_util extension without adding Cargo dependency; retains exact original futures, both shutdown joins/panic precedence, four selectors and all assertions. Actual Core68 compile failure remains zero-test evidence."
     }
   ]
 }

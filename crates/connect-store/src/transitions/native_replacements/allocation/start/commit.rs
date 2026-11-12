@@ -1237,43 +1237,30 @@ impl Store {
         let mut scoped_until = None;
         let permit = if let Some(hint) = hint {
             let captured = live.ok_or_else(Error::forbidden)?;
-            let facts = match captured.scoped_final_ready_facts(self, &tx, &held) {
-                Ok(facts) => facts,
-                Err(error)
-                    if matches!(
-                        error.code.as_str(),
-                        "forbidden" | "unauthorized" | "conflict" | "not-ready"
-                    ) =>
-                {
-                    return Ok(PublicationAttempt::NeedsBroad);
-                }
-                Err(error) => return Err(error),
-            };
-            #[cfg(test)]
-            crate::scoped_phase_timing::mark("publication-outer-current-witness");
-            let until = facts.until.ok_or_else(Error::forbidden)?.min(hint.until);
-            scoped_until = Some(until);
             let ready: serde_json::Value =
                 serde_json::from_str(&p.observation).map_err(|_| Error::storage())?;
-            let plan = scoped_mutation::ready_plan(
-                &tx,
-                p,
-                captured,
-                facts.required,
-                until,
-                &descriptor,
-                &intent,
-                &ready["readiness"].to_string(),
-                &result,
-                topology_revision,
-                recorded_at,
-            )?;
-            #[cfg(test)]
-            crate::scoped_phase_timing::mark("publication-row-plan");
-            Some(
-                self.authority_writer_boundary
-                    .native_scoped_mutation_ledger(self, &tx, &held, plan)?,
-            )
+            let resolved = self
+                .authority_writer_boundary
+                .native_final_ready_mutation_ledger(
+                    self,
+                    &tx,
+                    &held,
+                    captured,
+                    crate::authority_writer_boundary::phase_ledger::scoped::ReadyPlanInputs {
+                        descriptor: descriptor.clone(),
+                        intent: intent.clone(),
+                        readiness: ready["readiness"].to_string(),
+                        result: result.clone(),
+                        topology: topology_revision,
+                        recorded_at,
+                        hint_until: hint.until,
+                    },
+                )?;
+            let Some((permit, until)) = resolved else {
+                return Ok(PublicationAttempt::NeedsBroad);
+            };
+            scoped_until = Some(until);
+            Some(permit)
         } else {
             None
         };
@@ -1636,21 +1623,48 @@ impl NativeReplacementCommitted {
     }
 }
 
-#[cfg(test)]
 impl NativeReplacementCommitted {
-    /// The same production Ready plan, from this actual sealed capture and
-    /// fresh supplied SQL/proof. No caller row/ID/JSON can mint provenance.
-    pub(crate) fn scoped_ready_plan_for_test<'a>(
+    /// Fixed read-only planner. Facts never escape the constructor call that
+    /// freshly derives them; closed values remain subject to strict validation.
+    pub(crate) fn scoped_final_ready_plan<'a>(
         &'a self,
-        store: &Store,
         c: &Connection,
-        proof: &Arc<AuthorityGuardSet>,
+        facts: &crate::authority_writer_boundary::phase_ledger::scoped::WitnessFacts,
+        inputs: crate::authority_writer_boundary::phase_ledger::scoped::ReadyPlanInputs,
     ) -> Result<crate::authority_writer_boundary::phase_ledger::scoped::Plan<'a>> {
         let p = Projection::from_capture(self)?;
-        let facts = self.scoped_final_ready_facts(store, c, proof)?;
+        let until = facts
+            .until
+            .ok_or_else(Error::forbidden)?
+            .min(inputs.hint_until);
+        scoped_mutation::ready_plan(
+            c,
+            &p,
+            self,
+            facts.required.clone(),
+            until,
+            &inputs.descriptor,
+            &inputs.intent,
+            &inputs.readiness,
+            &inputs.result,
+            inputs.topology,
+            inputs.recorded_at,
+        )
+    }
+}
+
+#[cfg(test)]
+impl NativeReplacementCommitted {
+    /// Actual closed production inputs assembled from the same captured state.
+    pub(crate) fn scoped_ready_inputs_for_test(
+        &self,
+        c: &Connection,
+        until: i64,
+    ) -> Result<crate::authority_writer_boundary::phase_ledger::scoped::ReadyPlanInputs> {
+        let p = Projection::from_capture(self)?;
         let descriptor: serde_json::Value =
             serde_json::from_str(&p.descriptor).map_err(|_| Error::storage())?;
-        let intent: connect_protocol::connection_control::OfferIntent =
+        let intent =
             serde_json::from_value(descriptor["intent"].clone()).map_err(|_| Error::storage())?;
         let ready: serde_json::Value =
             serde_json::from_str(&p.observation).map_err(|_| Error::storage())?;
@@ -1673,18 +1687,29 @@ impl NativeReplacementCommitted {
             .filter(|v| *v < 9_007_199_254_740_991)
             .ok_or_else(Error::forbidden)?;
         let result = scoped_mutation::publication_result(&p, source, &retained, topology, false)?;
-        scoped_mutation::ready_plan(
-            c,
-            &p,
-            self,
-            facts.required,
-            facts.until.ok_or_else(Error::forbidden)?,
-            &descriptor,
-            &intent,
-            &ready["readiness"].to_string(),
-            &result,
-            topology,
-            crate::now(),
+        Ok(
+            crate::authority_writer_boundary::phase_ledger::scoped::ReadyPlanInputs {
+                descriptor,
+                intent,
+                readiness: ready["readiness"].to_string(),
+                result,
+                topology,
+                recorded_at: crate::now(),
+                hint_until: until,
+            },
         )
+    }
+    /// The same production Ready plan, from this actual sealed capture and
+    /// fresh supplied SQL/proof. No caller row/ID/JSON can mint provenance.
+    pub(crate) fn scoped_ready_plan_for_test<'a>(
+        &'a self,
+        store: &Store,
+        c: &Connection,
+        proof: &Arc<AuthorityGuardSet>,
+    ) -> Result<crate::authority_writer_boundary::phase_ledger::scoped::Plan<'a>> {
+        let facts = self.scoped_final_ready_facts(store, c, proof)?;
+        let inputs =
+            self.scoped_ready_inputs_for_test(c, facts.until.ok_or_else(Error::forbidden)?)?;
+        self.scoped_final_ready_plan(c, &facts, inputs)
     }
 }

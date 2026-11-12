@@ -1,0 +1,91 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/av_observation.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/av_observation.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/av_observation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/av_observation.rs
+@@ -2,8 +2,24 @@
+ //! fixtures are synthetic; no signed transport/Store epoch/VP8 decode claim.
+ use super::*;
+ use crate::staged_streams::subscription_observation::SubscriptionCommitObservation;
+-use futures_util::FutureExt;
+ use std::panic::AssertUnwindSafe;
++
++// Test-only async panic boundary using std. Catch each actual poll; a pending
++// original future stays pinned/owned and its eventual panic is returned only
++// after its own locals unwind. This spawns no worker and adds no timeout.
++async fn catch_future<F: std::future::Future>(future: F) -> std::thread::Result<F::Output> {
++    let mut future = std::pin::pin!(future);
++    std::future::poll_fn(|cx| {
++        match std::panic::catch_unwind(AssertUnwindSafe(|| {
++            std::future::Future::poll(future.as_mut(), cx)
++        })) {
++            Ok(std::task::Poll::Pending) => std::task::Poll::Pending,
++            Ok(std::task::Poll::Ready(value)) => std::task::Poll::Ready(Ok(value)),
++            Err(panic) => std::task::Poll::Ready(Err(panic)),
++        }
++    })
++    .await
++}
+ 
+ struct ObservedHeld {
+     held: Arc<Held>,
+@@ -228,8 +244,8 @@
+     // Both original controller shutdowns are polled and joined even if either
+     // panics. Report the original work failure before secondary cleanup failure.
+     let (b, a) = tokio::join!(
+-        AssertUnwindSafe(f.b.shutdown(deadline())).catch_unwind(),
+-        AssertUnwindSafe(f.a.shutdown(deadline())).catch_unwind(),
++        catch_future(f.b.shutdown(deadline())),
++        catch_future(f.a.shutdown(deadline())),
+     );
+     if let Err(panic) = work {
+         std::panic::resume_unwind(panic);
+@@ -244,7 +260,7 @@
+ #[tokio::test]
+ async fn routing_data_commit_observation_preserves_real_original_av_and_exact_incarnation() {
+     let f = fixture();
+-    let work = AssertUnwindSafe(async {
++    let work = catch_future(async {
+         let scene = scene(&f, true).await;
+         let mut out = [Medium::Audio, Medium::Video, Medium::Screen]
+             .into_iter()
+@@ -324,7 +340,6 @@
+         assert!(result.is_ok());
+         assert!(observer.unchanged_av(expected, result.unwrap()).is_none());
+     })
+-    .catch_unwind()
+     .await;
+     finish(&f, work).await;
+ }
+@@ -333,7 +348,7 @@
+ async fn av_change_cancelled_commit_and_old_observer_cannot_issue_data_continuity() {
+     for medium in [Medium::Audio, Medium::Video, Medium::Screen] {
+         let f = fixture();
+-        let work = AssertUnwindSafe(async {
++        let work = catch_future(async {
+             let scene = scene(&f, true).await;
+             let expected = f.b.revision();
+             let observer = Arc::new(SubscriptionCommitObservation::new(&f.b, expected));
+@@ -403,7 +418,6 @@
+             assert!(cancelled.unchanged_av(next, next).is_none());
+             assert_eq!(f.b.revision(), next);
+         })
+-        .catch_unwind()
+         .await;
+         finish(&f, work).await;
+     }
+@@ -412,7 +426,7 @@
+ #[tokio::test]
+ async fn prepared_data_resource_commit_observes_same_original_av_ports_and_no_adapter_replay() {
+     let f = fixture();
+-    let work = AssertUnwindSafe(async {
++    let work = catch_future(async {
+         let scene = scene(&f, false).await;
+         let mut out = [Medium::Audio, Medium::Video, Medium::Screen]
+             .into_iter()
+@@ -473,7 +487,6 @@
+         deliver_av(old, 510).await;
+         deliver_av(queued_av(&f, &scene, &mut out, 511).await, 511).await;
+     })
+-    .catch_unwind()
+     .await;
+     finish(&f, work).await;
+ }

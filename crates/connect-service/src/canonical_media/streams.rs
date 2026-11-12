@@ -41,8 +41,21 @@ pub(crate) struct StreamInvocation {
     target: Arc<NativeMediaRead>,
     sources: BTreeMap<ConnectionId, StreamSource>,
     deadline: tokio::time::Instant,
+    // Shared by clones of THIS original invocation only, never a packet grant.
+    subscription_observation: Option<Arc<std::sync::OnceLock<Arc<rvoip_core::staged_streams::subscription_observation::SubscriptionCommitObservation>>>>,
 }
 impl StreamInvocation {
+    pub(crate) fn begin_subscription_observation(
+        &self,
+        owner: &Arc<rvoip_core::staged_streams::StreamController>,
+    ) -> Option<
+        Arc<rvoip_core::staged_streams::subscription_observation::SubscriptionCommitObservation>,
+    > {
+        let slot = self.subscription_observation.as_ref()?;
+        let observation = Arc::new(rvoip_core::staged_streams::subscription_observation::SubscriptionCommitObservation::new(owner, self.revision));
+        slot.set(observation.clone()).ok()?;
+        Some(observation)
+    }
     fn current(&self) -> ControlResult<()> {
         let authority = match &self.resumed {
             Some(resumed) if resumed.current() => resumed.authority::<StoreInvocationAuthority>(),
@@ -237,6 +250,9 @@ impl Policy {
                 Err(error) => return Err(error),
             }
         }
+        let subscription_observation =
+            matches!(&plan, Plan::Subscriptions(_) | Plan::RtcSubscriptions(_))
+                .then(|| Arc::new(std::sync::OnceLock::new()));
         let invocation = Arc::new(StreamInvocation {
             policy: self.clone(),
             connection,
@@ -244,6 +260,7 @@ impl Policy {
             resumed,
             plan,
             revision: lease.expected_revision(),
+            subscription_observation,
             target,
             sources,
             deadline,
@@ -324,6 +341,16 @@ impl Policy {
             i.authorized.invocation_cancellation(),
             i.deadline,
         )
+        .map(|control| {
+            match i
+                .subscription_observation
+                .as_ref()
+                .and_then(|slot| slot.get())
+            {
+                Some(observation) => control.with_subscription_observation(observation.clone()),
+                None => control,
+            }
+        })
     }
 }
 pub(super) fn check_plan(

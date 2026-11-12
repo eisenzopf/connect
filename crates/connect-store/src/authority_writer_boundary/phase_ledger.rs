@@ -2,6 +2,7 @@
 use super::*;
 use rusqlite::OptionalExtension;
 pub(crate) mod commit;
+pub(crate) mod data_control;
 mod intent;
 pub(crate) mod queued;
 pub(crate) mod reservation;
@@ -33,6 +34,7 @@ pub(super) struct Active {
     candidate_audience: Option<String>,
     commit_capture: Option<commit::Capture>,
     scoped_capture: Option<scoped::Capture>,
+    data_control_capture: Option<data_control::Capture>,
     // Pins the original complete Read until this transaction permit ends.
     _proof: Arc<AuthorityGuardSet>,
 }
@@ -101,13 +103,18 @@ impl State {
         attempt: Option<&str>,
         revision: Option<i64>,
     ) -> bool {
-        self.slot.lock().is_ok_and(|slot| {
+        self.slot.lock().is_ok_and(|mut slot| {
             if !slot.active || slot.failed {
                 return false;
             }
-            let Some(active) = &slot.phase_ledger else {
+            let Some(active) = slot.phase_ledger.as_mut() else {
                 return false;
             };
+            if active.data_control_capture.is_some() {
+                return data_control::matches(
+                    active, action, record, effect, phase, expected, attempt, revision,
+                );
+            }
             let key = &active.key;
             if active.scoped_capture.is_some() {
                 return scoped::matches(
@@ -460,6 +467,7 @@ impl State {
             candidate_audience,
             commit_capture: None,
             scoped_capture: None,
+            data_control_capture: None,
             _proof: proof.clone(),
         });
         Ok(Permit {

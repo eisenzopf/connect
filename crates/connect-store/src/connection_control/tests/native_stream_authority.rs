@@ -1395,6 +1395,7 @@ fn native_data_source_creation_permission_does_not_grant_message_publication_per
 mod capabilities;
 mod codecs;
 mod data_custody;
+mod data_gate_capture;
 mod data_reads;
 mod data_writes;
 mod gates;

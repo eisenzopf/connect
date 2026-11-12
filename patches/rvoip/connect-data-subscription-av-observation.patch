@@ -1,0 +1,1069 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -664,6 +664,44 @@
+ }
+ pub(super) struct DirectCommit<'a>(std::sync::MutexGuard<'a, Routing>);
+ impl DirectCommit<'_> {
++    pub(super) fn data_sources(&self, state: &State) -> Vec<StreamId> {
++        self.0
++            .program
++            .values()
++            .filter(|r| {
++                state
++                    .active
++                    .get(&r.selection.receiver)
++                    .is_some_and(|p| p.binding.negotiated.requested.medium == Medium::Data)
++            })
++            .map(|r| r.selection.source.logical.clone())
++            .collect::<BTreeSet<_>>()
++            .into_iter()
++            .collect()
++    }
++    // Called only with the actual routing/state guards held. Every route this
++    // commit can replace/remove must be definitely Data in both old/new ports;
++    // unknown/private-only IDs conservatively prevent an AV continuity proof.
++    pub(super) fn av_unchanged(
++        &self,
++        plan: &DirectPlan,
++        state: &State,
++        bindings: &[ReadyMediaBinding],
++    ) -> bool {
++        plan.changed.iter().all(|id| {
++            let old = state
++                .active
++                .get(id)
++                .map(|p| p.binding.negotiated.requested.medium);
++            let new = bindings
++                .iter()
++                .find(|b| &b.negotiated.requested.logical_id == id)
++                .map(|b| b.negotiated.requested.medium);
++            (old.is_some() || new.is_some())
++                && old.is_none_or(|m| m == Medium::Data)
++                && new.is_none_or(|m| m == Medium::Data)
++        })
++    }
+     pub(super) fn commit(&mut self, plan: &DirectPlan) {
+         for id in &plan.changed {
+             let private = self.0.preparation.remove(id);
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
+@@ -343,6 +343,26 @@
+                 deadline,
+                 &cancel,
+             )?;
++            let observation = control
++                .as_ref()
++                .and_then(|c| c.subscription_observation.as_ref());
++            let av_before = observation.map(|_| subscription_observation::AvState::capture(&state));
++            let bindings = observation.map(|_| {
++                state
++                    .active
++                    .values()
++                    .map(|p| p.binding.clone())
++                    .collect::<Vec<_>>()
++            });
++            let av_routing_unchanged = observation.is_some()
++                && audio.as_ref().is_none_or(|p| !p.changed())
++                && direct
++                    .as_ref()
++                    .zip(direct_commit.as_ref())
++                    .is_none_or(|(p, c)| {
++                        c.av_unchanged(p, &state, bindings.as_deref().unwrap_or(&[]))
++                    })
++                && selection_commit.as_ref().is_none_or(|c| c.av_unchanged());
+             let changed = change.selection.as_ref().is_some_and(|p| p.changed())
+                 || audio.as_ref().is_some_and(|p| p.changed())
+                 || direct.as_ref().is_some_and(|p| p.changed());
+@@ -358,6 +378,23 @@
+             }
+             if let Some(commit) = selection_commit.as_mut() {
+                 commit.commit();
++            }
++            if let Some(observation) = observation {
++                observation.publish(
++                    &controller,
++                    expected,
++                    revision,
++                    lease.authority().connection.generation(),
++                    av_routing_unchanged
++                        && av_before
++                            .as_ref()
++                            .is_some_and(|before| before.unchanged(&state)),
++                    bindings.unwrap_or_default(),
++                    direct_commit
++                        .as_ref()
++                        .map(|c| c.data_sources(&state))
++                        .unwrap_or_default(),
++                );
+             }
+             if let Some(scene) = scene {
+                 scene.selection_changed.notify_waiters();
+@@ -581,6 +618,26 @@
+     _receive: Vec<ControlRead>,
+ }
+ impl RoutingCommit<'_> {
++    pub(super) fn data_sources(&self, state: &State) -> Vec<StreamId> {
++        self.direct
++            .as_ref()
++            .map(|c| c.data_sources(state))
++            .unwrap_or_default()
++    }
++    pub(super) fn av_unchanged(
++        &self,
++        routes: &PreparedRoutes,
++        state: &State,
++        bindings: &[ReadyMediaBinding],
++    ) -> bool {
++        routes.audio.as_ref().is_none_or(|p| !p.changed())
++            && routes
++                .direct
++                .as_ref()
++                .zip(self.direct.as_ref())
++                .is_none_or(|(p, c)| c.av_unchanged(p, state, bindings))
++            && self.selection.as_ref().is_none_or(|c| c.av_unchanged())
++    }
+     pub(super) fn commit(&mut self, routes: &PreparedRoutes) {
+         if let (Some(plan), Some(commit)) = (&routes.audio, self.audio.as_mut()) {
+             commit.commit(plan);
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs b/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
+@@ -49,6 +49,66 @@
+                 .participants
+                 .iter()
+                 .all(|(id, item)| other.participants.get(id).is_some_and(|o| item.same(o)))
++    }
++    // Preserve current AND future AV intent. Unknown exclusions and wildcard
++    // metadata are compared conservatively rather than guessed to be Data.
++    pub(super) fn av_same(&self, other: &Self) -> bool {
++        let av_known = |p: &Self| {
++            p.known
++                .iter()
++                .filter(|(_, s)| super::subscription_observation::av(s.medium))
++                .map(|(id, s)| (id.clone(), s.clone()))
++                .collect::<BTreeMap<_, _>>()
++        };
++        if av_known(self) != av_known(other) {
++            return false;
++        }
++        let relevant = |p: &ParticipantSelection| {
++            p.wildcard
++                || p.media
++                    .iter()
++                    .any(|m| super::subscription_observation::av(*m))
++        };
++        let same_participant = |a: &ParticipantSelection, b: &ParticipantSelection| {
++            let mut a = a.clone();
++            let mut b = b.clone();
++            if !a.wildcard && !b.wildcard {
++                a.media.retain(|m| super::subscription_observation::av(*m));
++                b.media.retain(|m| super::subscription_observation::av(*m));
++            }
++            a.same(&b)
++        };
++        if self.participants.values().filter(|p| relevant(p)).count()
++            != other.participants.values().filter(|p| relevant(p)).count()
++            || !self
++                .participants
++                .iter()
++                .filter(|(_, p)| relevant(p))
++                .all(|(id, p)| {
++                    other
++                        .participants
++                        .get(id)
++                        .is_some_and(|n| relevant(n) && same_participant(p, n))
++                })
++        {
++            return false;
++        }
++        let exclusions = |p: &Self| {
++            p.excluded
++                .iter()
++                .filter(|(_, id)| {
++                    let a = self.known.get(id);
++                    let b = other.known.get(id);
++                    a.into_iter()
++                        .chain(b)
++                        .any(|s| super::subscription_observation::av(s.medium))
++                        || a.is_none()
++                        || b.is_none()
++                })
++                .cloned()
++                .collect::<BTreeSet<_>>()
++        };
++        exclusions(self) == exclusions(other)
+     }
+     pub(super) fn validate(&self) -> ControlResult<()> {
+         if self.participants.len() > 128 || self.excluded.len() > 4096 || self.known.len() > 4096 {
+@@ -234,6 +294,14 @@
+     mutation: &'a SelectionMutation,
+ }
+ impl SelectionCommit<'_> {
++    pub(super) fn av_unchanged(&self) -> bool {
++        self.mutation
++            .previous
++            .as_deref()
++            .cloned()
++            .unwrap_or_default()
++            .av_same(&self.mutation.next)
++    }
+     pub(super) fn commit(&mut self) {
+         if self.mutation.changed() {
+             self.programs
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/subscription_observation.rs b/crates/foundation/rvoip-core/src/staged_streams/subscription_observation.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_observation.rs
+@@ -0,0 +1,159 @@
++//! Historical subscription commit observations. Neither collector nor receipt
++//! retains a media/control lease, a ticket, or permission to run another effect.
++use super::*;
++
++/// One original invocation's observer. There is deliberately no public writer.
++/// The first successful Core commit closes it even when that commit changed AV.
++pub struct SubscriptionCommitObservation {
++    owner: Weak<()>,
++    expected: u64,
++    result: std::sync::OnceLock<Observed>,
++}
++struct Observed {
++    revision: u64,
++    unchanged: Option<UnchangedAvSubscriptionCommit>,
++}
++#[derive(Clone)]
++pub struct UnchangedAvSubscriptionCommit {
++    owner: Weak<()>,
++    conversation: ConversationId,
++    session: SessionId,
++    connection: ConnectionId,
++    generation: u64,
++    expected: u64,
++    revision: u64,
++    bindings: Vec<ReadyMediaBinding>,
++    data_sources: Vec<StreamId>,
++}
++impl SubscriptionCommitObservation {
++    pub fn new(owner: &Arc<StreamController>, expected: u64) -> Self {
++        Self {
++            owner: Arc::downgrade(&owner.subscription_commit_identity),
++            expected,
++            result: std::sync::OnceLock::new(),
++        }
++    }
++    /// Historical result only, for this exact original expected/returned pair.
++    /// A failed call, foreign owner, AV-changing commit or later revision is None.
++    pub fn unchanged_av(
++        &self,
++        expected: u64,
++        revision: u64,
++    ) -> Option<UnchangedAvSubscriptionCommit> {
++        let observed = self.result.get()?;
++        if expected != self.expected || revision != observed.revision {
++            return None;
++        }
++        observed.unchanged.clone()
++    }
++    pub(super) fn publish(
++        &self,
++        owner: &Arc<StreamController>,
++        expected: u64,
++        revision: u64,
++        generation: u64,
++        unchanged: bool,
++        bindings: Vec<ReadyMediaBinding>,
++        data_sources: Vec<StreamId>,
++    ) {
++        let unchanged = (unchanged
++            && self.expected == expected
++            && Weak::ptr_eq(
++                &self.owner,
++                &Arc::downgrade(&owner.subscription_commit_identity),
++            )
++            && revision >= expected
++            && revision <= expected.saturating_add(1))
++        .then(|| UnchangedAvSubscriptionCommit {
++            owner: Arc::downgrade(&owner.subscription_commit_identity),
++            conversation: owner.conversation.clone(),
++            session: owner.session.clone(),
++            connection: owner.connection.clone(),
++            generation,
++            expected,
++            revision,
++            bindings,
++            data_sources,
++        });
++        // No overwrite or promotion after an earlier successful AV-changing call.
++        let _ = self.result.set(Observed {
++            revision,
++            unchanged,
++        });
++    }
++}
++impl UnchangedAvSubscriptionCommit {
++    pub fn matches(
++        &self,
++        conversation: &str,
++        session: &str,
++        connection: &str,
++        generation: u64,
++        expected: u64,
++        revision: u64,
++    ) -> bool {
++        self.conversation.as_str() == conversation
++            && self.session.as_str() == session
++            && self.connection.as_str() == connection
++            && self.generation == generation
++            && self.expected == expected
++            && self.revision == revision
++    }
++    pub fn matches_owner(&self, owner: &Arc<StreamController>) -> bool {
++        Weak::ptr_eq(
++            &self.owner,
++            &Arc::downgrade(&owner.subscription_commit_identity),
++        )
++    }
++    pub fn bindings(&self) -> &[ReadyMediaBinding] {
++        &self.bindings
++    }
++    /// Remote source IDs of actual validated Data routes, not local receiver IDs.
++    pub fn data_sources(&self) -> &[StreamId] {
++        &self.data_sources
++    }
++    pub fn matches_data_sources(&self, requested: &[String]) -> bool {
++        !requested.is_empty()
++            && requested
++                .iter()
++                .all(|id| self.data_sources.iter().any(|source| source.as_str() == id))
++    }
++}
++
++pub(super) fn av(medium: Medium) -> bool {
++    matches!(medium, Medium::Audio | Medium::Video | Medium::Screen)
++}
++/// A local comparison under the already-held controller state guard. These
++/// temporary Arc copies die before returning; none enters the historical receipt.
++pub(super) struct AvState {
++    model: BTreeMap<StreamId, LogicalStream>,
++    ports: BTreeMap<StreamId, Arc<Port>>,
++}
++impl AvState {
++    pub(super) fn capture(state: &State) -> Self {
++        Self {
++            model: state
++                .model
++                .streams()
++                .iter()
++                .filter(|(_, s)| av(s.negotiated.requested.medium))
++                .map(|(id, s)| (id.clone(), s.clone()))
++                .collect(),
++            ports: state
++                .active
++                .iter()
++                .filter(|(_, p)| av(p.binding.negotiated.requested.medium))
++                .map(|(id, p)| (id.clone(), p.clone()))
++                .collect(),
++        }
++    }
++    pub(super) fn unchanged(&self, state: &State) -> bool {
++        let now = Self::capture(state);
++        self.model == now.model
++            && self.ports.len() == now.ports.len()
++            && self
++                .ports
++                .iter()
++                .all(|(id, p)| now.ports.get(id).is_some_and(|n| Arc::ptr_eq(p, n)))
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/av_observation.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/av_observation.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/av_observation.rs
+@@ -0,0 +1,572 @@
++//! Actual Core routing/resource commits and independent AV IO. Relationship
++//! fixtures are synthetic; no signed transport/Store epoch/VP8 decode claim.
++use super::*;
++use crate::staged_streams::subscription_observation::SubscriptionCommitObservation;
++use futures_util::FutureExt;
++use std::panic::AssertUnwindSafe;
++
++struct ObservedHeld {
++    held: Arc<Held>,
++    observation: Arc<SubscriptionCommitObservation>,
++}
++struct ObservingPolicy(Arc<HeldPolicy>);
++impl MediaPolicy for ObservingPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.0.current(scope)
++    }
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.0.current_participant_receive(scope, source)
++    }
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        intent: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        if let Some(h) = held.downcast_ref::<ObservedHeld>() {
++            // The actual entrypoint uses component intents for pure Audio or
++            // Direct changes. Normalize only the EXACT original component to
++            // the parent's held full-intent validator; never infer permission.
++            let component = match intent {
++                MediaControlIntent::DirectSubscriptions { expected, change }
++                    if h.held.selected.is_none()
++                        && h.held.change.selection.is_none()
++                        && h.held.change.audio.is_none()
++                        && h.held.change.direct.as_ref() == Some(*change) =>
++                {
++                    Some(MediaControlIntent::Subscriptions {
++                        expected: *expected,
++                        change: &h.held.change,
++                    })
++                }
++                MediaControlIntent::AudioSubscriptions { expected, change }
++                    if h.held.selected.is_none()
++                        && h.held.change.selection.is_none()
++                        && h.held.change.direct.is_none()
++                        && h.held.change.audio.as_ref() == Some(*change) =>
++                {
++                    Some(MediaControlIntent::Subscriptions {
++                        expected: *expected,
++                        change: &h.held.change,
++                    })
++                }
++                _ => None,
++            };
++            self.0
++                .current_control(scope, component.as_ref().unwrap_or(intent), &h.held)
++                .map(|c| c.with_subscription_observation(h.observation.clone()))
++        } else {
++            self.0.current_control(scope, intent, held)
++        }
++    }
++}
++fn fixture() -> Fixture {
++    Fixture::with_policy(
++        16,
++        Some(Box::new(|base| {
++            Arc::new(ObservingPolicy(Arc::new(HeldPolicy {
++                base,
++                fresh: AtomicUsize::new(0),
++                collision: Arc::new(ResourceMetadataCollision::default()),
++            })))
++        })),
++    )
++}
++async fn scene(f: &Fixture, data_receiver: bool) -> Arc<GuardedMediaScene> {
++    for (controller, kinds) in [
++        (
++            &f.a,
++            vec![Medium::Audio, Medium::Video, Medium::Screen, Medium::Data],
++        ),
++        (
++            &f.b,
++            if data_receiver {
++                vec![Medium::Audio, Medium::Video, Medium::Screen, Medium::Data]
++            } else {
++                vec![Medium::Audio, Medium::Video, Medium::Screen]
++            },
++        ),
++    ] {
++        controller
++            .change(
++                0,
++                &kinds
++                    .into_iter()
++                    .map(|m| {
++                        let mut stream = desired(m);
++                        if Arc::ptr_eq(controller, &f.b) && m == Medium::Data {
++                            stream.logical_id = StreamId::from_string("local-data");
++                        }
++                        stream
++                    })
++                    .collect::<Vec<_>>(),
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++    }
++    let scene = GuardedMediaScene::new(
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        f.a.policy.clone(),
++        8000,
++    );
++    for c in [&f.a, &f.b] {
++        let mut member = scene.prepare(c.clone()).unwrap();
++        member
++            .quiesce(deadline(), CancellationToken::new())
++            .await
++            .unwrap();
++        scene.insert(c.connection.clone(), member, true);
++    }
++    let av = MediaSubscriptionChange {
++        selection: None,
++        audio: Some(AudioSubscriptionChange::Subscribe(vec![
++            AudioSubscription::Stream(MediaStreamRef {
++                connection: f.a.connection.clone(),
++                logical: desired(Medium::Audio).logical_id,
++            }),
++        ])),
++        direct: Some(DirectSubscriptionChange::Subscribe(
++            [Medium::Video, Medium::Screen]
++                .into_iter()
++                .map(|m| {
++                    DirectSubscription::new(
++                        &f.a,
++                        desired(m).logical_id.clone(),
++                        desired(m).logical_id,
++                    )
++                })
++                .collect(),
++        )),
++    };
++    scene
++        .change_media_subscriptions(
++            &f.b.connection,
++            f.b.revision(),
++            av,
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++    scene
++}
++fn data(f: &Fixture) -> MediaSubscriptionChange {
++    let receiver =
++        f.b.active_bindings()
++            .iter()
++            .find(|b| b.negotiated.requested.medium == Medium::Data)
++            .map(|b| b.negotiated.requested.logical_id.clone())
++            .unwrap_or_else(|| StreamId::from_string("local-data"));
++    MediaSubscriptionChange {
++        selection: None,
++        audio: None,
++        direct: Some(DirectSubscriptionChange::Subscribe(vec![
++            DirectSubscription::new(&f.a, desired(Medium::Data).logical_id.clone(), receiver),
++        ])),
++    }
++}
++async fn held(
++    f: &Fixture,
++    change: &MediaSubscriptionChange,
++    selected: Option<Vec<NegotiatedStream>>,
++    observation: Arc<SubscriptionCommitObservation>,
++) -> ObservedHeld {
++    ObservedHeld {
++        held: Arc::new(Held {
++            domain: f.policy.clone(),
++            guard: Arc::new(f.policy.0.clone().read_owned().await),
++            target: f.b.connection.clone(),
++            expected: f.b.revision(),
++            change: change.clone(),
++            selected,
++        }),
++        observation,
++    }
++}
++async fn queued_av(
++    f: &Fixture,
++    scene: &GuardedMediaScene,
++    out: &mut [(Medium, mpsc::Receiver<QueuedMedia>)],
++    sequence: u32,
++) -> Vec<(Medium, QueuedMedia)> {
++    for medium in [Medium::Audio, Medium::Video, Medium::Screen] {
++        let port = f.aa.port(medium);
++        port.try_publish(&frame(&port, sequence)).unwrap();
++    }
++    scene.tick();
++    let mut result = Vec::new();
++    for (medium, r) in out {
++        result.push((*medium, outgoing(r).await));
++    }
++    result
++}
++async fn deliver_av(packets: Vec<(Medium, QueuedMedia)>, sequence: u32) {
++    for (medium, packet) in packets {
++        if medium == Medium::Audio {
++            assert_audio(packet).await;
++        } else {
++            packet
++                .deliver(|f| async move {
++                    assert_eq!(f.timestamp_rtp, sequence);
++                    Ok(())
++                })
++                .await
++                .unwrap();
++        }
++    }
++}
++async fn finish(f: &Fixture, work: std::thread::Result<()>) {
++    // Both original controller shutdowns are polled and joined even if either
++    // panics. Report the original work failure before secondary cleanup failure.
++    let (b, a) = tokio::join!(
++        AssertUnwindSafe(f.b.shutdown(deadline())).catch_unwind(),
++        AssertUnwindSafe(f.a.shutdown(deadline())).catch_unwind(),
++    );
++    if let Err(panic) = work {
++        std::panic::resume_unwind(panic);
++    }
++    let b = b.unwrap_or_else(|p| std::panic::resume_unwind(p));
++    let a = a.unwrap_or_else(|p| std::panic::resume_unwind(p));
++    assert_eq!((b, a), (0, 0));
++    assert_eq!(f.ba.outstanding.load(Ordering::Acquire), 0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 0);
++}
++
++#[tokio::test]
++async fn routing_data_commit_observation_preserves_real_original_av_and_exact_incarnation() {
++    let f = fixture();
++    let work = AssertUnwindSafe(async {
++        let scene = scene(&f, true).await;
++        let mut out = [Medium::Audio, Medium::Video, Medium::Screen]
++            .into_iter()
++            .map(|m| (m, f.ba.port(m).take_egress().unwrap()))
++            .collect::<Vec<_>>();
++        let old = queued_av(&f, &scene, &mut out, 410).await;
++        let expected = f.b.revision();
++        let observer = Arc::new(SubscriptionCommitObservation::new(&f.b, expected));
++        let change = data(&f);
++        let h = held(&f, &change, None, observer.clone()).await;
++        let revision = scene
++            .change_media_subscriptions(
++                &f.b.connection,
++                expected,
++                change,
++                deadline(),
++                CancellationToken::new(),
++                Some(&h),
++            )
++            .await
++            .unwrap();
++        drop(h);
++        let receipt = observer
++            .unchanged_av(expected, revision)
++            .expect("actual Data-only commit witness");
++        assert!(receipt.matches("conversation", "session", "bob", 1, expected, revision));
++        assert!(receipt.matches_owner(&f.b));
++        assert!(receipt.matches_data_sources(&["data".into()]));
++        for wrong in ["local-data", "video", "unknown"] {
++            assert!(!receipt.matches_data_sources(&[wrong.into()]));
++        }
++        assert!(receipt
++            .bindings()
++            .iter()
++            .any(|b| b.negotiated.requested.logical_id.as_str() == "local-data"));
++        assert!(!receipt
++            .bindings()
++            .iter()
++            .any(|b| b.negotiated.requested.logical_id.as_str() == "data"));
++
++        assert!(!receipt.matches_owner(&f.a));
++        assert!(observer.unchanged_av(expected + 1, revision).is_none());
++        assert!(observer.unchanged_av(expected, revision + 1).is_none());
++        assert!(!receipt.matches("conversation", "other", "bob", 1, expected, revision));
++        assert!(!receipt.matches("conversation", "session", "bob", 2, expected, revision));
++        deliver_av(old, 410).await;
++        deliver_av(queued_av(&f, &scene, &mut out, 411).await, 411).await;
++        // Same identifiers/generation with a DIFFERENT exact controller marker
++        // cannot manufacture a receipt for the real target's next commit.
++        let foreign = StreamController::new(
++            ConversationId::from_string("conversation"),
++            SessionId::from_string("session"),
++            ConnectionId::from_string("bob"),
++            principal("bob"),
++            f.a.policy.clone(),
++            Adapter::new(),
++            Arc::new(StreamHandleAllocator::default()),
++            16,
++        )
++        .unwrap();
++        let expected = f.b.revision();
++        let observer = Arc::new(SubscriptionCommitObservation::new(&foreign, expected));
++        let change = data(&f);
++        let h = held(&f, &change, None, observer.clone()).await;
++        let result = scene
++            .change_media_subscriptions(
++                &f.b.connection,
++                expected,
++                change,
++                deadline(),
++                CancellationToken::new(),
++                Some(&h),
++            )
++            .await;
++        drop(h);
++        assert_eq!(foreign.shutdown(deadline()).await, 0);
++        assert!(result.is_ok());
++        assert!(observer.unchanged_av(expected, result.unwrap()).is_none());
++    })
++    .catch_unwind()
++    .await;
++    finish(&f, work).await;
++}
++
++#[tokio::test]
++async fn av_change_cancelled_commit_and_old_observer_cannot_issue_data_continuity() {
++    for medium in [Medium::Audio, Medium::Video, Medium::Screen] {
++        let f = fixture();
++        let work = AssertUnwindSafe(async {
++            let scene = scene(&f, true).await;
++            let expected = f.b.revision();
++            let observer = Arc::new(SubscriptionCommitObservation::new(&f.b, expected));
++            let change = if medium == Medium::Audio {
++                MediaSubscriptionChange {
++                    selection: None,
++                    audio: Some(AudioSubscriptionChange::Clear),
++                    direct: None,
++                }
++            } else {
++                MediaSubscriptionChange {
++                    selection: None,
++                    audio: None,
++                    direct: Some(DirectSubscriptionChange::Unsubscribe(vec![
++                        desired(medium).logical_id,
++                    ])),
++                }
++            };
++            let h = held(&f, &change, None, observer.clone()).await;
++            let revision = scene
++                .change_media_subscriptions(
++                    &f.b.connection,
++                    expected,
++                    change,
++                    deadline(),
++                    CancellationToken::new(),
++                    Some(&h),
++                )
++                .await
++                .unwrap();
++            drop(h);
++            assert!(observer.unchanged_av(expected, revision).is_none());
++            // The earlier successful AV-changing commit permanently closed this
++            // collector. A later harmless Data call cannot promote its history.
++            let change = data(&f);
++            let h = held(&f, &change, None, observer.clone()).await;
++            let next = scene
++                .change_media_subscriptions(
++                    &f.b.connection,
++                    revision,
++                    change,
++                    deadline(),
++                    CancellationToken::new(),
++                    Some(&h),
++                )
++                .await
++                .unwrap();
++            drop(h);
++            assert!(observer.unchanged_av(revision, next).is_none());
++            let cancelled = Arc::new(SubscriptionCommitObservation::new(&f.b, next));
++            let change = data(&f);
++            let h = held(&f, &change, None, cancelled.clone()).await;
++            let stop = CancellationToken::new();
++            stop.cancel();
++            assert!(scene
++                .change_media_subscriptions(
++                    &f.b.connection,
++                    next,
++                    change,
++                    deadline(),
++                    stop,
++                    Some(&h)
++                )
++                .await
++                .is_err());
++            drop(h);
++            assert!(cancelled.unchanged_av(next, next).is_none());
++            assert_eq!(f.b.revision(), next);
++        })
++        .catch_unwind()
++        .await;
++        finish(&f, work).await;
++    }
++}
++
++#[tokio::test]
++async fn prepared_data_resource_commit_observes_same_original_av_ports_and_no_adapter_replay() {
++    let f = fixture();
++    let work = AssertUnwindSafe(async {
++        let scene = scene(&f, false).await;
++        let mut out = [Medium::Audio, Medium::Video, Medium::Screen]
++            .into_iter()
++            .map(|m| (m, f.ba.port(m).take_egress().unwrap()))
++            .collect::<Vec<_>>();
++        let old = queued_av(&f, &scene, &mut out, 510).await;
++        let expected = f.b.revision();
++        let observer = Arc::new(SubscriptionCommitObservation::new(&f.b, expected));
++        let mut selected =
++            f.b.active_bindings()
++                .into_iter()
++                .map(|b| b.negotiated)
++                .collect::<Vec<_>>();
++        let mut binding = f.aa.port(Medium::Data).binding().negotiated.clone();
++        binding.requested.direction = StreamDirection::Send;
++        binding.requested.logical_id = StreamId::from_string("local-data");
++        selected.push(binding);
++        let change = data(&f);
++        let h = held(&f, &change, Some(selected.clone()), observer.clone()).await;
++        let original = f.b.active_bindings();
++        let calls = f.ba.prepare_calls.load(Ordering::Acquire);
++        let staged =
++            f.b.stage_selected_subscriptions_with_held(
++                expected,
++                &selected,
++                &BTreeSet::new(),
++                scene.clone(),
++                &change,
++                deadline(),
++                CancellationToken::new(),
++                Arc::new(h),
++            )
++            .await
++            .unwrap();
++        let prepared = staged.prepare().await.unwrap();
++        assert!(observer.unchanged_av(expected, expected + 1).is_none());
++        let h = held(&f, &change, Some(selected), observer.clone()).await;
++        prepared.activate_with_held(Arc::new(h)).await.unwrap();
++        let revision = f.b.revision();
++        let receipt = observer.unchanged_av(expected, revision).unwrap();
++        assert_eq!(f.ba.prepare_calls.load(Ordering::Acquire), calls + 1);
++        assert!(receipt.matches_data_sources(&["data".into()]));
++        assert!(!receipt.matches_data_sources(&["local-data".into()]));
++        assert!(receipt
++            .bindings()
++            .iter()
++            .any(|b| b.negotiated.requested.logical_id.as_str() == "local-data"));
++
++        assert!(original
++            .iter()
++            .all(|b| receipt
++                .bindings()
++                .iter()
++                .any(|n| n.transport_id == b.transport_id
++                    && n.stream_local_id == b.stream_local_id
++                    && n.generation == b.generation
++                    && n.negotiated == b.negotiated)));
++        deliver_av(old, 510).await;
++        deliver_av(queued_av(&f, &scene, &mut out, 511).await, 511).await;
++    })
++    .catch_unwind()
++    .await;
++    finish(&f, work).await;
++}
++
++#[test]
++fn selection_continuity_keeps_future_wildcards_membership_and_unknown_exclusions_exact() {
++    use crate::staged_streams::selection_intent::{
++        KnownSource, ParticipantSelection, SelectionProgram,
++    };
++    let member = owner("alice").member;
++    let participant = member.participant().clone();
++    let video = StreamId::from_string("future-video");
++    let data = StreamId::from_string("new-data");
++    let mut original = SelectionProgram::default();
++    original.participants.insert(
++        participant.clone(),
++        ParticipantSelection {
++            member: member.clone(),
++            media: [Medium::Video].into_iter().collect(),
++            wildcard: false,
++        },
++    );
++    original.known.insert(
++        video.clone(),
++        KnownSource {
++            participant: participant.clone(),
++            medium: Medium::Video,
++        },
++    );
++    original
++        .excluded
++        .insert((participant.clone(), video.clone()));
++    // Only a source already known as Data in BOTH snapshots may have its
++    // Data exclusion changed without changing AV continuity.
++    original.known.insert(
++        data.clone(),
++        KnownSource {
++            participant: participant.clone(),
++            medium: Medium::Data,
++        },
++    );
++    let mut next = original.clone();
++    next.excluded.insert((participant.clone(), data));
++    assert!(original.av_same(&next));
++    // Data may be ignored only while BOTH snapshots identify the source as
++    // Data. A changed exclusion on either unknown/missing side can affect a
++    // future AV source and must remain part of the continuity comparison.
++    let one_sided = StreamId::from_string("one-sided-data");
++    let mut known_data = original.clone();
++    known_data.known.insert(
++        one_sided.clone(),
++        KnownSource {
++            participant: participant.clone(),
++            medium: Medium::Data,
++        },
++    );
++    let mut missing_with_exclusion = original.clone();
++    missing_with_exclusion
++        .excluded
++        .insert((participant.clone(), one_sided));
++    assert!(!known_data.av_same(&missing_with_exclusion));
++    assert!(!missing_with_exclusion.av_same(&known_data));
++    for mode in [
++        "wildcard",
++        "membership",
++        "future-audio",
++        "video-exclusion",
++        "unknown-exclusion",
++        "known-medium",
++    ] {
++        let mut bad = next.clone();
++        match mode {
++            "wildcard" => bad.participants.get_mut(&participant).unwrap().wildcard = true,
++            "membership" => {
++                bad.participants.get_mut(&participant).unwrap().member = owner("bob").member
++            }
++            "future-audio" => {
++                bad.participants
++                    .get_mut(&participant)
++                    .unwrap()
++                    .media
++                    .insert(Medium::Audio);
++            }
++            "video-exclusion" => {
++                bad.excluded.remove(&(participant.clone(), video.clone()));
++            }
++            "unknown-exclusion" => {
++                bad.excluded
++                    .insert((participant.clone(), StreamId::from_string("unknown")));
++            }
++            "known-medium" => bad.known.get_mut(&video).unwrap().medium = Medium::Data,
++            _ => unreachable!(),
++        }
++        assert!(!original.av_same(&bad), "changed AV/future meaning: {mode}");
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -2048,3 +2048,5 @@
+ 
+ #[path = "subscriptions/quarantined.rs"]
+ mod quarantined;
++
++mod av_observation;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -435,6 +435,8 @@
+         Err(StreamControlError::Unsupported)
+     }
+ }
++pub mod subscription_observation;
++
+ /// Policy-created authority for one bounded ongoing control invocation only.
+ /// Owns the real current guard; never retained as a port's publication grant.
+ /// The invocation owner cancels the supplied token when its handler ends.
+@@ -442,6 +444,7 @@
+     lease: Box<dyn MediaAuthorityLease>,
+     cancellation: CancellationToken,
+     deadline: tokio::time::Instant,
++    subscription_observation: Option<Arc<subscription_observation::SubscriptionCommitObservation>>,
+ }
+ impl MediaControl {
+     pub fn new(
+@@ -452,10 +455,20 @@
+         let value = Self {
+             lease,
+             cancellation,
++            subscription_observation: None,
+             deadline: deadline.min(tokio::time::Instant::now() + Duration::from_secs(30)),
+         };
+         value.authority()?;
+         Ok(value)
++    }
++    /// Attach metadata-only observation to this exact already-authorized control.
++    /// Only Core can publish its sealed successful commit result.
++    pub fn with_subscription_observation(
++        mut self,
++        observation: Arc<subscription_observation::SubscriptionCommitObservation>,
++    ) -> Self {
++        self.subscription_observation = Some(observation);
++        self
+     }
+     fn valid(&self) -> ControlResult<()> {
+         if self.cancellation.is_cancelled() {
+@@ -1959,6 +1972,8 @@
+     revision: u64,
+ }
+ pub struct StreamController {
++    // Process-local incarnation only; historical observers retain Weak<()> and no controller.
++    subscription_commit_identity: Arc<()>,
+     conversation: ConversationId,
+     session: SessionId,
+     connection: ConnectionId,
+@@ -2408,6 +2423,7 @@
+         let origin_binding = authority.connection.clone();
+         drop(lease);
+         Ok(Arc::new(Self {
++            subscription_commit_identity: Arc::new(()),
+             conversation,
+             session,
+             connection,
+@@ -3955,6 +3971,22 @@
+                             )?;
+                         let mut audio_commit =
+                             audio_selection.as_ref().map(|p| p.lock()).transpose()?;
++                        let observation = control
++                            .as_ref()
++                            .and_then(|c| c.subscription_observation.as_ref());
++                        let av_before =
++                            observation.map(|_| subscription_observation::AvState::capture(&state));
++                        let av_routes_unchanged = observation.is_some()
++                            && audio_selection.is_none()
++                            && candidate.ports.iter().all(|p| {
++                                !subscription_observation::av(p.binding.negotiated.requested.medium)
++                            })
++                            && removed.iter().all(|p| {
++                                !subscription_observation::av(p.binding.negotiated.requested.medium)
++                            })
++                            && routes.as_ref().zip(route_commit.as_ref()).is_some_and(
++                                |(routes, commit)| commit.av_unchanged(routes, &state, &bindings),
++                            );
+                         if initial_muted {
+                             state.model.commit_initial_muted(
+                                 &auth.current(),
+@@ -4004,6 +4036,23 @@
+                             commit.commit(routes);
+                         }
+                         candidate.committed = true;
++                        if let Some(observation) = observation {
++                            observation.publish(
++                                self,
++                                expected,
++                                state.model.revision(),
++                                auth.connection.generation(),
++                                av_routes_unchanged
++                                    && av_before
++                                        .as_ref()
++                                        .is_some_and(|before| before.unchanged(&state)),
++                                state.active.values().map(|p| p.binding.clone()).collect(),
++                                route_commit
++                                    .as_ref()
++                                    .map(|c| c.data_sources(&state))
++                                    .unwrap_or_default(),
++                            );
++                        }
+                     }
+                     Ok(())
+                 })();

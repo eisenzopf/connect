@@ -1,0 +1,9 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -2049,4 +2049,5 @@
+ #[path = "subscriptions/quarantined.rs"]
+ mod quarantined;
+ 
++#[path = "subscriptions/av_observation.rs"]
+ mod av_observation;

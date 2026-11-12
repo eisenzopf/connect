@@ -1,7 +1,9 @@
 //! The owned engine job consumes its attempt only after the actual Core call
 //! returns success. Retrying this receipt records that same outcome, never IO.
 use super::*;
+mod data_control;
 mod queued;
+pub use data_control::{NativeDataSubscriptionObservation, NativeDataSubscriptionScope};
 
 pub struct NativeStreamCommitted {
     lease: NativeStreamLease,
@@ -26,6 +28,7 @@ enum CommittedOutcome {
         revision: u64,
         resources_changed: bool,
         projection: Option<Vec<connect_protocol::native_streams::CodecBinding>>,
+        unchanged_av: Option<std::sync::Arc<dyn NativeDataSubscriptionObservation>>,
     },
     Codecs {
         revision: u64,
@@ -212,6 +215,7 @@ impl NativeStreamLease {
                 revision,
                 resources_changed,
                 projection,
+                unchanged_av: None,
             },
         })
     }
@@ -334,6 +338,9 @@ impl Store {
         &self,
         receipt: &NativeStreamCommitted,
     ) -> Result<OperationRecord> {
+        if let Some(record) = self.complete_data_control_native_stream(receipt)? {
+            return Ok(record);
+        }
         if let Some(record) = self.complete_queued_native_stream(receipt)? {
             return Ok(record);
         }
@@ -362,6 +369,7 @@ impl Store {
                 revision,
                 resources_changed,
                 projection,
+                ..
             } => {
                 let observed = connect_protocol::native_streams::SelectionObservation {
                     connection_id: lease.connection.clone(),

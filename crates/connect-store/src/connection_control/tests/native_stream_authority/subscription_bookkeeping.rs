@@ -364,13 +364,41 @@ fn native_data_birth_preserves_original_message_and_one_attempt_under_same_read(
         .unwrap()
         .is_none());
     let receipt = lease.queued().unwrap();
-    assert_eq!(
-        f.store.complete_native_stream(&receipt).unwrap_err().code,
-        "authority-busy"
-    );
-    drop(proof);
+    // Successful queue attribution changes only this message's own ledger.
+    // The exact positive Data path deliberately retains the initiating Read;
+    // uncertainty/cancellation still have their separate Writer controls.
+    assert!(proof.current());
     let complete = f.store.complete_native_stream(&receipt).unwrap();
     assert_eq!(complete.state, OperationState::Completed);
+    assert_eq!(complete.record_id, started.record_id);
+    assert_eq!(complete.operation_id, started.operation_id);
+    assert_eq!(complete.effects.len(), 1);
+    assert_eq!(complete.effects[0].id, started.effects[0].id);
+    assert_eq!(complete.effects[0].attempt, 1);
+    assert_eq!(complete.effects[0].submission_generation, 1);
+    assert_eq!(
+        complete.result.as_ref().unwrap()["message_id"],
+        "application-message"
+    );
+    assert_eq!(
+        complete.result.as_ref().unwrap()["core_queue_admission"],
+        true
+    );
+    assert!(proof.current());
+    // Known attribution must also be read-only under the SAME original proof.
+    // A real external writer prevents silently reacquiring a write transaction.
+    let mut external = rusqlite::Connection::open(f.store.path()).unwrap();
+    let writer = external
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    assert_eq!(f.store.complete_native_stream(&receipt).unwrap(), complete);
+    writer.rollback().unwrap();
+    assert!(proof.current());
+    assert_eq!(f.count("messages"), 1);
+    assert_eq!(f.count("native_data_messages"), 1);
+    assert_eq!(f.count("native_data_recipients"), 1);
+    assert_eq!(f.count("operation_effects"), 2);
+    drop(proof);
     assert_eq!(f.store.complete_native_stream(&receipt).unwrap(), complete);
 }
 

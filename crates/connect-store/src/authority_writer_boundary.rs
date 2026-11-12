@@ -8,7 +8,10 @@
 //! A separate sealed scoped-handoff permit additionally pins real Connection and
 //! Record Writers plus complete current Readers for exact native move/retirement
 //! row deltas. It never converts a Connection proof into a Conversation Writer.
-//! Neither permit acquires fences or reads SQL from inside SQLite.
+//! A separate captured Data-control permit pins full current Readers and the
+//! exact operation Record Writer, consuming complete typed row deltas once. Its
+//! descriptor recovery is nongrant metadata; it never changes AV permissions.
+//! These permits acquire no fences and read no SQL inside SQLite callbacks.
 use crate::{AuthorityGuardSet, AuthorityMode, AuthorityScope, Store};
 use connect_protocol::{Error, Result};
 use rusqlite::{functions::FunctionFlags, Connection};

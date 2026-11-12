@@ -679,21 +679,31 @@ fn witness_facts(
     c: &Connection,
     proof: &Arc<AuthorityGuardSet>,
     plan: &Plan<'_>,
+    resolved_ready: Option<(&crate::NativeReplacementCommitted, WitnessFacts)>,
 ) -> Result<WitnessFacts> {
-    let facts = match (&plan.witness, plan.purpose) {
-        (Witness::Begin { origin, read }, Purpose::CommitBegin) => {
-            origin.scoped_commit_begin_facts(store, c, read)?
+    let facts = if let Some((captured, facts)) = resolved_ready {
+        match (&plan.witness, plan.purpose) {
+            (Witness::Ready(actual), Purpose::FinalReady) if std::ptr::eq(captured, *actual) => {
+                facts
+            }
+            _ => return Err(Error::forbidden()),
         }
-        (Witness::Ready(capture), Purpose::FinalReady) => {
-            capture.scoped_final_ready_facts(store, c, proof)?
+    } else {
+        match (&plan.witness, plan.purpose) {
+            (Witness::Begin { origin, read }, Purpose::CommitBegin) => {
+                origin.scoped_commit_begin_facts(store, c, read)?
+            }
+            (Witness::Ready(capture), Purpose::FinalReady) => {
+                capture.scoped_final_ready_facts(store, c, proof)?
+            }
+            (Witness::OriginalRetire(lease), Purpose::OriginalRetire) => {
+                lease.scoped_original_retire_facts(store, c)?
+            }
+            (Witness::ReplacementRetire(origin), Purpose::ReplacementRetire) => {
+                origin.scoped_replacement_retire_facts(store, c)?
+            }
+            _ => return Err(Error::forbidden()),
         }
-        (Witness::OriginalRetire(lease), Purpose::OriginalRetire) => {
-            lease.scoped_original_retire_facts(store, c)?
-        }
-        (Witness::ReplacementRetire(origin), Purpose::ReplacementRetire) => {
-            origin.scoped_replacement_retire_facts(store, c)?
-        }
-        _ => return Err(Error::forbidden()),
     };
     if facts.record != plan.key.record
         || facts.runtime != plan.key.runtime
@@ -720,15 +730,88 @@ fn witness_facts(
     }
     Ok(facts)
 }
+/// Closed publication values only: no SQL handle, callback, or authority facts.
+/// The fixed owner planner and strict validator bind these to the same capture.
+#[derive(Clone)]
+pub(crate) struct ReadyPlanInputs {
+    pub descriptor: serde_json::Value,
+    pub intent: connect_protocol::connection_control::OfferIntent,
+    pub readiness: String,
+    pub result: serde_json::Value,
+    pub topology: u64,
+    pub recorded_at: i64,
+    pub hint_until: i64,
+}
 impl State {
-    /// The plan is complete before installation. SQLite callbacks only compare
-    /// immutable bytes; no SQL, guard acquisition, or policy refresh occurs there.
+    /// Derive fresh Ready facts once, then invoke only the fixed read-only owner
+    /// planner. No caller closure, reusable facts, or preview token is accepted.
+    pub(crate) fn native_final_ready_mutation_ledger<'a>(
+        self: &Arc<Self>,
+        store: &Store,
+        c: &'a Connection,
+        proof: &Arc<AuthorityGuardSet>,
+        captured: &crate::NativeReplacementCommitted,
+        inputs: ReadyPlanInputs,
+    ) -> Result<Option<(Permit<'a>, i64)>> {
+        if !Arc::ptr_eq(self, &store.authority_writer_boundary)
+            || c.is_autocommit()
+            || c.transaction_state(Some(rusqlite::DatabaseName::Main))
+                .map_err(|_| Error::storage())?
+                != rusqlite::TransactionState::Write
+        {
+            return Err(Error::forbidden());
+        }
+        {
+            let slot = self.slot.lock().map_err(|_| Error::storage())?;
+            if !slot.active
+                || slot.failed
+                || slot.connection != c as *const Connection as usize
+                || slot.birth.is_some()
+                || slot.phase_ledger.is_some()
+            {
+                return Err(Error::forbidden());
+            }
+        }
+        let witness = match captured.scoped_final_ready_facts(store, c, proof) {
+            Ok(facts) => facts,
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "forbidden" | "unauthorized" | "conflict" | "not-ready"
+                ) =>
+            {
+                return Ok(None)
+            }
+            Err(error) => return Err(error),
+        };
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("scoped-ready-current-witness");
+        let plan = captured.scoped_final_ready_plan(c, &witness, inputs)?;
+        let until = plan.until.ok_or_else(Error::forbidden)?;
+        #[cfg(test)]
+        crate::scoped_phase_timing::mark("scoped-ready-pure-plan");
+        self.scoped_mutation_ledger_impl(store, c, proof, plan, Some((captured, witness)))
+            .map(|permit| Some((permit, until)))
+    }
+    /// General/test callers still independently derive their opaque witness.
     pub(crate) fn native_scoped_mutation_ledger<'a>(
         self: &Arc<Self>,
         store: &Store,
         c: &'a Connection,
         proof: &Arc<AuthorityGuardSet>,
         plan: Plan<'_>,
+    ) -> Result<Permit<'a>> {
+        self.scoped_mutation_ledger_impl(store, c, proof, plan, None)
+    }
+    /// The plan is complete before installation. SQLite callbacks only compare
+    /// immutable bytes; no SQL, guard acquisition, or policy refresh occurs there.
+    fn scoped_mutation_ledger_impl<'a>(
+        self: &Arc<Self>,
+        store: &Store,
+        c: &'a Connection,
+        proof: &Arc<AuthorityGuardSet>,
+        plan: Plan<'_>,
+        resolved_ready: Option<(&crate::NativeReplacementCommitted, WitnessFacts)>,
     ) -> Result<Permit<'a>> {
         let tag = c as *const Connection as usize;
         let available = |slot: &Slot| {
@@ -752,7 +835,7 @@ impl State {
         let facts = plan_facts(store, c, &plan)?;
         #[cfg(test)]
         crate::scoped_phase_timing::mark("scoped-ctor-envelope");
-        let witness = witness_facts(store, c, proof, &plan)?;
+        let witness = witness_facts(store, c, proof, &plan, resolved_ready)?;
         #[cfg(test)]
         crate::scoped_phase_timing::mark("scoped-ctor-opaque-witness");
         strict_validation::validate(c, &plan, &facts)?;
@@ -853,6 +936,7 @@ impl State {
                 rows: plan.transitions,
                 until: plan.until,
             }),
+            data_control_capture: None,
             _proof: proof.clone(),
         });
         #[cfg(test)]

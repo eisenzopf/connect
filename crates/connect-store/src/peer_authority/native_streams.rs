@@ -379,3 +379,47 @@ impl Store {
         Ok(view)
     }
 }
+
+/// Current non-grant facts for a captured Data-only control. This repeats the
+/// ordinary source/credential/member/recipient checks under the exact SQL Unit.
+impl Store {
+    pub(crate) fn native_stream_data_control_readers(
+        &self,
+        c: &Connection,
+        credential: &str,
+        key_id: &str,
+        device_id: &str,
+        intent: &Intent,
+    ) -> Result<(NativeStreamProjection, Vec<AuthorityScope>, i64)> {
+        let meta = crate::peer_credentials::credential_metadata(c, credential)?;
+        let algorithm: String = c
+            .query_row(
+                "SELECT algorithm FROM peer_signing_keys WHERE key_id=?1",
+                [key_id],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|_| Error::storage())?
+            .ok_or_else(Error::forbidden)?;
+        let key = crate::peer_credentials::peer_signing_key(
+            c,
+            credential,
+            &meta.tenant_id,
+            key_id,
+            &algorithm,
+        )?;
+        if key.identity_id != meta.actor.identity_id || key.device_id != device_id {
+            return Err(Error::forbidden());
+        }
+        let (source, _) = projection(self, c, &meta.actor, device_id, key_id, intent)?;
+        let required = scopes(self, c, &meta.actor, device_id, key_id, intent)?;
+        Ok((
+            source,
+            required,
+            // credential_metadata already revalidates delegated consent:
+            // its original request expiry equals this actor's expiry, bounded
+            // by the current issuer. UserAuthorization is descriptive only.
+            meta.actor.expires_at.min(key.expires_at),
+        ))
+    }
+}

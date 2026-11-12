@@ -1,0 +1,197 @@
+{
+  "format": "connect/g6-058-data-control-isolation-workplan/1",
+  "updated_at": "2026-11-12T19:18:27.139027+00:00",
+  "coordinator": "/root",
+  "source_base": "74d82e0f3b0437c0f21ed00894c703308556dafc",
+  "status": "Final coherent focused batch passes all253 checks: Store70 214/214 and Core71 39/39 on identical143 guarded source paths, normal dependency generation414/source-lock7ce0e041. Both original Root controllers exited0 and joined, all original build/inventory/test groups joined, and source/binary/input guards held. Independent reviewers verified both components. Ready latency36.038ms is below unchanged50ms (prior focused35.841ms; old53.899ms). All10 Data isolation/security controls,18 retained Gate/Codec/Subscribe controls, exact queued replay and the new closed-input Ready constructor control pass. All four actual Core unchanged-AV routing/resource/selection witness controls pass. Reviewed test-only locator and std panic helper patches correct prior zero-test Core compile failures without changing assertions. Next: commit/push byte-identical tested code with this evidence; execute independently source-reviewed complete329 on the new clean commit, retaining all prior296 and both full62 programmes last. Each full programme additionally proves actual first-COMMIT narrow4DataGates+8subscriptions. Complete329, same-source nativeARM shipping and all32/432 remain unqualified. Last complete26 is295/296 with one21<24fps ES256 retained-video bin; lastmatrixv215 stays0/32. No quality, cleanup, permission or timing acceptance changes. G6-054 stays parked.",
+  "actual_baseline": {
+    "selected": 296,
+    "passed": 295,
+    "failed": 1,
+    "pure_passed": 279,
+    "short_workloads_passed": 15,
+    "EdDSA_full": "PASS",
+    "ES256_full": "one route2 second46 bin21<24; other quality/task assertions passed",
+    "cleanup_us": {
+      "EdDSA": 64564234,
+      "ES256": 65238607
+    },
+    "cleanup_limit_us": 67000000,
+    "matrix_cells_qualified": 0
+  },
+  "architecture": "UCTP owns consolidated control; native WebRTC/SIP/RTP/QUIC conventions remain intact. Historical outcome recording cannot invent media rights; admitted unchanged AV retains its exact original stamped epoch. No added packet-side query/registry/lock. No change to transport architecture, media clock, quality thresholds, permissions or resource/cleanup acceptance.",
+  "tasks": [
+    {
+      "id": "DC1",
+      "owner": "/root/media_blockers",
+      "reviewer": "/root/fixture_blockers",
+      "state": "cause-localized",
+      "work": "Exact packet/frame conservation and distinguish source/harness from authority loss",
+      "evidence": "v216-media26-rca/report.json; v216-full296-independent-adjudication/independent-sanitized-adjudication.json",
+      "finding": "Source30frames; two queuedAuthority fragments plus first recovery-key CoreAuthority fragment; no pending-age/packetizer error. Sequential Gates identity is inference, not logged durable row proof."
+    },
+    {
+      "id": "DC2",
+      "owner": "/root/fixture_blockers",
+      "reviewer": "/root",
+      "state": "component-verified in complete coherent253; decoded media/matrix effect pending",
+      "work": "Old real captured DataGate counter under original same-connection PCM+command Readers; preserve same desired oracle after fix and AV/codec/Subscribe negatives",
+      "acceptance": "Old exact epoch preservation assertion fails after all original cleanup and successful same-receipt recovery; fixed passes without Writer revoking healthy original stamp/epoch.",
+      "old_evidence": ".local/gate-6/v216-data-gate-old63/independent-sanitized-adjudication.json",
+      "old_evidence_sha256": "1694aee88efaa82582b895d98ccb01d9fefb01b6f8659f4b46e127763aaad350"
+    },
+    {
+      "id": "DC3",
+      "owner": "/root/v198_resources",
+      "reviewer": "/root/media_blockers",
+      "state": "component-verified in complete coherent253; decoded media/matrix effect pending",
+      "work": "Closed positive DataGate outcome recorder: full current Readers plus own RecordWrite, same SQL Unit/nonce exact typed5table deltas, immutable result replay before Writer",
+      "acceptance": "No AV descriptor/port/gate/generation/ownership change; no cancellation/unknown/nonpositive widening; collision/foreign-unit/rollback/COMMIT/currentness controls pass."
+    },
+    {
+      "id": "DC4",
+      "owner": "/root/media_blockers",
+      "reviewer": "/root/v198_resources",
+      "state": "component-verified actualCore39/39 including all4 new controls; full Service/decoded media/matrix pending",
+      "work": "Opaque unchanged-AV witness minted under both actual Core subscription commit seams and propagated through UCTP/Service to bounded Store historical capture",
+      "acceptance": "Exact old/new AV state, port/bindings/gates/audio/direct routing/full AV selection equality incl future/wildcard/exclusion; no wire/preflight/binding-only inference; rejected/mixed/AV changes never use narrow path; no new lock or packet work.",
+      "candidate_manifest": ".local/gate-6/native-data-subscription-av-witness-v216-candidate/manifest.json",
+      "candidate_manifest_sha256": "447946aa38cee06c9cb662a4d676326cfa26540c06dd0bc7a065ceed63dfb556",
+      "independent_reviews": [
+        {
+          "path": ".local/gate-6/native-data-subscription-av-witness-v216-candidate/independent-fixture-api-v4-review.json",
+          "sha256": "84c46fea0b021e21a268ebc4c96278d8ce7a5b918169ef556e6894485fc9ef1c"
+        }
+      ]
+    },
+    {
+      "id": "DC5",
+      "owner": "/root",
+      "reviewer": "/root/fixture_blockers",
+      "state": "done: same-source Store214+Core39 actual green, original owners joined, two independent reviews percomponent",
+      "work": "Integrate one reviewed Store+Core+UCTP+Service batch with upstream patch/source-lock digests; normal dependency prepare and format; all meaningful changed+retained unit controls",
+      "acceptance": "Original old counter passes fixed; all selected security/collision/revocation/expiry/AV mutation controls pass; source and original owner evidence sealed."
+    },
+    {
+      "id": "DC6",
+      "owner": "/root",
+      "reviewer": "/root/fixture_blockers",
+      "state": "next: batch commit/push, then full329 on new clean byte-identical code; both full62 last and mandatory4+8 actual capture traces",
+      "work": "Commit/push exact tested code+tracked actual26/RCA/evidence; complete expanded coherent regression includes all296 plus new controls and both full62 LAST",
+      "acceptance": "Every case actually executes; ordinary failures continue; all decoded quality and original67s owner checks pass without deadline/threshold changes; all original processes join."
+    },
+    {
+      "id": "DC7",
+      "owner": "/root",
+      "reviewer": "/root/v198_resources",
+      "state": "waiting-for-DC6",
+      "work": "Keep qualified clean HEAD through nativeARM source/preparation/shipping then all32 cells/all432 checks with no filters/reuse/GitHub/cloud",
+      "acceptance": "Fresh storage/namespace/ownership/BPF/source/normal-shipping gates; strict all-cell recorded outcomes. No matrix closure inferred from unit/media cohorts."
+    }
+  ],
+  "storage_unblocking": {
+    "receipt": "../v216-old-incremental-cleanup62/receipt.json",
+    "old_cache_directories_removed": 10,
+    "physical_free_delta_bytes": 4561371136,
+    "fresh_D2_free_bytes": 49733517312,
+    "unchanged_entry_floor_bytes": 47731777532,
+    "current_binary_source_evidence_DB_preserved": true
+  },
+  "authorization": "Existing owner implementation/parallel-agent/localARM authorization; no new acceptance amendment or provider/publication action. G6-054 remains parked.",
+  "focused_actual": {
+    "Store66": {
+      "expected": 213,
+      "executed": 213,
+      "passed": 211,
+      "failed": 2,
+      "new10_passed": 10,
+      "outer_controller_wait_confirmed": false,
+      "all_original_child_process_waits_confirmed": true,
+      "component_qualified": false
+    },
+    "Core65": {
+      "executed": 0,
+      "expected": 39,
+      "build_exit": 101,
+      "original_controller_exit": 1,
+      "original_controller_joined": true,
+      "component_qualified": false
+    },
+    "note": "Store66 original outer tool session ID was lost during compaction. Original PID/group absence and every child wait verified; do not substitute for a successful final prerequisite. Raw failed runs preserved.",
+    "Store67": {
+      "expected": 214,
+      "executed": 214,
+      "passed": 214,
+      "failed": 0,
+      "original_controller_joined": true,
+      "component_qualified": true,
+      "ready_actual_us": 35841,
+      "ready_unchanged_limit_us": 50000,
+      "matrix_qualified": false
+    },
+    "Core68": {
+      "expected": 39,
+      "executed": 0,
+      "build_exit": 101,
+      "original_controller_joined": true,
+      "cause": "one undeclared futures_util test import; five derivative missing trait methods",
+      "component_qualified": false
+    },
+    "Store70": {
+      "expected": 214,
+      "executed": 214,
+      "passed": 214,
+      "failed": 0,
+      "component_qualified": true,
+      "root_controller_joined": true,
+      "ready_actual_us": 36038
+    },
+    "Core71": {
+      "expected": 39,
+      "executed": 39,
+      "passed": 39,
+      "failed": 0,
+      "component_qualified": true,
+      "root_controller_joined": true
+    }
+  },
+  "remaining_focused_failures": [
+    {
+      "id": "Ready-latency",
+      "actual_us": 53899,
+      "limit_us": 50000,
+      "cause": "duplicate current authority derivation inside same SQL transaction; constructor-owned single derivation under review",
+      "owner": "/root/v198_resources",
+      "reviewer": "/root/media_blockers"
+    },
+    {
+      "id": "queued-replay-test",
+      "cause": "newly selected legacy fixture expected Busy from unchanged existing positive queued-message recorder",
+      "fix": "require same-proof exact completion, external-writer read-only replay and unchanged counts",
+      "owner": "/root/fixture_blockers",
+      "reviewer": "/root/media_blockers"
+    },
+    {
+      "id": "Core-test-module-locator",
+      "cause": "Rust explicit child module path missing; E0583 prevented all39 tests",
+      "fix": "one explicit path attribute via additive recorded patch413",
+      "owner": "/root/media_blockers",
+      "reviewer": "/root/v198_resources"
+    }
+  ],
+  "storage_unblocking69": {
+    "receipt_sha256": "3ab3314bbe8b5ff95bc8d5e7a4c2965870eb29e50e9065cbb595c00bb06c2144",
+    "obsolete_incremental_directories_removed": 12,
+    "physical_bytes_freed": 9661239296,
+    "physical_D2_bytes_after": 57697501184,
+    "bounded_DB_sample_allocated_bytes": 265760768,
+    "DB_scan_truncated": true,
+    "no_DB_source_evidence_current_binary_or_newest_cache_deletion": true
+  },
+  "coherent_final_source": {
+    "normal_generation": 414,
+    "namespace_count": 143,
+    "total_focused_passed": 253,
+    "source_lock_sha256": "7ce0e041be488d6e699139333d2e0d5b3b98e88c276bfacac6b35c83fd6e758d"
+  }
+}

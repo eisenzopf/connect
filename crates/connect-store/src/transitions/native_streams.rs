@@ -12,7 +12,10 @@ mod session_codecs;
 use super::*;
 use crate::{AuthorityMode, AuthorityScope, PeerAuthorityGuard, PeerCommand};
 use connect_protocol::native_streams::{Command, Intent};
-pub use outcomes::{NativeStreamCommitted, NativeStreamNoEffect};
+pub use outcomes::{
+    NativeDataSubscriptionObservation, NativeDataSubscriptionScope, NativeStreamCommitted,
+    NativeStreamNoEffect,
+};
 
 /// One local attempt, never reconstructed from a signed request or a retry.
 /// Completion must later carry an attributed outcome from the owned engine job.
@@ -41,6 +44,9 @@ impl std::fmt::Debug for NativeStreamLease {
     }
 }
 impl NativeStreamLease {
+    pub fn parent_record_id(&self) -> &str {
+        &self.parent
+    }
     pub fn record_id(&self) -> &str {
         &self.record
     }

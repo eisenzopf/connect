@@ -85,6 +85,7 @@ impl State {
             candidate_audience: None,
             commit_capture: None,
             scoped_capture: None,
+            data_control_capture: None,
             _proof: proof.clone(),
         });
         Ok(Permit {

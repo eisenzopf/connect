@@ -418,6 +418,16 @@ impl Runtime {
                 }
             };
             let receipt = if let (Some(invocation), Some(plan)) = (invocation, plan) {
+                // Same Core collector path as native; existing RTC capability
+                // checks still exclude Data and resource renegotiation.
+                let subscription_observation = if matches!(&plan, Plan::RtcSubscriptions(_)) {
+                    self.webrtc
+                        .get()
+                        .and_then(|h| h.adapter().staged_controller(&id))
+                        .and_then(|owner| invocation.begin_subscription_observation(&owner))
+                } else {
+                    None
+                };
                 let outcome = tokio::select! {
                     biased;
                     _=self.stop.cancelled()=>Err(Error::forbidden()),
@@ -431,6 +441,12 @@ impl Runtime {
                             _ => Err(Error::forbidden()),
                         }
                     }=>r,
+                };
+                let historical = match (&outcome, subscription_observation.as_ref()) {
+                    (Ok(RtcOutcome::Subscriptions(revision)), Some(observation)) => {
+                        observation.unchanged_av(lease.expected_revision(), *revision)
+                    }
+                    _ => None,
                 };
                 drop(invocation);
                 let observed = match outcome {
@@ -460,24 +476,39 @@ impl Runtime {
                         }
                     }
                     RtcOutcome::Subscriptions(revision) => {
-                        let projection = self
-                            .webrtc
-                            .get()
-                            .and_then(|h| h.adapter().staged_controller(&id))
-                            .and_then(|c| {
-                                if c.revision() != revision {
-                                    return None;
-                                }
-                                let bindings = c.active_bindings();
-                                (c.revision() == revision)
-                                    .then(|| {
-                                        crate::canonical_native_streams::codec_bindings(&bindings)
-                                            .ok()
+                        let projection = historical
+                            .as_ref()
+                            .map(|receipt| {
+                                crate::canonical_native_streams::codec_bindings(receipt.bindings())
+                                    .ok()
+                            })
+                            .unwrap_or_else(|| {
+                                self.webrtc
+                                    .get()
+                                    .and_then(|h| h.adapter().staged_controller(&id))
+                                    .and_then(|c| {
+                                        if c.revision() != revision {
+                                            return None;
+                                        }
+                                        let bindings = c.active_bindings();
+                                        (c.revision() == revision)
+                                            .then(|| {
+                                                crate::canonical_native_streams::codec_bindings(
+                                                    &bindings,
+                                                )
+                                                .ok()
+                                            })
+                                            .flatten()
                                     })
-                                    .flatten()
                             });
                         tracing::debug!(target: "connect_service::canonical_webrtc", revision, projection_available = projection.is_some(), "RTC subscription returned; capturing original receipt");
-                        lease.committed(revision, false, projection)
+                        crate::canonical_native_streams::subscription_observation::capture_rtc(
+                            lease,
+                            &a,
+                            revision,
+                            historical,
+                            || projection,
+                        )
                     }
                 }
             } else {

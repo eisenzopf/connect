@@ -71,8 +71,9 @@ pub use native_offers::{
 };
 pub(crate) use native_streams::retained_scopes as retained_native_stream_scopes;
 pub use native_streams::{
-    NativeDtmfBatch, NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget,
-    NativeDtmfRead, NativeDtmfRecipient, NativeDtmfTarget, NativeIceRestart, NativeStreamCommitted,
+    NativeDataSubscriptionObservation, NativeDataSubscriptionScope, NativeDtmfBatch,
+    NativeDtmfGatewayRead, NativeDtmfGatewayRecipient, NativeDtmfGatewayTarget, NativeDtmfRead,
+    NativeDtmfRecipient, NativeDtmfTarget, NativeIceRestart, NativeStreamCommitted,
     NativeStreamLease, NativeStreamNoEffect,
 };
 pub use received_dtmf::{

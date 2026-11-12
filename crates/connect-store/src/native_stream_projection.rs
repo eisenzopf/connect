@@ -64,6 +64,26 @@ fn records(value: &Value) -> Result<Vec<Recorded>> {
     }
     Ok(out)
 }
+/// Validate the complete bounded descriptor before an exact nongrant capture.
+/// This shares the ordinary snapshot parser; no permissive parallel JSON path.
+pub(crate) fn validate_snapshot(value: &Value, generation: u64, revision: u64) -> Result<()> {
+    // SQLite CHECK permits NULL, so missing JSON fields cannot be trusted as
+    // a schema-validated envelope. Bind all metadata to the actual typed row.
+    if generation == 0
+        || generation > MAX_REV
+        || revision == 0
+        || revision > MAX_REV
+        || value["stream_metadata_generation"].as_u64() != Some(generation)
+        || value["stream_metadata_revision"].as_u64() != Some(revision)
+        || !value["stream_metadata"].is_array()
+        || value["stream_metadata_counter"]
+            .as_u64()
+            .is_none_or(|v| v == 0 || v > MAX_REV)
+    {
+        return Err(invalid());
+    }
+    records(value).map(|_| ())
+}
 pub(crate) fn validate(bindings: &[CodecBinding], generation: u64) -> Result<()> {
     if bindings.len() > 32 || generation == 0 || generation > MAX_REV {
         return Err(invalid());

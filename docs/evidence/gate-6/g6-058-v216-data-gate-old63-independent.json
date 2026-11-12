@@ -1,0 +1,80 @@
+{
+  "format": "connect/data-gate-old63-independent-adjudication/1",
+  "reviewer": "/root/fixture_blockers",
+  "independence": {
+    "test_source_author": true,
+    "source_independent_reviewer": "/root",
+    "actual_executor_and_controller_owner": "/root",
+    "scope": "Independent raw execution/source/binary receipt validation; not independent authorship of counter"
+  },
+  "status": "QUALIFIED_INTENTIONAL_OLD_CONDITION_FAILURE",
+  "source": {
+    "head": "74d82e0f3b0437c0f21ed00894c703308556dafc",
+    "normal_graph": 411,
+    "source_lock_sha256": "67cb03487b91182be0a7421057bedcf099b1f4f61a329a6706325f56ed82b212",
+    "candidate_manifest_sha256": "856d3571133b7d412abdbd1d84eadc36d3d3cf4feefb679983df50b762fef2d0",
+    "root_source_review_sha256": "9143ce046f32f257a9ae1d01e48376cba491ed9e482ce147cb6b86642cada6fb",
+    "original_before_after_seals_equal": true,
+    "all_current_source_files_reverified": 6085,
+    "both_counter_images_reverified": true,
+    "inputs_reverified": 7
+  },
+  "original_results_sha256": "c1b9caffe25cdcdb72375da31b511102db0a1a3cdee7744c962d7fb41b93fe55",
+  "original_case_log_sha256": "2066a1a053fd272ef754f263a5a036ec8256a43afe17107e30d08c27c4746f5e",
+  "controller_join_sha256": "40c61b2feb4e892bcf1972aa7db8d45af497b54ef7bf1f5a62058275a3a54a26",
+  "build": {
+    "exit_code": 0,
+    "elapsed_seconds": 31.46121983299963,
+    "opt_level": 0,
+    "debug": 2,
+    "actual_features": [
+      "test-support"
+    ],
+    "jobs": 8,
+    "original_owner_joined": true
+  },
+  "inventory": {
+    "both_new_selectors_unique": true,
+    "actual_executed": 1,
+    "negative_selector_executed": false
+  },
+  "actual_counter": {
+    "selector": "connection_control::tests::native_stream_authority::data_gate_capture::captured_data_only_gate_records_under_original_command_and_same_connection_pcm_readers",
+    "actual_test_exit": 101,
+    "actual_test_passed": false,
+    "exact_intended_final_oracle": "captured Data-only gate revoked original same-connection PCM epoch before durable recording",
+    "panic_line": 316,
+    "first_recording_code": "authority-busy",
+    "original_same_connection_pcm_epoch_current": false,
+    "exact_durable_database_unchanged_on_refusal": true,
+    "prewriter_metadata_retries": 0,
+    "same_immutable_receipt_completed_after_all_original_readers_drained": true,
+    "same_receipt_exact_replay_equal": true,
+    "watcher_joined_before_intended_oracle": true,
+    "original_absolute2s_and_audio_metadata_qualifiers_passed_before_oracle": true
+  },
+  "binary": {
+    "sha256": "e09ddcfa1f82d1333cb7a9cbe1638184acd03e01f1f2f31e685c8862488b2863",
+    "original_before_after_stable": true,
+    "live_bytes_reverified_after_original_join": true
+  },
+  "owners": {
+    "build_inventory_case_all_waited_naturally_exited_groups_absent": true,
+    "controller_session": 43952,
+    "controller_exit": 0,
+    "controller_joined": true
+  },
+  "causal_conclusion": "A captured Data-only gate first recording under its original command and same-connection actual media Readers attempts broad outcome Writer, cuts the original PCM epoch and returns Busy despite no durable change. Same exact receipt becomes recordable once original Readers drain. Desired preservation assertion correctly fails on old code.",
+  "limits": [
+    "Controlled Store Audio+Data readiness and real NativeMediaRead/Snapshot/Stamp/PacketEpoch; no Core gate/codec execution or PCM/video payload/decoded/FPS claim",
+    "No exact quantitative attribution to the earlier ES256 video bin; actual outcome variant in that log was not observed",
+    "New AudioGate/Codec/Subscribe negative selector was inventoried but NOT executed by this old one-case run",
+    "All296 remains failed295/296; production fix/fixed controls/full cohort/shipping/full32 remain unqualified"
+  ],
+  "qualified_old_causal_counter": true,
+  "actual_component_pass": false,
+  "fixed_behavior_qualified": false,
+  "full_cohort_qualified": false,
+  "shipping_qualified": false,
+  "matrix_qualified": false
+}
