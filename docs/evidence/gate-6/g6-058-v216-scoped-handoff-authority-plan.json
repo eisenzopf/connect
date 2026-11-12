@@ -181,5 +181,11 @@
     "shipping_allowed": false,
     "full32_allowed": false,
     "matrix_qualified": false
+  },
+  "old_causal_controls49": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
+    "result": "All four exact old epoch survival oracles failed after all setup/current/fencing/cutoff/cleanup prerequisites; independent acceptance. Physical control acquires Writer only, not CommitBegin DML.",
+    "fixed_production_applied": false,
+    "matrix_qualified": false
   }
 }

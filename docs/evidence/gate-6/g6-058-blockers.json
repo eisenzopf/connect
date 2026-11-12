@@ -1,12 +1,12 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T12:03:37.029798+00:00",
+  "updated": "2026-11-12T12:35:48.945061+00:00",
   "run_status": "Complete241 executed239passed2failed; all224component cases and15workloads passed. Onlybothfull62 programmes fail5videoFPSbins. Audio-overlap and both67s cleanup/10s idle requirements passed. ExactRTP conservation locates allaffected retained-flow losses inCore/queued authority andage beforepacketization. Four handoff Writer classes require scoped authority and bounded logical-presence continuity; no fix verified yet. Lastmatrix remainsv2150/32.",
   "blockers": [
     {
       "id": "B01",
       "title": "SDK native activation result",
-      "status": "Verified — parser regressions",
+      "status": "Verified \u2014 parser regressions",
       "change": "Rust and browser accept only the existing typed activation proof, bound to operation/target/generation/revision and outer record; malformed and unknown fields still reject.",
       "evidence": "43b1276a: normal-release ARM Rust parser tests2/2, browser/Node models103/103 and Python helper1/1 pass. Valid native activation, stopped/null history and malformed/foreign proof refusals covered.",
       "next": "Full signed native/browser matrix verifies end-to-end producer/SDK behavior; keep raw proof validation and original operation recovery."
@@ -14,7 +14,7 @@
     {
       "id": "B02",
       "title": "Post-Core audio continuation",
-      "status": "Verified — 12-control ARM batch includes live continuation",
+      "status": "Verified \u2014 12-control ARM batch includes live continuation",
       "change": "Validate installation epoch and the distinct database-bound transition runtime separately in both pending-target and original-operation lease queries. Keep all current attempt, actor/key, membership, recipient, expiry and Core publication checks.",
       "evidence": "fcae89ee: all 12 normal-release ARM controls pass, including current SQL exclusion/recovery/revocation, live duplex, explicit AV, actual retirement, original expiry and unpaused movement. Full signed-epoch matrix still fails before Core commit.",
       "next": "Preserve controls; remove the separate signed private receiver-epoch dependency cycle and rerun full matrix."
@@ -22,7 +22,7 @@
     {
       "id": "B03",
       "title": "Unpaused target disappears",
-      "status": "Verified — native runtime",
+      "status": "Verified \u2014 native runtime",
       "change": "Forward native cursor capability through the actual composite NativeMedia adapter. Backend supports it; wrapper currently inherits false and mislabels native activation unsupported.",
       "evidence": "43b1276a, release opt3: original unpaused control passes1/1,0 ignored; actual generations2/3 activate, both audio directions and old-key independence work, cleanup passes. See g6-058-native-blocker-runtime.json.",
       "next": "Preserve this control while fixing paused metadata continuation; fresh full matrix still required."
@@ -30,7 +30,7 @@
     {
       "id": "B04",
       "title": "Private-successor return binding",
-      "status": "Verified — Store regressions",
+      "status": "Verified \u2014 Store regressions",
       "change": "Fresh schema117 accepts exact latest matching-parent primary substitution; original history/audience stay immutable.",
       "evidence": "43b1276a, normal-release ARM:26/26 selected Store/schema checks pass,0 ignored; matching parent, repeated generation, malformed/stale context, current authority and recorded departure covered.",
       "next": "Keep Store controls green; confirm actual private replacement/return and resource cleanup in the full matrix."
@@ -38,7 +38,7 @@
     {
       "id": "B05",
       "title": "Audio/video probe demultiplexing",
-      "status": "Verified — native AV control and both models",
+      "status": "Verified \u2014 native AV control and both models",
       "change": "Demultiplex the original signed physical video reader, selected payload, observed SSRC and actually sent source frames. Validate every fragment against the final SDK-verified cut; preserve audio assertions.",
       "evidence": "9acd83eb, normal-release ARM: both demultiplexing/refusal models and actual paused explicit-video-transfer control pass. Original packet membership and decoded observations are retained; no full-cell quality qualification.",
       "next": "Preserve controls in the complete batch and run all 32 transport, quality and resource cells."
@@ -46,7 +46,7 @@
     {
       "id": "B06",
       "title": "Opus cadence session fixture",
-      "status": "Verified — native cadence runtime",
+      "status": "Verified \u2014 native cadence runtime",
       "change": "Negotiate Opus in both original Session invitation and acceptance; physical PCMU prerequisites unchanged.",
       "evidence": "43b1276a, normal-release ARM:all4 signed G711/Opus emission/contiguity cases plus service missing-session-capability refusal pass,0 ignored.",
       "next": "Retain capability-refusal check and complete transport matrix; no cadence, frame-count or deadline changes."
@@ -54,7 +54,7 @@
     {
       "id": "B07",
       "title": "Required-nullable protocol field",
-      "status": "Verified — component scope",
+      "status": "Verified \u2014 component scope",
       "change": "Restore required explicit-null active speaker semantics and preserve them through regeneration.",
       "evidence": "feee630f /1355f591:13 normal-release Rust controls and4 Python regeneration controls pass.",
       "next": "Full matrix still required; these component passes do not qualify a cell."
@@ -62,7 +62,7 @@
     {
       "id": "B08",
       "title": "Native cut test ownership and gates",
-      "status": "Verified — Core regression runtime",
+      "status": "Verified \u2014 Core regression runtime",
       "change": "Observe exact private delivery ticket; distinguish publication mute from receive hold.",
       "evidence": "43b1276a, normal-release ARM:all10 native-cut controls pass,0 ignored. Exact ticket ownership, publication mute, receive hold and cursor/feedback lifetime coverage.",
       "next": "Preserve these controls in the fresh full transport matrix."
@@ -79,7 +79,7 @@
     {
       "id": "B10",
       "title": "Interrupted local ARM run",
-      "status": "Recovered — full original run completed",
+      "status": "Recovered \u2014 full original run completed",
       "change": "Preserve interrupted results, use same ARM VM, start a fresh candidate run with durable ownership.",
       "evidence": "v193 completed all 32 attempts / 432 verdicts and original workers joined. No missing host reports; no matrix qualification.",
       "next": "Keep durable ownership and all-cell execution on next committed batch."
@@ -87,7 +87,7 @@
     {
       "id": "B11",
       "title": "WebRTC post-start metadata contention",
-      "status": "Open — Store control passes; live RTC still fails",
+      "status": "Open \u2014 Store control passes; live RTC still fails",
       "change": "Reobserve only effect-free native replacement origin acquisition on authority-busy after the same actual WebRTC start, using original cutoff and cancellation. No configure/mute/record or operation replay.",
       "evidence": "fcae89ee original Started SQL exclusion/recovery/revocation control passes. v193 RTC sends audio/video but target receives sparse audio and no reported inbound video; exact authority leaf still needs attribution.",
       "next": "Current receive leaf diagnostics are bounded14 per target. Rerun full matrix after combined library/fixture fixes; no speculative error-class changes."
@@ -95,7 +95,7 @@
     {
       "id": "B12",
       "title": "Mac remote fixture candidate integrity",
-      "status": "Remote candidate setup verified — full-load media open",
+      "status": "Remote candidate setup verified \u2014 full-load media open",
       "change": "Seal the exact prepared SDK manifest before seed runtime commands; preserve final exact digest comparison on every outcome.",
       "evidence": "All v193 verifier integrity fields pass; Mac remote seed create/list/replay/issuance succeeds. Guest programme fails because eagerly read public movement contract was omitted from its sealed transfer. All v194 remote profiles entered their real programmes; candidate integrity no longer prevents setup.",
       "next": "Independent native helper recovery is a genuine unexecuted subcase after AV abort; stage it before Session/AV using actual original-helper joins and original signed create/current-history proof. Verifier predicates remain intact."
@@ -103,15 +103,15 @@
     {
       "id": "B13",
       "title": "Signed private video epoch startup",
-      "status": "Native signed scenarios verified — full-load preparation open",
-      "change": "Issue genuine receiver epochs during private preparation using the same registration and fresh Store/Core authorization. Preserve private→moving→ordinary phase boundaries and keep original route active.",
-      "evidence": "4d4bbe80 normal ARM: actual private keyframe and postcommit interframe use SAME signed epoch and SAME real decoder, then both cases fail feedback recovery. Full6source native/WT/RTC targets still fail private downlink/readiness; minimal2peer proof is not full-load qualification. Phase2 all5 actual signed cases pass: baseline, original registration after its true30spreparation expiry, nonretained3rd-source selection,Opus andData→AV. These do not reproduce the full concurrent4+2 workload.",
-      "next": "Fix proven feedback route promotion; run3peer/Opus/Data→AV discriminators and actual RTC under admitted bounded diagnostics, then all32."
+      "status": "Native signed scenarios verified \u2014 full-load preparation open",
+      "change": "Issue genuine receiver epochs during private preparation using the same registration and fresh Store/Core authorization. Preserve private\u2192moving\u2192ordinary phase boundaries and keep original route active.",
+      "evidence": "4d4bbe80 normal ARM: actual private keyframe and postcommit interframe use SAME signed epoch and SAME real decoder, then both cases fail feedback recovery. Full6source native/WT/RTC targets still fail private downlink/readiness; minimal2peer proof is not full-load qualification. Phase2 all5 actual signed cases pass: baseline, original registration after its true30spreparation expiry, nonretained3rd-source selection,Opus andData\u2192AV. These do not reproduce the full concurrent4+2 workload.",
+      "next": "Fix proven feedback route promotion; run3peer/Opus/Data\u2192AV discriminators and actual RTC under admitted bounded diagnostics, then all32."
     },
     {
       "id": "B14",
       "title": "Internal authority read cost",
-      "status": "Verified — all10 normal ARM Store controls pass",
+      "status": "Verified \u2014 all10 normal ARM Store controls pass",
       "change": "Use opaque internal authority records with all current facts/effects but without public causal journal count/page rendering; public records unchanged.",
       "evidence": "4d4bbe80: all10 exact Store cases pass, joined/unforced/0ignored. Includes real original expiry, exact source/target/permission/phase gates, opaque/full row equality and no public journal-page rendering.",
       "next": "Preserve these current-authority controls with the next shared runtime batch; real full-load private receive remains unresolved."
@@ -119,7 +119,7 @@
     {
       "id": "B15",
       "title": "Remote fixture prerequisites",
-      "status": "Remote prerequisites verified — full-load media open",
+      "status": "Remote prerequisites verified \u2014 full-load media open",
       "change": "Include exact movement contract in Mac guest input staging; permit only approved runtime-retention log directive in strict Linux namespace guard.",
       "evidence": "Mac guest import fails before programme body due to omitted contract. Both Linux remote native cells stop at stale RUST_LOG allowlist before seed launch. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification. Follow-up full SDK855 + fixture34 + Python37 checks pass; no inherited transport qualification. v194 attempts all32cells with0unrun and0setup-blocked cells; media and sampled resource failures remain.",
       "next": "Byte-preservation and strict allowlist controls, then actual remote programmes."
@@ -127,7 +127,7 @@
     {
       "id": "B16",
       "title": "Independent browser owner observation",
-      "status": "Implemented — fixture controls pass; real transport pending",
+      "status": "Implemented \u2014 fixture controls pass; real transport pending",
       "change": "Keep sticky per-owner reachability failure while continuing fixed-cadence renewal of unaffected originals and independent programme observations; preserve failed overall outcome.",
       "evidence": "v193 keepalive failure globally aborts remaining observations before fixed programme completion. Combined batch: 28 Node and 35 Python checks pass, zero skips; no real remote or decoded-media qualification. Follow-up full SDK855 + fixture34 + Python37 checks pass; no inherited transport qualification.",
       "next": "Failure-isolation controls and full runtime; no subset promotion, deadline extension or reconnection."
@@ -135,7 +135,7 @@
     {
       "id": "B17",
       "title": "Renderer playback result vs physical cleanup",
-      "status": "Physical browser cleanup verified — OS resources still fail",
+      "status": "Physical browser cleanup verified \u2014 OS resources still fail",
       "change": "Expose immutable exact-owner renderer-local retirement only after original graph close and output detachment. Keep finished playback error independent. Fixture releases only proven original backing, reports semantic errors and requires playback success for overall cell.",
       "evidence": "Fresh v194 WT/RTC original8retirement promises fulfill, physical retirement<500ms, localOwnersJoined=true and retained_surfaces=0. RTC prepared playback deadline errors remain visible and failed. Both cells still fail sampled OS restoration; no resource waiver.",
       "next": "Release diagnostic-held owner references only after exact shutdown joins and retain numeric evidence; investigate remaining OS ownership and full-load media."
@@ -143,17 +143,17 @@
     {
       "id": "B18",
       "title": "Same-epoch feedback route promotion",
-      "status": "Native feedback recovery verified — full matrix pending",
+      "status": "Native feedback recovery verified \u2014 full matrix pending",
       "change": "Rebind only successful guarded receiver delivery to fresh current public route and exact existing history; keep epoch/replay/rate/firstpacket unchanged.",
-      "evidence": "Both actual signed cases complete movement/decoder continuity then PLI times out; endpoint and registry retain retired private route/current predicate. Recorded feedback refresh patch and fresh dependency preparation; actual same-history route/cursor and cold PLI cases pending. Phase1 actual bidirectional,3party,Opus andData→AV signed cases pass. Mode7 also reaches private/public decode and recovery before its wrong journal-expiry assertion fails. This does not qualify the fullmatrix. Phase2 normal-release registry/Core-boundary regressions and actual signed bidirectional cold recovery pass. Decoder identity/history stays unchanged through real private/public delivery.",
+      "evidence": "Both actual signed cases complete movement/decoder continuity then PLI times out; endpoint and registry retain retired private route/current predicate. Recorded feedback refresh patch and fresh dependency preparation; actual same-history route/cursor and cold PLI cases pending. Phase1 actual bidirectional,3party,Opus andData\u2192AV signed cases pass. Mode7 also reaches private/public decode and recovery before its wrong journal-expiry assertion fails. This does not qualify the fullmatrix. Phase2 normal-release registry/Core-boundary regressions and actual signed bidirectional cold recovery pass. Decoder identity/history stays unchanged through real private/public delivery.",
       "next": "Run registry and Core promotion negatives plus uncached actual signed recovery."
     },
     {
       "id": "B19",
       "title": "Native failure skips Session ends",
-      "status": "Failure-path Session cleanup observed — OS reclamation still fails",
+      "status": "Failure-path Session cleanup observed \u2014 OS reclamation still fails",
       "change": "Success and failure share same original end0/end1 attempts, current scopes and immutable first intent, within original terminal5s/global cutoff.",
-      "evidence": "v195 first ARM native EdDSA:both originalSessions ended,all9helpers+Worker joined1199ms;Tokio14→14. Extra7serverthreads and server/helperRSS remain. No full resource pass.",
+      "evidence": "v195 first ARM native EdDSA:both originalSessions ended,all9helpers+Worker joined1199ms;Tokio14\u219214. Extra7serverthreads and server/helperRSS remain. No full resource pass.",
       "next": "Preserve same Session handles/end IDs; investigate OS ownership separately."
     },
     {
@@ -167,7 +167,7 @@
     {
       "id": "B21",
       "title": "Diagnostic references retain closed browser owners",
-      "status": "Unit controls verified — full matrix references pending",
+      "status": "Unit controls verified \u2014 full matrix references pending",
       "change": "Snapshot numeric evidence then restore exact original shutdown hooks and release diagnostic strong references only after actual original joins.",
       "evidence": "Prototype wrapper closures retain retiredPeers/rtcRetirements owner objects through idle; physical cleanup already passes. OS retention effect remains unproved. Original shutdown joins, immutable numeric snapshots and exact hook restoration release diagnostic roots; OS effect remains unproved. Nine hook controls pass, including delayed/rejected joins, exact original error preservation, foreign hooks and bounded references; this proves diagnostic release semantics, not RSS restoration. Final69Node verifies exact original shutdown joins and diagnostic roots release; failed playback remains failed and resources remain measured.",
       "next": "Unit delayed/rejected joins and hook restoration/ownership negatives, then actual same-process resources."
@@ -175,7 +175,7 @@
     {
       "id": "B22",
       "title": "Darwin diagnostic thread identity",
-      "status": "Verified — actual Mac parent/child identity controls",
+      "status": "Verified \u2014 actual Mac parent/child identity controls",
       "change": "Read genuine SDK THREAD_IDENTIFIER_INFO.thread_handle and independently check numeric kernelTID.",
       "evidence": "pthread_self and libproc handles differ; no guessed-offset or false exact identity match is accepted. Fresh prepared SDK-backed Darwin identity; actual Mac parent/live-child controls pending. All3actual Mac identity cases pass; both Linux current-identity controls pass. Remaining OS retention requires attribution, not guessed handle offsets.",
       "next": "Real same-process parent/child libproc queries on Mac; Linux identity control unchanged."
@@ -183,7 +183,7 @@
     {
       "id": "B23",
       "title": "Private media refusal diagnostics filtered out",
-      "status": "Verified — actual filter and emitter controls",
+      "status": "Verified \u2014 actual filter and emitter controls",
       "change": "Use existing enabled canonical_replacement topic with unchanged14event cap; admit fixed scene terminal summaries under existing audio_summary filter.",
       "evidence": "v194 configured topics omit private_receive_refusal and scene_summary, so exact private gate leaf/starvation attribution is currently unavailable. Fresh prepared bounded private refusal and terminal scene topics; no full-load attribution yet. Both Service actual-runner filter cases and Core actual six-stage emitter case pass on Mac andARM; private receive logger remains bounded14events/target. Full-load runtime attribution pending.",
       "next": "Real tracing EnvFilter tests against actual runner literals, then focused full-load preparation diagnosis."
@@ -191,15 +191,15 @@
     {
       "id": "B24",
       "title": "Firefox current authority qualification",
-      "status": "Verified — all eight actual Firefox authority checks pass",
+      "status": "Verified \u2014 all eight actual Firefox authority checks pass",
       "change": "Inspect original expiry/revocation/conflict subcases and exact authenticated refusal, preserving single original wait and current credentials.",
-      "evidence": "v195 source73e6a9e5:all8Firefox current-revocation/expiry/conflicting-operation checks pass, including each current-authority subcase. Total matrix improves320→328passedchecks;Firefox movement/media/resources remainfailed.",
+      "evidence": "v195 source73e6a9e5:all8Firefox current-revocation/expiry/conflicting-operation checks pass, including each current-authority subcase. Total matrix improves320\u2192328passedchecks;Firefox movement/media/resources remainfailed.",
       "next": "Preserve exact in-page JSON snapshot; verify remaining independent requirements."
     },
     {
       "id": "B25",
       "title": "Publisher interleave prunes receiver history",
-      "status": "Native interleave verified — full matrix pending",
+      "status": "Native interleave verified \u2014 full matrix pending",
       "change": "Keep one immutable receiver history/revision per exact original Profile. Restore pruned identity only under fresh current guarded delivery; preserve capacity and revision limits. No permission, route or current predicate is cached.",
       "evidence": "Source audit: a genuine publisher announce can prune the retired private receiver row; both SDKs reset decoder history on the resulting newer receiver revision. Phase1 schedule did not exercise this interleave. Phase2 all3new pruned-history controls pass, including actual prune/current predicate/capacity/MAX/provenance. All5actual signed cases causally publish/decode target video and consume signed current feedback before same-decoder public interframe continuity.",
       "next": "Three pruning/capacity/provenance controls and actual target publication, remote decode and signed feedback before the same original decoder receives its public interframe; then fullmatrix."
@@ -207,15 +207,15 @@
     {
       "id": "B26",
       "title": "Repeated unary facts in sealed scene reads",
-      "status": "Component verified — full matrix retest pending",
-      "change": "Keep all current original actors/pairs/scopes/minexpiry and actual observer version/clock/writer checks. New exact-capture helper derives context+scope once, reducing5→3selection resolves only within one synchronous sealed projection; generic reads and mandatory post-admission revalidation unchanged.",
+      "status": "Component verified \u2014 full matrix retest pending",
+      "change": "Keep all current original actors/pairs/scopes/minexpiry and actual observer version/clock/writer checks. New exact-capture helper derives context+scope once, reducing5\u21923selection resolves only within one synchronous sealed projection; generic reads and mandatory post-admission revalidation unchanged.",
       "evidence": "Original normal-release ARM Store selection:25 passed,1 failed. The corrected Store assertion was rerun separately and passed; its original failure is retained. All other tested files, production, source-lock and prepared inputs are unchanged. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "Full matrix must measure the same-invocation consolidation with unchanged authority/version/clock/writer checks; no performance pass inferred."
     },
     {
       "id": "B27",
       "title": "Retired browser fixture references remain rooted",
-      "status": "Actual browser roots released — OS growth remains",
+      "status": "Actual browser roots released \u2014 OS growth remains",
       "change": "Join the exact original client/source/keepalive batches, preserve closed reports and dynamic counts, then release only matching global/local SDK wrappers and source nodes. Added cleanup remains inside the original5s accounting.",
       "evidence": "v195 firstARM WT EdDSA:all8renderer owners joined;5sharednativepeer shutdowns joined;bindings/queues/surfaces0;diagnosticowners/actorclients/statehandles0;6Connections/2Sessions/7clients closed517.5ms. Chrome tree still+2processes/+134FD/+24threads/+557830144RSSbytes;no liveJSowner cause established.",
       "next": "Use exact OS descendant/inode attribution; preserve original10s/5s bounds and failed verdict."
@@ -223,7 +223,7 @@
     {
       "id": "B28",
       "title": "Linux browser process/descriptor attribution missing",
-      "status": "Component verified — full matrix retest pending",
+      "status": "Component verified \u2014 full matrix retest pending",
       "change": "Bounded existing census records browser-owned descendants. New closed executable/flattened Chromium process-title taxonomy plus hashed(dev,ino,type) identity separates descriptor label hashes from actual objects; racy/partial/unavailable stays explicit.",
       "evidence": "All 23 Python owner-diagnostic controls pass. Closed taxonomy/redaction, actual hashed inode/type identity, process reuse, races and unavailable observations remain strict. Actual OS growth in v195 is unchanged. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "The integrated selected-FD mapping extension remains unvalidated; run its numeric identity/privacy/bounds controls before using new OS attribution. No memory or resource-budget pass is inferred."
@@ -231,7 +231,7 @@
     {
       "id": "B29",
       "title": "Private keyframe recovery stalls during receive silence",
-      "status": "Component verified — full matrix retest pending",
+      "status": "Component verified \u2014 full matrix retest pending",
       "change": "Existing receive select sends new cooldown-bound feedback under current signed history while decoder waits. Captures one absolute original receive deadline; no detachedtask, packet/sequence replay, authority cache or age/timeout extension.",
       "evidence": "Five normal-release signed client controls pass on each Mac/ARM platform; all seven actual signed ARM replacement-video server controls pass, including private delta-first current-hint and lost-hint/no-extra-frame cases. Original v195 media failures remain. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "Retest all32 original transport cells; preserve signed history, original receive deadline, keyframe proof and current authority."
@@ -239,7 +239,7 @@
     {
       "id": "B30",
       "title": "Audio work excludes private decoder preparation from scene members",
-      "status": "Component verified — full matrix retest pending",
+      "status": "Component verified \u2014 full matrix retest pending",
       "change": "Drop scene membership lock only around independent audio mixer; reacquire and rebuild direct controllers afterward. Preserve current consumers/ports/authority,originalcadence/work limits. Bounded failure-leaf diagnostics emit only after ownedguardsdrop.",
       "evidence": "All21 normal-release Core selections pass on each Mac/ARM platform, including actual callback preparation/revocation/removal concurrency, exact two-lock-segment timing, bounded refusal diagnostics and original endpoint/feedback controls. Direct-phase holds remain a separate unresolved cause. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "Full matrix must measure actual effect; no complete Core contention, A/V or resource qualification inferred."
@@ -247,7 +247,7 @@
     {
       "id": "B31",
       "title": "Closed Worker stdio remains referenced by diagnostic closures",
-      "status": "Component verified — full matrix retest pending",
+      "status": "Component verified \u2014 full matrix retest pending",
       "change": "Release only original ended,errorfree stdio stream references after actual writes/endjoin; retain pending/failed streams and errors.",
       "evidence": "All three original stdio ownership controls and two natural Worker/T+10 controls pass within the16-case Node selection. Pending/error/bound ownership stays failed; no measured RSS improvement is claimed. Evidence: docs/evidence/gate-6/blocker-components-post-v195.json.",
       "next": "Retest original idle/resource observation without forced collection, process restart or budget changes."
@@ -255,7 +255,7 @@
     {
       "id": "B32",
       "title": "Transient private video preparation contention becomes fatal",
-      "status": "Component verified — v198 handoff 0/32",
+      "status": "Component verified \u2014 v198 handoff 0/32",
       "change": "Preserve typed pre-effect MetadataBusy and retry only that safe video-plan metadata refusal with fresh current reads, the pinned original target revision and unchanged existing five-second preparation budget. No repeated negotiation, mute or installed-route effect.",
       "evidence": "Completed original v198. Handoff 0/32 passed, 29 failed, 3 blocked. decoded-media 0/32 passed, 29 failed, 3 blocked. All selected requirement verdicts are terminal. The three unattempted ARM cells remain environment-blocked, with no behavior evidence. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v198.json. Focused V6 separately passed all 104 ARM checks and the shipping build. original failures are preserved.",
       "next": "Retain current authority and original lifetime/short retry boundaries. Diagnose remaining original failed/blocked cells, then validate fixes and rerun the complete matrix."
@@ -263,7 +263,7 @@
     {
       "id": "B33",
       "title": "Readiness lifetime incorrectly uses a five-second start snapshot",
-      "status": "Component verified — v198 handoff 0/32",
+      "status": "Component verified \u2014 v198 handoff 0/32",
       "change": "Bind ReadyGate and the sealed Core private video binding to the unchanged original preparation/root lifetime. Keep installation/current-capture authority and MetadataBusy retry under their original shorter cutoffs. Every queued packet and signed Ready still requires fresh current authorization; no deadline or original lifetime is renewed.",
       "evidence": "Completed original v198. Handoff 0/32 passed, 29 failed, 3 blocked. decoded-media 0/32 passed, 29 failed, 3 blocked. All selected requirement verdicts are terminal. The three unattempted ARM cells remain environment-blocked, with no behavior evidence. Counts do not establish whether every specific contention/lifetime branch triggered. docs/evidence/gate-6/matrix-full-v198.json. Focused V6 separately passed all 104 ARM checks and the shipping build. original failures are preserved.",
       "next": "Retain current authority and original lifetime/short retry boundaries. Diagnose remaining original failed/blocked cells, then validate fixes and rerun the complete matrix."
@@ -271,7 +271,7 @@
     {
       "id": "B34",
       "title": "Partial browser initialization owner cleanup",
-      "status": "Component verified — lifecycle edge observation unestablished",
+      "status": "Component verified \u2014 lifecycle edge observation unestablished",
       "change": "Close an already created first encoder if a later encoder constructor fails; retire exact peer-owned RTC receiver tracks rejected before accepted-map ownership. Preserve accepted owners and real cleanup failures.",
       "evidence": "Actual v198 browser resource requirements: 0/24 passed, 21 failed, 3 blocked. Original 30 Node owner controls remain verified. The matrix aggregate does not establish an actual constructor/rejected-track failure-edge observation or its OS cause. docs/evidence/gate-6/matrix-full-v198.json.",
       "next": "Keep exact-owner cleanup controls. use actual resource verdicts and concrete owner evidence to address remaining failures."
@@ -279,7 +279,7 @@
     {
       "id": "B35",
       "title": "Selected regular-FD mapping attribution",
-      "status": "Diagnostic component verified — resources 0/32",
+      "status": "Diagnostic component verified \u2014 resources 0/32",
       "change": "Add bounded numeric file-size and exact selected-inode VMA/RSS attribution under the original process-birth identity and existing post-counter census. Keep truncated, raced or unavailable observations explicit.",
       "evidence": "Actual v198 resource requirements: 0/32 passed, 29 failed, 3 blocked. Original 28 owner-diagnostic and 4 idle Python controls remain verified. These unit results do not qualify OS budgets. actual matrix verdicts are recorded separately and no per-inode cause is inferred. docs/evidence/gate-6/matrix-full-v198.json.",
       "next": "Attribute actual remaining owner/mapping failures from original evidence. preserve unchanged resource budgets and explicit unknown/partial diagnostics."
@@ -287,7 +287,7 @@
     {
       "id": "B36",
       "title": "Private full-scene authority refusal loses the Store subtype",
-      "status": "Diagnostic component verified — four ARM controls pass",
+      "status": "Diagnostic component verified \u2014 four ARM controls pass",
       "change": "Preserve a closed static Store authority-busy subtype in the existing bounded private receive diagnostic. Preserve current authorization, original packet error mapping, retry behavior and event budget.",
       "evidence": "Four exact normal-release ARM diagnostic controls pass,0ignored: actual emitter/filter/cap, static subtype mapping, privacy and guard release. Actual failed RTC leaves now identify original SQL observer ownership/reseal exclusion. docs/evidence/gate-6/blocker-components-post-v197-partial.json.",
       "next": "Use precise actual subtype evidence to validate the separately prepared original-slot reservation fix; full matrix still required."
@@ -303,7 +303,7 @@
     {
       "id": "B38",
       "title": "A native movement failure aborts retained-source decoder evidence",
-      "status": "Script component verified — full matrix pending",
+      "status": "Script component verified \u2014 full matrix pending",
       "change": "Persist actual joined decoder captures even when the original operation fails. Isolate only definitively refused original submissions before a physical target starts; unobserved or uncertain completion remains fatal. Preserve the exact first failure when an observation callback also fails.",
       "evidence": "Original Mac Node69:62pass and7platform-specific failures preserved;19Python pass. Exact later workspace delta is only reviewed Linux lifetime test correction; actual ARM7Node nowpass. These are retainedMac62/Python19 +freshARM7, not69newMacpasses. docs/evidence/gate-6/blocker-components-post-v197-partial.json.",
       "next": "Retain original failed movement result and exact first error; verify full native programme decoder diagnostics under the next committed complete matrix."
@@ -327,7 +327,7 @@
     {
       "id": "B41",
       "title": "Compound scene reseal loses its original SQL observer slot",
-      "status": "Component verified — five new and seven existing ARM controls pass",
+      "status": "Component verified \u2014 five new and seven existing ARM controls pass",
       "change": "Reserve only the same original observer slot through transaction-local SQL unlock and file admission, then atomically reclaim that slot for exact reseal. No retained IO grant, waiting pool expansion or authority caching.",
       "evidence": "Focused V3 and V4 execute all12 exact original observer-slot controls successfully, including actual competing reader, original reseal, unchanged4slots, SQL release and cancellation/unwind cleanup. Full matrix still pending. docs/evidence/gate-6/blocker-components-post-v197-v4.json.",
       "next": "Retest actual signed native/RTC handoffs and full32 matrix after shared compile correction; component pass does not close G6-058."
@@ -343,7 +343,7 @@
     {
       "id": "B43",
       "title": "Instrumented automatic integration target lacks required test-support declaration",
-      "status": "Verified — shipping build and actual instrumented target",
+      "status": "Verified \u2014 shipping build and actual instrumented target",
       "change": "Declare the instrumented target required-features=test-support; separately check default shipping --lib --bins. The actual instrumented integration target must still compile and execute every exact selected case with test-support enabled.",
       "evidence": "V5 shipping default lib/bins build and required-feature metadata pass. All eight instrumented RTC controls run successfully. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -351,7 +351,7 @@
     {
       "id": "B44",
       "title": "Private receiver repeats file admission while the original source already holds full custody",
-      "status": "Component verified — all ten custody controls pass",
+      "status": "Component verified \u2014 all ten custody controls pass",
       "change": "Reuse only the exact live original source interval after rederiving all current scene, target, operator, pair and audience facts; reseal the same observer and cap source/fresh/root expiry without fallback from invalid supplied custody. Correct revoked-credential expectations to exact unauthorized, admit an original two-second reservation and wait its immutable expiry, and introduce a schema-valid new identity membership to prove insufficient supplied custody refuses without fresh admission.",
       "evidence": "Focused V4 passes all10full-scene custody controls and19distinct combined Store cases. Original immutable2s expiry, strict revoked-credential unauthorized codes, schema-valid new uncovered scope, exact held-source expiry and no fresh fallback are exercised. Actual signed native12 and RTC7controls also pass. docs/evidence/gate-6/blocker-components-post-v197-v4.json.",
       "next": "Retain all19Store cases in104retry, then verify real matrix resource and media behavior."
@@ -359,7 +359,7 @@
     {
       "id": "B45",
       "title": "Video repair initializer misses the new audio clock metadata field",
-      "status": "Component verified — video and screen repair regression passed",
+      "status": "Component verified \u2014 video and screen repair regression passed",
       "change": "Record video_copy audio_timing:None through upstream patch/source-lock; video/screen repair stays outside the audio clock. Extend original repair regression to check original and retained copies contain no audio timing, preserving authority, packet bytes, age and repair bounds.",
       "evidence": "V5 executes the original repair regression through its observable interface, with original authority, expiry, bytes and budget assertions. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -367,7 +367,7 @@
     {
       "id": "B46",
       "title": "Native clock fixtures parse RTCP sender reports as RTP media",
-      "status": "Component verified — all nine native transport controls passed",
+      "status": "Component verified \u2014 all nine native transport controls passed",
       "change": "Separate valid RTCP before generic RTP parsing; malformed remaining media must fail, retain exact RTP/NTP/payload/SSRC assertions and require actual packet/report counts. Production clock source unchanged.",
       "evidence": "The corrected native wire fixtures verify RTP and RTCP independently, preserving exact timing and payload assertions. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -375,7 +375,7 @@
     {
       "id": "B47",
       "title": "Four existing RTC regressions have incorrect runner module names",
-      "status": "Component verified — all four corrected RTC selectors executed",
+      "status": "Component verified \u2014 all four corrected RTC selectors executed",
       "change": "Bind exact original --list names under canonical_audio_order_tests and source_clock_audio_tests; preserve all104function/features/ignored scopes and reject all other scope changes.",
       "evidence": "V5 executes all four exact selectors in the corrected namespaces with one pass each. All 15 adapter controls passed. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -383,7 +383,7 @@
     {
       "id": "B48",
       "title": "RTC physical-cancellation fixture leaves server physical owner live",
-      "status": "Component verified — explicit original physical teardown passed",
+      "status": "Component verified \u2014 explicit original physical teardown passed",
       "change": "After local peer close, end only the captured original server candidate via ConnectionAdapter::end under the SAME original5s cutoff, then require real route/slot removal, same-root terminal status, no commit/effects and refusal of genuine stale Ready. No root-write or new mutation ID.",
       "evidence": "V5 closes both ends of the exact candidate and verifies original root, route and slot retirement and refusal of stale Ready within the original five-second bound. Remote-close propagation latency remains unqualified. docs/evidence/gate-6/blocker-components-post-v197-v5.json.",
       "next": "Run the next complete local 32-cell matrix after the focused batch passes."
@@ -391,7 +391,7 @@
     {
       "id": "B49",
       "title": "Core audio fixture reuses the final operation ID during preparation",
-      "status": "Component verified — all four corrected Core adoption cases passed",
+      "status": "Component verified \u2014 all four corrected Core adoption cases passed",
       "change": "Use a distinct stable preparation audience and bind probe permission to that exact context. Preserve the final root ID, original expiry and strict no-adoption assertions after failed commit.",
       "evidence": "V6 reaches each original commit, failure, expiry and successor oracle under distinct preparation and original root identities. docs/evidence/gate-6/blocker-components-post-v197-v6.json.",
       "next": "Run the complete 32-cell local transport matrix."
@@ -399,7 +399,7 @@
     {
       "id": "B50",
       "title": "Native expiry fixture wakes before the original Store deadline",
-      "status": "Component verified — both original UTC expiry cases passed",
+      "status": "Component verified \u2014 both original UTC expiry cases passed",
       "change": "Wait for the recorded UTC expiry in both native post-expiry fixtures. Keep the original reservation, monotonic pre-expiry cutoff, signed Ready limits and 90-second outer timeout.",
       "evidence": "V6 verifies signed Ready refusal after the exact original reservation expires and survival of the already committed native connection after its preparation cutoff. docs/evidence/gate-6/blocker-components-post-v197-v6.json.",
       "next": "Run the complete 32-cell local transport matrix."
@@ -782,7 +782,7 @@
       "title": "Prior focused tests do not reproduce six-source concurrent handoffs",
       "status": "GENUINE RELEASE VERIFIED. The six-source/two-Session programme passes1/1 with all4handoffs, both original-Device returns and zero quality/task violations.",
       "change": "The initial endpoint-install policy releases scene, registry and controller guards, then revalidates exact ownership, activation and lease expiry. Immediate visual forwarding borrows only its live source lease while independently authorizing the target; queued media retains no source reader. Three new Core controls and all ten related audio/Probe controls pass in dev mode. Both isolated old-production positive controls fail at their intended assertions. Native replacement unary, receiver-epoch and complete ordered scene metadata now use bounded immutable facts keyed to original Weak owners and exact observer/SQL/clock versions. Every hit obtains fresh current authorization or validates exact original custody, rebuilds readers with the earliest outer and nested expiry, and retains the after-finish version seal. No reader or execution owner is cached.",
-      "evidence": "Three new Core controls and ten related audio/Probe controls passed13/13 (receiptff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa). The same new positive controls fail against isolated old362 production at the intended assertions; raw0/2 failure flags are preserved (comparative proof64246ae9143ab589a82219617f3792e84d68c12be8031025cfbe265a80cce792). Genuine RELEASE integration now failed0/1 in13.99s with actual Core/Service/Store and harness opt-level3/debug-assertionsfalse, unchanged source and all original command/controller joins (receipt6a0d01415a36d1cd899ab4b510ab1027d94a05f3d76d28f948dbf5e6e3cf6a28). Both first candidates received some video packets but decoded no keyframe; their final consecutive usable audio run was960 samples, below2880. All six original receivers stalled during preparation. Route counters showed46/96 enqueues but5/19 native video writer inputs, all locally accepted; these are different stages/observation windows, not packet-loss ratios. Direct scene stages reached332/339ms. This establishes a release-profile delivery/admission performance failure, while its precise CPU/SQL/file source remains under investigation.34 distinct component passes are not a fresh250-case cohort or matrix qualification. One bounded same-case release profile also failed0/1 with unchanged source and all joins (receiptbb953c8dc61b58260c2b7969de31aa4d20381fe7de658c1e2299d5dd6de0750a). Fixed Store snapshots show all4slots in capture at readiness failure and0after cleanup; completed capture claim mean14.33ms, actual SQL-held capture mean7.15ms and reseal mean5.66ms, versus file-admit mean0.552ms. These are concurrent completed-interval observations, not CPU time. The sampler exited0naturally and retained a complete30.9MB report, but its collector16MiB post-limit is failed and preserved. Stack observations identify both SQLite planning/execution and authority open/access paths; no new source fix or profiling pass is claimed. The integrated Store memo passed normal --tests typechecking, all six new actual-hit controls and70 retained authorization, receiver, source-set, custody, compound-reseal and slot controls (76 actual passes,0ignored; audit8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23). The raw recorder retains three same-line identity false negatives caused by nocapture output, including one exact known child test; a strict separate identity/count/exit audit verifies all76 natural passes without rerunning them. Disabling only the compound memo-hit branch makes all six new controls fail at their actual-hit assertions; raw failure verdicts remain preserved (comparisonb8ed287657fb6c07f72737bbfadc7271a9633d65be236c5341835ee3cac95b11). Restoring exact source makes all six pass again (receiptdc1d6e977a547489a1daa7a77446623175199ef12d8f7ac6e9fcd954696f5207). A subsequently removed unused getter changed no call path; normal --tests typechecking passed after that deletion (receipt2a1aa075e7a451e16659f3ad2b15abe4f097afb02cc3a1a36e4882ec5dc298f3). All original command groups joined unforced and each attempt kept its sealed source unchanged. These are logical DEV checks, not production throughput evidence. The same genuine RELEASE test after the memo failed0/1 in11.69s, all original groups/controller joined naturally and source unchanged (receipt7de4c0e64ccfb93e8dba0520d674d0520f0ba338b9ccf4099adef367846edaf2). Both outbound generation-two moves completed in4.214s with actual private2880-sample/keyframe readiness, complete-second old24fps and retained fresh uplink assertions passed. Both generation-three return candidates reached fresh private A/V; before their Ready submissions, the old active view failed its2880-consecutive-audio assertion at an unreported index. Its earlier last-audio assertion passed, so this does not establish absent audio. All ten original C decoders exited0 and ten encoders joined naturally. New capture-SQL and reseal-SQL observed completed-interval means were342us/87us versus prior7.15ms/5.66ms, over different windows; these are not CPU or throughput comparisons. Four target counters recorded1902 accepted video writer inputs and0local errors, including postcommit public writes on generation-two targets. Exact comparisonc6529aec00b2bae936fb9f1a39e9dbb2ee2a0c8c472d210a36d844cf5dc1e33f preserves scope and uncertainty. Source review found a round-one-only fixture hotspot: after arming a later replacement, every current-candidate packet/timer iteration synchronously reopened SQLite and ran a full exact-retirement join. The fixture now polls an observed historical commit latch in memory; exact SQL remains at confirmed original completion and terminal-error boundaries. Read-only deadlines are accepted only with that exact witness. Its two new helper controls and another genuine run remain pending; no sole-cause claim is made. A separate source-backed fixture freshness gap is also corrected: duplicate/late RTP ignored without PCM no longer refreshes last-decoded-audio time. A new real-Opus control and the two retirement controls await actual release execution; no historical duplicate cause is inferred. All three exact fixture controls now pass in RELEASE with0ignored (receiptc5a54536843307cda582dc9957175f07a6b96138a6db7e0d44359025f55ccbf7): armed memory-only retirement polling/historical latch; unconfirmed or mismatched retirement and wrong-certainty refusal; real-Opus ignored-duplicate freshness plus actual-output and loss reset. Cargo and all three original command groups/controller joined0unforced with sealed source unchanged. Core, Store, Service and harness profiles are opt3/debug-assertionsfalse. This verifies the fixture helpers, not the four-move integration or its unresolved old-active audio observation. After the fixture corrections, the same genuine RELEASE case failed0/1 in11.62s with clean committed source, all original command/controller joins unforced and full trace retained (receipt298fbaa2ffea0d1b59ba5b18acf61cb8859c6879c5a9e9279f8712ed29d1e873). Two outbound moves completed in4.334s. Both return candidates passed actual-output audio/key/video freshness, all six old active audio>=2880 assertions passed, and retired original receivers closed under their exact witnesses. No media task failed; all ten decoders exited0 and ten encoders joined normally. The next assertion failed: old current receiver2, subscribed to unchanged source1, decoded18frames in complete preparation second7 where24is required. Source1 decoder finished with191outputs; no per-source encoded/published cadence or its decode-history snapshot was retained. Session0 lifetime direct/audio/wake maxima were87.9/60.8/135.2ms, below200ms; these maxima do not isolate second7 or establish CPU cost. Comparison091572760c4fea4b32c0629cc83de5e731fcf1ab8fba705e420d2d55959c3cd7 preserves this remaining failure. Bounded encoded/published26-bin inputs and final all-original/candidate snapshots are now added for diagnosis; their one new boundary unit is pending, and no input/delivery/decoder root cause is yet claimed. The new input-bin boundary unit now passed1/1 in RELEASE with0ignored and unchanged source; normal Cargo build and original unit/controller groups joined0unforced (receipt5a98c99ecc2da5d944f6592882b649ce2963bbf60a406ebaebde24bf9a878811). Its actual0/999ms/1s/25s/26s and saturation checks validate only the new diagnostic binning. The remaining18fps failure has not been rerun or cleared. Input diagnostic receipt e9510d16514030ea729e8785d994ec1c30e23e48862b7b3c42bdb1dbe2332793 preserves0/1 in11.59s, all original Cargo/controller/pressure groups naturally joined, source unchanged. Two outbound moves completed4.425s. In programme second7, actual source3 encoded and locally published30 complete frames while its current receiver0 decoded17. All original publishers also continued after original0/4 retired, adding unintended old input; those loops now stop on the observed exact commit latch. The return-window host sample was55.27%idle with about7.58GBunused; historical per-process CPU was not summed as instant CPU. Six original and four candidate scalar snapshots expose loss, expired assemblies and skipped dependency frames, with0 late completed-frame observations. Source-backed corrections now preserve the same native original after Core Backpressure and map only non-original Publish/Receive continuation MetadataBusy to existing NotReady retry. No queue, deadline, grant or media criterion changes. Measured sole-cause attribution is unproved; unit/counterfactual verification is pending. The first integrated ingress/continuation DEV attempt is terminal (receipt15dca455aa340b8be9d7b176f22b7a2ebd5428f5d7117e33c8cfcb52c806fd97): five exact ingress cases executed with4passes,1failure and0ignored. The new recovery case failed its combined recovered/forwarded/timestamp assertion; source review found the fixture omitted the target direct-video subscription required before packet admission. That omission is independently established, while individual assertion subterms were not logged. The new expiry/retirement/refusal control and all three selected existing ingress controls passed naturally. The eight Service cases did not execute: its debug-info2 compilation reached the8GiB reserve and the owned stop encountered EPERM. The raw Service row preserves forced=true, joined=false and unknown exit status; no natural join is claimed. A separate fresh PID/PPID/process-group observation found every recorded owner absent (a6c2a28c238f28a12441420e5e14a52cbf4f55e85871d5f96cc973e3b8e9f088), without rewriting that raw row. The controller joined exit1 and source stayed unchanged. The initial build unintentionally used a different debug-info2 cache variant; the next logical retry will explicitly reuse debug0/nonincremental settings after sufficient headroom and guarded fixture correction. These four additional passing rows are not added to the114-distinct historical total without an identity deduplication audit. The fixture now installs its actual direct-video subscription before all64queued originals and the retained65th arrival, with separate recovery/forwarding/timestamp assertions and explicit public imports. Normal365-to365 preparation passed three original commands naturally/unforced, kept source unchanged and preserved the complete prior365 tree (receiptb6001897b38cbd08254a912d0b79b5758948fa4a03ef1ff648445ccb17ad969f). The final SourceLock is3766e659268490bdac21a5192379a038c6fcc0b37924403aed3f8ffd6e30b3bf, rvoip grapha4fda4d1069957f205e0590d02b06a11644c841339cb3d11593235b1f2b5b26b and549declared files. A private synthetic owned-parent/child control verifies that injected group-signal EPERM still reaches original-child wait/reap and empty-group observation; forced work remains unqualified (receipt0abb2601a7087751d18fa9f9b4e18967c778b786f5174765d12e3c285d6e9970). The next exact13logical controls explicitly use DEV/TEST/RELEASE_DEBUG=0 and CARGO_INCREMENTAL=0. Their cold4GiB growth forecast retains the8GiB hard reserve; no warm debug0 artifact or pass is assumed. The corrected exact13-case DEV retry now passed13/13 with0ignored (receipt121a5adc434f2b0b2b9207bb5d5a718ee651f930ec5c6b9e44c2a8ea7f9f99eb). The five UCTP controls verify same-original65th-packet recovery, fresh authorization, exact single target IO, expiry/retirement/permanent refusal and the three retained metadata/ordering/queue-bound controls. The eight Service controls verify the actual narrow continuation error mapper and retained current-authority/refusal behavior. Both builds and all13original test command groups—15groups total—joined0naturally/unforced; original controller also joined0 (controller28028be1907968ff130cbdcab005af64d4247fc7a6cdb8bc2100952664401205). Source9275e9e7fbd41cdc5d505e4510e17f727ca69c71c845cc0f2c2eee83a908425a stayed unchanged. Actual artifacts are opt0/debug0 with debug assertions enabled, and explicit CARGO_INCREMENTAL=0; measured free-space growth was2.709GiB against the4GiB forecast while preserving the8GiB hard reserve. This is logical DEV verification, not release throughput or a fresh whole280-case cohort. The earlier4pass/1fixture-failure attempt and interrupted Service0-executed raw row remain immutable; its unknown original Service join is not retroactively repaired. No distinct aggregate is increased without identity deduplication. Old-condition counterfactuals and restored-source verification remain pending. A separate visual-original whole-model revision proposal has static reviews but has not been integrated or executed in this cohort. Patch366 is now integrated and normally prepared: only Video/Screen original capture omits the opportunistic whole-model revision while every attempt retains exact current model/policy checks, source port/ticket, consumer/scene activation, credential and earliest original deadline. Audio keeps its strict original model revision. Normal preparation passed three commands0naturally/unforced, preserved the whole old365 tree and kept source unchanged (receipt64d2d9c90b1722f6cda399e5aeae6158d55acd53556bae4c5dceccbd368ef360). SourceLockdf75a8b3b02538d9f1d35bf72bef0c54688d0f9e172c787ec0ba33b9abf79b47 and rvoip graph078079229d770ff55b764341574c277c6b9a9224b475a53117f53ab23d5eb9d2 bind550declared files, including one actual new0644 Core test child. Its three new tests and17retained original-ingress/ordinary-callback controls are pending actual execution. Static review does not identify ModelConflict as the measured17fps cause. The exact20Core logical controls now passed20/20,0ignored (receipt01e6a1beed20743af4485eefeb09ece36ea1b688d1151907c63da656e86f3215). Separate actual Video and Screen originals survive the real PREPARING muted-audio activation while the paired audio original retains its strict whole-model conflict; the negative control preserves current gate, codec, retirement, credential, denial, scene and expiry refusals. All nine retained original-ingress controls and eight ordinary-callback/current-policy controls pass. The normal build and20original test groups—21groups total—joined0naturally/unforced, and original controller joined0 (a2fb158b204fdfaf3406e9d55e23686636bf51219ffdeb4035e2a6587fd1741b). Source20c41b1fe4df6597e51156fa7e98875c757de34e84eab9d9b5654a9a37e5c7fc stayed unchanged on HEADb3e17d2bf27e3e52ab4c6239f6b1756986b9f867 plus the explicit366 inputs/progress changes. Actual Core artifact244d9f972ed7db7551f0bc88e12acd4b221580aa135d0c52ad20b98e4b262544 uses opt0/debug0, debug assertions and the prior default/opus/test-support feature union with incremental disabled. Observed disk growth was0.972GiB against2GiB forecast; the8GiB reserve stayed intact. These20passes do not establish production fps improvement, do not classify the historical17fps loss as ModelConflict, and are not added to an aggregate without identity deduplication. Patch367 is now integrated: only an internal post-policy model-revision mismatch on an otherwise eligible owned raw Video/Screen original can return MetadataBusy to its existing owner. Every normal current authority, exact binding/permission, credential, route ticket, consumer/scene activation, shutdown and expiry check still executes; the stale callback returns no admission or IO and retains no policy reader. Policy-returned Conflict/Authority, Audio, queued/general and Control semantics are unchanged. Normal preparation passed three commands0naturally/unforced, kept source unchanged and preserved the whole old366 tree (receiptb16fc2eb9251e39928918d81572788547e5d1a1c9e7fc4d0e5130e42d999951d). SourceLockdf1436f66f64bae81750e34e4328b1d485dec9553bf77bfd9125e07b02541ab3 and rvoip graph4b8ec1cf94b03f89b52c921995a90c87c60c08d5fc778596fc489d9d39029993 bind551declared files and the exact new0644 child. Three new actual after-grant AudioAudience controls plus all preceding20Core controls are pending. Their State-excluded capture witnesses isolate this seam from the earlier visual capture revision issue in a combined old-condition comparison. No measured failed-bin or performance cure is claimed. The actual367Core attempt is terminal22passed/1failed/0ignored (receipt830b9b01743e2f46c14efcd49b50f5582b998e76405a1be976acde5c65d0b693). Both separate new Video/Screen after-grant policy-race controls pass, and all previous20controls pass. The combined hard-negative control failed at its shared no-enqueue helper: actual remaining capacity10 was compared with hardcoded64. Source construction explicitly uses10for Audio and64for visual streams, and the AudioOriginal lane deliberately selects its Audio port. This does not establish stale enqueueing; the helper compared an empty Audio queue with the wrong medium capacity. Its Audio error had not yet been inspected, and later Screen negative lanes are not claimed executed. The normal build and all23case groups—24groups total—joined naturally/unforced, original controller joined1 (0c3dc0ca8cf3b22aa7f25b465c00c72136eb4388d37dd382051f649c96d784fa), and sourcefb76233a97b02ac97af4a995cbd557dfe8f0116ccf572db34140f8746b4c81b1 stayed unchanged. Source-bound diagnosis9d2873238bb5dac2878b8aba0b57398a0b6fe4831de3a3e716f4e696d20f683c preserves this distinction. A narrow test-only followthrough will require the exact medium capacity at construction and compare maximum/available from one actual port snapshot while retaining zero occupancy, all hard errors, expiry and no-IO assertions. Production and queue limits remain unchanged; the same full23must run after normal preparation. The capacity-only followthrough now pins constructor maximum10for AudioOriginal or64for visual and verifies initial emptiness; its refusal check compares available==maximum from one actual port snapshot. All production code, hard errors, expiry, authorization, reader/no-IO assertions and three case identities are unchanged. Normal367-to367 preparation passed three commands0naturally/unforced, kept source unchanged and preserved the whole old367tree (receiptf2486564b499fb0cdfd4a7a0d712db8d050426b4269759706dc0d91ad8e63086). SourceLock49c5c6644dae2de72b207ff2713eb433ad0f5eb6ddf6f7e121847cb3c98bcb8c, rvoip graph8faf68b2a19a96b1253630e3e051cf1dbc3e4ee47d8b15384d83aed2f8ecc35c and551declared files bind only corrected test4cf81ae6c17a68022944dd88591841ec820d8caa493d2e29a9e50db23e11fa71. The same23-case retry is pending actual execution. The original raw22/1attempt and its unverified Audio error/later Screen negative lanes remain intact until the corrected run supplies separate evidence. The corrected same23Core retry now passed23/23,0ignored (receipt0ffc350fbec436e21ee582f2ece0aeb8e3de5619c08d2352b9d7480b059ae3e9). The AudioOriginal hard-refusal and later Screen negative lanes now pass in this new cohort; the earlier raw22/1attempt is unchanged and is not relabelled. Both separate post-policy Video/Screen positives and all prior20controls pass. The normal build and23original test groups—24groups total—joined0naturally/unforced, and original controller joined0 (cb92dd0751ff951e930ca4420eb0e1c9fadaa96c6b399f0e4f8e00c2c2b64229). Sourcea87f5e1257447a4ff72d2083991ed4908c07af7c5c79b3e9472086faae9a2e53 stayed unchanged. Actual artifact78164b10a65637392d2c9ac42e867de28eb64d9cb8304ca041a3b414129580c3 uses opt0/debug0 with debug assertions and incremental disabled. Only the Core test target rebuilt; all production artifacts were reused, and the attempt completed in32.96s. This verifies the final logical controls, not production fps or a fresh whole286-case cohort. The four-condition counterfactual and exact normal-source replay remain pending before another genuine release run. The four-condition comparison now matches7raw failures and1pass, preserving all raw verdicts. Initial normal replay9/1 reused an identical counterfactual Service binary; exact nine-fingerprint quarantine preserved all three counterfactual binaries. The corrected replay passed10/10 with mandatory fresh builds of the affected consumed production units. The following genuine RELEASE run failed0/1 in7.45s before any move committed: receiver2/source1 decoded22frames in programme second3 despite30encoded/locally published frames. Required profiles, fresh builds, complete trace, unchanged source and natural joins are proved by receipt534e77f7a388abc5a23c594fde16c06acf6dbd6df1c8b6547cefa437cbfba4d4. Structured latest_verification preserves exact digests and cumulative ingress observations; recovery/send-error counts do not establish a measured sole cause or a cross-window fps comparison.",
+      "evidence": "Three new Core controls and ten related audio/Probe controls passed13/13 (receiptff9198c746a36092e2bc0988531238f4a26d141c15aa092ec6018a43619fe3fa). The same new positive controls fail against isolated old362 production at the intended assertions; raw0/2 failure flags are preserved (comparative proof64246ae9143ab589a82219617f3792e84d68c12be8031025cfbe265a80cce792). Genuine RELEASE integration now failed0/1 in13.99s with actual Core/Service/Store and harness opt-level3/debug-assertionsfalse, unchanged source and all original command/controller joins (receipt6a0d01415a36d1cd899ab4b510ab1027d94a05f3d76d28f948dbf5e6e3cf6a28). Both first candidates received some video packets but decoded no keyframe; their final consecutive usable audio run was960 samples, below2880. All six original receivers stalled during preparation. Route counters showed46/96 enqueues but5/19 native video writer inputs, all locally accepted; these are different stages/observation windows, not packet-loss ratios. Direct scene stages reached332/339ms. This establishes a release-profile delivery/admission performance failure, while its precise CPU/SQL/file source remains under investigation.34 distinct component passes are not a fresh250-case cohort or matrix qualification. One bounded same-case release profile also failed0/1 with unchanged source and all joins (receiptbb953c8dc61b58260c2b7969de31aa4d20381fe7de658c1e2299d5dd6de0750a). Fixed Store snapshots show all4slots in capture at readiness failure and0after cleanup; completed capture claim mean14.33ms, actual SQL-held capture mean7.15ms and reseal mean5.66ms, versus file-admit mean0.552ms. These are concurrent completed-interval observations, not CPU time. The sampler exited0naturally and retained a complete30.9MB report, but its collector16MiB post-limit is failed and preserved. Stack observations identify both SQLite planning/execution and authority open/access paths; no new source fix or profiling pass is claimed. The integrated Store memo passed normal --tests typechecking, all six new actual-hit controls and70 retained authorization, receiver, source-set, custody, compound-reseal and slot controls (76 actual passes,0ignored; audit8a8e41974b8b68550bde38fa5006cc2aec6fa0b804a627f9ac373a8d7f5ebc23). The raw recorder retains three same-line identity false negatives caused by nocapture output, including one exact known child test; a strict separate identity/count/exit audit verifies all76 natural passes without rerunning them. Disabling only the compound memo-hit branch makes all six new controls fail at their actual-hit assertions; raw failure verdicts remain preserved (comparisonb8ed287657fb6c07f72737bbfadc7271a9633d65be236c5341835ee3cac95b11). Restoring exact source makes all six pass again (receiptdc1d6e977a547489a1daa7a77446623175199ef12d8f7ac6e9fcd954696f5207). A subsequently removed unused getter changed no call path; normal --tests typechecking passed after that deletion (receipt2a1aa075e7a451e16659f3ad2b15abe4f097afb02cc3a1a36e4882ec5dc298f3). All original command groups joined unforced and each attempt kept its sealed source unchanged. These are logical DEV checks, not production throughput evidence. The same genuine RELEASE test after the memo failed0/1 in11.69s, all original groups/controller joined naturally and source unchanged (receipt7de4c0e64ccfb93e8dba0520d674d0520f0ba338b9ccf4099adef367846edaf2). Both outbound generation-two moves completed in4.214s with actual private2880-sample/keyframe readiness, complete-second old24fps and retained fresh uplink assertions passed. Both generation-three return candidates reached fresh private A/V; before their Ready submissions, the old active view failed its2880-consecutive-audio assertion at an unreported index. Its earlier last-audio assertion passed, so this does not establish absent audio. All ten original C decoders exited0 and ten encoders joined naturally. New capture-SQL and reseal-SQL observed completed-interval means were342us/87us versus prior7.15ms/5.66ms, over different windows; these are not CPU or throughput comparisons. Four target counters recorded1902 accepted video writer inputs and0local errors, including postcommit public writes on generation-two targets. Exact comparisonc6529aec00b2bae936fb9f1a39e9dbb2ee2a0c8c472d210a36d844cf5dc1e33f preserves scope and uncertainty. Source review found a round-one-only fixture hotspot: after arming a later replacement, every current-candidate packet/timer iteration synchronously reopened SQLite and ran a full exact-retirement join. The fixture now polls an observed historical commit latch in memory; exact SQL remains at confirmed original completion and terminal-error boundaries. Read-only deadlines are accepted only with that exact witness. Its two new helper controls and another genuine run remain pending; no sole-cause claim is made. A separate source-backed fixture freshness gap is also corrected: duplicate/late RTP ignored without PCM no longer refreshes last-decoded-audio time. A new real-Opus control and the two retirement controls await actual release execution; no historical duplicate cause is inferred. All three exact fixture controls now pass in RELEASE with0ignored (receiptc5a54536843307cda582dc9957175f07a6b96138a6db7e0d44359025f55ccbf7): armed memory-only retirement polling/historical latch; unconfirmed or mismatched retirement and wrong-certainty refusal; real-Opus ignored-duplicate freshness plus actual-output and loss reset. Cargo and all three original command groups/controller joined0unforced with sealed source unchanged. Core, Store, Service and harness profiles are opt3/debug-assertionsfalse. This verifies the fixture helpers, not the four-move integration or its unresolved old-active audio observation. After the fixture corrections, the same genuine RELEASE case failed0/1 in11.62s with clean committed source, all original command/controller joins unforced and full trace retained (receipt298fbaa2ffea0d1b59ba5b18acf61cb8859c6879c5a9e9279f8712ed29d1e873). Two outbound moves completed in4.334s. Both return candidates passed actual-output audio/key/video freshness, all six old active audio>=2880 assertions passed, and retired original receivers closed under their exact witnesses. No media task failed; all ten decoders exited0 and ten encoders joined normally. The next assertion failed: old current receiver2, subscribed to unchanged source1, decoded18frames in complete preparation second7 where24is required. Source1 decoder finished with191outputs; no per-source encoded/published cadence or its decode-history snapshot was retained. Session0 lifetime direct/audio/wake maxima were87.9/60.8/135.2ms, below200ms; these maxima do not isolate second7 or establish CPU cost. Comparison091572760c4fea4b32c0629cc83de5e731fcf1ab8fba705e420d2d55959c3cd7 preserves this remaining failure. Bounded encoded/published26-bin inputs and final all-original/candidate snapshots are now added for diagnosis; their one new boundary unit is pending, and no input/delivery/decoder root cause is yet claimed. The new input-bin boundary unit now passed1/1 in RELEASE with0ignored and unchanged source; normal Cargo build and original unit/controller groups joined0unforced (receipt5a98c99ecc2da5d944f6592882b649ce2963bbf60a406ebaebde24bf9a878811). Its actual0/999ms/1s/25s/26s and saturation checks validate only the new diagnostic binning. The remaining18fps failure has not been rerun or cleared. Input diagnostic receipt e9510d16514030ea729e8785d994ec1c30e23e48862b7b3c42bdb1dbe2332793 preserves0/1 in11.59s, all original Cargo/controller/pressure groups naturally joined, source unchanged. Two outbound moves completed4.425s. In programme second7, actual source3 encoded and locally published30 complete frames while its current receiver0 decoded17. All original publishers also continued after original0/4 retired, adding unintended old input; those loops now stop on the observed exact commit latch. The return-window host sample was55.27%idle with about7.58GBunused; historical per-process CPU was not summed as instant CPU. Six original and four candidate scalar snapshots expose loss, expired assemblies and skipped dependency frames, with0 late completed-frame observations. Source-backed corrections now preserve the same native original after Core Backpressure and map only non-original Publish/Receive continuation MetadataBusy to existing NotReady retry. No queue, deadline, grant or media criterion changes. Measured sole-cause attribution is unproved; unit/counterfactual verification is pending. The first integrated ingress/continuation DEV attempt is terminal (receipt15dca455aa340b8be9d7b176f22b7a2ebd5428f5d7117e33c8cfcb52c806fd97): five exact ingress cases executed with4passes,1failure and0ignored. The new recovery case failed its combined recovered/forwarded/timestamp assertion; source review found the fixture omitted the target direct-video subscription required before packet admission. That omission is independently established, while individual assertion subterms were not logged. The new expiry/retirement/refusal control and all three selected existing ingress controls passed naturally. The eight Service cases did not execute: its debug-info2 compilation reached the8GiB reserve and the owned stop encountered EPERM. The raw Service row preserves forced=true, joined=false and unknown exit status; no natural join is claimed. A separate fresh PID/PPID/process-group observation found every recorded owner absent (a6c2a28c238f28a12441420e5e14a52cbf4f55e85871d5f96cc973e3b8e9f088), without rewriting that raw row. The controller joined exit1 and source stayed unchanged. The initial build unintentionally used a different debug-info2 cache variant; the next logical retry will explicitly reuse debug0/nonincremental settings after sufficient headroom and guarded fixture correction. These four additional passing rows are not added to the114-distinct historical total without an identity deduplication audit. The fixture now installs its actual direct-video subscription before all64queued originals and the retained65th arrival, with separate recovery/forwarding/timestamp assertions and explicit public imports. Normal365-to365 preparation passed three original commands naturally/unforced, kept source unchanged and preserved the complete prior365 tree (receiptb6001897b38cbd08254a912d0b79b5758948fa4a03ef1ff648445ccb17ad969f). The final SourceLock is3766e659268490bdac21a5192379a038c6fcc0b37924403aed3f8ffd6e30b3bf, rvoip grapha4fda4d1069957f205e0590d02b06a11644c841339cb3d11593235b1f2b5b26b and549declared files. A private synthetic owned-parent/child control verifies that injected group-signal EPERM still reaches original-child wait/reap and empty-group observation; forced work remains unqualified (receipt0abb2601a7087751d18fa9f9b4e18967c778b786f5174765d12e3c285d6e9970). The next exact13logical controls explicitly use DEV/TEST/RELEASE_DEBUG=0 and CARGO_INCREMENTAL=0. Their cold4GiB growth forecast retains the8GiB hard reserve; no warm debug0 artifact or pass is assumed. The corrected exact13-case DEV retry now passed13/13 with0ignored (receipt121a5adc434f2b0b2b9207bb5d5a718ee651f930ec5c6b9e44c2a8ea7f9f99eb). The five UCTP controls verify same-original65th-packet recovery, fresh authorization, exact single target IO, expiry/retirement/permanent refusal and the three retained metadata/ordering/queue-bound controls. The eight Service controls verify the actual narrow continuation error mapper and retained current-authority/refusal behavior. Both builds and all13original test command groups\u201415groups total\u2014joined0naturally/unforced; original controller also joined0 (controller28028be1907968ff130cbdcab005af64d4247fc7a6cdb8bc2100952664401205). Source9275e9e7fbd41cdc5d505e4510e17f727ca69c71c845cc0f2c2eee83a908425a stayed unchanged. Actual artifacts are opt0/debug0 with debug assertions enabled, and explicit CARGO_INCREMENTAL=0; measured free-space growth was2.709GiB against the4GiB forecast while preserving the8GiB hard reserve. This is logical DEV verification, not release throughput or a fresh whole280-case cohort. The earlier4pass/1fixture-failure attempt and interrupted Service0-executed raw row remain immutable; its unknown original Service join is not retroactively repaired. No distinct aggregate is increased without identity deduplication. Old-condition counterfactuals and restored-source verification remain pending. A separate visual-original whole-model revision proposal has static reviews but has not been integrated or executed in this cohort. Patch366 is now integrated and normally prepared: only Video/Screen original capture omits the opportunistic whole-model revision while every attempt retains exact current model/policy checks, source port/ticket, consumer/scene activation, credential and earliest original deadline. Audio keeps its strict original model revision. Normal preparation passed three commands0naturally/unforced, preserved the whole old365 tree and kept source unchanged (receipt64d2d9c90b1722f6cda399e5aeae6158d55acd53556bae4c5dceccbd368ef360). SourceLockdf75a8b3b02538d9f1d35bf72bef0c54688d0f9e172c787ec0ba33b9abf79b47 and rvoip graph078079229d770ff55b764341574c277c6b9a9224b475a53117f53ab23d5eb9d2 bind550declared files, including one actual new0644 Core test child. Its three new tests and17retained original-ingress/ordinary-callback controls are pending actual execution. Static review does not identify ModelConflict as the measured17fps cause. The exact20Core logical controls now passed20/20,0ignored (receipt01e6a1beed20743af4485eefeb09ece36ea1b688d1151907c63da656e86f3215). Separate actual Video and Screen originals survive the real PREPARING muted-audio activation while the paired audio original retains its strict whole-model conflict; the negative control preserves current gate, codec, retirement, credential, denial, scene and expiry refusals. All nine retained original-ingress controls and eight ordinary-callback/current-policy controls pass. The normal build and20original test groups\u201421groups total\u2014joined0naturally/unforced, and original controller joined0 (a2fb158b204fdfaf3406e9d55e23686636bf51219ffdeb4035e2a6587fd1741b). Source20c41b1fe4df6597e51156fa7e98875c757de34e84eab9d9b5654a9a37e5c7fc stayed unchanged on HEADb3e17d2bf27e3e52ab4c6239f6b1756986b9f867 plus the explicit366 inputs/progress changes. Actual Core artifact244d9f972ed7db7551f0bc88e12acd4b221580aa135d0c52ad20b98e4b262544 uses opt0/debug0, debug assertions and the prior default/opus/test-support feature union with incremental disabled. Observed disk growth was0.972GiB against2GiB forecast; the8GiB reserve stayed intact. These20passes do not establish production fps improvement, do not classify the historical17fps loss as ModelConflict, and are not added to an aggregate without identity deduplication. Patch367 is now integrated: only an internal post-policy model-revision mismatch on an otherwise eligible owned raw Video/Screen original can return MetadataBusy to its existing owner. Every normal current authority, exact binding/permission, credential, route ticket, consumer/scene activation, shutdown and expiry check still executes; the stale callback returns no admission or IO and retains no policy reader. Policy-returned Conflict/Authority, Audio, queued/general and Control semantics are unchanged. Normal preparation passed three commands0naturally/unforced, kept source unchanged and preserved the whole old366 tree (receiptb16fc2eb9251e39928918d81572788547e5d1a1c9e7fc4d0e5130e42d999951d). SourceLockdf1436f66f64bae81750e34e4328b1d485dec9553bf77bfd9125e07b02541ab3 and rvoip graph4b8ec1cf94b03f89b52c921995a90c87c60c08d5fc778596fc489d9d39029993 bind551declared files and the exact new0644 child. Three new actual after-grant AudioAudience controls plus all preceding20Core controls are pending. Their State-excluded capture witnesses isolate this seam from the earlier visual capture revision issue in a combined old-condition comparison. No measured failed-bin or performance cure is claimed. The actual367Core attempt is terminal22passed/1failed/0ignored (receipt830b9b01743e2f46c14efcd49b50f5582b998e76405a1be976acde5c65d0b693). Both separate new Video/Screen after-grant policy-race controls pass, and all previous20controls pass. The combined hard-negative control failed at its shared no-enqueue helper: actual remaining capacity10 was compared with hardcoded64. Source construction explicitly uses10for Audio and64for visual streams, and the AudioOriginal lane deliberately selects its Audio port. This does not establish stale enqueueing; the helper compared an empty Audio queue with the wrong medium capacity. Its Audio error had not yet been inspected, and later Screen negative lanes are not claimed executed. The normal build and all23case groups\u201424groups total\u2014joined naturally/unforced, original controller joined1 (0c3dc0ca8cf3b22aa7f25b465c00c72136eb4388d37dd382051f649c96d784fa), and sourcefb76233a97b02ac97af4a995cbd557dfe8f0116ccf572db34140f8746b4c81b1 stayed unchanged. Source-bound diagnosis9d2873238bb5dac2878b8aba0b57398a0b6fe4831de3a3e716f4e696d20f683c preserves this distinction. A narrow test-only followthrough will require the exact medium capacity at construction and compare maximum/available from one actual port snapshot while retaining zero occupancy, all hard errors, expiry and no-IO assertions. Production and queue limits remain unchanged; the same full23must run after normal preparation. The capacity-only followthrough now pins constructor maximum10for AudioOriginal or64for visual and verifies initial emptiness; its refusal check compares available==maximum from one actual port snapshot. All production code, hard errors, expiry, authorization, reader/no-IO assertions and three case identities are unchanged. Normal367-to367 preparation passed three commands0naturally/unforced, kept source unchanged and preserved the whole old367tree (receiptf2486564b499fb0cdfd4a7a0d712db8d050426b4269759706dc0d91ad8e63086). SourceLock49c5c6644dae2de72b207ff2713eb433ad0f5eb6ddf6f7e121847cb3c98bcb8c, rvoip graph8faf68b2a19a96b1253630e3e051cf1dbc3e4ee47d8b15384d83aed2f8ecc35c and551declared files bind only corrected test4cf81ae6c17a68022944dd88591841ec820d8caa493d2e29a9e50db23e11fa71. The same23-case retry is pending actual execution. The original raw22/1attempt and its unverified Audio error/later Screen negative lanes remain intact until the corrected run supplies separate evidence. The corrected same23Core retry now passed23/23,0ignored (receipt0ffc350fbec436e21ee582f2ece0aeb8e3de5619c08d2352b9d7480b059ae3e9). The AudioOriginal hard-refusal and later Screen negative lanes now pass in this new cohort; the earlier raw22/1attempt is unchanged and is not relabelled. Both separate post-policy Video/Screen positives and all prior20controls pass. The normal build and23original test groups\u201424groups total\u2014joined0naturally/unforced, and original controller joined0 (cb92dd0751ff951e930ca4420eb0e1c9fadaa96c6b399f0e4f8e00c2c2b64229). Sourcea87f5e1257447a4ff72d2083991ed4908c07af7c5c79b3e9472086faae9a2e53 stayed unchanged. Actual artifact78164b10a65637392d2c9ac42e867de28eb64d9cb8304ca041a3b414129580c3 uses opt0/debug0 with debug assertions and incremental disabled. Only the Core test target rebuilt; all production artifacts were reused, and the attempt completed in32.96s. This verifies the final logical controls, not production fps or a fresh whole286-case cohort. The four-condition counterfactual and exact normal-source replay remain pending before another genuine release run. The four-condition comparison now matches7raw failures and1pass, preserving all raw verdicts. Initial normal replay9/1 reused an identical counterfactual Service binary; exact nine-fingerprint quarantine preserved all three counterfactual binaries. The corrected replay passed10/10 with mandatory fresh builds of the affected consumed production units. The following genuine RELEASE run failed0/1 in7.45s before any move committed: receiver2/source1 decoded22frames in programme second3 despite30encoded/locally published frames. Required profiles, fresh builds, complete trace, unchanged source and natural joins are proved by receipt534e77f7a388abc5a23c594fde16c06acf6dbd6df1c8b6547cefa437cbfba4d4. Structured latest_verification preserves exact digests and cumulative ingress observations; recovery/send-error counts do not establish a measured sole cause or a cross-window fps comparison.",
       "next": "Run installed-Chromium terminal and four-move integrations plus genuine heap lifecycle, then the expanded301-Rust local ARM scope and fresh32-cell matrix.",
       "latest_verification": {
         "earlier_genuine_release_field": "b94_latest_genuine_release",
@@ -817,7 +817,7 @@
     {
       "id": "B98",
       "title": "Private scene construction repeats runtime-owner filesystem checks",
-      "status": "UNIT VERIFIED. Physical owner validations reduce29→6on the actual stable memo-hit path, with all ownership/identity/expiry controls passing. Batched genuine RELEASE handoffs pass1/1.",
+      "status": "UNIT VERIFIED. Physical owner validations reduce29\u21926on the actual stable memo-hit path, with all ownership/identity/expiry controls passing. Batched genuine RELEASE handoffs pass1/1.",
       "change": "Use one invocation-local checked runtime owner during native read construction. Preserve full physical checks at entry and final return, all original Weak/runtime/expiry checks, current authorization and actual IO checks.",
       "evidence": "All four new actual Store controls pass in the128-control after batch, including measured29-to6physical validations for one stable three-source memo-hit scene and unchanged foreign/dead-owner, physical-file, retirement, credential and expiry refusal. Receipt27fbdbdd392143e397e5acece24f9c2dabf55a82b794d8a3758aebcbbf932a91. The genuine native programme then passes all4handoffs without quality or task failures; individual performance attribution remains unproved.",
       "next": "Complete installed-browser, heap and expanded local ARM validation, then verify the full32-cell matrix. Individual performance attribution remains outside this batched result."
@@ -1283,7 +1283,7 @@
       "title": "Locate WebRTC zero audio and residual synchronization failures",
       "status": "OPEN; bounded diagnostics integrated, causal media result pending",
       "change": "Audit actual WebRTC video NACK/keyframe recovery and pacing; Audit renderer/audio-output configuration and identify bounded evidence distinguishing WebAudio FIFO loss from decoder loss",
-      "evidence": "ARMlocalChromeWSS EdDSA c750b9ee: audio coverage/gap budgets all18 pass; six routes contain one unidentified PCM frame, five with exactly480 zeros. Seven video routes/eight bins below requiredFPS; five bins correlate with actual freezeCount and17–23 dropped frames,641–750ms. Three sync failures: one cadence calibration, two measuredp95 above120ms.",
+      "evidence": "ARMlocalChromeWSS EdDSA c750b9ee: audio coverage/gap budgets all18 pass; six routes contain one unidentified PCM frame, five with exactly480 zeros. Seven video routes/eight bins below requiredFPS; five bins correlate with actual freezeCount and17\u201323 dropped frames,641\u2013750ms. Three sync failures: one cadence calibration, two measuredp95 above120ms.",
       "next": "Integrate and verify the reviewed batch; retain actual failed matrix results."
     },
     {
@@ -1466,7 +1466,7 @@
       "id": "B179",
       "title": "Decoded cadence still falls during completed replacement preparation",
       "status": "All22 positive-phase and2 receiver-eligibility controls pass after fixture correction. Both representative cadence cases remain failed; publishers sustain30fps.",
-      "change": "Investigating journal-only authority invalidation; not yet established as the causal loss. Actual Core Activate spans are1.142–1.844ms, excluding a long Core activation wait as the demonstrated cause. Exact same-Unit positive journal permit now removes four preparation Writer invalidations; all real state-change Writers remain.",
+      "change": "Investigating journal-only authority invalidation; not yet established as the causal loss. Actual Core Activate spans are1.142\u20131.844ms, excluding a long Core activation wait as the demonstrated cause. Exact same-Unit positive journal permit now removes four preparation Writer invalidations; all real state-change Writers remain.",
       "evidence": "Actual local signed focused receipts in docs/evidence/gate-6/post-v214-reviewed-batch.json; full v214 remains0/32.",
       "next": "Audit exact journal DML/authorization dependencies and preserve current revocation, uncertainty and routing-change barriers."
     },
@@ -1537,7 +1537,7 @@
     {
       "id": "B188",
       "title": "Allocate/Start admission excludes unchanged original media",
-      "status": "Focused121/121 verified including ARM. Full v215 completed with0/32cell passes; separate remaining blockers B189–B192.",
+      "status": "Focused121/121 verified including ARM. Full v215 completed with0/32cell passes; separate remaining blockers B189\u2013B192.",
       "change": "Use current Read with exact same-Unit dormant resource ledger; retire all original authority aliases before historical failure settlement. Keep real mutations under Writer.",
       "evidence": "docs/evidence/gate-6/resource-begin-continuity-v215.json",
       "next": "Retain focused evidence; finish next batch and repeat unchanged full matrix."
@@ -1561,16 +1561,17 @@
     {
       "id": "B191",
       "title": "Data completion may invalidate live audio custody",
-      "status": "Reopened: broad handoff Writer footprints invalidate healthy unchanged connections. Scope and pending-presence continuity fix covers physicalCommit, public activation, original native cleanup and replacement cleanup; causal tests pending.",
+      "status": "Implementing: all four overbroad handoff Writer classes reproduced by exact old-code Store epoch/stamp controls; scoped production batch and fixed verification pending.",
       "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json; g6-058-v216-components19.json",
-      "next": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced."
+      "next": "Finish exact affected Connection writes and bounded presence continuity with opaque provenance/current authority/row-delta controls. All four fixed regressions and complete media cohort precede any matrix qualification.",
+      "causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json"
     },
     {
       "id": "B192",
       "title": "Retained-owner control requests exhaust shared cleanup cutoff",
       "status": "Combined workload requirements verified: both Session Ends by64.56s under67s, all owner checks and10s idle pass inbothfull programmes. Full cases still failvideo; matrixresource qualification pending.",
-      "change": "Remove serialized helper/server latency within the original shared 62–67second deadline.",
+      "change": "Remove serialized helper/server latency within the original shared 62\u201367second deadline.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json",
       "next": "Run both original full62 signing-profile programmes in complete run of 241 tests and prove actual Session/SDK/runtime cleanup under the unchanged 67-second cutoff."
     },
@@ -3096,7 +3097,7 @@
       ],
       "code_paths": [],
       "solution": "Preserve existing public epochs through private bookkeeping, then trace residual shared loss across signed admission, Start and private Activate without assuming correlation is causation.",
-      "status": "53 Store and 6 signed checks pass. Both first rounds pass cadence; only six second-7 bins fail in each second round (13–20 FPS versus 24).",
+      "status": "53 Store and 6 signed checks pass. Both first rounds pass cadence; only six second-7 bins fail in each second round (13\u201320 FPS versus 24).",
       "completion": "Focused regression preserves current authority/cleanup and passes actual media delivery, then all32 cells.",
       "completion_status": "in-progress"
     },
@@ -3238,7 +3239,7 @@
       "title": "Retained-owner control requests exhaust shared cleanup cutoff",
       "owner": "Root",
       "dependencies": [],
-      "solution": "Remove serialized helper/server latency within the original shared 62–67second deadline.",
+      "solution": "Remove serialized helper/server latency within the original shared 62\u201367second deadline.",
       "status": "Held for owner review; see reassessment plan. Drafts are not yet compiled/tested.",
       "completion": "Original exact owner retirement, all current reads and cleanup complete within unchanged cutoff.",
       "completion_status": "held-for-review"
@@ -17662,7 +17663,16 @@
   },
   "handoff_authority_followthrough": {
     "plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
-    "status": "design and ignored source drafts; not implemented or verified",
-    "source_boundary_report_sha256": "335e837a3a5ab4cc114f392234bc674d59927561d836eaf186cd51c6561e0096"
+    "status": "Four intended old causal failures qualified; production changes remain ignored drafts and unverified",
+    "source_boundary_report_sha256": "335e837a3a5ab4cc114f392234bc674d59927561d836eaf186cd51c6561e0096",
+    "old_causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
+    "full_matrix_qualified": false
+  },
+  "scoped_handoff_old49": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
+    "expected_old_causal_failures": 4,
+    "unqualified": 0,
+    "all_original_groups_joined": true,
+    "fixed_or_media_qualification": false
   }
 }

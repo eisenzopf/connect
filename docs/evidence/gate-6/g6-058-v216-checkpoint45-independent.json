@@ -1,0 +1,40 @@
+{
+  "format": "connect/independent-media-checkpoint45-source-review/1",
+  "state": "SOURCE ACCEPTED; ignored docs overlay only",
+  "manifest_sha256": "222867d7c847927645db34e6dcc05f4beaf254a58c2f03d831fe9c5f2f2f4ffb",
+  "files": [
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
+      "after_sha256": "44cce04620614fb2155987848c0616a1089ff9e2747cf9c48476538f8b3f2ee2"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback.json",
+      "after_sha256": "6dddf40dad5339eedd1a70ecd85445befa3535ce2874483415cadacdbb4a3e6e"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-agent-work-tracker.json",
+      "after_sha256": "e6e362bc545a1c7ea37663331e1911607a2c9936a09fc86dc62c7ccddbaf2f16"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-blockers.json",
+      "after_sha256": "6d5bd55187c1e7f22bfb40538c38a831351578663d3c427cdeec93931614da18"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
+      "after_sha256": "e8710773031a5c4ed99c224c0c5946b554caf114f749fcced386448e4ffa0b36"
+    }
+  ],
+  "verified": [
+    "All five manifest images/current before guards match; manifest is five files (coordinator message said six).",
+    "All15 task IDs, dependencies and145 original failure mappings/v215 baseline preserved.",
+    "Actual old49 evidence remains0passed/4failed, all4 exact causal intended-old failures qualified, no fixed/decodedMedia/matrix pass inferred.",
+    "P1.2 root-cause/counterexample verified for reproduced broad epoch cuts; fixed regression and actual matrix effect false; production batch explicitly draft/unapplied.",
+    "Last complete cohort stays239/241 with same five video bins; no QoE-limit/clock/deadline changes or full32 advance.",
+    "Mobile revision45 four Root-readback paragraphs match scoped causal/fixed pending status and independent44cce046 evidence.",
+    "Scope plan preserves all4 phases, full relevant Reads, affected Writes, closed sameUnit permits/migration130, bounded existing presence and terminal/expiry withdrawal."
+  ],
+  "limits": [
+    "Does not independently accept mutable production draft or SQL helper authored by reviewer; Resource independent review required.",
+    "No tracked docs apply, mobile tool action, tests or builds performed."
+  ]
+}

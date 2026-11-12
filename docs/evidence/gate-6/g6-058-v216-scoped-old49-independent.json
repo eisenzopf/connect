@@ -1,0 +1,70 @@
+{
+  "format": "connect/scoped-handoff-old49-adjudication/1",
+  "status": "FOUR_EXACT_EXPECTED_OLD_FAILURES_QUALIFIED",
+  "inputs": {
+    "results_sha256": "5a23bd3e9cfcd16d1ab2e81e95414ca40bd90404bb5cc9769632c4c49889cfc8",
+    "binding_sha256": "4f536a04f705b255af04476846916c186cac3d757aed8f64aac3021a8f21a683",
+    "runner_sha256": "97b7915cb621edd7c0f953cade2ab5a94a1196ac1d7d6fdd8d0bd637074c2143",
+    "case_log_sha256": [
+      "75cd99b44d2877e1dcfabe0b7ca6f29dcef745933fb46c8c37cc5f15a8f1a06c",
+      "ce5b653d0f38142dde5a494213f3f7e144f6b295c861a5ea7b3ac6ce6c8695a3",
+      "f7d8b4522ee1471da330047f23d02d54871ef9df171586d9bdb548f4e98eb3bd",
+      "e5d302d2e13a71ad0daf41c7b7ed547e746ef92c29a0ce05c32017ac18a9871b"
+    ]
+  },
+  "actual": {
+    "build_exit": 0,
+    "executed": 4,
+    "passed": 0,
+    "failed": 4,
+    "expected_causal_failures_qualified": 4,
+    "unqualified": 0
+  },
+  "phases": [
+    {
+      "phase": "PhysicalCommit",
+      "exact_final_healthy_epoch_oracle_failed": true,
+      "initial_actual_error_authority_busy": true,
+      "within_original_cutoff": true,
+      "affected_epochs_remain_fenced": true,
+      "all_cleanup_joined_before_assertion": true,
+      "lifecycle_unchanged": true
+    },
+    {
+      "phase": "PublicReady",
+      "exact_final_healthy_epoch_oracle_failed": true,
+      "initial_actual_error_authority_busy": true,
+      "within_original_cutoff": true,
+      "affected_epochs_remain_fenced": true,
+      "all_cleanup_joined_before_assertion": true,
+      "lifecycle_unchanged": false
+    },
+    {
+      "phase": "OriginalCleanup",
+      "exact_final_healthy_epoch_oracle_failed": true,
+      "initial_actual_error_authority_busy": true,
+      "within_original_cutoff": true,
+      "affected_epochs_remain_fenced": true,
+      "all_cleanup_joined_before_assertion": true,
+      "lifecycle_unchanged": false
+    },
+    {
+      "phase": "AdoptedCleanup",
+      "exact_final_healthy_epoch_oracle_failed": true,
+      "initial_actual_error_authority_busy": true,
+      "within_original_cutoff": true,
+      "affected_epochs_remain_fenced": true,
+      "all_cleanup_joined_before_assertion": true,
+      "lifecycle_unchanged": false
+    }
+  ],
+  "source_binary_unchanged": true,
+  "all_original_groups_joined": true,
+  "scope": "Actual Store all-flow controlled native-ready/flow facts, healthy Opus/VP8 entitlement/read/Registry epoch and affected fences. Physical phase acquires dedicated Writer only; no CommitBegin DML, packets/PCM/RTP/decoder/QoE or matrix evidence.",
+  "prior48": "Immutable actual0/4 passing; only two causal failures qualified offline; cleanup/setup failures remain unqualified.",
+  "full_suite_or_matrix_qualified": false,
+  "review_actions": {
+    "tests_rerun": 0,
+    "raw_receipts_changed": false
+  }
+}

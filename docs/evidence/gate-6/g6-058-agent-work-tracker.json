@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T12:03:37.029798+00:00",
-  "revision": 44,
+  "updated_at": "2026-11-12T12:35:48.945061+00:00",
+  "revision": 45,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 44,
-    "verified_at": "2026-11-12T11:44:09.935Z",
+    "content_revision": 45,
+    "verified_at": "2026-11-12T12:33:17.245Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json",
-    "readback_evidence_sha256": "cae5c0d651bb978b697964d0a42ea7358fb65b0f1c1f068a95ce73d85beea8bf"
+    "readback_evidence_sha256": "6dddf40dad5339eedd1a70ecd85445befa3535ce2874483415cadacdbb4a3e6e"
   },
   "baseline": {
     "run": "v215",
@@ -162,16 +162,16 @@
       "depends_on": [
         "P1.1"
       ],
-      "status": "diagnosing",
-      "implementation_state": "All missing RTP on four retained flows is accounted for before packetization. Physical commit, public activation and original/replacement cleanup still request broad conversation/identity Writers; matching healthy media publications are withdrawn and their original epochs permanently revoked before Writer admission. Exact late NotReady subleaf remains unlogged; causal Store regressions and fixed media workloads are still required.",
+      "status": "implementing",
+      "implementation_state": "All four real Store writer classes now reproduce healthy original epoch/stamp invalidation under old code: physical commit, public activation, original cleanup and replacement cleanup. Four exact intended causal failures qualified; no setup failures or cutoff waivers. Scoped connection writers, immutable same-Unit row permits backed by opaque Store witnesses, full retained Read proofs and pending-handoff appearance continuity are drafted but not applied. Fixed regression and media qualification remain pending.",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
-        "status": "Scoped handoff followthrough diagnosed; new causal counters and fixed regressions pending",
-        "root_cause_confirmed": false,
+        "status": "Four old causal regressions independently verified; production batch and fixed regressions pending",
+        "root_cause_confirmed": true,
         "failure_mapping_verified": true,
         "architecture_conformance": "independent-source-reviewed; actual combined media effect pending",
-        "counterexample_verified": false,
+        "counterexample_verified": true,
         "regression_verified": false,
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes.",
@@ -223,6 +223,13 @@
           "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
           "result": "239/241; per-task assertions only, no matrix qualification",
           "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5"
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
+          "result": "4/4 exact expected old-code causal failures qualified; 0 unqualified; all original groups joined; fixed code not tested",
+          "source_revision": "7e009e45dc3d67149f68b3f49350bee0728d729a",
+          "normal_generation": 411,
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -230,7 +237,7 @@
         "b2b64ea5"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T12:03:37.029798+00:00",
+      "updated_at": "2026-11-12T12:35:48.945061+00:00",
       "mapped_check_count": 8,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -240,10 +247,12 @@
       ],
       "current_action": {
         "owner": "/root/v198_resources",
-        "reviewer": "/root",
-        "cause": "Actual Session0 capture retained Writer; exact false predicate is unlogged. Expected old-source retirement before delayed historical capture is a hypothesis, not proven runtime cause.",
-        "fix": "Bounded static eligibility reasons; assess exact current continuation authority for sealed positive historical old-source-retired receipt while preserving fresh target and exact live audience deltas.",
-        "verification": "Old behavior counterexample after genuine old-source retirement, fresh unaffected grant preserved, no old-source IO revival; all retained-retired/revoked/canceled/unknown/revision/generation/expiry negatives retained."
+        "counter_owner": "/root/fixture_blockers",
+        "reviewer": "/root/media_blockers",
+        "coordinator": "/root",
+        "cause": "Before Writer admission, all four broad footprints permanently revoke original healthy media epochs for unchanged source/target bindings. These Store counterexamples support the actual pre-packetizer loss diagnosis; exact late Core NotReady leaf is not separately logged.",
+        "fix": "New logical Connection authority domain; preserve complete identity/conversation/scene Reads; exact affected Connection and operation Record Writes. Closed same-Unit/nonce typed row transitions validate opaque original receipts, immutable stored outcomes, real current authorization and exact rows. Preserve valid existing pending-handoff appearance only; cancellation/expiry withdraw via actual state-change paths/sweep. Genuine lifecycle changes retain broad fencing.",
+        "verification": "Meaningful Begin DML and privacy/expiry/cross-Store/rollback/collision/refusal controls, then all four fixed causal tests and complete unchanged regression cohort. No epoch revival, lease extension or physical replay."
       },
       "counter_test_owner": "/root/fixture_blockers",
       "followthrough_plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json"
@@ -496,7 +505,7 @@
       "status": "combined-workload-verified",
       "implementation_state": "Both full workloads completed both Session Ends; last waits64.525885/64.554161 seconds under the original67-second cutoff. Ten-second idle observed no runtime owners. Full cases still fail video; matrix resource qualification remains pending.",
       "proposed_fix": "Batch both current Session refreshes, then both original End submissions, then both waits. Preserve the same Client, logical IDs, topology CAS, first failure and original 67-second cutoff.",
-      "required_evidence": "Same-helper regression and actual concurrent workload meet original62–67s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
+      "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
         "status": "Scoped combined-workload assertions accepted; matrix verification pending",
         "root_cause_confirmed": false,
@@ -3664,8 +3673,9 @@
   },
   "handoff_authority_followthrough": {
     "plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
-    "status": "design/source drafts; causal counters and production verification pending",
+    "status": "Four old causal regressions qualified; production source drafts and fixed verification pending",
     "actual_video_boundary_report_sha256": "335e837a3a5ab4cc114f392234bc674d59927561d836eaf186cd51c6561e0096",
-    "all_145_original_failure_mappings_retained": true
+    "all_145_original_failure_mappings_retained": true,
+    "old_causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json"
   }
 }
