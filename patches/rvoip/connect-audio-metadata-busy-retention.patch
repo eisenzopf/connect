@@ -1,0 +1,169 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -471,8 +471,11 @@
+         SourceCaptured,
+         SourceRecovered,
+         CadenceSkipped,
+-    }
+-    pub(super) const NAMES: [&str; 31] = [
++        CollectMetadataBusy,
++        TakeMetadataBusy,
++        TargetPendingMetadataBusy,
++    }
++    pub(super) const NAMES: [&str; 34] = [
+         "refresh-refused",
+         "refresh-reset",
+         "collect-expired",
+@@ -504,6 +507,9 @@
+         "source-captured",
+         "source-recovered",
+         "cadence-skipped",
++        "collect-metadata-busy",
++        "take-metadata-busy",
++        "target-pending-metadata-busy",
+     ];
+     #[derive(Clone, Copy, Default)]
+     struct Counter {
+@@ -528,7 +534,7 @@
+         #[cfg(feature = "test-support")]
+         pub(super) connection: Option<ConnectionId>,
+         started: Instant,
+-        counters: [Counter; 31],
++        counters: [Counter; 34],
+         pcm: [PcmCounter; 2],
+     }
+     impl Default for Observations {
+@@ -537,7 +543,7 @@
+                 #[cfg(feature = "test-support")]
+                 connection: None,
+                 started: Instant::now(),
+-                counters: [Counter::default(); 31],
++                counters: [Counter::default(); 34],
+                 pcm: [PcmCounter::default(); 2],
+             }
+         }
+@@ -830,9 +836,12 @@
+             // A refused attempt may already have observed a shorter grant.
+             // The original packet keeps that numeric minimum, never its reader.
+             packet.audio_deadline = Some(bound);
++            if matches!(&attempt, Err(StreamControlError::MetadataBusy)) {
++                self.observations.note(AudioStage::CollectMetadataBusy, Some(packet.frame.timestamp_rtp), 0);
++            }
+             let (_lease, _admission, deadline) = match attempt {
+                 Ok(admitted) => admitted,
+-                Err(StreamControlError::NotReady)
++                Err(StreamControlError::NotReady | StreamControlError::MetadataBusy)
+                     if packet.ticket.is_current()
+                         && packet
+                             .consumer
+@@ -1016,9 +1025,12 @@
+                 AdmissionOwner::RetainedAudio,
+             );
+             chunk.packet.audio_deadline = Some(bound);
++            if matches!(&attempt, Err(StreamControlError::MetadataBusy)) {
++                self.observations.note(AudioStage::TakeMetadataBusy, Some(chunk.packet.frame.timestamp_rtp), chunk.samples.len());
++            }
+             let (lease, admission, deadline) = match attempt {
+                 Ok(admitted) => admitted,
+-                Err(StreamControlError::NotReady)
++                Err(StreamControlError::NotReady | StreamControlError::MetadataBusy)
+                     if chunk.packet.ticket.is_current()
+                         && chunk
+                             .packet
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -362,9 +362,12 @@
+                 &quantum.samples,
+                 attempt.as_ref().err(),
+             );
++            if matches!(&attempt, Err(StreamControlError::MetadataBusy)) {
++                self.observations.note(AudioStage::TargetPendingMetadataBusy, Some(quantum.fallback_timestamp), quantum.samples.len());
++            }
+             let current = match attempt {
+                 Ok(current) => current,
+-                Err(StreamControlError::NotReady)
++                Err(StreamControlError::NotReady | StreamControlError::MetadataBusy)
+                     if tokio::time::Instant::now() < quantum.deadline
+                         && quantum.current(&self.controller, &self.port) =>
+                 {
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1448,7 +1448,8 @@
+     /// admission. Only this active call retains the first interval; no reader
+     /// escapes in an outcome or survives a caller's retry/coalescing wait.
+     ///
+-    /// A refused frame is returned unchanged. Retry only Refused(NotReady)
++    /// A refused frame retains its original media and any earlier numeric expiry.
++    /// Retry only Refused(NotReady | MetadataBusy)
+     /// within its original age; Submitted is terminal even when IO returns an
+     /// error. This does not establish remote delivery or new audience rights.
+     pub fn deliver_ready_audio_batch<F>(frames: Vec<Self>, mut send: F) -> Vec<ReadyAudioDelivery>
+@@ -1487,10 +1488,17 @@
+         }
+         let mut outcomes = Vec::with_capacity(frames.len());
+         let mut interval = None;
+-        for (index, queued) in frames.into_iter().enumerate() {
++        for (index, mut queued) in frames.into_iter().enumerate() {
+             #[cfg(feature = "test-support")]
+             let observation = audio_diagnostic::original_frame(&queued.target, &queued.frame);
+-            let attempt = queued.admit_queued_media();
++            let mut until = tokio::time::Instant::from_std(queued.admitted_at + Duration::from_millis(200));
++            let attempt = queued.admit_queued_media_with_deadline(&mut until);
++            // A later source/recipient refusal must not forget an earlier
++            // observed grant expiry. These are numeric minima, never readers
++            // or permission; next admission still checks every original epoch.
++            for source in &mut queued.sources {
++                source.admission_deadline = Some(source.admission_deadline.map_or(until, |old| old.min(until)));
++            }
+             #[cfg(feature = "test-support")]
+             if let Some(observation) = observation {
+                 observation.finish(
+@@ -1628,7 +1636,7 @@
+             }
+             match attempt {
+                 Ok(admitted) => break admitted,
+-                Err(StreamControlError::NotReady) if self.frame.kind != StreamKind::Data => {
++                Err(problem) if (matches!(&problem, StreamControlError::NotReady) && self.frame.kind != StreamKind::Data) || (matches!(&problem, StreamControlError::MetadataBusy) && self.frame.kind == StreamKind::Audio) => {
+                     // Only metadata remains here: a failed attempt dropped every
+                     // source/target authority and generation reader. Never extend
+                     // the original frame's age or recapture a newer audience.
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
+@@ -156,8 +156,8 @@
+             match completion.delivery {
+                 ReadyAudioDelivery::Refused {
+                     queued: original,
+-                    problem: StreamControlError::NotReady,
+-                } => {
++                    problem,
++                } if retryable_refusal(&problem) => {
+                     queued = original;
+                     tokio::select! { biased;
+                         _=route.cancel.cancelled()=>return Ok((packetizer,Err(StreamControlError::Cancelled))),
+@@ -174,5 +174,26 @@
+     }
+ }
+ 
++// Only a Core refusal returns an unsubmitted original. An IO callback result
++// always takes the separate Submitted arm, even if it reports these errors.
++fn retryable_refusal(problem: &StreamControlError) -> bool {
++    matches!(problem, StreamControlError::NotReady | StreamControlError::MetadataBusy)
++}
++#[cfg(test)]
++mod retry_tests {
++    use super::*;
++    #[test]
++    fn only_definite_ready_audio_absence_or_metadata_exclusion_is_retryable() {
++        assert!(retryable_refusal(&StreamControlError::NotReady));
++        assert!(retryable_refusal(&StreamControlError::MetadataBusy));
++        for permanent in [StreamControlError::Authority, StreamControlError::Cancelled,
++            StreamControlError::Deadline, StreamControlError::Backpressure,
++            StreamControlError::Unsupported, StreamControlError::NotRecipient,
++            StreamControlError::CleanupUnconfirmed] {
++            assert!(!retryable_refusal(&permanent));
++        }
++    }
++}
++
+ #[cfg(test)]
+ mod metadata_busy_tests;

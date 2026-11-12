@@ -1,0 +1,137 @@
+{
+  "format": "connect/independent-audio-retention-fixed32-adjudication/1",
+  "state": "TWELVE FOCUSED CONTROLS VERIFIED; EXPANDED SUITE/MATRIX PENDING",
+  "raw_results_sha256": "1e3a2a3c24673022158998f9683411af33bb69ce61b06f55a18914a095042396",
+  "source_sha256": "d713e031a18788bcc08b91bb7c9ae6898a74323175c893d0e42ac76d742cf4b0",
+  "source_lock_sha256": "c55d34411c6d3e979da9d6b77531bc4baf76c9ba03c41dc91e30ffed7c25b55a",
+  "actual_summary": {
+    "expected": 12,
+    "executed": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "ignored": 0,
+  "source_and_binaries_unchanged": true,
+  "all_original_groups_joined": true,
+  "builds_passed": 2,
+  "normal_opt0_debug2_profiles_verified": true,
+  "core_test_support_and_opus_verified": true,
+  "binaries_sha256": [
+    "e64b555f0f73f849d2542d48cc3e47f8e491ce3ea677da793472dc580257f6e6",
+    "24db5ba0e4e4a8ac3f1d34d43bd45fcad95ddfc82145aa9097055afd07a68a89"
+  ],
+  "same_four_qualified_old_oracles_now_pass": true,
+  "old29_review_sha256": "31253bb3cc39ddda43ffac61cc02547ab927d27a5c1b17d3da3ef2e672dc557e",
+  "corrected_old31_review_sha256": "6faf4c70de1453795a03f4613ce727f2b22dd11d02ce98d8d85e77ad1245b604",
+  "corrected408_source_review_sha256": "270994d032f95abaa324c0b6014047ba0a77e5244350ca648b116f7dfb431675",
+  "cases": [
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::metadata_busy_retains_same_opus_packet_pcm_and_timestamp_at_all_prepublication_stages",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "8352766ce10fc4dbc67db66c51d7fa393efd0ccbec05ee08323c81de6fc4ff72",
+      "qualified_old_failure_log_sha256": "10f9ddfa3fc11176542b55fb2655129af8184ca12c0adf8a334a18a10a161f1d"
+    },
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::metadata_busy_retention_cannot_restore_revoked_changed_or_expired_original_pcm",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "e413572d0dc7268660a0f0f86adedcc5bbd18305f3d7aacad4b664ae7cb6d2e0",
+      "qualified_old_failure_log_sha256": null
+    },
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::permanent_audio_refusals_never_enter_metadata_retry_or_resurrect_original",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "c85d77af5be8d35da90d71f0b02b4d5a2aa3424d69077b4f844215a66377c5bd",
+      "qualified_old_failure_log_sha256": null
+    },
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::ready_audio_metadata_busy_returns_exact_original_and_never_retries_submitted_io_error",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "ba9d4e179613cfdf084e926cb0f0e3c58ac31afadddda036875ae6a365c9ebb3",
+      "qualified_old_failure_log_sha256": null
+    },
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::ready_audio_busy_cannot_forget_earlier_successful_source_lease_expiry",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "4f4196cbf972681f03ce88ff11412a94df57e1238136ccab3b9fca193e070da1",
+      "qualified_old_failure_log_sha256": "8ed5ec652701238fa1db486613a7e5ee6da0e3d560fed6caae254a6c99ac4821"
+    },
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::generic_audio_metadata_busy_retries_fresh_once_and_keeps_real_refusals_terminal",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "61db3963ee282d7568cbcc2581ed5f5fb0bd0f542b8a1d44dbdeb8151e753d5a",
+      "qualified_old_failure_log_sha256": "eed88dc088e3a15c3a573500318be37c3d171e3685e4dc037009d6ed9e7dc908"
+    },
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::generic_audio_retry_keeps_original_age_and_does_not_retry_submitted_metadata_busy",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "d0e32fb1a3f947c529cc1007bbc137653c1bdfe54d6e861538eaa60d40d074c3",
+      "qualified_old_failure_log_sha256": null
+    },
+    {
+      "selector": "staged_streams::tests::packet_epochs::queued_audio_source_epoch_is_not_renewed_after_revocation_and_restoration",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "618b0da880ddb54b7f9d32ed2102e686bcc21fa9d0652fbc98f1b2dda6e02866",
+      "qualified_old_failure_log_sha256": null
+    },
+    {
+      "selector": "staged_streams::tests::packet_epochs::queued_audio_recipient_epoch_is_not_renewed_after_revocation_and_restoration",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "f1564c9623ddc8bde06ce64525f7073795a6f0e2098f132745a014204f328364",
+      "qualified_old_failure_log_sha256": null
+    },
+    {
+      "selector": "staged_media::ready_audio::metadata_busy_tests::actual_native_ready_loop_retains_one_packetizer_and_one_original_before_successful_rtp",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "5403bea3b37c9ecd73d535452e625a22483a989dad587510c1d900711c0023b7",
+      "qualified_old_failure_log_sha256": "4b8cf753f746502739bf923a7324fb2d75d0c44aa934b9ee8f541389f9ceb95a"
+    },
+    {
+      "selector": "staged_media::ready_audio::metadata_busy_tests::actual_native_ready_loop_keeps_expiry_revocation_and_submitted_metadata_busy_terminal",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "16749145af780ef16b56075c8f814e2097829942661de9ca93fada0f2153df34",
+      "qualified_old_failure_log_sha256": null
+    },
+    {
+      "selector": "staged_media::ready_audio::retry_tests::only_definite_ready_audio_absence_or_metadata_exclusion_is_retryable",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "fd2b2ae724f8425081be4b9cbf2ce887e1623e775d9a195804fec207040f5d4a",
+      "qualified_old_failure_log_sha256": null
+    }
+  ],
+  "limits": [
+    "Recorded localMac component scope only, no ARM/shipping profile claim",
+    "All four actual old/fixed comparisons are component mechanisms, not causation of actual25 publictimestamp-only gaps",
+    "Original old29case1 unqualified timingcounter retained; corrected31is separate evidence",
+    "No full62/expanded198/full32/432 qualification from these12"
+  ],
+  "actions": {
+    "reviewer_build": 0,
+    "reviewer_test": 0,
+    "source_mutation": 0,
+    "guest": 0
+  }
+}

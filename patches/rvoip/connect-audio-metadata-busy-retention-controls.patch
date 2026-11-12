@@ -1,0 +1,1142 @@
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
+@@ -0,0 +1,461 @@
++//! Exercise the actual owned native ReadyAudio epoch/packetizer, not a classifier.
++use super::*;
++use futures::FutureExt;
++use rvoip_core::{
++    connection::Transport,
++    identity::{AuthenticatedPrincipal, AuthenticationMethod, IdentityAssurance},
++    ids::{ConversationId, DeviceId, EndpointId, IdentityId, ParticipantId},
++    participant::{ParticipantKind, ParticipantRole},
++    relationships::{
++        ConnectionBinding, EndpointBinding, IdentityBinding, Membership, SessionAppearance,
++    },
++    stream_lifecycle::{DesiredStream, EndpointMediaCapabilities, MediaCapability},
++};
++use std::{
++    collections::{BTreeMap, BTreeSet},
++    sync::atomic::{AtomicBool, AtomicUsize},
++    time::Duration,
++};
++use tokio::sync::{OwnedRwLockReadGuard, RwLock};
++fn principal(name: &str) -> AuthenticatedPrincipal {
++    AuthenticatedPrincipal {
++        subject: name.into(),
++        tenant: Some("fixture".into()),
++        scopes: vec![],
++        issuer: Some("fixture".into()),
++        expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Anonymous,
++    }
++}
++fn desired() -> DesiredStream {
++    DesiredStream {
++        logical_id: StreamId::from_string("audio"),
++        medium: Medium::Audio,
++        direction: StreamDirection::Both,
++    }
++}
++fn owner(name: &str) -> MediaOwner {
++    let identity = IdentityBinding::from_authenticated(
++        &principal(name),
++        IdentityId::from_string(name),
++        chrono::Utc::now(),
++    )
++    .unwrap();
++    let member = Membership::admit(
++        identity.clone(),
++        ConversationId::from_string("conversation"),
++        ParticipantId::from_string(name),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .unwrap();
++    let presence =
++        SessionAppearance::admit(&member, SessionId::from_string("session"), None).unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        identity.clone(),
++        EndpointId::from_string(name),
++        DeviceId::from_string(name),
++        Transport::Quic,
++        "fixture".into(),
++    )
++    .unwrap();
++    endpoint
++        .verify(&identity, "fixture".into(), chrono::Utc::now())
++        .unwrap();
++    let mut connection = ConnectionBinding::prepare(
++        &member,
++        &presence,
++        &endpoint,
++        ConnectionId::from_string(name),
++    )
++    .unwrap();
++    connection
++        .observe_ready(&member, &presence, &endpoint, 1)
++        .unwrap();
++    connection.activate(&member, &presence, &endpoint).unwrap();
++    let caps = EndpointMediaCapabilities {
++        send: vec![MediaCapability {
++            medium: Medium::Audio,
++            formats: vec![MediaFormat::Encoded {
++                name: "pcmu".into(),
++                clock_rate_hz: 8000,
++                channels: 1,
++                fmtp: None,
++            }],
++        }],
++        receive: vec![MediaCapability {
++            medium: Medium::Audio,
++            formats: vec![MediaFormat::Encoded {
++                name: "pcmu".into(),
++                clock_rate_hz: 8000,
++                channels: 1,
++                fmtp: None,
++            }],
++        }],
++        max_streams: 8,
++        renegotiation: true,
++    };
++    MediaOwner {
++        actor: member.clone(),
++        member,
++        presence,
++        endpoint,
++        connection,
++        may_control: true,
++        send_media: BTreeSet::from([Medium::Audio]),
++        receive_media: BTreeSet::from([Medium::Audio]),
++        local: caps.clone(),
++        remote: caps,
++        may_route_source: true,
++    }
++}
++struct Lease {
++    owner: MediaOwner,
++    _read: OwnedRwLockReadGuard<BTreeMap<String, MediaOwner>>,
++}
++impl MediaAuthorityLease for Lease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++}
++struct Policy {
++    owners: Arc<RwLock<BTreeMap<String, MediaOwner>>>,
++    busy: AtomicUsize,
++    refused: AtomicUsize,
++    revoked: AtomicBool,
++}
++impl MediaPolicy for Policy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if self.revoked.load(Ordering::Acquire) {
++            return Err(StreamControlError::Authority);
++        }
++        if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
++            let busy = self.busy.load(Ordering::Acquire);
++            if busy != 0 {
++                self.refused.fetch_add(1, Ordering::AcqRel);
++                if busy != 2 {
++                    self.busy.store(0, Ordering::Release);
++                }
++                if busy == 3 {
++                    self.revoked.store(true, Ordering::Release);
++                }
++                // This is a genuine pre-effect policy refusal. No lease was
++                // created; the native owner must retry its SAME returned copy.
++                return Err(StreamControlError::MetadataBusy);
++            }
++        }
++        let read = self
++            .owners
++            .clone()
++            .try_read_owned()
++            .map_err(|_| StreamControlError::Authority)?;
++        let owner = read
++            .get(scope.connection.as_str())
++            .ok_or(StreamControlError::Authority)?
++            .clone();
++        Ok(Box::new(Lease { owner, _read: read }))
++    }
++}
++struct Cleanup;
++#[async_trait]
++impl MediaPortCleanup for Cleanup {
++    async fn close(&self) -> ControlResult<()> {
++        Ok(())
++    }
++}
++#[derive(Default)]
++struct Adapter(Mutex<Option<AdapterMediaPort>>);
++#[async_trait]
++impl StagedMediaAdapter for Adapter {
++    async fn prepare(
++        &self,
++        ports: Vec<PortPreparation>,
++        _: tokio::time::Instant,
++        _: CancellationToken,
++    ) -> ControlResult<()> {
++        for p in ports {
++            if p.is_new {
++                p.port.install_cleanup(Arc::new(Cleanup))?;
++            }
++            p.port
++                .observe_ready(&p.port.binding().negotiated.format, true, true, Some(0))?;
++            *self.0.lock().unwrap() = Some(p.port);
++        }
++        Ok(())
++    }
++}
++#[derive(Default)]
++struct Wire {
++    packets: Mutex<Vec<Bytes>>,
++    attempts: AtomicUsize,
++    refuse: AtomicBool,
++}
++impl StagedDatagramTransport for Wire {
++    fn maximum_datagram_bytes(&self) -> Option<usize> {
++        Some(1200)
++    }
++    fn is_closed(&self) -> bool {
++        false
++    }
++    fn send_datagram(&self, bytes: Bytes) -> ControlResult<()> {
++        if !rtcp::is_rtcp(&bytes) {
++            self.attempts.fetch_add(1, Ordering::AcqRel);
++            if self.refuse.swap(false, Ordering::AcqRel) {
++                return Err(StreamControlError::MetadataBusy);
++            }
++        }
++        self.packets.lock().unwrap().push(bytes);
++        Ok(())
++    }
++}
++fn packetizer() -> Packetizer {
++    Packetizer {
++        #[cfg(feature = "memory-diagnostics")]
++        _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new(
++            "native.packetizer",
++            0,
++        ),
++        cursor: None,
++        feedback_epoch: None,
++        outer: 0,
++        rtp: 0,
++        ssrc: 1,
++        video: Default::default(),
++        previous_video: None,
++        clock_origin: None,
++        audio_clock: Default::default(),
++        cname: "busy-recovery".into(),
++        packets: 0,
++        octets: 0,
++        last_report: None,
++    }
++}
++fn publish(port: &AdapterMediaPort, index: u32) {
++    use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++    let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++    let payload = codec
++        .encode(&AudioFrame {
++            samples: vec![1800; 160],
++            sample_rate: 8000,
++            channels: 1,
++            duration: Duration::from_millis(20),
++            timestamp: index,
++        })
++        .unwrap();
++    port.try_publish(&MediaFrame {
++        stream_id: port.binding().transport_id.clone(),
++        kind: StreamKind::Audio,
++        payload: payload.into(),
++        timestamp_rtp: index * 160,
++        captured_at: chrono::Utc::now(),
++        payload_type: Some(0),
++        source_clock: None,
++    })
++    .unwrap();
++}
++async fn exercise(mode: usize) {
++    use rvoip_core::staged_streams::{
++        audio_subscriptions::{AudioSubscription, AudioSubscriptionChange},
++        test_support::ControlledAudioScene,
++    };
++    let policy = Arc::new(Policy {
++        owners: Arc::new(RwLock::new(BTreeMap::from([
++            ("alice".into(), owner("alice")),
++            ("bob".into(), owner("bob")),
++        ]))),
++        busy: AtomicUsize::new(0),
++        refused: AtomicUsize::new(0),
++        revoked: AtomicBool::new(false),
++    });
++    let scene = ControlledAudioScene::new(
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        policy.clone(),
++    );
++    let mut controllers = Vec::new();
++    let mut ports = Vec::new();
++    let cancel = CancellationToken::new();
++    // Register every actual controller before its first awaited preparation;
++    // setup failures have exactly the same cleanup owner as send assertions.
++    let work = std::panic::AssertUnwindSafe(async {
++        for name in ["alice", "bob"] {
++            let adapter = Arc::new(Adapter::default());
++            let controller = StreamController::new(
++                ConversationId::from_string("conversation"),
++                SessionId::from_string("session"),
++                ConnectionId::from_string(name),
++                principal(name),
++                policy.clone(),
++                adapter.clone(),
++                Arc::new(StreamHandleAllocator::default()),
++                8,
++            )
++            .unwrap();
++            controllers.push(controller.clone());
++            controller
++                .change(
++                    0,
++                    &[desired()],
++                    &BTreeSet::new(),
++                    tokio::time::Instant::now() + Duration::from_secs(2),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++            scene
++                .attach(
++                    controller.clone(),
++                    tokio::time::Instant::now() + Duration::from_secs(2),
++                )
++                .await
++                .unwrap();
++            ports.push(adapter.0.lock().unwrap().as_ref().unwrap().clone());
++        }
++        scene
++            .change_subscriptions(
++                &ConnectionId::from_string("bob"),
++                controllers[1].revision(),
++                AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Connection(
++                    ConnectionId::from_string("alice"),
++                )]),
++                tokio::time::Instant::now() + Duration::from_secs(2),
++            )
++            .await
++            .unwrap();
++        let mut out = ports[1].take_egress().unwrap();
++        let wire = Arc::new(Wire::default());
++        let route = Arc::new(SendRoute {
++            binding: ports[1].binding().clone(),
++            pt: 0,
++            transport: wire.clone(),
++            flow: None,
++            port: ports[1].downgrade(),
++            counters: Arc::new(StagedRtpCounters::default()),
++            cancel: cancel.clone(),
++            lifetime: CancellationToken::new(),
++        });
++        let ready = ReadyAudioEgress::new();
++        publish(&ports[0], 40);
++        scene.tick();
++        let queued = out.try_recv().unwrap();
++        assert!(queued.can_batch_audio());
++        policy
++            .busy
++            .store(if mode == 4 { 0 } else { mode }, Ordering::Release);
++        wire.refuse.store(mode == 4, Ordering::Release);
++        let (mut p, result) = ready
++            .send(queued, packetizer(), route.clone())
++            .await
++            .expect("actual native epoch did not join");
++        if mode == 1 {
++            assert!(
++                result.is_ok(),
++                "native discarded pre-effect metadata-busy original: {result:?}"
++            );
++            assert_eq!(policy.refused.load(Ordering::Acquire), 1);
++            assert_eq!(wire.attempts.load(Ordering::Acquire), 1);
++            assert!(
++                policy.owners.clone().try_write_owned().is_ok(),
++                "completion retained policy guards"
++            );
++            publish(&ports[0], 41);
++            scene.tick();
++            let next = out.try_recv().unwrap();
++            let done = ready
++                .send(next, p, route.clone())
++                .await
++                .expect("next native epoch unjoined");
++            p = done.0;
++            assert!(done.1.is_ok());
++            let packets: Vec<_> = wire
++                .packets
++                .lock()
++                .unwrap()
++                .iter()
++                .filter(|b| !rtcp::is_rtcp(b))
++                .map(|b| crate::substrate::unpack_rtp_datagram(b).unwrap().rtp)
++                .collect();
++            assert_eq!(packets.len(), 2);
++            assert_eq!(
++                packets[1]
++                    .sequence_number
++                    .wrapping_sub(packets[0].sequence_number),
++                1
++            );
++            assert_eq!(packets[1].timestamp.wrapping_sub(packets[0].timestamp), 160);
++            let mut decoder = rvoip_media_core::codec::factory::CodecFactory::create_codec(
++                0,
++                Some(8000),
++                Some(1),
++            )
++            .unwrap();
++            for packet in packets {
++                assert_eq!(decoder.decode(&packet.payload).unwrap().samples.len(), 160);
++            }
++            assert_eq!(wire.attempts.load(Ordering::Acquire), 2);
++            drop(p);
++        } else {
++            match mode {
++                2 => assert!(matches!(result, Err(StreamControlError::Deadline))),
++                3 => assert!(matches!(result, Err(StreamControlError::Authority))),
++                4 => assert!(matches!(result, Err(StreamControlError::MetadataBusy))),
++                _ => unreachable!(),
++            }
++            assert_eq!(
++                wire.attempts.load(Ordering::Acquire),
++                usize::from(mode == 4)
++            );
++        }
++        assert!(
++            policy.owners.clone().try_write_owned().is_ok(),
++            "terminal native owner retained readers"
++        );
++    })
++    .catch_unwind()
++    .await;
++    cancel.cancel();
++    let scene_closed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(scene)));
++    let mut cleanup = Vec::new();
++    for controller in &controllers {
++        cleanup.push(
++            std::panic::AssertUnwindSafe(
++                controller.shutdown(tokio::time::Instant::now() + Duration::from_secs(2)),
++            )
++            .catch_unwind()
++            .await,
++        );
++    }
++    eprintln!(
++        "native fixture original cleanup scene_panic={} controller_results={:?}",
++        scene_closed.is_err(),
++        cleanup
++            .iter()
++            .map(|r| r.as_ref().ok().copied())
++            .collect::<Vec<_>>()
++    );
++    // Complete every original cleanup attempt before preserving the exact
++    // first work failure. A cleanup panic is never reported as a joined API.
++    if let Err(original) = work {
++        std::panic::resume_unwind(original);
++    }
++    if let Err(original) = scene_closed {
++        std::panic::resume_unwind(original);
++    }
++    for result in cleanup {
++        match result {
++            Ok(remaining) => assert_eq!(remaining, 0, "actual native fixture cleanup unjoined"),
++            Err(original) => std::panic::resume_unwind(original),
++        }
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_native_ready_loop_retains_one_packetizer_and_one_original_before_successful_rtp() {
++    exercise(1).await;
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_native_ready_loop_keeps_expiry_revocation_and_submitted_metadata_busy_terminal() {
++    for mode in [2, 3, 4] {
++        exercise(mode).await;
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult.rs
+@@ -3824,3 +3824,6 @@
+ mod retained_audio_policy_retry;
+ 
+ mod preparation_identity;
++
++#[cfg(all(test, feature = "opus"))]
++mod metadata_busy_audio;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs
+@@ -0,0 +1,657 @@
++//! Exact encoded/PCM owners retain definite pre-effect metadata contention.
++use super::*;
++#[derive(Clone, Copy, Debug)]
++enum Stage {
++    Collect,
++    Take,
++    PendingSource,
++    PendingTarget,
++}
++const STAGES: [Stage; 4] = [
++    Stage::Collect,
++    Stage::Take,
++    Stage::PendingSource,
++    Stage::PendingTarget,
++];
++#[derive(Clone, Copy, Debug)]
++enum Failure {
++    None,
++    SourceRevoked,
++    TargetRevoked,
++    Generation,
++    Expired,
++    Authority,
++    Conflict,
++    Backpressure,
++    Cancelled,
++}
++struct Actions(Arc<Domain>);
++impl Drop for Actions {
++    fn drop(&mut self) {
++        self.0.original_visual_policy_action.lock().unwrap().take();
++        self.0.queued_visual_receive_action.lock().unwrap().take();
++    }
++}
++async fn opus_room() -> Room {
++    let base = Arc::new(Policy(Arc::new(RwLock::new(PolicyState {
++        owners: HashMap::new(),
++        revoked: HashSet::new(),
++        unsupported_participant_media: BTreeSet::new(),
++        private: false,
++    }))));
++    let domain = Arc::new(Domain {
++        base,
++        fresh: AtomicUsize::new(0),
++        preparation_action: Mutex::new(None),
++        preparation_expiry: Mutex::new(None),
++        audio_current_gate: Mutex::new(None),
++        original_visual_policy_action: Mutex::new(None),
++        queued_visual_receive_action: Mutex::new(None),
++        deny_handoff: AtomicBool::new(false),
++        deny_replacement: AtomicBool::new(false),
++        resources: Mutex::new(BTreeMap::new()),
++        local_preparations: Mutex::new(BTreeMap::new()),
++    });
++    let scene = GuardedMediaScene::new(
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        domain.clone(),
++        48000,
++    );
++    let mut room = Room {
++        domain,
++        scene,
++        nodes: BTreeMap::new(),
++        kinds: BTreeMap::new(),
++    };
++    for name in ["alice", "bob", "public"] {
++        let mut authority = owner(name);
++        for caps in [&mut authority.local, &mut authority.remote] {
++            for media in caps.send.iter_mut().chain(caps.receive.iter_mut()) {
++                if media.medium == Medium::Audio {
++                    media.formats = vec![MediaFormat::Encoded {
++                        name: "opus".into(),
++                        clock_rate_hz: 48000,
++                        channels: 1,
++                        fmtp: None,
++                    }];
++                }
++            }
++        }
++        room.domain
++            .base
++            .0
++            .write()
++            .await
++            .owners
++            .insert(name.into(), authority);
++        let adapter = Adapter::new();
++        adapter.audio_pt.store(111, Ordering::Release);
++        let controller = StreamController::new(
++            ConversationId::from_string("conversation"),
++            SessionId::from_string("session"),
++            ConnectionId::from_string(name),
++            principal(name),
++            room.domain.clone(),
++            adapter.clone(),
++            Arc::new(StreamHandleAllocator::default()),
++            16,
++        )
++        .unwrap();
++        controller
++            .change(
++                0,
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++        let mut member = room.scene.prepare(controller.clone()).unwrap();
++        member
++            .quiesce(deadline(), CancellationToken::new())
++            .await
++            .unwrap();
++        assert!(member.ready());
++        room.scene
++            .insert(controller.connection.clone(), member, true);
++        let out = adapter.port(Medium::Audio).take_egress().unwrap();
++        room.nodes.insert(
++            name.into(),
++            Node {
++                controller,
++                adapter,
++                out,
++                sequence: 0,
++            },
++        );
++    }
++    room.select(
++        "bob",
++        vec![AudioSubscription::Connection(ConnectionId::from_string(
++            "alice",
++        ))],
++    )
++    .await;
++    room
++}
++fn publish(room: &mut Room, index: u32) -> MediaFrame {
++    publish_from(room, "alice", index)
++}
++fn publish_from(room: &mut Room, name: &str, index: u32) -> MediaFrame {
++    use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
++    let port = room.nodes[name].adapter.port(Medium::Audio);
++    let mut codec = CodecFactory::create_codec(111, Some(48000), Some(1)).unwrap();
++    let samples = (0..960)
++        .map(|i| ((i as f64 * 0.08).sin() * 6000.0) as i16)
++        .collect();
++    let payload = codec
++        .encode(&AudioFrame {
++            samples,
++            sample_rate: 48000,
++            channels: 1,
++            duration: Duration::from_millis(20),
++            timestamp: index,
++        })
++        .unwrap();
++    let clock_ticket = port.0.ticket();
++    let source_clock = crate::stream::MediaSourceClock {
++        source_id: if name == "alice" { 77 } else { 88 },
++        generation: 1,
++        anchor: Some(crate::stream::MediaClockAnchor {
++            ntp_time: 100u64 << 32,
++            rtp_time: 0,
++            clock_rate: 48000,
++        }),
++        supported: true,
++        rtp_offset: 0,
++        is_current: Arc::new(move || clock_ticket.is_current()),
++    };
++    let frame = MediaFrame {
++        stream_id: port.binding().transport_id.clone(),
++        kind: StreamKind::Audio,
++        payload: payload.into(),
++        timestamp_rtp: index * 960,
++        captured_at: chrono::Utc::now(),
++        payload_type: Some(111),
++        source_clock: Some(source_clock),
++    };
++    port.try_publish(&frame).unwrap();
++    frame
++}
++fn publish_action(domain: Arc<Domain>, skip: usize, action: OriginalVisualPolicyAction) {
++    let next = domain.clone();
++    assert!(domain
++        .original_visual_policy_action
++        .lock()
++        .unwrap()
++        .replace(Box::new(move |lease| {
++            if skip == 0 {
++                action(lease)
++            } else {
++                publish_action(next, skip - 1, action);
++                Ok(lease)
++            }
++        }))
++        .is_none());
++}
++fn fault(room: &Room, stage: Stage, failure: Failure) -> Arc<AtomicBool> {
++    let fired = Arc::new(AtomicBool::new(false));
++    let observed = fired.clone();
++    let action: OriginalVisualPolicyAction = Box::new(move |lease| {
++        observed.store(true, Ordering::Release);
++        drop(lease);
++        Err(match failure {
++            Failure::Authority => StreamControlError::Authority,
++            Failure::Conflict => MediaTransitionError::Conflict.into(),
++            Failure::Backpressure => StreamControlError::Backpressure,
++            Failure::Cancelled => StreamControlError::Cancelled,
++            _ => StreamControlError::MetadataBusy,
++        })
++    });
++    match stage {
++        Stage::Collect => publish_action(room.domain.clone(), 0, action),
++        Stage::Take => publish_action(room.domain.clone(), 1, action),
++        Stage::PendingSource => publish_action(room.domain.clone(), 2, action),
++        Stage::PendingTarget => assert!(room
++            .domain
++            .queued_visual_receive_action
++            .lock()
++            .unwrap()
++            .replace(action)
++            .is_none()),
++    }
++    fired
++}
++fn no_readers(room: &Room) {
++    drop(
++        room.domain
++            .base
++            .0
++            .try_write()
++            .expect("refused attempt retained policy authority"),
++    );
++}
++fn delivered(queued: QueuedMedia) -> u32 {
++    let mut writes = 0;
++    let mut timestamp = None;
++    let result = QueuedMedia::deliver_ready_audio_batch(vec![queued], |_, frame, _| {
++        use rvoip_media_core::codec::factory::CodecFactory;
++        let mut decoder = CodecFactory::create_codec(111, Some(48000), Some(1)).unwrap();
++        let pcm = decoder.decode(&frame.payload).unwrap();
++        assert_eq!(pcm.samples.len(), 960);
++        assert!(pcm.samples.iter().any(|s| i32::from(*s).abs() > 100));
++        writes += 1;
++        timestamp = Some(frame.timestamp_rtp);
++        Ok(())
++    });
++    assert_eq!(writes, 1);
++    assert!(matches!(
++        result.as_slice(),
++        [ReadyAudioDelivery::Submitted(Ok(()))]
++    ));
++    timestamp.unwrap()
++}
++async fn retained(stage: Stage, failure: Failure) {
++    let mut room = opus_room().await;
++    let _actions = Actions(room.domain.clone());
++    let started = Instant::now();
++    let cutoff = tokio::time::Instant::from_std(started + Duration::from_millis(200));
++    publish(&mut room, 100);
++    let entered = fault(&room, stage, failure);
++    room.tick();
++    assert!(
++        entered.load(Ordering::Acquire),
++        "{stage:?}: missed actual policy seam"
++    );
++    assert!(
++        room.nodes.get_mut("bob").unwrap().out.try_recv().is_err(),
++        "refused original reached egress"
++    );
++    no_readers(&room);
++    let fresh = room.domain.fresh.load(Ordering::Acquire);
++    match failure {
++        Failure::SourceRevoked | Failure::TargetRevoked => {
++            room.domain.base.0.write().await.revoked.insert(
++                if matches!(failure, Failure::SourceRevoked) {
++                    "alice"
++                } else {
++                    "bob"
++                }
++                .into(),
++            );
++        }
++        Failure::Generation => {
++            let source = &room.nodes["alice"].controller;
++            let logical = BTreeSet::from([desired(Medium::Audio).logical_id]);
++            for gate in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                source
++                    .set_media_gate(source.revision(), &logical, gate, cutoff)
++                    .await
++                    .unwrap();
++            }
++        }
++        Failure::Expired => tokio::time::sleep_until(cutoff + Duration::from_millis(1)).await,
++        _ => {}
++    }
++    room.tick();
++    if !matches!(failure, Failure::None) {
++        assert!(
++            room.nodes.get_mut("bob").unwrap().out.try_recv().is_err(),
++            "{stage:?}/{failure:?}: refused PCM resurrected"
++        );
++        if matches!(failure, Failure::SourceRevoked | Failure::TargetRevoked) {
++            room.domain.base.0.write().await.revoked.clear();
++            room.tick();
++            assert!(
++                room.nodes.get_mut("bob").unwrap().out.try_recv().is_err(),
++                "permission restoration revived discarded original"
++            );
++        }
++        no_readers(&room);
++        return;
++    }
++    assert!(
++        room.domain.fresh.load(Ordering::Acquire) > fresh,
++        "retry reused failed permission"
++    );
++    let recovered = room
++        .nodes
++        .get_mut("bob")
++        .unwrap()
++        .out
++        .try_recv()
++        .expect("same original Opus quantum discarded");
++    assert!(
++        recovered.admitted_at >= started
++            && recovered.admitted_at.elapsed() < Duration::from_millis(200)
++    );
++    let first = delivered(recovered);
++    assert!(
++        room.nodes.get_mut("bob").unwrap().out.try_recv().is_err(),
++        "duplicated original"
++    );
++    publish(&mut room, 101);
++    room.tick();
++    let next = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++    let second = delivered(next);
++    assert_eq!(
++        second.wrapping_sub(first),
++        960,
++        "retry skipped or fabricated a real20ms quantum"
++    );
++    publish(&mut room, 103);
++    room.tick();
++    let genuinely_later = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++    assert_eq!(
++        delivered(genuinely_later).wrapping_sub(second),
++        1920,
++        "retry hid a genuine source-clock gap"
++    );
++    no_readers(&room);
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn metadata_busy_retains_same_opus_packet_pcm_and_timestamp_at_all_prepublication_stages() {
++    for stage in STAGES {
++        retained(stage, Failure::None).await;
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn metadata_busy_retention_cannot_restore_revoked_changed_or_expired_original_pcm() {
++    for stage in STAGES {
++        for failure in [
++            Failure::SourceRevoked,
++            Failure::TargetRevoked,
++            Failure::Generation,
++            Failure::Expired,
++        ] {
++            retained(stage, failure).await;
++        }
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn permanent_audio_refusals_never_enter_metadata_retry_or_resurrect_original() {
++    for stage in STAGES {
++        for failure in [
++            Failure::Authority,
++            Failure::Conflict,
++            Failure::Backpressure,
++            Failure::Cancelled,
++        ] {
++            retained(stage, failure).await;
++        }
++    }
++}
++struct Earlier {
++    lease: Box<dyn MediaAuthorityLease>,
++    until: chrono::DateTime<chrono::Utc>,
++}
++impl MediaAuthorityLease for Earlier {
++    fn authority(&self) -> &MediaOwner {
++        self.lease.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        Some(self.until)
++    }
++}
++fn refused(outcomes: Vec<ReadyAudioDelivery>) -> QueuedMedia {
++    assert_eq!(outcomes.len(), 1);
++    match outcomes.into_iter().next().unwrap() {
++        ReadyAudioDelivery::Refused {
++            queued,
++            problem: StreamControlError::MetadataBusy,
++        } => queued,
++        _ => panic!("pre-effect busy did not return exact owned audio"),
++    }
++}
++#[tokio::test]
++async fn ready_audio_metadata_busy_returns_exact_original_and_never_retries_submitted_io_error() {
++    let mut room = opus_room().await;
++    let _actions = Actions(room.domain.clone());
++    publish(&mut room, 100);
++    room.tick();
++    let queued = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++    let metadata = (
++        queued.admitted_at,
++        queued.frame.timestamp_rtp,
++        queued.frame.payload.clone(),
++    );
++    let entered = fault(&room, Stage::Collect, Failure::None);
++    let original = refused(QueuedMedia::deliver_ready_audio_batch(
++        vec![queued],
++        |_, _, _| panic!("busy performed IO"),
++    ));
++    assert!(entered.load(Ordering::Acquire));
++    no_readers(&room);
++    assert_eq!(
++        (
++            original.admitted_at,
++            original.frame.timestamp_rtp,
++            original.frame.payload.clone()
++        ),
++        metadata
++    );
++    delivered(original);
++    no_readers(&room);
++    publish(&mut room, 101);
++    room.tick();
++    let queued = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++    let mut calls = 0;
++    let outcome = QueuedMedia::deliver_ready_audio_batch(vec![queued], |_, _, _| {
++        calls += 1;
++        Err(StreamControlError::MetadataBusy)
++    });
++    assert_eq!(calls, 1);
++    assert!(matches!(
++        outcome.as_slice(),
++        [ReadyAudioDelivery::Submitted(Err(
++            StreamControlError::MetadataBusy
++        ))]
++    ));
++    no_readers(&room);
++}
++#[tokio::test]
++async fn ready_audio_busy_cannot_forget_earlier_successful_source_lease_expiry() {
++    let mut room = opus_room().await;
++    let _actions = Actions(room.domain.clone());
++    publish(&mut room, 100);
++    room.tick();
++    let queued = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++    let original_age_cutoff =
++        tokio::time::Instant::from_std(queued.admitted_at + Duration::from_millis(200));
++    let until = chrono::Utc::now() + chrono::Duration::milliseconds(80);
++    publish_action(
++        room.domain.clone(),
++        0,
++        Box::new(move |lease| Ok(Box::new(Earlier { lease, until }))),
++    );
++    let entered = fault(&room, Stage::PendingTarget, Failure::None);
++    let original = refused(QueuedMedia::deliver_ready_audio_batch(
++        vec![queued],
++        |_, _, _| panic!("busy performed IO"),
++    ));
++    assert!(entered.load(Ordering::Acquire));
++    no_readers(&room);
++    let saved = original.sources[0].admission_deadline.unwrap();
++    assert!(
++        saved < original_age_cutoff,
++        "earlier grant was never captured"
++    );
++    tokio::time::sleep_until(saved + Duration::from_millis(1)).await;
++    assert!(
++        tokio::time::Instant::now() < original_age_cutoff,
++        "test only exercised packet age"
++    );
++    let result = QueuedMedia::deliver_ready_audio_batch(vec![original], |_, _, _| {
++        panic!("renewed expired original lease")
++    });
++    assert!(matches!(
++        result.as_slice(),
++        [ReadyAudioDelivery::Refused {
++            problem: StreamControlError::Deadline,
++            ..
++        }]
++    ));
++    no_readers(&room);
++}
++fn keep_busy(domain: Arc<Domain>, attempts: Arc<AtomicUsize>) {
++    let again = domain.clone();
++    publish_action(
++        domain,
++        0,
++        Box::new(move |lease| {
++            drop(lease);
++            attempts.fetch_add(1, Ordering::AcqRel);
++            keep_busy(again, attempts);
++            Err(StreamControlError::MetadataBusy)
++        }),
++    );
++}
++#[tokio::test]
++async fn generic_audio_metadata_busy_retries_fresh_once_and_keeps_real_refusals_terminal() {
++    for failure in [
++        Failure::None,
++        Failure::SourceRevoked,
++        Failure::Cancelled,
++        Failure::Authority,
++        Failure::Backpressure,
++    ] {
++        let mut room = opus_room().await;
++        let _actions = Actions(room.domain.clone());
++        if matches!(failure, Failure::None) {
++            room.select(
++                "bob",
++                vec![
++                    AudioSubscription::Connection(ConnectionId::from_string("alice")),
++                    AudioSubscription::Connection(ConnectionId::from_string("public")),
++                ],
++            )
++            .await;
++            publish_from(&mut room, "public", 100);
++        }
++        publish(&mut room, 100);
++        room.tick();
++        let queued = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++        if matches!(failure, Failure::None) {
++            assert_eq!(queued.sources.len(), 2);
++            assert!(
++                !queued.can_batch_audio(),
++                "mixed native audio must use the generic path shared with RTC/SIP"
++            );
++        }
++        let original = (
++            queued.frame.payload.clone(),
++            queued.frame.timestamp_rtp,
++            queued.admitted_at,
++        );
++        let domain = room.domain.clone();
++        let target = room.nodes["bob"].controller.clone();
++        let attempts = Arc::new(AtomicUsize::new(0));
++        let entered = attempts.clone();
++        publish_action(
++            room.domain.clone(),
++            0,
++            Box::new(move |lease| {
++                drop(lease);
++                entered.fetch_add(1, Ordering::AcqRel);
++                if matches!(failure, Failure::SourceRevoked) {
++                    domain
++                        .base
++                        .0
++                        .try_write()
++                        .expect("failed source kept another reader")
++                        .revoked
++                        .insert("alice".into());
++                }
++                if matches!(failure, Failure::Cancelled) {
++                    target.shutdown.cancel();
++                }
++                Err(match failure {
++                    Failure::Authority => StreamControlError::Authority,
++                    Failure::Backpressure => StreamControlError::Backpressure,
++                    _ => StreamControlError::MetadataBusy,
++                })
++            }),
++        );
++        let writes = Arc::new(AtomicUsize::new(0));
++        let write_count = writes.clone();
++        let result = queued
++            .deliver(move |frame| async move {
++                assert_eq!(
++                    (frame.payload.clone(), frame.timestamp_rtp),
++                    (original.0, original.1)
++                );
++                assert!(original.2.elapsed() < Duration::from_millis(200));
++                let mut decoder = rvoip_media_core::codec::factory::CodecFactory::create_codec(
++                    111,
++                    Some(48000),
++                    Some(1),
++                )
++                .unwrap();
++                assert_eq!(decoder.decode(&frame.payload).unwrap().samples.len(), 960);
++                write_count.fetch_add(1, Ordering::AcqRel);
++                Ok(())
++            })
++            .await;
++        assert_eq!(attempts.load(Ordering::Acquire), 1);
++        assert_eq!(
++            writes.load(Ordering::Acquire),
++            usize::from(matches!(failure, Failure::None))
++        );
++        match failure {
++            Failure::None => assert!(
++                result.is_ok(),
++                "generic pre-IO owner discarded actual audio: {result:?}"
++            ),
++            Failure::SourceRevoked | Failure::Authority => {
++                assert!(matches!(result, Err(StreamControlError::Authority)))
++            }
++            Failure::Cancelled => assert!(matches!(result, Err(StreamControlError::Cancelled))),
++            Failure::Backpressure => {
++                assert!(matches!(result, Err(StreamControlError::Backpressure)))
++            }
++            _ => unreachable!(),
++        }
++        no_readers(&room);
++    }
++}
++#[tokio::test]
++async fn generic_audio_retry_keeps_original_age_and_does_not_retry_submitted_metadata_busy() {
++    let mut room = opus_room().await;
++    let _actions = Actions(room.domain.clone());
++    publish(&mut room, 100);
++    room.tick();
++    let queued = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++    let admitted = queued.admitted_at;
++    let attempts = Arc::new(AtomicUsize::new(0));
++    keep_busy(room.domain.clone(), attempts.clone());
++    assert!(matches!(
++        queued
++            .deliver(|_| async { panic!("expired frame submitted IO") })
++            .await,
++        Err(StreamControlError::Deadline)
++    ));
++    assert!(admitted.elapsed() >= Duration::from_millis(200));
++    assert!(attempts.load(Ordering::Acquire) > 1);
++    no_readers(&room);
++    room.domain
++        .original_visual_policy_action
++        .lock()
++        .unwrap()
++        .take();
++    publish(&mut room, 101);
++    room.tick();
++    let queued = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
++    let writes = Arc::new(AtomicUsize::new(0));
++    let calls = writes.clone();
++    let outcome = queued
++        .deliver(move |_| async move {
++            calls.fetch_add(1, Ordering::AcqRel);
++            Err(StreamControlError::MetadataBusy)
++        })
++        .await;
++    assert!(matches!(outcome, Err(StreamControlError::MetadataBusy)));
++    assert_eq!(writes.load(Ordering::Acquire), 1);
++    no_readers(&room);
++}
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio.rs
+@@ -173,3 +173,6 @@
+         }
+     }
+ }
++
++#[cfg(test)]
++mod metadata_busy_tests;

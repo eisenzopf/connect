@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T05:21:47.733156+00:00",
+  "updated": "2026-11-12T05:56:28.461078+00:00",
   "run_status": "Two actual old-code Commit SQL counters reproduced avoidable media epoch invalidation and Writer custody parked on primary SQL, with original cleanup complete. The bounded pre-effect fix is now being applied. Audio diagnostics passed4/4 actual Opus controls. Latest complete focused run remains171/175; subsequent7/7 fixture controls remain separate. No new matrix pass or decoded QoE cause-fix is claimed. Local Mac/nativeARM Linux only; all quality thresholds retained.",
   "blockers": [
     {
@@ -5782,7 +5782,7 @@
     "passed": 171,
     "planned": 175,
     "scope": "Complete focused batch20: all175 executed,4 failed (short native audio, full62 video/End, RTC latch, initialAV fixture expectation). Later component evidence is separate.",
-    "next": "Three fixture fixes7/7, audio diagnostic controls4/4, SQL admission fix7/7 verified separately. Finish audio retention controls, then run one frozen expanded suite retaining all175 originals and full62 last; matrix follows."
+    "next": "Separate subsequent evidence: fixture7/7, Opus diagnostics4/4, CommitSQL7/7, retention12/12. Verify localQUIC non-evicting submission and bounded waits, then final frozen expanded suite preserving all175 originals/full62last, followed by localARM full32/432."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17454,5 +17454,24 @@
     "executed": 1,
     "assessment": "SameSSRC/consecutive sequence with timestamp-only gaps; no SSRC fastpath fix justified. Source-proven MetadataBusy retention omission under independent review; actual public decoded-quality attribution pending.",
     "matrix_qualified": false
+  },
+  "audio_retention_fixed32": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-audio-retention-fixed32.json",
+    "executed": 12,
+    "passed": 12,
+    "matrix_qualified": false
+  },
+  "native_queue_work": {
+    "cause_status": "Source-confirmed CanonicalClient64KiB shared native datagram send queue may evict older accepted datagrams while returningOk; actual public25 loss attribution not established.",
+    "owners": [
+      "/root/v198_resources",
+      "/root/media_blockers"
+    ],
+    "reviewer": "/root/fixture_blockers",
+    "next": "Old localQUIC burst counter, atomic non-evicting admission, SDK retained original command and raw bounded wait; independent negative controls before full combined qualification."
+  },
+  "additional_cleanup28": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-cleanup28.json",
+    "cumulative_selected_deleted_gib": 60
   }
 }

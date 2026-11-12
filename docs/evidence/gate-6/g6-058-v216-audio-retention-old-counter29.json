@@ -1,0 +1,77 @@
+{
+  "format": "connect/independent-audio-retention-old29-adjudication/1",
+  "state": "THREE INTENDED OLD CAUSES REPRODUCED; ONE COUNTER ORACLE UNQUALIFIED",
+  "raw_results_sha256": "d806ec455b8924e2b8c43d29635291e897c14d2e2a09d267fdbc4789ca384c02",
+  "source_sha256": "54e0d9c27e8f55e06353be332ca81f483c9baf5818c330474e3f3c4f6c9d7363",
+  "raw_runtime_summary": {
+    "expected": 4,
+    "executed": 4,
+    "passed": 0,
+    "failed": 4
+  },
+  "builds_passed": 2,
+  "source_and_binaries_unchanged": true,
+  "all_original_groups_joined": true,
+  "qualified_causal_counterexamples": 3,
+  "unqualified_counterexamples": 1,
+  "cases": [
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::metadata_busy_retains_same_opus_packet_pcm_and_timestamp_at_all_prepublication_stages",
+      "test_passed": false,
+      "failed": true,
+      "ignored": 0,
+      "log_sha256": "10f9ddfa3fc11176542b55fb2655129af8184ca12c0adf8a334a18a10a161f1d",
+      "expected_causal_boundary_qualified": true,
+      "actual_oracle": "retry reused failed permission",
+      "interpretation": "First Collect policy hook fired, output absent and readers released; next manualtick never reacquired freshpolicy. Source old Err(MetadataBusy) discards original, not evidence permissioncache was reused. Other3 stages not reached in old table."
+    },
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::ready_audio_busy_cannot_forget_earlier_successful_source_lease_expiry",
+      "test_passed": false,
+      "failed": true,
+      "ignored": 0,
+      "log_sha256": "051d52892e67b9f0723990c3e77fc2a248158639e5e59b7a55543b0179c235dd",
+      "expected_causal_boundary_qualified": false,
+      "actual_oracle": "test only exercised packet age",
+      "interpretation": "UNQUALIFIED: weak saved<age cutoff admits oldnear200ms bound; waited to packetage and failed setup oracle, not intended earlier80ms preservation oracle. Requires recorded test-only correction and rerun."
+    },
+    {
+      "selector": "staged_streams::tests::private_consult::metadata_busy_audio::generic_audio_metadata_busy_retries_fresh_once_and_keeps_real_refusals_terminal",
+      "test_passed": false,
+      "failed": true,
+      "ignored": 0,
+      "log_sha256": "eed88dc088e3a15c3a573500318be37c3d171e3685e4dc037009d6ed9e7dc908",
+      "expected_causal_boundary_qualified": true,
+      "actual_oracle": "assertion `left == right` failed",
+      "interpretation": "Actual2source mixed Opus queued original, pre-IO hook once; callback writes0 versus required1. No genericAudio retention beforeIO."
+    },
+    {
+      "selector": "staged_media::ready_audio::metadata_busy_tests::actual_native_ready_loop_retains_one_packetizer_and_one_original_before_successful_rtp",
+      "test_passed": false,
+      "failed": true,
+      "ignored": 0,
+      "log_sha256": "4b8cf753f746502739bf923a7324fb2d75d0c44aa934b9ee8f541389f9ceb95a",
+      "expected_causal_boundary_qualified": true,
+      "actual_oracle": "native discarded pre-effect metadata-busy original: Err(MetadataBusy)",
+      "interpretation": "Actual owned ReadyAudio finite epoch/Packetizer returned preeffect MetadataBusy; mode1 Wire cannot return thaterror. All original controller shutdowns completed0 after workpanic."
+    }
+  ],
+  "binary_sha256": [
+    "e3a6405d47bbace933e8622e2feb50328025f7a476bcb9fa6dd3f39595800054",
+    "3a3dcdbacff38a69ad1560dfb75a81eba366d2343d6cb4710d3f753f3bcb9e55"
+  ],
+  "matrix_qualified": false,
+  "expanded_suite_qualified": false,
+  "limits": [
+    "All4 actualtestfailures retained; intendedoldfailures are not counted as tests passing",
+    "No all4reproduced claim or decodedQoE causation",
+    "Case1 recordedcorrection/rerun must occur before its old/fixed comparison",
+    "Fixed198+ final exactcontrols and full32/432 remain required"
+  ],
+  "actions": {
+    "reviewer_build": 0,
+    "reviewer_test": 0,
+    "source_mutation": 0,
+    "guest": 0
+  }
+}

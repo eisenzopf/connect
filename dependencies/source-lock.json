@@ -2164,6 +2164,24 @@
       "path": "patches/rvoip/connect-replacement-ready-negative-parser-fixture.patch",
       "sha256": "95b1f66c73d34736382d982094509fca4139bec099ce080cf5f500e076144eca",
       "source": "Test-only correction: assert exact wire-schema rejection of missing connection scope before ReadyWait API; retain all other invalid-marker and reconverted-owner API refusals."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-audio-metadata-busy-retention-controls.patch",
+      "sha256": "665c6615d63cc0c393d8ae2a3b483ceb331ab6a45eb274965f3a2d0ab36688a3",
+      "source": "Test-only exact original audio MetadataBusy retention controls: actual Opus collect/take/pending PCM and generic output plus real native ReadyAudio epoch/Packetizer/wire; old production counter, no shipping change."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-audio-earlier-lease-counter-oracle.patch",
+      "sha256": "333a613a9c2b33eaed0f3bc7aa3a42911a79dd97fa79c23a3a9e751d89e14a28",
+      "source": "Test-only strengthen earlier audio lease counter before any expiry wait: require failed target admission preserve a meaningfully shorter80ms source bound, not incidental clock-conversion rounding under original200ms. All original refusal/IO/deadline assertions retained."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-audio-metadata-busy-retention.patch",
+      "sha256": "4867855ad1f48564d4ff44c0110aeec923d0de600c12aa0a5c72923abf1251a1",
+      "source": "Original reviewed production patch unchanged4867855a: retain exact pre-effect MetadataBusy audio, fresh authorization/epochs/original200ms+earliest lease, Audio-only generic/native parity, Submitted terminal."
     }
   ]
 }

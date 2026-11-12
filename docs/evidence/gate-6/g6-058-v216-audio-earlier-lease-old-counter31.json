@@ -1,0 +1,38 @@
+{
+  "format": "connect/independent-corrected-old-lease31-adjudication/1",
+  "state": "INTENDED EARLIER-LEASE LOSS REPRODUCED BEFORE SLEEP",
+  "results_sha256": "59a058fa909e2f66b13f995b548501a520eb909849f862da3138e5be9c53241b",
+  "source_sha256": "9f0376013376dc405497c8e522066d729ea91809b90b74a5eeba73a2c7442d09",
+  "raw_summary": {
+    "expected": 1,
+    "executed": 1,
+    "passed": 0,
+    "failed": 1
+  },
+  "all_original_groups_joined": true,
+  "source_and_binary_unchanged": true,
+  "case": {
+    "selector": "staged_streams::tests::private_consult::metadata_busy_audio::ready_audio_busy_cannot_forget_earlier_successful_source_lease_expiry",
+    "actual_test_passed": false,
+    "ignored": 0,
+    "log_sha256": "8ed5ec652701238fa1db486613a7e5ee6da0e3d560fed6caae254a6c99ac4821",
+    "intended_failure": "failed target admission forgot the earlier80ms source lease",
+    "causal_boundary_qualified": true,
+    "preconditions": "Real source80ms lease succeeded; realtargetMetadataBusy hook fired; partial readers dropped; actual queued priorbound sampled. Strong shortening assertion failed before anysleep or IO."
+  },
+  "prior_old29_case1_unqualified_remains": true,
+  "old29_review_sha256": "31253bb3cc39ddda43ffac61cc02547ab927d27a5c1b17d3da3ef2e672dc557e",
+  "test_oracle_source_review_sha256": "536e0fa91145d194d8045ad3f77bf8bbff54230ad10ab065c31455c9e05a6fdb",
+  "combined_causal_counterexamples_now_supported": 4,
+  "limits": [
+    "Actual testcasefailed intentionally, not a testpass",
+    "No decoderQoE or fullsuite/matrix qualification",
+    "Original old29 wrongtiming counter evidence preserved; this is separate correctedsource attempt"
+  ],
+  "actions": {
+    "reviewer_build": 0,
+    "reviewer_test": 0,
+    "source_mutation": 0,
+    "guest": 0
+  }
+}

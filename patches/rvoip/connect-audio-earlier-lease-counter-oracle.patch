@@ -1,0 +1,21 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs
+@@ -460,6 +460,7 @@
+     let queued = room.nodes.get_mut("bob").unwrap().out.try_recv().unwrap();
+     let original_age_cutoff =
+         tokio::time::Instant::from_std(queued.admitted_at + Duration::from_millis(200));
++    let prior_bound = queued.sources[0].admission_deadline.unwrap();
+     let until = chrono::Utc::now() + chrono::Duration::milliseconds(80);
+     publish_action(
+         room.domain.clone(),
+@@ -475,8 +476,8 @@
+     no_readers(&room);
+     let saved = original.sources[0].admission_deadline.unwrap();
+     assert!(
+-        saved < original_age_cutoff,
+-        "earlier grant was never captured"
++        saved < prior_bound && saved < original_age_cutoff - Duration::from_millis(40),
++        "failed target admission forgot the earlier80ms source lease"
+     );
+     tokio::time::sleep_until(saved + Duration::from_millis(1)).await;
+     assert!(

@@ -1,7 +1,7 @@
 {
   "format": "connect/media-quality-next-fix-plan/1",
-  "status": "SQL cause counters reproduced and fixed7/7; audio cause narrowed, pre-IO MetadataBusy retention correction under independent review; full quality qualification pending",
-  "updated_at": "2026-11-12T05:21:47.733156+00:00",
+  "status": "SQL7/7 and audio retention12/12 controls verified; source-proven native queue eviction correction staged; decoded full-quality and matrix qualification pending",
+  "updated_at": "2026-11-12T05:56:28.461078+00:00",
   "coordinator": "/root",
   "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components20.json",
   "baseline": {
@@ -21,8 +21,8 @@
       "id": "P5.1",
       "owner": "/root/media_blockers",
       "reviewer": "/root/v198_resources",
-      "cause_status": "Actual programme25 identifies timestamp-only gaps with unchangedSSRC and consecutive sequence. Separate source omission drops pre-IO MetadataBusy audio in Core/native/generic adapters; counter/production correction staged, actual quality causality unproven.",
-      "next": "Verify old/fixed real Opus retention, same200ms age, earliest lease, old epoch/cancellation/permanent errors and no submitted IO retry, then frozen expanded full programme.",
+      "cause_status": "Four pre-IO retention/earlier-lease defects reproduced with exact old counters; fixed12/12 pass. Separate native shared64KiB sendqueue silently evicts accepted datagrams under pressure; actual25 decoded gaps not yet conclusively attributed.",
+      "next": "Execute actual localQUIC eviction counter, verify non-evicting submission plus originalbytes/deadline/cancellation/current-binding waits, then final full combined programme preserving all original quality bounds.",
       "invariants": [
         "No source-quantum attribution claim",
         "Keep2880 decoded samples, freshness and all quality bounds",

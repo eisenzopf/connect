@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T05:21:47.733156+00:00",
-  "revision": 31,
+  "updated_at": "2026-11-12T05:56:28.461078+00:00",
+  "revision": 32,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -618,8 +618,8 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "diagnosing",
-      "implementation_state": "Four Opus diagnostic controls pass. Actual short programme25 passes this sample, but receiver1 has nine extra timestamp-only resets with sameSSRC and consecutive sequence; not SSRC churn or missing wire sequences. Source audit found MetadataBusy omissions before audio IO; narrow retention fix and deadline/epoch negatives are under independent review. No decoded-quality cure claimed.",
+      "status": "in-progress",
+      "implementation_state": "Pre-IO MetadataBusy audio retention and earlier-lease preservation implemented on recorded408 graph. Four intended old defects reproduced (old29 three plus corrected31 earlier lease; original old29 case1 remains unqualified). Fixed12/12 real Opus/native/epoch/deadline/terminal-IO controls pass; source/binaries stable and all original owners joined. Public decoded-quality recovery remains unproven. CanonicalClient64KiB shared datagram queue can evict older accepted audio on video pressure; non-evicting queue and bounded waits staged for next controlled verification.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
@@ -652,11 +652,26 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-audio-programme-diagnostic25.json",
           "result": "One actual short programme passes; timestamp-only missing quanta remain observed. No complete-suite/matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-audio-retention-old-counter29.json",
+          "result": "3 qualified intended old failures; one failed only downstream packet-age precondition and remains unqualified.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-audio-earlier-lease-old-counter31.json",
+          "result": "Corrected earlier-lease counter reproduces exact intended failure before any sleep or IO.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-audio-retention-fixed32.json",
+          "result": "12/12 fixed controls pass; both builds succeed, source/binaries unchanged and all original groups joined.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T05:21:47.733156+00:00",
+      "updated_at": "2026-11-12T05:56:28.461078+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -828,7 +843,7 @@
         "P6.1"
       ],
       "status": "assigned",
-      "implementation_state": "52GiB retired build-object cleanup completed and measured. Subsequent compilation consumed some headroom; fresh shipping/VM capacity checks and bounded additional cleanup remain pending.",
+      "implementation_state": "Cumulative60GiB reviewed retired build-object deletion complete (latest8GiB measured8.60GB available-space gain). Active cache/source/evidence/DB/VM preserved. Fresh shipping and VM capacity checks remain required after compilation.",
       "proposed_fix": "Retain approved per-role/aggregate RSS and original numeric process/FD/thread capacities; trends diagnostic and separate soak unaffected.",
       "required_evidence": "1GiB server/4GiB browser/1GiB helper/6GiB aggregate; exact original resource-pool restoration and source-bound server thread exception; no incomplete cycle counted as pass.",
       "coordinator_review": {
@@ -844,7 +859,7 @@
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T05:21:47.733156+00:00",
+      "updated_at": "2026-11-12T05:56:28.461078+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": []

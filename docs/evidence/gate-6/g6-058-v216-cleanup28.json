@@ -1,0 +1,18 @@
+{
+  "format": "connect/approved-retired-object-cleanup/1",
+  "selected_count": 18134,
+  "selected_allocated_bytes": 8589934592,
+  "header_and_identity_revalidated": true,
+  "open_inventory_complete": true,
+  "selected_open_count": 0,
+  "before_available_bytes": 39734018048,
+  "deleted_count": 18134,
+  "complete": true,
+  "all_selected_absent": true,
+  "after_available_bytes": 48336437248,
+  "observed_available_gain_bytes": 8602419200,
+  "deleted_journal_sha256": "22bb072fe0521ce2e9de57975680b281263f18358a4ad85276b82c89b5ff3dab",
+  "scope": "Additional8GiB in the same reviewed retired object cache; prior52GiB deletion not repeated. No active warm cache, source, evidence, DB or VM files selected.",
+  "raw_receipt_sha256": "2b056989df36b7b980296b3918f79f2ca54e5f92dc5e583c2eb4bb9bbf9bb662",
+  "cumulative_selected_deletion_gib": 60
+}
