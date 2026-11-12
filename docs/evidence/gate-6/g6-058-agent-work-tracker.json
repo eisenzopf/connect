@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T08:17:37.739370+00:00",
-  "revision": 36,
+  "updated_at": "2026-11-12T08:45:40.622649+00:00",
+  "revision": 39,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 36,
-    "verified_at": "2026-11-12T08:18:26.300Z",
+    "content_revision": 39,
+    "verified_at": "2026-11-12T08:46:17.970Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -476,15 +476,15 @@
       "id": "P3.2",
       "plan_id": "P3",
       "title": "Meet retained-owner retirement deadline",
-      "owner_agent": "/root",
-      "independent_reviewer": "/root/v198_resources",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/media_blockers",
       "coordinator": "/root",
       "blocker_ids": [
         "B192"
       ],
       "depends_on": [],
-      "status": "in-progress",
-      "implementation_state": "authority-read-and-current-scope-regressions-pass;full-retirement-deadline-not-yet-proved",
+      "status": "diagnosing",
+      "implementation_state": "Actual229EdDSA fullcase: secondSessionrefresh unkeyedReadOnlyDeadline, liveSessions1 untilserver shutdown; allownersjoined67683ms beyond67000. ES256sameworkload cleanup/10000msidlepasses. Source indicates sequentialrefresh/end/wait consumesotherSession deadline; batch freshreads/bothEnds/bothwaits underSAMEcutoff candidatepending.",
       "proposed_fix": "Remove verified redundant control work, including unnecessary public status rendering during authority-only walks; locate remaining queue/server latency.",
       "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
@@ -523,6 +523,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
           "result": "115/116passed;full62squality+cleanupremainfailed",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components23.json",
+          "result": "Actual229:226pass3fail, allsource/binary/owner guardsverified; fullEdDSAandES256 independentquality/cleanupverdicts retained.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -530,7 +535,7 @@
         "e3e0b398"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T12:53:36.260177+00:00",
+      "updated_at": "2026-11-12T08:45:40.622649+00:00",
       "mapped_check_count": 16,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -640,8 +645,8 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "in-progress",
-      "implementation_state": "Full206 empirical run: original short audio and initialAV pass; full62 records no audio quality failure, all handoffs/Data/End/cleanup complete. Twelve retention and eight transport controls verified. Sole remaining programme defect is two video bins, not an audio gate failure.",
+      "status": "diagnosing",
+      "implementation_state": "Full229 shortcoordinator overlapcasefails round1receiver5 PCM960<2880. Source-order proof places snapshot BEFOREeitherReady/Commit; source input hasdiscontinuities without matchinglatecollector refusal. ConsumedendpointPreparationProbe globalregistry contention is concretecandidateearlydrop seam; controlledold/fixedtests pending.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
@@ -704,6 +709,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-client-language37.json",
           "result": "Eight language checks pass:Node53,Python67, exact43 intended type errors; original extraction failure preserved and independently re-adjudicated without rerunning.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components23.json",
+          "result": "Actual229:226pass3fail, allsource/binary/owner guardsverified; fullEdDSAandES256 independentquality/cleanupverdicts retained.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -711,7 +721,7 @@
         "257bcdf3"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T07:30:31.657094+00:00",
+      "updated_at": "2026-11-12T08:45:40.622649+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -719,13 +729,20 @@
         "A04",
         "A06",
         "A09"
-      ]
+      ],
+      "current_action": {
+        "owner": "/root/media_blockers",
+        "reviewer": "/root/v198_resources",
+        "coordinator": "/root",
+        "fix": "Retire exactconsumed preparationobserver atdefinitivepublication via perClosedAudienceatomic; preserveactiveprobe failclosed/currentrole/generation/expiry checks. No genericBusyretry, noSSRCrewrite.",
+        "verification": "ActualconsumedProbe plusrealRegistrylock oldcounter, fixedordinaryoriginalaudio ingress; active/cancel/failedCommit/foreigngroup negatives beforecompletebatch."
+      }
     },
     {
       "id": "P5.2",
       "plan_id": "P5",
       "title": "Eliminate decoded video and handoff readiness deficits",
-      "owner_agent": "/root/v198_resources",
+      "owner_agent": "/root/fixture_blockers",
       "independent_reviewer": "/root/media_blockers",
       "coordinator": "/root",
       "blocker_ids": [
@@ -736,8 +753,8 @@
       "depends_on": [
         "P3.1"
       ],
-      "status": "in-progress",
-      "implementation_state": "Finalactivation sameSQLUnit plus immediatefullWriter independently reviewed; targeted42 all26passed. CompletedWriter excludes SQLinterleaving, actualpublication/rollback/currentauth negatives pass. Test needed29priorBusy attempts; no earlier epoch survival/latency/FPS cure claimed. Full229 actualquality pending.",
+      "status": "diagnosing",
+      "implementation_state": "Full229EdDSAvideo3binsfail:route2sec18=15/sec43=22,route3sec18=16. ES2564binsfail:route2sec18=18/sec43=14/sec46=20,route3sec43=19. Allmin24. Sourcebins30/alltotals>=1440. SameSQLUnit26/26fixverifiedbutNOQoEcure; autoPLI/recoveryloss path underseparateinvestigation.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -810,11 +827,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-final-activation-fixed42.json",
           "result": "26/26actualpass, stable7images/binary/owners. Actual30attempts/29preWriterBusy beforeonepublication, noFPSqualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components23.json",
+          "result": "Actual229:226pass3fail, allsource/binary/owner guardsverified; fullEdDSAandES256 independentquality/cleanupverdicts retained.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T08:17:37.739370+00:00",
+      "updated_at": "2026-11-12T08:45:40.622649+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -824,12 +846,12 @@
         "A09"
       ],
       "current_action": {
-        "owner": "/root/v198_resources",
+        "owner": "/root/fixture_blockers",
         "reviewer": "/root/media_blockers",
         "coordinator": "/root",
-        "cause": "Final public activation metadata path drops initialSQL, announces fullCID Writer, then can loseSQL reacquire before DML. Actual3 failures captured; decoded video causality remains conditional.",
-        "fix": "Applied originalSQLUnit retained only through immediatefullWriter, sameUnit current rederive/transaction; unchanged5ms cutoff/fullscope/currentauthorization.",
-        "verification": "Safety26green. Freezecommittedsource and executecomplete229 includingEdDSA/ES256 full62programmes; use actualretry/FPS evidence before32cell admission."
+        "cause": "Missing/incompleteRTP plusdecoderkeyframe gating observed; exactloss/recoverylatency cause unproven. RawautoPLI exists; zerofixturefeedbackcounters do not measurethatpath.",
+        "fix": "Trace actualRTPloss/autoPLI/serveradmission/sourceforcedkey recovery; stageevidence-backedfix, no speculativeduplicatePLI orauthorityscope downgrade.",
+        "verification": "Controlledreordering/loss/currentgeneration/feedbackexpiry tests andbothstrictfull62programmes beforematrix."
       }
     },
     {
@@ -944,7 +966,7 @@
         "P2.1"
       ],
       "status": "in-progress",
-      "implementation_state": "ES256 completeprogramme added through same shared strict62fixture, actualfiveenrolled keyfamilies asserted. OriginalEdDSA retained. EScompile41 E0624 corrected usingreadonlySQLite; build42passed. All229 runtime stillpending, bothprogrammes lastadjacent.",
+      "implementation_state": "Actualcomplete229on544a8e0a/408:226pass3fail;212pure+17workloads/11ignoredall executed. Bothfull62ranlast. Shortaudio, bothfullvideo andEdDSAcleanup remainfailed; no shipping/full32admission.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -997,11 +1019,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
           "result": "7/7 targeted controls, including5pure+actualReadySQL+ordinaryinitialAV. Not full175 or matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components23.json",
+          "result": "Actual229:226pass3fail, allsource/binary/owner guardsverified; fullEdDSAandES256 independentquality/cleanupverdicts retained.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T08:17:37.739370+00:00",
+      "updated_at": "2026-11-12T08:45:40.622649+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -1032,8 +1059,8 @@
         "P6.2",
         "P7.1"
       ],
-      "status": "component-verified",
-      "implementation_state": "Targeted42 all26green andbothsigning fullfixtures compile, normalprepare408/format passed. Commit/pushcoherentbatch thenrunall229 withouttracked/deps/HEADmutations. KeepactualgreentestedHEAD throughnormalshipping/full32.",
+      "status": "in-progress",
+      "implementation_state": "Committed/pushed544a8e0a/408testedall229withsource/binariesunchangedandalloriginalownersjoined;226/229isnotgreen. Nextbatchmustfixandverifythreecases beforeanothercoherentfreeze. Actual26controls remainedgreeninside229.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1081,6 +1108,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
           "result": "7/7 targeted controls, including5pure+actualReadySQL+ordinaryinitialAV. Not full175 or matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components23.json",
+          "result": "Actual229:226pass3fail, allsource/binary/owner guardsverified; fullEdDSAandES256 independentquality/cleanupverdicts retained.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -1088,7 +1120,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T08:17:37.739370+00:00",
+      "updated_at": "2026-11-12T08:45:40.622649+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [

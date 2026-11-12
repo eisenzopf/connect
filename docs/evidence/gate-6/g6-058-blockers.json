@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T08:17:37.739370+00:00",
-  "run_status": "Finalactivation targeted42:26of26passed with stableoriginalowners/source/binary. CompletedWriter SQLcustodyproved;29priorBusy attempts visible, noFPSorlowlatencycureclaim. Originalcomplete206 remains205pass1videoqualityfailure. Nextfull229includesbothEdDSA/ES25662programmes; lastmatrixv2150/32 unchanged.",
+  "updated": "2026-11-12T08:45:40.622649+00:00",
+  "run_status": "Complete229finished:226passed3failed,0unrun. All212pure+17workloads/11ignored andfourbuilds executed; source/binariesstable/alloriginalownersjoined. ShortoverlapPCM960<2880; bothfull62videofail; EdDSAcleanupdeadlinefail, ES256cleanup/idlepass. Matrixv2150/32unchanged. ParallelassignedaudioProbe,videoautoPLI andcleanupsequencing fixes.",
   "blockers": [
     {
       "id": "B01",
@@ -5779,10 +5779,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v215.json"
   },
   "current_focused_verification": {
-    "passed": 205,
-    "planned": 206,
-    "scope": "Complete source257bcdf3/408,190pure+16workloads/11ignored all executed. Solefailure: full62 publicroutes2/3 sec44=19FPS<24.",
-    "next": "Verify finalactivation pre-TX Write/SQL admission counter and scope-preserving fix; unitnegatives, then completecohort beforeall32/432. No activation basedon205/206."
+    "passed": 226,
+    "planned": 229,
+    "scope": "Complete544a8e0a/408,212pure+17workloads/11ignored all executed;3failedcases exact incomponents23.",
+    "next": "FixconsumedProbeaudio contention, actualvideo recovery andsequentialcleanup; meaningfulold/fixedcontrols, thencompletecoherentbatch before32/432. No226/229qualification."
   },
   "current_workplan_tasks": [
     "S107",

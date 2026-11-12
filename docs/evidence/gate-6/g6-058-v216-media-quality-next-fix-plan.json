@@ -1,13 +1,13 @@
 {
   "format": "connect/media-quality-next-fix-plan/1",
-  "status": "Finalactivation safety26/26 green; complete229quality qualification pending onfrozenbatch; retain24FPS/200ms andalloriginalbounds.",
-  "updated_at": "2026-11-12T08:17:37.739370+00:00",
+  "status": "Complete229226pass3fail; threeparallelcausalworkstreams assigned before nextbatch, no matrixadmission.",
+  "updated_at": "2026-11-12T08:45:40.622649+00:00",
   "coordinator": "/root",
-  "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components22.json",
+  "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components23.json",
   "baseline": {
-    "executed": 206,
-    "passed": 205,
-    "failed": 1,
+    "executed": 229,
+    "passed": 226,
+    "failed": 3,
     "not_executed": 0
   },
   "fixture_followthrough": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
@@ -21,8 +21,8 @@
       "id": "P5.1",
       "owner": "/root/media_blockers",
       "reviewer": "/root/v198_resources",
-      "cause_status": "Retention12/12 and native queue8/8 fixes verified against actualoldcounter failures; languagechecks8/8, Node53/Python67 passed. Source25 originalQoE rootcauseattribution remains empirical untilcompleteprogramme.",
-      "next": "Freeze finalclean HEAD and executeall206including complete62programme last; requireoriginalquality/End/Data/cleanup/budgets, then all32/432 onlocalMac/ARM.",
+      "cause_status": "Shortoverlapaudio20msloss beforeReady/Commit; consumedProbe checksglobalregistrybeforefindingitsgroupgone. Controlledcounterpending, noactualleafclaim.",
+      "next": "Retireexactconsumedobserver withatomicfastpath; currentactive/cancel/failedcommit negatives; old/fixedactualingresscontrols thencompletebatch.",
       "invariants": [
         "No source-quantum attribution claim",
         "Keep2880 decoded samples, freshness and all quality bounds",
@@ -33,14 +33,14 @@
       "id": "P5.2",
       "owner": "/root/v198_resources",
       "reviewer": "/root/media_blockers",
-      "cause_status": "Old38 controlledSQLgap proved. Fixed42 prevents SQLloss aftercompleteWriter;29priorBusy attempts remainexplicit performance risk. Current19FPScure unproven.",
+      "cause_status": "SameSQLUnitcontrolsallpassbutbothfull62stillfailvideo. ExactRTP/PLIrecovery leaf unproved.",
       "actual_failures": [
         "Full206 publicroutes2and3 programme second44 each19FPS versus24; source encoding/publication30FPS.",
         "Fixed39 newcounter failed completeWriter admission precondition before SQLfault; exact refusal stage unmeasured.",
         "Fixed39 transaction diagnostic expected1 unchanged transaction for actual readonly duplicate capture (0transactions)."
       ],
       "timing_correction": "Full programme uses representative(false,true): no deliberate coordinator hold. Bins18/43 span Ready and actual Commit; quality snapshot before Ready does not prove loss before Commit.",
-      "next": "Same-source229 including both full62signingalgorithms, inspectactualretry/FPS; no matrixadmission untilallgreen.",
+      "next": "FixturetracesrealrawautoPLI/recovery/sourcekeyrequests withMediareview beforepatch; noFPSrelaxation.",
       "proposed_scope": "Consider pre-effect SQL availability/nonblocking exact begin plus full release and fresh same-root plan retry ONLY before effect begins. No replay after begun; no arbitrary removal of current Write custody.",
       "invariants": [
         "Do not hold SQL while waiting for file authority",

@@ -1,0 +1,514 @@
+{
+  "format": "connect/independent-full229-adjudication/1",
+  "state": "226PASS /3FAIL; ALL229 EXECUTED; DOWNSTREAM BLOCKED",
+  "source_revision": "544a8e0a059ca9610640cf9052c6f044a5a086c5",
+  "source_lock_sha256": "c55d34411c6d3e979da9d6b77531bc4baf76c9ba03c41dc91e30ffed7c25b55a",
+  "source_seal_sha256": "a93261168bc09ecee4a3a4451fd7f3ae4200638486020bcb7d822ba8d1fc2244",
+  "workspace_sha256": "7d4842a52124e1cd5aa0181ca52f36a2d57be4cf3fe7ab32a7eedce30c773039",
+  "original_results_sha256": "e55a3fdd7c5ef2e134cddea7132be456726d36d3ea114be2ea4f652c852a26b9",
+  "original_reviewed_sanitizer_output_sha256": "ce88b3363e57e3b35b9d906d1af6fd5cb5a04fe6beebbe8e833bfcb56de7911b",
+  "reviewed_sanitizer_script_sha256": "3d5f149da7f72ae2dfca699dc46d6f2eb1d30cf27fd203bd81754a37685e666d",
+  "summary": {
+    "selected": 229,
+    "executed": 229,
+    "passed": 226,
+    "failed": 3,
+    "not_executed": 0
+  },
+  "scope": {
+    "pure_selected": 212,
+    "signed_or_workload_selected": 17,
+    "pure_executed": 212,
+    "signed_or_workload_executed": 17,
+    "ignored_rtc_selected": 11,
+    "ignored_rtc_executed": 11
+  },
+  "all4_builds_qualified": true,
+  "default_feature_artifacts": {
+    "connect_service": {
+      "verified": true,
+      "no_test_support_or_memory_diagnostics": true
+    },
+    "connect_client": {
+      "verified": true,
+      "no_test_support_or_memory_diagnostics": true
+    }
+  },
+  "all7_runtime_group_artifacts_profiles_inventories_and_binaries_verified_by_sanitizer": true,
+  "source_and_binaries_stable": true,
+  "all_original_build_and_test_groups_joined": true,
+  "exact_both_full_programmes_actually_adjacent_last": true,
+  "actual_failed_selectors": [
+    {
+      "group": 5,
+      "index": 8,
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+      "log_sha256": "1166f1bf6dded6190bedfeeeec19413bd3ec9d37655598d15846dd91992d3b3b"
+    },
+    {
+      "group": 5,
+      "index": 9,
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "log_sha256": "768649418f00d022301ec1a755d0229348a6fb48475a75cdeb5ac23ec727d1a7"
+    },
+    {
+      "group": 5,
+      "index": 15,
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_es256_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "log_sha256": "b6f66b2db11e96e3d87d0e22089d87edcf8bf19a08d9e951b2ef214c00fa3f36"
+    }
+  ],
+  "short_parallel_allocation_failure": {
+    "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+    "log_sha256": "1166f1bf6dded6190bedfeeeec19413bd3ec9d37655598d15846dd91992d3b3b",
+    "recorded_quality_failures": [
+      {
+        "round": 1,
+        "receiver": 5,
+        "consecutive_decoded_audio_samples": 960,
+        "required": 2880
+      }
+    ],
+    "four_moves_and_historical_checks_completed": true,
+    "cleanup_task_failures_empty": true,
+    "server_shutdown_Ok": true,
+    "short_scope_not_full62_or_10second_idle": true,
+    "qualified": false
+  },
+  "full_programmes": [
+    {
+      "algorithm": "EdDSA",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "log_sha256": "768649418f00d022301ec1a755d0229348a6fb48475a75cdeb5ac23ec727d1a7",
+      "work_completion_line": 603,
+      "quality_evaluated": true,
+      "per_route_totals": [
+        {
+          "route": 0,
+          "changing_frames": 1757,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": false
+        },
+        {
+          "route": 1,
+          "changing_frames": 1774,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": false
+        },
+        {
+          "route": 2,
+          "changing_frames": 1771,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": true
+        },
+        {
+          "route": 3,
+          "changing_frames": 1775,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": true
+        },
+        {
+          "route": 4,
+          "changing_frames": 1765,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": false
+        },
+        {
+          "route": 5,
+          "changing_frames": 1778,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": false
+        }
+      ],
+      "retained_route_gated_failures": [
+        {
+          "route": 2,
+          "second": 18,
+          "frames": 15,
+          "minimum": 24
+        },
+        {
+          "route": 2,
+          "second": 43,
+          "frames": 22,
+          "minimum": 24
+        },
+        {
+          "route": 3,
+          "second": 18,
+          "frames": 16,
+          "minimum": 24
+        }
+      ],
+      "actual_four_commit_capture": {
+        "required_original_records": 4,
+        "observations": [
+          {
+            "line": 169,
+            "record_sha256": "88173dedc1f9f8d4b69fe12df5d065e80b290e257ba9e69620f39c0eb2a3baa0",
+            "mode": "positive-reader",
+            "preview_reason": "live-original",
+            "transaction_reason": "live-original"
+          },
+          {
+            "line": 207,
+            "record_sha256": "972ed5f785ce4bf69ff53fa7a44f7d6ff25636c4a2c8fbafd981682feb6a6b66",
+            "mode": "positive-reader",
+            "preview_reason": "live-original",
+            "transaction_reason": "live-original"
+          },
+          {
+            "line": 374,
+            "record_sha256": "81752cf46d5f76f8aa29158dac6333ea47cc244de5a219d6e30e62bd4832315f",
+            "mode": "positive-reader",
+            "preview_reason": "live-original",
+            "transaction_reason": "live-original"
+          },
+          {
+            "line": 379,
+            "record_sha256": "23a4f64bce81a912e42f3e2dcd0e5cee64ee404ded0d1287192e100b4d0abb73",
+            "mode": "positive-reader",
+            "preview_reason": "exact-retired-original",
+            "transaction_reason": "exact-retired-original"
+          }
+        ],
+        "distinct_records_observed": 4,
+        "all_four_original_records_observed": true,
+        "mode_and_both_reasons_present": true,
+        "missing_records": 0,
+        "no_fixture_expected_value_used_as_observation": true
+      },
+      "completed_rounds": [
+        {
+          "round": 0,
+          "moves": 2,
+          "generation": 2
+        },
+        {
+          "round": 1,
+          "moves": 2,
+          "generation": 3
+        }
+      ],
+      "data_exchanges": [
+        {
+          "index": 0,
+          "phase": "target",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 4,
+          "phase": "target",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 0,
+          "phase": "return",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 4,
+          "phase": "return",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        }
+      ],
+      "history_and_connection_End_source_path_proofs": {
+        "kind": "Inferred from actual post-work marker under hash-pinned source, independently of finalcasepass.",
+        "all_four_original_historical_results_equal_after_return": true,
+        "each_original_movement_seven_confirmed_effects_once": true,
+        "actual62seconds_and_readstop_by62_2seconds": true,
+        "six_current_End_calls_settled_and_current_public_retirement_before67seconds": true
+      },
+      "codec_joins": {
+        "original_encoders": 6,
+        "original_decoders_clean": 10,
+        "forced": 0
+      },
+      "server_shutdown_Ok_fragment_observed": true,
+      "qualified": false,
+      "cleanup": {
+        "completed": false,
+        "Session_cleanup_error": {
+          "kind": "Deadline",
+          "certainty": "ReadOnly"
+        },
+        "Session_runtime_drained_before_cutoff": false,
+        "late_all_physical_control_client_join_ms": 67683,
+        "unchanged_join_cutoff_ms": 67000,
+        "ten_second_zero_owner_idle_completed": false,
+        "observed_idle_entry_counts": {
+          "physical_peers": 0,
+          "peer_session_views": 0,
+          "live_sessions": 1,
+          "connections": 0,
+          "media_readers": 0,
+          "role_projections": 0,
+          "replacement_preparations": 0
+        },
+        "original_test_process_groups_joined_eventually": true,
+        "server_shutdown_returned_Ok_after_failed_cleanup": true,
+        "final_quality_assertion_reached": false,
+        "failure_categories": [
+          "recorded_retained_video_bins",
+          "Session_readonly_cleanup_deadline",
+          "runtime_not_drained",
+          "late_join",
+          "nonzero_idle_owner"
+        ]
+      },
+      "terminal_parser_limit": "Concurrent tracing interleaved the terminal array across lines631-635. The original sanitizer shutdown flag is unrecognized, not proof of a failed shutdown; exact terminal suffix635 explicitly saysOk."
+    },
+    {
+      "algorithm": "ES256",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_es256_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "log_sha256": "b6f66b2db11e96e3d87d0e22089d87edcf8bf19a08d9e951b2ef214c00fa3f36",
+      "work_completion_line": 600,
+      "quality_evaluated": true,
+      "per_route_totals": [
+        {
+          "route": 0,
+          "changing_frames": 1768,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": false
+        },
+        {
+          "route": 1,
+          "changing_frames": 1759,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": false
+        },
+        {
+          "route": 2,
+          "changing_frames": 1754,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": true
+        },
+        {
+          "route": 3,
+          "changing_frames": 1781,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": true
+        },
+        {
+          "route": 4,
+          "changing_frames": 1765,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": false
+        },
+        {
+          "route": 5,
+          "changing_frames": 1761,
+          "all60bins_observed": true,
+          "total1440_met": true,
+          "per_bin24_gated": false
+        }
+      ],
+      "retained_route_gated_failures": [
+        {
+          "route": 2,
+          "second": 18,
+          "frames": 18,
+          "minimum": 24
+        },
+        {
+          "route": 2,
+          "second": 43,
+          "frames": 14,
+          "minimum": 24
+        },
+        {
+          "route": 2,
+          "second": 46,
+          "frames": 20,
+          "minimum": 24
+        },
+        {
+          "route": 3,
+          "second": 43,
+          "frames": 19,
+          "minimum": 24
+        }
+      ],
+      "actual_four_commit_capture": {
+        "required_original_records": 4,
+        "observations": [
+          {
+            "line": 192,
+            "record_sha256": "3bd23087d351e90959f6f5638ea18cf0faf091fe838f920f0f87a4c0327054fd",
+            "mode": "positive-reader",
+            "preview_reason": "exact-retired-original",
+            "transaction_reason": "exact-retired-original"
+          },
+          {
+            "line": 198,
+            "record_sha256": "0d4d45ef3e97aeb2d30ecd653f0d5aa91134013ba5073c9dbeff1f727b364a88",
+            "mode": "positive-reader",
+            "preview_reason": "exact-retired-original",
+            "transaction_reason": "exact-retired-original"
+          },
+          {
+            "line": 341,
+            "record_sha256": "456b4c786b7c8e8a57fdada46c8733b4bc6c6e350e5a91473fb4bef2f2ce1fba",
+            "mode": "positive-reader",
+            "preview_reason": "live-original",
+            "transaction_reason": "live-original"
+          },
+          {
+            "line": 377,
+            "record_sha256": "1dab266c06ed36abf7424675614b0cb9c1146d25cdded9fdfb5a6ff92878ab1a",
+            "mode": "positive-reader",
+            "preview_reason": "live-original",
+            "transaction_reason": "live-original"
+          }
+        ],
+        "distinct_records_observed": 4,
+        "all_four_original_records_observed": true,
+        "mode_and_both_reasons_present": true,
+        "missing_records": 0,
+        "no_fixture_expected_value_used_as_observation": true
+      },
+      "completed_rounds": [
+        {
+          "round": 0,
+          "moves": 2,
+          "generation": 2
+        },
+        {
+          "round": 1,
+          "moves": 2,
+          "generation": 3
+        }
+      ],
+      "data_exchanges": [
+        {
+          "index": 0,
+          "phase": "target",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 4,
+          "phase": "target",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 0,
+          "phase": "return",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 4,
+          "phase": "return",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        }
+      ],
+      "history_and_connection_End_source_path_proofs": {
+        "kind": "Inferred from actual post-work marker under hash-pinned source, independently of finalcasepass.",
+        "all_four_original_historical_results_equal_after_return": true,
+        "each_original_movement_seven_confirmed_effects_once": true,
+        "actual62seconds_and_readstop_by62_2seconds": true,
+        "six_current_End_calls_settled_and_current_public_retirement_before67seconds": true
+      },
+      "codec_joins": {
+        "original_encoders": 6,
+        "original_decoders_clean": 10,
+        "forced": 0
+      },
+      "server_shutdown_Ok_fragment_observed": true,
+      "qualified": false,
+      "cleanup": {
+        "completed": true,
+        "both_owned_Sessions_ended_or_publicly_alreadyended": true,
+        "runtime_drained": true,
+        "all_media_codec_rawpeer_SDK_and_Session_joins_before67seconds": true,
+        "ten_second_zero_owner_idle_completed": true,
+        "idle_observed_ms": 10000,
+        "task_failures_empty": true,
+        "server_shutdown_returned_Ok_after_idle": true,
+        "server_shutdown_not_claimed_before67seconds": true,
+        "final_deferred_quality_assertion_reached": true
+      }
+    }
+  ],
+  "source_path_proof_unit_hashes": {
+    "representative.rs": "844182e259472df2eacd9d105f60986270e109e63b5fe9b316ccca30d5efa32a",
+    "representative_data.rs": "2c4c77dd582519429c63bc4c19dfeb82b00bdc8ffb9b5bf4b85f08c7d037e0cc",
+    "representative_programme.rs": "5aff725461b454f30abfab055026458eaf6682eff760640af0bc998326a85927"
+  },
+  "prerequisite42": {
+    "receipt_sha256": "a76732cde85bed0224e67ae4a63c413bd5e2a075bf1dfc4fff2c1df50e053846",
+    "actual26_passed": true,
+    "separate_targeted_scope_not_added_to229_count": true,
+    "all26_also_freshly_reexecuted_and_passed_within229": true,
+    "earlier29preWriter_refusals_warning_preserved": true
+  },
+  "initial_av": {
+    "post_sql_video_watermarks": [
+      {
+        "route": 0,
+        "source_rtp_threshold": 366000
+      },
+      {
+        "route": 2,
+        "source_rtp_threshold": 366000
+      }
+    ],
+    "post_sql_watermark_marker_valid": true,
+    "threshold_assertions_observed_while_sql_held": true,
+    "decoded_at_or_above_threshold_while_sql_held_source_assertion_qualified": true,
+    "source_quantum_audio_attribution_claimed": false,
+    "completed_single_request_and_effect_marker": true,
+    "admission_probe": 4,
+    "scene_probe": 4,
+    "cleanup_failure_array_empty": true,
+    "server_shutdown_returned_ok": true,
+    "all_original_5s_cleanup_assertions_qualified_by_case_pass": true,
+    "qualified": true,
+    "limitation": "Native actual initialAV factory regression only; no browser/full62/matrix or source-quantum audio claim."
+  },
+  "qualification": {
+    "full229": false,
+    "shipping": false,
+    "full32": false,
+    "downstream_activation": false
+  },
+  "limits": [
+    "229 is strict; no232count or deduction/deduplication of26prerequisites.",
+    "Quality and cleanup subproofs never promote failed workload or admit matrix.",
+    "No cause inferred for audio960sample continuity, lowFPS bins or Session cleanup deadline from this run.",
+    "Both signing profiles exercised complete real workload; only ES256 cleanup meets original bounds, neither quality passes.",
+    "No raw credentials/IDs/absolute paths/RTPheaders/payloads copied; all original receipts remain untouched."
+  ],
+  "actions": {
+    "test": 0,
+    "build": 0,
+    "tracked_source_edits": 0,
+    "guest": 0
+  }
+}
