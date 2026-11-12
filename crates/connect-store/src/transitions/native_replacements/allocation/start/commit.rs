@@ -8,6 +8,52 @@ mod retired_source;
 pub use not_submitted::NativeReplacementCommitNotSubmitted;
 use recovery::{Projection, ProjectionFacts};
 
+// Invocation-local test observation only. It grants no authority, supplies no
+// error, and is absent from shipping. The actual old entry/SQL body still runs.
+#[cfg(test)]
+thread_local! {
+    static COMMIT_ENTRY_PROBE: std::cell::RefCell<Option<(&'static str, Box<dyn FnOnce()>)>> =
+        std::cell::RefCell::new(None);
+}
+#[cfg(test)]
+pub(super) fn observe_commit_entry_probe(stage: &'static str) {
+    let probe = COMMIT_ENTRY_PROBE.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        if slot
+            .as_ref()
+            .is_some_and(|(expected, _)| *expected == stage)
+        {
+            slot.take().map(|(_, probe)| probe)
+        } else {
+            None
+        }
+    });
+    if let Some(probe) = probe {
+        probe();
+    }
+}
+#[cfg(test)]
+impl Store {
+    pub(crate) fn with_native_replacement_commit_entry_probe_for_test<T>(
+        stage: &'static str,
+        probe: impl FnOnce() + 'static,
+        call: impl FnOnce() -> T,
+    ) -> T {
+        struct Reset;
+        impl Drop for Reset {
+            fn drop(&mut self) {
+                COMMIT_ENTRY_PROBE.with(|slot| slot.borrow_mut().take());
+            }
+        }
+        COMMIT_ENTRY_PROBE.with(|slot| {
+            assert!(slot.borrow().is_none(), "nested Commit entry probe");
+            *slot.borrow_mut() = Some((stage, Box::new(probe)));
+        });
+        let _reset = Reset;
+        call()
+    }
+}
+
 pub struct NativeReplacementCommitAttempt {
     origin: Arc<NativeReplacementMediaOrigin>,
     attempt: String,
@@ -375,14 +421,52 @@ mod activation_capture_tests {
 }
 
 impl Store {
-    /// Persist the single commit attempt before entering Core. The complete
-    /// scene grant includes the independent operator, old/retained owners and
-    /// target peer. Callers must retain it through the physical movement fence.
+    /// Acquire the complete current scene Writer for one original Commit.
+    /// It covers the independent operator, old/retained owners and target peer.
+    /// An effect-free SQL availability preview belongs AFTER deriving and
+    /// dropping the complete provisional read, BEFORE any WriterNotice. The
+    /// preview grants nothing; actual begin still owns its SAME fresh Unit.
+    pub fn try_native_replacement_commit_scene_write(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+    ) -> Result<NativeReplacementSceneRead> {
+        let provisional = self.try_native_replacement_scene_read(origin, sources)?;
+        let scopes = provisional.media.interval.mutation_scopes();
+        let expiry = provisional.media.source.expires_at();
+        drop(provisional);
+        #[cfg(test)]
+        observe_commit_entry_probe("scene-derived");
+        // No SQL or provisional reader survives into waited file admission.
+        drop(self.try_connection()?);
+        let wait = crate::authority_admission::passive_projection_wait();
+        let writer = self.acquire_authority(&scopes, &wait)?;
+        self.native_replacement_scene_with_interval(origin, sources, None, Some((&writer, expiry)))
+    }
+    /// Persist the single commit attempt before entering Core while retaining
+    /// the full current Writer through the physical movement fence.
+    /// failure to enter primary SQL is a definite pre-effect Busy, never a wait.
     pub fn begin_native_replacement_commit(
         &self,
         origin: Arc<NativeReplacementMediaOrigin>,
         read: &NativeReplacementSceneRead,
     ) -> Result<NativeReplacementCommitAttempt> {
+        self.try_begin_native_replacement_commit(origin, read)?
+            .ok_or_else(|| {
+                Error::new(
+                    "authority-busy",
+                    "Commit metadata is busy before its original attempt",
+                )
+            })
+    }
+    /// None means ONLY the primary Unit could not be entered before any step,
+    /// effect, transaction or Core action. All later errors remain errors and
+    /// must never be converted into a pre-effect retry by their error code.
+    pub fn try_begin_native_replacement_commit(
+        &self,
+        origin: Arc<NativeReplacementMediaOrigin>,
+        read: &NativeReplacementSceneRead,
+    ) -> Result<Option<NativeReplacementCommitAttempt>> {
         let p = &origin.started.attempt.allocated.attempt.prepared;
         if !read.current()
             || read.media.source.selection().origin.record != p.record
@@ -390,7 +474,13 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let mut c = self.connection()?;
+        #[cfg(test)]
+        observe_commit_entry_probe("begin-sql");
+        let mut c = match self.try_connection() {
+            Ok(connection) => connection,
+            Err(error) if error.code == "authority-busy" => return Ok(None),
+            Err(error) => return Err(error),
+        };
         c.bind_available_mutation_authority(self, &read.media.interval)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -498,7 +588,7 @@ impl Store {
             return Err(Error::forbidden());
         }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(NativeReplacementCommitAttempt {
+        Ok(Some(NativeReplacementCommitAttempt {
             origin,
             attempt,
             effect,
@@ -508,7 +598,7 @@ impl Store {
             source_expires_at,
             activation,
             private_successor,
-        })
+        }))
     }
     /// Persist a known actual outcome after all transient engine grants have
     /// been dropped. This does not reauthorize or reexecute movement.

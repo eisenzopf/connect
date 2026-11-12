@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T04:36:49.249264+00:00",
-  "revision": 29,
+  "updated_at": "2026-11-12T05:21:47.733156+00:00",
+  "revision": 31,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -619,7 +619,7 @@
         "P2.1"
       ],
       "status": "diagnosing",
-      "implementation_state": "Implementation active: bounded actual audio SSRC/sequence/timestamp reset diagnostics and meaningful codec unit controls, followed by an evidence-based fix. No quality threshold changes.",
+      "implementation_state": "Four Opus diagnostic controls pass. Actual short programme25 passes this sample, but receiver1 has nine extra timestamp-only resets with sameSSRC and consecutive sequence; not SSRC churn or missing wire sequences. Source audit found MetadataBusy omissions before audio IO; narrow retention fix and deadline/epoch negatives are under independent review. No decoded-quality cure claimed.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
@@ -642,11 +642,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
           "result": "All175 executed;171 passed,4 failed; source/binaries unchanged and original groups joined.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-audio-controls23.json",
+          "result": "4/4 actual Opus diagnostic controls passed; source stable and original owners joined.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-audio-programme-diagnostic25.json",
+          "result": "One actual short programme passes; timestamp-only missing quanta remain observed. No complete-suite/matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:36:49.249264+00:00",
+      "updated_at": "2026-11-12T05:21:47.733156+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -671,8 +681,8 @@
       "depends_on": [
         "P3.1"
       ],
-      "status": "diagnosing",
-      "implementation_state": "Implementation active: old-condition primary-SQL/Writer counter and bounded pre-effect admission. Retry only before any effect begins, after all Write/role aliases drop; fresh same root and original cutoff. QoE causality remains to verify.",
+      "status": "component-verified",
+      "implementation_state": "Production pre-effect SQL preview and typed nonblocking Commit admission implemented. Both old-code counterexamples now pass, plus five permanent-error/cancellation/deadline/cleanup negatives:7/7. Actual decoded quality and matrix effect remain unverified.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -680,8 +690,8 @@
         "root_cause_confirmed": false,
         "failure_mapping_verified": true,
         "architecture_conformance": "pending",
-        "counterexample_verified": false,
-        "regression_verified": false,
+        "counterexample_verified": true,
+        "regression_verified": true,
         "actual_matrix_effect_verified": false,
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
@@ -715,11 +725,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components20.json",
           "result": "All175 executed;171 passed,4 failed; source/binaries unchanged and original groups joined.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-commit-sql-old-counter24.json",
+          "result": "Two intentional old-code failures at exact final oracles; metadata/fence defects confirmed, no decoded QoE claim.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-commit-sql-fixed27.json",
+          "result": "7/7 actual fixed Store/Service controls pass; normal production check passes; source/binaries stable and all original owners joined.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:36:49.249264+00:00",
+      "updated_at": "2026-11-12T05:21:47.733156+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -729,11 +749,11 @@
         "A09"
       ],
       "current_action": {
-        "owner": "/root/fixture_blockers",
-        "reviewer": "/root",
-        "cause": "Return candidate stops with Media(Backpressure) before Ready; source-derived exact unpublished validate_direct publisher-state try_lock WouldBlock. Runtime leaf tagging still needed.",
-        "fix": "Core402 private typed publisher-validation exclusion only; map at pre-route preroll boundary to existing MetadataBusy retry with current scope release/fresh authorization and original deadline. Ordinary subscriptions keep original Backpressure behavior.",
-        "verification": "Actual held publisher mutex, zero route publication on refusal, recovery under original deadline, poison/revoke/revision/expiry/cancel remain terminal, full native4move62s regression."
+        "owner": "/root",
+        "reviewer": "/root/fixture_blockers",
+        "cause": "Two actual pre-effect SQL admission/fence defects reproduced before fix.",
+        "fix": "SQL availability preview before Writer intent; typed definite-no-attempt retry releases full Writer/roles and keeps original root deadline.",
+        "verification": "7/7 controls passed; full decoded programme and matrix effect pending."
       }
     },
     {
@@ -808,7 +828,7 @@
         "P6.1"
       ],
       "status": "assigned",
-      "implementation_state": "52 GiB retired build-object cleanup complete and measured. Current free space about47.9 GiB D2 and28.6 GiB internal; fresh shipping/VM/preflight capacity checks still required.",
+      "implementation_state": "52GiB retired build-object cleanup completed and measured. Subsequent compilation consumed some headroom; fresh shipping/VM capacity checks and bounded additional cleanup remain pending.",
       "proposed_fix": "Retain approved per-role/aggregate RSS and original numeric process/FD/thread capacities; trends diagnostic and separate soak unaffected.",
       "required_evidence": "1GiB server/4GiB browser/1GiB helper/6GiB aggregate; exact original resource-pool restoration and source-bound server thread exception; no incomplete cycle counted as pass.",
       "coordinator_review": {
@@ -824,7 +844,7 @@
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:36:49.249264+00:00",
+      "updated_at": "2026-11-12T05:21:47.733156+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": []
@@ -3302,6 +3322,11 @@
       "at": "2026-11-12T04:36:49.249264+00:00",
       "by": "/root",
       "action": "Owner instructed Finish the plan. Implementation resumed: Media owns bounded audio reset evidence; Store owner owns causal pre-effect Commit SQL counter/fix; Fixture independently reviews both. All175 originals and32/432 exit preserved; local Mac/nativeARM only. origin/main fetched and already contained. No current build/runtime owners remain."
+    },
+    {
+      "at": "2026-11-12T04:53:21.254504+00:00",
+      "by": "/root",
+      "action": "Actual Audio23 controls4/4 passed. Actual old CommitSQL24 counters reproduced both intended final failures after cleanup, with unchanged source/binary and joined owners. Independent review confirms metadata/fence cause only, not decoded QoE. Production pre-effect admission fix authorized for application."
     }
   ],
   "tracking_review": {

@@ -1,0 +1,575 @@
+{
+  "format": "connect/g6-058-audio-programme-diagnostic25/1",
+  "scope": "One original short native A/V programme with bounded audio header evidence, before the SQL admission fix. No full combined or matrix qualification.",
+  "expected": 1,
+  "source_sha256": "bdce0a14cce68a671aa41d6fde6c687a6172c62d0632a5b708ee506c99f26e23",
+  "summary": {
+    "expected": 1,
+    "executed": 1,
+    "passed": 1,
+    "failed": 0
+  },
+  "matrix_qualified": false,
+  "combined175_qualified": false,
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "recorded_at": "2026-11-12T05:20:52.731202+00:00",
+  "raw_receipt_sha256": "747c6c1b85d855f89e007a743f35584a9c0aa6b2210aea08a1e81e9dffb5e817",
+  "original_build": {
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 83.4837513329694,
+    "source_unchanged": true,
+    "log_sha256": "7ad091a5ac0ddfc7030d80aeb665e43a46f49f72fae9af0a83bc87fe73b80f3d",
+    "stderr_sha256": "13e19222c7b43aae4ed1efd2b35c202a77304d6742c0283421fb60a063a9e4f5"
+  },
+  "original_test": {
+    "group": 5,
+    "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates",
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 33.050660750013776,
+    "source_and_binary_unchanged": true,
+    "explicit_ignored_execution": false,
+    "summary": [
+      [
+        "ok",
+        "1",
+        "0",
+        "0"
+      ]
+    ],
+    "log_sha256": "15599d1c4fa3252c8704cf6cb6227bc3c43c964717e9da4d7ca02cb8b3b70943",
+    "passed": true
+  },
+  "snapshots": [
+    {
+      "stage": "before",
+      "round": 0,
+      "receiver": 0,
+      "consecutive_samples": 95040,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "before",
+      "round": 0,
+      "receiver": 1,
+      "consecutive_samples": 96000,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "before",
+      "round": 0,
+      "receiver": 2,
+      "consecutive_samples": 96000,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "before",
+      "round": 0,
+      "receiver": 3,
+      "consecutive_samples": 96000,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "before",
+      "round": 0,
+      "receiver": 4,
+      "consecutive_samples": 96000,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "before",
+      "round": 0,
+      "receiver": 5,
+      "consecutive_samples": 96000,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "during",
+      "round": 0,
+      "receiver": 0,
+      "consecutive_samples": 248640,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "during",
+      "round": 0,
+      "receiver": 1,
+      "consecutive_samples": 248640,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "during",
+      "round": 0,
+      "receiver": 2,
+      "consecutive_samples": 248640,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "during",
+      "round": 0,
+      "receiver": 3,
+      "consecutive_samples": 248640,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "during",
+      "round": 0,
+      "receiver": 4,
+      "consecutive_samples": 248640,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "during",
+      "round": 0,
+      "receiver": 5,
+      "consecutive_samples": 248640,
+      "resets": 0,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 0,
+      "recent_header_deltas": []
+    },
+    {
+      "stage": "before",
+      "round": 1,
+      "receiver": 0,
+      "consecutive_samples": 43200,
+      "resets": 2,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 2,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 5657615,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 5760
+        },
+        {
+          "elapsed_us": 5776903,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 2880
+        }
+      ]
+    },
+    {
+      "stage": "before",
+      "round": 1,
+      "receiver": 1,
+      "consecutive_samples": 43200,
+      "resets": 3,
+      "ssrc_changes": 1,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 3,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 5537173,
+          "same_ssrc": false,
+          "sequence_delta": 1,
+          "timestamp_delta": 6720
+        },
+        {
+          "elapsed_us": 5657393,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 6720
+        },
+        {
+          "elapsed_us": 5777601,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 3840
+        }
+      ]
+    },
+    {
+      "stage": "before",
+      "round": 1,
+      "receiver": 2,
+      "consecutive_samples": 43200,
+      "resets": 3,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 3,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 5518998,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 2880
+        },
+        {
+          "elapsed_us": 5676505,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 6720
+        },
+        {
+          "elapsed_us": 5757380,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 3840
+        }
+      ]
+    },
+    {
+      "stage": "before",
+      "round": 1,
+      "receiver": 3,
+      "consecutive_samples": 43200,
+      "resets": 3,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 3,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 5497521,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 4800
+        },
+        {
+          "elapsed_us": 5657153,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 4800
+        },
+        {
+          "elapsed_us": 5755924,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 2880
+        }
+      ]
+    },
+    {
+      "stage": "before",
+      "round": 1,
+      "receiver": 4,
+      "consecutive_samples": 43200,
+      "resets": 3,
+      "ssrc_changes": 1,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 2,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 3273331,
+          "same_ssrc": false,
+          "sequence_delta": 1,
+          "timestamp_delta": 960
+        },
+        {
+          "elapsed_us": 5673008,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 5760
+        },
+        {
+          "elapsed_us": 5753991,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 3840
+        }
+      ]
+    },
+    {
+      "stage": "before",
+      "round": 1,
+      "receiver": 5,
+      "consecutive_samples": 43200,
+      "resets": 3,
+      "ssrc_changes": 1,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 3,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 5515059,
+          "same_ssrc": false,
+          "sequence_delta": 1,
+          "timestamp_delta": 6720
+        },
+        {
+          "elapsed_us": 5673244,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        },
+        {
+          "elapsed_us": 5733209,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 5760
+        }
+      ]
+    },
+    {
+      "stage": "during",
+      "round": 1,
+      "receiver": 0,
+      "consecutive_samples": 215040,
+      "resets": 2,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 2,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 5657615,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 5760
+        },
+        {
+          "elapsed_us": 5776903,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 2880
+        }
+      ]
+    },
+    {
+      "stage": "during",
+      "round": 1,
+      "receiver": 1,
+      "consecutive_samples": 7680,
+      "resets": 12,
+      "ssrc_changes": 1,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 12,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 9135030,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        },
+        {
+          "elapsed_us": 9175836,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        },
+        {
+          "elapsed_us": 9456487,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        },
+        {
+          "elapsed_us": 9557354,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        },
+        {
+          "elapsed_us": 9616118,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        },
+        {
+          "elapsed_us": 9695429,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        },
+        {
+          "elapsed_us": 9916480,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        },
+        {
+          "elapsed_us": 10036089,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        }
+      ]
+    },
+    {
+      "stage": "during",
+      "round": 1,
+      "receiver": 2,
+      "consecutive_samples": 215040,
+      "resets": 3,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 3,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 5518998,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 2880
+        },
+        {
+          "elapsed_us": 5676505,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 6720
+        },
+        {
+          "elapsed_us": 5757380,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 3840
+        }
+      ]
+    },
+    {
+      "stage": "during",
+      "round": 1,
+      "receiver": 3,
+      "consecutive_samples": 215040,
+      "resets": 3,
+      "ssrc_changes": 0,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 3,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 5497521,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 4800
+        },
+        {
+          "elapsed_us": 5657153,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 4800
+        },
+        {
+          "elapsed_us": 5755924,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 2880
+        }
+      ]
+    },
+    {
+      "stage": "during",
+      "round": 1,
+      "receiver": 4,
+      "consecutive_samples": 215040,
+      "resets": 3,
+      "ssrc_changes": 1,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 2,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 3273331,
+          "same_ssrc": false,
+          "sequence_delta": 1,
+          "timestamp_delta": 960
+        },
+        {
+          "elapsed_us": 5673008,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 5760
+        },
+        {
+          "elapsed_us": 5753991,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 3840
+        }
+      ]
+    },
+    {
+      "stage": "during",
+      "round": 1,
+      "receiver": 5,
+      "consecutive_samples": 35520,
+      "resets": 4,
+      "ssrc_changes": 1,
+      "sequence_discontinuities": 0,
+      "timestamp_discontinuities": 4,
+      "recent_header_deltas": [
+        {
+          "elapsed_us": 5515059,
+          "same_ssrc": false,
+          "sequence_delta": 1,
+          "timestamp_delta": 6720
+        },
+        {
+          "elapsed_us": 5673244,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        },
+        {
+          "elapsed_us": 5733209,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 5760
+        },
+        {
+          "elapsed_us": 9452900,
+          "same_ssrc": true,
+          "sequence_delta": 1,
+          "timestamp_delta": 1920
+        }
+      ]
+    }
+  ],
+  "assessment": {
+    "observed": "Round1 receiver1 resets3\u219212, timestamp discontinuities3\u219212, SSRC changes unchanged1 and sequence discontinuities0. Last8 retained events have sameSSRC, sequence+1 and timestamp+1920 against expected960. This sample passes with current consecutive7680; it does not prove the prior intermittent deficit resolved.",
+    "ruled_out_for_this_window": [
+      "repeated SSRC churn",
+      "missing RTP sequence numbers"
+    ],
+    "pending": "Attribute missing source quanta before packet sequence assignment; separately validate source-proven MetadataBusy retention omission. No causal decoded-quality claim for that omission yet."
+  }
+}

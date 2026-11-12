@@ -1,7 +1,7 @@
 {
   "format": "connect/media-quality-next-fix-plan/1",
-  "status": "Investigation and causal counters required; no acceptance change or production fix claim",
-  "updated_at": "2026-11-12T04:05:51.063109+00:00",
+  "status": "SQL cause counters reproduced and fixed7/7; audio cause narrowed, pre-IO MetadataBusy retention correction under independent review; full quality qualification pending",
+  "updated_at": "2026-11-12T05:21:47.733156+00:00",
   "coordinator": "/root",
   "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components20.json",
   "baseline": {
@@ -21,8 +21,8 @@
       "id": "P5.1",
       "owner": "/root/media_blockers",
       "reviewer": "/root/v198_resources",
-      "cause_status": "Unresolved; actual short-run old receiver1 only960 consecutive samples versus2880 during private preparation, before that case Ready/Commit.",
-      "next": "Bounded actual previous/current audio SSRC,sequence,timestamp and decoder-reset reason evidence; distinguish clock-origin rollover, reordering and missing packets before changing production code.",
+      "cause_status": "Actual programme25 identifies timestamp-only gaps with unchangedSSRC and consecutive sequence. Separate source omission drops pre-IO MetadataBusy audio in Core/native/generic adapters; counter/production correction staged, actual quality causality unproven.",
+      "next": "Verify old/fixed real Opus retention, same200ms age, earliest lease, old epoch/cancellation/permanent errors and no submitted IO retry, then frozen expanded full programme.",
       "invariants": [
         "No source-quantum attribution claim",
         "Keep2880 decoded samples, freshness and all quality bounds",
@@ -33,13 +33,13 @@
       "id": "P5.2",
       "owner": "/root/v198_resources",
       "reviewer": "/root/media_blockers",
-      "cause_status": "Mapped mechanism, not proven packet-loss cause: actual public Core/Store movement still holds broad authority Write, including across a blocking pre-effect SQL admission. Historical capture Reader fixes do not remove these real cuts.",
+      "cause_status": "Both actual old-code pre-effect SQL/fence counters reproduced; production preview/nonblocking begin passes both and five additional negatives.",
       "actual_failures": [
         "Full route2 sec18=18FPS,sec43=20FPS; route3 sec18=22FPS; minimum24. Route3 sec43=24 passes.",
         "All4 actual historical captures used positive-reader; all4 physical moves completed."
       ],
       "timing_correction": "Full programme uses representative(false,true): no deliberate coordinator hold. Bins18/43 span Ready and actual Commit; quality snapshot before Ready does not prove loss before Commit.",
-      "next": "Reproduce exact pre-effect SQL wait under an already-held real movement Writer, and correlate Writer-acquired/SQL-dispatch/SQL-return/Core-enter/Writer-drop with real publication refusals and public packet-age/sequence evidence.",
+      "next": "Independent fixed27 adjudication, followed by full frozen combined programme to establish actual media effect.",
       "proposed_scope": "Consider pre-effect SQL availability/nonblocking exact begin plus full release and fresh same-root plan retry ONLY before effect begins. No replay after begun; no arbitrary removal of current Write custody.",
       "invariants": [
         "Do not hold SQL while waiting for file authority",
@@ -52,7 +52,7 @@
   "qualification_order": [
     "Prove cause with a controlled counter and independent review",
     "Implement only verified cause fixes and unit-test positive and negative cases",
-    "Run all175 unchanged selectors/fixtures on one final frozen source, including full62 last",
+    "Run one expanded suite preserving all175 original selectors/fixtures, all new cause/negative controls, and full62 last, on one final frozen source.",
     "Require evaluated decoded quality,4moves,Data,original End/joins and budgets",
     "Then normal shipping/preflight and all32cells/all432checks locally on Mac/nativeARM Linux"
   ],
@@ -66,8 +66,8 @@
     "checks_blocked": 44
   },
   "disk_now_free_bytes": {
-    "/": 30755360768,
-    "/Volumes/D2-2019": 51396169728
+    "/": 30730133504,
+    "/Volumes/D2-2019": 39448870912
   },
   "public_commit_sql_counter_design_sha256": "41d4b8e9e092bb75b12931bc6a122411338e96fcfaa4bf5f388fa0676f3be030",
   "video_write_window_analysis_sha256": "2fb5a65c01715575140aebda7eb276fc91fa212c298e0f60300c8c8f32eb52ea",

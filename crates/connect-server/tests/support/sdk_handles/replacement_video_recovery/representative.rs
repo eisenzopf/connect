@@ -67,6 +67,100 @@ fn short() -> RequestOptions {
     RequestOptions::new(Duration::from_secs(1)).unwrap()
 }
 
+const AUDIO_RESET_HISTORY: usize = 8;
+#[derive(Clone, Copy, Debug)]
+struct AudioResetEvent {
+    previous: readiness_audio::RtpHeader,
+    current: readiness_audio::RtpHeader,
+    reasons: readiness_audio::ResetReasons,
+    observed_at: Instant,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct AudioResetReport {
+    elapsed_us: Option<u128>,
+    previous: readiness_audio::RtpHeader,
+    current: readiness_audio::RtpHeader,
+    reasons: readiness_audio::ResetReasons,
+}
+#[derive(Clone, Debug, Default)]
+struct AudioContinuity {
+    last: Option<readiness_audio::ContinuityObservation>,
+    resets: u64,
+    ssrc_changes: u64,
+    sequence_discontinuities: u64,
+    timestamp_discontinuities: u64,
+    recent: [Option<AudioResetEvent>; AUDIO_RESET_HISTORY],
+    next: usize,
+    len: usize,
+}
+impl AudioContinuity {
+    fn observe(&mut self, observation: readiness_audio::ContinuityObservation, now: Instant) {
+        if self
+            .last
+            .is_some_and(|old| old.decode_serial == observation.decode_serial)
+        {
+            return;
+        }
+        self.last = Some(observation);
+        if !observation.reset.any() {
+            return;
+        }
+        let Some(previous) = observation.previous else {
+            return;
+        };
+        self.resets = self.resets.saturating_add(1);
+        self.ssrc_changes = self
+            .ssrc_changes
+            .saturating_add(u64::from(observation.reset.ssrc_changed));
+        self.sequence_discontinuities = self
+            .sequence_discontinuities
+            .saturating_add(u64::from(observation.reset.sequence_discontinuity));
+        self.timestamp_discontinuities = self
+            .timestamp_discontinuities
+            .saturating_add(u64::from(observation.reset.timestamp_discontinuity));
+        self.recent[self.next] = Some(AudioResetEvent {
+            previous,
+            current: observation.current,
+            reasons: observation.reset,
+            observed_at: now,
+        });
+        self.next = (self.next + 1) % AUDIO_RESET_HISTORY;
+        self.len = (self.len + 1).min(AUDIO_RESET_HISTORY);
+    }
+    fn reports(&self, began: Instant) -> [Option<AudioResetReport>; AUDIO_RESET_HISTORY] {
+        let mut reports = [None; AUDIO_RESET_HISTORY];
+        let first = (self.next + AUDIO_RESET_HISTORY - self.len) % AUDIO_RESET_HISTORY;
+        for (offset, report) in reports.iter_mut().enumerate().take(self.len) {
+            *report =
+                self.recent[(first + offset) % AUDIO_RESET_HISTORY].map(|event| AudioResetReport {
+                    elapsed_us: event
+                        .observed_at
+                        .checked_duration_since(began)
+                        .map(|d| d.as_micros()),
+                    previous: event.previous,
+                    current: event.current,
+                    reasons: event.reasons,
+                });
+        }
+        reports
+    }
+}
+// Finite control-boundary reports only. No packet logging, payload, new clock,
+// authority lookup, polling owner or acceptance change is introduced.
+fn audio_continuity_snapshot(
+    stage: &'static str,
+    round: usize,
+    began: Instant,
+    progress: &[Progress],
+) {
+    for (receiver, value) in progress.iter().enumerate() {
+        let audio = &value.audio_continuity;
+        eprintln!("representative audio continuity stage={stage} round={round} receiver={receiver} consecutive_samples={} last={:?} resets={} ssrc_changes={} sequence_discontinuities={} timestamp_discontinuities={} recent={:?}",
+            value.audio_samples, audio.last, audio.resets, audio.ssrc_changes,
+            audio.sequence_discontinuities, audio.timestamp_discontinuities, audio.reports(began));
+    }
+}
+
 /// Bounded scalar observation. The full media stays with its original reader.
 #[derive(Clone, Debug)]
 struct Progress {
@@ -107,6 +201,7 @@ struct Progress {
     // Nonincreasing consecutive samples among actual new PCM decodes.
     audio_run_nonincreases: u64,
     audio_last_nonincrease: Option<Instant>,
+    audio_continuity: AudioContinuity,
     last_video: Option<Instant>,
     last_audio: Option<Instant>,
     last_key: Option<Instant>,
@@ -154,6 +249,7 @@ impl Default for Progress {
             audio_peak_samples: Default::default(),
             audio_run_nonincreases: Default::default(),
             audio_last_nonincrease: Default::default(),
+            audio_continuity: Default::default(),
             last_video: Default::default(),
             last_audio: Default::default(),
             last_key: Default::default(),
@@ -901,6 +997,9 @@ fn observe_audio(progress: &SharedProgress, decoder: &readiness_audio::Decoder, 
     state.audio_samples = samples;
     state.audio_peak_samples = state.audio_peak_samples.max(samples);
     state.last_audio = Some(now);
+    if let Some(observation) = decoder.continuity() {
+        state.audio_continuity.observe(observation, now);
+    }
 }
 
 #[test]
@@ -915,6 +1014,7 @@ fn ignored_audio_packets_cannot_refresh_actual_decoded_playout() {
         assert!(decoded);
         observe_audio(&progress, &decoder, decoded);
     }
+    let accepted = decoder.continuity();
     let expired = Instant::now() - AGE;
     progress.lock().unwrap().last_audio = Some(expired);
     for sequence in [2u16, 1] {
@@ -927,7 +1027,13 @@ fn ignored_audio_packets_cannot_refresh_actual_decoded_playout() {
         assert_eq!(observed.audio_samples, 2880);
         assert_eq!(observed.last_audio, Some(expired));
         assert_eq!(observed.audio_run_nonincreases, 0);
+        assert_eq!(decoder.continuity(), accepted);
+        assert_eq!(observed.audio_continuity.last, accepted);
+        assert_eq!(observed.audio_continuity.resets, 0);
     }
+    assert!(decoder.decode(7, 3, 2880, &[]).is_err());
+    assert_eq!(decoder.continuity(), accepted);
+    assert_eq!(progress.lock().unwrap().last_audio, Some(expired));
     let decoded = decoder.decode(7, 3, 2880, &bytes).unwrap();
     assert!(decoded);
     observe_audio(&progress, &decoder, decoded);
@@ -939,6 +1045,182 @@ fn ignored_audio_packets_cannot_refresh_actual_decoded_playout() {
     assert_eq!(observed.audio_samples, 960);
     assert_eq!(observed.audio_peak_samples, 3840);
     assert_eq!(observed.audio_run_nonincreases, 1);
+    assert_eq!(observed.audio_continuity.resets, 1);
+    let reset = observed.audio_continuity.last.unwrap().reset;
+    assert!(!reset.ssrc_changed);
+    assert!(reset.sequence_discontinuity && reset.timestamp_discontinuity);
+    drop(observed);
+    // A real codec error after the discontinuity predicate must not publish
+    // a fabricated successful output or continuity observation.
+    let mut g711 = readiness_audio::Decoder::selected(&json!({"name":"pcmu","params":{
+        "sample_rate":8000,"channels":1,"payload_type":0}}))
+    .unwrap();
+    assert!(g711.decode(9, 1, 160, &[0xff; 160]).unwrap());
+    let accepted = g711.continuity();
+    assert!(g711.decode(9, 3, 480, &[0xff; 159]).is_err());
+    assert_eq!(g711.continuity(), accepted);
+}
+
+#[test]
+fn actual_audio_rtp_resets_report_exact_ssrc_sequence_and_timestamp_causes() {
+    let cases = [
+        (
+            (8, 101, 10560),
+            readiness_audio::ResetReasons {
+                ssrc_changed: true,
+                sequence_discontinuity: false,
+                timestamp_discontinuity: false,
+            },
+        ),
+        (
+            (7, 102, 10560),
+            readiness_audio::ResetReasons {
+                ssrc_changed: false,
+                sequence_discontinuity: true,
+                timestamp_discontinuity: false,
+            },
+        ),
+        (
+            (7, 101, 11520),
+            readiness_audio::ResetReasons {
+                ssrc_changed: false,
+                sequence_discontinuity: false,
+                timestamp_discontinuity: true,
+            },
+        ),
+        (
+            (7, 102, 11520),
+            readiness_audio::ResetReasons {
+                ssrc_changed: false,
+                sequence_discontinuity: true,
+                timestamp_discontinuity: true,
+            },
+        ),
+    ];
+    for ((ssrc, sequence, timestamp), expected) in cases {
+        let progress = Arc::new(Mutex::new(Progress::default()));
+        let mut decoder = selected_opus();
+        let bytes = decoder.encoded_silence().unwrap();
+        let began = Instant::now();
+        assert!(decoder.decode(7, 100, 9600, &bytes).unwrap());
+        observe_audio(&progress, &decoder, true);
+        assert!(decoder.decode(ssrc, sequence, timestamp, &bytes).unwrap());
+        observe_audio(&progress, &decoder, true);
+        assert_eq!(decoder.samples(), 960);
+        assert!(!decoder.usable());
+        let observed = progress.lock().unwrap();
+        let continuity = &observed.audio_continuity;
+        assert_eq!(continuity.resets, 1);
+        assert_eq!(continuity.len, 1);
+        let report = continuity.reports(began)[0].unwrap();
+        assert_eq!(
+            report.previous,
+            readiness_audio::RtpHeader {
+                ssrc: 7,
+                sequence: 100,
+                timestamp: 9600
+            }
+        );
+        assert_eq!(
+            report.current,
+            readiness_audio::RtpHeader {
+                ssrc,
+                sequence,
+                timestamp
+            }
+        );
+        assert_eq!(report.reasons, expected);
+        assert!(report.elapsed_us.is_some());
+        assert_eq!(continuity.ssrc_changes, u64::from(expected.ssrc_changed));
+        assert_eq!(
+            continuity.sequence_discontinuities,
+            u64::from(expected.sequence_discontinuity)
+        );
+        assert_eq!(
+            continuity.timestamp_discontinuities,
+            u64::from(expected.timestamp_discontinuity)
+        );
+    }
+}
+
+#[test]
+fn actual_audio_rtp_continuity_wrap_keeps_required_pcm_run() {
+    let progress = Arc::new(Mutex::new(Progress::default()));
+    let mut decoder = selected_opus();
+    let bytes = decoder.encoded_silence().unwrap();
+    for (sequence, timestamp) in [(u16::MAX, u32::MAX - 959), (0, 0), (1, 960)] {
+        let decoded = decoder.decode(7, sequence, timestamp, &bytes).unwrap();
+        assert!(decoded);
+        observe_audio(&progress, &decoder, decoded);
+    }
+    assert!(decoder.usable());
+    assert_eq!(decoder.samples(), 2880);
+    let observed = progress.lock().unwrap();
+    assert_eq!(observed.audio_samples, 2880);
+    assert_eq!(observed.audio_continuity.resets, 0);
+    let last = observed.audio_continuity.last.unwrap();
+    assert_eq!(
+        last.previous,
+        Some(readiness_audio::RtpHeader {
+            ssrc: 7,
+            sequence: 0,
+            timestamp: 0
+        })
+    );
+    assert_eq!(
+        last.current,
+        readiness_audio::RtpHeader {
+            ssrc: 7,
+            sequence: 1,
+            timestamp: 960
+        }
+    );
+    assert!(!last.reset.any());
+}
+
+#[test]
+fn actual_audio_reset_history_is_fixed_and_counts_saturate_without_duplicate_credit() {
+    let progress = Arc::new(Mutex::new(Progress::default()));
+    let mut decoder = selected_opus();
+    let bytes = decoder.encoded_silence().unwrap();
+    let began = Instant::now();
+    for index in 0..=12u16 {
+        let decoded = decoder
+            .decode(7 + u32::from(index), index, u32::from(index) * 960, &bytes)
+            .unwrap();
+        assert!(decoded);
+        observe_audio(&progress, &decoder, decoded);
+    }
+    {
+        let mut observed = progress.lock().unwrap();
+        let continuity = &mut observed.audio_continuity;
+        assert_eq!(continuity.resets, 12);
+        assert_eq!(continuity.ssrc_changes, 12);
+        assert_eq!(continuity.sequence_discontinuities, 0);
+        assert_eq!(continuity.timestamp_discontinuities, 0);
+        assert_eq!(continuity.len, AUDIO_RESET_HISTORY);
+        let reports = continuity.reports(began);
+        assert_eq!(reports[0].unwrap().current.ssrc, 12);
+        assert_eq!(reports[7].unwrap().current.ssrc, 19);
+        continuity.observe(
+            decoder.continuity().unwrap(),
+            Instant::now() + Duration::from_secs(1),
+        );
+        assert_eq!(continuity.resets, 12);
+        assert_eq!(continuity.reports(began), reports);
+        continuity.resets = u64::MAX;
+        continuity.ssrc_changes = u64::MAX;
+    }
+    let decoded = decoder.decode(20, 13, 12480, &bytes).unwrap();
+    assert!(decoded);
+    observe_audio(&progress, &decoder, decoded);
+    let observed = progress.lock().unwrap();
+    let continuity = &observed.audio_continuity;
+    assert_eq!(continuity.resets, u64::MAX);
+    assert_eq!(continuity.ssrc_changes, u64::MAX);
+    assert_eq!(continuity.len, AUDIO_RESET_HISTORY);
+    assert_eq!(continuity.reports(began)[7].unwrap().current.ssrc, 20);
+    assert_eq!(observed.audio_samples, 960);
 }
 
 fn selected_opus() -> readiness_audio::Decoder {
@@ -1783,6 +2065,7 @@ async fn representative(force_allocation_overlap: bool, full_programme: bool) {
             let move_started=Instant::now();let move_cutoff=move_started+Duration::from_secs(8);
             assert!(move_cutoff<=programme_cutoff,"both rounds retain original movement budgets");
             phase_timing("round-start",began,Some(round),None);
+            audio_continuity_snapshot("before",round,began,&before);
             let mut commands=Vec::new();
             for (sid,&index) in [0usize,4].iter().enumerate() {
                 let revision=sessions[sid].refresh(short()).await.unwrap().topology_revision.get();
@@ -1922,6 +2205,7 @@ async fn representative(force_allocation_overlap: bool, full_programme: bool) {
             quality_failures.extend(old_playout_quality_failures(
                 &before, &during, round, move_started, first_bin, last_bin,
             ));
+            audio_continuity_snapshot("during",round,began,&during);
             ready.expect("both same original candidates require fresh real audio and fragmented decoded keys");
             for sid in 0..2 {
                 let status=timeout_at(move_cutoff,controllers[sid].operation_get(&commands[sid].operation_id,scope(&commands[sid])))

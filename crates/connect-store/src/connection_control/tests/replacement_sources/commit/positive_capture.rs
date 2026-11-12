@@ -625,3 +625,5 @@ fn existing_or_claimed_dormant_candidate_cannot_enter_positive_commit_reader_pat
 }
 
 mod source_retirement;
+
+mod commit_sql;

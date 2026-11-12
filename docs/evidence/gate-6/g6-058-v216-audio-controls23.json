@@ -1,0 +1,113 @@
+{
+  "format": "connect/audio-continuity-controls23-sanitized/1",
+  "created_at": "2026-11-12T04:50:27.910442+00:00",
+  "scope": "Four actual Opus diagnostic controls; no decoded programme quality or matrix qualification",
+  "summary": {
+    "expected": 4,
+    "executed": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "raw_receipt_sha256": "107c7b1c0979c923ee60c4c81a01b4cf75edb08734cae35fc0a81e30226d0d41",
+  "source_sha256": "aba20450b0d0155c71f30b12c5f15d004a3bd1f6b65b176c1484fe9802f09da6",
+  "source_base_revision": "710ba4ea588c1449089ec8c6b73b0820ac63b167",
+  "source_workspace_sha256": "1aca71846b1f76ddb5de547cecf597c72a824ca2b4f98486a7670665109bed3c",
+  "source_lock_sha256": "bef0ccbe4fa72c4a5656ee066134ef48ab007c91f2299b8a8ad248bffbe738c5",
+  "source_unchanged": true,
+  "all_original_groups_joined": true,
+  "actual_controller": {
+    "tool_session": 40569,
+    "wait_returned": true,
+    "exit_code": 0
+  },
+  "build": {
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 39.134800124913454,
+    "source_unchanged": true,
+    "log_sha256": "cc59ae6c7b5afcad351913f9d144b2e6c9b3d8cce2f757024f3a201268fd36bf",
+    "stderr_sha256": "b934443413bb2d101cdaee395149c1836d1ef29745b8257b935b5d8d8df7b77b"
+  },
+  "tests": [
+    {
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::actual_audio_rtp_resets_report_exact_ssrc_sequence_and_timestamp_causes",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "3cb83565d548ed23e3ed7238e9160f5a45da1023fc1730e3b48d0d7e361ec6e6",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.010379832936450839
+    },
+    {
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::actual_audio_rtp_continuity_wrap_keeps_required_pcm_run",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "225778a2d6cdc3c26a83335c4fb14d5ca7a0ab3f1fa41912f8ed1910b2697161",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009641999960877001
+    },
+    {
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::actual_audio_reset_history_is_fixed_and_counts_saturate_without_duplicate_credit",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "898cd409a6683496812887af9340e3ead73bf584fbf66b04bd71a320cd6de6c5",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.010261917021125555
+    },
+    {
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::ignored_audio_packets_cannot_refresh_actual_decoded_playout",
+      "passed": true,
+      "source_and_binary_unchanged": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "log_sha256": "22dcd538358b9e4ddc8ac0a34153d6a3f2b5480dbf65cc4317fb8967012ab650",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.010310249985195696
+    }
+  ],
+  "matrix_qualified": false,
+  "combined_qualified": false
+}

@@ -888,6 +888,8 @@ impl Store {
         let scopes = provisional.media.interval.mutation_scopes();
         let expiry = provisional.media.source.expires_at();
         drop(provisional);
+        #[cfg(test)]
+        commit::observe_commit_entry_probe("scene-derived");
         // Manager announces local snapshot invalidation before admission wait.
         // No provisional aliases or SQL guard survive to wait on themselves.
         let wait = crate::authority_admission::passive_projection_wait();

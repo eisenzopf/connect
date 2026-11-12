@@ -1,0 +1,122 @@
+{
+  "format": "connect/independent-commit-sql-fixed-evidence/1",
+  "state": "SEVEN FOCUSED CONTROLS VERIFIED; FULL REGRESSION/MATRIX PENDING",
+  "reviewer": "fixture_blockers",
+  "fixed": {
+    "selected": 7,
+    "executed": 7,
+    "passed": 7,
+    "failed": 0,
+    "ignored": 0,
+    "source_sha256": "e99f5450396f8dd473c0541319b3a8b8f09c40c584015786927e5f486cda7ffb",
+    "workspace_sha256": "83d649e9114591a327eab08b3c8760426ed865db54918eb7322dd319948e42d2",
+    "source_and_binaries_unchanged": true,
+    "all_original_groups_joined": true,
+    "default_feature_Service_check": true,
+    "normal_opt0_debug2_profiles_verified": true,
+    "instrumented_Service_test_support_verified": true,
+    "results_sha256": "203a09cbd2a83e08a1198fcdcdf29a55af697a41181bb39025f83ffd39be3d6a",
+    "runner_sha256": "ee911b188f379e1e306639e319ec9af12ae6f01eed0fbf066b00e79d3af58bd5",
+    "default_check_log_sha256": "76d1ca42327a91a2c96c0d53f9d12329fab0d2ffac785e908c6d0487380f85da",
+    "build_log_sha256": "f25baad181a54817c8d6db7b46a64825c0f60d61eb78f58ddeb713641fda897c",
+    "binaries_sha256": [
+      "a9eadbabca6dcff0e90d2a4a7ec022d797504ec18076ba7789b89c622fb28e11",
+      "c75e0ba4ee8eb4e4663feff6c0655716f2da053219d33554ce06c49fbffc5989"
+    ]
+  },
+  "old_counter": {
+    "executed": 2,
+    "passed": 0,
+    "failed": 2,
+    "intentional_final_oracles_causally_reproduced": true,
+    "all_original_groups_joined": true,
+    "source_and_binary_unchanged": true,
+    "results_sha256": "fab259ab31d883c243a489e958df900b9b547769bf103c7d8fac380de7f3fedd",
+    "causal_review_sha256": "813d53d05da8720430e25ed97f2aab95634f710fa5b25d0eddae5088826a66a9"
+  },
+  "applied_source_review_sha256": "74d8967e46e2143c366f8a1206cdd92f22abda4f6cf6f6f113a84cd5538d03aa",
+  "controls": [
+    {
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::commit_sql_busy_after_scene_derive_preserves_unaffected_audio_io_and_original_epoch",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "6606796ad0e96aa854e6996bd629c0ae1f5a1f949f36f613836d6f06a41665fd",
+      "elapsed_seconds": 0.9929103750037029,
+      "same_old_counter": true,
+      "old_expected_failure_now_passes": true
+    },
+    {
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::commit_begin_sql_reacquire_defers_without_parking_full_scene_writer",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "adbdc1121dc13b595106b372069876d033a8627f518c7659c2a38544d65a3cc4",
+      "elapsed_seconds": 1.0380050840321928,
+      "same_old_counter": true,
+      "old_expected_failure_now_passes": true
+    },
+    {
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::read_only_commit_refusal_cannot_masquerade_as_definite_sql_deferral",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "a9bde042c903556552a69b1a2eb17672d10d60858c3424793b31db9e3a798045",
+      "elapsed_seconds": 0.9292203340446576,
+      "same_old_counter": false,
+      "old_expected_failure_now_passes": false
+    },
+    {
+      "selector": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::commit_begin_sql_body_error_is_terminal_and_rolls_back_original_attempt",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "209a2545c210380f2d2da649a12ea03285e169fb49fae6a9ec6f5897c9f7be9c",
+      "elapsed_seconds": 1.0391370420111343,
+      "same_old_counter": false,
+      "old_expected_failure_now_passes": false
+    },
+    {
+      "selector": "canonical_replacement::movement::commit_admission::tests::definite_no_attempt_drops_real_writer_and_role_before_same_root_retry",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "e4acdabeb1a46bbd470e98c99e1fdc68e741aa800ac11dbb24d9c7802d3b8627",
+      "elapsed_seconds": 0.5137835409259424,
+      "same_old_counter": false,
+      "old_expected_failure_now_passes": false
+    },
+    {
+      "selector": "canonical_replacement::movement::commit_admission::tests::errors_even_named_busy_never_retry_an_existing_or_uncertain_attempt",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "2c6369fe643f53a7ca6991f1c1fc5db4cecb4274b8669b0688735fdbd280503c",
+      "elapsed_seconds": 0.07383908401243389,
+      "same_old_counter": false,
+      "old_expected_failure_now_passes": false
+    },
+    {
+      "selector": "canonical_replacement::movement::commit_admission::tests::late_success_is_joined_and_retained_for_exact_not_submitted_custody",
+      "passed": true,
+      "executed": 1,
+      "ignored": 0,
+      "log_sha256": "bf57ea74ef197d71e3e2458d598c43d56990a3ff4d53ca05ed28249fb4473bb3",
+      "elapsed_seconds": 0.03050508303567767,
+      "same_old_counter": false,
+      "old_expected_failure_now_passes": false
+    }
+  ],
+  "limits": [
+    "Metadata/fence causality and bounded admission ownership only; no decoded QoE or all-causes claim",
+    "Original failed fixed26 build and failed oldcounter24 evidence remain unchanged",
+    "No full186/expanded regression or full32/432 qualification from these7 cases",
+    "Parent reported original controller joined exit0; child owner closure verified from actual receipts, no live PID probe by reviewer"
+  ],
+  "actions": {
+    "reviewer_builds": 0,
+    "reviewer_tests": 0,
+    "source_mutations": 0,
+    "guest": 0
+  }
+}

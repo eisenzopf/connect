@@ -1,0 +1,91 @@
+{
+  "format": "connect/commit-sql-old-counter24-sanitized/1",
+  "created_at": "2026-11-12T04:50:27.910442+00:00",
+  "scope": "Actual Store/Registry authorization and IO/stamp custody; no Core submission or decoded media execution",
+  "summary": {
+    "expected": 2,
+    "executed": 2,
+    "passed": 0,
+    "failed": 2
+  },
+  "old_condition_reproduced": true,
+  "raw_receipt_sha256": "fab259ab31d883c243a489e958df900b9b547769bf103c7d8fac380de7f3fedd",
+  "source_sha256": "26db32fd6a635563a11bbdff3c151f97a03262b7afc0bdd7b9af2854c606c893",
+  "source_base_revision": "710ba4ea588c1449089ec8c6b73b0820ac63b167",
+  "source_workspace_sha256": "1ead55d3933667a19e36b0fc58d76d74be8c61beeb8277d8fde24f2cc3eda986",
+  "source_lock_sha256": "bef0ccbe4fa72c4a5656ee066134ef48ab007c91f2299b8a8ad248bffbe738c5",
+  "source_unchanged": true,
+  "all_original_groups_joined": true,
+  "actual_controller": {
+    "tool_session": 84664,
+    "wait_returned": true,
+    "exit_code": 1
+  },
+  "build": {
+    "exit_code": 0,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 20.2002253329847,
+    "source_unchanged": true,
+    "log_sha256": "1e654d229bce69e9b369cc8ea4cfe66109b0bbf047ea12d93f5980d4e7938106",
+    "stderr_sha256": "b1192172b403ae08a34864751c3c47bfe45a73e7c1424a8b20dfaee60297eee9"
+  },
+  "tests": [
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::commit_sql_busy_after_scene_derive_preserves_unaffected_audio_io_and_original_epoch",
+      "passed": false,
+      "source_and_binary_unchanged": true,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "log_sha256": "d02d4960daea474223e2f1dd5d858aa9d15c0ce2ef2b87324d9c3c805fa06997",
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.0124451670562848,
+      "old_condition_reproduced": true,
+      "final_oracle": "pre-effect Commit SQL exclusion revoked the original unaffected audio epoch before any Commit metadata or Core mutation",
+      "preconditions_and_cleanup_before_final_oracle_reached": true
+    },
+    {
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::commit_sql::commit_begin_sql_reacquire_defers_without_parking_full_scene_writer",
+      "passed": false,
+      "source_and_binary_unchanged": true,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "log_sha256": "7746170f4d8645ec318647b9106852e7eb3b7fde2c31ce41ff0395e54784e775",
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.1726849999977276,
+      "old_condition_reproduced": true,
+      "final_oracle": "pre-effect Commit begin parked its full scene Writer behind primary SQL before any Commit step/Core IO",
+      "preconditions_and_cleanup_before_final_oracle_reached": true
+    }
+  ],
+  "independent_source_review_sha256": "af2f92fc5185a327b6ab0892a179aa6b2bfa49952631644a106a61f4c3664b8e",
+  "old_equivalence": "The test-only alias calls the actual retained generic SceneWriter entry and actual blocking begin; observers only pause execution and inject no error or authority.",
+  "limits": [
+    "These two intentional test failures establish the mapped metadata/fence defects only.",
+    "C1 retains real unrelated media IO while primary SQL is held; no Commit DML occurs.",
+    "C2 measures original Writer custody before Commit DML, then releases SQL and joins/settles its single original metadata attempt.",
+    "Writer release does not imply a revoked epoch revives or fresh media IO succeeds under SQL exclusion.",
+    "No full QoE or matrix pass is inferred."
+  ],
+  "matrix_qualified": false,
+  "combined_qualified": false
+}

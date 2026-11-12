@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T04:36:49.249264+00:00",
-  "run_status": "Implementation resumed to finish the approved plan. Audio reset diagnostics and pre-effect Commit SQL admission counter/fix are assigned to separate agents, with independent review. Latest full focused result remains171/175;7/7 subsequent fixture controls passed. No new full-run verdict yet. All175 original selectors and32cells/432 exit checks retained; local Mac/nativeARM Linux only. Quality limits unchanged.",
+  "updated": "2026-11-12T05:21:47.733156+00:00",
+  "run_status": "Two actual old-code Commit SQL counters reproduced avoidable media epoch invalidation and Writer custody parked on primary SQL, with original cleanup complete. The bounded pre-effect fix is now being applied. Audio diagnostics passed4/4 actual Opus controls. Latest complete focused run remains171/175; subsequent7/7 fixture controls remain separate. No new matrix pass or decoded QoE cause-fix is claimed. Local Mac/nativeARM Linux only; all quality thresholds retained.",
   "blockers": [
     {
       "id": "B01",
@@ -5779,10 +5779,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v215.json"
   },
   "current_focused_verification": {
-    "passed": 127,
-    "planned": 130,
-    "scope": "Source17:102Store,10Service,5UCTP,6purefixture,1RTC,1signedData,2shortnative pass.2RTCReady and1native return fail.",
-    "next": "Batch18compilefailedtest-onlyE0282with0runtime. Exactone-lineannotationreviewed; fresh19same175+11RTC/full62LASTnext. No productionfixoracceptancerelaxation."
+    "passed": 171,
+    "planned": 175,
+    "scope": "Complete focused batch20: all175 executed,4 failed (short native audio, full62 video/End, RTC latch, initialAV fixture expectation). Later component evidence is separate.",
+    "next": "Three fixture fixes7/7, audio diagnostic controls4/4, SQL admission fix7/7 verified separately. Finish audio retention controls, then run one frozen expanded suite retaining all175 originals and full62 last; matrix follows."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17389,6 +17389,12 @@
       "passed": 7,
       "planned": 7,
       "evidence": "g6-058-v216-fixture-controls21.json"
+    },
+    {
+      "name": "Actual Opus continuity diagnostics",
+      "passed": 4,
+      "planned": 4,
+      "evidence": "g6-058-v216-audio-controls23.json"
     }
   ],
   "current_production_check": {
@@ -17427,5 +17433,26 @@
     "failed": 0,
     "matrix_qualified": false
   },
-  "next_media_fix_plan": "docs/evidence/gate-6/g6-058-v216-media-quality-next-fix-plan.json"
+  "next_media_fix_plan": "docs/evidence/gate-6/g6-058-v216-media-quality-next-fix-plan.json",
+  "commit_sql_old_counter24": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-commit-sql-old-counter24.json",
+    "old_condition_reproduced": true,
+    "intentional_failed_cases": 2,
+    "all_original_groups_joined": true,
+    "decoded_QoE_qualified": false,
+    "independent_causal_review_sha256": "813d53d05da8720430e25ed97f2aab95634f710fa5b25d0eddae5088826a66a9"
+  },
+  "commit_sql_fixed27": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-commit-sql-fixed27.json",
+    "passed": 7,
+    "executed": 7,
+    "matrix_qualified": false
+  },
+  "audio_programme_diagnostic25": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-audio-programme-diagnostic25.json",
+    "passed": 1,
+    "executed": 1,
+    "assessment": "SameSSRC/consecutive sequence with timestamp-only gaps; no SSRC fastpath fix justified. Source-proven MetadataBusy retention omission under independent review; actual public decoded-quality attribution pending.",
+    "matrix_qualified": false
+  }
 }

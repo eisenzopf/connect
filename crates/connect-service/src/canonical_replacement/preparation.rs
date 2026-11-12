@@ -255,8 +255,11 @@ impl Runtime {
             .get()
             .cloned()
             .ok_or_else(Error::forbidden)?;
+        let commit_entry = matches!(&phase, Phase::Commit(_));
         let read = store_call(move || {
-            if mutation {
+            if commit_entry {
+                store.try_native_replacement_commit_scene_write(&origin, &sources)
+            } else if mutation {
                 store.try_native_replacement_scene_write(&origin, &sources)
             } else {
                 store.try_native_replacement_scene_read(&origin, &sources)
