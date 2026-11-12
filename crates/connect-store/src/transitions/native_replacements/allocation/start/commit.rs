@@ -919,7 +919,7 @@ impl Store {
             &target.runtime_connection_id,
             target.connection.generation,
         )?);
-        let (held, mut c) = self.try_replacement_capture_projection(
+        let (held, mut c) = self.try_replacement_publication_projection(
             live.map(|capture| &capture.activation_diagnostics),
             |c| {
                 let row = rows::by_record(c, &p.record)?;

@@ -1,0 +1,68 @@
+{
+  "format": "connect/visual-policy-server-datagram-source-audit/1",
+  "reviewer": "/root/media_blockers",
+  "scope": "Read-only source; no actual media/queue/refusal observation",
+  "source_hashes": {
+    "crates/connect-service/src/canonical_media.rs": "a3038de39a7a4e116c6c67792feea3c232f382c4cc37a007b5b3e99afefb0221",
+    "crates/connect-service/src/canonical_media/packets.rs": "e7ac884281a23870b0de58810dac20f80fa9136f04c39787bd2b803ec7622b97",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams.rs": "7f885e5517c8417114b6a81c736602990a91cf8e35475f2d2a2501d79911ac99",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs": "aac93adaaca0aaa7d3b488c11cd97d6d2fb82e26858b8aa51b3734dc8376b813",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs": "efceea2974dfab4067b26143bf419609779059e5106446e85cd42b084fe734db",
+    ".deps/rvoip/crates/uctp/rvoip-quic/src/canonical.rs": "5eb7e88b4b83641dda880451d7fd09c99a09cd2861d601b52450b3e65bbfe8b7",
+    ".deps/rvoip/crates/uctp/rvoip-quic/src/adapter.rs": "a91c6a1117fb4e7bf1a5eb41f8b75ac621ef7112e4181d48648c1b6f1d911fdd",
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/staged_media.rs": "c4d8d111d6da9824dfb30deeff7ed355f7350d78dcb2fe4bd81d9c7a3670f2e6",
+    ".deps/quinn-proto/src/connection/datagrams.rs": "2b01265027351ce2130d621a3aca3a6a81691bddbf4824bdb6925cd2ea6e3705"
+  },
+  "connect_visual_policy": {
+    "classification": "No demonstrated ordinary Connect MetadataBusy-discard gap at ScenePending match",
+    "chain": [
+      "ScenePending.forward calls MediaPacket.try_forward_to_pending; existing same destination ticket/deadline and200ms admitted_at checks remain.",
+      "forward_to enters admit_with_deadline using AdmissionOwner::Ordinary, not original-ingress owner. Source retained/current_queued or exact active-context current_packet; recipient uses current_packet when actual source custody exists.",
+      "Service Policy.current_queued and current_packet call packet_current, then packet_current_inner original=false. packet_error explicitly maps MetadataBusy toNotReady for ordinary Publish/Receive.",
+      "Core ordinary detached model lock contention on queued/forwarding paths returnsNotReady. Private try_saved_selections/try_private_stamp MetadataBusy is preparation-only, not ordinary stamp.",
+      "ScenePending retains exact NotReady packet/destination under original200ms and min observed deadlines. This already covers actual ordinary Service temporarymetadata class; a genericPolicy override may differ but is not established actual22 cause."
+    ],
+    "limits": [
+      "No new genericPolicy patch justified for current qualification without actual branch evidence.",
+      "An unchanged error arm alone does not establish production packet loss."
+    ]
+  },
+  "epoch_nuance": {
+    "initial_visual_ingress": "Default PacketCustody alone has no Store epoch initially.",
+    "after_first_forward": "forward_to unconditionally observes successful source lease into same PacketCustody for all media and rechecks currentness. Later partial fanout/pending retries can therefore possess a real source epoch.",
+    "target_egress": "QueuedMedia.authorization_epochs captures target lease epoch. require_authorization_epochs rejects revoked epochs before current admission.",
+    "safety": "Actual revoked source/target epoch returnsAuthority and is terminal; no permitted retry may revive original buffered authority after Writer or bind it to fresh permissions."
+  },
+  "server_quic_queue": {
+    "source_backed_risk": true,
+    "actual_paths": [
+      "rvoip-quic canonical.rs Datagrams::send_datagram",
+      "rvoip-quic adapter.rs QuicStagedDatagrams::send_datagram"
+    ],
+    "mechanism": "Both call Quinn.Connection.send_datagram. ExactQuinn0.11.12 connection.rs448-454 calls proto datagrams.send(data,true); proto0.11.19 drops oldest unsent queued datagrams to admit new data and returnsOk.",
+    "capacity": "Existing encoded-video profile76032B and reordering/BBR settings change saturation likelihood, not non-eviction guarantee. Do not enlarge thresholds/buffers as a causal remedy.",
+    "counter_proposal": "If separately authorized, exercise BOTH actual wrappers with validRTP in controlled original76032B queue, older actuallyaccepted RTP plus pressure burst; drain actual receiver and join original owners before asserting older payload custody. No decoder/FPS claim.",
+    "fix_constraints": [
+      "Atomic non-evicting submission protects prioraccepted RTP but a new definiteBackpressure may still discard the current callback-owned packet.",
+      "Current StagedDatagramTransport interface is synchronous; UCTP transport callback executes strictly after fresh Core admission. Generic Submitted/partial-fragment failures remain terminal, never blindly replayed.",
+      "Any bounded pending owner must preserve originalbytes/sequence/clock/cutoff/current auth, distinguish noIO from anypossiblepartial IO, not block QUIC driver and not hold expired/grant authority while waiting."
+    ]
+  },
+  "historical_attribution": {
+    "full206_second44": "Actual19fps clean routes2/3; no per-packet evidence proves server queue pressure, exactStore refusal subtype or source/target epoch rejection at missing packets.",
+    "source_encoded": "Original source1/2 encode/publish30frames in badbin; receiver assembly/keyframe gating loss partition established separately.",
+    "claim": "Futurehardening/controlledcounter scope is distinct from actual observed19fps cause. No production media fix staged."
+  },
+  "next_if_actual_full_programme_fails": [
+    "Use existing bounded video_pending event and direct delivery phase summaries at failure to distinguish forward source/target policy NotReady, Authority/epoch terminal, age/selection/ticket and encoder/keyframe-gating states.",
+    "Correlate actual per-medium StagedRtp io_snapshot inputs/primary attempts/accepted/refused/completions at same original control boundaries; do not sum duplicated peer-wide terminal counters.",
+    "Check admitted source/target epoch currentness and current Grant generation against actual finalactivation Writer intervals; no synthetic clock or expected-slot attribution.",
+    "Queue-local accepted counts cannot prove remote delivery; actual Quinn drop/capacity or controlled counter needed for server-eviction attribution."
+  ],
+  "actions": {
+    "active_source_edits": false,
+    "dependency_edits": false,
+    "builds_tests_probes": false,
+    "new_workloads": false
+  }
+}

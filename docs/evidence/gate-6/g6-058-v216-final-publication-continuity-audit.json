@@ -1,0 +1,57 @@
+{
+  "format": "connect/final-publication-continuity-source-audit/1",
+  "reviewer": "/root/media_blockers",
+  "status": "Read-only design/audit; no proposed production patch before actual229 evidence",
+  "source_hashes": {
+    "crates/connect-store/src/transitions/native_replacements/allocation/start/commit.rs": "58c2f573e5c3692a39698b6473aad9c19bcc140ee0dad324bc2f096f5fc3dcbd",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start/projection.rs": "d4467db4db73316c19058e98eeef15077a082df76cb0499a3090b2542ba59880",
+    "crates/connect-store/src/authority_admission.rs": "f6aab57a8b141d1eff87f3b72d79470a2c95541fe9a4119f62df07b29feaa3bf",
+    "crates/connect-store/src/authority_fences.rs": "0ebcacc017ccafe19351f62b3698685f5b5e40203b074150a9360e23a5ebf260",
+    "crates/connect-store/src/media_authorization.rs": "01db0de134fade179cc17c95d7ba1f94cc144ad5c00292c0816bce527cfbc5c2",
+    "crates/connect-store/src/peer_authority/connection_media.rs": "f36e843a972afcaafe03a02fb0448c8a844ca02ed8b0258a37c0fc78187cd5be",
+    "crates/connect-store/src/authority_writer_boundary/phase_ledger/commit.rs": "0f522824bfe1d7dc2a9b280bfbf6433b4248c8a4ebc96620057b2a861c87b285"
+  },
+  "actual_reported42_observation": "Parent reports completedWriter control29 immediateBusy attempts/epochcuts before successful53msDML; not actual fullprogrammeFPS proof.",
+  "current_starvation_mechanism": [
+    "conversation_scopes(Write) includes CIDWrite plus ALLactive participant IdentityWrite, not only affected connection. before_write invalidates every cached publication intersecting these scopes.",
+    "Immediate file admission can fail behind actualboundedpacketIO after allcachedReader publications revoked. Busy unwinds heldSQL/partialproof/WriterNotice; it does not preserve a priority reservation across the20ms backoff.",
+    "Once notice drops, watcher may republish current snapshots and freshpacketIO can holdreaders at the next20ms immediateattempt. Repeatedattempts can therefore revoke manyfresh epochs even though each returns quickly. No leakedguard/SQLdeadlock is proved by this pattern.",
+    "Same primarySQLUnit avoids oldSQLreacquisition race, but cannot guarantee a reader-free instant or prevent genuineWriterNoticecuts. No5ms/overalldeadline relaxation is justified."
+  ],
+  "dml_partition": {
+    "real_authority_denial_or_gain": [
+      "Oldsource native_connection_lifetimes retired=1 and readyconnection retirement/generation change when still live.",
+      "Newtarget connection+offer publication and exactnative/replacement lifetime rows; retiredcandidate reuse can replace existing lineage.",
+      "Stopped branch retires target and calls lifecycle reconciliation; private_successor branch publishes private lineage."
+    ],
+    "monotonic_control_metadata": [
+      "Session topology_revision+updated_at",
+      "Exactroot committing/completed/result, workerlease invalidation, rootrevision/event",
+      "Exactconnection_ready/retired journal emission to frozen actual recipients"
+    ],
+    "required_guards_unchanged": [
+      "Exactcaptured runtime/root/reservation/plan/attempt/effect and storedmatching observation",
+      "Completecurrent source/retained/target credentials, keys/devices/endpoints/members/audience/originalexpiry",
+      "Installation exactCoreowner before and at transactionCOMMIT; publication callback linearization",
+      "Schema sameUnitnonce+completeactualrowtrigger footprint, rollback/currentruntime checks"
+    ]
+  },
+  "conditional_future_design": {
+    "smallest_candidate": "Only if exactoldsource alreadygenuinely retired AND allitsnative lifetimes retired, targetfreshabsent/unclaimed, public/noPrivateSuccessor, currentuncancelled originalPreparing root and completecurrentReaders/expiry, and lifecycle pre/post provennoop: exactsameSQLUnit finalpublication permit could admit only gain-only newtarget +monotonictopology/root/journal rows. Noexistingaffected grant mayremain live.",
+    "not_authorized_implementation": "Eligibility in actualfullprogramme unobserved; existinghistoricalcaptureReader permit does NOT authorize finalpublicactivation DML. A newclosedrow-delta permit/schema and actualnegativecontrols would be required.",
+    "scope_warning": "Source-live path requires actualdenialWriter. Resource audit confirms ordinary NativeMediaRead currently has no per-originRecord scope, so RecordWrite+CIDRead does NOT protect current affectedReaders today. Would require complete dependency protocol refactor; do not implement as simpleWrite-scope swap.",
+    "strong_negatives": [
+      "Alreadyretired source with anylive/unretirednativeLifetime mustdeny specialbranch",
+      "Source-live, reused/claimedtarget, privateSuccessor, stopped/reconcile-with-effects, changedmembership/credential/key/device/endpoint/generation/expiry/cancel cannot use gain-onlypermit",
+      "ForeignSQLUnit/root/receipt/observation/delta and arbitraryconnection/session/journal writes refused by actualschema",
+      "Genuine revocation/retirement stillinvalidates+drains actualaffected packetIO; unrelatedpublic VP8epoch retained only when no relevantauthority fact changed",
+      "Originalsamecapture recovery idempotent, currentinstallation custody throughcommit, noCore/effect replay, alloriginalcutoffs unchanged"
+    ]
+  },
+  "empirical_discriminator": "Actual229 fullEdDSA+ES256 after allselectedcomponents is next measurement; if either fails use exactpacketphase/epoch/forward/refusal evidence, not hope or widerpermission caching. CountercompletedWriter pass proves retainedSQL custody only; no24fps cure claim.",
+  "actions": {
+    "source_or_dependency_edits": false,
+    "builds_tests_probes": false,
+    "new_workloads": false
+  }
+}

@@ -1,0 +1,260 @@
+{
+  "format": "connect/independent-fixed-final-activation39-components/1",
+  "state": "24 OF26 PASS; TARGETED AND NEXT COHORT UNQUALIFIED",
+  "actual_summary": {
+    "expected": 26,
+    "executed": 26,
+    "passed": 24,
+    "failed": 2
+  },
+  "source_sha256": "16029957b3c1d47c4cc95c189429665eb9f57567b89d0b1638424e1d12b730e0",
+  "original_results_sha256": "912add5adfd9c37ddac2ef944a7a6791fbbbf39d158e4358edf038ccdf12568d",
+  "formatted_source_binding_sha256": "ce047c21c8bfc1e566ff717c7fec9164ed8c721f9baf38d54d4165ff9c229fa9",
+  "all5_actual_formatted_images_in_tested_source_verified": true,
+  "binary_sha256": "24666c859fe7b9300a7c32d68fc92692db41ae76013f7646243520182db798c1",
+  "inventory_sha256": "d63a8948d9181292c772c42a09c26610567b5d8a78fd1921ed99f687f1e09644",
+  "unit_actual_features": [
+    "test-support"
+  ],
+  "normal_test_profile": {
+    "opt_level": "0",
+    "debuginfo": 2,
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "test": true
+  },
+  "build_passed": true,
+  "all_original_build_and_test_groups_joined": true,
+  "source_and_binary_stable": true,
+  "cases": [
+    {
+      "index": 0,
+      "selector": "connection_control::tests::replacement_sources::commit::publication_sql::public_activation_sql_interleaving_cannot_cut_unaffected_video_epoch_without_publication",
+      "passed": false,
+      "ignored": 0,
+      "log_sha256": "a5bcdd4de9ee0e3c88fcac4a2e8784c06e06772620008891a6e5dd8f144bb7cc"
+    },
+    {
+      "index": 1,
+      "selector": "connection_control::tests::replacement_sources::commit::publication_sql::public_activation_immediate_writer_releases_sql_on_real_reader_busy_and_progresses_after_drain",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "0e6bcacb918cef6225b1fdefda27f013e9c008483c83e9c7b143595301462675"
+    },
+    {
+      "index": 2,
+      "selector": "connection_control::tests::replacement_sources::commit::activation::reserved_activation_metadata_is_inactive_until_exact_durable_completion_and_rechecks_revocation",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "ec9f93c399322f6bdf2b325b42ebc2eda4b73f4546a7e8ee2d5f840ddae94dad"
+    },
+    {
+      "index": 3,
+      "selector": "connection_control::tests::replacement_sources::commit::activation::uncertain_commit_metadata_cannot_activate_a_route_or_reserve_data",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "5dffd9a4e91750c252e5863d0171539c8de69088879bb1ec42c3352b4ee1b541"
+    },
+    {
+      "index": 4,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::readiness_requires_exact_installation_before_and_at_commit_and_failed_final_write_rolls_back",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "681cedbe88f1b20e4a42fda3ca7002eb9d04034bcd79b4c10c623eab03f2098c"
+    },
+    {
+      "index": 5,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::stopped_before_activation_preserves_known_move_without_ready_or_retained_route_retirement",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "a123d85e286cde8460abc28efd185876d8d61a185162a5b63cf94f70b55a0289"
+    },
+    {
+      "index": 6,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::only_known_current_pending_activation_is_temporary_and_revocation_remains_permanent",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "3735a335ab4198f9cce4bddfbbfee872382a19ea2bab37373137da9f1f9ca09d"
+    },
+    {
+      "index": 7,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::installation_custody_survives_until_the_ready_transaction_is_visible",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "d3c63572ce770d33edf7e8c9ab5095e106622291afb6824dcc870ffcc51c7363"
+    },
+    {
+      "index": 8,
+      "selector": "connection_control::tests::replacement_sources::commit::activation_barrier::final_publication_callback_refusal_rolls_back_without_ready_and_original_retry_commits_once",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "3d7ae668a435c01d819f135133cb7f611ad806131152701957b3a5f1e056beb9"
+    },
+    {
+      "index": 9,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::recorded_commit_replay_preserves_actual_media_read_and_original_queued_epoch",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "a41bede554b2eccc103e9858a7577eabb232d19db64b1f70c05456046784bd17"
+    },
+    {
+      "index": 10,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::first_known_commit_capture_still_requires_writer_and_records_once_after_io_drains",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "1a16b6cbe9caf1f5a049cb83faa4211f9be5db2244df35c2797eb69c8ee53258"
+    },
+    {
+      "index": 11,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_commit_refuses_read_only_scene_without_starting_an_effect",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "a09ea63cdda23fa665699cddd75624127ad088fb105e89137645d8331c4f6db3"
+    },
+    {
+      "index": 12,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_write_drains_old_readers_then_rederives_and_commits_once",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "f11ff76e25086163bb17a2c518e9649e765296250b02dd58b3adbe87aff107db"
+    },
+    {
+      "index": 13,
+      "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "28c6a289d980cd5093e09f12d50b7089300837f8cd525867689e83b4de297637"
+    },
+    {
+      "index": 14,
+      "selector": "connection_control::tests::replacement_sources::commit::active_recovery::successor_retires_established_replacement_without_rewriting_receipt_or_reviving_authority",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "2d9d9381b860d0d77155b15417b82fdc9446ed8aa5eb0bb1899d68e7f1aee1ef"
+    },
+    {
+      "index": 15,
+      "selector": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_defers_without_blocking_other_current_packet_reads",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "380c52097d24cdeae990b9c43905cf9259e427f968bfbc6d77e3bbfb6b4bf366"
+    },
+    {
+      "index": 16,
+      "selector": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_releases_writer_when_sql_or_transaction_is_busy",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "79d27ec1fc8862312f1b7658aa0de6743aac940409745ce2a5cc64f7a7d6ed94"
+    },
+    {
+      "index": 17,
+      "selector": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_finishes_original_fenced_session_end_and_leave_after_target_revoke",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "18016a014ee4fd133a755bfb1d1ee43b1f84c1c490baa838bde33fce8d2022b9"
+    },
+    {
+      "index": 18,
+      "selector": "connection_control::tests::replacement_sources::commit::terminal_retirement::replacement_cleanup_refuses_wrong_absence_and_unexplained_local_fences_without_changes",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "636dd2411df4ea12b4ca4db3b3f2ae0e4fd0c4097ea6e581754df159e8e2657b"
+    },
+    {
+      "index": 19,
+      "selector": "connection_control::tests::replacement_sources::commit::transaction_diagnostics::transaction_diagnostics_separate_begin_body_commit_and_unchanged_replay",
+      "passed": false,
+      "ignored": 0,
+      "log_sha256": "d2b8a694c6329fc1e4a31e503bfa89f415ab1ab09145cb48efd999d064ab0adf"
+    },
+    {
+      "index": 20,
+      "selector": "connection_control::tests::replacement_sources::commit::diagnostics::projection_diagnostics_distinguish_sql_mutex_authority_and_transaction_refusals",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "446793f353a4cd2cb10a51aa2af185abc24906e0bc476d688d54dab23b0db7ce"
+    },
+    {
+      "index": 21,
+      "selector": "connection_control::tests::replacement_sources::commit::diagnostics::captured_projection_drains_brief_primary_sql_exclusion_within_original_admission_budget",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "18ff42b741729000727b3788e8127911a0f925d5d36f504bee0f5825086b2ac9"
+    },
+    {
+      "index": 22,
+      "selector": "connection_control::tests::replacement_sources::commit::diagnostics::initial_projection_sql_wait_keeps_refusals_effect_free_and_current_installation_required",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "e51747638758b3b6ab0b20d84a7f5b4547f1e021d4f192e44fddabd36aa8d385"
+    },
+    {
+      "index": 23,
+      "selector": "connection_control::tests::replacement_sources::commit::captured_projection_refuses_contention_without_parking_packet_readers",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "32da3ee1099d98a97be8fcf1f20cb44d8a184bb580a1927961346beacb67b65f"
+    },
+    {
+      "index": 24,
+      "selector": "connection_control::tests::replacement_sources::commit::captured_projection_drains_short_packet_readers_without_long_writer_parking",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "5dd89a5907dd088f5c1ed5c658484e6e86143b7b3264bfa01772fcadcff69490"
+    },
+    {
+      "index": 25,
+      "selector": "connection_control::tests::replacement_sources::commit::captured_projection_releases_writer_when_sql_reacquire_is_busy",
+      "passed": true,
+      "ignored": 0,
+      "log_sha256": "d640f058e497c908a860037a91ebacad76fd5277bf42bf8216de12c2e7f60a09"
+    }
+  ],
+  "failed_cases": [
+    {
+      "index": 0,
+      "stage": "required fullWriter-admission precondition",
+      "actual_writer_admitted": false,
+      "actual_SQL_fault_acquired": false,
+      "result": "authority-busy",
+      "durable_snapshot_unchanged": true,
+      "fresh_observer_current": true,
+      "original_epoch_current": false,
+      "original_stamp_current": false,
+      "intended_fixed_interleaving_assertions_reached": false,
+      "meaning": "Cannot qualify fixed SQL-custody restoration from this invocation; no actual second primary-SQL owner was injected."
+    },
+    {
+      "index": 19,
+      "stage": "duplicate historical capture diagnostics BEFORE first public activation call",
+      "field": "capture.transaction.unchanged",
+      "actual": 0,
+      "required": 1,
+      "first_public_activation_call_reached": false,
+      "meaning": "Expectation failed before exercising new publication helper. Root cause/new-versus-latent diagnostic semantics requires author audit; no attribution inferred."
+    }
+  ],
+  "qualified_old_counter38_remains_unchanged": true,
+  "batch23": {
+    "expected": 228,
+    "implementation_binding_complete": false,
+    "ready": false
+  },
+  "qualification": {
+    "fixed26": false,
+    "full228": false,
+    "shipping": false,
+    "matrix": false
+  },
+  "limits": [
+    "All26 executed, none skipped/ignored; failed controls remain failures.",
+    "No decoded video/FPS causation or full22quality repair inferred.",
+    "Original setup-only selector-schema error and oldcounter38 receipts preserved; no tests rerun by reviewer."
+  ],
+  "actions": {
+    "build": 0,
+    "test": 0,
+    "source_mutation": 0,
+    "guest": 0
+  }
+}

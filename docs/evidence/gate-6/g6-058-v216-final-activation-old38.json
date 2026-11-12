@@ -1,0 +1,58 @@
+{
+  "format": "connect/independent-final-activation-old38-adjudication/1",
+  "state": "INTENDED OLD PRETXSQL EPOCH COUNTEREXAMPLE REPRODUCED",
+  "actual_summary": {
+    "expected": 1,
+    "executed": 1,
+    "passed": 0,
+    "failed": 1
+  },
+  "original_results_sha256": "c82090868af0a58c257b10049673d84e0d76336e78847407d89f587487b4f80e",
+  "source_sha256": "02def7a005cac302b00edf08c30b6c743c313d0b5e2a4f98d7d58bdc4151d52e",
+  "log_sha256": "9d34230e86617b6abbb70a25575e33335847c3c588ffa550f6facc039168dc5a",
+  "binary_sha256": "fe1360c9f4e2e41e265a1cc9e062deec554809f7c4ca0fe0299edca42019fd11",
+  "inventory_sha256": "d63a8948d9181292c772c42a09c26610567b5d8a78fd1921ed99f687f1e09644",
+  "old_production_hashes_verified": {
+    "commit.rs": "e8985269985eef1f2057f4a44898a1279ab02ae923ccf2db343b7ab73362bb24",
+    "projection.rs": "01d186d516f9153fd5f9700a1d86d813e795c0e8fad450ea37572ca3919d1188"
+  },
+  "exact_reviewed_test_only_images_verified": true,
+  "actual_unit_features": [
+    "test-support"
+  ],
+  "normal_test_profile": {
+    "opt_level": "0",
+    "debuginfo": 2,
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "test": true
+  },
+  "build_passed": true,
+  "all_original_groups_joined": true,
+  "source_and_binary_stable": true,
+  "causal_facts": {
+    "actual_public_Session_AV_ready_VP8_IO_stamp_epoch_preconditions_passed": true,
+    "original_IO_dropped_before_Writer": true,
+    "actual_complete_Writer_probe_reached": true,
+    "primary_SQL_fault_acquired_after_Writer": true,
+    "metadata_result": "authority-busy",
+    "durable_snapshot_unchanged": true,
+    "fresh_independent_packet_observer_current": true,
+    "original_queued_epoch_current": false,
+    "original_snapshot_stamp_current": false,
+    "worker_and_watcher_cleanup_before_final_oracle": true,
+    "exact_final_intended_oracle_failed": true
+  },
+  "limits": [
+    "Intentional old test failure, not a passed case.",
+    "Actual Store AV metadata/IO custody; no encoded/sent/decoded VP8 or full22 sec44 FPS causal claim.",
+    "Fixed implementation and26 controls plus full228 are still pending."
+  ],
+  "source_review_sha256": "6dd14b3350cbd88ea0c14b4d82eee53b8be85c9153dadd086e8d4738b0caa65e",
+  "actions": {
+    "build": 0,
+    "test": 0,
+    "source_mutation": 0,
+    "guest": 0
+  }
+}

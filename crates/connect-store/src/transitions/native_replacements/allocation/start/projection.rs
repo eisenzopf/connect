@@ -219,4 +219,52 @@ impl Store {
         timing.admitted = true;
         Ok((held, c))
     }
+    /// Final replacement publication (ready or stopped) keeps its SQL Unit through immediate
+    /// full Writer admission. There is no primary-SQL reacquire gap after the
+    /// WriterNotice. Kernel/file admission NEVER waits while SQL is owned;
+    /// registry metadata mutexes and filesystem validation remain synchronous.
+    /// A miss releases the entire Unit/proof before Service's same-capture retry.
+    pub(super) fn try_replacement_publication_projection<'a>(
+        &'a self,
+        counters: Option<&AdmissionCounters>,
+        derive: impl Fn(&Connection) -> Result<Vec<AuthorityScope>>,
+    ) -> Result<(Arc<AuthorityGuardSet>, ConnectionGuard<'a>)> {
+        let mut timing = AdmissionTiming {
+            counters,
+            elapsed: [0; 4],
+            failed_stage: None,
+            refusal: 0,
+            admitted: false,
+        };
+        // Preserve the existing five-millisecond SQL admission bound. This
+        // proof owns no file Writer during SQL admission/footprint derivation.
+        let wait = replacement_capture_wait();
+        let (c, scopes) = timing.step(0, || {
+            let c = self.try_connection_with_wait(&wait)?;
+            let scopes = derive(&c)?;
+            Ok((c, scopes))
+        })?;
+        // None in Manager means immediate kernel/resource admission, NOT a
+        // promise that internal metadata mutexes/filesystem calls cannot delay.
+        let held = timing.step(1, || {
+            wait.check()?;
+            let held = self.try_acquire_authority(&scopes)?;
+            wait.check()?;
+            Ok(held)
+        })?;
+        #[cfg(test)]
+        crate::authority_admission::observe_passive_admission(true);
+        let current = timing.step(3, || derive(&c))?;
+        if !self.authority_covers(&held, &current) {
+            timing.failed_stage = Some(4);
+            timing.refusal = 0;
+            return Err(Error::new(
+                "authority-busy",
+                "Replacement publication projection scope changed",
+            ));
+        }
+        c.bind_available_mutation_authority(self, &held)?;
+        timing.admitted = true;
+        Ok((held, c))
+    }
 }

@@ -5,6 +5,7 @@ use crate::{NativeMediaOrigin, NativeReplacementMediaOrigin, NativeReplacementSt
 use connect_protocol::transitions::{EffectState, OperationState};
 use std::sync::Arc;
 mod continuation;
+mod publication_sql;
 mod writer_boundary;
 struct Movement {
     f: Fixture,
@@ -84,30 +85,44 @@ fn assert_passive_sql_reacquire_defers<T: Send>(
     let (entered, ready) = std::sync::mpsc::sync_channel(1);
     let (release, resume) = std::sync::mpsc::sync_channel(1);
     let (done, finished) = std::sync::mpsc::sync_channel(1);
-    let (admitted, returned_while_busy, result) = std::thread::scope(|workers| {
-        let attempt = workers.spawn(move || {
-            let result = crate::authority_admission::with_passive_admission_probe(
-                move |admitted| {
-                    let _ = entered.send(admitted);
-                    let _ = resume.recv_timeout(std::time::Duration::from_secs(2));
-                },
-                call,
-            );
-            let _ = done.send(());
-            result
+    let (admitted, sql_interleaved, sql_error, returned_while_busy, result) =
+        std::thread::scope(|workers| {
+            let attempt = workers.spawn(move || {
+                let result = crate::authority_admission::with_passive_admission_probe(
+                    move |admitted| {
+                        let _ = entered.send(admitted);
+                        let _ = resume.recv_timeout(std::time::Duration::from_secs(2));
+                    },
+                    call,
+                );
+                let _ = done.send(());
+                result
+            });
+            let admitted = ready.recv_timeout(std::time::Duration::from_secs(1)) == Ok(true);
+            // Old admission released its Unit before the actual Writer. Final
+            // publication now retains that exact Unit, so this immediate fault must
+            // refuse rather than self-deadlock against the paused original owner.
+            let sql_result = m.f.store.try_connection();
+            let sql_error = sql_result.as_ref().err().map(|e| e.code.clone());
+            let sql = sql_result.ok();
+            let sql_interleaved = sql.is_some();
+            let _ = release.send(());
+            // With the retained Unit there is no injected SQL owner and no Busy
+            // return claim; only the interleaved old branch measures this bound.
+            let returned_while_busy = !sql_interleaved
+                || finished
+                    .recv_timeout(std::time::Duration::from_millis(100))
+                    .is_ok();
+            drop(sql);
+            let result = attempt.join().unwrap();
+            (
+                admitted,
+                sql_interleaved,
+                sql_error,
+                returned_while_busy,
+                result,
+            )
         });
-        let admitted = ready.recv_timeout(std::time::Duration::from_secs(1)) == Ok(true);
-        // The real file writer is acquired, but this SQL owner was not present
-        // during initial derivation. No acquired writer may wait behind it.
-        let sql = m.f.store.connection().unwrap();
-        let _ = release.send(());
-        let returned_while_busy = finished
-            .recv_timeout(std::time::Duration::from_millis(100))
-            .is_ok();
-        drop(sql);
-        let result = attempt.join().unwrap();
-        (admitted, returned_while_busy, result)
-    });
     let result_code = result
         .as_ref()
         .map(|_| "ok")
@@ -120,17 +135,30 @@ fn assert_passive_sql_reacquire_defers<T: Send>(
         admitted,
         "SQL contention must start after actual file admission"
     );
-    assert_eq!(
-        result.err().expect("busy SQL must defer metadata").code,
-        "authority-busy"
-    );
+    if sql_interleaved {
+        assert_eq!(
+            result.err().expect("busy SQL must defer metadata").code,
+            "authority-busy"
+        );
+        assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    } else {
+        assert_eq!(
+            sql_error.as_deref(),
+            Some("authority-busy"),
+            "only retained Unit custody may prevent interleaving"
+        );
+        assert!(
+            result.is_ok(),
+            "same-Unit publication failed: {result_code}"
+        );
+        assert_ne!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    }
     assert!(m
         .f
         .store
         .try_native_media_read(&m.sources[1], None)
         .unwrap()
         .current());
-    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
 }
 
 #[test]
@@ -298,11 +326,26 @@ fn captured_projection_drains_short_packet_readers_without_long_writer_parking()
             drop(held);
         });
         release.send(()).unwrap();
-        let result =
-            m.f.store
-                .project_native_replacement_committed(&captured, &MetadataOnlyInstalled);
+        // The immediate file attempt may definitely refuse while that real
+        // reader is owned. Retry only this same captured metadata under one
+        // original cutoff, with no authority/SQL retained in the 20ms pause.
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(1);
+        let result = loop {
+            match m
+                .f
+                .store
+                .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
+            {
+                Err(e) if e.code == "authority-busy" && std::time::Instant::now() < until => {
+                    std::thread::sleep(std::time::Duration::from_millis(20))
+                }
+                result => break result,
+            }
+        };
         reader.join().unwrap();
-        result.expect("captured projection did not drain the short-lived packet reader")
+        result.expect(
+            "captured projection did not progress after the short-lived packet reader drained",
+        )
     });
     let completed = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let duplicate =

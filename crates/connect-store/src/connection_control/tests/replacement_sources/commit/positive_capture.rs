@@ -33,7 +33,7 @@ fn capture(m: &Movement) -> crate::NativeReplacementCommitted {
     drop(write);
     captured
 }
-fn publication(
+pub(super) fn publication(
     store: &Arc<Store>,
     source: &Arc<NativeMediaOrigin>,
 ) -> (
@@ -52,7 +52,7 @@ fn publication(
     let watcher = store.start_media_authorization_watcher().unwrap();
     (snapshot, watcher)
 }
-fn admit(snapshot: &crate::NativeMediaSnapshot) -> crate::NativeMediaRead {
+pub(super) fn admit(snapshot: &crate::NativeMediaSnapshot) -> crate::NativeMediaRead {
     let cutoff = std::time::Instant::now() + std::time::Duration::from_secs(2);
     loop {
         match snapshot.admit() {

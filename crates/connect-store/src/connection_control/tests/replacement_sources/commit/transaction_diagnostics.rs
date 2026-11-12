@@ -11,13 +11,16 @@ fn transaction_diagnostics_separate_begin_body_commit_and_unchanged_replay() {
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let effects = m.f.count("operation_effects");
 
-    // Duplicate capture is an unchanged read, not another committed movement.
+    // Duplicate capture is a current read with no SQL transaction, not
+    // another movement or an invented unchanged transaction.
     m.f.store
         .record_native_replacement_committed(&capture)
         .unwrap();
     let recorded = capture.projection_diagnostics()["capture"].clone();
+    assert_eq!(recorded, initial["capture"], "read-only historical replay must leave every capture transaction/admission diagnostic unchanged");
     assert_eq!(recorded["transaction"]["committed"], 1);
-    assert_eq!(recorded["transaction"]["unchanged"], 1);
+    assert_eq!(recorded["transaction"]["unchanged"], 0);
+    assert_eq!(m.f.count("operation_effects"), effects);
     assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
 
     let foreign = rusqlite::Connection::open(m.f.store.path()).unwrap();

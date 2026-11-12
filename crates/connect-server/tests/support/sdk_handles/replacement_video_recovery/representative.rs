@@ -1681,10 +1681,18 @@ async fn signed_parallel_original_allocations_release_authority_while_scene_coor
 #[tokio::test(flavor = "multi_thread", worker_threads = 6)]
 async fn signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners(
 ) {
+    full_representative("EdDSA").await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 6)]
+async fn signed_es256_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners(
+) {
+    full_representative("ES256").await;
+}
+async fn full_representative(algorithm: &str) {
     // This outer fixture bound includes setup and ten seconds of idle. Every
     // programme/control/capture phase retains its separate original cutoff.
     let entered = Instant::now();
-    representative(false, true).await;
+    representative_with_algorithm(false, true, algorithm).await;
     // Never drop the owning fixture future at an outer timeout: every actual
     // task/codec/client must join even if the final bounded verdict fails.
     assert!(
@@ -1693,6 +1701,13 @@ async fn signed_full_62_second_six_source_two_session_four_move_av_data_programm
     );
 }
 async fn representative(force_allocation_overlap: bool, full_programme: bool) {
+    representative_with_algorithm(force_allocation_overlap, full_programme, "EdDSA").await;
+}
+async fn representative_with_algorithm(
+    force_allocation_overlap: bool,
+    full_programme: bool,
+    algorithm: &str,
+) {
     assert_eq!(std::env::consts::ARCH, "aarch64");
     assert!(
         matches!(std::env::consts::OS, "linux" | "macos"),
@@ -1710,7 +1725,10 @@ async fn representative(force_allocation_overlap: bool, full_programme: bool) {
                 .try_init();
         });
     }
-    let mut f = Fixture::with_native_end_scope("EdDSA", 16).await;
+    let mut f = Fixture::with_native_end_scope(algorithm, 16).await;
+    assert_eq!(f.config.signing_algorithm, algorithm);
+    assert_eq!(f.client.signing_algorithm, algorithm);
+    assert_eq!(f.client.server_algorithm, algorithm);
     if full_programme {
         f.server.shutdown().await.unwrap();
         f.config.limits.message_bytes = 64 * 1024;
@@ -1769,6 +1787,33 @@ async fn representative(force_allocation_overlap: bool, full_programme: bool) {
             vec!["audio".into(), "video".into(), "data".into()],
             participant_scope.clone(),
         );
+    // Every original and replacement peer uses the selected real key family.
+    // This is setup-only: the programme/retirement clocks have not started.
+    {
+        let c = rusqlite::Connection::open_with_flags(
+            &f.config.database,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        for config in configs.iter().chain(std::iter::once(&replacement_config)) {
+            assert_eq!(config.signing_algorithm, algorithm);
+            assert_eq!(config.server_algorithm, algorithm);
+            let enrolled: (String, String, String, u64) = c.query_row(
+                "SELECT identity_id,device_id,algorithm,length(public_key) FROM peer_signing_keys WHERE key_id=?1 AND revoked=0",
+                [&config.signing_key_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+            ).unwrap();
+            assert_eq!(
+                enrolled,
+                (
+                    config.identity_id.clone(),
+                    config.device_id.clone(),
+                    algorithm.to_owned(),
+                    if algorithm == "ES256" { 65 } else { 32 }
+                )
+            );
+        }
+    }
     let endpoints = [&configs[0].device_id, &replacement_config.device_id].map(|device| {
         rusqlite::Connection::open_with_flags(
             &f.config.database,

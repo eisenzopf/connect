@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T07:30:31.657094+00:00",
-  "revision": 34,
+  "updated_at": "2026-11-12T08:17:37.739370+00:00",
+  "revision": 36,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 29,
-    "verified_at": "2026-11-12T04:38:51.402Z",
+    "content_revision": 36,
+    "verified_at": "2026-11-12T08:18:26.300Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -132,7 +132,11 @@
           "matrix_result": false
         }
       ],
-      "commit_ids": [],
+      "commit_ids": [
+        "5736836a",
+        "f29ffaea",
+        "8c5ef11e"
+      ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-11T12:25:02.786942+00:00",
       "mapped_check_count": 28,
@@ -213,7 +217,10 @@
           "matrix_result": false
         }
       ],
-      "commit_ids": [],
+      "commit_ids": [
+        "c421bdae",
+        "b2b64ea5"
+      ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-11T15:15:47.574343+00:00",
       "mapped_check_count": 8,
@@ -278,7 +285,9 @@
           "matrix_result": false
         }
       ],
-      "commit_ids": [],
+      "commit_ids": [
+        "f29ffaea"
+      ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-11T12:53:36.260177+00:00",
       "mapped_check_count": 45,
@@ -337,7 +346,10 @@
           "matrix_result": false
         }
       ],
-      "commit_ids": [],
+      "commit_ids": [
+        "e3e0b398",
+        "f29ffaea"
+      ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-12T04:06:47.358539+00:00",
       "mapped_check_count": 29,
@@ -431,7 +443,11 @@
           "matrix_result": false
         }
       ],
-      "commit_ids": [],
+      "commit_ids": [
+        "c421bdae",
+        "e3e0b398",
+        "f29ffaea"
+      ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-12T04:06:47.358539+00:00",
       "mapped_check_count": 66,
@@ -509,7 +525,10 @@
           "matrix_result": false
         }
       ],
-      "commit_ids": [],
+      "commit_ids": [
+        "5736836a",
+        "e3e0b398"
+      ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-11T12:53:36.260177+00:00",
       "mapped_check_count": 16,
@@ -530,8 +549,8 @@
         "B189"
       ],
       "depends_on": [],
-      "status": "assigned",
-      "implementation_state": "committed-focused-runtime-verified",
+      "status": "component-verified",
+      "implementation_state": "Approved Chrome157 pin committed and actual trusted/untrusted HTTPS/WSS +11unit evidence exists; affected complete browser cycles pending",
       "proposed_fix": "Use exact approved runtime from the matrix contract with ordinary isolated CA trust.",
       "required_evidence": "Existing11unit and real trusted/untrusted HTTPS/WSS evidence retained; affected cells must admit and complete fresh workload/captures.",
       "coordinator_review": {
@@ -554,7 +573,8 @@
         }
       ],
       "commit_ids": [
-        "a52c30b8d38708cdbcdb0bb7eaa0ac7908f7b587"
+        "a52c30b8d38708cdbcdb0bb7eaa0ac7908f7b587",
+        "a52c30b8"
       ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-11T10:09:15.345780+00:00",
@@ -574,8 +594,8 @@
         "B193"
       ],
       "depends_on": [],
-      "status": "in-progress",
-      "implementation_state": "implemented-pure-tests-verified",
+      "status": "component-verified",
+      "implementation_state": "Current observation/programme hashes exactly match committed stats ordering evidence and21pure checks; actual three-cycle browser getStats owner joins remain pending",
       "proposed_fix": "Stop and join same original statistics request at programme terminal before retiring peer, with unchanged500ms join limit.",
       "required_evidence": "Existing21puretests retained; actual browser three-cycle follow-through shows no unjoined original stats promise and no false joined receipt.",
       "coordinator_review": {
@@ -597,7 +617,9 @@
           "matrix_result": false
         }
       ],
-      "commit_ids": [],
+      "commit_ids": [
+        "1382b3cc"
+      ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-11T10:09:15.345780+00:00",
       "mapped_check_count": 10,
@@ -684,7 +706,10 @@
           "matrix_result": false
         }
       ],
-      "commit_ids": [],
+      "commit_ids": [
+        "0408a213",
+        "257bcdf3"
+      ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-12T07:30:31.657094+00:00",
       "mapped_check_count": 28,
@@ -711,8 +736,8 @@
       "depends_on": [
         "P3.1"
       ],
-      "status": "diagnosing",
-      "implementation_state": "Final206 executed205pass1fail. Full62 onlygated errors: unchanged publicroutes2/3 second44 each19FPS against24; encoded/published sourcebins30, decoded error counters exclude recorded decoder resets. Finalactivation metadata had three acquiredWriter\u2192SQLreacquire failures before mutation in badbin; scope-preserving admission counter/fix being staged. Actual19FPS causality not yet proven.",
+      "status": "in-progress",
+      "implementation_state": "Finalactivation sameSQLUnit plus immediatefullWriter independently reviewed; targeted42 all26passed. CompletedWriter excludes SQLinterleaving, actualpublication/rollback/currentauth negatives pass. Test needed29priorBusy attempts; no earlier epoch survival/latency/FPS cure claimed. Full229 actualquality pending.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -770,11 +795,26 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components22.json",
           "result": "All206executed205pass1fail; full62 onlytwo19FPS bins. Allothergates independentlysource/logverified; no matrixqualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-final-activation-old38.json",
+          "result": "Intentional old-source failure reproduced exact preTX epoch cut without SQL publication. Store VP8 authority only, no decoded FPS claim.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-final-activation-fixed39.json",
+          "result": "Actual26executed24pass2fail; allsource/binary/owner guards passed. Original refusal stage and readonly replay oracle under correction.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-final-activation-fixed42.json",
+          "result": "26/26actualpass, stable7images/binary/owners. Actual30attempts/29preWriterBusy beforeonepublication, noFPSqualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T07:30:31.657094+00:00",
+      "updated_at": "2026-11-12T08:17:37.739370+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -788,8 +828,8 @@
         "reviewer": "/root/media_blockers",
         "coordinator": "/root",
         "cause": "Final public activation metadata path drops initialSQL, announces fullCID Writer, then can loseSQL reacquire before DML. Actual3 failures captured; decoded video causality remains conditional.",
-        "fix": "Investigate specialized retain-originalSQLUnit plus zero-file-wait fullWriter, sameUnit current rederive and guarded samecapture projection; no waitingfilelocks underSQL/no footprint downgrade/no physicalCore replay.",
-        "verification": "Controlled actual unaffectedVP8 StoreIO/epoch counter plus heldreader/revoke/rollback/deadline/progress negatives before one complete rerun; retain24FPS/200ms."
+        "fix": "Applied originalSQLUnit retained only through immediatefullWriter, sameUnit current rederive/transaction; unchanged5ms cutoff/fullscope/currentauthorization.",
+        "verification": "Safety26green. Freezecommittedsource and executecomplete229 includingEdDSA/ES256 full62programmes; use actualretry/FPS evidence before32cell admission."
       }
     },
     {
@@ -863,8 +903,8 @@
       "depends_on": [
         "P6.1"
       ],
-      "status": "assigned",
-      "implementation_state": "Additional69 retiredtest binaries16GiB deleted onlyafter206originalgroupsjoined; measured17.1789GB gain, D2available59.689GB atcleanup completion. Active/shared caches and ordinaryCLI aliases preserved. Fresh shipping/VM floors stillmandatory.",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Reviewed Cargo.lock and main source bindings exactly match actual bytes; real repository binding regression is committed. Disk cleanup is infrastructure evidence, not original three-cycle OS/owner capacity qualification Internalheadroom recovered by bytepreserving closedCLI relocation; no capacity qualification inferred.",
       "proposed_fix": "Retain approved per-role/aggregate RSS and original numeric process/FD/thread capacities; trends diagnostic and separate soak unaffected.",
       "required_evidence": "1GiB server/4GiB browser/1GiB helper/6GiB aggregate; exact original resource-pool restoration and source-bound server thread exception; no incomplete cycle counted as pass.",
       "coordinator_review": {
@@ -878,7 +918,9 @@
         "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
       },
       "verification_runs": [],
-      "commit_ids": [],
+      "commit_ids": [
+        "5736836a"
+      ],
       "matrix_result_refs": [],
       "updated_at": "2026-11-12T07:30:31.657094+00:00",
       "mapped_check_count": 0,
@@ -902,7 +944,7 @@
         "P2.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Complete frozen206 run on257bcdf3/408:205pass1fail, no skippedcases. One fullprogramme video deficit remains; all handoffs/Data/End/joins verified separately. Reopenvideo correction; no shipping/full32activation.",
+      "implementation_state": "ES256 completeprogramme added through same shared strict62fixture, actualfiveenrolled keyfamilies asserted. OriginalEdDSA retained. EScompile41 E0624 corrected usingreadonlySQLite; build42passed. All229 runtime stillpending, bothprogrammes lastadjacent.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -959,7 +1001,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T07:30:31.657094+00:00",
+      "updated_at": "2026-11-12T08:17:37.739370+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -991,7 +1033,7 @@
         "P7.1"
       ],
       "status": "component-verified",
-      "implementation_state": "Committed257bcdf3/408 source produced complete205/206run; allsource/binary/original-owner guards passed. Its testedsource stayspreserved as evidence; next correctivebatch must be independentlyunit-tested/recommitted/requalified.",
+      "implementation_state": "Targeted42 all26green andbothsigning fullfixtures compile, normalprepare408/format passed. Commit/pushcoherentbatch thenrunall229 withouttracked/deps/HEADmutations. KeepactualgreentestedHEAD throughnormalshipping/full32.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1041,9 +1083,12 @@
           "matrix_result": false
         }
       ],
-      "commit_ids": [],
+      "commit_ids": [
+        "257bcdf3",
+        "0426a23f"
+      ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T07:30:31.657094+00:00",
+      "updated_at": "2026-11-12T08:17:37.739370+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [

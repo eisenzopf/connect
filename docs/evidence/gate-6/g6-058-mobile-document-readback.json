@@ -1,12 +1,13 @@
 {
   "documentId": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
   "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
-  "revisionId": "AHj4eMTnkWXGhu8Eq1JYjNR8Z8vKukTnbwGs0rQVYodL0DhbXFo2W96axKZdospRjyUt0l68rGizTwL6Z725QGnEBmhZ5zijLqn3gW5lgI0",
-  "content_revision": 29,
-  "verified_at": "2026-11-12T04:38:51.402Z",
-  "scope": "Owner completion instruction; current two implementation assignments and coordinator verification order",
+  "revisionId": "AHj4eMRSXwhjKj9VK3_5cE_vy-dAHIZz340itkVhFraPPqIu5Fb9S1g_bCkzYRtHejVEmQ-slgzimZpU_lLpaBU2mtdkgISpGMzdyKaWtNo",
+  "content_revision": 36,
+  "verified_at": "2026-11-12T08:18:26.300Z",
+  "scope": "Verified36checkpoint andall15managed task states/owners fromcanonical ledger; remainingfull229/matrix requirements explicitlyopen",
   "verified_paragraphs": [
-    "Revision 29 | Coordinator: /root | Status: implementation resumed to finish the plan; two media workstreams active\n",
-    "Checkpoint: The owner instructed completion of the plan. /root/media_blockers is implementing bounded actual audio SSRC/sequence/timestamp reset evidence and codec regression controls. /root/v198_resources is implementing a controlled old-condition Commit SQL/Writer counter and bounded pre-effect admission; only definite refusal before any effect begins may retry, after all Writer/role aliases drop, on the same root and original cutoff. /root/fixture_blockers independently reviews source, causal controls and protocol invariants; /root coordinates all builds and final adjudication. All175 existing selectors remain; meaningful new unit controls may be added. Full exit remains32cells/432checks on local Mac/nativeARM Linux. Quality limits and current authorization remain strict. origin/main was fetched and is already contained in this branch. Latest complete focused result remains171/175, plus7/7 subsequent targeted fixture controls. No new full-run verdict is claimed. About52GiB cleanup is complete; fresh shipping/VM/storage checks are still required. Next: verify causal counters and fixes, run the complete frozen focused suite, then normal shipping/preflight and all32cells. G6-054 remains parked; no provider/cloud/GitHub test lane is being launched.\n"
-  ]
+    "Revision 36 | Coordinator: /root | Status: activation26/26 green; complete229 regression next, matrix still pending\n",
+    "Checkpoint: Final activation safety controls42 passed all26 with unchanged source/binary and every original owner joined. The completed Writer retains the original SQL Unit, preventing the reproduced pre-TX SQL-interleaving gap. The counter also recorded29 prior temporary refusals before successful publication; it does not prove those earlier epochs survived or that video FPS is fixed. The complete ES256 programme is now wired through the same implementation as EdDSA and verifies five actually enrolled peer keys. An initial setup compile error used a crate-private method; the reviewed read-only SQLite correction builds successfully. Next: commit/push this coherent batch, then execute all229 cases, with the complete EdDSA and ES25662-second programmes last. Only a fully green cohort can admit normal shipping and the full32-cell/432-check run. The last complete206 run remains205passed,1video-quality failure (routes2/3 second44=19FPS versus24); the last matrix remainsv2150/32. No acceptance limit was relaxed. A task-by-task audit found existing Chrome trust, stats ordering and capacity code implemented; their labels and commit mappings are corrected, while actual browser/resource qualification stays open. origin/main was fetched and is contained. G6-054 remains parked.\n"
+  ],
+  "all15_task_states_verified": true
 }

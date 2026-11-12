@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T07:30:31.657094+00:00",
-  "run_status": "Two actual old-code Commit SQL counters reproduced avoidable media epoch invalidation and Writer custody parked on primary SQL, with original cleanup complete. The bounded pre-effect fix is now being applied. Audio diagnostics passed4/4 actual Opus controls. Latest complete focused run remains171/175; subsequent7/7 fixture controls remain separate. No new matrix pass or decoded QoE cause-fix is claimed. Local Mac/nativeARM Linux only; all quality thresholds retained.",
+  "updated": "2026-11-12T08:17:37.739370+00:00",
+  "run_status": "Finalactivation targeted42:26of26passed with stableoriginalowners/source/binary. CompletedWriter SQLcustodyproved;29priorBusy attempts visible, noFPSorlowlatencycureclaim. Originalcomplete206 remains205pass1videoqualityfailure. Nextfull229includesbothEdDSA/ES25662programmes; lastmatrixv2150/32 unchanged.",
   "blockers": [
     {
       "id": "B01",
@@ -17419,6 +17419,24 @@
       "passed": 8,
       "planned": 8,
       "evidence": "g6-058-v216-client-language37.json"
+    },
+    {
+      "name": "Final activation fullWriter/SQL controls39; two failures unresolved",
+      "passed": 24,
+      "planned": 26,
+      "evidence": "g6-058-v216-final-activation-fixed39.json"
+    },
+    {
+      "name": "Final activation diagnostic controls40; one completed-Writer precondition failure unresolved",
+      "passed": 25,
+      "planned": 26,
+      "evidence": "g6-058-v216-final-activation-fixed40.json"
+    },
+    {
+      "name": "Final activation completeWriter SQL/publication safety42; fullQoE pending",
+      "passed": 26,
+      "planned": 26,
+      "evidence": "g6-058-v216-final-activation-fixed42.json"
     }
   ],
   "current_production_check": {

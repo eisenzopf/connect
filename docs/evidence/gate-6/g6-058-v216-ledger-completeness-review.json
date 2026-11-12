@@ -1,0 +1,173 @@
+{
+  "format": "connect/ledger-completeness-independent-media-review/1",
+  "scope": "Read-only ledger vs actual committed source/evidence; no execution",
+  "tracker_revision": 35,
+  "tracker_sha256": "3ad0aff3614ea156910f367cc467a50c273c9a720fa3dc882e23d5a657a71aef",
+  "tasks": [
+    {
+      "id": "P1.1",
+      "assessment": "implemented/component-verified",
+      "evidence_mapping": "Store positive Data ledger capture and actual signed Data regression committed; final matrix effect remains unqualified",
+      "known_commits": [
+        "5736836a",
+        "f29ffaea",
+        "8c5ef11e"
+      ]
+    },
+    {
+      "id": "P1.2",
+      "assessment": "implemented/remaining-video-admission-risk",
+      "evidence_mapping": "Exact current positive historical capture including original/replacement retirement implemented and controlled; actual full206 four positive-reader captures, but real public Writer may still interrupt unaffected video",
+      "known_commits": [
+        "c421bdae",
+        "b2b64ea5"
+      ]
+    },
+    {
+      "id": "P2.1",
+      "assessment": "implemented/component-verified",
+      "evidence_mapping": "Same prepared subscription fresh authority + complete scene retry and one activation, exact original IDs/cutoffs; signed sequential authority/SQL faults pass",
+      "known_commits": [
+        "f29ffaea"
+      ]
+    },
+    {
+      "id": "P2.2",
+      "assessment": "implemented/component-verified/not-browser-qualified",
+      "evidence_mapping": "Three archived supposed initial-offer failures traced to stream.subscribe after six offers; actual ordinary initialAV two-fault regression now passes. Exact historical inner leaf is not retroactively established; no new generic initial-offer retry justified",
+      "known_commits": [
+        "e3e0b398",
+        "f29ffaea"
+      ]
+    },
+    {
+      "id": "P3.1",
+      "assessment": "implemented/component-verified",
+      "evidence_mapping": "RTC preStart/read/Begin and captured record SQL settlement, strict original Ready401 grant-free admission/capture and historical replay implemented; all eleven RTC signed selectors executed in206. No SIP provider qualification inferred",
+      "known_commits": [
+        "c421bdae",
+        "e3e0b398",
+        "f29ffaea"
+      ]
+    },
+    {
+      "id": "P3.2",
+      "assessment": "implemented/full-workload-qualification-open",
+      "evidence_mapping": "Authority-only status loading plus End fact demultiplexing implemented; source206 observed all End/retirement work and cleanup facts but sanitized evidence correctly does not qualify original67s success from failed fullcase",
+      "known_commits": [
+        "5736836a",
+        "e3e0b398"
+      ]
+    },
+    {
+      "id": "P4.1",
+      "assessment": "stale-assigned-label/component-verified",
+      "evidence_mapping": "Approved Chrome157 pin committed and actual trusted/untrusted HTTPS/WSS +11unit evidence exists; affected complete browser cycles pending",
+      "known_commits": [
+        "a52c30b8"
+      ]
+    },
+    {
+      "id": "P4.2",
+      "assessment": "implemented/component-only",
+      "evidence_mapping": "Current observation/programme hashes exactly match committed stats ordering evidence and21pure checks; actual three-cycle browser getStats owner joins remain pending",
+      "known_commits": [
+        "1382b3cc"
+      ]
+    },
+    {
+      "id": "P5.1",
+      "assessment": "implemented/empirical-followthrough-open",
+      "evidence_mapping": "MetadataBusy pre-IO PCM retention12controls and non-evicting native transport/SDK/raw8controls pass; full206 reports no audio threshold failure, but no completed passing fullcase or cross-profile matrix qualification",
+      "known_commits": [
+        "0408a213",
+        "257bcdf3"
+      ]
+    },
+    {
+      "id": "P5.2",
+      "assessment": "genuine-open-production-investigation",
+      "evidence_mapping": "Actual full206 clean routes2/3 second44=19fps; old38 preTX Writer/SQL epoch-cut counter qualified. RetainedSQL specialized fullWriter draft fixed39 is24/26; fixed40 first-refusal diagnostic and zero-TX oracle correction underway, no cure yet",
+      "known_commits": []
+    },
+    {
+      "id": "P6.1",
+      "assessment": "fixture-implemented/qualification-open",
+      "evidence_mapping": "Full62 six sources/twoSessions/four moves/64KiBData/End/cleanup code exists, but one native cycle is not three browser cycles/required10renderer resource coverage",
+      "known_commits": []
+    },
+    {
+      "id": "P6.2",
+      "assessment": "capacity-code-present/state-description-stale",
+      "evidence_mapping": "Reviewed Cargo.lock and main source bindings exactly match actual bytes; real repository binding regression is committed. Disk cleanup is infrastructure evidence, not original three-cycle OS/owner capacity qualification",
+      "known_commits": [
+        "5736836a"
+      ]
+    },
+    {
+      "id": "P7.1",
+      "assessment": "implemented/one-concrete-configuration-gap",
+      "evidence_mapping": "Current full62 signed selector hardcodesEdDSA. Approved reassessment asks both signing algorithms and affected transports before full matrix; noES256 full-combination selector found. Full206 remains failed solelyquality",
+      "known_commits": []
+    },
+    {
+      "id": "P7.2",
+      "assessment": "integration-and-source-seal-still-required",
+      "evidence_mapping": "Committed257/408 original206 evidence preserved. New finalactivation production/tests uncommitted and must pass independent focused controls, then normal prepare/format/build, same-source full selection and commit/freeze",
+      "known_commits": [
+        "257bcdf3",
+        "0426a23f"
+      ]
+    },
+    {
+      "id": "P7.3",
+      "assessment": "intentionally-not-started",
+      "evidence_mapping": "One fresh frozen full32/all432 three-cycle matrix with normal shipping builds, actual capture access, supported browser pins, architecture/disk/VM preflight and all owners joined remains required",
+      "known_commits": []
+    }
+  ],
+  "genuine_pre_matrix_gaps": [
+    "Finish causally supported finalactivation/video correction and actual old/fixed controls; current 19fps defect remains open.",
+    "Complete actual passing same-source full-duration programme at original thresholds/deadlines. Failed full206 cannot qualify End/67s/OS cleanup merely from empty arrays or observed work marker.",
+    "Reconcile explicit P7 both-signing full-combined requirement with EdDSA-only current selector; no new API need inferred, but missing configuration/evidence cannot be silently called complete.",
+    "Normal prepared dependency graph/current source seals/default-feature checks/exact retained selectors, final commit and shipping/preflight resource/capture/browser/VM checks before32.",
+    "Actual full32 three-cycle browser/RTC/native quality, stats joins, renderer coverage and per-role/aggregate RSS/thread/FD/original-owner restoration remain qualification, not implemented-code omissions."
+  ],
+  "stale_document_fields": [
+    "P4.1 assigned despite committed runtime proof; P4.2 in-progress despite implemented/pure-reviewed source.",
+    "P6.2 implementation_state describes retired disk cleanup rather than reviewed runtime capacity source binding and pending three-cycle resource verification.",
+    "Most commit_ids arrays empty although changes are committed; per-task verification_runs often stop13/21 despite actual206 evidence.",
+    "Top focused_checkpoint still115/116 and focused_signed_checkpoint10 contains corrected fixture/oracle work marked pending.",
+    "Reassessment-plan-v216 state strings/latest_committed_revision dad0f600 still describe pre175 work despite current0426a23f+206 evidence.",
+    "Architecture review and coordinator regression/counter flags remain globally pending/false; update individually only with actual applicable source/counter evidence, never matrix_verified before32."
+  ],
+  "architecture": {
+    "preserved_source_contracts": [
+      "UCTP canonical IDs/journal/current policy and adapter-native WebRTC SDP/ICE/DTLS-SRTP/RTP/RTCP are separate; noRTC-as-QUIC claim.",
+      "SIP dialog/negotiated payload and RTCP clock semantics not broadened; generic Audio admission retry remains pre-send and no extra provider/PSTN scope.",
+      "Ready/subscription waits consume original exact marker/request, release command proofs while waiting, reacquire current exact authority; physical Start/SDP/Core/IOeffects not replayed.",
+      "Native non-evicting queue retains original encoded bytes/sequence and same generation/gate/deadline; public backpressure vocabulary and rawsend_until documented/contracted in257bcdf3.",
+      "Current browserRTC explicitly refuses Data/new-resource renegotiation; native Data regressions do not establish RTC capability."
+    ],
+    "unresolved_applicable_invariant": "A06/A07 uninterrupted healthy unchanged media across real Writer attempts still requires actual video correction/evidence; do not preserve revoked buffered epochs or weaken fullauthority.",
+    "no_new_public_api_doc_gap_found": "Latest public SDK changes are covered in docs/developer/sdk-programmatic-media.md and language contract vocab; current specialized SQL/helper and diagnostic changes add no public wire endpoint/schema."
+  },
+  "capacity_source_proof": {
+    "Cargo.lock": "6dd46da199fbfedf09ff02c5e2fd8b771bae3979fb6c5ea6e2dafdb5eff3d0de",
+    "crates/connect-server/src/main.rs": "acd9b8a3eb7e80342e38d08055e2dd3cb6018b6cc9ed2b6223cae5d3e6dd0a58"
+  },
+  "capacity_expected_binding": "scripts/lib/matrix_plateau.py SERVER_SOURCE_INPUTS exact match; regression scripts/tests/test_matrix_plateau.py::test_actual_repository_runtime_capacity_binding_is_available",
+  "resource_acceptance_unchanged": {
+    "serverGiB": 1,
+    "browserGiB": 4,
+    "helperGiB": 1,
+    "aggregateGiB": 6,
+    "cycles": 3,
+    "idleSeconds": 10
+  },
+  "actions": {
+    "tracked_edits": false,
+    "builds_tests_runtime_probes": false,
+    "archive_or_VM_reads": false
+  }
+}

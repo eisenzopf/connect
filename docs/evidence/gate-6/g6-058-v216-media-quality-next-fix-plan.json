@@ -1,7 +1,7 @@
 {
   "format": "connect/media-quality-next-fix-plan/1",
-  "status": "Actualfull206205pass1fail; finalactivation pre-TX Writer/SQL gap undercontrolledcounter investigation; unchanged video24FPS requirement",
-  "updated_at": "2026-11-12T07:30:31.657094+00:00",
+  "status": "Finalactivation safety26/26 green; complete229quality qualification pending onfrozenbatch; retain24FPS/200ms andalloriginalbounds.",
+  "updated_at": "2026-11-12T08:17:37.739370+00:00",
   "coordinator": "/root",
   "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components22.json",
   "baseline": {
@@ -33,13 +33,14 @@
       "id": "P5.2",
       "owner": "/root/v198_resources",
       "reviewer": "/root/media_blockers",
-      "cause_status": "Three actual finalactivation acquiredWriter\u2192SQLreacquire failures inbadbin44; sourcepaired routes2/3 missing/incompleteRTP amplifiedbykeyframe gating, no recorded decoder reset. Correlation not causation.",
+      "cause_status": "Old38 controlledSQLgap proved. Fixed42 prevents SQLloss aftercompleteWriter;29priorBusy attempts remainexplicit performance risk. Current19FPScure unproven.",
       "actual_failures": [
-        "Full route2 sec18=18FPS,sec43=20FPS; route3 sec18=22FPS; minimum24. Route3 sec43=24 passes.",
-        "All4 actual historical captures used positive-reader; all4 physical moves completed."
+        "Full206 publicroutes2and3 programme second44 each19FPS versus24; source encoding/publication30FPS.",
+        "Fixed39 newcounter failed completeWriter admission precondition before SQLfault; exact refusal stage unmeasured.",
+        "Fixed39 transaction diagnostic expected1 unchanged transaction for actual readonly duplicate capture (0transactions)."
       ],
       "timing_correction": "Full programme uses representative(false,true): no deliberate coordinator hold. Bins18/43 span Ready and actual Commit; quality snapshot before Ready does not prove loss before Commit.",
-      "next": "Controlled finalactivation counter then specialized no-waitfullauthority/retainedUnit proposal with unchanged current rederive/SQLguard/footprint/originalcutoff; verify negatives before fullcohort.",
+      "next": "Same-source229 including both full62signingalgorithms, inspectactualretry/FPS; no matrixadmission untilallgreen.",
       "proposed_scope": "Consider pre-effect SQL availability/nonblocking exact begin plus full release and fresh same-root plan retry ONLY before effect begins. No replay after begun; no arbitrary removal of current Write custody.",
       "invariants": [
         "Do not hold SQL while waiting for file authority",

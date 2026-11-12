@@ -1,0 +1,50 @@
+{
+  "format": "connect/compile-attempt/1",
+  "build": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "8",
+      "-p",
+      "connect-store",
+      "-p",
+      "connect-service",
+      "-p",
+      "connect-server",
+      "-p",
+      "connect-client",
+      "--lib",
+      "--test",
+      "gate6_replacement_video",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--features",
+      "connect-server/test-support",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "pid": 75655,
+    "pgid": 75655,
+    "exit_code": 101,
+    "wait_returned": true,
+    "naturally_exited": true,
+    "group_absent": true,
+    "elapsed_seconds": 11.319883874966763,
+    "source_unchanged": true,
+    "log_sha256": "9784adc6bfbac5fecf7a6ea21effcfcf6d08db57bbbbcda3f4fa4e93de0890e5",
+    "stderr_sha256": "bbfa2ef271e6c5fbdab241f0eac0f28850e4bbbe10902dde43ae8a458300fb1b"
+  },
+  "summary": {
+    "expected": 26,
+    "executed": 0,
+    "passed": 0,
+    "failed": 0
+  },
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "failure": "E0624: ES256 setup attempted crateprivate Store.connection; no tests ran. Minimal read-only SQLite setup correction independently reviewed and later42 buildpassed.",
+  "later_fixed_evidence": "g6-058-v216-final-activation-fixed42.json"
+}
