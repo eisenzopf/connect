@@ -1,0 +1,235 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -87,13 +87,40 @@
+             && self.owner.has_same_owner(principal)
+     }
+ }
+-#[derive(Clone)]
+ pub(super) struct ClosedAudience {
+     pub operation: String,
+     pub origins: Vec<AudienceOrigin>,
+     // Only exact muted preparation may keep the identical installed predicate.
+     // This points directly to the immutable original, never to a successor.
+     pub(super) routing_identity: Option<Arc<ClosedAudience>>,
++    // Lifecycle metadata only: a consumed endpoint decoder must stop shadowing
++    // ordinary ingress even when another audience owns the registry mutex.
++    pub(super) endpoint_probe_retired: std::sync::atomic::AtomicBool,
++}
++impl Clone for ClosedAudience {
++    fn clone(&self) -> Self {
++        Self {
++            operation: self.operation.clone(),
++            origins: self.origins.clone(),
++            routing_identity: self.routing_identity.clone(),
++            endpoint_probe_retired: std::sync::atomic::AtomicBool::new(
++                self.endpoint_probe_retired.load(Ordering::Acquire),
++            ),
++        }
++    }
++}
++fn retire_consumed_endpoint_probes(
++    previous: &BTreeMap<String, Arc<ClosedAudience>>,
++    next: &BTreeMap<String, Arc<ClosedAudience>>,
++) {
++    for (operation, group) in previous {
++        if !next
++            .get(operation)
++            .is_some_and(|current| Arc::ptr_eq(current, group))
++        {
++            group.endpoint_probe_retired.store(true, Ordering::Release);
++        }
++    }
+ }
+ impl ClosedAudience {
+     pub(super) fn contains(&self, controller: &StreamController) -> bool {
+@@ -539,6 +566,7 @@
+                 operation: operation.into(),
+                 origins: vec![AudienceOrigin::new(controller)],
+                 routing_identity: None,
++                endpoint_probe_retired: std::sync::atomic::AtomicBool::new(false),
+             }),
+             control,
+             state: state.clone(),
+@@ -547,24 +575,18 @@
+         })
+     }
+     pub(super) fn commit(&mut self, state: &mut AudienceState, controller: &Arc<StreamController>) {
+-        assert!(
+-            state
+-                .pending
+-                .get(&self.group.operation)
+-                .is_some_and(|old| Weak::ptr_eq(old, &self.controller))
+-        );
+-        assert!(
+-            state
+-                .groups
+-                .insert(self.group.operation.clone(), self.group.clone())
+-                .is_none()
+-        );
+-        assert!(
+-            state
+-                .preparations
+-                .insert(controller.connection.clone(), self.group.clone())
+-                .is_none()
+-        );
++        assert!(state
++            .pending
++            .get(&self.group.operation)
++            .is_some_and(|old| Weak::ptr_eq(old, &self.controller)));
++        assert!(state
++            .groups
++            .insert(self.group.operation.clone(), self.group.clone())
++            .is_none());
++        assert!(state
++            .preparations
++            .insert(controller.connection.clone(), self.group.clone())
++            .is_none());
+         state.pending.remove(&self.group.operation);
+         state.revision += 1;
+         self.committed = true;
+@@ -962,6 +984,7 @@
+             operation: request.operation_id.clone(),
+             origins,
+             routing_identity: None,
++            endpoint_probe_retired: std::sync::atomic::AtomicBool::new(false),
+         });
+         let replaced_preparation = match &request.activate_muted {
+             None => None,
+@@ -1265,6 +1288,7 @@
+                             operation: plan.group.operation.clone(),
+                             origins: vec![source.clone()],
+                             routing_identity: None,
++                            endpoint_probe_retired: std::sync::atomic::AtomicBool::new(false),
+                         }),
+                     );
+                 }
+@@ -1318,6 +1342,9 @@
+                                     operation: replaced.operation.clone(),
+                                     origins,
+                                     routing_identity: None,
++                                    endpoint_probe_retired: std::sync::atomic::AtomicBool::new(
++                                        false,
++                                    ),
+                                 }),
+                             );
+                         }
+@@ -1378,7 +1405,9 @@
+                     let current = member.audio_consumer.subscriptions.rules();
+                     let duplicate = |values: &[AudioAudienceRule]| {
+                         values.iter().enumerate().any(|(index, value)| {
+-                            values[..index].iter().any(|prior| Arc::ptr_eq(&prior.group, &value.group))
++                            values[..index]
++                                .iter()
++                                .any(|prior| Arc::ptr_eq(&prior.group, &value.group))
+                         })
+                     };
+                     let previous = equivalent_preparation.as_ref().unwrap();
+@@ -1391,7 +1420,9 @@
+                         || duplicate(&rules)
+                         || current.iter().filter(|rule| rule.same(&unchanged)).count() != 1
+                         || rules.iter().filter(|rule| rule.same(&unchanged)).count() != 1
+-                        || rules.iter().any(|next| !current.iter().any(|old| old.same(next)))
++                        || rules
++                            .iter()
++                            .any(|next| !current.iter().any(|old| old.same(next)))
+                     {
+                         return Err(StreamControlError::Authority);
+                     }
+@@ -1883,6 +1914,10 @@
+                 // its mapped successor. No observer can expose both identities.
+                 registry.restorable.insert(plan.group.operation.clone());
+             }
++            // All fallible work and physical/model publication already passed.
++            // Retire only the exact removed/replaced group objects; an equal
++            // operation name or a failed plan never retires another probe.
++            retire_consumed_endpoint_probes(&registry.groups, &next_groups);
+             registry.groups = next_groups;
+             if let Some(id) = &plan.request.activate_muted {
+                 registry.preparations.remove(id);
+@@ -1967,3 +2002,40 @@
+         Ok((outcome, handle))
+     }
+ }
++
++#[cfg(test)]
++mod consumed_probe_metadata_tests {
++    use super::*;
++    #[test]
++    fn endpoint_probe_retirement_is_exact_object_and_never_reactivates_a_consumed_clone() {
++        let old = Arc::new(ClosedAudience {
++            operation: "same-operation".into(),
++            origins: Vec::new(),
++            routing_identity: None,
++            endpoint_probe_retired: std::sync::atomic::AtomicBool::new(false),
++        });
++        let replacement = Arc::new((*old).clone());
++        let unchanged = Arc::new(ClosedAudience {
++            operation: "unchanged-operation".into(),
++            origins: Vec::new(),
++            routing_identity: None,
++            endpoint_probe_retired: std::sync::atomic::AtomicBool::new(false),
++        });
++        let previous = BTreeMap::from([
++            (old.operation.clone(), old.clone()),
++            (unchanged.operation.clone(), unchanged.clone()),
++        ]);
++        let next = BTreeMap::from([
++            (replacement.operation.clone(), replacement.clone()),
++            (unchanged.operation.clone(), unchanged.clone()),
++        ]);
++        retire_consumed_endpoint_probes(&previous, &next);
++        assert!(old.endpoint_probe_retired.load(Ordering::Acquire));
++        assert!(!replacement.endpoint_probe_retired.load(Ordering::Acquire));
++        assert!(!unchanged.endpoint_probe_retired.load(Ordering::Acquire));
++        assert!((*old)
++            .clone()
++            .endpoint_probe_retired
++            .load(Ordering::Acquire));
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -120,6 +120,7 @@
+             operation: original.audience().group.operation.clone(),
+             origins: self.audience.group.origins.clone(),
+             routing_identity: None,
++            endpoint_probe_retired: std::sync::atomic::AtomicBool::new(false),
+         });
+         intent.restoration = Some(original.prepare_replacement_successor(
+             group.clone(),
+@@ -426,6 +427,7 @@
+             operation: request.operation_id.clone(),
+             origins,
+             routing_identity: None,
++            endpoint_probe_retired: std::sync::atomic::AtomicBool::new(false),
+         });
+         let original = members[&request.source]
+             .audio_consumer
+--- a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+@@ -126,12 +126,23 @@
+         port: &Arc<Port>,
+         frame: &MediaFrame,
+     ) -> Option<ControlResult<()>> {
+-        if self.cancel.is_cancelled() {
++        if self.cancel.is_cancelled() || self.group.endpoint_probe_retired.load(Ordering::Acquire) {
+             return None;
+         }
+         let registry = match self.registry.try_lock() {
+             Ok(r) => r,
+-            Err(_) => return Some(Err(MediaTransitionError::Conflict.into())),
++            Err(_) => {
++                // The successful audience cut may have consumed this exact
++                // probe after the first check. A still-active probe fails
++                // closed as before; a retired one lends no ordinary authority.
++                return if self.cancel.is_cancelled()
++                    || self.group.endpoint_probe_retired.load(Ordering::Acquire)
++                {
++                    None
++                } else {
++                    Some(Err(MediaTransitionError::Conflict.into()))
++                };
++            }
+         };
+         if self.group.origins.len() != 1
+             || !self.group.contains(controller)

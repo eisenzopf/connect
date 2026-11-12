@@ -1,0 +1,1038 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -45,6 +45,12 @@
+     error: Option<&StreamControlError>,
+     remaining: Option<usize>,
+ ) {
++    #[cfg(feature = "test-support")]
++    if packet.frame.kind == StreamKind::Video {
++        if let Some(diagnostic) = &packet.source.video_boundary {
++            diagnostic.record(stage, error, &packet.frame.payload);
++        }
++    }
+     if packet.frame.kind != StreamKind::Video
+         || !tracing::enabled!(target: "rvoip_core::video_pending", tracing::Level::DEBUG)
+     {
+@@ -1082,6 +1088,14 @@
+                     }
+                     if input.pending.len() == VISUAL_RETAINED_PACKETS {
+                         let dropped = input.pending.pop_front().unwrap();
++                        #[cfg(feature = "test-support")]
++                        if let Some(diagnostic) = &dropped.packet.source.video_boundary {
++                            diagnostic.record(
++                                "drop-pending-capacity",
++                                None,
++                                &dropped.packet.frame.payload,
++                            );
++                        }
+                         capacity_drops.0 = capacity_drops.0.saturating_add(1);
+                         capacity_drops.1 = capacity_drops
+                             .1
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_boundary.rs
+@@ -0,0 +1,280 @@
++//! Test-support numeric Core forwarding decisions. No IO/authority/payload retained.
++use super::*;
++use std::sync::{
++    atomic::{AtomicU64, Ordering},
++    OnceLock,
++};
++// 16 exceptional categories * first4 = fixed64 slots. One category cannot
++// consume another's evidence; all counters continue beyond these samples.
++const EXCEPTION_STAGES: usize = 16;
++const PER_STAGE: usize = 4;
++const STAGES: [&str; 18] = [
++    "capture",
++    "forward-ok",
++    "forward-model",
++    "forward-authority",
++    "forward-not-recipient",
++    "forward-not-ready",
++    "forward-metadata-busy",
++    "forward-backpressure",
++    "forward-other",
++    "drop-source",
++    "drop-target",
++    "drop-target-deadline",
++    "drop-target-age",
++    "retain-not-ready",
++    "drop-not-ready",
++    "drop-pending-age",
++    "other",
++    "drop-pending-capacity",
++];
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct Event {
++    pub stage: &'static str,
++    pub elapsed_us: u128,
++    pub source_ssrc: Option<u32>,
++    pub source_sequence: Option<u16>,
++    pub rtp_timestamp: Option<u32>,
++}
++#[derive(Debug)]
++pub struct Snapshot {
++    pub began_unix_us: u128,
++    pub clock_pair_window_us: u128,
++    pub counts: Vec<(&'static str, u64)>,
++    pub total_exception_events: u64,
++    pub sampling: &'static str,
++    pub category_overflow: Vec<(&'static str, u64)>,
++    pub unreported_reserved: usize,
++    pub events: Vec<Option<Event>>,
++}
++pub struct Counters {
++    began: Instant,
++    began_unix_us: u128,
++    clock_pair_window_us: u128,
++    counts: [AtomicU64; 18],
++    reserved: AtomicU64,
++    occurrences: [AtomicU64; EXCEPTION_STAGES],
++    events: [[OnceLock<Event>; PER_STAGE]; EXCEPTION_STAGES],
++}
++fn increment(counter: &AtomicU64) -> u64 {
++    counter
++        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
++            Some(v.saturating_add(1))
++        })
++        .unwrap()
++}
++fn classify(stage: &str, error: Option<&StreamControlError>) -> usize {
++    if stage == "capture" {
++        0
++    } else if stage == "forward-result" {
++        match error {
++            None => 1,
++            Some(StreamControlError::Model(_)) => 2,
++            Some(StreamControlError::Authority) => 3,
++            Some(StreamControlError::NotRecipient) => 4,
++            Some(StreamControlError::NotReady) => 5,
++            Some(StreamControlError::MetadataBusy) => 6,
++            Some(StreamControlError::Backpressure) => 7,
++            _ => 8,
++        }
++    } else if stage.starts_with("drop-source") {
++        9
++    } else if stage == "drop-target-deadline" {
++        11
++    } else if stage == "drop-target-age" {
++        12
++    } else if stage.starts_with("drop-target") {
++        10
++    } else if stage == "retain-not-ready" {
++        13
++    } else if stage == "drop-not-ready" {
++        14
++    } else if stage == "drop-pending-age" {
++        15
++    } else if stage == "drop-pending-capacity" {
++        17
++    } else {
++        16
++    }
++}
++impl Counters {
++    pub(super) fn new() -> Self {
++        let began = Instant::now();
++        let began_unix_us = std::time::SystemTime::now()
++            .duration_since(std::time::UNIX_EPOCH)
++            .map_or(0, |d| d.as_micros());
++        let clock_pair_window_us = began.elapsed().as_micros();
++        Self {
++            began,
++            began_unix_us,
++            clock_pair_window_us,
++            counts: std::array::from_fn(|_| AtomicU64::new(0)),
++            reserved: AtomicU64::new(0),
++            occurrences: std::array::from_fn(|_| AtomicU64::new(0)),
++            events: std::array::from_fn(|_| std::array::from_fn(|_| OnceLock::new())),
++        }
++    }
++    pub(super) fn record(
++        &self,
++        stage: &'static str,
++        error: Option<&StreamControlError>,
++        rtp: &[u8],
++    ) {
++        let code = classify(stage, error);
++        increment(&self.counts[code]);
++        // Healthy path adds only its scalar count: no clock/header parse/log.
++        if code <= 1 {
++            return;
++        }
++        increment(&self.reserved);
++        let category = code - 2;
++        let n = increment(&self.occurrences[category]);
++        let Some(slot) = self.events[category].get(usize::try_from(n).unwrap_or(usize::MAX)) else {
++            return;
++        };
++        let valid = rtp.len() >= 12 && rtp[0] >> 6 == 2;
++        let event = Event {
++            stage: if stage == "forward-result" {
++                STAGES[code]
++            } else {
++                stage
++            },
++            elapsed_us: self.began.elapsed().as_micros(),
++            source_ssrc: valid.then(|| u32::from_be_bytes(rtp[8..12].try_into().unwrap())),
++            source_sequence: valid.then(|| u16::from_be_bytes(rtp[2..4].try_into().unwrap())),
++            rtp_timestamp: valid.then(|| u32::from_be_bytes(rtp[4..8].try_into().unwrap())),
++        };
++        // Unique reserved slot has one writer; get() never waits on publication.
++        let _ = slot.set(event);
++    }
++    pub fn snapshot(&self) -> Snapshot {
++        let total = self.reserved.load(Ordering::Relaxed);
++        let mut unreported = 0;
++        let mut events = Vec::new();
++        let mut category_overflow = Vec::new();
++        for category in 0..EXCEPTION_STAGES {
++            let count = self.occurrences[category].load(Ordering::Relaxed);
++            if count > PER_STAGE as u64 {
++                category_overflow.push((STAGES[category + 2], count - PER_STAGE as u64));
++            }
++            for slot in self.events[category]
++                .iter()
++                .take(count.min(PER_STAGE as u64) as usize)
++            {
++                let event = slot.get().copied();
++                if event.is_none() {
++                    unreported += 1;
++                }
++                events.push(event);
++            }
++        }
++        Snapshot {
++            began_unix_us: self.began_unix_us,
++            clock_pair_window_us: self.clock_pair_window_us,
++            counts: self
++                .counts
++                .iter()
++                .enumerate()
++                .filter_map(|(i, n)| {
++                    let n = n.load(Ordering::Relaxed);
++                    (n > 0).then_some((STAGES[i], n))
++                })
++                .collect(),
++            total_exception_events: total,
++            sampling: "first4-per-exception-category; max64; no overwrite",
++            category_overflow,
++            unreported_reserved: unreported,
++            events,
++        }
++    }
++}
++impl AdapterMediaPort {
++    #[doc(hidden)]
++    pub fn video_boundary_snapshot_for_test(&self) -> Option<Snapshot> {
++        self.0
++            .video_boundary
++            .as_ref()
++            .map(|counter| counter.snapshot())
++    }
++    #[doc(hidden)]
++    pub fn video_boundary_observation_for_test(&self) -> Option<Arc<Counters>> {
++        self.0.video_boundary.clone()
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn core_video_boundary_counters_distinguish_forward_refusal_and_unpublished_events() {
++        let a = Counters::new();
++        let b = Counters::new();
++        let bytes = [0x80, 96, 0, 9, 0, 0, 0, 30, 0, 0, 0, 3];
++        a.record("capture", None, &bytes);
++        a.record(
++            "forward-result",
++            Some(&StreamControlError::NotReady),
++            &bytes,
++        );
++        b.record(
++            "forward-result",
++            Some(&StreamControlError::MetadataBusy),
++            &bytes,
++        );
++        let x = a.snapshot();
++        assert_eq!(x.counts, vec![("capture", 1), ("forward-not-ready", 1)]);
++        assert_eq!(x.events[0].unwrap().source_sequence, Some(9));
++        assert_eq!(x.events[0].unwrap().rtp_timestamp, Some(30));
++        assert_eq!(b.snapshot().counts, vec![("forward-metadata-busy", 1)]);
++        increment(&a.reserved);
++        increment(&a.occurrences[3]);
++        let x = a.snapshot();
++        assert_eq!(x.events[1], None);
++        assert_eq!(x.unreported_reserved, 1);
++        a.record("drop-target-age", None, &[]);
++        assert!(a
++            .snapshot()
++            .events
++            .iter()
++            .flatten()
++            .any(|e| e.stage == "drop-target-age" && e.source_ssrc.is_none()));
++        let c = Counters::new();
++        for sequence in 0..100u16 {
++            let mut rtp = bytes;
++            rtp[2..4].copy_from_slice(&sequence.to_be_bytes());
++            c.record("forward-result", Some(&StreamControlError::NotReady), &rtp);
++            c.record(
++                "forward-result",
++                Some(&StreamControlError::NotRecipient),
++                &rtp,
++            );
++            c.record("drop-target-selection", None, &rtp);
++        }
++        c.record("drop-source-ticket", None, &bytes);
++        let snapshot = c.snapshot();
++        let sequences = snapshot
++            .events
++            .iter()
++            .flatten()
++            .filter(|e| e.stage == "forward-not-ready")
++            .map(|e| e.source_sequence.unwrap())
++            .collect::<Vec<_>>();
++        assert_eq!(sequences, vec![0, 1, 2, 3]);
++        assert_eq!(snapshot.total_exception_events, 301);
++        assert_eq!(snapshot.events.len(), 13);
++        assert!(snapshot
++            .events
++            .iter()
++            .flatten()
++            .any(|e| e.stage == "drop-source-ticket"));
++        assert!(snapshot
++            .events
++            .iter()
++            .flatten()
++            .any(|e| e.stage == "drop-target-selection"));
++        assert!(snapshot.counts.contains(&("forward-not-recipient", 100)));
++        assert!(snapshot.counts.contains(&("drop-target", 100)));
++        assert!(snapshot
++            .category_overflow
++            .contains(&("forward-not-ready", 96)));
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -561,6 +561,8 @@
+     ticket: Mutex<PeerRouteTicket>,
+     state: Mutex<PortState>,
+     diagnostics: std::sync::OnceLock<diagnostics::PortDiagnostics>,
++    #[cfg(feature = "test-support")]
++    video_boundary: Option<Arc<video_boundary::Counters>>,
+     native_egress: std::sync::OnceLock<Arc<native_activation::Cursor>>,
+     audio_egress_owner: std::sync::OnceLock<u128>,
+     audio_egress_binding: std::sync::OnceLock<audio_egress_clock::AudioEgressBinding>,
+@@ -1310,6 +1312,22 @@
+     pub transport: StreamId,
+     pub generation: u64,
+ }
++// Numeric packet evidence only, never a payload/permission/custody escape.
++#[cfg(feature = "test-support")]
++impl QueuedMedia {
++    #[doc(hidden)]
++    pub fn video_diagnostic_stamp_for_test(&self) -> Option<(u32, u16, u32)> {
++        let packet = &self.frame.payload;
++        if self.frame.kind != StreamKind::Video || packet.len() < 12 || packet[0] >> 6 != 2 {
++            return None;
++        }
++        Some((
++            u32::from_be_bytes(packet[8..12].try_into().ok()?),
++            u16::from_be_bytes(packet[2..4].try_into().ok()?),
++            u32::from_be_bytes(packet[4..8].try_into().ok()?),
++        ))
++    }
++}
+ pub struct QueuedMedia {
+     frame: MediaFrame,
+     authorization_epochs: Vec<Arc<dyn PacketEpoch>>,
+@@ -1491,13 +1509,18 @@
+         for (index, mut queued) in frames.into_iter().enumerate() {
+             #[cfg(feature = "test-support")]
+             let observation = audio_diagnostic::original_frame(&queued.target, &queued.frame);
+-            let mut until = tokio::time::Instant::from_std(queued.admitted_at + Duration::from_millis(200));
++            let mut until =
++                tokio::time::Instant::from_std(queued.admitted_at + Duration::from_millis(200));
+             let attempt = queued.admit_queued_media_with_deadline(&mut until);
+             // A later source/recipient refusal must not forget an earlier
+             // observed grant expiry. These are numeric minima, never readers
+             // or permission; next admission still checks every original epoch.
+             for source in &mut queued.sources {
+-                source.admission_deadline = Some(source.admission_deadline.map_or(until, |old| old.min(until)));
++                source.admission_deadline = Some(
++                    source
++                        .admission_deadline
++                        .map_or(until, |old| old.min(until)),
++                );
+             }
+             #[cfg(feature = "test-support")]
+             if let Some(observation) = observation {
+@@ -1636,7 +1659,12 @@
+             }
+             match attempt {
+                 Ok(admitted) => break admitted,
+-                Err(problem) if (matches!(&problem, StreamControlError::NotReady) && self.frame.kind != StreamKind::Data) || (matches!(&problem, StreamControlError::MetadataBusy) && self.frame.kind == StreamKind::Audio) => {
++                Err(problem)
++                    if (matches!(&problem, StreamControlError::NotReady)
++                        && self.frame.kind != StreamKind::Data)
++                        || (matches!(&problem, StreamControlError::MetadataBusy)
++                            && self.frame.kind == StreamKind::Audio) =>
++                {
+                     // Only metadata remains here: a failed attempt dropped every
+                     // source/target authority and generation reader. Never extend
+                     // the original frame's age or recapture a newer audience.
+@@ -3661,6 +3689,10 @@
+                     messages_only: false,
+                 }),
+                 diagnostics: std::sync::OnceLock::new(),
++                #[cfg(feature = "test-support")]
++                video_boundary: (plan.requested.medium == Medium::Video
++                    && tracing::enabled!(target: "rvoip_core::video_boundary", tracing::Level::DEBUG))
++                    .then(|| Arc::new(video_boundary::Counters::new())),
+                 native_egress: std::sync::OnceLock::new(),
+                 audio_egress_owner: std::sync::OnceLock::new(),
+                 audio_egress_binding: std::sync::OnceLock::new(),
+@@ -4610,3 +4642,7 @@
+ pub use transport_update::TransportUpdateSlot;
+ 
+ pub mod original_ingress;
++
++#[cfg(feature = "test-support")]
++#[doc(hidden)]
++pub mod video_boundary;
+--- a/crates/uctp/rvoip-uctp/Cargo.toml
++++ b/crates/uctp/rvoip-uctp/Cargo.toml
+@@ -13,6 +13,8 @@
+ description = "UCTP (Universal Conversation Transport Protocol) — envelopes, state machine, capability negotiation, and substrate helpers shared by rvoip-quic and rvoip-webtransport"
+ 
+ [features]
++# Diagnostic numeric Core access is explicit to instrumented test-support lanes.
++test-support = ["rvoip-core/test-support"]
+ memory-diagnostics = ["rvoip-core/memory-diagnostics", "dep:rvoip-infra-common", "rvoip-infra-common/memory-diagnostics"]
+ # Disables certificate verification on the client side. For tests and demos
+ # only; never enable in production builds.
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/video_diagnostic.rs
+@@ -0,0 +1,265 @@
++//! Fixed numeric evidence only. Disabled unless the explicit debug target is enabled.
++//! No media, route, current permission, callback, mutex, task or timer is retained.
++use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
++use std::time::{Instant, SystemTime, UNIX_EPOCH};
++const LIMIT: usize = 64;
++const STAGES: [&str; 16] = [
++    "ingress-before-owner",
++    "ingress-owned-final",
++    "ingress-abandoned",
++    "queued-before-packetizer",
++    "feedback-receiver",
++    "feedback-source",
++    "history-announced",
++    "packetizer-callback-refused",
++    "publisher-history-announced",
++    "receiver-history-announced",
++    "publisher-metadata-lock",
++    "publisher-current-refusal",
++    "publisher-fan-in-cooldown",
++    "publisher-transport-refused",
++    "receiver-metadata-lock",
++    "receiver-history-refused",
++];
++const ERRORS: [&str; 12] = [
++    "model",
++    "unsupported",
++    "authority",
++    "not-recipient",
++    "cancelled",
++    "deadline",
++    "not-ready",
++    "metadata-busy",
++    "backpressure",
++    "cleanup-unconfirmed",
++    "ok",
++    "unknown",
++];
++#[derive(Default)]
++struct Slot {
++    ready: AtomicBool,
++    at: AtomicU64,
++    stamp: AtomicU64,
++    source: AtomicU64,
++    class: AtomicU64,
++    known: AtomicBool,
++}
++pub(super) struct Events {
++    began: Instant,
++    began_unix_us: u128,
++    clock_pair_window_us: u128,
++    reserved: AtomicU64,
++    counts: [[AtomicU64; 12]; 16],
++    slots: [Slot; LIMIT],
++}
++#[derive(Debug, PartialEq, Eq)]
++pub(super) struct Event {
++    elapsed_us: u64,
++    stage: &'static str,
++    error: &'static str,
++    source_ssrc: Option<u32>,
++    sequence: Option<u32>,
++    rtp_timestamp: Option<u32>,
++}
++#[derive(Debug)]
++pub(super) struct Snapshot {
++    began_unix_us: u128,
++    clock_pair_window_us: u128,
++    total_events: u64,
++    overflow: u64,
++    unreported_reserved: usize,
++    counts: Vec<(&'static str, &'static str, u64)>,
++    events: Vec<Option<Event>>,
++}
++fn increment(value: &AtomicU64) -> u64 {
++    value
++        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
++            Some(v.saturating_add(1))
++        })
++        .unwrap()
++}
++impl Events {
++    pub(super) fn enabled() -> bool {
++        tracing::enabled!(target: "rvoip_uctp::video_recovery", tracing::Level::DEBUG)
++    }
++    pub(super) fn new() -> Self {
++        let began = Instant::now();
++        let began_unix_us = SystemTime::now()
++            .duration_since(UNIX_EPOCH)
++            .map_or(0, |d| d.as_micros());
++        let clock_pair_window_us = began.elapsed().as_micros();
++        Self {
++            began,
++            began_unix_us,
++            clock_pair_window_us,
++            reserved: AtomicU64::new(0),
++            counts: std::array::from_fn(|_| std::array::from_fn(|_| AtomicU64::new(0))),
++            slots: std::array::from_fn(|_| Slot::default()),
++        }
++    }
++    pub(super) fn record(
++        &self,
++        stage: usize,
++        error: usize,
++        source_ssrc: u32,
++        sequence: u32,
++        timestamp: u32,
++    ) {
++        self.record_actual(stage, error, Some((source_ssrc, sequence, timestamp)));
++    }
++    pub(super) fn record_optional(
++        &self,
++        stage: usize,
++        error: usize,
++        stamp: Option<(u32, u16, u32)>,
++    ) {
++        self.record_actual(
++            stage,
++            error,
++            stamp.map(|(ssrc, seq, ts)| (ssrc, u32::from(seq), ts)),
++        );
++    }
++    fn record_actual(&self, stage: usize, error: usize, stamp: Option<(u32, u32, u32)>) {
++        let (source_ssrc, sequence, timestamp) = stamp.unwrap_or_default();
++        debug_assert!(stage < STAGES.len() && error < ERRORS.len());
++        if stage >= STAGES.len() || error >= ERRORS.len() {
++            return;
++        }
++        increment(&self.counts[stage][error]);
++        let ordinal = increment(&self.reserved);
++        let Some(slot) = self
++            .slots
++            .get(usize::try_from(ordinal).unwrap_or(usize::MAX))
++        else {
++            return;
++        };
++        // Each reserved slot has exactly one writer, then release-publishes.
++        slot.at.store(
++            self.began.elapsed().as_micros().min(u128::from(u64::MAX)) as u64,
++            Ordering::Relaxed,
++        );
++        slot.stamp.store(
++            (u64::from(sequence) << 32) | u64::from(timestamp),
++            Ordering::Relaxed,
++        );
++        slot.source.store(u64::from(source_ssrc), Ordering::Relaxed);
++        slot.class
++            .store((stage * ERRORS.len() + error) as u64, Ordering::Relaxed);
++        slot.known.store(stamp.is_some(), Ordering::Relaxed);
++        slot.ready.store(true, Ordering::Release);
++    }
++    pub(super) fn snapshot(&self) -> Snapshot {
++        let total = self.reserved.load(Ordering::Relaxed);
++        let mut unreported = 0;
++        let events = self
++            .slots
++            .iter()
++            .take(total.min(LIMIT as u64) as usize)
++            .map(|slot| {
++                if !slot.ready.load(Ordering::Acquire) {
++                    unreported += 1;
++                    return None;
++                }
++                let class = slot.class.load(Ordering::Relaxed) as usize;
++                let stamp = slot.stamp.load(Ordering::Relaxed);
++                Some(Event {
++                    elapsed_us: slot.at.load(Ordering::Relaxed),
++                    stage: STAGES[class / ERRORS.len()],
++                    error: ERRORS[class % ERRORS.len()],
++                    source_ssrc: slot
++                        .known
++                        .load(Ordering::Relaxed)
++                        .then_some(slot.source.load(Ordering::Relaxed) as u32),
++                    sequence: (slot.known.load(Ordering::Relaxed)
++                        && (![5, 10, 11, 12].contains(&(class / ERRORS.len()))
++                            || class % ERRORS.len() == 10))
++                        .then_some((stamp >> 32) as u32),
++                    rtp_timestamp: (slot.known.load(Ordering::Relaxed)
++                        && ![4, 5, 10, 11, 12, 13, 14, 15].contains(&(class / ERRORS.len())))
++                    .then_some(stamp as u32),
++                })
++            })
++            .collect();
++        let counts = self
++            .counts
++            .iter()
++            .enumerate()
++            .flat_map(|(s, entries)| {
++                entries.iter().enumerate().filter_map(move |(e, count)| {
++                    let count = count.load(Ordering::Relaxed);
++                    (count > 0).then_some((STAGES[s], ERRORS[e], count))
++                })
++            })
++            .collect();
++        Snapshot {
++            began_unix_us: self.began_unix_us,
++            clock_pair_window_us: self.clock_pair_window_us,
++            total_events: total,
++            overflow: total.saturating_sub(LIMIT as u64),
++            unreported_reserved: unreported,
++            counts,
++            events,
++        }
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn numeric_video_boundary_diagnostics_isolate_ports_stages_and_unreported_slots() {
++        let counter = super::super::StagedRtpCounters::default();
++        super::super::io_add(
++            &counter
++                .io_for(rvoip_core::stream::StreamKind::Audio)
++                .input_errors[7],
++            1,
++        );
++        super::super::io_add(
++            &counter
++                .io_for(rvoip_core::stream::StreamKind::Video)
++                .input_errors[8],
++            2,
++        );
++        let snapshot = counter.io_snapshot();
++        assert_eq!(snapshot[0].medium, "audio");
++        assert_eq!(snapshot[0].input_errors[7], 1);
++        assert_eq!(snapshot[0].input_errors[8], 0);
++        assert_eq!(snapshot[1].input_errors[8], 2);
++        assert_eq!(snapshot[1].input_errors[7], 0);
++        assert_eq!(snapshot[2].input_errors, [0; 10]);
++        let a = Events::new();
++        let b = Events::new();
++        a.record(0, 7, 3, 9, 30);
++        a.record(3, 6, 3, 10, 60);
++        b.record(4, 2, 4, 11, 90);
++        let x = a.snapshot();
++        let y = b.snapshot();
++        assert_eq!(
++            x.counts,
++            vec![
++                ("ingress-before-owner", "metadata-busy", 1),
++                ("queued-before-packetizer", "not-ready", 1)
++            ]
++        );
++        assert_eq!(y.counts, vec![("feedback-receiver", "authority", 1)]);
++        assert_eq!(x.events[0].as_ref().unwrap().sequence, Some(9));
++        // Model a reserved but not release-published concurrent slot.
++        increment(&a.reserved);
++        let x = a.snapshot();
++        assert_eq!(x.unreported_reserved, 1);
++        assert_eq!(x.events[2], None);
++        for i in 0..70 {
++            b.record(5, 10, 4, i, i * 3000);
++        }
++        let y = b.snapshot();
++        assert_eq!(y.events.len(), LIMIT);
++        assert_eq!(y.overflow, 7);
++        assert_eq!(
++            y.counts,
++            vec![
++                ("feedback-receiver", "authority", 1),
++                ("feedback-source", "ok", 70)
++            ]
++        );
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/video_feedback.rs
+@@ -49,7 +49,7 @@
+     publisher: Option<Publisher>,
+     next: Option<Instant>,
+     sequence: u32,
+-    reservation:Option<rvoip_core::staged_streams::NativeFeedbackReservation>,
++    reservation: Option<rvoip_core::staged_streams::NativeFeedbackReservation>,
+ }
+ pub(super) struct Endpoint {
+     binding: ReadyMediaBinding,
+@@ -59,6 +59,8 @@
+     lifetime: CancellationToken,
+     source: Mutex<SourceState>,
+     receiver: Mutex<Option<Receiver>>,
++    #[cfg(feature = "test-support")]
++    diagnostic: Option<video_diagnostic::Events>,
+ }
+ impl Endpoint {
+     pub fn new(
+@@ -67,7 +69,7 @@
+         transport: Arc<dyn StagedDatagramTransport>,
+         cancel: CancellationToken,
+         lifetime: CancellationToken,
+-        reservation:Option<rvoip_core::staged_streams::NativeFeedbackReservation>,
++        reservation: Option<rvoip_core::staged_streams::NativeFeedbackReservation>,
+     ) -> ControlResult<Arc<Self>> {
+         if binding.negotiated.requested.medium != Medium::Video {
+             return Err(StreamControlError::Unsupported);
+@@ -78,8 +80,13 @@
+             transport,
+             cancel,
+             lifetime,
+-            source: Mutex::new(SourceState{reservation,..Default::default()}),
++            source: Mutex::new(SourceState {
++                reservation,
++                ..Default::default()
++            }),
+             receiver: Mutex::new(None),
++            #[cfg(feature = "test-support")]
++            diagnostic: video_diagnostic::Events::enabled().then(video_diagnostic::Events::new),
+         }))
+     }
+     fn live(&self) -> bool {
+@@ -125,6 +132,10 @@
+             self.profile
+                 .announce(&self.binding, publisher.epoch, publisher.current.clone())?;
+             publisher.announced = true;
++            #[cfg(feature = "test-support")]
++            if let Some(diagnostic) = &self.diagnostic {
++                diagnostic.record(8, 10, ssrc, first_sequence, first_timestamp);
++            }
+         }
+         Ok(())
+     }
+@@ -185,23 +196,48 @@
+                 },
+             )?;
+             receiver.announced = true;
++            #[cfg(feature = "test-support")]
++            if let Some(diagnostic) = &self.diagnostic {
++                diagnostic.record(9, 10, ssrc, first_sequence, first_timestamp);
++            }
+         }
+         Ok(())
+     }
+     pub fn receive(&self, request: &VideoFeedbackDatagram) -> ControlResult<()> {
++        let result = self.receive_actual(request);
++        #[cfg(feature = "test-support")]
++        if let Some(diagnostic) = &self.diagnostic {
++            diagnostic.record(
++                4,
++                result.as_ref().err().map_or(10, rtp_io_error),
++                request.media_ssrc,
++                request.seq,
++                0,
++            );
++        }
++        result
++    }
++    fn receive_actual(&self, request: &VideoFeedbackDatagram) -> ControlResult<()> {
+         if !self.live() || request.stream_local_id != self.binding.stream_local_id {
+             return Err(StreamControlError::Authority);
+         }
+         let (route, source_ssrc) = {
+-            let state = self
+-                .receiver
+-                .try_lock()
+-                .map_err(|_| StreamControlError::Backpressure)?;
++            let state = self.receiver.try_lock().map_err(|_| {
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostic) = &self.diagnostic {
++                    diagnostic.record(14, 8, request.media_ssrc, request.seq, 0);
++                }
++                StreamControlError::Backpressure
++            })?;
+             let receiver = state.as_ref().ok_or(StreamControlError::NotReady)?;
+             if !receiver.announced
+                 || request.media_ssrc != receiver.ssrc
+                 || request.activation_epoch != receiver.route.epoch()
+             {
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostic) = &self.diagnostic {
++                    diagnostic.record(15, 2, request.media_ssrc, request.seq, 0);
++                }
+                 return Err(StreamControlError::Authority);
+             }
+             (receiver.route.clone(), receiver.source_ssrc)
+@@ -233,29 +269,52 @@
+     // Only called under Core's fresh source+receiver authority and generation
+     // guards. A shared publisher limit also bounds fan-in from many receivers.
+     fn dispatch(&self, ssrc: u32) -> ControlResult<()> {
++        let result = self.dispatch_actual(ssrc);
++        #[cfg(feature = "test-support")]
++        if let (Some(diagnostic), Err(error)) = (&self.diagnostic, &result) {
++            diagnostic.record(5, rtp_io_error(error), ssrc, 0, 0);
++        }
++        result
++    }
++    fn dispatch_actual(&self, ssrc: u32) -> ControlResult<()> {
+         if !self.live() {
+             return Err(StreamControlError::Cancelled);
+         }
+-        let mut state = self
+-            .source
+-            .try_lock()
+-            .map_err(|_| StreamControlError::Backpressure)?;
++        let mut state = self.source.try_lock().map_err(|_| {
++            #[cfg(feature = "test-support")]
++            if let Some(diagnostic) = &self.diagnostic {
++                diagnostic.record(10, 8, ssrc, 0, 0);
++            }
++            StreamControlError::Backpressure
++        })?;
+         let publisher = state
+             .publisher
+             .as_ref()
+             .ok_or(StreamControlError::NotReady)?;
+         if !publisher.announced || publisher.epoch.ssrc != ssrc || !(publisher.current)() {
++            #[cfg(feature = "test-support")]
++            if let Some(diagnostic) = &self.diagnostic {
++                diagnostic.record(11, 2, ssrc, 0, 0);
++            }
+             return Err(StreamControlError::Authority);
+         }
+         let epoch = publisher.epoch.epoch;
+         let now = Instant::now();
+         if state.next.is_some_and(|next| now < next) {
++            #[cfg(feature = "test-support")]
++            if let Some(diagnostic) = &self.diagnostic {
++                diagnostic.record(12, 8, ssrc, 0, 0);
++            }
+             return Err(StreamControlError::Backpressure);
+         }
+         // The same original physical handle shares one reservation space with
+         // RTP and sender reports. Existing fresh source/receiver guards remain held.
+-        let sequence=if let Some(reservation)=state.reservation.as_mut(){reservation.reserve_next()?}else{state.sequence};
+-        state.sequence=sequence.wrapping_add(1);
++        let sequence = if let Some(reservation) = state.reservation.as_mut() {
++            reservation.reserve_next()?
++        } else {
++            state.sequence
++        };
++        state.sequence = sequence.wrapping_add(1);
+         let bytes = pack_video_feedback_datagram(&VideoFeedbackDatagram {
+             stream_local_id: self.binding.stream_local_id,
+             seq: sequence,
+@@ -274,6 +333,27 @@
+         // Consume even an uncertain local send. Never retransmit one request
+         // behind renewed policy, or pass the receiver's sequence to a source.
+         state.next = Some(now + Duration::from_millis(100));
+-        self.transport.send_datagram(bytes)
+-    }
+-}
++        let result = self.transport.send_datagram(bytes);
++        #[cfg(feature = "test-support")]
++        if let Err(error) = &result {
++            if let Some(diagnostic) = &self.diagnostic {
++                diagnostic.record(13, rtp_io_error(error), ssrc, sequence, 0);
++            }
++        }
++        #[cfg(feature = "test-support")]
++        if result.is_ok() {
++            if let Some(diagnostic) = &self.diagnostic {
++                diagnostic.record(5, 10, ssrc, sequence, 0);
++            }
++        }
++        result
++    }
++}
++#[cfg(feature = "test-support")]
++impl Endpoint {
++    pub(super) fn diagnostic_snapshot(&self) -> Option<video_diagnostic::Snapshot> {
++        self.diagnostic
++            .as_ref()
++            .map(video_diagnostic::Events::snapshot)
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -36,6 +36,8 @@
+ mod ready_audio;
+ pub(crate) mod rtcp;
+ mod source_clock;
++#[cfg(any(test, feature = "test-support"))]
++mod video_diagnostic;
+ mod video_feedback;
+ pub(crate) use ready_audio::ReadyAudioEgress;
+ pub use video_feedback::{VideoFeedbackEpoch, VideoFeedbackProfile};
+@@ -406,6 +408,8 @@
+ }
+ 
+ struct PortIngress {
++    #[cfg(feature = "test-support")]
++    video_diagnostic: Option<Arc<video_diagnostic::Events>>,
+     feedback: Option<Arc<video_feedback::Endpoint>>,
+     clock: source_clock::Track,
+     flow: Option<Arc<crate::native_flow::NativeFlow>>,
+@@ -513,6 +517,16 @@
+                 Some(true)
+             }
+             Err(error) => {
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostic) = &self.ingress.video_diagnostic {
++                    diagnostic.record(
++                        1,
++                        rtp_io_error(&error),
++                        self.ssrc,
++                        self.sequence,
++                        self.timestamp,
++                    );
++                }
+                 let counter = if matches!(error, StreamControlError::Deadline) {
+                     &self.ingress.counters.original_expired
+                 } else {
+@@ -531,6 +545,10 @@
+ impl Drop for OriginalNativeIngress {
+     fn drop(&mut self) {
+         if !self.finished {
++            #[cfg(feature = "test-support")]
++            if let Some(diagnostic) = &self.ingress.video_diagnostic {
++                diagnostic.record(2, 11, self.ssrc, self.sequence, self.timestamp);
++            }
+             self.ingress
+                 .counters
+                 .original_abandoned
+@@ -576,7 +594,11 @@
+                 }
+                 Ok(None)
+             }
+-            Err(_) => {
++            Err(error) => {
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostic) = &self.video_diagnostic {
++                    diagnostic.record(0, rtp_io_error(&error), ssrc, sequence, timestamp);
++                }
+                 self.counters.rejected.fetch_add(1, Ordering::AcqRel);
+                 Err(())
+             }
+@@ -1349,6 +1371,12 @@
+                 .feedback
+                 .lock()
+                 .unwrap_or_else(|p| p.into_inner()) = feedback.clone();
++            #[cfg(feature = "test-support")]
++            let core_video_boundary = port.video_boundary_observation_for_test();
++            #[cfg(feature = "test-support")]
++            let video_diagnostic = (port.binding().negotiated.requested.medium == Medium::Video
++                && video_diagnostic::Events::enabled())
++            .then(|| Arc::new(video_diagnostic::Events::new()));
+             let registration = PeerMediaRegistration::checked(
+                 self.scope.owner.clone(),
+                 PeerMediaRouteKey::new(
+@@ -1358,6 +1386,8 @@
+                 ),
+                 stream.clone(),
+                 Arc::new(PortIngress {
++                    #[cfg(feature = "test-support")]
++                    video_diagnostic: video_diagnostic.clone(),
+                     feedback: feedback.clone(),
+                     clock: self
+                         .clocks
+@@ -1450,13 +1480,23 @@
+                     };
+                     let queued = tokio::select! {biased;_=cancel.cancelled()=>break,_=lifetime.cancelled()=>break,next=next=>match next {Some(value)=>value,None=>break}};
+                     queued.observe_private_video_adapter_dequeue();
++                    #[cfg(feature = "test-support")]
++                    let video_stamp = video_diagnostic
++                        .as_ref()
++                        .and_then(|_| queued.video_diagnostic_stamp_for_test());
+                     let audio_stamp = match queued.audio_egress_stamp() {
+                         Ok(stamp) => stamp,
+-                        Err(_) => {
++                        Err(problem) => {
++                            #[cfg(feature = "test-support")]
++                            if let Some(diagnostic) = &video_diagnostic {
++                                diagnostic.record_optional(3, rtp_io_error(&problem), video_stamp);
++                            }
+                             counters.send_errors.fetch_add(1, Ordering::AcqRel);
+                             continue;
+                         }
+                     };
++                    #[cfg(feature = "test-support")]
++                    let mut packetizer_callback_entered = false;
+                     let result = if queued.can_batch_audio() {
+                         match ready_audio
+                             .send(
+@@ -1478,6 +1518,10 @@
+                         }
+                     } else {
+                         let mut send = |frame: MediaFrame, origin, epoch| {
++                            #[cfg(feature = "test-support")]
++                            {
++                                packetizer_callback_entered = true;
++                            }
+                             packetizer
+                                 .as_mut()
+                                 .expect("owned packetizer")
+@@ -1542,12 +1586,40 @@
+                         }
+                     };
+                     if let Err(problem) = &result {
++                        #[cfg(feature = "test-support")]
++                        if let Some(diagnostic) = &video_diagnostic {
++                            diagnostic.record_optional(
++                                if packetizer_callback_entered { 7 } else { 3 },
++                                rtp_io_error(problem),
++                                video_stamp,
++                            );
++                        }
+                         tracing::trace!(target: "rvoip_uctp::native_egress", connection=connection.as_str(), stream=binding.transport_id.as_str(), source_ready=binding.source_ready, sink_ready=binding.sink_ready, ?problem, "Native guarded egress refused");
+                         counters.send_errors.fetch_add(1, Ordering::AcqRel);
+                     }
+                     if transport.is_closed() {
+                         break;
+                     }
++                }
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostic) = &video_diagnostic {
++                    let output_ssrc = packetizer.as_ref().map(|p| p.ssrc);
++                    let source_ssrc = packetizer
++                        .as_ref()
++                        .and_then(|p| p.previous_video.as_ref())
++                        .map(|p| p.ssrc);
++                    #[cfg(feature = "test-support")]
++                    let core_forward = core_video_boundary
++                        .as_ref()
++                        .map(|counter| counter.snapshot());
++                    tracing::debug!(target: "rvoip_uctp::video_recovery", handle=binding.stream_local_id,
++                        generation=binding.generation, connection_generation=binding.connection_generation,
++                        source_ready=binding.source_ready, sink_ready=binding.sink_ready,
++                        ?source_ssrc, ?output_ssrc, counter_scope="physical-adapter-by-medium-concurrent-not-per-port",
++                        io=?counters.io_snapshot(), port_events=?diagnostic.snapshot(),
++                        feedback_events=?feedback.as_ref().and_then(|endpoint|endpoint.diagnostic_snapshot()),
++                        ?core_forward,
++                        "Native video terminal boundary evidence");
+                 }
+                 if let Some(port) = weak.upgrade() {
+                     let _ = port.report_terminal();

@@ -9,7 +9,7 @@ publish = false
 
 [features]
 memory-diagnostics = ["test-support", "dep:rvoip-infra-common", "rvoip-infra-common/memory-diagnostics", "rvoip-core/memory-diagnostics", "rvoip-webrtc/memory-diagnostics", "rvoip-uctp/memory-diagnostics", "connect-store/memory-diagnostics"]
-test-support = ["connect-store/test-support", "rvoip-core/test-support"]
+test-support = ["connect-store/test-support", "rvoip-core/test-support", "rvoip-uctp/test-support"]
 
 [dependencies]
 arc-swap.workspace = true

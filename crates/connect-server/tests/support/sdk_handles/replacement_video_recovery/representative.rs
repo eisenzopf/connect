@@ -16,6 +16,10 @@ const FRAMES: u32 = 62 * 30;
 mod data;
 #[path = "representative_programme.rs"]
 mod programme;
+#[path = "representative_retirement.rs"]
+mod retirement;
+#[path = "representative_video_diagnostics.rs"]
+mod video_diagnostics;
 const AGE: Duration = Duration::from_millis(200);
 type Work = tokio::task::JoinHandle<std::result::Result<(), String>>;
 
@@ -164,6 +168,7 @@ fn audio_continuity_snapshot(
 /// Bounded scalar observation. The full media stays with its original reader.
 #[derive(Clone, Debug)]
 struct Progress {
+    video_diagnostics: video_diagnostics::History,
     encoded_frames: u64,
     encoded_bins: [u16; 62],
     published_frames: u64,
@@ -213,6 +218,7 @@ struct Progress {
 impl Default for Progress {
     fn default() -> Self {
         Self {
+            video_diagnostics: Default::default(),
             encoded_frames: Default::default(),
             encoded_bins: [0; 62],
             published_frames: Default::default(),
@@ -411,17 +417,23 @@ impl Default for DecodeHistory {
     }
 }
 impl DecodeHistory {
-    fn loss(&mut self, progress: &SharedProgress) {
+    fn loss(
+        &mut self,
+        progress: &SharedProgress,
+        reason: &'static str,
+        stamp: Option<(u32, u32, u32)>,
+    ) {
         self.waiting_key = true;
         self.need_key = self.ssrc.is_some();
         self.last_sequence = None;
         let mut measured = progress.lock().unwrap();
         measured.video_losses += 1;
+        measured.video_diagnostics.record(reason, stamp, None);
         measured.video_waiting_key = true;
     }
     fn gap(&mut self, progress: &SharedProgress) {
         self.assembler = VideoFrameAssembler::default();
-        self.loss(progress);
+        self.loss(progress, "sdk-queue-gap", None);
     }
     fn take_request(&mut self, now: Instant) -> bool {
         if !self.need_key
@@ -460,7 +472,15 @@ impl DecodeHistory {
         if after.discarded_frames > before.discarded_frames
             || after.expired_frames > before.expired_frames
         {
-            self.loss(progress);
+            self.loss(
+                progress,
+                "assembly-expired-or-discarded",
+                Some((
+                    packet.ssrc,
+                    u32::from(packet.sequence),
+                    packet.timestamp_rtp,
+                )),
+            );
         }
         let frame = frame?;
         let range = self
@@ -476,7 +496,11 @@ impl DecodeHistory {
             .last_sequence
             .is_some_and(|last| last.wrapping_add(1) != range.first)
         {
-            self.loss(progress);
+            self.loss(
+                progress,
+                "completed-sequence-gap",
+                Some((packet.ssrc, u32::from(range.first), packet.timestamp_rtp)),
+            );
         }
         self.last_sequence = Some(range.last);
         self.timestamp = Some(frame.timestamp_rtp);
@@ -966,6 +990,11 @@ fn observe_video(
     state.frames += 1;
     if frame.keyframe && state.video_waiting_key {
         state.recovered_keys += 1;
+        state.video_diagnostics.record(
+            "genuine-recovery-key-decoded",
+            Some((epoch.ssrc, 0, frame.timestamp_rtp)),
+            None,
+        );
     }
     state.video_waiting_key = false;
     if frame.keyframe {
@@ -1240,6 +1269,7 @@ fn spawn_publisher(
 ) -> Vec<Work> {
     let video = connection.stream_by_id(format!("representative-video-{source}").parse().unwrap());
     let voice = connection.stream_by_id(format!("representative-audio-{source}").parse().unwrap());
+    progress.lock().unwrap().video_diagnostics.began = Some(began);
     let mut samples = master.subscribe();
     let requested = master.force_key.clone();
     vec![tokio::spawn(async move {
@@ -1252,10 +1282,14 @@ fn spawn_publisher(
                     _ = stop.cancelled() => break,
                     request = video.receive_video_feedback(short()) => match request {
                         Ok(request) => {
-                            progress.lock().unwrap().publisher_feedback_received += 1;
+                            { let mut measured=progress.lock().unwrap();
+                              measured.publisher_feedback_received += 1;
+                              measured.video_diagnostics.record("source-feedback-received",Some((request.ssrc(),0,0)),None); }
                             if request.ssrc() == 0x74000000 + source as u32 && video.video_feedback_is_current(&request).unwrap() {
                                 requested.store(true, Ordering::Release);
-                                progress.lock().unwrap().publisher_feedback_used += 1;
+                                { let mut measured=progress.lock().unwrap();
+                                  measured.publisher_feedback_used += 1;
+                                  measured.video_diagnostics.record("source-feedback-used",Some((request.ssrc(),0,0)),None); }
                             }
                         }
                         Err(error) if error.kind == sdk::ErrorKind::Deadline && error.certainty == sdk::Certainty::ReadOnly => {}
@@ -1323,6 +1357,7 @@ fn spawn_original_receiver_with_read_cutoff(
     cutoff: Instant,
     read_cutoff: Option<Instant>,
 ) -> Work {
+    progress.lock().unwrap().video_diagnostics.began = Some(began);
     let connection = connection.clone();
     let mut decoder = LiveDecoder::open(binary, source);
     tokio::spawn(async move {
@@ -1363,7 +1398,8 @@ fn spawn_original_receiver_with_read_cutoff(
                                 let history=packet.video_epoch().expect("original signed receiver epoch").clone();
                                 if epoch.as_ref()!=Some(&history) {
                                     continuity=DecodeHistory::default();decoder.started=false;epoch=Some(history);
-                                    progress.lock().unwrap().video_waiting_key=true;
+                                    { let mut measured=progress.lock().unwrap();measured.video_waiting_key=true;
+                                      measured.video_diagnostics.record("original-receiver-history-changed",Some((epoch.as_ref().unwrap().ssrc,0,0)),None); }
                                 }
                                 let parsed=NativeVideoPacket::parse(packet.bytes().to_vec()).unwrap();
                                 continuity.push(&parsed,&progress)
@@ -1373,7 +1409,10 @@ fn spawn_original_receiver_with_read_cutoff(
                         };
                         if continuity.take_request(Instant::now()) {
                             match video.request_keyframe(short()).await {
-                                Ok(_) => progress.lock().unwrap().feedback_requests += 1,
+                                Ok(request) => { let mut measured=progress.lock().unwrap();
+                                    measured.feedback_requests += 1;
+                                    measured.video_diagnostics.record("receiver-pli-locally-submitted",Some((continuity.ssrc.unwrap_or(0),request.datagram_sequence,0)),None);
+                                },
                                 Err(error) if error.kind == sdk::ErrorKind::Unsupported
                                     && retirement.committed() => break,
                                 Err(error) => panic!("original current keyframe request failed: {error:?}"),
@@ -1478,6 +1517,7 @@ fn spawn_candidate(
     use rvoip_uctp::substrate::{
         observe_native_media_datagram, pack, MediaDatagram, ObservedNativeMediaDatagram,
     };
+    progress.lock().unwrap().video_diagnostics.began = Some(began);
     let force_key = candidate.force_key.clone();
     let retirement = candidate.retirement.as_ref().unwrap().clone();
     let mut io = candidate.io.take().unwrap();
@@ -1505,6 +1545,7 @@ fn spawn_candidate(
                         if force_key.swap(false,Ordering::AcqRel)
                             || io.take_keyframe_request(camera,0x74000000+source as u32).unwrap() {
                             requested.store(true,Ordering::Release);
+                            progress.lock().unwrap().video_diagnostics.record("raw-source-force-key-or-hint-used",Some((0x74000000+source as u32,0,0)),None);
                         }
                         if sample.video {
                             for (part,bytes) in sample.bytes.chunks(1000).enumerate() {
@@ -1560,7 +1601,8 @@ fn spawn_candidate(
                             assert_eq!(u16::from_be_bytes(packet.bytes[2..4].try_into().unwrap()),incoming);
                             if epoch.as_ref()!=Some(&history) {
                                 continuity=DecodeHistory::default();decoder.started=false;epoch=Some(history.clone());
-                                progress.lock().unwrap().video_waiting_key=true;
+                                { let mut measured=progress.lock().unwrap();measured.video_waiting_key=true;
+                                  measured.video_diagnostics.record("raw-receiver-history-changed",Some((history.ssrc,0,0)),None); }
                             }
                             let parsed=NativeVideoPacket::parse(packet.bytes[24..].to_vec()).unwrap();
                             if let Some(frame)=continuity.push(&parsed,&progress) {
@@ -2420,54 +2462,71 @@ async fn representative_with_algorithm(
     }
     // End both real Session owners using their current public topology. These
     // commands also exercise the shared original client after both handoffs.
-    for (sid, session) in sessions.iter().enumerate() {
-        if full_programme && work.is_ok() && Instant::now() >= join_cutoff {
-            task_failures.push(
+    if full_programme && work.is_ok() {
+        // Both current reads precede either End; both original End submissions
+        // settle before either status wait can occupy the shared helper.
+        // Every phase keeps the SAME original67s cutoff and logical IDs.
+        let retired = retirement::retire(&sessions, join_cutoff, began).await;
+        for (sid, completed) in &retired.completed {
+            if completed.value.id() != sessions[*sid].id() {
+                task_failures.push(format!(
+                    "original Session cleanup index={sid}: completed a foreign Session"
+                ));
+            }
+        }
+        task_failures.extend(retired.failures);
+    } else {
+        for (sid, session) in sessions.iter().enumerate() {
+            if full_programme && work.is_ok() && Instant::now() >= join_cutoff {
+                task_failures.push(
                 "original Session control retirement deadline expired; no renewed success budget"
                     .into(),
             );
-            break;
-        }
-        let end = AssertUnwindSafe(async {
-            let before = session
-                .refresh(if full_programme && work.is_ok() {
-                    programme::request(join_cutoff)
-                } else {
-                    options()
-                })
-                .await?;
-            if before.state == "ended" {
-                return Ok::<_, sdk::Error>(());
+                break;
             }
-            session
-                .end(
-                    0,
-                    "representative original cleanup".into(),
-                    before.topology_revision,
-                    if full_programme && work.is_ok() {
-                        programme::mutation_at(
-                            &format!("representative-session-end-{sid}"),
-                            join_cutoff,
-                        )
+            let end = AssertUnwindSafe(async {
+                let before = session
+                    .refresh(if full_programme && work.is_ok() {
+                        programme::request(join_cutoff)
                     } else {
-                        mutation(&format!("representative-session-end-{sid}"))
-                    },
-                )
-                .await?
-                .wait(if full_programme && work.is_ok() {
-                    programme::request(join_cutoff)
-                } else {
-                    options()
-                })
-                .await?;
-            Ok::<_, sdk::Error>(())
-        })
-        .catch_unwind()
-        .await;
-        match end {
-            Ok(Ok(())) => {}
-            Ok(Err(error)) => task_failures.push(format!("original Session cleanup: {error:?}")),
-            Err(error) => task_failures.push(panic_text(error)),
+                        options()
+                    })
+                    .await?;
+                if before.state == "ended" {
+                    return Ok::<_, sdk::Error>(());
+                }
+                session
+                    .end(
+                        0,
+                        "representative original cleanup".into(),
+                        before.topology_revision,
+                        if full_programme && work.is_ok() {
+                            programme::mutation_at(
+                                &format!("representative-session-end-{sid}"),
+                                join_cutoff,
+                            )
+                        } else {
+                            mutation(&format!("representative-session-end-{sid}"))
+                        },
+                    )
+                    .await?
+                    .wait(if full_programme && work.is_ok() {
+                        programme::request(join_cutoff)
+                    } else {
+                        options()
+                    })
+                    .await?;
+                Ok::<_, sdk::Error>(())
+            })
+            .catch_unwind()
+            .await;
+            match end {
+                Ok(Ok(())) => {}
+                Ok(Err(error)) => {
+                    task_failures.push(format!("original Session cleanup: {error:?}"))
+                }
+                Err(error) => task_failures.push(panic_text(error)),
+            }
         }
     }
     let drain_until = if full_programme && work.is_ok() {

@@ -1,0 +1,344 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -419,7 +419,7 @@
+         }
+     }
+     fn queue_prompt(&mut self, sample: i16) -> ControlResult<()> {
+-        use rvoip_media_core::{AudioFrame, codec::factory::CodecFactory};
++        use rvoip_media_core::{codec::factory::CodecFactory, AudioFrame};
+         let preparation_operation = self.local_preparation_operation().to_owned();
+         let node = self.room.nodes.get_mut("device").unwrap();
+         node.sequence += 1;
+@@ -480,8 +480,8 @@
+     }
+ }
+ #[tokio::test]
+-async fn replacement_scene_keeps_old_audio_until_confirmed_then_maps_only_intended_device_and_preserves_other_senders()
+- {
++async fn replacement_scene_keeps_old_audio_until_confirmed_then_maps_only_intended_device_and_preserves_other_senders(
++) {
+     let mut f = Move::new(false).await;
+     let remote = f.room.nodes["bob"].controller.active_bindings();
+     let new = f.room.nodes["device"].controller.active_bindings();
+@@ -524,14 +524,12 @@
+     );
+     assert_eq!(f.model.revision(), model_revision);
+     assert!(f.room.publish("alice", 800).is_err());
+-    assert!(
+-        private_tail
+-            .deliver(|_| async {
+-                panic!("a queued private preparation prompt crossed the committed call boundary")
+-            })
+-            .await
+-            .is_err()
+-    );
++    assert!(private_tail
++        .deliver(|_| async {
++            panic!("a queued private preparation prompt crossed the committed call boundary")
++        })
++        .await
++        .is_err());
+     assert!(f.commit(stale).await.is_err());
+     assert_eq!(
+         handle.finish_local_media_cleanup(deadline()).await,
+@@ -559,16 +557,15 @@
+         f.room.nodes["device"].controller.active_bindings()[0].transport_id,
+         new[0].transport_id
+     );
+-    assert!(
+-        f.room
+-            .scene
+-            .plan_restore_audio_audience(
+-                handle.audience(),
+-                "unsafe_restore".into(),
+-                f.room.scene.audience_revision()
+-            )
+-            .is_err()
+-    );
++    assert!(f
++        .room
++        .scene
++        .plan_restore_audio_audience(
++            handle.audience(),
++            "unsafe_restore".into(),
++            f.room.scene.audience_revision()
++        )
++        .is_err());
+     f.room.nodes["alice"]
+         .adapter
+         .uncertain
+@@ -579,8 +576,8 @@
+     );
+ }
+ #[tokio::test]
+-async fn replacement_scene_failed_local_send_missing_policy_and_changed_generations_cannot_lend_readiness()
+- {
++async fn replacement_scene_failed_local_send_missing_policy_and_changed_generations_cannot_lend_readiness(
++) {
+     let mut f = Move::new(false).await;
+     let c = &f.room.nodes["bob"];
+     let p = c.adapter.port(Medium::Audio);
+@@ -598,12 +595,10 @@
+     f.room.tick();
+     f.queue_prompt(4000).unwrap();
+     let queued = outgoing(&mut f.room.nodes.get_mut("device").unwrap().out).await;
+-    assert!(
+-        queued
+-            .deliver(|_| async { Err(StreamControlError::NotReady) })
+-            .await
+-            .is_err()
+-    );
++    assert!(queued
++        .deliver(|_| async { Err(StreamControlError::NotReady) })
++        .await
++        .is_err());
+     f.confirm().await;
+     assert!(f.plan().is_err());
+     f.io().await;
+@@ -702,8 +697,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_scene_current_role_change_invalidates_old_plan_and_receive_only_state_survives_move()
+- {
++async fn replacement_scene_current_role_change_invalidates_old_plan_and_receive_only_state_survives_move(
++) {
+     let mut f = Move::new(false).await;
+     f.io().await;
+     f.confirm().await;
+@@ -736,21 +731,19 @@
+ }
+ 
+ #[tokio::test]
+-async fn replacement_distinct_route_account_follows_sealed_binding_and_logical_participant_intent_with_current_io()
+- {
++async fn replacement_distinct_route_account_follows_sealed_binding_and_logical_participant_intent_with_current_io(
++) {
+     let mut f = Move::with_route_actor(false, "sip-account").await;
+-    assert!(
+-        !f.room.nodes["alice"]
+-            .controller
+-            .credential_snapshot()
+-            .principal
+-            .has_same_owner(
+-                &f.room.nodes["device"]
+-                    .controller
+-                    .credential_snapshot()
+-                    .principal
+-            )
+-    );
++    assert!(!f.room.nodes["alice"]
++        .controller
++        .credential_snapshot()
++        .principal
++        .has_same_owner(
++            &f.room.nodes["device"]
++                .controller
++                .credential_snapshot()
++                .principal
++        ));
+     f.io().await;
+     f.confirm().await;
+     let plan = f.plan().unwrap();
+@@ -779,8 +772,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn retained_media_participant_reconciles_after_distinct_route_replacement_without_lending_old_principal()
+- {
++async fn retained_media_participant_reconciles_after_distinct_route_replacement_without_lending_old_principal(
++) {
+     use crate::staged_streams::selection_intent::SelectionMutation;
+     let mut f = Move::with_route_actor_and_selection(false, "sip-account", true).await;
+     f.io().await;
+@@ -964,7 +957,7 @@
+ #[tokio::test]
+ async fn replacement_metadata_collision_retries_original_plan_and_preserves_refusals() {
+     use crate::orchestrator::participant_control::{
+-        ParticipantControlError, replacement::metadata_retry,
++        replacement::metadata_retry, ParticipantControlError,
+     };
+     for mode in ["recover", "cancel", "expire", "revoke", "role-change"] {
+         let mut f = Move::new(false).await;
+@@ -1262,3 +1255,5 @@
+     assert!(f.room.publish("next-device", 6000).is_err());
+     f.room.silent(&["next-device"]);
+ }
++
++mod consumed_probe;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/consumed_probe.rs
+@@ -0,0 +1,173 @@
++//! Real endpoint preparation, definitive adoption, and original ingress custody.
++//! PCMU fixture decodes actual160-sample audio; no Opus/network/FPS claim.
++use super::*;
++
++fn audio_packet(f: &mut Move, name: &str) -> (AdapterMediaPort, MediaFrame) {
++    let node = f.room.nodes.get_mut(name).unwrap();
++    node.sequence += 1;
++    let port = node.adapter.port(Medium::Audio);
++    let mut packet = frame(&port, node.sequence);
++    packet.timestamp_rtp = node.sequence * 160;
++    (port, packet)
++}
++async fn finish(f: &mut Move) -> Vec<usize> {
++    f.room.scene.clear();
++    let until = deadline();
++    let mut remaining = Vec::new();
++    for node in f.room.nodes.values() {
++        remaining.push(node.controller.shutdown(until).await);
++    }
++    remaining
++}
++
++#[tokio::test]
++async fn consumed_endpoint_probe_kept_alive_after_commit_never_shadows_original_public_audio() {
++    let mut f = Move::for_audio_preroll().await;
++    f.io().await;
++    f.confirm().await;
++    let (old_port, old_frame) = audio_packet(&mut f, "alice");
++    let mut old = old_port
++        .retain_original_ingress(old_frame, Instant::now())
++        .unwrap()
++        .unwrap();
++    let probe = f._audio_probe.as_ref().unwrap().probe.clone();
++    let weak = Arc::downgrade(&probe);
++    let plan = f.plan().unwrap();
++    f.commit(plan).await.unwrap();
++    let old_refused = old.try_publish_clocked(|_| None).is_err();
++    let (port, packet) = audio_packet(&mut f, "device");
++    let scene = f.room.scene.clone();
++    let registry = scene.audiences.lock().unwrap();
++    let consumed = !registry
++        .groups
++        .get(&probe.group.operation)
++        .is_some_and(|g| Arc::ptr_eq(g, &probe.group));
++    let still_owned = weak.upgrade().is_some() && !probe.cancel.is_cancelled();
++    // The original REAL registry mutex is held, just like unrelated private
++    // preparation. Old code returns Model(Conflict) before OriginalIngress.
++    let retained = port.retain_original_ingress(packet, Instant::now());
++    let error = retained.as_ref().err().map(|e| format!("{e:?}"));
++    let mut original = retained.ok().flatten();
++    let submitted = original.as_mut().map(|p| p.try_publish_clocked(|_| None));
++    drop(registry);
++    f.room.tick();
++    let mean = Arc::new(std::sync::atomic::AtomicI32::new(i32::MIN));
++    let callback_mean = mean.clone();
++    let heard = match f.room.nodes.get_mut("bob").unwrap().out.try_recv() {
++        Ok(queued) => Some(
++            queued
++                .deliver(move |frame| async move {
++                    use rvoip_media_core::codec::factory::CodecFactory;
++                    let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++                    let decoded = codec.decode(&frame.payload).unwrap();
++                    let actual = decoded.samples.iter().map(|s| i32::from(*s)).sum::<i32>()
++                        / decoded.samples.len() as i32;
++                    callback_mean.store(actual, Ordering::Release);
++                    Ok(())
++                })
++                .await,
++        ),
++        Err(_) => None,
++    };
++    let actual_mean = mean.load(Ordering::Acquire);
++    let cleanup = finish(&mut f).await;
++    eprintln!("consumed endpoint original audio group_consumed={consumed} retained_owner_alive={still_owned} capture_error={error:?} submitted={submitted:?} decoded_mean={actual_mean} cleanup={cleanup:?}");
++    assert!(cleanup.iter().all(|n| *n == 0));
++    assert!(consumed && still_owned && old_refused);
++    assert!(
++        original.is_some(),
++        "consumed probe intercepted ordinary original audio: {error:?}"
++    );
++    assert!(matches!(submitted, Some(Ok(()))));
++    assert!(matches!(heard, Some(Ok(()))));
++    assert!(
++        (actual_mean - 1800).abs() < 400,
++        "actual ordinary PCM was not delivered"
++    );
++}
++
++#[tokio::test]
++async fn active_and_failed_endpoint_preparation_stay_closed_and_retirement_never_grants_revoked_audio(
++) {
++    let mut f = Move::for_audio_preroll().await;
++    f.io().await;
++    f.confirm().await;
++    let probe = f._audio_probe.as_ref().unwrap().probe.clone();
++    let plan = f.plan().unwrap();
++    f.room
++        .domain
++        .deny_replacement
++        .store(true, Ordering::Release);
++    let denied = f.commit(plan).await;
++    let (port, packet) = audio_packet(&mut f, "device");
++    let scene = f.room.scene.clone();
++    let registry = scene.audiences.lock().unwrap();
++    let still_registered = registry
++        .groups
++        .get(&probe.group.operation)
++        .is_some_and(|g| Arc::ptr_eq(g, &probe.group));
++    let active_busy = port.retain_original_ingress(packet.clone(), Instant::now());
++    drop(registry);
++    // Successful active probing consumes the actual decoder input privately.
++    let private = port.retain_original_ingress(packet, Instant::now());
++    let no_public_input = f.room.nodes.get_mut("bob").unwrap().out.try_recv().is_err();
++    drop(f._audio_probe.take());
++    let cancelled = probe.cancel.is_cancelled();
++    let (_, packet) = audio_packet(&mut f, "device");
++    let cancelled_capture = port.retain_original_ingress(packet, Instant::now());
++    // Removing a cancelled private observer is not public permission: the
++    // current muted model still refuses this uncommitted endpoint.
++    let current_refused = matches!(cancelled_capture, Err(StreamControlError::NotReady));
++    f.room
++        .domain
++        .deny_replacement
++        .store(false, Ordering::Release);
++    let cleanup = finish(&mut f).await;
++    assert!(cleanup.iter().all(|n| *n == 0));
++    assert!(matches!(denied, Err(StreamControlError::Unsupported)));
++    assert!(still_registered && !probe.group.origins.is_empty());
++    assert!(matches!(
++        active_busy,
++        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++    ));
++    assert!(matches!(private, Ok(None)) && no_public_input);
++    assert!(cancelled && current_refused);
++}
++
++#[tokio::test]
++async fn consumed_endpoint_probe_does_not_bypass_current_revocation_or_retired_original_generation()
++{
++    let mut f = Move::for_audio_preroll().await;
++    f.io().await;
++    f.confirm().await;
++    let plan = f.plan().unwrap();
++    f.commit(plan).await.unwrap();
++    let (port, packet) = audio_packet(&mut f, "device");
++    f.room
++        .domain
++        .base
++        .0
++        .write()
++        .await
++        .revoked
++        .insert("alice".into());
++    let mut original = port
++        .retain_original_ingress(packet, Instant::now())
++        .unwrap()
++        .unwrap();
++    let refused = original.try_publish_clocked(|_| None);
++    f.room.domain.base.0.write().await.revoked.remove("alice");
++    let (_, packet) = audio_packet(&mut f, "device");
++    let mut stale = port
++        .retain_original_ingress(packet, Instant::now())
++        .unwrap()
++        .unwrap();
++    f.room.nodes["device"].controller.retire();
++    let retired = stale.try_publish_clocked(|_| None);
++    let empty = f.room.nodes.get_mut("bob").unwrap().out.try_recv().is_err();
++    let cleanup = finish(&mut f).await;
++    assert!(cleanup.iter().all(|n| *n == 0));
++    assert!(matches!(refused, Err(StreamControlError::Authority)));
++    assert!(matches!(retired, Err(StreamControlError::NotReady)));
++    assert!(empty, "refused original audio reached a remote queue");
++}

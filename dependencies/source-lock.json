@@ -2182,6 +2182,24 @@
       "path": "patches/rvoip/connect-audio-metadata-busy-retention.patch",
       "sha256": "4867855ad1f48564d4ff44c0110aeec923d0de600c12aa0a5c72923abf1251a1",
       "source": "Original reviewed production patch unchanged4867855a: retain exact pre-effect MetadataBusy audio, fresh authorization/epochs/original200ms+earliest lease, Audio-only generic/native parity, Submitted terminal."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-consumed-endpoint-probe-retirement-controls.patch",
+      "sha256": "d7f8c026fdc96021578f0b36e20cd743f4d5638ca8ab7d890c8c3b8e9381e058",
+      "source": "Actual Core muted endpoint preparation retained through definitive replacement and original public audio capture under real shared audience registry exclusion; current/revoked/cancel/failed-commit controls, genuinePCMU IO and original controller cleanup. No permission bypass or Opus/network claim."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-consumed-endpoint-probe-retirement.patch",
+      "sha256": "ebca14ea01d0b50ee20bb4e835c585d79e86d671fcffcebc3cd571ab80f44d66",
+      "source": "Retire exact consumed endpoint-probe metadata at infallible closed-audience publication; retired fastpath bypasses obsolete global registry interception, active probes remain failclosed. No grants/clock/timeout changes; direct independent atomic lifecycle token."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-video-boundary-diagnostics.patch",
+      "sha256": "575dba399d143f0298f9640bf291a78583f02fcac68ede51066c76b49e51751b",
+      "source": "Opt-in test-support numeric video pipeline diagnostics: typed adapter/by-medium and exact port boundaries, preowner/forward/preprimary errors, PLI/history/keyframe timelines. No payload/grant/retry/clock/deadline/acceptance changes. All new ordinary shipping work cfg-disabled; explicit UCTP->Core test-support forwarding."
     }
   ]
 }

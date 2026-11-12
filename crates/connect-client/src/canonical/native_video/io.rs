@@ -39,6 +39,9 @@ struct Recovery {
     // recovery. Retained history alone cannot solicit a bootstrap request.
     requestable: bool,
 }
+#[cfg(feature = "test-support")]
+#[path = "video_diagnostic.rs"]
+mod diagnostic;
 /// The sole datagram reader of the already authenticated replacement peer.
 /// Its signed reader validates allocations/epochs independently of application
 /// control polling. Cancellation retains original packet/hint arrival ages.
@@ -48,6 +51,8 @@ struct Recovery {
 /// Dropping this owner drops all queued feedback/history; physical close and
 /// captured expiry still apply.
 pub struct NativeVideoDatagrams {
+    #[cfg(feature = "test-support")]
+    diagnostic: Option<diagnostic::History>,
     io: super::super::native_io::NativeDatagrams,
     shared: Arc<Shared>,
     pending: VecDeque<Waiting>,
@@ -80,6 +85,10 @@ impl CanonicalClient {
         }
         self.start_signaling_reader()?;
         Ok(NativeVideoDatagrams {
+            #[cfg(feature = "test-support")]
+            diagnostic:
+                tracing::enabled!(target: "connect_client::video_recovery", tracing::Level::DEBUG)
+                    .then(diagnostic::History::new),
             io: self.claim_native_datagrams()?,
             shared: self.native_video.clone(),
             pending: VecDeque::new(),
@@ -193,12 +202,27 @@ impl NativeVideoDatagrams {
         let Some(s) = guard.as_ref().filter(|s| !s.ended && !s.suspended) else {
             return Ok(false);
         };
-        Ok(hint.arrived.elapsed() < AGE
+        let accepted = hint.arrived.elapsed() < AGE
             && hint.version == s.version
             && hint.value.media_ssrc == ssrc
             && s.active
                 .get(&(handle, true))
-                .is_some_and(|n| n.tag == hint.value.activation_epoch && n.history.ssrc == ssrc))
+                .is_some_and(|n| n.tag == hint.value.activation_epoch && n.history.ssrc == ssrc);
+        #[cfg(feature = "test-support")]
+        if let Some(diagnostic) = &mut self.diagnostic {
+            diagnostic.record(
+                if accepted {
+                    "hint-used"
+                } else {
+                    "hint-refused-current-age-version-history"
+                },
+                handle,
+                ssrc,
+                Some(hint.value.seq),
+                None,
+            );
+        }
+        Ok(accepted)
     }
     fn hint(&mut self, bytes: &[u8], arrived: Instant) -> Result<()> {
         let hint = observe_video_feedback_datagram(bytes).map_err(|_| ClientError::Protocol)?;
@@ -228,6 +252,16 @@ impl NativeVideoDatagrams {
             d == 0 || d >= (1 << 31)
         }) {
             return Ok(());
+        }
+        #[cfg(feature = "test-support")]
+        if let Some(diagnostic) = &mut self.diagnostic {
+            diagnostic.record(
+                "hint-accepted",
+                handle,
+                hint.media_ssrc,
+                Some(hint.seq),
+                None,
+            );
         }
         self.highwater.insert(handle, hint.seq);
         self.hints.insert(
@@ -300,6 +334,16 @@ impl NativeVideoDatagrams {
             });
         }
         if recovery.history.as_ref() != Some(&notice.history) {
+            #[cfg(feature = "test-support")]
+            if let Some(diagnostic) = &mut self.diagnostic {
+                diagnostic.record(
+                    "receive-history-changed",
+                    handle,
+                    notice.history.ssrc,
+                    Some(notice.history.first_sequence),
+                    Some(notice.history.first_timestamp),
+                );
+            }
             recovery.history = Some(notice.history.clone());
             recovery.assembler = VideoFrameAssembler::default();
             recovery.last_frame = None;
@@ -313,6 +357,16 @@ impl NativeVideoDatagrams {
             || before.expired_frames != after.expired_frames
         {
             recovery.waiting = true;
+            #[cfg(feature = "test-support")]
+            if let Some(diagnostic) = &mut self.diagnostic {
+                diagnostic.record(
+                    "assembly-expired-or-discarded",
+                    handle,
+                    packet.ssrc,
+                    Some(u32::from(packet.sequence)),
+                    Some(packet.timestamp_rtp),
+                );
+            }
         }
         if let Some(frame) = frame {
             let range = recovery
@@ -324,9 +378,31 @@ impl NativeVideoDatagrams {
                 .is_some_and(|last| last.wrapping_add(1) != range.first)
             {
                 recovery.waiting = true;
+                #[cfg(feature = "test-support")]
+                if let Some(diagnostic) = &mut self.diagnostic {
+                    diagnostic.record(
+                        "completed-sequence-gap",
+                        handle,
+                        packet.ssrc,
+                        Some(u32::from(range.first)),
+                        Some(packet.timestamp_rtp),
+                    );
+                }
             }
             recovery.last_frame = Some(range.last);
             if frame.keyframe {
+                #[cfg(feature = "test-support")]
+                if recovery.waiting {
+                    if let Some(diagnostic) = &mut self.diagnostic {
+                        diagnostic.record(
+                            "recovery-key-assembled",
+                            handle,
+                            packet.ssrc,
+                            Some(u32::from(range.first)),
+                            Some(frame.timestamp_rtp),
+                        );
+                    }
+                }
                 recovery.assembler.retire_older_partials_after_keyframe();
                 recovery.waiting = false;
             }
@@ -391,7 +467,22 @@ impl NativeVideoDatagrams {
                 // authority, never a retransmission of this request.
                 recovery.sequence = recovery.sequence.wrapping_add(1);
                 recovery.last_request = Some(now);
-                self.io.submit(&bytes)?;
+                let result = self.io.submit(&bytes);
+                #[cfg(feature = "test-support")]
+                if let Some(diagnostic) = &mut self.diagnostic {
+                    diagnostic.record(
+                        if result.is_ok() {
+                            "auto-pli-locally-submitted"
+                        } else {
+                            "auto-pli-local-refused"
+                        },
+                        handle,
+                        notice.history.ssrc,
+                        Some(recovery.sequence.wrapping_sub(1)),
+                        None,
+                    );
+                }
+                result?;
             }
             let due = recovery.last_request.unwrap() + Duration::from_millis(100);
             next = Some(next.map_or(due, |old: Instant| old.min(due)));
@@ -497,3 +588,12 @@ impl NativeVideoDatagrams {
 
 #[cfg(test)]
 pub(crate) mod tests;
+
+#[cfg(feature = "test-support")]
+impl Drop for NativeVideoDatagrams {
+    fn drop(&mut self) {
+        if let Some(diagnostic) = &self.diagnostic {
+            tracing::debug!(target: "connect_client::video_recovery", evidence=?diagnostic, "Original raw video recovery terminal evidence");
+        }
+    }
+}

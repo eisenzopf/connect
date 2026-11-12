@@ -35,6 +35,7 @@ pub(super) fn source(
     began: Instant,
     until: Instant,
 ) -> (Source, Vec<Work>) {
+    progress.lock().unwrap().video_diagnostics.began = Some(began);
     let (samples, _) = broadcast::channel(16);
     let force_key = Arc::new(AtomicBool::new(false));
     let mut encoder = encoder(binary, raw);
@@ -49,13 +50,21 @@ pub(super) fn source(
                 tokio::select! { biased; _ = video_stop.cancelled() => break, _ = tick.tick() => {} }
                 if Instant::now() >= until { break; }
                 let captured = Instant::now();
-                let key = index % 30 == 0 || requested.swap(false, Ordering::AcqRel);
+                let periodic_key = index % 30 == 0;
+                // Preserve original short circuit: a periodic key never consumes the flag.
+                let requested_key = !periodic_key && requested.swap(false, Ordering::AcqRel);
+                let key = periodic_key || requested_key;
                 let bytes = timeout_at(until.min(captured + AGE), encoder.frame(index, key)).await
                     .expect("original source encoding must retain its 200ms capture age");
                 if key { assert!(bytes.len() > 2000, "actual fragmented original VP8 key"); }
                 {
                     let mut measured = progress.lock().unwrap();
                     measured.encoded_frames += 1;
+                    if requested_key {
+                        measured.video_diagnostics.record("requested-key-encoded",Some((0x74000000+source as u32,index,index*3000)),Some(captured));
+                    } else if periodic_key && requested.load(Ordering::Acquire) {
+                        measured.video_diagnostics.record("periodic-key-request-still-pending",Some((0x74000000+source as u32,index,index*3000)),Some(captured));
+                    }
                     record_frame_bin(&mut measured.encoded_bins, captured, began);
                 }
                 // No subscriber is not a fabricated delivery. The original

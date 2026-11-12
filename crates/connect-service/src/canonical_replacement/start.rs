@@ -16,8 +16,7 @@ pub(super) struct StartedReplacement {
     pub(super) intent: connect_protocol::connection_control::OfferIntent,
     pub commit: std::sync::Mutex<Option<super::movement::Capture>>,
     pub phases: std::sync::Mutex<Vec<Arc<connect_store::NativeReplacementMediaCapture>>>,
-    pub preparation:
-        OnceLock<Arc<rvoip_core::staged_streams::endpoint_preparation::AudioEndpointPreparation>>,
+    pub preparation: OnceLock<Arc<dyn std::any::Any + Send + Sync>>,
 }
 fn proof(a: &AuthorizedEnvelope) -> Result<&connect_store::PeerAuthorityGuard> {
     a.authority::<StoreInvocationAuthority>()
