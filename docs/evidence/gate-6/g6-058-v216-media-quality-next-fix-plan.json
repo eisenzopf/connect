@@ -1,7 +1,7 @@
 {
   "format": "connect/media-quality-next-fix-plan/1",
-  "status": "Full run of 229 tests remains 226/229. Audio and cleanup component controls pass36/36; video loss remains diagnosing. Diagnostic45 component evidence is accepted: four Rust controls and three parser tests passed. Qualification of the next complete 241-test run remains pending. No matrix admission.",
-  "updated_at": "2026-11-12T11:01:04.718110+00:00",
+  "status": "Complete241239passed2video-onlyfailures. Audio and cleanup requirements exercisedsuccessfully; prepacketizerRTP loss accounted. Scopedhandoffauthority andboundedpresencecontinuity followthrough required; no transport/thresholdchange.",
+  "updated_at": "2026-11-12T12:03:37.029798+00:00",
   "coordinator": "/root",
   "latest_full_focused": "docs/evidence/gate-6/g6-058-v216-components23.json",
   "baseline": {
@@ -117,5 +117,76 @@
     "actual_results_sha256": "8f440900825fac0d014db98b60320e6f134209c80bd7ef6e8cb8172b4c76548e",
     "scope": "Numeric diagnostic correctness and default feature availability only; not a media-loss cure or full run of 241 tests qualification."
   },
-  "capacity_note": "Previously recorded free-byte snapshot is historical, not a current preflight. Root must recheck physical floors before builders/shipping/matrix; no budget reduction."
+  "capacity_note": "Previously recorded free-byte snapshot is historical, not a current preflight. Root must recheck physical floors before builders/shipping/matrix; no budget reduction.",
+  "latest_actual_component_cohort": {
+    "tested_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5",
+    "normal_generation": 411,
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+    "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+    "executed": 241,
+    "passed": 239,
+    "failed": 2,
+    "unrun": 0,
+    "pure_passed": 224,
+    "workloads_passed": 15,
+    "workloads_executed": 17,
+    "explicit_ignored_rtc_passed": 11,
+    "source_and_binaries_unchanged": true,
+    "all_original_groups_joined": true,
+    "full241_qualified": false,
+    "matrix_qualified": false,
+    "video_failed_bins": {
+      "EdDSA": [
+        {
+          "route": 2,
+          "second": 18,
+          "fps": 22
+        },
+        {
+          "route": 3,
+          "second": 18,
+          "fps": 14
+        },
+        {
+          "route": 3,
+          "second": 43,
+          "fps": 20
+        }
+      ],
+      "ES256": [
+        {
+          "route": 2,
+          "second": 18,
+          "fps": 22
+        },
+        {
+          "route": 2,
+          "second": 43,
+          "fps": 18
+        }
+      ]
+    },
+    "fps_minimum": 24,
+    "last_session_wait_seconds": {
+      "EdDSA": 64.525885,
+      "ES256": 64.554161
+    },
+    "idle_ms": {
+      "EdDSA": 10003,
+      "ES256": 10001
+    },
+    "task_failures": [],
+    "server_shutdown_ok_both": true,
+    "all_six_frame_totals_at_least_1440_both": true,
+    "all_four_moves_and_bidirectional_64KiB_data_both": true,
+    "limits": "Per-assertion workload evidence; both full cases still fail video. No OS resource, source-quantum continuity or matrix pass inferred."
+  },
+  "current_fix_plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
+  "current_fix_readiness": {
+    "fixed_unit_verified": false,
+    "combined_workload_verified": false,
+    "shipping_allowed": false,
+    "full32_allowed": false,
+    "matrix_qualified": false
+  }
 }

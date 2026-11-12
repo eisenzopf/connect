@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T11:01:04.718110+00:00",
-  "run_status": "Full run of 229 tests remains 226 passed and3 failed, with all original owners joined and source/binaries stable. Old43 executed three controls: one passed and two failed as intended. Fixed44 passed 36/36 scoped controls. P3.2 and P5.1 are component-verified; video remains diagnosing. Diagnostic45 passed all four Rust controls and three parser tests; normal-feature checks and original-owner closure were independently verified. Next run of 241 tests and full32/432 remain unqualified; v215 remains0/32.",
+  "updated": "2026-11-12T12:03:37.029798+00:00",
+  "run_status": "Complete241 executed239passed2failed; all224component cases and15workloads passed. Onlybothfull62 programmes fail5videoFPSbins. Audio-overlap and both67s cleanup/10s idle requirements passed. ExactRTP conservation locates allaffected retained-flow losses inCore/queued authority andage beforepacketization. Four handoff Writer classes require scoped authority and bounded logical-presence continuity; no fix verified yet. Lastmatrix remainsv2150/32.",
   "blockers": [
     {
       "id": "B01",
@@ -1561,7 +1561,7 @@
     {
       "id": "B191",
       "title": "Data completion may invalidate live audio custody",
-      "status": "106 Store controls passed in targeted and combined19 runs, including real source retirement preserving the unaffected new epoch. Actual four-Commit capture modes and full media followthrough remain unverified.",
+      "status": "Reopened: broad handoff Writer footprints invalidate healthy unchanged connections. Scope and pending-presence continuity fix covers physicalCommit, public activation, original native cleanup and replacement cleanup; causal tests pending.",
       "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json; g6-058-v216-components19.json",
       "next": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced."
@@ -1569,7 +1569,7 @@
     {
       "id": "B192",
       "title": "Retained-owner control requests exhaust shared cleanup cutoff",
-      "status": "Component-verified helper correction: old43 reproduces serial refresh/End/wait ordering; fixed44 passes both helper controls. Actual full run of 229 tests EdDSA cleanup exceeded 67 seconds; ES256 cleanup passed. Real workload retirement remains open.",
+      "status": "Combined workload requirements verified: both Session Ends by64.56s under67s, all owner checks and10s idle pass inbothfull programmes. Full cases still failvideo; matrixresource qualification pending.",
       "change": "Remove serialized helper/server latency within the original shared 62–67second deadline.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json",
       "next": "Run both original full62 signing-profile programmes in complete run of 241 tests and prove actual Session/SDK/runtime cleanup under the unchanged 67-second cutoff."
@@ -1593,7 +1593,7 @@
     {
       "id": "B195",
       "title": "Decoded media deficits beyond handoff success",
-      "status": "Full run of 229 tests still has short decoded audio960 < 2880 and failed retained video bins on both signing profiles. Fixed44 verifies the consumed-probe PCMU boundary and negatives, not native Opus/QoE recovery. Video diagnostics are measurement only; exact loss boundary remains unproved.",
+      "status": "Shortaudio-overlap previouslyfailing nowpasses; full terminal errors onlyvideo. Fivebins below24FPS remain across2fullcases. AllmissingRTP on4cleanflows exactlyCore/queuedauthority/age losses; no packetizer/transportloss remainsunexplained.",
       "change": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json; docs/evidence/gate-6/g6-058-v216-components23.json",
       "next": "Use closed diagnostic controls and complete run of 241 tests to measure all original media thresholds. Keep audio component proof distinct from unresolved video loss and actual programme outcomes."
@@ -1609,7 +1609,7 @@
     {
       "id": "B197",
       "title": "Recorded original-owner failures paired with uncertain target deadlines",
-      "status": "Batch19 confirms Ready consuming-handler profile omission causes deterministic Arc ownership conflict before new admission/capture. Exact-profile fix is independently source-reviewed; signed fixed followthrough pending.",
+      "status": "Exact Ready profile and original dispatch controls passed withincomplete241, including both signingalgorithms. No new dispatch ownershipconflict; old matrixmapping still requiresfreshfull32.",
       "change": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-ready-dispatch-fix.json",
       "next": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains."
@@ -1617,7 +1617,7 @@
     {
       "id": "B198",
       "title": "Focused fixture omits matrix Data and full retirement sequence",
-      "status": "Complete229 remains 226/229. Next complete run of 241 tests retains all 229 originals, with224 pure controls,17 workloads,11 explicitly executed ignored RTC cases and both full62 signing profiles last. Fixed44 is a scoped prerequisite; diagnostic45 and complete run of 241 tests are not yet qualified.",
+      "status": "All241cases executed239pass2fail, including allData, bothfull62programmes andretirement. Fixtureomissions no longerexplaincurrentfailures. Scopedauthority fix must passfullcohortbeforefull32.",
       "change": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json",
       "next": "Require a clean frozen241 tests passing source and original joins before normal shipping/preflight and all 32/432. Keep v2150/32 and every original failure mapping open until fresh matrix evidence."
@@ -1625,7 +1625,7 @@
     {
       "id": "B199",
       "title": "Valid Ready SQL contention straddles volatile capture",
-      "status": "Exact Ready dispatch correction clears signed409s; actual Ready pre/post SQL and revoke controls pass. Fixture resume9/10 ordering and staleCAS clobber corrected; deterministic unit+signedReadySQL now pass. Full combined/matrix followthrough pending.",
+      "status": "Actual Ready SQL/revocation and source/target readiness controls passed incomplete241. Currentremainingfailure islaterretainedvideo admission. Mappedmatrix verification pending.",
       "change": "Implement narrow original-only grant-free Ready wait with fresh authorization on typedBusy, exactly-once capture and separate read-only result recovery. Keep original deadlines and physical bindings.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
       "next": "Final175:16Servicecontrols,11actualsignedRTCvariants, ordinaryinitialAV andfull62programme; originaldeadlines/once-onlycapture/currentnegativechecks retained."
@@ -1633,7 +1633,7 @@
     {
       "id": "B200",
       "title": "Unpublished direct-route validation treats contention as permanent Backpressure",
-      "status": "The original private publisher-lock controls remain green in fixed44. Full run of 229 tests reaches all four movements and returns; the older Ready dispatch conflict is not the current blocker. Actual video quality still fails and diagnostic measurement is pending.",
+      "status": "Originalprivatepublisher/refusal controls remainpassed. Actualremainingloss isCoreforward/queuedadmission authority/age, nottheformerBackpressure branch orcanonicalmapper. Scopefix pending; qualitylimits unchanged.",
       "change": "Private typed publisher-validation exclusion mapped ONLY at unpublished preroll boundary to existing MetadataBusy recovery. Ordinary subscriptions retain Backpressure, all permanent errors remain terminal.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json; docs/evidence/gate-6/g6-058-v216-components23.json",
       "next": "Retain exact unpublished/current-authority negative controls in241; require evaluated full media quality and original retirement before all 32."
@@ -17443,6 +17443,12 @@
       "passed": 36,
       "planned": 36,
       "evidence": "g6-058-v216-fixed-controls44.json"
+    },
+    {
+      "name": "Complete241 regression; video-only failures remain",
+      "passed": 239,
+      "planned": 241,
+      "evidence": "g6-058-v216-components24.json"
     }
   ],
   "current_production_check": {
@@ -17590,5 +17596,73 @@
     "source_binding_complete": false,
     "qualified": false,
     "matrix_qualified": false
+  },
+  "completed_v216_components24_actual": {
+    "tested_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5",
+    "normal_generation": 411,
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+    "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+    "executed": 241,
+    "passed": 239,
+    "failed": 2,
+    "unrun": 0,
+    "pure_passed": 224,
+    "workloads_passed": 15,
+    "workloads_executed": 17,
+    "explicit_ignored_rtc_passed": 11,
+    "source_and_binaries_unchanged": true,
+    "all_original_groups_joined": true,
+    "full241_qualified": false,
+    "matrix_qualified": false,
+    "video_failed_bins": {
+      "EdDSA": [
+        {
+          "route": 2,
+          "second": 18,
+          "fps": 22
+        },
+        {
+          "route": 3,
+          "second": 18,
+          "fps": 14
+        },
+        {
+          "route": 3,
+          "second": 43,
+          "fps": 20
+        }
+      ],
+      "ES256": [
+        {
+          "route": 2,
+          "second": 18,
+          "fps": 22
+        },
+        {
+          "route": 2,
+          "second": 43,
+          "fps": 18
+        }
+      ]
+    },
+    "fps_minimum": 24,
+    "last_session_wait_seconds": {
+      "EdDSA": 64.525885,
+      "ES256": 64.554161
+    },
+    "idle_ms": {
+      "EdDSA": 10003,
+      "ES256": 10001
+    },
+    "task_failures": [],
+    "server_shutdown_ok_both": true,
+    "all_six_frame_totals_at_least_1440_both": true,
+    "all_four_moves_and_bidirectional_64KiB_data_both": true,
+    "limits": "Per-assertion workload evidence; both full cases still fail video. No OS resource, source-quantum continuity or matrix pass inferred."
+  },
+  "handoff_authority_followthrough": {
+    "plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
+    "status": "design and ignored source drafts; not implemented or verified",
+    "source_boundary_report_sha256": "335e837a3a5ab4cc114f392234bc674d59927561d836eaf186cd51c6561e0096"
   }
 }

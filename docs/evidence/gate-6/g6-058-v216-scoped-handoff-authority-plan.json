@@ -1,0 +1,185 @@
+{
+  "format": "connect/handoff-authority-isolation-followthrough/1",
+  "status": "design and ignored source drafts; not implemented or verified",
+  "coordinator": "/root",
+  "implementation_owner": "/root/v198_resources",
+  "causal_test_owner": "/root/fixture_blockers",
+  "independent_reviewer": "/root/media_blockers",
+  "evidence": {
+    "tested_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5",
+    "normal_generation": 411,
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+    "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+    "executed": 241,
+    "passed": 239,
+    "failed": 2,
+    "unrun": 0,
+    "pure_passed": 224,
+    "workloads_passed": 15,
+    "workloads_executed": 17,
+    "explicit_ignored_rtc_passed": 11,
+    "source_and_binaries_unchanged": true,
+    "all_original_groups_joined": true,
+    "full241_qualified": false,
+    "matrix_qualified": false,
+    "video_failed_bins": {
+      "EdDSA": [
+        {
+          "route": 2,
+          "second": 18,
+          "fps": 22
+        },
+        {
+          "route": 3,
+          "second": 18,
+          "fps": 14
+        },
+        {
+          "route": 3,
+          "second": 43,
+          "fps": 20
+        }
+      ],
+      "ES256": [
+        {
+          "route": 2,
+          "second": 18,
+          "fps": 22
+        },
+        {
+          "route": 2,
+          "second": 43,
+          "fps": 18
+        }
+      ]
+    },
+    "fps_minimum": 24,
+    "last_session_wait_seconds": {
+      "EdDSA": 64.525885,
+      "ES256": 64.554161
+    },
+    "idle_ms": {
+      "EdDSA": 10003,
+      "ES256": 10001
+    },
+    "task_failures": [],
+    "server_shutdown_ok_both": true,
+    "all_six_frame_totals_at_least_1440_both": true,
+    "all_four_moves_and_bidirectional_64KiB_data_both": true,
+    "limits": "Per-assertion workload evidence; both full cases still fail video. No OS resource, source-quantum continuity or matrix pass inferred."
+  },
+  "video_boundary_report_sha256": "335e837a3a5ab4cc114f392234bc674d59927561d836eaf186cd51c6561e0096",
+  "store_epoch_report_sha256": "caf7fc1571701d4bbadca7d5eee5e0fcd17152df039855de85f0fdaf78ba171e",
+  "conservation": [
+    {
+      "algorithm": "EdDSA",
+      "source": 1,
+      "receiver": 2,
+      "locally_published_equals_core_captured": 8155,
+      "core_pending_age_drops": 4,
+      "core_forward_authority_drops": 1,
+      "core_forward_ok": 8150,
+      "queued_authority_drops": 3,
+      "queued_deadline_drops": 0,
+      "packetizer_inputs_equals_primary_accepted_equals_receiver_packets": 8147,
+      "packetizer_callback_refusals": 0,
+      "unexplained_packet_deficit": 0
+    },
+    {
+      "algorithm": "EdDSA",
+      "source": 2,
+      "receiver": 3,
+      "locally_published_equals_core_captured": 8151,
+      "core_pending_age_drops": 25,
+      "core_forward_authority_drops": 1,
+      "core_forward_ok": 8125,
+      "queued_authority_drops": 4,
+      "queued_deadline_drops": 7,
+      "packetizer_inputs_equals_primary_accepted_equals_receiver_packets": 8114,
+      "packetizer_callback_refusals": 0,
+      "unexplained_packet_deficit": 0
+    },
+    {
+      "algorithm": "ES256",
+      "source": 1,
+      "receiver": 2,
+      "locally_published_equals_core_captured": 8151,
+      "core_pending_age_drops": 19,
+      "core_forward_authority_drops": 4,
+      "core_forward_ok": 8128,
+      "queued_authority_drops": 8,
+      "queued_deadline_drops": 0,
+      "packetizer_inputs_equals_primary_accepted_equals_receiver_packets": 8120,
+      "packetizer_callback_refusals": 0,
+      "unexplained_packet_deficit": 0
+    },
+    {
+      "algorithm": "ES256",
+      "source": 2,
+      "receiver": 3,
+      "locally_published_equals_core_captured": 8149,
+      "core_pending_age_drops": 0,
+      "core_forward_authority_drops": 2,
+      "core_forward_ok": 8147,
+      "queued_authority_drops": 3,
+      "queued_deadline_drops": 0,
+      "packetizer_inputs_equals_primary_accepted_equals_receiver_packets": 8144,
+      "packetizer_callback_refusals": 0,
+      "unexplained_packet_deficit": 0
+    }
+  ],
+  "diagnosis": "All missing RTP on four retained flows is accounted for before packetization. Physical commit, public activation and original/replacement cleanup still request broad conversation/identity Writers; matching healthy media publications are withdrawn and their original epochs permanently revoked before Writer admission. Exact late NotReady subleaf remains unlogged; causal Store regressions and fixed media workloads are still required.",
+  "changes": [
+    {
+      "id": "S1",
+      "title": "Separate connection mutation footprint from authorization reads",
+      "owner": "/root/v198_resources",
+      "reviewer": "/root/media_blockers",
+      "requirements": [
+        "Append a distinct Connection authority domain; register exact original and paired connection dependencies in Native/WebRTC read and hint paths.",
+        "Preserve full conversation and identity Reads. Each supported handoff phase writes only actual affected connections and its operation records. No epoch resurrection or newly borrowed authority."
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "Keep logical presence during a valid bounded handoff",
+      "owner": "/root/v198_resources",
+      "reviewer": "/root/media_blockers",
+      "requirements": [
+        "Retain already-joined presence only for a genuine same-participant pending replacement continuation with current runtime, authority, original cutoffs and no cancellation/failure.",
+        "Never synthesize a join, public connection, media readiness or permission. Terminal cleanup/recovery and expiry scanning withdraw stale presence even while other participants remain connected.",
+        "Genuine last-connection departure and broader lifecycle changes keep broad fencing."
+      ]
+    },
+    {
+      "id": "S3",
+      "title": "Enforce exact SQL effects for all four handoff writers",
+      "owner": "/root/v198_resources",
+      "reviewer": "/root/media_blockers",
+      "requirements": [
+        "Cover physical Commit, final public readiness, original native cleanup and adopted replacement cleanup together.",
+        "Use closed phase-specific same-Unit permits and exact old/new row allowlists; schema migration130 is required for persistent trigger enforcement changes.",
+        "A changing lifecycle witness rolls back tentative metadata, drops SQL and all proofs, then reacquires the broad writer without duplicating the physical effect or logical operation."
+      ]
+    },
+    {
+      "id": "S4",
+      "title": "Prove old failure, safety negatives and real media recovery",
+      "owner": "/root/fixture_blockers",
+      "reviewer": "/root/media_blockers",
+      "requirements": [
+        "Run meaningful old/fixed Store epoch and current-entitlement counters for every writer class; no decoded-media claim from Store-only tests.",
+        "Use the actual joined sole-source pending-handoff lane, not a no-flow or unrelated-sibling workaround. Check affected connections, real revoke/expiry/cancel, cross-Store guards, rollback, lifecycle fallback and bounded claim withdrawal.",
+        "Root runs all appropriate unit controls, commits a reviewed batch, then reruns the complete cohort with both actual Opus/VP8 programmes. All existing FPS, skew, media age and cleanup limits remain."
+      ]
+    }
+  ],
+  "deferred": "Canonical reorder candidate remains unrun/unapplied; current failures are pre-packetizer. G6-054 remains parked.",
+  "readiness": {
+    "fixed_unit_verified": false,
+    "combined_workload_verified": false,
+    "shipping_allowed": false,
+    "full32_allowed": false,
+    "matrix_qualified": false
+  }
+}

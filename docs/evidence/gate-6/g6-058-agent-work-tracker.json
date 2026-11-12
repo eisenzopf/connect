@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T11:01:04.718110+00:00",
-  "revision": 42,
+  "updated_at": "2026-11-12T12:03:37.029798+00:00",
+  "revision": 44,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 42,
-    "verified_at": "2026-11-12T10:59:26.142Z",
+    "content_revision": 44,
+    "verified_at": "2026-11-12T11:44:09.935Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json",
-    "readback_evidence_sha256": "597a51e1c8ca587321a53dfb1a8a9610937260fd9c2b2bdcbce9aea59310f58e"
+    "readback_evidence_sha256": "cae5c0d651bb978b697964d0a42ea7358fb65b0f1c1f068a95ce73d85beea8bf"
   },
   "baseline": {
     "run": "v215",
@@ -154,7 +154,7 @@
       "plan_id": "P1",
       "title": "Audit relevant state-change invalidation",
       "owner_agent": "/root/v198_resources",
-      "independent_reviewer": "/root/fixture_blockers",
+      "independent_reviewer": "/root/media_blockers",
       "coordinator": "/root",
       "blocker_ids": [
         "B191"
@@ -162,19 +162,20 @@
       "depends_on": [
         "P1.1"
       ],
-      "status": "component-verified",
-      "implementation_state": "Store20 exact106/106pass; original and replacement-origin retirement preserve fresh unaffected epoch; combined media followthrough and matrix pending.",
+      "status": "diagnosing",
+      "implementation_state": "All missing RTP on four retained flows is accounted for before packetization. Physical commit, public activation and original/replacement cleanup still request broad conversation/identity Writers; matching healthy media publications are withdrawn and their original epochs permanently revoked before Writer admission. Exact late NotReady subleaf remains unlogged; causal Store regressions and fixed media workloads are still required.",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
-        "status": "pending",
-        "root_cause_confirmed": true,
+        "status": "Scoped handoff followthrough diagnosed; new causal counters and fixed regressions pending",
+        "root_cause_confirmed": false,
         "failure_mapping_verified": true,
         "architecture_conformance": "independent-source-reviewed; actual combined media effect pending",
-        "counterexample_verified": true,
-        "regression_verified": true,
+        "counterexample_verified": false,
+        "regression_verified": false,
         "actual_matrix_effect_verified": false,
-        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes."
+        "approval_to_proceed": "Owner approved Proceed in this chat; no new acceptance changes.",
+        "historical_verified_controls_preserved": "Earlier Store controls remain in verification_runs; their pass flags do not qualify the new four-phase scope change."
       },
       "verification_runs": [
         {
@@ -216,6 +217,12 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json",
           "result": "106/106 passed",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+          "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+          "result": "239/241; per-task assertions only, no matrix qualification",
+          "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5"
         }
       ],
       "commit_ids": [
@@ -223,7 +230,7 @@
         "b2b64ea5"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T15:15:47.574343+00:00",
+      "updated_at": "2026-11-12T12:03:37.029798+00:00",
       "mapped_check_count": 8,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -237,7 +244,9 @@
         "cause": "Actual Session0 capture retained Writer; exact false predicate is unlogged. Expected old-source retirement before delayed historical capture is a hypothesis, not proven runtime cause.",
         "fix": "Bounded static eligibility reasons; assess exact current continuation authority for sealed positive historical old-source-retired receipt while preserving fresh target and exact live audience deltas.",
         "verification": "Old behavior counterexample after genuine old-source retirement, fresh unaffected grant preserved, no old-source IO revival; all retained-retired/revoked/canceled/unknown/revision/generation/expiry negatives retained."
-      }
+      },
+      "counter_test_owner": "/root/fixture_blockers",
+      "followthrough_plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json"
     },
     {
       "id": "P2.1",
@@ -484,12 +493,12 @@
         "B192"
       ],
       "depends_on": [],
-      "status": "component-verified",
-      "implementation_state": "Component-verified in fixed44: all 36 controls passed, including two Session retirement phase helpers. The old43 serial ordering counterexample failed as intended. The fixed helper joins both current reads, both original End submissions and both waits under the same cutoff. In the last full run of 229 tests, EdDSA cleanup exceeded 67 seconds. The next complete run of 241 tests must prove actual workload retirement within the unchanged bound.",
+      "status": "combined-workload-verified",
+      "implementation_state": "Both full workloads completed both Session Ends; last waits64.525885/64.554161 seconds under the original67-second cutoff. Ten-second idle observed no runtime owners. Full cases still fail video; matrix resource qualification remains pending.",
       "proposed_fix": "Batch both current Session refreshes, then both original End submissions, then both waits. Preserve the same Client, logical IDs, topology CAS, first failure and original 67-second cutoff.",
       "required_evidence": "Same-helper regression and actual concurrent workload meet original62–67s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
-        "status": "component evidence accepted; complete workload pending",
+        "status": "Scoped combined-workload assertions accepted; matrix verification pending",
         "root_cause_confirmed": false,
         "failure_mapping_verified": true,
         "architecture_conformance": "independent source review and scoped controls verified; full workload pending",
@@ -540,6 +549,12 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json",
           "result": "Actual 36/36 passed: 34 Core controls and two pure Session phase helpers; source, emitted binaries and all original owners remained stable. PCMU and helper scope only.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+          "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+          "result": "239/241; per-task assertions only, no matrix qualification",
+          "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5"
         }
       ],
       "commit_ids": [
@@ -547,7 +562,7 @@
         "e3e0b398"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T11:01:04.718110+00:00",
+      "updated_at": "2026-11-12T12:03:37.029798+00:00",
       "mapped_check_count": 16,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -658,12 +673,12 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "component-verified",
-      "implementation_state": "Component-verified in fixed44: the consumed-probe PCMU control captures, publishes and decodes ordinary original audio while the real Registry mutex is held; decoded mean is 1820 and all controller cleanup counts are zero. Active and failed Commit, current revocation, retired generation and exact-object negatives pass. The short audio case in the last full run still reports 960 decoded samples against 2880. Native Opus and full-workload QoE recovery remain unproved until the complete run of 241 tests.",
+      "status": "combined-workload-verified",
+      "implementation_state": "The previously failing allocation-overlap case passed in complete241. Neither full programme reported an audio quality failure. Source-quantum diagnostics and untested quality remain separate; matrix not qualified.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
-        "status": "component evidence accepted; complete workload pending",
+        "status": "Scoped combined-workload assertions accepted; matrix verification pending",
         "root_cause_confirmed": false,
         "failure_mapping_verified": true,
         "architecture_conformance": "independent source review and scoped controls verified; full workload pending",
@@ -738,6 +753,12 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json",
           "result": "Actual 36/36 passed: 34 Core controls and two pure Session phase helpers; source, emitted binaries and all original owners remained stable. PCMU and helper scope only.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+          "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+          "result": "239/241; per-task assertions only, no matrix qualification",
+          "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5"
         }
       ],
       "commit_ids": [
@@ -745,7 +766,7 @@
         "257bcdf3"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T11:01:04.718110+00:00",
+      "updated_at": "2026-11-12T12:03:37.029798+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -779,7 +800,7 @@
         "P3.1"
       ],
       "status": "diagnosing",
-      "implementation_state": "Video remains diagnosing. In the last complete run of 229 tests, EdDSA failed receiver 2 at seconds 18 (15 FPS) and 43 (22 FPS), and receiver 3 at second 18 (16 FPS). ES256 failed receiver 2 at seconds 18 (18 FPS), 43 (14 FPS) and 46 (20 FPS), and receiver 3 at second 43 (19 FPS). The minimum remains 24 FPS; all six source totals meet 1440 frames. PLI is requested and used, but cumulative counters cannot locate the exact drop. Graph 411 adds bounded diagnostics; all four diagnostic controls and three parser tests passed with normal-feature separation verified.",
+      "implementation_state": "Complete241 has only two full-video failures: five bins below24FPS. Exact four-flow conservation locates every missing packet at Core/queued authority or age checks before packetization, with no residual transport deficit. Scoped handoff authority followthrough assigned underP1.2.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -857,11 +878,17 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components23.json",
           "result": "Actual229:226pass3fail, allsource/binary/owner guardsverified; fullEdDSAandES256 independentquality/cleanupverdicts retained.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+          "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+          "result": "239/241; per-task assertions only, no matrix qualification",
+          "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5"
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T11:01:04.718110+00:00",
+      "updated_at": "2026-11-12T12:03:37.029798+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -1007,7 +1034,7 @@
         "P2.1"
       ],
       "status": "in-progress",
-      "implementation_state": "The last full run remains 226 passed and 3 failed out of 229 tests: 212 pure controls, 17 workloads and all 11 explicitly ignored RTC cases executed. Fixed44 verifies 36 scoped controls; all four diagnostic45 controls and three parser tests passed with normal-feature separation and original-owner closure independently verified. The next complete run retains all 229 originals and adds 12 controls: 241 total, 224 pure and 17 workloads. Both full62 signing profiles run adjacent last. Partial component checks do not admit shipping or the full32 matrix.",
+      "implementation_state": "Complete241 executed239pass2fail; all224 component cases and15of17 workloads passed, including all11 explicitly enabled RTC cases. Both full programmes satisfy movement/Data/retirement assertions but fail videoFPS. Scoped authority fix and causal controls precede next full cohort.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -1070,11 +1097,17 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json",
           "result": "Actual 36/36 passed: 34 Core controls and two pure Session phase helpers; source, emitted binaries and all original owners remained stable. PCMU and helper scope only.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+          "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+          "result": "239/241; per-task assertions only, no matrix qualification",
+          "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5"
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T11:01:04.718110+00:00",
+      "updated_at": "2026-11-12T12:03:37.029798+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -1122,7 +1155,7 @@
         "P7.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Code c2eb8edb and graph 411 are committed and pushed after independently verified component controls. The complete 241-selector producer is prepared; Root will bind its exact clean checkpoint HEAD before execution. Keep the eventual green HEAD unchanged through ARM preparation, normal shipping and full32. No compile-speed gain is claimed.",
+      "implementation_state": "Codec2eb8edb/checkpoint07e41461/graph411 was fully tested. The cohort is red239/241, so Source07 is not admitted to shipping or full32. Next handoff-isolation code batch will require independent review, units and a fresh complete source binding.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1180,6 +1213,12 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-fixed-controls44.json",
           "result": "Actual 36/36 passed: 34 Core controls and two pure Session phase helpers; source, emitted binaries and all original owners remained stable. PCMU and helper scope only.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+          "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+          "result": "239/241; per-task assertions only, no matrix qualification",
+          "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5"
         }
       ],
       "commit_ids": [
@@ -1187,7 +1226,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T11:01:04.718110+00:00",
+      "updated_at": "2026-11-12T12:03:37.029798+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -3528,6 +3567,11 @@
       "at": "2026-11-12T11:01:04.718110+00:00",
       "by": "/root",
       "action": "Accepted old43 controlled counterexamples and fixed44 scoped36/36 evidence. P3.2 and P5.1 are component-verified; video remains diagnosing. Accepted diagnostic45: four Rust controls and three parser tests passed, with normal-feature checks and original-owner closure verified. Next run of 241 tests and all 32/432 remain unqualified."
+    },
+    {
+      "at": "2026-11-12T12:03:37.029798+00:00",
+      "by": "/root",
+      "action": "Accepted complete241239pass2fail. Audio and cleanup exercised requirements verified; all4 retained flow losses accounted pre-packetizer. ReopenedP1.2 scoped handoff authority and actual-presence continuity. Resource implements, Fixture writes causal counters, Media reviews, Root coordinates. No acceptance or matrix changes."
     }
   ],
   "tracking_review": {
@@ -3543,19 +3587,20 @@
     "status": "proposed contract recorded; code conformance remains unverified"
   },
   "focused_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v216-components23.json",
-    "executed": 229,
-    "passed": 226,
-    "failed": 3,
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+    "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+    "executed": 241,
+    "passed": 239,
+    "failed": 2,
     "all_original_process_groups_joined": true,
     "source_and_binary_stable": true,
     "matrix_effect": "not-tested",
-    "full62s": "Both signing profiles completed their full workloads. Video verdicts failed on both; EdDSA cleanup failed and ES256 cleanup/idle passed. No pass promotion."
+    "full62s": "Both programmes failed video FPS only; movement, Data, audio-overlap and cleanup requirements exercised successfully. See exact workload evidence and limits."
   },
   "focused_signed_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v216-components23.json",
-    "rtc": "All 11 explicitly ignored signed RTC cases executed and passed within the failed229 cohort.",
-    "native_postcommit_data": "passed within229; no full media qualification inferred",
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components24.json",
+    "rtc": "All 11 explicitly enabled ignored RTC cases passed.",
+    "native_postcommit_data": "Passed within complete241; both full programmes completed all four bidirectional64KiB Data exchanges, with no replay.",
     "matrix_effect": "not-tested"
   },
   "next_media_fix_plan": "docs/evidence/gate-6/g6-058-v216-media-quality-next-fix-plan.json",
@@ -3563,7 +3608,7 @@
     "instruction": "Finish the plan",
     "scope": "Implement and verify current approved G6-058 plan; existing local Mac/nativeARM resources. G6-054 remains parked.",
     "coordinator": "/root",
-    "previous_runtime_owners": "Full run of 229 tests and scoped44 original owners are closed. Source45 remains frozen until its original builds, tests, parser and process groups join; Root then binds accepted closed evidence."
+    "previous_runtime_owners": "Original build24 and all241 runtime owners are closed; actual239/241 result independently verified. Next scoped-writer causal counters and complete fix batch are authorized locally; no provider/cloud execution."
   },
   "checkpoint_after45": {
     "state": "accepted component checkpoint; complete241 and matrix pending",
@@ -3616,5 +3661,11 @@
       "checks_required": 432
     },
     "implementation_code_commit": "c2eb8edbad1e9c05a880cbef65396c2313e26d6a"
+  },
+  "handoff_authority_followthrough": {
+    "plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
+    "status": "design/source drafts; causal counters and production verification pending",
+    "actual_video_boundary_report_sha256": "335e837a3a5ab4cc114f392234bc674d59927561d836eaf186cd51c6561e0096",
+    "all_145_original_failure_mappings_retained": true
   }
 }

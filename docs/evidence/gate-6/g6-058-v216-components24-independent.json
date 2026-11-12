@@ -1,0 +1,587 @@
+{
+  "format": "connect/independent-full241-adjudication/1",
+  "state": "239PASS /2FAIL; ALL241 EXECUTED; NO DOWNSTREAM ACTIVATION",
+  "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5",
+  "source_lock_sha256": "67cb03487b91182be0a7421057bedcf099b1f4f61a329a6706325f56ed82b212",
+  "source_seal_sha256": "df716b949a5f309b902a4b7d55642ecf11ad644ae446636d359523b3322df134",
+  "workspace_sha256": "f6cceb5adb2970959417eec03aaf7c6a37349fc433a0e1ecda55a616c3866461",
+  "original_results_sha256": "95d51e5c1bfc631031933224011dd942ad520c10673e26edbb1b86c5e58f9d04",
+  "reviewed_sanitizer_script_sha256": "c675e64c25af8847c278104f5b8f4a290fca0b9906c3cc10ba396ee0cacd85e2",
+  "original_sanitizer_output_sha256": "482be2a701624024655aab090bac9e2318819235c20040d1795b1251cc1c626b",
+  "summary": {
+    "selected": 241,
+    "executed": 241,
+    "passed": 239,
+    "failed": 2,
+    "not_executed": 0
+  },
+  "scope": {
+    "pure_selected": 224,
+    "pure_executed": 224,
+    "pure_passed": 224,
+    "pure_failed": 0,
+    "signed_or_workload_selected": 17,
+    "signed_or_workload_executed": 17,
+    "signed_or_workload_passed": 15,
+    "signed_or_workload_failed": 2,
+    "ignored_rtc_selected": 11,
+    "ignored_rtc_executed": 11,
+    "ignored_rtc_passed": 11,
+    "runtime_ignored_count": 0,
+    "not_executed": 0
+  },
+  "independent_custody_verification": {
+    "workspace_files": 6044,
+    "prepared_sources": {
+      "rvoip": 575,
+      "parley": 3
+    },
+    "actual_binaries": 7,
+    "all241log_hashes_verified": true,
+    "all7exact_inventory_hashes_and_selected_names_verified": true,
+    "all4actualbuild_artifacts_and_logs_verified": true,
+    "default_artifacts": {
+      "connect_service": {
+        "verified": true,
+        "no_test_support_or_memory_diagnostics": true,
+        "features": []
+      },
+      "connect_client": {
+        "verified": true,
+        "no_test_support_or_memory_diagnostics": true,
+        "features": []
+      },
+      "rvoip_core": {
+        "verified": true,
+        "no_test_support_or_memory_diagnostics": true,
+        "features": [
+          "default",
+          "identity",
+          "media",
+          "opus",
+          "rtp",
+          "sip",
+          "uctp",
+          "vcon"
+        ]
+      },
+      "rvoip_uctp": {
+        "verified": true,
+        "no_test_support_or_memory_diagnostics": true,
+        "features": []
+      }
+    }
+  },
+  "all4_builds_actual_exit0_and_joined": true,
+  "source_and_all7_actual_binaries_stable": true,
+  "all241_original_commands_naturally_joined_and_groups_absent": true,
+  "exact_both_full_programmes_adjacent_last_executed": true,
+  "coordinator_original_controllers": {
+    "build": {
+      "tool_session": 70662,
+      "reported_joined_exit": 0
+    },
+    "runtime": {
+      "tool_session": 73893,
+      "reported_joined_exit": 1
+    },
+    "witness": "Root explicit original-controller closure messages; percommand actual wait/group records independently verified"
+  },
+  "previous_short_overlap_regression_current_result": {
+    "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+    "passed": true,
+    "source_log_sha256": "68360dd14242919c6b30d75635664cf05873bf727a17e61b25c19c24d44f343a",
+    "full_audio_or_matrix_claimed": false
+  },
+  "full_programmes": [
+    {
+      "algorithm": "EdDSA",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "log_sha256": "f730139c109a009f696736f009c0dceba9de9550033869a3f430ec4c580a0efe",
+      "case_status": "FAILED",
+      "observed_video_failures": [
+        {
+          "route": 2,
+          "second": 18,
+          "decoded_changing_frames": 22,
+          "minimum": 24
+        },
+        {
+          "route": 3,
+          "second": 18,
+          "decoded_changing_frames": 14,
+          "minimum": 24
+        },
+        {
+          "route": 3,
+          "second": 43,
+          "decoded_changing_frames": 20,
+          "minimum": 24
+        }
+      ],
+      "all_6_route_totals_at_least1440": true,
+      "route_totals": [
+        {
+          "route": 0,
+          "changing_frames": 1770
+        },
+        {
+          "route": 1,
+          "changing_frames": 1766
+        },
+        {
+          "route": 2,
+          "changing_frames": 1780
+        },
+        {
+          "route": 3,
+          "changing_frames": 1771
+        },
+        {
+          "route": 4,
+          "changing_frames": 1759
+        },
+        {
+          "route": 5,
+          "changing_frames": 1753
+        }
+      ],
+      "all6_complete60bins_evaluated": true,
+      "only_retained_routes2_3_bins_gated_24": true,
+      "four_original_moves_completed": true,
+      "original8s_cutoffs_unchanged": true,
+      "rounds": [
+        {
+          "round": 0,
+          "moves": 2,
+          "generation": 2
+        },
+        {
+          "round": 1,
+          "moves": 2,
+          "generation": 3
+        }
+      ],
+      "four_bidirectional_Data_exchanges": [
+        {
+          "index": 0,
+          "phase": "target",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 4,
+          "phase": "target",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 0,
+          "phase": "return",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 4,
+          "phase": "return",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        }
+      ],
+      "actual_commit_modes": {
+        "records": 4,
+        "positive_reader": 4,
+        "writer_fallback": 0,
+        "reasons": {
+          "live-original": 2,
+          "exact-retired-original": 2
+        },
+        "preview_and_transaction_reasons_identical": true
+      },
+      "history_exact_original_results_and_once_effect_assertions_completed_before_work_marker": true,
+      "audio_observations": {
+        "snapshots": 24,
+        "during_snapshots": 12,
+        "minimum_during_consecutive_decoded_PCM_samples": 865920,
+        "required_minimum": 2880,
+        "full_audio_quality_or_no_reset_claimed": false,
+        "note": "Actual accepted decode continuity snapshots remain in sanitized case. Existing reset counts are retained; absence of audio threshold failure is not uninterrupted end-to-end audio proof."
+      },
+      "current_End": {
+        "six_exact_current_owner_End_and_public_retired_generation_assertions_completed": true,
+        "evidence_kind": "work completion marker occurs after original end_current six-public-snapshot assertions in sealed source; no inferred End from empty failure arrays alone"
+      },
+      "Session_retirement": {
+        "completed": 2,
+        "failures": 0,
+        "phases": [
+          {
+            "line": 638,
+            "index": 0,
+            "phase": "refresh",
+            "stage": "entry",
+            "programme_us": 63958856,
+            "remaining_us": 3041143
+          },
+          {
+            "line": 639,
+            "index": 1,
+            "phase": "refresh",
+            "stage": "entry",
+            "programme_us": 63959043,
+            "remaining_us": 3040956
+          },
+          {
+            "line": 640,
+            "index": 0,
+            "phase": "refresh",
+            "stage": "returned",
+            "programme_us": 64423195,
+            "ok": true
+          },
+          {
+            "line": 641,
+            "index": 1,
+            "phase": "refresh",
+            "stage": "returned",
+            "programme_us": 64468900,
+            "ok": true
+          },
+          {
+            "line": 642,
+            "index": 0,
+            "phase": "end",
+            "stage": "entry",
+            "programme_us": 64468942,
+            "remaining_us": 2531057
+          },
+          {
+            "line": 643,
+            "index": 1,
+            "phase": "end",
+            "stage": "entry",
+            "programme_us": 64469139,
+            "remaining_us": 2530860
+          },
+          {
+            "line": 651,
+            "index": 0,
+            "phase": "end",
+            "stage": "returned",
+            "programme_us": 64488403,
+            "ok": true
+          },
+          {
+            "line": 659,
+            "index": 1,
+            "phase": "end",
+            "stage": "returned",
+            "programme_us": 64505486,
+            "ok": true
+          },
+          {
+            "line": 660,
+            "index": 0,
+            "phase": "wait",
+            "stage": "entry",
+            "programme_us": 64505515,
+            "remaining_us": 2494484
+          },
+          {
+            "line": 661,
+            "index": 1,
+            "phase": "wait",
+            "stage": "entry",
+            "programme_us": 64505691,
+            "remaining_us": 2494308
+          },
+          {
+            "line": 662,
+            "index": 0,
+            "phase": "wait",
+            "stage": "returned",
+            "programme_us": 64516145,
+            "ok": true
+          },
+          {
+            "line": 663,
+            "index": 1,
+            "phase": "wait",
+            "stage": "returned",
+            "programme_us": 64525885,
+            "ok": true
+          }
+        ],
+        "both_refreshes_before_both_submissions_before_both_waits": true,
+        "last_wait_completed_programme_us": 64525885,
+        "original_cutoff_us": 67000000
+      },
+      "original_owner_cleanup": {
+        "task_failures_empty": true,
+        "server_shutdown_ok": true,
+        "all_media_codec_raw_peer_SDK_Session_runtime_original67_assertions_completed_before_final_quality_panic": true,
+        "exact_last_owner_join_time_us": null,
+        "exact_time_note": "Not emitted on success; bounded by actual executed unchanged67s source assertion and final task-failures assertion reached before terminal quality panic. Sessionwait timestamp is a narrower explicit event, not invented allowner time.",
+        "idle_ms": 10003,
+        "strong_runtime_owners_at_idle": 0,
+        "OS_resource_qualification": false
+      },
+      "full_programme_qualified": false,
+      "video_quality_passed": false,
+      "matrix_qualified": false
+    },
+    {
+      "algorithm": "ES256",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_es256_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "log_sha256": "997ae7d84f285c674873ca75ef608925843f0db961c949a4e86117dd566df635",
+      "case_status": "FAILED",
+      "observed_video_failures": [
+        {
+          "route": 2,
+          "second": 18,
+          "decoded_changing_frames": 22,
+          "minimum": 24
+        },
+        {
+          "route": 2,
+          "second": 43,
+          "decoded_changing_frames": 18,
+          "minimum": 24
+        }
+      ],
+      "all_6_route_totals_at_least1440": true,
+      "route_totals": [
+        {
+          "route": 0,
+          "changing_frames": 1749
+        },
+        {
+          "route": 1,
+          "changing_frames": 1749
+        },
+        {
+          "route": 2,
+          "changing_frames": 1776
+        },
+        {
+          "route": 3,
+          "changing_frames": 1791
+        },
+        {
+          "route": 4,
+          "changing_frames": 1756
+        },
+        {
+          "route": 5,
+          "changing_frames": 1774
+        }
+      ],
+      "all6_complete60bins_evaluated": true,
+      "only_retained_routes2_3_bins_gated_24": true,
+      "four_original_moves_completed": true,
+      "original8s_cutoffs_unchanged": true,
+      "rounds": [
+        {
+          "round": 0,
+          "moves": 2,
+          "generation": 2
+        },
+        {
+          "round": 1,
+          "moves": 2,
+          "generation": 3
+        }
+      ],
+      "four_bidirectional_Data_exchanges": [
+        {
+          "index": 0,
+          "phase": "target",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 4,
+          "phase": "target",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 0,
+          "phase": "return",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        },
+        {
+          "index": 4,
+          "phase": "return",
+          "incoming_exact_bytes": 65536,
+          "outgoing_exact_bytes": 65536,
+          "mutation_replays": 0
+        }
+      ],
+      "actual_commit_modes": {
+        "records": 4,
+        "positive_reader": 4,
+        "writer_fallback": 0,
+        "reasons": {
+          "live-original": 3,
+          "exact-retired-original": 1
+        },
+        "preview_and_transaction_reasons_identical": true
+      },
+      "history_exact_original_results_and_once_effect_assertions_completed_before_work_marker": true,
+      "audio_observations": {
+        "snapshots": 24,
+        "during_snapshots": 12,
+        "minimum_during_consecutive_decoded_PCM_samples": 869760,
+        "required_minimum": 2880,
+        "full_audio_quality_or_no_reset_claimed": false,
+        "note": "Actual accepted decode continuity snapshots remain in sanitized case. Existing reset counts are retained; absence of audio threshold failure is not uninterrupted end-to-end audio proof."
+      },
+      "current_End": {
+        "six_exact_current_owner_End_and_public_retired_generation_assertions_completed": true,
+        "evidence_kind": "work completion marker occurs after original end_current six-public-snapshot assertions in sealed source; no inferred End from empty failure arrays alone"
+      },
+      "Session_retirement": {
+        "completed": 2,
+        "failures": 0,
+        "phases": [
+          {
+            "line": 653,
+            "index": 0,
+            "phase": "refresh",
+            "stage": "entry",
+            "programme_us": 63990960,
+            "remaining_us": 3009039
+          },
+          {
+            "line": 654,
+            "index": 1,
+            "phase": "refresh",
+            "stage": "entry",
+            "programme_us": 63991184,
+            "remaining_us": 3008815
+          },
+          {
+            "line": 655,
+            "index": 0,
+            "phase": "refresh",
+            "stage": "returned",
+            "programme_us": 64451523,
+            "ok": true
+          },
+          {
+            "line": 656,
+            "index": 1,
+            "phase": "refresh",
+            "stage": "returned",
+            "programme_us": 64496611,
+            "ok": true
+          },
+          {
+            "line": 657,
+            "index": 0,
+            "phase": "end",
+            "stage": "entry",
+            "programme_us": 64496651,
+            "remaining_us": 2503348
+          },
+          {
+            "line": 658,
+            "index": 1,
+            "phase": "end",
+            "stage": "entry",
+            "programme_us": 64496848,
+            "remaining_us": 2503151
+          },
+          {
+            "line": 666,
+            "index": 0,
+            "phase": "end",
+            "stage": "returned",
+            "programme_us": 64518370,
+            "ok": true
+          },
+          {
+            "line": 674,
+            "index": 1,
+            "phase": "end",
+            "stage": "returned",
+            "programme_us": 64535116,
+            "ok": true
+          },
+          {
+            "line": 675,
+            "index": 0,
+            "phase": "wait",
+            "stage": "entry",
+            "programme_us": 64535145,
+            "remaining_us": 2464854
+          },
+          {
+            "line": 676,
+            "index": 1,
+            "phase": "wait",
+            "stage": "entry",
+            "programme_us": 64535319,
+            "remaining_us": 2464680
+          },
+          {
+            "line": 677,
+            "index": 0,
+            "phase": "wait",
+            "stage": "returned",
+            "programme_us": 64547760,
+            "ok": true
+          },
+          {
+            "line": 678,
+            "index": 1,
+            "phase": "wait",
+            "stage": "returned",
+            "programme_us": 64554161,
+            "ok": true
+          }
+        ],
+        "both_refreshes_before_both_submissions_before_both_waits": true,
+        "last_wait_completed_programme_us": 64554161,
+        "original_cutoff_us": 67000000
+      },
+      "original_owner_cleanup": {
+        "task_failures_empty": true,
+        "server_shutdown_ok": true,
+        "all_media_codec_raw_peer_SDK_Session_runtime_original67_assertions_completed_before_final_quality_panic": true,
+        "exact_last_owner_join_time_us": null,
+        "exact_time_note": "Not emitted on success; bounded by actual executed unchanged67s source assertion and final task-failures assertion reached before terminal quality panic. Sessionwait timestamp is a narrower explicit event, not invented allowner time.",
+        "idle_ms": 10001,
+        "strong_runtime_owners_at_idle": 0,
+        "OS_resource_qualification": false
+      },
+      "full_programme_qualified": false,
+      "video_quality_passed": false,
+      "matrix_qualified": false
+    }
+  ],
+  "component_batch_passed": false,
+  "readiness": {
+    "all241_qualified": false,
+    "arm_source_sync_allowed": false,
+    "shipping_allowed": false,
+    "full32_launch_allowed": false,
+    "matrix_qualified": false
+  },
+  "limitations": [
+    "Source-only reordering candidate remains unrun/unapplied; no RTP-reordering cause attributed to these failures.",
+    "Observed full programme video deficits remain actual failures despite complete Data/moves/End/cleanup and all6total1440 proof.",
+    "Both same-source original capture reason distributions are actual logs: Ed2live+2retired; ES3live+1retired.",
+    "No full32/full432, uninterrupted audio, AVskew, packet-capture or OS-resource qualification from this component cohort.",
+    "No raw credentials, message bodies, packet payload, authority IDs, absolute local paths or command arrays copied."
+  ]
+}

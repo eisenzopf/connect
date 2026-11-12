@@ -1,0 +1,49 @@
+{
+  "format": "connect/independent-media-checkpoint44-source-review/1",
+  "state": "SOURCE ACCEPTED; ignored overlay only; no apply/build/test",
+  "reviewed_manifest_sha256": "4c93eb89f12d4d8f0ae7d848b64694f74aa2fd59e4fd34e5139b1d6b83948cd5",
+  "files": [
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-components24.json",
+      "after_sha256": "bc9ba41fdf978a361bc54cce35328ad762674cbac13e2820e4559af25a7e1b33"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
+      "after_sha256": "092252e468fa492f8046474dfaaf434d35e649b3737d78668b41874f76f79515"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback.json",
+      "after_sha256": "cae5c0d651bb978b697964d0a42ea7358fb65b0f1c1f068a95ce73d85beea8bf"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
+      "after_sha256": "d6fc56836eaf73858bf0c72beb7baabe655a9c754b1ebfbd501e0ecf5dff4a46"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-agent-work-tracker.json",
+      "after_sha256": "f06253e9650b7ec05344d170aaeaba2fa21936756588204bfb61062bd864170d"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-blockers.json",
+      "after_sha256": "9d263dd569ae84a8df4050981d5be27820c5f11131551b2f37e390829b59d1c9"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-v216-media-quality-next-fix-plan.json",
+      "after_sha256": "c5833d650ff57d3109e26cf47b1bc31e21a98a7101f2d4cc30118321c107a53a"
+    }
+  ],
+  "verified": [
+    "All seven exact after-image hashes and current before guards match.",
+    "Actual241 remains239 passed/two failed; all224 pure and15/17 workloads pass; both full62 cases retain actual video failures and no matrix qualification.",
+    "Accepted independent actual241 evidence and four-flow numeric conservation report retained exactly; scoped plan explicitly design/unverified.",
+    "All15 task IDs, dependencies and145 failure mappings and original v215 matrix baseline preserved.",
+    "P1.2 new followthrough root-cause/counterexample/regression flags false, prior verification_runs retained.",
+    "P3.2/P5.1 coordinator status accepts only exercised combined assertions, matrix pending.",
+    "Mobile revision44 ten Root-read-back paragraphs retained with exact tested revision; no new mobile write performed by reviewer."
+  ],
+  "limits": [
+    "Source/evidence consistency acceptance only; no scoped-writer implementation or new regression qualification.",
+    "Historical coordinator architecture/scope notes remain historical; current task status and explicit combined scope govern.",
+    "No tracked docs, producer, dependency, tests, builds or remote actions performed."
+  ]
+}
