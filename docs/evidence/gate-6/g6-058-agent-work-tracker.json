@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T12:35:48.945061+00:00",
-  "revision": 45,
+  "updated_at": "2026-11-12T14:25:42.289328+00:00",
+  "revision": 47,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 45,
-    "verified_at": "2026-11-12T12:33:17.245Z",
+    "content_revision": 47,
+    "verified_at": "2026-11-12T14:16:06.884Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json",
-    "readback_evidence_sha256": "6dddf40dad5339eedd1a70ecd85445befa3535ce2874483415cadacdbb4a3e6e"
+    "readback_evidence_sha256": "878294a153ed33087fc2713d0212046067bf22ea3d05ee03074dd31adf8d38fc"
   },
   "baseline": {
     "run": "v215",
@@ -163,11 +163,11 @@
         "P1.1"
       ],
       "status": "implementing",
-      "implementation_state": "All four real Store writer classes now reproduce healthy original epoch/stamp invalidation under old code: physical commit, public activation, original cleanup and replacement cleanup. Four exact intended causal failures qualified; no setup failures or cutoff waivers. Scoped connection writers, immutable same-Unit row permits backed by opaque Store witnesses, full retained Read proofs and pending-handoff appearance continuity are drafted but not applied. Fixed regression and media qualification remain pending.",
+      "implementation_state": "Scoped production batch applied and compiles. Store verification improved96/152\u2192134/152\u2192147/152. Exact Begin writes, positive-capture dependencies and both cleanup epoch-preservation checks pass. Five failures remain including intermittent physical/public boundaries, transaction timing and two fixtures. New typed watcher distinction and three regression controls are source-reviewed but unqualified. Fixed media and matrix proof remain pending.",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
-        "status": "Four old causal regressions independently verified; production batch and fixed regressions pending",
+        "status": "Actual147/152 independently verified; five failures open; no combined media or matrix qualification",
         "root_cause_confirmed": true,
         "failure_mapping_verified": true,
         "architecture_conformance": "independent-source-reviewed; actual combined media effect pending",
@@ -230,6 +230,13 @@
           "source_revision": "7e009e45dc3d67149f68b3f49350bee0728d729a",
           "normal_generation": 411,
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store53.json",
+          "independent_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store53-independent.json",
+          "result": "147/152passed;5failed;all152executed;originalsource/binary/input/owner guards preserved",
+          "source_revision": "f4a419838576a31d209573c4e8e68b5986e39195",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -237,7 +244,7 @@
         "b2b64ea5"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T12:35:48.945061+00:00",
+      "updated_at": "2026-11-12T14:25:42.289328+00:00",
       "mapped_check_count": 8,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -252,7 +259,7 @@
         "coordinator": "/root",
         "cause": "Before Writer admission, all four broad footprints permanently revoke original healthy media epochs for unchanged source/target bindings. These Store counterexamples support the actual pre-packetizer loss diagnosis; exact late Core NotReady leaf is not separately logged.",
         "fix": "New logical Connection authority domain; preserve complete identity/conversation/scene Reads; exact affected Connection and operation Record Writes. Closed same-Unit/nonce typed row transitions validate opaque original receipts, immutable stored outcomes, real current authorization and exact rows. Preserve valid existing pending-handoff appearance only; cancellation/expiry withdraw via actual state-change paths/sweep. Genuine lifecycle changes retain broad fencing.",
-        "verification": "Meaningful Begin DML and privacy/expiry/cross-Store/rollback/collision/refusal controls, then all four fixed causal tests and complete unchanged regression cohort. No epoch revival, lease extension or physical replay."
+        "verification": "Finish all reviewed Store corrections and deterministic watcher old/fixed counter before full264 regression. Keep all152 controls and add three exact watcher selectors; unchanged media-quality limits and all32 localARM matrix cells remain mandatory."
       },
       "counter_test_owner": "/root/fixture_blockers",
       "followthrough_plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json"
@@ -3581,6 +3588,11 @@
       "at": "2026-11-12T12:03:37.029798+00:00",
       "by": "/root",
       "action": "Accepted complete241239pass2fail. Audio and cleanup exercised requirements verified; all4 retained flow losses accounted pre-packetizer. ReopenedP1.2 scoped handoff authority and actual-presence continuity. Resource implements, Fixture writes causal counters, Media reviews, Root coordinates. No acceptance or matrix changes."
+    },
+    {
+      "at": "2026-11-12T14:25:42.289328+00:00",
+      "by": "/root",
+      "action": "Recorded independently verified147/152Store result and all five open failures; focused diagnostics isolate65701usReadyTXbody versus648usactualauthorityacquisition. Physical/Public later passwithoutproductionfix, so intermittent failures remain open. Mobile47verified. Three deterministic watcher controls planned; no acceptance or matrix changes."
     }
   ],
   "tracking_review": {
@@ -3673,9 +3685,63 @@
   },
   "handoff_authority_followthrough": {
     "plan": "docs/evidence/gate-6/g6-058-v216-scoped-handoff-authority-plan.json",
-    "status": "Four old causal regressions qualified; production source drafts and fixed verification pending",
+    "status": "Production batch applied; Store147/152; five failures remain; no fixed media or matrix qualification",
     "actual_video_boundary_report_sha256": "335e837a3a5ab4cc114f392234bc674d59927561d836eaf186cd51c6561e0096",
     "all_145_original_failure_mappings_retained": true,
-    "old_causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json"
+    "old_causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
+    "latest_component_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store53.json",
+    "latest_independent_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store53-independent.json",
+    "actual_component": {
+      "expected": 152,
+      "executed": 152,
+      "passed": 147,
+      "failed": 5,
+      "unexecuted": 0,
+      "all_original_groups_joined": true,
+      "source_binary_inputs_unchanged": true
+    },
+    "diagnostic_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-diagnostic54.json",
+    "open_failures": [
+      {
+        "selector_index": 107,
+        "owner": "/root/fixture_blockers",
+        "cause": "Old SQL-race assertion observes unchanged source1 while expecting revocation; must measure changed source0 and retain healthy1 oracle.",
+        "state": "independent-source-reviewed-test-correction"
+      },
+      {
+        "selector_index": 127,
+        "owner": "/root/v198_resources",
+        "cause": "Whole API wall78047us includes measured Ready transaction body65701us; actual authority acquisition648us. Profile transaction before selecting performance correction.",
+        "state": "diagnosing"
+      },
+      {
+        "selector_index": 132,
+        "owner": "/root/media_blockers",
+        "cause": "Physical scoped writer passed held-checkpoint but original healthyepoch revoked; intermittent. Watcher metadataBusy misclassification source finding requires deterministic old/fixed proof.",
+        "state": "diagnosing"
+      },
+      {
+        "selector_index": 133,
+        "owner": "/root/v198_resources",
+        "cause": "PublicReady precheckpoint authorityBusy without healthyepoch revocation; next diagnostic passed without changes. Exact original leaf unmeasured.",
+        "state": "diagnosing"
+      },
+      {
+        "selector_index": 147,
+        "owner": "/root/fixture_blockers",
+        "cause": "ConversationClose refuses genuine preparing replacement despite Sessions ended; fixture completes its real replacement before measured broadCIDwriter.",
+        "state": "independent-source-reviewed-test-correction"
+      }
+    ],
+    "next": {
+      "all_store_regressions_required": true,
+      "new_watcher_controls_planned": 3,
+      "future_store_expected": 155,
+      "future_complete_regression_expected": 264,
+      "future_qualified": false,
+      "local_arm_only": true,
+      "full_matrix_cells": 32,
+      "matrix_qualified": false
+    }
   }
 }

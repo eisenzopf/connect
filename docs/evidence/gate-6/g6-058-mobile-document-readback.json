@@ -1,21 +1,14 @@
 {
   "documentId": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
-  "revisionId": "AHj4eMQ0emeS6laIGQgUAd4h1j5cRxLLvOHQTK2DN-HMVSyFjpr7Wijh_65Q_VItcUbZDNCD5pShdE3AHzROQwlug_zkxr27Jm9H6F0U1Zc",
-  "content_revision": 45,
-  "verified_at": "2026-11-12T12:33:17.245Z",
-  "source_head": "7e009e45dc3d67149f68b3f49350bee0728d729a",
-  "old_causal_run": "v216-scoped-old49",
-  "old_causal_expected_failures": 4,
-  "old_causal_unqualified": 0,
-  "complete_regression": {
-    "passed": 239,
-    "expected": 241
-  },
-  "matrix_qualified": false,
+  "revisionId": "AHj4eMTfSvIRLG9Lyw157ymluIg-yoOqj6e5bKIdltLgt7y5TzIqsu2MOCtW3M9AQp_l-vUjuWO_M2uSCM6-FiHMKIyCkK3RQ0GtcAKuno8",
+  "content_revision": 47,
+  "verified_at": "2026-11-12T14:16:06.884Z",
   "verified_paragraphs": [
-    "Required proof: All four old-code Store causal failures have now been reproduced using actual epochs, original stamps and current read entitlements. No decoded-media claim comes from those units. The fixed implementation must preserve unchanged flows while each real writer is held, permanently fence affected connections and refuse altered identities, rows, receipts, expiry, cancellation and cross-Store/SQL-unit misuse. Cleanup must preserve a valid existing appearance and withdraw invalid pending claims. Independent review and unit controls precede the entire regression cohort, actual Opus/VP8 programmes and unchanged quality limits.\n",
-    "State: implementing; implementation: Local OLD49 reproduced the exact healthy-epoch revocation in all four writer paths, with original source fencing and cleanup controls intact. Connection-specific scopes, same-transaction exact row permits and bounded pending-handoff appearance continuity are drafted. Opaque Store witnesses bind current authority and immutable receipts; broader lifecycle changes retain broad fencing. The production batch is not applied or verified yet. Blockers: B191. Dependencies: P1.1.\n",
-    "Checkpoint: The last complete regression executed all 241 cases: 239 passed and two full media programmes failed video FPS. Audio, Data, four moves per programme and both Session cleanup checks passed; the 24 FPS requirement is unchanged. Diagnostics account for the retained-video packet loss before packetization, at Core forwarding and authorization/age checks. A new local Store run reproduced the overbroad invalidation in all four paths: physical commit, public activation, original cleanup and replacement cleanup. All four causal tests failed at their intended old-code oracle, within the same two-second observation window, after owners were joined; these are confirmed bug reproductions, not media or matrix passes. The changed connection remained fenced while the unaffected original epoch was wrongly revoked. The same tests also exposed appearance changes during pending handoff settlement. Resource is implementing connection-specific writer scopes and bounded appearance continuity; Root and Media are building/reviewing exact same-transaction SQL permits backed by sealed Store provenance, complete authorization reads and exact affected writes. Fixture owns the regression and refusal controls. No narrower permit can grant new media, resurrect an epoch, extend a lease or replay a physical effect. Units and the complete regression cohort precede ARM shipping and all 32 matrix cells. The last matrix remains v215 at 0/32; no new matrix run is claimed. G6-054 remains parked.\n",
-    "Revision 45 | Coordinator: /root | Status: 239/241 regression checks; four handoff causes reproduced; scoped fixes in progress\n"
-  ]
+    "State: implementing; implementation: Scoped handoff verification now passes 147 of 152 Store checks. Exact Begin writes, signed current-capture dependencies and both cleanup epoch-preservation checks pass. Physical Commit and public Ready still need a successful unrelated-media preservation proof. /root/media_blockers owns watcher probe classification; /root/v198_resources owns precise public-admission and SQL diagnostics; /root/fixture_blockers owns fixture corrections and actual-run adjudication. Coordinator /root integrates reviewed changes and runs verification. Fixed decoded-media and matrix qualification remain pending. Blockers: B191. Dependencies: P1.1.",
+    "Checkpoint: The latest Store run executed all 152 checks: 147 passed and five failed, with build, source, binary, input and child-owner guards intact. This improves the preceding Store results of 96/152 and 134/152. Exact scoped Begin SQL controls, positive capture dependencies, both cleanup epoch-preservation checks, publication-expiry, cache, cancellation and pending-presence controls now pass. Remaining failures are explicitly open: physical Commit still revoked an unrelated original media epoch; public Ready hit authority contention before its held checkpoint; one old SQL-race test still expected the unrelated epoch to be revoked; one timing assertion includes the whole metadata transaction; and conversation-close setup left a genuine replacement operation preparing. Agents are investigating production causes and correcting fixtures with independent review. A concrete source-level concern is that the watcher treats metadata-registry contention as external-writer contention; a deterministic regression and typed distinction are being prepared before claiming that cause explains the observed media-epoch failure. No threshold or matrix verdict has been relaxed. The last complete decoded-media cohort remains 239/241, with two video FPS failures. All Store controls must pass before the batch commit and complete regression, followed by local ARM shipping and all 32 matrix cells on the same qualified commit. The last matrix remains v215 at 0/32. G6-054 remains parked.",
+    "Revision 47 | Coordinator: /root | Status: Store checks 147/152; five failures under correction; media and matrix qualification pending"
+  ],
+  "all_verified": true,
+  "source_head": "f4a419838576a31d209573c4e8e68b5986e39195",
+  "matrix_qualified": false
 }

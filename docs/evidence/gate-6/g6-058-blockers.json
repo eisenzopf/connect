@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T12:35:48.945061+00:00",
-  "run_status": "Complete241 executed239passed2failed; all224component cases and15workloads passed. Onlybothfull62 programmes fail5videoFPSbins. Audio-overlap and both67s cleanup/10s idle requirements passed. ExactRTP conservation locates allaffected retained-flow losses inCore/queued authority andage beforepacketization. Four handoff Writer classes require scoped authority and bounded logical-presence continuity; no fix verified yet. Lastmatrix remainsv2150/32.",
+  "updated": "2026-11-12T14:27:27.969604+00:00",
+  "run_status": "Latest scoped Store run53 executed147/152passed,5failed,0unrun; all original process/source/binary/input guards verified. Earlier complete media cohort24 remains239/241 with two videoFPS failures. Exact Begin, capture, cleanup, expiry and cache controls now pass. Intermittent physical/public media-epoch boundaries, Ready transaction cost and two fixture corrections remain open. New watcher metadata/real-writer distinction needs deterministic old/fixed verification. Lastmatrix remainsv2150/32; local Mac/ARM only.",
   "blockers": [
     {
       "id": "B01",
@@ -1561,11 +1561,12 @@
     {
       "id": "B191",
       "title": "Data completion may invalidate live audio custody",
-      "status": "Implementing: all four overbroad handoff Writer classes reproduced by exact old-code Store epoch/stamp controls; scoped production batch and fixed verification pending.",
+      "status": "Implementing: scoped batch applied,147/152Store checks pass; physical/public unrelated-media proofs still open.",
       "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json; g6-058-v216-components19.json",
-      "next": "Finish exact affected Connection writes and bounded presence continuity with opaque provenance/current authority/row-delta controls. All four fixed regressions and complete media cohort precede any matrix qualification.",
-      "causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json"
+      "next": "Prove deterministic watcher metadata-vs-kernel writer classification; correct affected-reader and actualClose fixtures; profile Ready transaction body. All155 Store controls, full264 and32/432remain required.",
+      "causal_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-old49-independent.json",
+      "latest_evidence": "docs/evidence/gate-6/g6-058-v216-scoped-store53-independent.json"
     },
     {
       "id": "B192",
@@ -3250,7 +3251,7 @@
       "owner": "/root/v198_resources",
       "dependencies": [],
       "solution": "Use a narrow transaction-bound ledger capability for exact positive Data completion under complete current Readers; verify lifecycle reconciliation is a no-op, otherwise use the original Writer path. Keep uncertainty, cancellation and genuine authorization changes on the Writer path. Audit remaining ledger/status/metrics writes for the same unnecessary invalidation.",
-      "status": "Data/intent component controls pass; actual Commit authority reach and unchanged-flow loss under diagnosis.",
+      "status": "Scoped batch applied; Store53passes147/152. Both cleanup epoch-preservation tests and exactBegin/capture controls pass; intermittent physical/Public boundaries and watcher probe classification remain open.",
       "completion": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3288,7 +3289,7 @@
       "owner": "/root, /root/media_blockers",
       "dependencies": [],
       "solution": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
-      "status": "Four full native moves and3signed RTC SQL cases pass; final original retirement proof remains open.",
+      "status": "Complete cohort24 exercises four moves, actualData and both67s Session cleanup/10s idle checks. Current scoped-authority batch still requires full264 and32-cell proof.",
       "completion": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3331,7 +3332,7 @@
         "S110"
       ],
       "solution": "Trace input quantum/frame identity through admission, bridge/mixer, encoder, transport, receiver ordering, decoder and rendered output. Correlate every loss with authority generation, queue state, discontinuity and keyframe readiness. Fix actual drops/stalls; distinguish sender loss, transport reordering, decoder startup and measurement-window defects with controlled signals. Do not assume Data-authority work fixes all video or audio.",
-      "status": "Open:4real clean-video FPS failures; encode/local publication cadence remains30FPS.",
+      "status": "Cohort24 fails only five videoFPS bins across two full programmes; all four retained-flow packet deficits account beforepacketizer. Scoped fix has no new decoded-media qualification yet.",
       "completion": "Every route satisfies its original decoded audio/video/skew/duplicate/gap thresholds with a complete programme. No unresolved media-loss hypothesis remains before the full rerun.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3356,7 +3357,7 @@
         "S111"
       ],
       "solution": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
-      "status": "Single native functional cycle exercised; End correlation/67s proof and3cycle OS/browser coverage remain open.",
+      "status": "Cohort24 both actual2Session cleanup checks pass at64.53s/64.55s with10s idle/zero owners. Three-cycle matrix memory/browser/OS ownership qualification remains pending.",
       "completion": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -3382,7 +3383,7 @@
         "S112"
       ],
       "solution": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
-      "status": "Source13:115/116focusedchecks pass. Full32/432 not rerun; quality/cleanup fixes required.",
+      "status": "Lastcomplete239/241, latestStore147/152. Five failures open; three new watcher controls make nextStore155/full264. All32/432still pending on qualifiedfrozenbatch.",
       "completion": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
       "completion_status": "in-progress",
       "reviewers": [
@@ -5780,10 +5781,10 @@
     "status_url": "../evidence/gate-6/transport-matrix-v215.json"
   },
   "current_focused_verification": {
-    "passed": 226,
-    "planned": 229,
-    "scope": "Complete544a8e0a/408,212pure+17workloads/11ignored all executed;3failedcases exact incomponents23.",
-    "next": "FixconsumedProbeaudio contention, actualvideo recovery andsequentialcleanup; meaningfulold/fixedcontrols, thencompletecoherentbatch before32/432. No226/229qualification."
+    "passed": 239,
+    "planned": 241,
+    "scope": "Last complete media/component cohort24,224pure+17workloads/11explicitignored executed;2videoFPS failures. Subsequent Store53 is147/152 and is not a whole-cohort pass.",
+    "next": "Finish remaining scoped Store failures and three watcher controls, then complete264 regression and all32/432 on one frozen qualified source. No acceptance changes."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17450,6 +17451,12 @@
       "passed": 239,
       "planned": 241,
       "evidence": "g6-058-v216-components24.json"
+    },
+    {
+      "name": "Latest scoped Store53: five failures open; whole regression/matrix pending",
+      "passed": 147,
+      "planned": 152,
+      "evidence": "g6-058-v216-scoped-store53-independent.json"
     }
   ],
   "current_production_check": {

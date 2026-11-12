@@ -1,0 +1,44 @@
+{
+  "format": "connect/scoped-handoff-diagnostic54/1",
+  "scope": "Three focused Store diagnostics; no media or matrix qualification",
+  "source_head": "f4a419838576a31d209573c4e8e68b5986e39195",
+  "original_results_sha256": "c936cc24e7e152ae150f1ac083736fefd547e982b2d79337e14165a650a37957",
+  "executed": 3,
+  "passed": 2,
+  "failed": 1,
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "binary_unchanged": true,
+  "rows": [
+    {
+      "selector": "connection_control::tests::replacement_sources::commit::diagnostics::captured_projection_drains_brief_primary_sql_exclusion_within_original_admission_budget",
+      "exit_code": 101,
+      "log_sha256": "afad3d6594260fcbf961f3c34f193d303ab6ca8467896751760be394a79aea37",
+      "original_owner_joined": true
+    },
+    {
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::physical_commit_writer_preserves_unaffected_original_av_pair_epoch_and_stamp",
+      "exit_code": 0,
+      "log_sha256": "a81a83519730836d7bf8a2bc65a1e5d9ebe32a89f7e0c0f209eb7d6fd944f206",
+      "original_owner_joined": true
+    },
+    {
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::public_ready_writer_preserves_unaffected_original_av_pair_epoch_and_stamp",
+      "exit_code": 0,
+      "log_sha256": "924e5e966b68894ba3f20f99bb3656235af9c4a1be651f932c30049d3c47d4a6",
+      "original_owner_joined": true
+    }
+  ],
+  "observed_first_activation": {
+    "admitted": 1,
+    "authority_wait_us": 648,
+    "derive_before_us": 348,
+    "derive_after_us": 313,
+    "transaction_begin_us": 3,
+    "transaction_body_us": 65701,
+    "transaction_commit_us": 767,
+    "whole_call_us": 78047
+  },
+  "finding": "Whole-call50ms assertion failed; measured initial authority wait was648us. Transaction body remains the observed costly stage; exact internal root cause is pending profiling. Physical/Public same-epoch checks both passed without production changes, so earlier failures are intermittent.",
+  "matrix_qualified": false
+}
