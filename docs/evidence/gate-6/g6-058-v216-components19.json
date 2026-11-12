@@ -1,0 +1,5218 @@
+{
+  "format": "connect/g6-058-runtime-components/2",
+  "scope": "Focused175 component cases; matrix remains separately required",
+  "source_sha256": "0a341ffd85fd85335f1ffe0d4da810016d2e767e0eef6837dcc13649948202d3",
+  "source_seal_sha256": "43015729aa95dbe86a3aca5c7b61114838078fdd81e65eb03211659fdf79139e",
+  "source_base_revision": "bbcf57f68b5cdde926e34f672dd9b4c49f7d5c15",
+  "source_lock_sha256": "bef0ccbe4fa72c4a5656ee066134ef48ab007c91f2299b8a8ad248bffbe738c5",
+  "configuration_sha256": "e83381291eaa2a81758198931f46cc4ea393c45e7a0842347f28a6425abce809",
+  "runner_sha256": "b5bd9cfc84ab89afb85f84ad7724568445dfbfa36664c23dd5b5cc202b9040c5",
+  "helpers_sha256": "06d5e9f90ed0e6aa23ed8377871801d014c3c36ca8f64e7d92275d8737633eef",
+  "raw_receipt_sha256": "9635be5b857d692dc95d26ef18e24af858846550756895bab00723413fffaa1d",
+  "expected": 175,
+  "summary": {
+    "selected": 175,
+    "executed": 175,
+    "passed": 162,
+    "failed": 13,
+    "not_executed": 0
+  },
+  "source_unchanged": true,
+  "binaries_unchanged": true,
+  "all_original_process_groups_joined": true,
+  "scope_counts": {
+    "pure_selected": 159,
+    "signed_or_workload_selected": 16,
+    "pure_executed": 159,
+    "signed_or_workload_executed": 16,
+    "ignored_rtc_selected": 11,
+    "ignored_rtc_executed": 11
+  },
+  "selected_group_counts": {
+    "connect_store": 106,
+    "connect_service": 16,
+    "rvoip_uctp": 11,
+    "rvoip_core": 19,
+    "gate6_canonical_webtransport": 12,
+    "gate6_replacement_video": 11
+  },
+  "full62_planned_last": true,
+  "full62_actually_last_executed": true,
+  "groups": [
+    {
+      "index": 0,
+      "package": "connect-store",
+      "target": "connect_store",
+      "kind": "lib",
+      "selected": 106,
+      "binary_sha256": "e4cde00a17ed6c48f24c621c3bfb41cc779bf47e4922a00e2531a2224d3fa675",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [
+        "test-support"
+      ],
+      "inventory_sha256": "edf2d1179e4ad784e77ab35da1e586829b4b64ea4ecd33af7ac1bb370e1890b5",
+      "inventory_owner": {
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "elapsed_seconds": 1.0625308339949697
+      },
+      "results": {
+        "passed": 106,
+        "failed": 0,
+        "not_executed": 0
+      }
+    },
+    {
+      "index": 1,
+      "package": "connect-service",
+      "target": "connect_service",
+      "kind": "lib",
+      "selected": 16,
+      "binary_sha256": "5b2d790cb545453045ff5a7f66637473607c8b502875d6ce55311a0af523cca1",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [
+        "test-support"
+      ],
+      "inventory_sha256": "73970c8711358a3d183e11ca5a71f78997cd4894d6eb3c73c7b8e75ddab9b95b",
+      "inventory_owner": {
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "elapsed_seconds": 1.89626412501093
+      },
+      "results": {
+        "passed": 16,
+        "failed": 0,
+        "not_executed": 0
+      }
+    },
+    {
+      "index": 2,
+      "package": "rvoip-uctp",
+      "target": "rvoip_uctp",
+      "kind": "lib",
+      "selected": 11,
+      "binary_sha256": "a90f0a82863aa90f4a9f9f6c87bbd9424968f9d10ef3f06bc0c78e88760177e6",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [],
+      "inventory_sha256": "1b190821420635bd467fb20901b2dfccd55a4e27c8667bead241473d86b0fdfb",
+      "inventory_owner": {
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "elapsed_seconds": 1.0081918750656769
+      },
+      "results": {
+        "passed": 11,
+        "failed": 0,
+        "not_executed": 0
+      }
+    },
+    {
+      "index": 3,
+      "package": "rvoip-core",
+      "target": "rvoip_core",
+      "kind": "lib",
+      "selected": 19,
+      "binary_sha256": "a5ebbde45f131fb4d6e22680a6678e1cedf13b49ec04512fc1f7820662e6a63e",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [
+        "default",
+        "identity",
+        "media",
+        "rtp",
+        "sip",
+        "test-support",
+        "uctp",
+        "vcon"
+      ],
+      "inventory_sha256": "c68c00b572dda5de23415a149957b9cea2a365bbbfec7f981aa14d3fd95c7ee6",
+      "inventory_owner": {
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "elapsed_seconds": 0.008280332898721099
+      },
+      "results": {
+        "passed": 19,
+        "failed": 0,
+        "not_executed": 0
+      }
+    },
+    {
+      "index": 4,
+      "package": "connect-server",
+      "target": "gate6_canonical_webtransport",
+      "kind": "test",
+      "selected": 12,
+      "binary_sha256": "cc800096579c66fec203a0e6ab515eb4a7e8f6b889d95ec8d5eb17f56ca6a004",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [
+        "cli",
+        "default",
+        "test-support"
+      ],
+      "inventory_sha256": "00e6a43d2626cb1c34003a23a39e70f324cec8c3819737313a035612c1b6fdcd",
+      "inventory_owner": {
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "elapsed_seconds": 2.993304374977015
+      },
+      "results": {
+        "passed": 4,
+        "failed": 8,
+        "not_executed": 0
+      }
+    },
+    {
+      "index": 5,
+      "package": "connect-server",
+      "target": "gate6_replacement_video",
+      "kind": "test",
+      "selected": 11,
+      "binary_sha256": "01364731fde7c33e9e8e44d5c870eebfe9c4f299a0fe9715d1f4eb057b1dceb4",
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [
+        "cli",
+        "default",
+        "test-support"
+      ],
+      "inventory_sha256": "042495b67426793a5c0988c4f4ffc49cc4f7b382296020000c2b22b10bd9010e",
+      "inventory_owner": {
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "elapsed_seconds": 2.9562755830120295
+      },
+      "results": {
+        "passed": 6,
+        "failed": 5,
+        "not_executed": 0
+      }
+    }
+  ],
+  "tests": [
+    {
+      "group": 0,
+      "index": 0,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::actual_row_refuses_missing_read_foreign_and_wrong_identity_writers",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.9439173330320045,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "887a1dadc3063a1200a3586c566ddd9fd1be75c1dcf0f693d2b26bff7fe65387",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 1,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::cached_statement_steps_the_current_exact_unit_permit",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.4691781250294298,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "8f660b0f3fa514cbed24c36534f50b36eb1718bda355d4580595cfec6f537962",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 2,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::live_message_birth_rejects_commit_and_read_only_or_autocommit_admission",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.4725150829181075,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "acee4fe46ac267407d9f5f6a6cf9bc42d7d3fb06053c28f0e5722a06ef2c2af9",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 3,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::message_birth_is_exact_connection_namespace_and_never_an_old_parent_or_replace_permit",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.9624996250495315,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "383c3dcad51993eb50cadfc574b86adbe1dd3d20bf3b0e0c3b94daa09ef6e72d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 4,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::new_message_append_never_waits_for_or_invalidates_original_conversation_read",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.4878551249857992,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "dcf93796e64551a63244e31fd305769a50e7efb336789a784dde2b1f12f577f9",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 5,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::new_message_guard_schema_requires_current_version_and_never_converts_previous",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.46542608307208866,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "9e1c5b993f9912b689ffa45110a1484b3dc3e39ed8b27577c961e8d1b6688efb",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 6,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::rollback_invalidates_message_nonce_and_stale_drop_cannot_clear_successor",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.47052566707134247,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "75defc39c2ed812b80a7d9fe68621e471c6d89ca0b2087a5e4b2a5100248ee88",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 7,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::message_birth::savepoint_restore_of_old_parent_keeps_original_sql_unit_writer_pinned",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.46962325007189065,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "fd5fafb1cb95b77346d15b0abadff86655d2181fe01ac805faed9b02d6ef96c2",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 8,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::native_flow_phase_and_join_projection_preserve_permissions_but_control_mutations_need_write",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.487178459065035,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "8fde13edecccb9036479d96d3de94c9e0455768d62266e9d0af5bc7a3d33bbb3",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 9,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::original_journal_append_fills_metadata_but_cannot_rewrite_a_saved_export_prefix",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.4956664170604199,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "5124c81b6436f4f107bbcf14cce709badbcd7c87df81b9f26fa433fbcdd75c2d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 10,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::parent_birth::invited_session_birth_is_exact_kind_shape_and_never_old_parent_extension",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.4835475829895586,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "3f9d72a3b7399e28f34b6fe48f8b0422d3752638cb0c2ac9db3cf9f8fe553b2f",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 11,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::parent_birth::parent_birth_hooks_reject_commit_and_rollback_stale_nonce_for_each_kind",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.9782512909732759,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "7129f037b5c5fdbe65bfb5c50de80539a8813b44f6d335af76cd80103af2862b",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 12,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::parent_birth::parent_birth_refuses_foreign_connection_wrong_cid_and_raw_external_writer",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.9941731250146404,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "290fdb7e75efd2261f458c4dcdc97abe830934ffc3e5101a076cf0b56d299433",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 13,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::parent_birth::public_invited_provider_session_and_pending_call_preserve_original_read_and_replay",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5123895000433549,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "5236058f188578c52d2511802497e595a1449a3945458601ed75f5434137050b",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 14,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::raw_sql_cannot_revoke_a_live_store_credential",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.4906618749955669,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "a5402590bbd633f5781429c2861d594cbd29f6a947e31d1409800259cb752b34",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 15,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::sql_unit_pins_the_original_writer_and_rolls_back_before_releasing_it",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.46480133396107703,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "8e48c197a0cebef2b76a6c088131e0236950f9d8b8e7a2ca01d2f3a3a3cb4b1f",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 16,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::update_or_replace_cannot_erase_another_identity_with_only_the_source_writer",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.47289708303287625,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "4bb2e7f20195d48fb6557599e6804059a8f6c0ff9d8a820cfeb5c2b7b76a9ad2",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 17,
+      "target": "connect_store",
+      "test": "authority_writer_boundary::tests::watcher_cannot_enable_after_a_guard_trigger_or_schema_table_changes",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.9765127500286326,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "348c8edee6c931d4aa843d8b707e228e41417bd9a4091385050f79aa29fe989d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 18,
+      "target": "connect_store",
+      "test": "connection_control::tests::credential_refresh_writer::credential_epoch_mutation_waits_for_original_media_and_reuses_its_exact_writer",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6207295830827206,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "8ac29b1a788132b8ee921c1f24c1a0b9221970d5554db8730cb84b1988991606",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 19,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_admission_atomically_keeps_one_message_and_original_audience_without_a_publication_effect",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5863990419311449,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "cc7d0a2a5a741753c335c34073d6b575d606ea4e3499d1dce81cbf88acb01c4c",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 20,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_all_replay_keeps_original_epoch_snapshots_after_presence_changes",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5827293749898672,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6d1032e629c4b5233e670c7513526f1c6f1d382c71df042ed1fd8e5b01e01a21",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 21,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_attempt_cannot_be_completed_as_a_subscription",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6016622500028461,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "d0531fe30df293ce803cc7b7ebc510f1da03fc31489823098a7603d3ecc2631c",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 22,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_cancel_before_publication_keeps_durable_message_and_never_starts_an_effect",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5946467500180006,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "cb72bbbafbbdd65afc83b4bb251d88b18fdc02d48b50abe2ba8361b7201ed1ec",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 23,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_capacity_refusal_leaves_no_partial_message_or_identity",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5806468330556527,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6944a05be1e52126aad767b5fe570eedc262baafe2c7bdb6892b4a15a07bcb8f",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 24,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_captured_queue_receipt_recovers_after_cancel_and_storage_failure_without_reviving_parent",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6578574579907581,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "131694f7a9d6848f1200b2fb76ff3a84701b735bb5a5ff0b8ccf8a07d3e5d6af",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 25,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_changed_identity_scope_encoding_audience_and_extensions_conflict_before_new_work",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5887154579395428,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "8a2ed408427d7c0d6e7393e3db805241954e51b8bc5d581aded4e92310da1aae",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 26,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_journal_failure_rolls_back_message_audience_and_root_then_same_id_recovers",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.586465458967723,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6116d9fb5baffb10df1b6d6e3260fc54c8f8cdf1e74d461217a463b57f0a5f47",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 27,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_message_does_not_enqueue_an_ambient_provider_route",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5937634169822559,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "24b0a331667cf22cebbe9ce3090015aeec0ceb466b5e492d2b5099a1a0477fa6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 28,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_queue_receipt_is_local_admission_without_stream_revision_or_delivery_claim",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6194492500508204,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "44f8e75eca9328f0f7785e876ac6e52e1ddaa257ba515075765fd2fa3ca6b8c1",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 29,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_shares_message_and_logical_identity_namespaces_with_ordinary_messages",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6555352499708533,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "3c57469589b798c8a1a4491ce22261e57939f03a17b439770b61d979f1c49236",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 30,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_custody::native_data_successor_preserves_uncertainty_message_and_original_effect_without_resubmission",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7176604169653729,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "b2e0bb83d01dfdf22579ed9db9e4b16ab4f7bed60501f54727de08ddf32bb679",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 31,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_cancellation_and_source_revocation_stop_queued_delivery_without_new_identity",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.3477218750631437,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "0756932c6eebfda17caea9dc3d3ebd81c1b99f4c8460935781df669afabafde6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 32,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_connection_creation_does_not_grant_subscription_permission",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6607092500198632,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "4518773e9404df5128fd6cdd7c4320d97d6983f368b531f21488da8d46ba6525",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 33,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_current_target_permission_presence_and_data_floor_are_independent",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 2.725077292066999,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "02071193a27daba36e1913cc049fc9c07db45285602b7cf54d29884534cce145",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 34,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_exact_intent_and_original_audience_cannot_be_substituted",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.3068851659772918,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "c589c7188637600b6827273a654d57910ddba851542d9e282fd55caa3af16fdc",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 35,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_held_current_check_uses_no_store_lock_and_fresh_contention_refuses",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6730202089529485,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "2e161a782171ab1523f0fd0ee4df1ca654459eed5ae36ee0ed01282b3a3d2d58",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 36,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::native_data_read_requires_one_begun_original_message_and_has_no_writer_effect",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6640804581111297,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "b030b07da19e7ad985f239da2dc436b23ec2f16ff1c3fd8437d4751dfee0854c",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 37,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_reads::original_publication_metadata_does_not_queue_behind_unrelated_command_sql",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7331133750267327,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "da280cbd2ceb8be21dbc8b965dbe64c45e19aa3f12d8d49e865ee6963a74e79c",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 38,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_callback_refuses_store_contention_immediately_and_retries_same_identity",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6341095420066267,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "7ae2cfa9e853c4e0281e9b2e2db460baef3a6b5409c9e8682cc50f6b694da30b",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 39,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_capacity_is_reserved_before_write_and_exchanged_for_exactly_one_fact",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6821178749669343,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "792cfd613dbe4ef6f8a7159a248d84860bdd230a8a1d90e2bdd073b6d936bc32",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 40,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_genuine_unaddressed_target_cannot_reserve_or_record_a_write_and_refusal_releases_without_facts",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6371730000246316,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "910cb9df51d308a387827461c4c3b498dd90669fde40c0d4cf09af71a5c4e3b1",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 41,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_historical_fact_survives_cancel_revocation_and_retired_target_without_revival",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6609932919964194,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "f1cd93683672308ce8939ffc873ecb1a7248aca7f8970e0fd3159470b0bc4a83",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 42,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refusal_before_admission_is_recorded_but_cannot_become_written",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6312412079423666,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "e595f087eeb703c1e32a0ea5c43c905644d2951c4315734c3e743591b27702cd",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 43,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_refuses_wrong_source_message_operation_target_and_store_without_facts",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.1415371249895543,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "449613e5288c1ced9e3ff4f79405d66f71b1afa66a1f2b16c2e0586d3d2631a4",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 44,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_reserves_before_io_and_records_one_typed_local_fact_without_completing_queue_work",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6606824590126052,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "e13e9f4154ea27c8df5590094fdd3511d1cfd6b458673b279ab4ed01a7d305fb",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 45,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_sqlite_writer_contention_never_waits_and_preserves_pending_identity",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6328020830405876,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "163715979d0a24281228f375400562db02fafa7ca26ad5ef9f8c165d4e18e2b4",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 46,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_storage_failure_retains_original_reservation_and_same_callback_recovers",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7507614169735461,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "103a8985562edc7b76de8b7a2564797c3e4ad594195995df8c54a2e77b4a8ac4",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 47,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::data_writes::native_data_writer_successor_marks_only_pending_original_writes_unknown_and_rejects_old_tokens",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.815055042039603,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "787d4c8146b5f17a899c9623f068187ec75105f2e52fea40386b84796bac4c80",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 48,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_completion_releases_only_its_slot_and_never_restarts_the_original_effect",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7537221249658614,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "713332515abd170b37660964014831a073cdff597fca746f87561a1414c1bab5",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 49,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_completion_unblocks_credential_rotation_only_under_its_real_current_writer",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.8592101660324261,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "386e49577f2898b4448404dcca578a2cd41ba59fcfb03a2b9e56ea1fbadbf6ec",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 50,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_data_completion_and_exact_replay_preserve_actual_pcm_io_and_queued_epoch",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.8000396660063416,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "4320f208c0441ba5722f0780bf4da31cc8c9d34dcdc9a20b560984e6c8561179",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 51,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_data_lifecycle_witness_refusal_uses_the_existing_historical_writer",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.708184374962002,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "e176f034705ad7ac3b529c4cd54b795a95c8134b96fc2a0967dde5e902bf812f",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 52,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_positive_permit_is_bound_to_actual_unit_proof_and_rollback_nonce",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.3699702499434352,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "ba29a2cf6d7d5295a7b109490fa8ee6b92fbb4098c7cd93c3896bd9b5d7081f5",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 53,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::queued_positive_permit_rejects_unrelated_sql_and_exact_outcome_rewrites",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7027217500144616,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "cf62fbe9f06ee54360faae419cea58692f731aa23c184baf378eccd2189b7cc9",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 54,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::real_credential_writer_drains_pcm_io_and_cannot_revive_original_queued_epoch",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7983123330632225,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "e9cfe69f83896a2eb4f58827c855c41d3345708a6c27ea58fe65c7f7f53ab8c2",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 55,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::uncertain_data_outcome_keeps_the_real_writer_boundary",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7872395410668105,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "1274574a61d3bd683ccce15b4e693c6c41e0ce93677e7b1fd847cfb540c2fcaa",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 56,
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::authority_rows_do_not_render_the_public_journal_page",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5718829170800745,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "9ad29e2fddca689059b78f8a1b9ef7f74ab71729cf27356cf543434643cc3182",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 57,
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::authority_rows_preserve_effects_uncertainty_and_full_public_status",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6416162500390783,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "0c794717d4ca4e1ea575b17dc3adcae6e5cd57e26762cdeb10031c60b45a1c2f",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 58,
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::authority_rows_still_refuse_current_scope_and_connection_epoch_changes",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 4.413445875048637,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "9e5ac862e3ea4c5cd00b4f5158231f80279d2b14397efc6c4c33decc3dd3da85",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 59,
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::decision_source_authorization_omits_history_but_preserves_current_permission",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.602991082938388,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "bf205aac81de2661db1eec5e2dc6342166b2643477e1f60441abebfa9ec9f7d0",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 60,
+      "target": "connect_store",
+      "test": "transitions::tests::authority_rows::source_scope_admission_does_not_render_status_history_or_relax_claims",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5720557499444112,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "a31af7b1febb92ea240ea4c51322cdf7cae514f0614a4d64098e21cc6f358d1f",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 61,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_message_receipt_proof_retains_typed_scope_and_refuses_extra_session_assertion",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5690294579835609,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "08730a5c8209ec309e853f153bf6826fb5d30a4cf20329cd78e9ade88cbe918a",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 62,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_cancel_replay_and_attributed_reconciliation_share_current_durable_receipts",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6386451249709353,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "908f41a0735b31411a94b0d68c0188ef650807eb09a37a54efc949c94f5d2049",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 63,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_decisions_reject_nested_mutations_and_bound_malformed_source_depth_and_cycles",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.8777619999600574,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "c0791a5e7e32a84242015f9acac983776dffed7e89361dc107b2a8bde00797f3",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 64,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_get_keeps_nonconversation_provisioning_projection_source_current",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.586015542037785,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "7829a0c52d04c3630cd4fce69034fe3a80c92c21ffcfcdf17a15472e25b0a2da",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 65,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_get_requires_both_recovery_permission_and_current_original_command_scope",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.682270040968433,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "d4983f5e42c4aa321c7cc934b0d4d6b6ea4810a28599447018972307cad48d4c",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 66,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_get_retains_pending_invitation_projection_identity_until_delivery",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5903514160308987,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "0638e120a3ecf48cb176baa3d402506c676b6ea3520543baafc3c7a17d7d414d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 67,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_held_get_does_not_reenter_behind_queued_key_retirement",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6738813749980181,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "b0c4d21232dc653326f041f67de9124e4792f9c7dfd1711bd696a4da8062feb6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 68,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_lazy_get_recovers_possible_submission_once_without_reclaim_or_resubmit",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6330278749810532,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "757fafe541621ace5df54ec30bdfe7a191dc4754218a1fa26fde8cf95fda6b5c",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 69,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_proof_covers_real_target_sources_and_refuses_spoofed_resource_assertions",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6268130829557776,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "901dd7417bdd64b62e6f4d7e7662bd89ca78cf48ef1ef55591fb5690ecdccd53",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 70,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_proof_is_not_substitutable_for_another_action_target_credential_or_root",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.1910215839743614,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "917964ed6bdb1027144b7c707a22b72690abe0180ef8f0ff62cfea2707a08c2b",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 71,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_operation_source_expiry_during_sql_wait_rolls_back_lazy_recovery_and_decision",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 8.027613291982561,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "8233e12b511198667ae28924b79e7b795390aa53b9896d5081ac2f9c812e78d3",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 72,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_transition_admission_reuses_exact_proof_and_never_renews_original_expiry",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.679548708954826,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "1bcb6b5e487cd821c80b9abf1d42edd68ea3720060133d5aaf533e401667f386",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 73,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_transition_proof_binds_every_resource_and_intent_without_fallback",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5701528749195859,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "d2fd07f314d7f69c35f9cc4f0c196e17b083ca60a537d7a50e5ad026af4643e7",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 74,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_transition_replay_uses_existing_http_expiry_without_operation_get_permission",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5685157499974594,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "e15d64539a17577708e2a32e57a1c42fbabc9c88039dea961d966e55e6d2f99f",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 75,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::canonical_transition_source_readers_block_target_writers_but_not_unrelated_identity",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6253130830591545,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "d26770b2ea2a810bf61d2a665a12203055472c1af5bb770ece69ede96a404071",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 76,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::endpoint_replacement_admits_only_immutable_intent_while_current_packet_readers_remain_owned",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6007036250084639,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "43f19187ca6da23a2d39081355f0305873388ff5b8be091c8112ea62b30fc647",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 77,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::http_transition_command_replay_preserves_expiry_and_checks_operation_resource_claims",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.6798449589405209,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "9073b4e6df8650e303f1afb396f7558c2c92e450e8b8cad13bd6f3cfb704f089",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 78,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::operation_row_reads_keep_bindings_commits_rollback_and_schema_current",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7747698340099305,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "13efb9ff20f08d87a49faff13689515a6d93b6d7817c26a4b0fc29c00b5446fd",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 79,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::packet_observer_operation_rows_keep_current_bindings_schema_and_wal_release",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7416349590057507,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "b614aa54baeb87f3ec5e3b5497fbda1c134167be3a3d2f24fc5ef6da3f8a2039",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 80,
+      "target": "connect_store",
+      "test": "transitions::tests::concurrent_workers_and_duplicate_submission_have_one_external_attempt",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6266057910397649,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "0ca47d130bc0348010873aeb6dcf9a2ad81e733ecb7ee50a0f10058a5ccfc3f9",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 81,
+      "target": "connect_store",
+      "test": "transitions::tests::authority_tests::operation_admission_leases_effects_cancel_and_reconcile_wait_for_delivery",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.6533542500110343,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "48088b41abada60cf4de97d555b1ca3f3f2d9f1b8fb92a8b82d754445a9b2935",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 82,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_replay_is_deferred_and_never_restarts_or_releases_reservations",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6151748750125989,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "dc2eba083b75201143425109859289e1ad33c73736cdcdf1847a739b8a70270a",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 83,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_no_started_boundary_is_exactly_noop_but_actual_loss_requires_writer",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5897982919123024,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "0810ae735af4b3504c15f7aa4b7ae4fbb901f46bacb854068c88b89913b3831b",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 84,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_birth_permit_rejects_foreign_unit_forged_rows_and_unique_victims",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.1439343750244007,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "45d9fa19c4ee5a9ad4e2c9943ce3b1130f32bf7c7fa384da4154ce12e491b0b6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 85,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_pending_departure_refuses_read_birth_even_without_a_started_boundary",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5877265830058604,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "037cfbc2ca735719a21447a1dc972b09e9f532d8224361ecd17278a739a538c9",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 86,
+      "target": "connect_store",
+      "test": "transitions::tests::peer_operations::intent_birth::intent_birth_never_uses_read_custody_to_bypass_current_credential_or_endpoint_refusal",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.114455166971311,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "4bb0122e8773053b16d1e3f759362a0ae4e7253992b6cc9f885a563fbd59702c",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 87,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::immutable_endpoint_intent_and_exact_replay_preserve_original_pcm_grant_until_real_revoke",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7624968750169501,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "1b6bd5df513273cceed1fc496481a7fde1f97f7ce350c212b171dcb97ee598dc",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 88,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::custody::preparation_begin_permit_authorizes_only_exact_positive_ledger",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7171163749881089,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "2f6e6d35b45920182af5d1db6d92ec0ea5154a543720e266c5bb64235a9916aa",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 89,
+      "target": "connect_store",
+      "test": "authority_fences::raw_probe::tests::raw_exclusive_probe_detects_both_shared_and_exclusive_original_guards_without_dml",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.49639633402694017,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "4dd690427d007c22586e137650c56fcd9efc4cae4d6baae705c4400301594cbd",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 90,
+      "target": "connect_store",
+      "test": "connection_control::tests::native_stream_authority::queued_capture::exact_command_custody_probe_detects_shared_aliases_without_counting_independent_admissions",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.593900166102685,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6d18fe6d900d9d83dc23306efb0addd0a1fa57c28a3f6ea9f8eafde67c68972d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 91,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::first_positive_commit_capture_preserves_unaffected_audio_io_and_original_queued_epoch",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.0665510409744456,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "1ce0030fb8f7a146b19036f6e0b18f2b193c43b46fcc70ec602594c7b51cf01d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 92,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::positive_commit_capture_does_not_preserve_epoch_across_real_credential_revocation",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.9892645420040935,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "3e2807764a67f5fba3e8c3643983f8b15b3f2a6072fc35d280e83a3e43e80dd2",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 93,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::unknown_cancelled_and_retired_commit_captures_keep_writer_custody",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 6.039511125069112,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "bc6a6db09b73d09c90354e2dbe008f9fed4574591923e9304afdc927afca1f9a",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 94,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::naturally_expired_positive_commit_capture_remains_historical_writer_only",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 2.580069166026078,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "b5f7f224848f43469de4324a18aeea1e05e3db52d51c2027af96f1c59e7ae3de",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 95,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::positive_commit_permit_rejects_foreign_units_arbitrary_rows_and_unique_victims",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.4909300829749554,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "35567b5521eadfb72800b80274e735205c9c2e0b3fc7afc3ee333d39a28fb5aa",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 96,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::commit_capture_permit_rollback_nonce_and_commit_boundaries_remain_exact",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.9848030830034986,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "fac3b8600861c3f9c19d1d72c4a966a3ca0b4ed6b95a1fa3813784d879f224a6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 97,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::existing_or_claimed_dormant_candidate_cannot_enter_positive_commit_reader_path",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 3.2010883749462664,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "77a2a38756148b3534545bc55dd6e3ad2f54b550769259c1f50f806a8dc253a6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 98,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_commit_refuses_read_only_scene_without_starting_an_effect",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.9306663749739528,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "5ad22392fc58d1ea5ce453f19aa36f1356047a6b4cdec05ba80675552cf7a1a2",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 99,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::first_known_commit_capture_still_requires_writer_and_records_once_after_io_drains",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.0179198750993237,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6deef4c782711a86a1a67fcfa4992ec1385190788fc6e5d4a6af4cecbe900579",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 100,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::recorded_commit_replay_preserves_actual_media_read_and_original_queued_epoch",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.0020024999976158,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "3ea16a69c04d015bf6e4ee0dcb0baa0b44c3d72d1e7fa792c9cf2d7b74a29e81",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 101,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_write_drains_old_readers_then_rederives_and_commits_once",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.0660060830414295,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "20206cf4b325a465fd63caa473cfc5099265aab1f25874136331814b8a63ab28",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 102,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::source_retirement::known_commit_after_real_old_retirement_preserves_fresh_healthy_audio_epoch_without_old_io",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.0819245839957148,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "d926a753da471625478c19928a72c821df487c1ca3181b8a0bc195d44cc64a16",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 103,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::source_retirement::retired_original_capture_requires_current_original_authority_and_exact_retirement_tuple",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 6.95527304103598,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "ce5ae20c7de327967a3acf13033831e4e1df9c00d6a42835b7bd975de8cf4a14",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 104,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::source_retirement::retired_original_mapping_and_lifetime_cannot_be_forged_for_positive_capture",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.9762190419714898,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "4d8b8460ec90f0182eadc364f8a8eccf5e0870032ea8500bcadc3f9069e0393f",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 0,
+      "index": 105,
+      "target": "connect_store",
+      "test": "connection_control::tests::replacement_sources::commit::positive_capture::source_retirement::known_commit_after_real_replacement_origin_retirement_preserves_new_healthy_epoch",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.3658142499625683,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "210cce4dd97fdecca166b24dc314d5f7b0c1190c05e81b8aa2473615572194fb",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 0,
+      "target": "connect_service",
+      "test": "peer_authority::busy_error_tests::temporary_contention_is_typed_separately_from_permanent_authority_file_refusal",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.9539845830295235,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "e6a196f1822426d7c5ec61e60b01ecd1963af123f992e1bf0e36d4ccdf5aa76d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 1,
+      "target": "connect_service",
+      "test": "peer_authority::unavailable::tests::actual_native_and_browser_runner_filters_admit_closed_control_failure_labels",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.00867033307440579,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "4da57d5ea80cad27e6043327dfdb8f703cf4d64998b29793a69edff9cf59805e",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 2,
+      "target": "connect_service",
+      "test": "canonical_replacement::webrtc::prestart::tests::first_projection_shorter_than_target_proof_pins_actual_original_expiry",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.007105667027644813,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "777b478505039cf3bbeb420fc07053e1976a71f6f9209fd60844761261d6d103",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 3,
+      "target": "connect_service",
+      "test": "canonical_replacement::webrtc::prestart::tests::naturally_expired_first_projection_cannot_be_renewed_by_a_later_read_or_begin",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.5732816669624299,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "63a4f53bed2ebdaa9834d4fc456e1a33ea0b67048733929976d3a9f7335334a0",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 4,
+      "target": "connect_service",
+      "test": "canonical_replacement::webrtc::prestart::tests::expired_original_control_cutoff_cannot_issue_a_fresh_start_window",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.007866583997383714,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "875192300d8e0c1f6ca4a074d3d4583200798eca5873186ca756f62df2098565",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 5,
+      "target": "connect_service",
+      "test": "canonical_replacement::webrtc::prestart::tests::runtime_stop_during_projection_wait_cannot_enter_the_final_begin_callback",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.007530665956437588,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "bf5b79535124b7051fba0ce9bccee4cffec1aeef26a6a94e24132216d65074c9",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 6,
+      "target": "connect_service",
+      "test": "canonical_native_streams::subscription_resources::current_scene::tests::busy_scene_drops_previous_authority_before_fresh_capture_and_one_effect",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.030598167097195983,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6b7fe3f473f79b587207e8f294a543b3e0e52934e724e03cc0cc97a836f9f318",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 7,
+      "target": "connect_service",
+      "test": "canonical_native_streams::subscription_resources::current_scene::tests::permanent_scene_refusal_and_storage_error_never_retry_or_activate",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.007549624890089035,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "857be7d3acddbf990c8c910262d218cb2400eedbf4c3a191961976388946898e",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 8,
+      "target": "connect_service",
+      "test": "canonical_native_streams::subscription_resources::current_scene::tests::cancellation_or_current_revocation_after_busy_cannot_reuse_previous_capture",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.03039283398538828,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "8bc094db9f13426d404370b849f2391d3a04e55d292daa0c427efd3a2cf8e7b3",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 9,
+      "target": "connect_service",
+      "test": "canonical_native_streams::subscription_resources::current_scene::tests::original_expiry_joins_inflight_capture_and_refuses_its_late_positive_result",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.03913504199590534,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "5a0e5539083bc7094f1c7a1b39f74cb2a44756f5f7aaf4d844427cb74c2a691d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 10,
+      "target": "connect_service",
+      "test": "canonical_replacement::readiness::admission::tests::busy_ready_metadata_drops_each_proof_before_fresh_admission_and_one_capture",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.05374795803800225,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "b6d09b9039da102ac3d1a43b7f118b913fa1a6102ebca152af37e0262ca0c42c",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 11,
+      "target": "connect_service",
+      "test": "canonical_replacement::readiness::admission::tests::permanent_storage_and_authority_file_refusals_do_not_retry_ready",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.007747958996333182,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "5bc85ecb1e713b9b3bda965bdc39e345f8b10fdc40e2c13d3aabe1a200339178",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 12,
+      "target": "connect_service",
+      "test": "canonical_replacement::readiness::admission::tests::each_original_cancellation_wins_before_ready_retry_or_capture",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.007355750072747469,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "5afcde848b589f9127e1a059e75c068713fe686467c857d375fcda734b651834",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 13,
+      "target": "connect_service",
+      "test": "canonical_replacement::readiness::admission::tests::fresh_ready_authority_refuses_revocation_after_busy_without_reusing_previous_proof",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.029739374993368983,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "47457ecfca4914c4252c4a124f48c9e665a992e24f90b6e7091d98b2f01c7557",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 14,
+      "target": "connect_service",
+      "test": "canonical_replacement::readiness::admission::tests::original_ready_expiry_joins_and_drops_an_actual_late_positive_proof",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.030964958015829325,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "882d5327ffec4a6b23447d745e587a33abce1b02dc10718c8ddc9a276f3d2b9e",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 1,
+      "index": 15,
+      "target": "connect_service",
+      "test": "canonical_replacement::readiness::decoder_contract_tests::historical_identical_ready_keeps_its_own_request_bound_after_private_expiry_without_new_capture",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.012800749973393977,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "1d5fa1a98f867337b1adf06780383f899a1fa4f78cdc809200f649d7b640239b",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 0,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::same_prepared_subscription_retries_real_temporary_exclusion_without_new_command_or_cutoff",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.3251958340406418,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "892bd5cabd551574d6b56f355cfaab26ff3b08670213f267029fe9dc903823f6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 1,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_busy_then_actual_revocation_refuses_same_original",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.031610958045348525,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "ab0e1c68528305005a5991f0b493deae1f7c5c78d06f73293f502837c906c6c1",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 2,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_permanent_authority_file_failure_is_not_retried",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.00788799999281764,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "9a37a7e079ef06ce96d40d3d5752ccf00be2287e34a91a442753c2436e8e8279",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 3,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_original_cutoff_and_all_original_cancellations_stop_busy_wait",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.04975070804357529,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "7615629790fd18552d5929273ec06d3501445c760347dd558e3496835f1c21ed",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 4,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::prepared_subscription_retry_rejects_non_subscription_preparation_marker",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009015791001729667,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "46520fb1f0bd2f772b5e248301089ea38985421a509e25d078ca9b536f6b93f1",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 5,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_releases_both_original_guards_and_permits_no_exchange_or_result_before_fresh_proof",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.01073629199527204,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "608ca3a167c5c16d1251328ce865a906f7fa4b189f4b9ace2e97a2d80ce9a23c",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 6,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_rejects_other_profiles_missing_scope_extra_marker_and_reconverted_owner",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.012302209041081369,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "64f5e122aeeae6267f864517a278f4b0f88bb0ed516e49a3e00861c5a0c725a3",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 7,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_reply_requires_same_instance_fresh_current_proof_not_foreign_or_subscription",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.00946299999486655,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "b6ce0844de7682399c2509cd598520c3a65b5511f0932b9c0cc55a86f2c127b8",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 8,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_rechecks_real_policy_revocation_without_replay_or_retained_old_reader",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009050625027157366,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "e9b129b52865274e4b9d8ff51c314c4f9934fef564df067294469096f5a4ed24",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 9,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::ready_wait_preserves_original_and_private_cutoffs_and_expiry_releases_reply_aliases",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.03504591702949256,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "f1e4169c0514d02a04b30bc416ec2d466888a6fe9d2637b5398be4599bea028d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 2,
+      "index": 10,
+      "target": "rvoip_uctp",
+      "test": "v2::auth_dispatch::resource_preparation::subscription_tests::ready_wait::separate_historical_ready_request_uses_only_own_original_lease_bound",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.008746583014726639,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "ee18185139f9ea051f4ca7d7c216961ec5feaf1e93dbf8ab84cd95a1afd851ac",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 0,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_audio_old_and_new_lock_collisions_preserve_plan_and_old_pcm",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.298934584017843,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "c69e08c2e05d061301c403fc0008eea73c1bd9c3c6c9a0a00a0e275f817a3a63",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 1,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_capture_preserves_original_sequence_on_each_scene_lock",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009095874964259565,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "ec13f069343e8f7890ea2c6ec907dbdf25c0712262827a45b42bf9fc5c89359d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 2,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_observation_does_not_consume_event_at_capture_or_final_scene_check",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.012628374970518053,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "3d01940b0553841e61c6650252e3071feb7c062ec354bf8d06de4016f5fcbd28",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 3,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_original_pre_media_and_sequence_gap_refusals_remain",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.00950749998446554,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "7eefa3f200190db2b0510d9e1e9551c729255ea4adef8e2ae7fe52117ab8d0b6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 4,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_poisoned_state_is_refused_without_retry_or_old_retirement",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009777417057193816,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "e16e0b21fa530ba90f9c27f8f9e4c47abd31b0c4aeccbdba8e10131255e0bff9",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 5,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_readiness_deferral_preserves_full_and_partial_confirmation",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.010350124910473824,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "c2b88385941a25b52cdea431996cedf865f338e88950da7d3248e316a16435aa",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 6,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_real_revision_and_binding_refusals_are_never_busy",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009931208100169897,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "2d44328ef27aeb9202117beef7f2e41e259e1ba6d85fb4043c0c6650cdd2d8ac",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 7,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::metadata_contention::replacement_metadata_video_old_and_new_lock_collisions_preserve_intent",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.00931887503247708,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "d4608532c9c903a4718934c9db535e6a043de050ae120466ae78a9b267f7d9a7",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 8,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::replacement_metadata_collision_retries_original_plan_and_preserves_refusals",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.032449582940898836,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "934a2ae46b147f183fbf7d9caa66bc32a31266f7828921123d71666377c9558d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 9,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_defers_before_routes_and_same_capture_recovers",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.010353834019042552,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "aa4f84ca73b452f5f799586e531c7666cb358d48c00236596fcc1e9df92898f8",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 10,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_plan_exclusion_does_not_bypass_cancel_revocation_or_expected_revision",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.013870000024326146,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "ee888dc5b0fc68ef09a123911c34f46d5f13747ee8e32bfe4057b8f172781878",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 11,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::private_video_poisoned_metadata_and_invalid_mapping_are_terminal_before_routes",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.013883332954719663,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "60f283852d3342b2d3c2e97b3f0c40fc15ab734c0af30326f2f038e305f2a121",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 12,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_exclusion_does_not_bypass_cancel_revocation_or_expected_revision",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.01380099996458739,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "18ac0d47903a0047a55c7a7f2154c737878db8a6afae70ccaf1a0ac6b8710de5",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 13,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_exclusion_is_unpublished_preserves_ordinary_mapping_and_recovers",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009568499983288348,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "51dbd761b307b42dafd61a3090fd09b10d795eb139f1e6c4bceb7db439e68ce8",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 14,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::publisher_exclusion::private_video_publisher_poison_and_original_expiry_remain_terminal_before_routes",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.2184953329851851,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "8dda59da62b7eaca8f20af3b9581300c362e9808afe09dfeb18e98afe3e9d35b",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 15,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::unpublished_private_metadata_leaves_release_all_custody_and_recover_same_capture_with_fresh_proof",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.02437779202591628,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "0015f7e561138f6be38a97f03e700f27396b94f0ce41010d62cf34db1ab6fa54",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 16,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::unpublished_private_metadata_cannot_extend_original_expiry_or_bypass_cancellation",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 1.5302376670297235,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "3656446e52a24aebfe39286a169f12d41a08cda92b56d04807499dcc98d4d78d",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 17,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::unpublished_private_metadata_preserves_current_policy_revision_and_selection_refusals",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.04987308301497251,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "5b3814c54bb67b0ae5ef6bc41ab01110bfe99d8352d58e2cc5ee84b3c8a20810",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 3,
+      "index": 18,
+      "target": "rvoip_core",
+      "test": "staged_streams::tests::private_consult::replacement::video::preroll::metadata_boundaries::poisoned_private_metadata_is_terminal_and_ordinary_original_stamp_keeps_its_contract",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.02190666599199176,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "dd8612b9992d243394b558755f802ab7f48c8d83ad365e12c683e4793ea5a5f7",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 4,
+      "index": 0,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_captured_start_survives_real_sql_exclusion_without_replaying_resources",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 4.170110290986486,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "77f08349b9a5b1313a602f636d773ae5760f8b50dd8883238ea76164077f08d7",
+      "ignored_lane_explicitly_executed": true,
+      "failure": {
+        "signature_sha256": "d6db8351337f566e5ab9f43c6e680671db097f23eb4af16f6822495f8e87d57e",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+          "line": 187,
+          "column": 17
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 4,
+      "index": 1,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_initial_start_read_waits_for_real_sql_without_retaining_writer_or_replaying_start",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 3.947752167005092,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "c1e2b3d40312e97458128da0fd010ddb1e6d04bab5dbba4a1286abdb9adfe7b4",
+      "ignored_lane_explicitly_executed": true,
+      "failure": {
+        "signature_sha256": "cec1f4181e415eaa19bd30ec98c7c9f38540fce089c406009c97fe655410e550",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+          "line": 187,
+          "column": 17
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 4,
+      "index": 2,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_typed_not_begun_waits_for_real_sql_without_retaining_writer_or_replaying_start",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 3.951454250025563,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "8c49b376643fc2d9bc2df484f7633ab836643211c408eba0532d199e20e5dd8f",
+      "ignored_lane_explicitly_executed": true,
+      "failure": {
+        "signature_sha256": "2524fa4b757049ceabbead19cdb629a2faef0d234c6cc0e91cc8a56b77b7e5f0",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+          "line": 187,
+          "column": 17
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 4,
+      "index": 3,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_original_ready_survives_pre_and_post_capture_sql_without_replaying_effects",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 8.739101875107735,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6e3df1833f21f4cde8267bad2f291630188c3377024e1a12c8c64fff376f61f3",
+      "ignored_lane_explicitly_executed": true,
+      "failure": {
+        "signature_sha256": "9a54a1a0c8af16a59786a6fa73ebaeae248e61710d2e231f77085b4f0d79707a",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+          "line": 187,
+          "column": 17
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 4,
+      "index": 4,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_ready_busy_releases_exact_custody_before_real_credential_revocation",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 8.693145624944009,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "2bf6d51695f7a662bce6a3b85561ba80911ef3d978034c7d3acbd2423f6905c9",
+      "ignored_lane_explicitly_executed": true,
+      "failure": {
+        "signature_sha256": "6d355d59faddc2b5d09407b96ae58a1e43554fb631df61bd7b203e420d0d112a",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+          "line": 1232,
+          "column": 17
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 4,
+      "index": 5,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::ready_sql::ready_refusal_scope_requires_all_four_original_resources_and_exact_update_record",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.28957400005310774,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6df6f29f8491e08f8aaf418f3f41cb0419122f8a42d46f85d7fc67490c28d24f",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 4,
+      "index": 6,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_replacement_waits_for_decoded_target_before_retiring_original_eddsa",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 3.663319292012602,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6bd9f15b4575368ff6d662f2791fd43675412e7b7587228b134e237d6e9a6aa5",
+      "ignored_lane_explicitly_executed": true,
+      "failure": {
+        "signature_sha256": "edd418537a51b0d3cc8d955addf49a63b8076f33ba00542b3471da78a37beb96",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+          "line": 187,
+          "column": 17
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 4,
+      "index": 7,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_replacement_waits_for_decoded_target_before_retiring_original_es256",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 3.8534853329183534,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "d7bef1f93ab2b38a52cb7a62907f06f3a34d57fcd94f0867c7b1dce1e1ae0eff",
+      "ignored_lane_explicitly_executed": true,
+      "failure": {
+        "signature_sha256": "ec964342ed9825976a6542d22a5a4989a8b5cc6e220798477541582cf415c6b4",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+          "line": 187,
+          "column": 17
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 4,
+      "index": 8,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_private_readiness_survives_original_start_capture_after_actual_admission",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 9.023573832935654,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "78366b9216741c8642227faa31b9cfbfcffebf4340beb7fb54b82500a6e42228",
+      "ignored_lane_explicitly_executed": true,
+      "failure": {
+        "signature_sha256": "7736f2aa3cb4dd206c48833f06bda3ea8d29f5279e270fd8c71de6f6aabd493c",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/canonical_websocket_control/webrtc/replacement_av.rs",
+          "line": 187,
+          "column": 17
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 4,
+      "index": 9,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_original_reservation_expiry_refuses_genuine_private_observation",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 32.78976070799399,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "5126f62ee5194d3f2a34fb7f13f3deed17093bbd421d92bc909804d2d716d399",
+      "ignored_lane_explicitly_executed": true
+    },
+    {
+      "group": 4,
+      "index": 10,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_current_operator_revocation_refuses_genuine_private_observation",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 3.8601060829823837,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "10d34cd5fa78950e517ab273fd7e794692c7bdeb823d3f583b1211c46315d55d",
+      "ignored_lane_explicitly_executed": true
+    },
+    {
+      "group": 4,
+      "index": 11,
+      "target": "gate6_canonical_webtransport",
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::replacement_av::signed_webrtc_av_original_physical_cancel_refuses_genuine_private_observation",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": true,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 4.0580202920828015,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "4c309282d2d8abf9d03d5f4d20f610db959e1de80a2c5d6250f58102af2d555c",
+      "ignored_lane_explicitly_executed": true
+    },
+    {
+      "group": 5,
+      "index": 0,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::data::end_facts::tests::exact_native_end_fact_does_not_complete_or_replace_original_reply",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.3013837499311194,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "01dfd045948aa7339fe58e5cd12c7a3fa91062bf135cf8edd105b40a44b5432a",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 5,
+      "index": 1,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::data::end_facts::tests::only_strict_distinct_reconciliation_hint_is_a_noncompletion_observation",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009536499972455204,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "f4946657e06099cba247ad77f5842163c4254ee4ec04fae72494dbbde0fe3aa6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 5,
+      "index": 2,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::data::end_facts::tests::unknown_error_foreign_and_malformed_facts_remain_fatal",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.01149016700219363,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "970af79c252278c1fd6ad6f1ffa5c313e85a4066f2e698ab2cf3f3bf6dda52bb",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 5,
+      "index": 3,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::programme::full_programme_clock_and_movements_match_the_declared_matrix_contract",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009157916065305471,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "4ba825b3eb67752eba7de1ccad648886906c6b62191f287379d59b402ace9658",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 5,
+      "index": 4,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::programme::full_public_quality_never_credits_private_decode_or_invents_moving_bin_exclusions",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.013165915966965258,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "502e389b0978a95b0d361d7fb445c70e4de63e117c8067cf6c90e8acf5747eb6",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 5,
+      "index": 5,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::programme::actual_native_packet_counter_continues_when_the_inner_rtp_sequence_wraps",
+      "scope": "pure",
+      "ignored_lane_selected": false,
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.009577750111930072,
+      "status": "passed",
+      "passed": true,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "b2c6b359503ec7140112a0cd75207515d6076f3ef173e332954d5d247a7c9fc0",
+      "ignored_lane_explicitly_executed": false
+    },
+    {
+      "group": 5,
+      "index": 6,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::signed_postcommit_data_subscription_recovers_same_prepared_candidate_after_real_authority_contention",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": false,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 3.4138378750067204,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "3d7ca329f6fbee59c3e39276f8c505156a142039806d247b50d46d0b7b2a634b",
+      "ignored_lane_explicitly_executed": false,
+      "failure": {
+        "signature_sha256": "621fe10f1407c542accbdb67ba08874c29bb6cfaaa9edeb67771d2e46c7a6ce4",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/readiness.rs",
+          "line": 384,
+          "column": 27
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 5,
+      "index": 7,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_six_source_two_session_fragmented_vp8_handoffs_preserve_old_playout_and_decode_candidates",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": false,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 20.61406525003258,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "6e8bebcfd57ff538a948ce3c74362d1e74bd0e68d5172f55759508c6a321f282",
+      "ignored_lane_explicitly_executed": false,
+      "failure": {
+        "signature_sha256": "2c240e58eb647bc59ff7220769cf183d8f9e03a087b3857e4cde49f5a8bf8040",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/readiness.rs",
+          "line": 384,
+          "column": 27
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 5,
+      "index": 8,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_parallel_original_allocations_release_authority_while_scene_coordinator_is_held",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": false,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 20.671296374988742,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "d310ac9e941b9e399cb8ee75f3648b340bddfc09b8bb17c35eebdcb4e1c29439",
+      "ignored_lane_explicitly_executed": false,
+      "failure": {
+        "signature_sha256": "8507dda68d3d8c7a3963a476cf933c0d20f0b432b5d01463b6c10edfd985218e",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/readiness.rs",
+          "line": 384,
+          "column": 27
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 5,
+      "index": 9,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": false,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 42.92062845895998,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "197c7f3b37556b8ae041a798405cd00070af0322d3f47a4e68973187adb72e67",
+      "ignored_lane_explicitly_executed": false,
+      "failure": {
+        "signature_sha256": "c7b66746b5df35783160ef9c2a86d170c528aff9761b5ac702c4fc44be860ce3",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/readiness.rs",
+          "line": 384,
+          "column": 27
+        },
+        "details_retained_in_private_log": true
+      }
+    },
+    {
+      "group": 5,
+      "index": 10,
+      "target": "gate6_replacement_video",
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::initial_av::signed_initial_six_source_av_subscription_releases_both_busy_boundaries_without_replaying_original",
+      "scope": "signed-or-workload",
+      "ignored_lane_selected": false,
+      "exit_code": 101,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 25.025354582932778,
+      "status": "failed",
+      "passed": false,
+      "summary": [
+        [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ]
+      ],
+      "source_unchanged": true,
+      "binary_unchanged": true,
+      "log_sha256": "7f4b396f46bf2ffe3669324572c85d3004591fd384a8b19562d5dcef60d6a2bd",
+      "ignored_lane_explicitly_executed": false,
+      "failure": {
+        "signature_sha256": "dae81280d6dd99a1f99501d7a88d1c75c6fe983de8b52c9964d2f9c8788b0fee",
+        "panic_source": {
+          "file": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/representative.rs",
+          "line": 814,
+          "column": 23
+        },
+        "details_retained_in_private_log": true
+      }
+    }
+  ],
+  "builds": [
+    {
+      "phase": "service-default-check19",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.7502011249307543,
+      "source_unchanged": true,
+      "log_sha256": "07998d6211df30a7a6d74d775627e150c23b6a8d64d767ec6470edd1fe097f16",
+      "stderr_sha256": "93a9750a90ebd973ec3f714d39e412b44eb5ed423aade70d185ebcb11081f183"
+    },
+    {
+      "phase": "combined-build19",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 21.81102641695179,
+      "source_unchanged": true,
+      "log_sha256": "a31ef544c6ab6d35e72eef461c9cb49fe3965b3c2ab4c389418e2a94e2f35b08",
+      "stderr_sha256": "4f841bd0e263eb149f143f2813f97a58ffba9137652e56602725ad4a04f351c4"
+    },
+    {
+      "phase": "uctp-build19",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.6409096670104191,
+      "source_unchanged": true,
+      "log_sha256": "b5b15a88d3e1d2233dcc87bdcf4c49c11caafecb2d679af739862870a38d91f9",
+      "stderr_sha256": "9a0a00f57741529d1605b91d0f4c3f624e91cdd199bf495018107a7b0f7c2e4f"
+    },
+    {
+      "phase": "core-build19",
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "elapsed_seconds": 0.38986066600773484,
+      "source_unchanged": true,
+      "log_sha256": "e95d9ba63752eb3659665b9c994cfe5a7707d1e2dda89e1887309dfb709391dd",
+      "stderr_sha256": "d8590c2f6cf4e0bdd32e67cfdb3d7917663fe285ec29dc7703d7728500735acd"
+    }
+  ],
+  "builds_qualified": true,
+  "full_programme": {
+    "timings": [
+      {
+        "event": "programme-anchor",
+        "round": null,
+        "elapsed_us_before": -99999,
+        "elapsed_us_after": -99999,
+        "clock_pair_window_us": 0,
+        "complete_bin_range": null
+      },
+      {
+        "event": "round-start",
+        "round": 0,
+        "elapsed_us_before": 15001969,
+        "elapsed_us_after": 15001969,
+        "clock_pair_window_us": 0,
+        "complete_bin_range": null
+      },
+      {
+        "event": "quality-snapshot",
+        "round": 0,
+        "elapsed_us_before": 18101599,
+        "elapsed_us_after": 18101601,
+        "clock_pair_window_us": 2,
+        "complete_bin_range": [
+          16,
+          18
+        ]
+      }
+    ],
+    "completed_round_observations": [],
+    "data_exchanges": [],
+    "actual_commit_capture": {
+      "required_original_records": 4,
+      "observations": [],
+      "distinct_records_observed": 0,
+      "all_four_original_records_observed": false,
+      "mode_and_both_reasons_present": false,
+      "missing_records": 4,
+      "no_fixture_expected_value_used_as_observation": true
+    },
+    "quality": {
+      "evaluated": false,
+      "observations": [],
+      "terminal_empty_array_observed": true,
+      "observed_numeric_thresholds_met": false,
+      "passed": false,
+      "moving_route_bin_scope": "Routes0/1/4/5 bins diagnostic; retained routes2/3 gate24 per bin; all6 gate1440 total. Not matrix handoff-hole/AV qualification.",
+      "missing_or_aborted_is_unevaluated": true
+    },
+    "current_end": {
+      "explicit_end_completion_marker": false,
+      "work_completion_after_all_six_end_and_public_retirement_assertions_observed": false,
+      "source_assertions_qualified_by_complete_case_pass": false,
+      "status": "not-qualified"
+    },
+    "physical_cleanup": {
+      "terminal_task_failures_empty": true,
+      "server_shutdown_ok": true,
+      "ten_second_idle_observed_ms": 10003,
+      "all_original_67s_join_assertions_qualified_by_case_pass": false,
+      "note": "Task empty array or idle after work abort does not prove original67s success or End. OS budget remains matrix-only."
+    },
+    "full_programme_qualified": false,
+    "matrix_qualified": false
+  },
+  "initial_av": {
+    "post_sql_video_watermarks": [],
+    "post_sql_watermark_marker_valid": false,
+    "threshold_assertions_observed_while_sql_held": false,
+    "decoded_at_or_above_threshold_while_sql_held_source_assertion_qualified": false,
+    "source_quantum_audio_attribution_claimed": false,
+    "completed_single_request_and_effect_marker": false,
+    "admission_probe": null,
+    "scene_probe": null,
+    "cleanup_failure_array_empty": false,
+    "server_shutdown_returned_ok": true,
+    "all_original_5s_cleanup_assertions_qualified_by_case_pass": false,
+    "qualified": false,
+    "limitation": "Native actual initialAV factory regression only; no browser/full62/matrix or source-quantum audio claim."
+  },
+  "component_batch_passed": false,
+  "matrix_qualified": false,
+  "limitations": [
+    "No raw messages, IDs, local paths, credentials or command arrays are copied; original log/receipt hashes retain custody.",
+    "Observed commit reasons are finite control diagnostics, never reconstructed from expected branch names.",
+    "A failed programme's terminal empty arrays/idle cleanup are not quality/End/full62 success.",
+    "Focused lifecycle assertions do not replace all32/full432 transport, AV, packet or OS resource qualification."
+  ]
+}

@@ -1022,6 +1022,25 @@ fn spawn_original_receiver(
     began: Instant,
     cutoff: Instant,
 ) -> Work {
+    spawn_original_receiver_with_read_cutoff(
+        connection, index, source, binary, progress, stop, retirement, began, cutoff, None,
+    )
+}
+
+// Only the isolated intentional-authority-exclusion fixture supplies a fixed
+// original read cutoff. Normal/full-programme receivers keep short() exactly.
+fn spawn_original_receiver_with_read_cutoff(
+    connection: &sdk::Connection,
+    index: usize,
+    source: usize,
+    binary: &Path,
+    progress: SharedProgress,
+    stop: CancellationToken,
+    retirement: Arc<RetirementWitness>,
+    began: Instant,
+    cutoff: Instant,
+    read_cutoff: Option<Instant>,
+) -> Work {
     let connection = connection.clone();
     let mut decoder = LiveDecoder::open(binary, source);
     tokio::spawn(async move {
@@ -1040,11 +1059,19 @@ fn spawn_original_receiver(
             let voice=connection.stream_by_id(audio_id);
             let mut continuity=DecodeHistory::default();
             let mut audio=selected_opus();let mut epoch=None;
+            // During deliberate exclusion derive remaining time from the SAME
+            // absolute cutoff. Once elapsed, keep normal short reads for owner
+            // cleanup; the caller's fault/SDK/decoded assertions still fail at
+            // the original cutoff and never gain a new acceptance window.
+            let read_options=||read_cutoff
+                .and_then(|until|until.checked_duration_since(Instant::now()))
+                .filter(|remaining|!remaining.is_zero())
+                .map_or_else(short,|remaining|RequestOptions::new(remaining).unwrap());
             loop {
                 if retirement.observed() {break;}
                 tokio::select! {
                     _=stop.cancelled()=>break,
-                    packet=video.receive_packet(short())=>{
+                    packet=video.receive_packet(read_options())=>{
                         let Some(packet)=original_packet(packet,&retirement,"video") else {break};
                         progress.lock().unwrap().video_read_events+=1;
                         let arrived=Instant::now();
@@ -1076,7 +1103,7 @@ fn spawn_original_receiver(
                             }
                         }
                     },
-                    packet=voice.receive_packet(short())=>{
+                    packet=voice.receive_packet(read_options())=>{
                         let Some(packet)=original_packet(packet,&retirement,"audio") else {break};
                         progress.lock().unwrap().audio_read_events+=1;
                         let sdk::MediaPacket::Rtp(packet)=packet else {continue};

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T03:15:14.984100+00:00",
-  "revision": 22,
+  "updated_at": "2026-11-12T03:34:39.003157+00:00",
+  "revision": 25,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 21,
-    "verified_at": "2026-11-12T02:35:22.912Z",
+    "content_revision": 25,
+    "verified_at": "2026-11-12T03:36:21.726Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -301,8 +301,8 @@
         "B194"
       ],
       "depends_on": [],
-      "status": "cause-confirmed",
-      "implementation_state": "Archived3originalsubscriptions tracedafter6completedoffers; exacthistoricalinnerunavailableleafunlogged. TrueinitialAVtwo-faultfixturev2 integrated/source-reviewed withpostSQLfreshcaptureproof, selectedin175; runtimepending.",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Initial AV fixture timing cause confirmed independently. Its same original8s fault cutoff now keeps the SAME receivers alive during deliberate global authority withdrawal; both real faults and fresh decoded proof retained. Ordinary/full62 readers remain1s. Fixed runtime pending.",
       "proposed_fix": "Retain same prepared subscription across definite complete-scene Busy after all fresh proofs drop; preserve permanent refusals, original deadline and one activation. No initial offer retry or mutation resubmission.",
       "required_evidence": "All three WT missing-programme cases linked to original commands; causal regression for each distinct cause, original-effect recovery and no duplicate media admission.",
       "coordinator_review": {
@@ -320,11 +320,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-wt-subscription-diagnosis.json",
           "result": "Exact original command/effect phase established; innerleaf and fixedAVruntimepending",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
+          "result": "175/175 executed;162 pass,13 fail. Source/binaries stable; original groups joined. No full matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-12T03:30:14.946732+00:00",
       "mapped_check_count": 29,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -351,7 +356,7 @@
         "P2.1"
       ],
       "status": "independent-source-reviewed",
-      "implementation_state": "Ready401integrated; UCTP24passed11/11 including6newReadycontrols aftertest-only405parserassertioncorrection. Service6newReadycontrols and all11signedRTCcases pendingfinal175.",
+      "implementation_state": "Actual19 exposes deterministic Ready dispatcher Arc alias conflict in12 workloads. Exact Ready profile added to consuming lane and independently reviewed; actual fixed regression pending.",
       "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
       "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
       "coordinator_review": {
@@ -399,11 +404,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-uctp24-verification.json",
           "result": "11/11passed; parser/currentproof/custody/deadline/rightscontrols only",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
+          "result": "175/175 executed;162 pass,13 fail. Source/binaries stable; original groups joined. No full matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T15:15:47.574343+00:00",
+      "updated_at": "2026-11-12T03:30:14.946732+00:00",
       "mapped_check_count": 66,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -796,7 +806,7 @@
         "P2.1"
       ],
       "status": "diagnosing",
-      "implementation_state": "127/130 focusedpass; all123pure+signedData+2shorts+1RTC pass;2Ready and fullnative return fail; complete62s/End verification remains open.",
+      "implementation_state": "All175 executed on frozen source bbcf57f6:162 passed,13 failed; no skips.159 pure passed. Twelve failures share Ready dispatch ownership; one initial AV fixture timing mismatch. Full62 aborted before Commit/quality; no matrix promotion.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -834,11 +844,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components17.json",
           "result": "127/130pass;2RTCvalidReadySQLBusy; native return readiness abort~48s; no62squality",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
+          "result": "175/175 executed;162 pass,13 fail. Source/binaries stable; original groups joined. No full matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T15:15:47.574343+00:00",
+      "updated_at": "2026-11-12T03:30:14.946732+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -870,7 +885,7 @@
         "P7.1"
       ],
       "status": "component-verified",
-      "implementation_state": "Actual18combinedcompilefailedE0282RTChelper,originalgroupsclosed/unchangedsource,0runtime. Reviewedtest-onlyexplicitTuplefix; fresh19SAME175ready; warmproduction/nativebinariesretained.",
+      "implementation_state": "Batch19 completed162/175 with all original groups joined. Both Ready dispatcher and initialAV fixture corrections are independently source-reviewed; same175 next-batch metadata/fixture audit passed.52GiB retired build-object cleanup complete. Combined verification and full32 remain pending.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -903,11 +918,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components18-compilation.json",
           "result": "Buildstoppedtest-onlyE0282; runtime0; one-linefixreviewed",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
+          "result": "175/175 executed;162 pass,13 fail. Source/binaries stable; original groups joined. No full matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T15:15:47.574343+00:00",
+      "updated_at": "2026-11-12T03:30:14.946732+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [

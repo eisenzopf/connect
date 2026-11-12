@@ -519,7 +519,11 @@ impl AuthenticatedHandler for CanonicalHandler {
                     authorized.envelope().original()["payload"]["replacement_preparation"]
                         ["profile"]
                         .as_str(),
-                    Some("connect-replacement-media-v1" | "connect-replacement-preparation-v1")
+                    Some(
+                        "connect-replacement-media-v1"
+                            | "connect-replacement-preparation-v1"
+                            | "connect-replacement-ready-v1"
+                    )
                 ))
         {
             let original = authorized.envelope().clone();

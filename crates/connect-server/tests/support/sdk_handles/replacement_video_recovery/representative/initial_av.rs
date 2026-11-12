@@ -443,18 +443,22 @@ async fn signed_initial_six_source_av_subscription_releases_both_busy_boundaries
             let(master,owners)=programme::source(i,&binary,&raw[i],progress[i].clone(),stop.clone(),began,source_until);
             works.extend(owners);works.extend(spawn_publisher(&connections[i],i,&master,progress[i].clone(),stop.clone(),retirements[i].clone(),began,source_until));masters.push(master);
         }
+        // Pin the ONE original fault/read/command cap before baseline setup.
+        // The deliberate CID Writer may withdraw authority for its bounded2s
+        // admission wait; these SAME owners must survive and decode freshly
+        // after release, with no new receiver or renewed read deadline.
+        let until=Instant::now()+Duration::from_secs(8);
         for i in 0..TARGET {
-            let revision=connections[i].refresh(options()).await.unwrap().stream_revision.unwrap();
-            connections[i].subscribe(av_selection(i),revision,mutation(&format!("initial-av-baseline-select-{i}"))).await.unwrap().wait(options()).await.unwrap();
-            works.push(spawn_original_receiver(&connections[i],i,SOURCE_FOR_RECEIVER[i],&binary,progress[i].clone(),stop.clone(),retirements[i].clone(),began,source_until));
+            let revision=connections[i].refresh(programme::request(until)).await.unwrap().stream_revision.unwrap();
+            connections[i].subscribe(av_selection(i),revision,programme::mutation_at(&format!("initial-av-baseline-select-{i}"),until)).await.unwrap().wait(programme::request(until)).await.unwrap();
+            works.push(spawn_original_receiver_with_read_cutoff(&connections[i],i,SOURCE_FOR_RECEIVER[i],&binary,progress[i].clone(),stop.clone(),retirements[i].clone(),began,source_until,Some(until)));
             masters[SOURCE_FOR_RECEIVER[i]].force_key.store(true,Ordering::Release);
         }
-        decoded(&progress,&OLD,None,Instant::now()+Duration::from_secs(8)).await;
+        decoded(&progress,&OLD,None,until).await;
         let before=clone_progress(&progress);let original_offers=offers(&f).unwrap();
         let admission=f.server.service.arm_canonical_preparation_registry_probe_for_test(&format!("subscription-admission:{OPERATION}")).unwrap();
         let scene=f.server.service.arm_canonical_preparation_registry_probe_for_test(&format!("subscription-scene:{OPERATION}")).unwrap();
-        let revision=connections[TARGET].refresh(options()).await.unwrap().stream_revision.unwrap();
-        let until=Instant::now()+Duration::from_secs(8);
+        let revision=connections[TARGET].refresh(programme::request(until)).await.unwrap().stream_revision.unwrap();
         let original=async {
             let mut options=mutation(OPERATION);options.request=programme::request(until);
             let operation=connections[TARGET].subscribe(av_selection(TARGET),revision,options).await.unwrap();
@@ -471,7 +475,7 @@ async fn signed_initial_six_source_av_subscription_releases_both_busy_boundaries
         let done=match control {Ok(done)=>done,Err(p)=>std::panic::resume_unwind(p)};
         let held=match held {Ok(r)=>r,Err(p)=>std::panic::resume_unwind(p)};held.unwrap();
         assert_eq!(offers(&f).unwrap(),original_offers);
-        works.push(spawn_original_receiver(&connections[TARGET],TARGET,SOURCE_FOR_RECEIVER[TARGET],&binary,progress[TARGET].clone(),stop.clone(),retirements[TARGET].clone(),began,source_until));
+        works.push(spawn_original_receiver_with_read_cutoff(&connections[TARGET],TARGET,SOURCE_FOR_RECEIVER[TARGET],&binary,progress[TARGET].clone(),stop.clone(),retirements[TARGET].clone(),began,source_until,Some(until)));
         masters[SOURCE_FOR_RECEIVER[TARGET]].force_key.store(true,Ordering::Release);
         decoded(&progress,&[0,2,TARGET],Some(&before),until).await;
         let sql=rusqlite::Connection::open_with_flags(&f.config.database,rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
@@ -479,6 +483,7 @@ async fn signed_initial_six_source_av_subscription_releases_both_busy_boundaries
         assert_eq!(done.snapshot.record_id.as_ref().unwrap().as_str(),row.0);
         assert_eq!((row.1,row.2.as_str(),row.3,row.4,row.5,row.6),(1,"completed",1,1,1,1));
         let replacements:u64=sql.query_row("SELECT COUNT(*) FROM native_replacements",[],|r|r.get(0)).unwrap();assert_eq!(replacements,0,"initial ordinary selection cannot be a replacement fixture");drop(sql);
+        assert!(Instant::now()<until,"all actual initial AV fault/SDK/decode/receipt proofs must finish before the ONE original eight-second cutoff");
         eprintln!("initial AV original subscription: actual_sources=6 sessions=2 identities=4 original_mutation_submissions=1 effect_attempts=1 admission_probe={} scene_probe={} decoded_old_routes=0,2 decoded_target=3; no full62/matrix claim",admission.load(Ordering::Acquire),scene.load(Ordering::Acquire));
     }).catch_unwind().await;
     let cleanup = Instant::now();

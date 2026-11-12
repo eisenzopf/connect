@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-12T03:10:12.738701+00:00",
-  "run_status": "Cleanup44GiBcomplete. Actualcombinedbuild18 compiledlibraries+nativeAV but stoppedatE0282innewRTCtesthelper; zero175runtimecasesran. Alloriginalbuildgroupsjoined/sourceunchanged. Independentlyreviewedtest-onlytupleannotationapplied; SQL/assertions/productionunchanged. Freshbatch19willretrySAME175usingwarmcache. PriorTargeted106/19/11+productioncheckpass. Plan/full32verificationopen; v215remains0/32.",
+  "updated": "2026-11-12T03:30:30.191745+00:00",
+  "run_status": "All175 focused cases executed:162 passed,13 failed,0 skipped; source/binaries stable and original groups joined. Both confirmed causes now have independently source-reviewed corrections: exact Ready consuming-dispatch profile and initialAV same-owner absolute8s fault reads. Ordinary/full62 media limits remain unchanged. Same175 retry is preparing.52GiB total retired build objects cleaned; D2about49GiB free. The plan and full32 remain open; v215 still0/32.",
   "blockers": [
     {
       "id": "B01",
@@ -1561,9 +1561,9 @@
     {
       "id": "B191",
       "title": "Data completion may invalidate live audio custody",
-      "status": "102Store controls pass; actual first two handoffs produce1positiveReader and1Writerfallback. Actual fallback reason and quality effect remain open.",
+      "status": "106 Store controls passed in targeted and combined19 runs, including real source retirement preserving the unaffected new epoch. Actual four-Commit capture modes and full media followthrough remain unverified.",
       "change": "Prove exact positive Queued ledger completion can avoid unnecessary authority Writer; preserve all actual authority-change invalidations.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-store20-verification.json; g6-058-v216-components19.json",
       "next": "No media invalidation from unchanged-authority bookkeeping in the concurrent Data/handoff regression; all real authority-change counterexamples remain enforced."
     },
     {
@@ -1585,9 +1585,9 @@
     {
       "id": "B194",
       "title": "Setup subscription authority refusal hidden by broad media-offers phase",
-      "status": "All3 exact originalstream.subscribe roots and one native-stream effect each proven; all6offers completed. ExactBusy versuspermanentinnerleaf remains unlogged.",
+      "status": "Initial AV fixture correction independently source-reviewed: same original8s fault cutoff retains old receiver owners through deliberate authority withdrawal, then strict fresh media/SQL-capture checks. Real Writer and second SQL Busy faults retained. Runtime pending.",
       "change": "ExistingB190 completefreshscene Busyfactory handles the transient path without effect replay. Add true ordinaryinitialAV two-real-fault regression; no initial native_start retry proposed.",
-      "evidence": "g6-058-v216-wt-subscription-diagnosis.json: MacremoteES256cycle2 select1, ARMremoteES256cycle3 select0, ARMremoteEdDSAcycle3 select3; archive/member/hash-onlyID and durableeffect proofs.",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-initial-av-fixture-fix.json",
       "next": "Run actual ordinaryAV currentWriter+sceneSQLfault case with decodedunaffectedmedia and originaljoins; preserve allpermanent/currentnegativecontrols."
     },
     {
@@ -1601,41 +1601,41 @@
     {
       "id": "B196",
       "title": "Incomplete workload coverage in composite resource checks",
-      "status": "All130 original groups joined, but fresh17 native programme aborted~48s with2/4moves. No62s quality/End or three-cycle OS qualification.",
+      "status": "All175 actually executed in batch19, with stable source/binaries and joined original groups:162 passed,13 failed. Full62 aborted at first Ready, so programme quality, End and OS matrix qualification remain open.",
       "change": "Complete the required workload before evaluating its full ownership proof. Keep exact joins for all actual owners and the required10-renderer browser coverage; report capacity, functional coverage and unjoined-owner failures separately. Preserve approved RSS budgets and diagnostic trends.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
       "next": "Complete workload coverage plus every original cleanup and capacity assertion passes; no resource failure is hidden by a missing handoff."
     },
     {
       "id": "B197",
       "title": "Recorded original-owner failures paired with uncertain target deadlines",
-      "status": "Start capture/probe and private decode remain verified; fresh17 fails2/3 signed cases at later valid Ready/status SQL contention (B199). Earlier all3 pass was not durable proof.",
+      "status": "Batch19 confirms Ready consuming-handler profile omission causes deterministic Arc ownership conflict before new admission/capture. Exact-profile fix is independently source-reviewed; signed fixed followthrough pending.",
       "change": "Bind each original receipt to server preparation, activation, retirement and current-observation timings. Remove demonstrated duplicate authority/status rendering within the same valid scope; retain current authorization and exact ownership. Resolve each recorded handoff failure using its original operation/effect journal. Do not introduce new helpers, replay mutations, skip final reads or grant fresh per-route deadlines.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-ready-dispatch-fix.json",
       "next": "All four scheduled moves and returns/retirements complete with actual receipts and unchanged deadlines in every focused workload; no unexplained recorded/uncertain pair remains."
     },
     {
       "id": "B198",
       "title": "Focused fixture omits matrix Data and full retirement sequence",
-      "status": "Full4move/62s fixture is wired; fresh17 abortsreturn preparation~48s after2moves (B200). All6purefixture controls pass;62s quality and End branch not qualified.",
+      "status": "Full175 selection ran completely.159 pure controls passed;13 workload failures remain. Full62 stopped at first Ready before any Commit or Data; empty quality arrays are unevaluated. Next combined run will contain the reviewed dispatcher and initial AV fixture corrections.",
       "change": "Complete the signed Data fixture and reuse the matrix programme semantics for six sources, two Sessions, four movements, actual Data exchanges, the full media window and original retirement. Run unit/counterexample and signed integration regressions first, then one frozen complete matrix on local Mac/ARM Linux resources.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-components13.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
       "next": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open."
     },
     {
       "id": "B199",
       "title": "Valid Ready SQL contention straddles volatile capture",
-      "status": "Ready401source-reviewed; UCTP24passed11/11including6Readycontrols after405test-onlyexactparsernegativefix. ServiceandsignedRTCfollowthroughpending.",
+      "status": "UCTP Ready units pass11/11, but combined19 exposed the outer handler retaining an Arc for Ready. The exact Ready profile is now in its unique-transfer lane; strict marker checks, actual fresh authority and existing replies are unchanged. Runtime proof pending.",
       "change": "Implement narrow original-only grant-free Ready wait with fresh authorization on typedBusy, exactly-once capture and separate read-only result recovery. Keep original deadlines and physical bindings.",
-      "evidence": "g6-058-v216-components17.json: all123pure pass; Start probes/SQL owner joins/private decode/invalidReady refusals succeed, then validReady encounters primarySQLBusy and same-root status staysPreparing.",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-ready-dispatch-fix.json",
       "next": "Final175:16Servicecontrols,11actualsignedRTCvariants, ordinaryinitialAV andfull62programme; originaldeadlines/once-onlycapture/currentnegativechecks retained."
     },
     {
       "id": "B200",
       "title": "Unpublished direct-route validation treats contention as permanent Backpressure",
-      "status": "Core22passed19/19including all7privateprepublicationlockboundaries, publisherlockrecovery and permanentnegativecontrols; source/binary/originalgroupsstable. Actualfull62return/qualitypending.",
+      "status": "All19 Core controls passed again in combined19. Full programme cannot yet reach the return preparation because Ready dispatch conflicts first. Core readiness and actual return/quality remain separate proofs.",
       "change": "Private typed publisher-validation exclusion mapped ONLY at unpublished preroll boundary to existing MetadataBusy recovery. Ordinary subscriptions retain Backpressure, all permanent errors remain terminal.",
-      "evidence": "g6-058-v216-components17.json and g6-058-v216-publisher-counterexample.json; causal held-lock counter failed at original prepare with Backpressure, source/binary stable and original process group joined.",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-core22-verification.json; g6-058-v216-components19.json",
       "next": "CompleteinitialAVregressionandReadycontrols inexpandedcombinedbatch; require4actualhandoffs and evaluatedfull62quality beforeall32."
     }
   ],
@@ -17396,5 +17396,14 @@
     "deleted_count": 12672,
     "observed_available_gain_bytes": 47255834624,
     "after_available_bytes": 48819855360
+  },
+  "completed_v216_components19_actual": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components19.json",
+    "executed": 175,
+    "passed": 162,
+    "failed": 13,
+    "not_executed": 0,
+    "all_original_groups_joined": true,
+    "matrix_qualified": false
   }
 }

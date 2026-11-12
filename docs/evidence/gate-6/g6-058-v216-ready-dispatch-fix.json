@@ -1,0 +1,24 @@
+{
+  "format": "connect/ready-dispatch-root-cause-and-fix/1",
+  "updated_at": "2026-11-12T03:30:14.946732+00:00",
+  "status": "Independently source-reviewed implementation; fixed runtime pending",
+  "failed_run": "docs/evidence/gate-6/g6-058-v216-components19.json",
+  "failed_run_summary": {
+    "executed": 175,
+    "passed": 162,
+    "failed": 13,
+    "skipped": 0
+  },
+  "scope": "Twelve failed workloads reach the Ready ownership conflict or cannot reach the first Ready probe. Initial AV is a distinct fixture deadline mismatch.",
+  "root_cause": "The consuming connection.offer dispatch lane omitted connect-replacement-ready-v1. The fallback retained an Arc and passed a clone, so Ready strict Arc::try_unwrap failed before its fresh-authority admission.",
+  "change": "Add only the exact Ready profile to the existing consuming dispatch lane. Existing operation.updated and final ACK builder, strict marker/current-authority validation, original deadlines and revocation controls are unchanged.",
+  "before_sha256": "8dbc9be994391c35e7c8db5a248b93965a2b23e38bd797ae15565245591973be",
+  "after_sha256": "229fdc935e97f54208d27df10e1593527a181ebc0448b85c7d8f975f83c5516f",
+  "independent_review_sha256": "dc008b3bba44b7405f7e259e04b5d1ee3c304372bec9c7a2ccc8d681ba4c91bd",
+  "independent_diagnoses_sha256": [
+    "df1536cdeb63ca364dd0f0c504ffef812607d9b4bee220d87c72750465f4cd7b",
+    "749b40c030c8970ae21a5789adfcf65e2020a3aca600b5fd419f034c1da5dc4c"
+  ],
+  "required_regressions": "Retain all11 signed RTC controls, real Ready pre/post SQL probes and Busy-to-credential-revocation negative, native workloads and full62 programme; all175 rerun before matrix. Pure UCTP unit controls bypass the dispatcher and cannot prove this integration boundary.",
+  "matrix_qualified": false
+}

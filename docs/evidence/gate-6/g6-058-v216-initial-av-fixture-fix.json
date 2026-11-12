@@ -1,0 +1,31 @@
+{
+  "format": "connect/initial-av-intentional-authority-pause-fixture-fix/1",
+  "status": "Implementation independently source-reviewed; actual fixed runtime pending",
+  "cause": "The test deliberately held a conversation authority Writer until the2s policy Busy rendezvous, invalidating old packet epochs while its own receiver aborted after1s. The later SQL fault was never reached.",
+  "actual_before": "docs/evidence/gate-6/g6-058-v216-components19.json",
+  "change": "Keep the SAME original receiver owners waiting within one absolute8s fault cutoff captured before baseline setup. Reuse this cutoff for baseline/control/fault/decode work, and require success before it. After the fault window only normal1s cleanup reads are possible.",
+  "scope": "Only this initial AV fault regression opts in; all other representative/full62 packet reads retain1s. No read-error suppression, new8s window, acceptance change or Store production change.",
+  "retained": [
+    "Real conversation Writer exclusion and later real SQL exclusion",
+    "Both actual grant-drop rendezvous probes",
+    "Fresh decoded old media after Writer release and source-captured-after-SQL watermark while SQL held",
+    "One original SDK mutation/effect and current authorization",
+    "All decoded identity/freshness/keyframe rules and original owner cleanup"
+  ],
+  "manifest_sha256": "ffc8d98c0e885739d56e02b55f94142de1241c72775a5ef1697a121ecf722f4d",
+  "patch_sha256": "b09a1675f50985aa0202b02f065d8894e094872e30a75ba2181f2c688f911cea",
+  "independent_review_sha256": "c3622c31108e82738d659bf46ee73ea2b187d254bbaa2a2fb5f3f74c93814e2b",
+  "images": [
+    {
+      "path": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/representative/initial_av.rs",
+      "before_sha256": "c573d6049c0a830479828288f28238b0cf4cd1976194dac35e41ce8eaf2c15cb",
+      "after_sha256": "87b27f28cbee048e0c7056e01776e4f6c47526f31913393b19b10af9db07a0e8"
+    },
+    {
+      "path": "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/representative.rs",
+      "before_sha256": "463e3dfa9f0b1bafdaaf5e0a22437870c697069c15b4e597d2213577c0804244",
+      "after_sha256": "da966797e36bbc7f79524aacaf5392f415bc87396cb9b0080e641528db6cf35c"
+    }
+  ],
+  "matrix_qualified": false
+}

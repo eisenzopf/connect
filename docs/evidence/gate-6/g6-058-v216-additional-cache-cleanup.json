@@ -1,0 +1,24 @@
+{
+  "selected_count": 6536,
+  "deleted_count": 6536,
+  "selected_allocated_bytes": 8589934592,
+  "before_available_bytes": 43791994880,
+  "after_available_bytes": 52386930688,
+  "observed_available_gain_bytes": 8594935808,
+  "complete": true,
+  "all_selected_absent": true,
+  "header_and_identity_revalidated": true,
+  "open_inventory_complete": true,
+  "selected_open_count": 0,
+  "format": "connect/additional-retired-build-cache-cleanup/1",
+  "scope": "Additional8GiB from the established retired Rust object cache; disjoint from previous44GiB cohort. Active warm cache, binaries, source, database, evidence and VMs retained.",
+  "receipt_sha256": "8f296970409bb9c96aff4a84e8c8f22208665139ebd7cc075a399cab0e047ee6",
+  "closure_sha256": "fc3d9b1513706e4dc17990b4b67239ecd75d1633dda5e5787ae6d4e04bffea09",
+  "script_sha256": "96fbcbd97eb3f4c437513e3f07f1ca13c043cdb8e249adc85c9eaf849fecf07b",
+  "independent_review_sha256": "9bba6af5e5cb6a057c2827a08b3b1dca2ab9e0139ac7ff8ab050389ef4a84406",
+  "previous_evidence": "docs/evidence/gate-6/g6-058-v216-approved-cache-cleanup.json",
+  "available_now": {
+    "/": 30790918144,
+    "/Volumes/D2-2019": 52387192832
+  }
+}
