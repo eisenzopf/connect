@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-11T17:49:51.249411+00:00",
-  "run_status": "TargetedStore106/106, Core19/19 andUCTP11/11pass. Normal productionService metadata/typecheck25 passed with unchangedsource/originalgroupjoined; test-support/memory-diagnostics excluded. Final175source/metadataaudit passes, all130originals retained incl11signedRTC andfull62last; combinedbuild/runtimeUNRUN. D2has~1.4GiBfree; awaiting44GiBcoldobjectcleanupdecision, noselectedfiledeleted. Matrix215 remains0/32cells,287passed101failed44blocked.",
+  "updated": "2026-11-12T02:34:26.102279+00:00",
+  "run_status": "User-approved44GiBretiredobjectcleanup completed:12672exactfilesremoved, actualD2free48.82GB(~45.5GiB). TargetedStore106/106,Core19/19,UCTP11/11 andnormalproductionServicecheckpass. Noadditionalcodefix queuedbeforetest. Final175selector/inputaudit passes; combinedbuildstarting, runtime/full32notyetlaunched. Planremainsopenuntil175andfresh32verification; v215matrixunchanged0/32.",
   "blockers": [
     {
       "id": "B01",
@@ -5782,7 +5782,7 @@
     "passed": 127,
     "planned": 130,
     "scope": "Source17:102Store,10Service,5UCTP,6purefixture,1RTC,1signedData,2shortnative pass.2RTCReady and1native return fail.",
-    "next": "Lastcompletecombined17 remains127/130. TargetedStore106/106, Core19/19, UCTP11/11andnormalproductionServicecheckaregreen. Final175combined/signedRTC/initialAV/full62pendingdiskcleanupdecision; no newmatrixqualification."
+    "next": "Final175combinedbuildnext,159purecontrols before16workloads,11signedRTCexplicitlyexecuted,full62LAST. Prior targeted106/19/11andnormalServicecheckgreen; matrixverdictunchanged."
   },
   "current_workplan_tasks": [
     "S107",
@@ -17389,5 +17389,12 @@
     "evidence": "docs/evidence/gate-6/g6-058-v216-service-default25-check.json",
     "result": "passed",
     "scope": "normal productionmetadata/typecheck only, no runtimeclaim"
+  },
+  "approved_capacity_cleanup": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-approved-cache-cleanup.json",
+    "completed": true,
+    "deleted_count": 12672,
+    "observed_available_gain_bytes": 47255834624,
+    "after_available_bytes": 48819855360
   }
 }

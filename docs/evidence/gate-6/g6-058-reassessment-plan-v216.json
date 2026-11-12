@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-reassessment-plan/1",
-  "updated": "2026-11-11T17:49:51.249411+00:00",
+  "updated": "2026-11-12T02:34:26.102279+00:00",
   "status": "Owner approved implementation; tracked work in progress. Matrix qualification remains open.",
   "baseline": "v215",
   "baseline_evidence": "docs/evidence/gate-6/transport-matrix-v215.json",
@@ -167,7 +167,7 @@
         "Commit and push the verified batch with CI skipped; freeze sources; execute all32 cells/all432 checks with original3-cycle requirements, including local remote-profile fixtures."
       ],
       "exit": "32/32 cells and432/432 checks pass on the same frozen batch, every required cycle is complete, and all owned processes/artifacts have joined. Otherwise classify the first causal failure per affected check and keep G6-058 open.",
-      "state": "Final175source/selector/fixturemetadataaudit passes; original130 retained. Store106/106,Core19/19,UCTP11/11andnormalproductionServicecheck25passed. Combined175build/runtime andfull32stillpendingdiskcleanupdecision (D2~1.4GiB); proposed44GiBcoldcachefilesnotdeleted.",
+      "state": "44GiBretiredobjectcleanup authorizedandcompleted,free48.82GB. Noadditionalfixqueuedbeforetest; normal405+final175metadataready. Combined175buildstarting; truefull62quality/11RTC/all32followthroughremainmandatory.",
       "assigned_tasks": [
         "P7.1",
         "P7.2",

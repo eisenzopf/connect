@@ -1,0 +1,19 @@
+{
+  "format": "connect/g6-058-approved-cold-object-cleanup/1",
+  "created_at": "2026-11-12T02:34:26.102279+00:00",
+  "authorization": "User: Clean up space, following reviewed44GiBcacheproposal.",
+  "scope": "Exactly12672retiredsinglelinknonexecutablearm64MachO.rcgu.o files in oneclosedoldRustcache. Currentwarmcache,source,binaries,DBs,evidence andVMs untouched.",
+  "selected_count": 12672,
+  "deleted_count": 12672,
+  "complete": true,
+  "all_selected_absent": true,
+  "candidate_sha256": [
+    "c20fd4e03b22b9e10213d86d3fc0fbc29619d455a4726b6096331b9a1b1bcb77",
+    "240437002143e7318a089090b46181f807eed880aea404e264d8fc23611ed1af"
+  ],
+  "raw_receipt_sha256": "32b9e80802105d64b2973d6ef9b33903bc12ff87df320969d4f8a1ee8076b09d",
+  "before_available_bytes": 1564020736,
+  "after_available_bytes": 48819855360,
+  "observed_available_gain_bytes": 47255834624,
+  "identity_header_and_open_descriptor_checks": "All selected identities/headers revalidated; complete currentUIDlsofinventory, zero selectedopens; anchoredrootdirectory, revalidatedeachunlink andfsynceddirectory."
+}
