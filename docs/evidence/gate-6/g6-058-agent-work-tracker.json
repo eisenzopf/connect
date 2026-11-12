@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T04:06:47.358539+00:00",
-  "revision": 28,
+  "updated_at": "2026-11-12T04:36:49.249264+00:00",
+  "revision": 29,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,8 +9,8 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 28,
-    "verified_at": "2026-11-12T04:08:30.158Z",
+    "content_revision": 29,
+    "verified_at": "2026-11-12T04:38:51.402Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json"
   },
   "baseline": {
@@ -619,7 +619,7 @@
         "P2.1"
       ],
       "status": "diagnosing",
-      "implementation_state": "Actual short workload completed4moves but one preparation snapshot had960 consecutive decoded samples versus2880. Exact SSRC/sequence/timestamp reset cause is not yet observed. Bounded diagnostic proposal staged; quality limits unchanged.",
+      "implementation_state": "Implementation active: bounded actual audio SSRC/sequence/timestamp reset diagnostics and meaningful codec unit controls, followed by an evidence-based fix. No quality threshold changes.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
@@ -646,7 +646,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:06:47.358539+00:00",
+      "updated_at": "2026-11-12T04:36:49.249264+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -672,7 +672,7 @@
         "P3.1"
       ],
       "status": "diagnosing",
-      "implementation_state": "Actual full62 reached4moves and4positive-reader historical captures, yet clean video routes2/3 miss24FPS in3handoff bins. Real movement Write cuts still exist; broad Write held over pre-effect SQL is a mapped mechanism requiring a controlled counter. No production cause-fix claim yet.",
+      "implementation_state": "Implementation active: old-condition primary-SQL/Writer counter and bounded pre-effect admission. Retry only before any effect begins, after all Write/role aliases drop; fresh same root and original cutoff. QoE causality remains to verify.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
       "coordinator_review": {
@@ -719,7 +719,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:06:47.358539+00:00",
+      "updated_at": "2026-11-12T04:36:49.249264+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -808,7 +808,7 @@
         "P6.1"
       ],
       "status": "assigned",
-      "implementation_state": "DBaudit4MB;32GiBoldobjectcleanupuserdecisionpending;fullmatrixcapacityshort",
+      "implementation_state": "52 GiB retired build-object cleanup complete and measured. Current free space about47.9 GiB D2 and28.6 GiB internal; fresh shipping/VM/preflight capacity checks still required.",
       "proposed_fix": "Retain approved per-role/aggregate RSS and original numeric process/FD/thread capacities; trends diagnostic and separate soak unaffected.",
       "required_evidence": "1GiB server/4GiB browser/1GiB helper/6GiB aggregate; exact original resource-pool restoration and source-bound server thread exception; no incomplete cycle counted as pass.",
       "coordinator_review": {
@@ -824,7 +824,7 @@
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-12T04:36:49.249264+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": []
@@ -3297,6 +3297,11 @@
       "at": "2026-11-11T10:39:51.116113+00:00",
       "by": "/root",
       "action": "82Storetestsexecuted81passed1trueimmutableintentadmissionWritergap.IndependentreviewsapprovedB191andP3authorityreadscope.Whole03Cargo stoppedalreadyfailedServiceunitimport+traittypecomplexity;fixesstaged.No matrix resultclaimed."
+    },
+    {
+      "at": "2026-11-12T04:36:49.249264+00:00",
+      "by": "/root",
+      "action": "Owner instructed Finish the plan. Implementation resumed: Media owns bounded audio reset evidence; Store owner owns causal pre-effect Commit SQL counter/fix; Fixture independently reviews both. All175 originals and32/432 exit preserved; local Mac/nativeARM only. origin/main fetched and already contained. No current build/runtime owners remain."
     }
   ],
   "tracking_review": {
@@ -3326,5 +3331,11 @@
     "rtc_prestart": "exact-custody oracle under implementation/review",
     "matrix_effect": "not-tested"
   },
-  "next_media_fix_plan": "docs/evidence/gate-6/g6-058-v216-media-quality-next-fix-plan.json"
+  "next_media_fix_plan": "docs/evidence/gate-6/g6-058-v216-media-quality-next-fix-plan.json",
+  "current_execution_authorization": {
+    "instruction": "Finish the plan",
+    "scope": "Implement and verify current approved G6-058 plan; existing local Mac/nativeARM resources. G6-054 remains parked.",
+    "coordinator": "/root",
+    "previous_runtime_owners": "All targeted7 and full20 original groups joined; source is editable for assigned implementation."
+  }
 }
