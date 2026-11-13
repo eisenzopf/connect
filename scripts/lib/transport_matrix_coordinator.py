@@ -137,6 +137,8 @@ def run(root, args):
             worker_env = dict(os.environ, **storage.environment)
             if host == "macos-arm64":
                 worker_env["CARGO_BUILD_JOBS"] = "8"
+                # Share the normal prebuild cache with the standalone peer.
+                worker_env.setdefault("CARGO_TARGET_DIR", str(root / "target"))
             workers[host] = subprocess.Popen(command, cwd=root, env=worker_env, stdout=log, stderr=subprocess.STDOUT,
                                               stdin=subprocess.DEVNULL, start_new_session=True)
         def read_report(host):

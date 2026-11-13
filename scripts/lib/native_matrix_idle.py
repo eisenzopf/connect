@@ -418,6 +418,8 @@ def run_native_matrix(command, log, env, budget, *, server_pid, directory, cwd, 
         profile = dict(format="connect/native-workload-process-profile/1", elapsed_seconds=time.monotonic() - began,
             sample_count=measured["sample_count"] if measured else 0, groups=measured["groups"] if measured else {},
             **cleanup, failure=failure, collection_complete=bool(complete), resource_reclamation_qualified=False,
+            fd_observation_diagnostics=(measured.get("fd_observation_diagnostics", dict(reported=False))
+                if measured else dict(reported=False)),
             scope="Original native workload process observations including the original Node parent and its programme Worker; the separate idle report requires the exact natural Worker join and recomputes resource restoration.", cell_qualified=False)
         (directory / "process-resources.json").write_text(json.dumps(profile, indent=2) + "\n")
     return code, profile, observation

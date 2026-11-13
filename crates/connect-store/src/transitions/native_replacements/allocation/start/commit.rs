@@ -1054,8 +1054,8 @@ impl Store {
             {
                 Ok(None)
             } else {
-                match captured.commit_ledger_authority_decision(self, c, None) {
-                    Ok((reads, until, _)) => Ok(Some(ScopedPublicationHint { reads, until })),
+                match captured.final_ready_continuation_authority(self, c, None) {
+                    Ok((reads, until)) => Ok(Some(ScopedPublicationHint { reads, until })),
                     Err(error)
                         if matches!(
                             error.code.as_str(),
@@ -1120,7 +1120,7 @@ impl Store {
                     },
                 )?);
                 if let Some(hint) = hint {
-                    scopes.extend(hint.reads.iter().map(AuthorityScope::read_scope));
+                    scopes.extend(hint.reads.iter().cloned());
                     scopes.extend([
                         AuthorityScope::connection(
                             row.record.connection_id.as_deref().ok_or_else(invalid)?,
@@ -1128,7 +1128,7 @@ impl Store {
                         )?,
                         AuthorityScope::connection(
                             &target.connection.connection_id,
-                            crate::AuthorityMode::Write,
+                            crate::AuthorityMode::Read,
                         )?,
                         AuthorityScope::record(&p.record, crate::AuthorityMode::Write)?,
                     ]);
@@ -1569,6 +1569,22 @@ impl NativeReplacementMediaOrigin {
     }
 }
 impl NativeReplacementCommitted {
+    /// Only the exact current public continuation is unchanged by its Ready
+    /// metadata projection. Old-source retirement stays an actual Writer; the
+    /// candidate keeps a Reader so failed admission cannot revoke its packets.
+    /// This is rederived by the sealed constructor, never trusted from preview.
+    fn final_ready_continuation_authority(
+        &self,
+        store: &Store,
+        c: &Connection,
+        proof: Option<&Arc<AuthorityGuardSet>>,
+    ) -> Result<(Vec<AuthorityScope>, i64)> {
+        let (mut required, until, _) = self.commit_ledger_authority_decision(store, c, proof)?;
+        let (continuation, pending_until) =
+            store.replacement_publication_continuation_scopes(c, self.activation())?;
+        required.extend(continuation);
+        Ok((AuthorityScope::merged(&required)?, until.min(pending_until)))
+    }
     pub(crate) fn scoped_final_ready_facts(
         &self,
         store: &Store,
@@ -1590,8 +1606,8 @@ impl NativeReplacementCommitted {
         if !absent {
             return Err(Error::forbidden());
         }
-        let (mut required, until, _) =
-            self.commit_ledger_authority_decision(store, c, Some(proof))?;
+        let (mut required, until) =
+            self.final_ready_continuation_authority(store, c, Some(proof))?;
         let source = p
             .selection
             .origin
@@ -1603,7 +1619,7 @@ impl NativeReplacementCommitted {
             AuthorityScope::connection(&source, crate::AuthorityMode::Write)?,
             AuthorityScope::connection(
                 &a.target.connection.connection_id,
-                crate::AuthorityMode::Write,
+                crate::AuthorityMode::Read,
             )?,
             AuthorityScope::record(&p.record, crate::AuthorityMode::Write)?,
         ]);

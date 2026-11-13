@@ -37,6 +37,11 @@ tracing.workspace = true
 rustix.workspace = true
 
 [dev-dependencies]
+# Actual Core PCM conformance only; no shipping dependency or public fixture API.
+async-trait.workspace = true
+rvoip-core = { workspace = true, features = ["test-support"] }
+tokio.workspace = true
+tokio-util.workspace = true
 tempfile.workspace = true
 
 [lints]

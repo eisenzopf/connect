@@ -443,7 +443,9 @@ def merge_hosts(base, reports):
                 raise ValueError("Cell requirements changed")
             if cell["status"] not in {"not-run", "running", "failed", "incomplete", "blocked", "passed"}:
                 raise ValueError("Unknown cell outcome")
-            if cell["status"] == "passed" and (cell.get("verifier", {}).get("format") != "connect/g6-058-cell-verdict/1"
+            from .transport_matrix_verdict import original_producer_verified
+            if cell["status"] == "passed" and (not original_producer_verified(cell)
+                    or cell.get("verifier", {}).get("format") != "connect/g6-058-cell-verdict/1"
                     or set(cell.get("check_results", {})) != set(original["required_checks"])
                     or any(r.get("status") != "passed" or not r.get("evidence") for r in cell["check_results"].values())
                     or cell["verifier"].get("integrity") is not True):

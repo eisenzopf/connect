@@ -2218,6 +2218,18 @@
       "path": "patches/rvoip/connect-data-subscription-observation-std-panic-controls.patch",
       "sha256": "ad1d9d76132cf5e880834c802b0a04da4dca07c5fbd5ce807f672fcae11ea73f",
       "source": "Test-only std poll_fn/pin/catch_unwind helper for original AV subscription observer controls. Replaces unavailable futures_util extension without adding Cargo dependency; retains exact original futures, both shutdown joins/panic precedence, four selectors and all assertions. Actual Core68 compile failure remains zero-test evidence."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-owned-video-production-feedback-controls.patch",
+      "sha256": "285ae1f970f4b484f6d146c27ead721f4202f328e45dc3f33521da4e52a039b5",
+      "source": "Test-only actual canonical Backend egress/picture_feedback recovery controls: genuine authenticated RTP/SRTCP through bounded one-fragment UDP loss, original repair expiry, fresh current-source PLI and newly submitted VP8 key, current policy/gate/generation/cancel negatives, all original peer/controller/proxy/codec joins. Explicit direct Core input forwarding; no live encoder/browser/FPS or matrix qualification."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-owned-video-feedback-ice-component-alias-controls.patch",
+      "sha256": "b88c3372229aaebd8801f88ca8951acf091d7b1f4b264d9d3ebac9b0bdf9c00d",
+      "source": "Test-only correction of actual RTC feedback controls: pinned rtc SDP emits component1 and2 aliases for one socket. Require exact same loopback UDP host socket and per-active-audio/video RTCPmux; retain exact packet owner/drop/current-authority/original-expiry oracles. Existing3selectors add inline positive and foreign-port/interface/component/missingMux negatives; no production change or historical media cause claim."
     }
   ]
 }

@@ -857,7 +857,19 @@ impl State {
             AuthorityMode::Write,
         )?);
         if let Some(candidate) = &plan.candidate {
-            required.push(AuthorityScope::connection(candidate, AuthorityMode::Write)?);
+            // witness_facts above independently derives the exact current
+            // continuation for FinalReady. Its closed typed SQL plan only
+            // projects that same installed binding; every other phase keeps
+            // the existing candidate Writer. Plan omission cannot select this.
+            let candidate_mode = if matches!(
+                (&plan.witness, plan.purpose),
+                (Witness::Ready(_), Purpose::FinalReady)
+            ) {
+                AuthorityMode::Read
+            } else {
+                AuthorityMode::Write
+            };
+            required.push(AuthorityScope::connection(candidate, candidate_mode)?);
         }
         if !store.authority_covers(proof, &required) {
             return Err(Error::forbidden());

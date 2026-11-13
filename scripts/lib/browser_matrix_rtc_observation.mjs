@@ -1,3 +1,4 @@
+const RTC_DECODED_VIDEO_PROFILE='native-decoded-frames/1';
 import {rtcAudioBoundaryDiagnostics} from './browser_matrix_rtc_audio_diagnostics.mjs';
 // A passive tap on the real RTC render graph. The processor only copies input
 // PCM; it never generates a tone, repairs a gap or infers content from counters.
@@ -34,7 +35,13 @@ registerProcessor('matrix-rtc-decoded-pcm',MatrixRtcDecodedPcm);
 /** Capture the SDK render owner's actual decoded PCM and painted video. An
  * internal preparation/readiness sink is excluded: it is not inside render().
  * The caller still owns render handles and closes/joins their AudioContexts. */
-export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measurementOrigin=()=>null}) {
+export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measurementOrigin=()=>null,
+    videoObserver='render-callback/1',decodedVideo,decodedVideoOwnerFactory=null}) {
+    if(!['render-callback/1',RTC_DECODED_VIDEO_PROFILE].includes(videoObserver))throw Error('Declared RTC video observer required');
+    if(videoObserver===RTC_DECODED_VIDEO_PROFILE&&(typeof decodedVideo!=='function'||typeof decodedVideoOwnerFactory!=='function'))throw Error('Original decoded-pixel callback and owner required');
+    // Shared callback-only fixtures have no new static module dependency. The
+    // matrix's explicit Chrome entry injects the closed owned-reader factory.
+    const decoded=videoObserver===RTC_DECODED_VIDEO_PROFILE?decodedVideoOwnerFactory({observe:decodedVideo,invalid}):null;
     const audioBoundaries=rtcAudioBoundaryDiagnostics();
     const render=Rtc.prototype.render,capture=Rtc.prototype.capture;
     const sourcePrototype=MediaStreamAudioSourceNode.prototype;
@@ -96,7 +103,19 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
         const previous=rendering;rendering=this.input.connectionId;
         // Label the exact existing native peer; never infer owners from creation order.
         globalThis.connectPeerTag?.(this.peer,this.input.connectionId);
-        try{return render.call(this,input,...args);}finally{rendering=previous;}
+        let entry;
+        try{
+            if(decoded&&[...canvases.values()].includes(this.input.connectionId)){
+                if(Object.values(input?.video??{}).length!==1
+                    ||!Object.values(input.video).every(canvas=>canvases.get(canvas)===this.input.connectionId))
+                    throw Error('Exact original matrix RTC render surface required');
+                entry=decoded.begin(this,input);
+            }
+            const result=render.call(this,input,...args);
+            if(entry)decoded.bind(entry,result);
+            return result;
+        }catch(error){if(entry)void decoded.abandon(entry);throw error;}
+        finally{rendering=previous;}
     };
     if(capture)Rtc.prototype.capture=function(...args){
         // Private preparation still owns real capture and decoder readiness.
@@ -150,6 +169,8 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
     };
     return {
         report(){return audioBoundaries.report();},
+        decodedVideoReport(){return decoded?.report()??null;},
+        stopDecodedVideo(){return decoded?.close();},
         attach(connectionId,canvas){
             if(closed||canvases.has(canvas)||canvases.size>=10)throw Error('Bounded original RTC render owners');
             canvases.set(canvas,connectionId);
@@ -171,7 +192,9 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
                 }
                 tap.gain?.disconnect();
             }
+            const decodedVideo=await decoded?.close();
             URL.revokeObjectURL(worklet);canvases.clear();taps.clear();
+            return {decoded_video:decodedVideo??null};
         },
     };
 }

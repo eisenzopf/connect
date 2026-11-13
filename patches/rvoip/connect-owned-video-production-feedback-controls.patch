@@ -1,0 +1,1133 @@
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+@@ -0,0 +1,1121 @@
++//! Actual canonical Backend workers, authenticated RTP/SRTCP, and controlled
++//! encrypted-datagram loss. Core input is forwarded explicitly, not by a managed
++//! Scene tick. The original fixture VP8 keyframe is newly submitted on each
++//! source timestamp; this is not a live encoder, browser, FPS or matrix proof.
++use super::*;
++use crate::peer::PeerRole;
++use rtc::shared::marshal::Marshal;
++use rvoip_core::{
++    capability::DataProtocol,
++    connection::Transport,
++    identity::{AuthenticatedPrincipal, AuthenticationMethod, CredentialKind, IdentityAssurance},
++    participant::{ParticipantKind, ParticipantRole},
++    peer_admission::PeerAdmissionOwner,
++    relationships::{
++        ConnectionBinding, EndpointBinding, IdentityBinding, Membership, SessionAppearance,
++    },
++    staged_streams::direct_subscriptions::*,
++};
++use std::{
++    collections::{BTreeMap, BTreeSet, HashMap, VecDeque},
++    net::SocketAddr,
++    sync::atomic::AtomicUsize,
++};
++use tokio::{
++    io::{AsyncReadExt, AsyncWriteExt},
++    net::UdpSocket,
++    sync::{Notify, OwnedRwLockReadGuard, RwLock},
++};
++use webrtc::media_stream::{track_local::TrackLocal, track_remote::TrackRemote};
++
++fn principal(name: &str) -> AuthenticatedPrincipal {
++    AuthenticatedPrincipal {
++        subject: name.into(),
++        tenant: Some("tenant".into()),
++        scopes: vec![],
++        issuer: Some("fixture".into()),
++        expires_at: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
++        method: AuthenticationMethod::Bearer,
++        assurance: IdentityAssurance::Identified {
++            credential_kind: CredentialKind::Oidc,
++        },
++    }
++}
++fn audio() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "pcmu".into(),
++        clock_rate_hz: 8000,
++        channels: 1,
++        fmtp: None,
++    }
++}
++fn video() -> MediaFormat {
++    MediaFormat::Encoded {
++        name: "vp8".into(),
++        clock_rate_hz: 90000,
++        channels: 0,
++        fmtp: None,
++    }
++}
++fn profile() -> EndpointMediaCapabilities {
++    let capabilities = vec![
++        MediaCapability {
++            medium: Medium::Audio,
++            formats: vec![audio()],
++        },
++        MediaCapability {
++            medium: Medium::Video,
++            formats: vec![video()],
++        },
++        MediaCapability {
++            medium: Medium::Screen,
++            formats: vec![video()],
++        },
++        MediaCapability {
++            medium: Medium::Data,
++            formats: vec![MediaFormat::ReliableOrdered(DataProtocol::Json)],
++        },
++    ];
++    EndpointMediaCapabilities {
++        send: capabilities.clone(),
++        receive: capabilities,
++        max_streams: 8,
++        renegotiation: true,
++    }
++}
++fn desired(kind: Medium) -> DesiredStream {
++    DesiredStream {
++        logical_id: StreamId::from_string(match kind {
++            Medium::Audio => "audio",
++            Medium::Video => "video",
++            Medium::Screen => "screen",
++            Medium::Data => "data",
++        }),
++        medium: kind,
++        direction: StreamDirection::Both,
++    }
++}
++fn owner(name: &str) -> MediaOwner {
++    let principal = principal(name);
++    let identity = IdentityBinding::from_authenticated(
++        &principal,
++        IdentityId::from_string(name),
++        chrono::Utc::now(),
++    )
++    .unwrap();
++    let member = Membership::admit(
++        identity.clone(),
++        ConversationId::from_string("conversation"),
++        ParticipantId::from_string(format!("participant-{name}")),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .unwrap();
++    let presence =
++        SessionAppearance::admit(&member, SessionId::from_string("session"), None).unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        identity.clone(),
++        EndpointId::from_string(format!("endpoint-{name}")),
++        DeviceId::from_string(format!("device-{name}")),
++        Transport::WebRtc,
++        "fixture-address".into(),
++    )
++    .unwrap();
++    endpoint
++        .verify(&identity, "fixture-evidence".into(), chrono::Utc::now())
++        .unwrap();
++    let mut connection = ConnectionBinding::prepare(
++        &member,
++        &presence,
++        &endpoint,
++        ConnectionId::from_string(name),
++    )
++    .unwrap();
++    connection
++        .observe_ready(&member, &presence, &endpoint, 1)
++        .unwrap();
++    connection.activate(&member, &presence, &endpoint).unwrap();
++    MediaOwner {
++        actor: member.clone(),
++        member,
++        presence,
++        endpoint,
++        connection,
++        may_control: true,
++        send_media: [Medium::Audio, Medium::Video, Medium::Screen, Medium::Data]
++            .into_iter()
++            .collect(),
++        receive_media: [Medium::Audio, Medium::Video, Medium::Screen, Medium::Data]
++            .into_iter()
++            .collect(),
++        local: profile(),
++        remote: profile(),
++        may_route_source: true,
++    }
++}
++struct Policy {
++    owners: HashMap<String, MediaOwner>,
++    guard: Arc<RwLock<()>>,
++    mode: AtomicUsize,
++    attempts: AtomicUsize,
++    original_attempts: AtomicUsize,
++    grant_until: Mutex<Option<chrono::DateTime<Utc>>>,
++}
++struct Lease {
++    owner: MediaOwner,
++    _guard: OwnedRwLockReadGuard<()>,
++    until: Option<chrono::DateTime<Utc>>,
++}
++impl MediaAuthorityLease for Lease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<Utc>> {
++        self.until
++    }
++}
++impl Policy {
++    fn read(
++        &self,
++        scope: &MediaScope<'_>,
++        original: bool,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
++            self.attempts.fetch_add(1, Ordering::SeqCst);
++            if original {
++                self.original_attempts.fetch_add(1, Ordering::SeqCst);
++            }
++            match self.mode.load(Ordering::SeqCst) {
++                1 => {
++                    return Err(StreamControlError::Backpressure);
++                }
++                2 => return Err(StreamControlError::NotReady),
++                3 => return Err(StreamControlError::Authority),
++                _ => {}
++            }
++        }
++        let guard = self
++            .guard
++            .clone()
++            .try_read_owned()
++            .map_err(|_| StreamControlError::Authority)?;
++        Ok(Box::new(Lease {
++            owner: self.owners.get(scope.connection.as_str()).unwrap().clone(),
++            _guard: guard,
++            until: if scope.connection.as_str() == "alice"
++                && matches!(scope.purpose, MediaPurpose::Publish)
++            {
++                *self.grant_until.lock().unwrap()
++            } else {
++                None
++            },
++        }))
++    }
++}
++impl MediaPolicy for Policy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.read(scope, false)
++    }
++    fn current_original_ingress(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.read(scope, true)
++    }
++}
++
++// Exact existing public 640x360 black libvpx keyframe fixture, copied as bytes.
++const KEY: &[u8] = &[
++    0x50, 0x33, 0x00, 0x9d, 0x01, 0x2a, 0x80, 0x02, 0x68, 0x01, 0x05, 0x87, 0x08, 0x85, 0x85, 0x88,
++    0x99, 0x84, 0x88, 0x1d, 0x82, 0x00, 0x06, 0x16, 0x04, 0xf7, 0x06, 0x81, 0x64, 0x9f, 0x6b, 0xdb,
++    0x9b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b,
++    0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27,
++    0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38,
++    0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b,
++    0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27,
++    0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38,
++    0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b,
++    0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27,
++    0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38,
++    0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b,
++    0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27,
++    0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38,
++    0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b,
++    0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27,
++    0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38,
++    0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b,
++    0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27,
++    0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38,
++    0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b,
++    0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27,
++    0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38,
++    0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b,
++    0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27,
++    0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38, 0x7b, 0x27, 0x38,
++    0x7b, 0x27, 0x37, 0x80, 0xfe, 0xf1, 0x18, 0x40,
++];
++
++fn until() -> tokio::time::Instant {
++    tokio::time::Instant::now() + Duration::from_secs(2)
++}
++
++// A two-socket loopback NAT. The ordinary peer still writes and receives real
++// authenticated UDP. Only one exact clear RTP header is dropped; no protected
++// byte is rewritten, and the server has already completed its real send_to.
++#[derive(Clone, Copy)]
++struct Lost {
++    ssrc: u32,
++    seq: u16,
++    timestamp: u32,
++    at: Instant,
++}
++#[derive(Default)]
++struct Loss {
++    armed: Option<(u32, u16, bool)>,
++    lost: Option<Lost>,
++    feedback_packets_held: usize,
++    feedback_packets_released: usize,
++}
++struct Proxy {
++    a: Arc<UdpSocket>,
++    b: Arc<UdpSocket>,
++    state: Arc<Mutex<Loss>>,
++    dropped: Arc<Notify>,
++    stop: CancellationToken,
++    task: Option<tokio::task::JoinHandle<std::io::Result<()>>>,
++}
++impl Proxy {
++    async fn new() -> Self {
++        Self {
++            a: Arc::new(UdpSocket::bind("127.0.0.1:0").await.unwrap()),
++            b: Arc::new(UdpSocket::bind("127.0.0.1:0").await.unwrap()),
++            state: Arc::new(Mutex::new(Loss::default())),
++            dropped: Arc::new(Notify::new()),
++            stop: CancellationToken::new(),
++            task: None,
++        }
++    }
++    fn rewrite(sdp: &str, proxy: SocketAddr) -> (String, SocketAddr) {
++        let mut original = None;
++        let mut output = String::new();
++        for line in sdp.lines() {
++            if line.starts_with("a=candidate:") {
++                let mut fields = line
++                    .split_whitespace()
++                    .map(str::to_owned)
++                    .collect::<Vec<_>>();
++                assert!(
++                    fields.len() >= 8
++                        && fields[1] == "1"
++                        && fields[2].eq_ignore_ascii_case("udp")
++                        && fields[6] == "typ"
++                        && fields[7] == "host",
++                    "isolated single-host UDP candidate required"
++                );
++                let address: SocketAddr = format!("{}:{}", fields[4], fields[5]).parse().unwrap();
++                assert!(address.ip().is_loopback());
++                assert!(
++                    original
++                        .replace(address)
++                        .is_none_or(|previous| previous == address)
++                );
++                fields[4] = proxy.ip().to_string();
++                fields[5] = proxy.port().to_string();
++                output.push_str(&fields.join(" "));
++            } else {
++                output.push_str(line);
++            }
++            output.push_str("\r\n");
++        }
++        (output, original.expect("actual ICE host candidate"))
++    }
++    fn start(&mut self, server: SocketAddr, client: SocketAddr) {
++        let (a, b, state, dropped, stop) = (
++            self.a.clone(),
++            self.b.clone(),
++            self.state.clone(),
++            self.dropped.clone(),
++            self.stop.clone(),
++        );
++        self.task = Some(tokio::spawn(async move {
++            let mut from_server = [0u8; 2048];
++            let mut from_client = [0u8; 2048];
++            let mut held: VecDeque<Vec<u8>> = VecDeque::new();
++            let mut release = None;
++            loop {
++                let wake = release
++                    .unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_secs(86400));
++                tokio::select! {
++                    _=stop.cancelled()=>return Ok(()),
++                    received=b.recv_from(&mut from_server)=>{
++                        let (size,owner)=received?; if owner!=server {continue;}
++                        let bytes=&from_server[..size];
++                        let skip={let mut current=state.lock().unwrap();
++                            if let Some((ssrc,seq,late))=current.armed {
++                                if size>=12 && bytes[0]>>6==2 && bytes[1]&127==96
++                                    &&u32::from_be_bytes(bytes[8..12].try_into().unwrap())==ssrc
++                                    &&u16::from_be_bytes(bytes[2..4].try_into().unwrap())==seq {
++                                    current.armed=None;
++                                    current.lost=Some(Lost{ssrc,seq,timestamp:u32::from_be_bytes(bytes[4..8].try_into().unwrap()),at:Instant::now()});
++                                    if late {release=Some(tokio::time::Instant::now()+Duration::from_millis(250));}
++                                    true
++                                } else {false}
++                            } else {false}};
++                        if skip {dropped.notify_one();} else {a.send_to(bytes,client).await?;}
++                    },
++                    received=a.recv_from(&mut from_client)=>{
++                        let (size,owner)=received?; if owner!=client {continue;}
++                        if release.is_some_and(|at|at>tokio::time::Instant::now()) {
++                            if held.len()>=64 {return Err(std::io::Error::other("bounded original feedback queue exhausted"));}
++                            held.push_back(from_client[..size].to_vec());
++                            state.lock().unwrap().feedback_packets_held+=1;
++                        } else {b.send_to(&from_client[..size],server).await?;}
++                    },
++                    _=tokio::time::sleep_until(wake),if release.is_some()=>{
++                        while let Some(bytes)=held.pop_front(){b.send_to(&bytes,server).await?;state.lock().unwrap().feedback_packets_released+=1;}
++                        release=None;
++                    },
++                }
++            }
++        }));
++    }
++    fn arm(&self, ssrc: u32, seq: u16, late: bool) {
++        let mut s = self.state.lock().unwrap();
++        assert!(s.armed.is_none() && s.lost.is_none());
++        s.armed = Some((ssrc, seq, late));
++    }
++    async fn lost(&self) -> Lost {
++        loop {
++            let notice = self.dropped.notified();
++            if let Some(value) = self.state.lock().unwrap().lost {
++                return value;
++            }
++            tokio::time::timeout_at(until(), notice)
++                .await
++                .expect("actual proxy did not observe/drop exact original SRTP");
++        }
++    }
++    async fn close(&mut self) -> bool {
++        self.stop.cancel();
++        match self.task.take() {
++            Some(task) => matches!(task.await, Ok(Ok(()))),
++            None => true,
++        }
++    }
++}
++
++async fn prime_exact(sender: &Arc<RvoipPeerConnection>, receiver: &Arc<RvoipPeerConnection>) {
++    let until = tokio::time::Instant::now() + Duration::from_secs(3);
++    let writer = sender.outbound_audio_writer().unwrap();
++    let video = sender.local_video_track().unwrap();
++    loop {
++        let (audio, picture) = receiver.remote_media_ready().await;
++        if audio && picture {
++            return;
++        }
++        assert!(
++            tokio::time::Instant::now() < until,
++            "actual negotiation media timed out"
++        );
++        writer
++            .write_audio(
++                crate::peer::builder::OPUS_PAYLOAD_TYPE,
++                0,
++                crate::media::pump::silent_opus_payload(),
++            )
++            .await
++            .unwrap();
++        video
++            .write_rtp(crate::media::pump::silent_vp8_rtp_packet_for_ssrc(
++                sender.local_video_ssrc().unwrap(),
++                1,
++                3000,
++            ))
++            .await
++            .unwrap();
++        tokio::time::sleep(Duration::from_millis(20)).await;
++    }
++}
++
++// Every resource is registered before its first awaited setup operation. A
++// work panic therefore cannot bypass the original controllers/peers/proxy joins.
++struct Harness {
++    policy: Arc<Policy>,
++    routes: Arc<DashMap<ConnectionId, Arc<Route>>>,
++    identity: Arc<()>,
++    owners: Vec<PeerAdmissionOwner>,
++    physical: Vec<Arc<WebRtcPhysicalBinding>>,
++    remote: Vec<Arc<RvoipPeerConnection>>,
++    backends: Vec<Arc<Backend>>,
++    controllers: Vec<Arc<StreamController>>,
++    proxy: Option<Proxy>,
++    input: Option<mpsc::Receiver<MediaPacket>>,
++    source_track: Option<Arc<webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP>>,
++    target_track: Option<Arc<dyn TrackRemote>>,
++    observed: Vec<(u32, u16)>,
++    next_sequence: u16,
++    next_timestamp: u32,
++}
++impl Harness {
++    fn new() -> Self {
++        Self {
++            policy: Arc::new(Policy {
++                owners: [
++                    ("alice".into(), owner("alice")),
++                    ("bob".into(), owner("bob")),
++                ]
++                .into(),
++                guard: Arc::new(RwLock::new(())),
++                mode: AtomicUsize::new(0),
++                attempts: AtomicUsize::new(0),
++                original_attempts: AtomicUsize::new(0),
++                grant_until: Mutex::new(None),
++            }),
++            routes: Arc::new(DashMap::new()),
++            identity: Arc::new(()),
++            owners: vec![],
++            physical: vec![],
++            remote: vec![],
++            backends: vec![],
++            controllers: vec![],
++            proxy: None,
++            input: None,
++            source_track: None,
++            target_track: None,
++            observed: vec![],
++            next_sequence: 0,
++            next_timestamp: 0,
++        }
++    }
++    async fn pair(&mut self, name: &str, loss: bool) {
++        let facts = self.policy.owners[name].clone();
++        let principal = principal(name);
++        let cancel = CancellationToken::new();
++        let owner = PeerAdmissionOwner::new(
++            &principal,
++            facts.member.identity().clone(),
++            facts.endpoint.device().clone(),
++            cancel.child_token(),
++            Default::default(),
++        )
++        .unwrap();
++        let physical = WebRtcPhysicalBinding::new(&owner.peer(), cancel.child_token());
++        physical
++            .bind(
++                &owner.peer(),
++                &ConnectionId::from_string(name),
++                cancel.child_token(),
++                &self.identity,
++            )
++            .unwrap();
++        self.owners.push(owner);
++        self.physical.push(physical.clone());
++        let mut config = WebRtcConfig::loopback();
++        config.require_vp8_audio_video_profile = true;
++        physical
++            .start_peer(config.clone(), PeerRole::Offerer)
++            .unwrap();
++        let server = physical.peer(until()).await.unwrap();
++        let client = RvoipPeerConnection::new(&config, PeerRole::Answerer)
++            .await
++            .unwrap();
++        self.remote.push(client.clone());
++        server.add_local_audio_track().await.unwrap();
++        server.add_local_video_track().await.unwrap();
++        let offer = server.create_offer_and_gather().await.unwrap();
++        let answer = if loss {
++            self.proxy = Some(Proxy::new().await);
++            let proxy = self.proxy.as_mut().unwrap();
++            let (offered, server_address) = Proxy::rewrite(&offer, proxy.a.local_addr().unwrap());
++            let answer = client.accept_offer_and_gather(&offered).await.unwrap();
++            let (answered, client_address) = Proxy::rewrite(&answer, proxy.b.local_addr().unwrap());
++            proxy.start(server_address, client_address);
++            answered
++        } else {
++            client.accept_offer_and_gather(&offer).await.unwrap()
++        };
++        server.set_remote_answer(&answer).await.unwrap();
++        tokio::try_join!(
++            server.wait_connected(Duration::from_secs(3)),
++            client.wait_connected(Duration::from_secs(3))
++        )
++        .unwrap();
++        // Fixed genuine negotiation media sequence1 in each direction. No
++        // unrelated missing priming slots or sequence guesses enter the test.
++        prime_exact(&server, &client).await;
++        prime_exact(&client, &server).await;
++        let backend = Backend::new(
++            ConnectionId::from_string(name),
++            physical.clone(),
++            cancel.child_token(),
++            Arc::downgrade(&self.routes),
++        );
++        self.backends.push(backend.clone());
++        let controller = StreamController::new(
++            ConversationId::from_string("conversation"),
++            SessionId::from_string("session"),
++            ConnectionId::from_string(name),
++            principal,
++            self.policy.clone(),
++            backend.clone(),
++            handles(&self.owners.last().unwrap().peer()),
++            8,
++        )
++        .unwrap();
++        self.controllers.push(controller.clone());
++        let route = Arc::new(Route {
++            session: SessionId::from_string("session"),
++            member: facts.member,
++            endpoint: facts.endpoint,
++            installation: Mutex::new(Some(Installation {
++                activation: RtcMediaActivation::new(&controller, &backend),
++                controller: controller.clone(),
++                backend,
++            })),
++            binding: physical,
++            peer: Arc::downgrade(&self.owners.last().unwrap().peer()),
++            cancel,
++        });
++        self.routes.insert(ConnectionId::from_string(name), route);
++        controller
++            .change(
++                controller.revision(),
++                &[desired(Medium::Video)],
++                &BTreeSet::new(),
++                until(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++    }
++    async fn setup(&mut self) {
++        self.pair("alice", false).await;
++        self.pair("bob", true).await;
++        self.controllers[1]
++            .change_direct_subscriptions(
++                self.controllers[1].revision(),
++                DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                    &self.controllers[0],
++                    desired(Medium::Video).logical_id.clone(),
++                    desired(Medium::Video).logical_id,
++                )]),
++                until(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++        self.input = Some(
++            self.controllers[0]
++                .take_ingress(&desired(Medium::Video).logical_id)
++                .unwrap(),
++        );
++        while self.input.as_mut().unwrap().try_recv().is_ok() {}
++        self.source_track = self.remote[0].local_video_track();
++        self.target_track = self.remote[1].discover_remote_video_track().await;
++        let track = self.target_track.as_ref().unwrap();
++        let limit = tokio::time::Instant::now() + Duration::from_millis(100);
++        let mut last = None;
++        loop {
++            match tokio::time::timeout_at(limit, track.poll()).await {
++                Ok(Some(TrackRemoteEvent::OnRtpPacket(packet, _))) => {
++                    last = Some(packet.header.sequence_number)
++                }
++                Err(_) | Ok(None) => break,
++                _ => {}
++            }
++        }
++        while self.input.as_mut().unwrap().try_recv().is_ok() {}
++        self.next_sequence = last
++            .expect("target original negotiation RTP")
++            .wrapping_add(1);
++        self.next_timestamp = u32::from(self.next_sequence) * 3000;
++    }
++    async fn send_key(&mut self) -> (u32, Vec<u16>) {
++        let timestamp = self.next_timestamp;
++        self.next_timestamp = self.next_timestamp.wrapping_add(3000);
++        let source_ssrc = self.remote[0].local_video_ssrc().unwrap();
++        let mut sequences = vec![];
++        for fragment in crate::media::packetize::vp8::packetize_vp8(KEY, 120) {
++            let sequence = self.next_sequence;
++            self.next_sequence = self.next_sequence.wrapping_add(1);
++            sequences.push(sequence);
++            self.source_track
++                .as_ref()
++                .unwrap()
++                .write_rtp(rtc::rtp::Packet {
++                    header: rtc::rtp::Header {
++                        version: 2,
++                        payload_type: 96,
++                        ssrc: source_ssrc,
++                        sequence_number: sequence,
++                        timestamp,
++                        marker: fragment.marker,
++                        ..Default::default()
++                    },
++                    payload: fragment.payload,
++                })
++                .await
++                .unwrap();
++            let packet = tokio::time::timeout_at(until(), self.input.as_mut().unwrap().recv())
++                .await
++                .unwrap()
++                .unwrap();
++            packet
++                .try_forward_to(&self.controllers[1], &desired(Medium::Video).logical_id)
++                .unwrap();
++        }
++        assert!(sequences.len() >= 3);
++        (timestamp, sequences)
++    }
++    async fn collect(
++        &mut self,
++        timestamp: u32,
++        sequences: &[u16],
++        bound: tokio::time::Instant,
++    ) -> Vec<rtc::rtp::Packet> {
++        let mut packets = BTreeMap::new();
++        let track = self.target_track.as_ref().unwrap().clone();
++        while packets.len() < sequences.len() {
++            match tokio::time::timeout_at(bound, track.poll()).await {
++                Ok(Some(TrackRemoteEvent::OnRtpPacket(packet, _))) => {
++                    assert!(self.observed.len() < 128, "bounded original receiver facts");
++                    self.observed
++                        .push((packet.header.timestamp, packet.header.sequence_number));
++                    if packet.header.timestamp == timestamp
++                        && sequences.contains(&packet.header.sequence_number)
++                    {
++                        packets.insert(packet.header.sequence_number, packet);
++                    }
++                }
++                Ok(None) | Err(_) => break,
++                _ => {}
++            }
++        }
++        sequences.iter().filter_map(|n| packets.remove(n)).collect()
++    }
++    async fn drain_hints(&self) {
++        let notice = self.remote[0].video_keyframe_requests();
++        for _ in 0..16 {
++            if tokio::time::timeout(Duration::from_millis(2), notice.notified())
++                .await
++                .is_err()
++            {
++                break;
++            }
++        }
++    }
++    async fn actual_nack(&self, ssrc: u32, sequence: u16) {
++        self.target_track
++            .as_ref()
++            .unwrap()
++            .write_rtcp(vec![Box::new(
++                rtc::rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack {
++                    sender_ssrc: self.remote[1].local_video_ssrc().unwrap_or(0),
++                    media_ssrc: ssrc,
++                    nacks: vec![
++                        rtc::rtcp::transport_feedbacks::transport_layer_nack::NackPair {
++                            packet_id: sequence,
++                            lost_packets: 0,
++                        },
++                    ],
++                },
++            )])
++            .await
++            .unwrap();
++    }
++    async fn baseline(&mut self) {
++        let (ts, seq) = self.send_key().await;
++        let packets = self.collect(ts, &seq, until()).await;
++        assert_eq!(assemble(&packets), Some(KEY.to_vec()));
++        tokio::time::sleep(Duration::from_millis(300)).await;
++        self.drain_hints().await;
++    }
++    async fn close(&mut self) -> bool {
++        self.policy.mode.store(0, Ordering::SeqCst);
++        let mut clean = true;
++        for backend in &self.backends {
++            clean &= matches!(
++                std::panic::AssertUnwindSafe(backend.close())
++                    .catch_unwind()
++                    .await,
++                Ok(Ok(()))
++            );
++        }
++        for controller in &self.controllers {
++            clean &= matches!(
++                std::panic::AssertUnwindSafe(controller.shutdown(until()))
++                    .catch_unwind()
++                    .await,
++                Ok(0)
++            );
++        }
++        for binding in &self.physical {
++            clean &= matches!(
++                std::panic::AssertUnwindSafe(binding.shutdown())
++                    .catch_unwind()
++                    .await,
++                Ok(Ok(()))
++            );
++        }
++        for client in &self.remote {
++            clean &= matches!(
++                std::panic::AssertUnwindSafe(client.close())
++                    .catch_unwind()
++                    .await,
++                Ok(Ok(()))
++            );
++        }
++        if let Some(proxy) = &mut self.proxy {
++            clean &= matches!(
++                std::panic::AssertUnwindSafe(proxy.close())
++                    .catch_unwind()
++                    .await,
++                Ok(true)
++            );
++        }
++        self.input = None;
++        self.target_track = None;
++        self.source_track = None;
++        self.routes.clear();
++        self.controllers.clear();
++        self.backends.clear();
++        self.physical.clear();
++        self.remote.clear();
++        self.owners.clear();
++        clean && self.policy.guard.clone().try_write_owned().is_ok()
++    }
++}
++fn assemble(packets: &[rtc::rtp::Packet]) -> Option<Vec<u8>> {
++    if packets.len() < 3
++        || packets.first()?.payload.first()? & 0x10 == 0
++        || !packets.last()?.header.marker
++    {
++        return None;
++    }
++    let mut bytes = vec![];
++    for (index, packet) in packets.iter().enumerate() {
++        if packet.payload.is_empty()
++            || packet.payload[0] & 0x80 != 0
++            || index > 0
++                && (packet.payload[0] & 0x10 != 0
++                    || packet.header.sequence_number
++                        != packets[index - 1].header.sequence_number.wrapping_add(1))
++        {
++            return None;
++        }
++        bytes.extend_from_slice(&packet.payload[1..]);
++    }
++    Some(bytes)
++}
++// One actual codec child, after every RTC/Core/proxy owner has drained. No
++// output becomes RTP/decoder timing credit or a renewed permission lifetime.
++async fn decoded_key(bytes: &[u8]) -> (bool, bool) {
++    let mut ivf = b"DKIF\0\0\x20\0VP80".to_vec();
++    ivf.extend(640u16.to_le_bytes());
++    ivf.extend(360u16.to_le_bytes());
++    for n in [90000u32, 1, 1, 0] {
++        ivf.extend(n.to_le_bytes());
++    }
++    ivf.extend((bytes.len() as u32).to_le_bytes());
++    ivf.extend(0u64.to_le_bytes());
++    ivf.extend(bytes);
++    let mut child = tokio::process::Command::new("ffmpeg")
++        .args([
++            "-nostdin",
++            "-hide_banner",
++            "-loglevel",
++            "error",
++            "-f",
++            "ivf",
++            "-i",
++            "pipe:0",
++            "-vf",
++            "crop=16:16:0:0",
++            "-pix_fmt",
++            "yuv420p",
++            "-frames:v",
++            "1",
++            "-f",
++            "rawvideo",
++            "pipe:1",
++        ])
++        .stdin(std::process::Stdio::piped())
++        .stdout(std::process::Stdio::piped())
++        .stderr(std::process::Stdio::null())
++        .kill_on_drop(true)
++        .spawn()
++        .unwrap();
++    let cutoff = until();
++    let mut input = child.stdin.take().unwrap();
++    let mut output = child.stdout.take().unwrap();
++    let work = tokio::time::timeout_at(cutoff, input.write_all(&ivf)).await;
++    drop(input);
++    let (status, joined, forced) = match tokio::time::timeout_at(cutoff, child.wait()).await {
++        Ok(Ok(status)) => (Some(status), true, false),
++        Ok(Err(_)) | Err(_) => {
++            // Always attempt the same original child wait after failed/timed
++            // observation. A forced outcome is never a successful codec proof.
++            let _ = child.start_kill();
++            match child.wait().await {
++                Ok(status) => (Some(status), true, true),
++                Err(_) => (None, false, true),
++            }
++        }
++    };
++    if !joined {
++        return (false, false);
++    }
++    let mut pixels = vec![];
++    let read = output.take(385).read_to_end(&mut pixels).await;
++    (
++        joined,
++        !forced
++            && matches!(work, Ok(Ok(())))
++            && status.is_some_and(|v| v.success())
++            && read.is_ok()
++            && pixels.len() == 384,
++    )
++}
++
++#[tokio::test]
++async fn canonical_owned_vp8_fragment_loss_repairs_before_original_expiry_without_source_pli() {
++    let mut h = Harness::new();
++    let result = std::panic::AssertUnwindSafe(async {
++        h.setup().await;
++        h.baseline().await;
++        let output_ssrc = h.physical[1]
++            .peer(until())
++            .await
++            .unwrap()
++            .local_video_ssrc()
++            .unwrap();
++        let lost_seq = h.next_sequence.wrapping_add(1);
++        h.proxy.as_ref().unwrap().arm(output_ssrc, lost_seq, false);
++        let (ts, seq) = h.send_key().await;
++        let lost = h.proxy.as_ref().unwrap().lost().await;
++        assert_eq!(
++            (lost.ssrc, lost.seq, lost.timestamp),
++            (output_ssrc, lost_seq, ts)
++        );
++        h.actual_nack(output_ssrc, lost_seq).await;
++        let packets = h.collect(ts, &seq, until()).await;
++        let repaired = packets.iter().any(|p| p.header.sequence_number == lost_seq);
++        let repair_arrival_us = lost.at.elapsed().as_micros();
++        let pli = tokio::time::timeout(
++            Duration::from_millis(150),
++            h.remote[0].video_keyframe_requests().notified(),
++        )
++        .await
++        .is_ok();
++        (
++            assemble(&packets),
++            repaired,
++            pli,
++            lost.at.elapsed().as_micros(),
++            repair_arrival_us,
++        )
++    })
++    .catch_unwind()
++    .await;
++    let clean = h.close().await;
++    if let Err(panic) = result {
++        std::panic::resume_unwind(panic);
++    }
++    let (bytes, repaired, pli, elapsed, repair_arrival_us) = result.unwrap();
++    let (codec_joined, codec) = match &bytes {
++        Some(bytes) => decoded_key(bytes).await,
++        None => (true, false),
++    };
++    println!(
++        "canonical_fragment_repair joined={clean} repaired={repaired} source_pli={pli} repair_arrival_us={repair_arrival_us} receive_to_terminal_us={elapsed} codec_joined={codec_joined} codec={codec}"
++    );
++    assert!(clean && codec_joined);
++    assert!(
++        repaired && !pli && bytes.as_deref() == Some(KEY) && codec,
++        "current original fragment did not repair through actual owned RTP without source PLI"
++    );
++}
++
++#[tokio::test]
++async fn canonical_expired_vp8_fragment_nack_drives_production_feedback_and_fresh_key_recovery() {
++    let mut h = Harness::new();
++    let result = std::panic::AssertUnwindSafe(async {
++        h.setup().await;
++        h.baseline().await;
++        let output_ssrc = h.physical[1]
++            .peer(until())
++            .await
++            .unwrap()
++            .local_video_ssrc()
++            .unwrap();
++        let lost_seq = h.next_sequence.wrapping_add(1);
++        h.proxy.as_ref().unwrap().arm(output_ssrc, lost_seq, true);
++        let (old_ts, old_seq) = h.send_key().await;
++        let lost = h.proxy.as_ref().unwrap().lost().await;
++        h.actual_nack(output_ssrc, lost_seq).await;
++        // All reverse packets remain in the exact original proxy until250ms
++        // after successful original send: beyond both100ms submission and200ms
++        // original Core packet custody. No old budget is renewed.
++        let source_pli =
++            tokio::time::timeout_at(until(), h.remote[0].video_keyframe_requests().notified())
++                .await
++                .is_ok();
++        let age = lost.at.elapsed();
++        let _old = h
++            .collect(
++                old_ts,
++                &old_seq,
++                tokio::time::Instant::now() + Duration::from_millis(10),
++            )
++            .await;
++        let fresh_at = Instant::now();
++        let (fresh_ts, fresh_seq) = h.send_key().await;
++        let fresh = h.collect(fresh_ts, &fresh_seq, until()).await;
++        let fresh_age = fresh_at.elapsed();
++        let state = h.proxy.as_ref().unwrap().state.lock().unwrap();
++        (
++            source_pli,
++            age,
++            h.observed.contains(&(old_ts, lost_seq)),
++            assemble(&fresh),
++            fresh_ts != old_ts,
++            fresh_age,
++            state.feedback_packets_held,
++            state.feedback_packets_released,
++        )
++    })
++    .catch_unwind()
++    .await;
++    let clean = h.close().await;
++    if let Err(panic) = result {
++        std::panic::resume_unwind(panic);
++    }
++    let (pli, age, stale, bytes, new_timestamp, fresh_age, held, released) = result.unwrap();
++    let (codec_joined, codec) = match &bytes {
++        Some(bytes) => decoded_key(bytes).await,
++        None => (true, false),
++    };
++    println!(
++        "canonical_expired_recovery joined={clean} source_pli={pli} original_age_us={} stale_fragment={stale} fresh_rtp_us={} held={held} released={released} codec_joined={codec_joined} codec={codec}",
++        age.as_micros(),
++        fresh_age.as_micros()
++    );
++    assert!(clean && codec_joined);
++    assert!(
++        pli && age >= Duration::from_millis(250) && held > 0 && released == held && !stale,
++        "expired original fragment was replayed or actual production feedback did not reach current source"
++    );
++    assert!(
++        new_timestamp
++            && fresh_age < Duration::from_millis(200)
++            && bytes.as_deref() == Some(KEY)
++            && codec,
++        "fresh source keyframe did not recover actual selected receiver under new original input custody"
++    );
++}
++
++#[tokio::test]
++async fn canonical_expired_fragment_feedback_refuses_revoked_paused_generation_foreign_and_cancelled_source()
++ {
++    let mut observations = vec![];
++    for action in 0..5 {
++        let mut h = Harness::new();
++        let result = std::panic::AssertUnwindSafe(async {
++            h.setup().await;
++            h.baseline().await;
++            let output_ssrc = h.physical[1]
++                .peer(until())
++                .await
++                .unwrap()
++                .local_video_ssrc()
++                .unwrap();
++            let lost_seq = h.next_sequence.wrapping_add(1);
++            // A foreign NACK needs no genuine hole: otherwise the receiver's
++            // legitimate automatic NACK would independently request recovery.
++            if action == 3 {
++                h.actual_nack(output_ssrc ^ 1, h.next_sequence.wrapping_sub(1))
++                    .await;
++                let pli = tokio::time::timeout(
++                    Duration::from_millis(600),
++                    h.remote[0].video_keyframe_requests().notified(),
++                )
++                .await
++                .is_ok();
++                return (pli, false, Duration::ZERO);
++            }
++            h.proxy.as_ref().unwrap().arm(output_ssrc, lost_seq, true);
++            let (ts, seq) = h.send_key().await;
++            let lost = h.proxy.as_ref().unwrap().lost().await;
++            match action {
++                0 => h.policy.mode.store(3, Ordering::SeqCst),
++                1 => {
++                    h.controllers[0]
++                        .set_paused(
++                            &desired(Medium::Video).logical_id,
++                            h.controllers[0].revision(),
++                            true,
++                            until(),
++                        )
++                        .await
++                        .unwrap();
++                }
++                2 => {
++                    h.controllers[0]
++                        .change(
++                            h.controllers[0].revision(),
++                            &[desired(Medium::Video)],
++                            &[desired(Medium::Video).logical_id].into_iter().collect(),
++                            until(),
++                            CancellationToken::new(),
++                        )
++                        .await
++                        .unwrap();
++                }
++                3 => {}
++                4 => {
++                    h.routes
++                        .get(&ConnectionId::from_string("alice"))
++                        .unwrap()
++                        .cancel
++                        .cancel();
++                }
++                _ => unreachable!(),
++            }
++            h.actual_nack(output_ssrc, lost_seq).await;
++            let pli = tokio::time::timeout(
++                Duration::from_millis(600),
++                h.remote[0].video_keyframe_requests().notified(),
++            )
++            .await
++            .is_ok();
++            let old = h
++                .collect(
++                    ts,
++                    &seq,
++                    tokio::time::Instant::now() + Duration::from_millis(10),
++                )
++                .await;
++            (
++                pli,
++                old.iter().any(|p| p.header.sequence_number == lost_seq),
++                lost.at.elapsed(),
++            )
++        })
++        .catch_unwind()
++        .await;
++        let clean = h.close().await;
++        if let Err(panic) = result {
++            std::panic::resume_unwind(panic);
++        }
++        let (pli, replayed, age) = result.unwrap();
++        observations.push((action, clean, pli, replayed, age.as_micros()));
++    }
++    println!("canonical_feedback_negative {observations:?}");
++    assert!(
++        observations
++            .iter()
++            .all(|(_, clean, pli, replayed, _)| *clean && !*pli && !*replayed),
++        "wrong or stale source acquired repair/PLI authority"
++    );
++}
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -1607,3 +1607,6 @@
+         assert!(!third.await);
+     }
+ }
++
++#[cfg(test)]
++mod picture_feedback_causal_tests;

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-12T19:18:27.139027+00:00",
-  "revision": 56,
+  "updated_at": "2026-11-13T01:05:20.647004+00:00",
+  "revision": 58,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -163,7 +163,7 @@
         "P1.1"
       ],
       "status": "component-verified",
-      "implementation_state": "Final coherent focused batch passes all253 checks: Store70 214/214 and Core71 39/39 on identical143 guarded source paths, normal dependency generation414/source-lock7ce0e041. Both original Root controllers exited0 and joined, all original build/inventory/test groups joined, and source/binary/input guards held. Independent reviewers verified both components. Ready latency36.038ms is below unchanged50ms (prior focused35.841ms; old53.899ms). All10 Data isolation/security controls,18 retained Gate/Codec/Subscribe controls, exact queued replay and the new closed-input Ready constructor control pass. All four actual Core unchanged-AV routing/resource/selection witness controls pass. Reviewed test-only locator and std panic helper patches correct prior zero-test Core compile failures without changing assertions. Next: commit/push byte-identical tested code with this evidence; execute independently source-reviewed complete329 on the new clean commit, retaining all prior296 and both full62 programmes last. Each full programme additionally proves actual first-COMMIT narrow4DataGates+8subscriptions. Complete329, same-source nativeARM shipping and all32/432 remain unqualified. Last complete26 is295/296 with one21<24fps ES256 retained-video bin; lastmatrixv215 stays0/32. No quality, cleanup, permission or timing acceptance changes. G6-054 stays parked.",
+      "implementation_state": "Actual Ready PCM/security controls pass; all214 retained Store and9 continuation controls pass;40.093ms<50. Whole matrix effect pending.",
       "proposed_fix": "Classify ledger/status/metrics versus real authority changes and scope invalidation to affected participants, connections and streams.",
       "required_evidence": "Unrelated Data/status/participant bookkeeping cannot interrupt admitted flows; membership/credential/key/ownership/stream changes and expiry still stop affected traffic. No retained stale authority or packet-side database query introduced.",
       "coordinator_review": {
@@ -276,7 +276,7 @@
         "b2b64ea5"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T19:18:27.139027+00:00",
+      "updated_at": "2026-11-13T01:05:20.647004+00:00",
       "mapped_check_count": 8,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -545,7 +545,7 @@
       "status": "combined-workload-verified",
       "implementation_state": "Both full workloads completed both Session Ends; last waits64.525885/64.554161 seconds under the original67-second cutoff. Ten-second idle observed no runtime owners. Full cases still fail video; matrix resource qualification remains pending.",
       "proposed_fix": "Batch both current Session refreshes, then both original End submissions, then both waits. Preserve the same Client, logical IDs, topology CAS, first failure and original 67-second cutoff.",
-      "required_evidence": "Same-helper regression and actual concurrent workload meet original62–67s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
+      "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
         "status": "Scoped combined-workload assertions accepted; matrix verification pending",
         "root_cause_confirmed": false,
@@ -722,8 +722,8 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "combined-workload-verified",
-      "implementation_state": "The allocation-overlap regression and all focused audio assertions passed in complete294. Both full62 programmes reached all four real private Opus barriers and12 during snapshots each above2880 consecutive decoded samples. No uninterrupted end-to-end audio, no-reset or matrix qualification is inferred.",
+      "status": "diagnosing",
+      "implementation_state": "Actual candidate epoch loss reproduced; browser identity ambiguity and remote severe gaps remain separately unresolved.",
       "proposed_fix": "Trace source quanta through custody, bridge, encoder, transport and decoded output; fix attributable drops under concurrent Data/control.",
       "required_evidence": "Independent capture/decode passes full-duration identity, gaps and approved handoff-cut coverage for all routes; source-quanta attribution remains diagnostic; no relaxed thresholds.",
       "coordinator_review": {
@@ -815,7 +815,7 @@
         "257bcdf3"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T16:30:24.110646+00:00",
+      "updated_at": "2026-11-12T23:56:22.696537+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -955,7 +955,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T19:18:27.139027+00:00",
+      "updated_at": "2026-11-12T23:56:22.696537+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -1004,8 +1004,8 @@
         "P3.2",
         "P4.2"
       ],
-      "status": "diagnosing",
-      "implementation_state": "Final coherent focused batch passes all253 checks: Store70 214/214 and Core71 39/39 on identical143 guarded source paths, normal dependency generation414/source-lock7ce0e041. Both original Root controllers exited0 and joined, all original build/inventory/test groups joined, and source/binary/input guards held. Independent reviewers verified both components. Ready latency36.038ms is below unchanged50ms (prior focused35.841ms; old53.899ms). All10 Data isolation/security controls,18 retained Gate/Codec/Subscribe controls, exact queued replay and the new closed-input Ready constructor control pass. All four actual Core unchanged-AV routing/resource/selection witness controls pass. Reviewed test-only locator and std panic helper patches correct prior zero-test Core compile failures without changing assertions. Next: commit/push byte-identical tested code with this evidence; execute independently source-reviewed complete329 on the new clean commit, retaining all prior296 and both full62 programmes last. Each full programme additionally proves actual first-COMMIT narrow4DataGates+8subscriptions. Complete329, same-source nativeARM shipping and all32/432 remain unqualified. Last complete26 is295/296 with one21<24fps ES256 retained-video bin; lastmatrixv215 stays0/32. No quality, cleanup, permission or timing acceptance changes. G6-054 stays parked.",
+      "status": "in-progress",
+      "implementation_state": "Observer and FD corrections applied;208 focused harness units pass; full runtime qualification pending.",
       "proposed_fix": "Separate missing-handoff coverage from resource leaks; retain required10browserrenderer owners and all actual natural joins.",
       "required_evidence": "All3completecycles, exact original/replacement receipts, zero Session-owned physical owners/tasks/pools, helper/client joins and unchanged end/cleanup deadlines.",
       "coordinator_review": {
@@ -1060,7 +1060,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T19:18:27.139027+00:00",
+      "updated_at": "2026-11-12T23:56:22.696537+00:00",
       "mapped_check_count": 41,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": []
@@ -1118,8 +1118,8 @@
         "P1.1",
         "P2.1"
       ],
-      "status": "in-progress",
-      "implementation_state": "Final coherent focused batch passes all253 checks: Store70 214/214 and Core71 39/39 on identical143 guarded source paths, normal dependency generation414/source-lock7ce0e041. Both original Root controllers exited0 and joined, all original build/inventory/test groups joined, and source/binary/input guards held. Independent reviewers verified both components. Ready latency36.038ms is below unchanged50ms (prior focused35.841ms; old53.899ms). All10 Data isolation/security controls,18 retained Gate/Codec/Subscribe controls, exact queued replay and the new closed-input Ready constructor control pass. All four actual Core unchanged-AV routing/resource/selection witness controls pass. Reviewed test-only locator and std panic helper patches correct prior zero-test Core compile failures without changing assertions. Next: commit/push byte-identical tested code with this evidence; execute independently source-reviewed complete329 on the new clean commit, retaining all prior296 and both full62 programmes last. Each full programme additionally proves actual first-COMMIT narrow4DataGates+8subscriptions. Complete329, same-source nativeARM shipping and all32/432 remain unqualified. Last complete26 is295/296 with one21<24fps ES256 retained-video bin; lastmatrixv215 stays0/32. No quality, cleanup, permission or timing acceptance changes. G6-054 stays parked.",
+      "status": "combined-workload-verified",
+      "implementation_state": "Complete329/329 passed on A5/414 with both full programmes last; subsequent matrix remains failed.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -1217,7 +1217,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T19:18:27.139027+00:00",
+      "updated_at": "2026-11-12T23:56:22.696537+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -1265,7 +1265,7 @@
         "P7.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Final coherent focused batch passes all253 checks: Store70 214/214 and Core71 39/39 on identical143 guarded source paths, normal dependency generation414/source-lock7ce0e041. Both original Root controllers exited0 and joined, all original build/inventory/test groups joined, and source/binary/input guards held. Independent reviewers verified both components. Ready latency36.038ms is below unchanged50ms (prior focused35.841ms; old53.899ms). All10 Data isolation/security controls,18 retained Gate/Codec/Subscribe controls, exact queued replay and the new closed-input Ready constructor control pass. All four actual Core unchanged-AV routing/resource/selection witness controls pass. Reviewed test-only locator and std panic helper patches correct prior zero-test Core compile failures without changing assertions. Next: commit/push byte-identical tested code with this evidence; execute independently source-reviewed complete329 on the new clean commit, retaining all prior296 and both full62 programmes last. Each full programme additionally proves actual first-COMMIT narrow4DataGates+8subscriptions. Complete329, same-source nativeARM shipping and all32/432 remain unqualified. Last complete26 is295/296 with one21<24fps ES256 retained-video bin; lastmatrixv215 stays0/32. No quality, cleanup, permission or timing acceptance changes. G6-054 stays parked.",
+      "implementation_state": "Reviewed batch implemented and component-verified; original failures preserved. Clean commit/full341 and current normal shipping remain required.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1354,7 +1354,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T19:18:27.139027+00:00",
+      "updated_at": "2026-11-13T01:05:20.647004+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -1390,8 +1390,8 @@
       "depends_on": [
         "P7.2"
       ],
-      "status": "assigned",
-      "implementation_state": "not-started",
+      "status": "in-progress",
+      "implementation_state": "Original32 closed0qualified; all40 current nonpass rows explicitly mapped. Units+actual late authority+RTC+codec controls pass; fresh whole32 pending.",
       "proposed_fix": "Execute one frozen all32/all432local matrix; coordinator reconciles original check artifacts to every proposed fix and reopens any residual.",
       "required_evidence": "All required cycles and32cells/432checks pass; no inherited results, skipped failures, x86/GitHub builds, altered criteria or unjoined processes. No task is matrix-resolved on unit evidence alone.",
       "coordinator_review": {
@@ -1407,7 +1407,7 @@
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-11T10:09:15.345780+00:00",
+      "updated_at": "2026-11-13T01:05:20.647004+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": []
@@ -3717,7 +3717,7 @@
     },
     {
       "at": "2026-11-12T18:37:09.203299+00:00",
-      "action": "Recorded complete26 actual295/296, exact authority/frame-loss RCA, old DataGate counter, Store66 actual211/213 including all10 new controls and Core65 zero-test compile failure. Added assigned DC1–DC7 correction plan; all145 mappings preserved. No matrix promotion."
+      "action": "Recorded complete26 actual295/296, exact authority/frame-loss RCA, old DataGate counter, Store66 actual211/213 including all10 new controls and Core65 zero-test compile failure. Added assigned DC1\u2013DC7 correction plan; all145 mappings preserved. No matrix promotion."
     },
     {
       "at": "2026-11-12T19:02:22.996051+00:00",
@@ -3726,6 +3726,14 @@
     {
       "at": "2026-11-12T19:18:27.139027+00:00",
       "action": "Recorded coherent focused253 allpassed on same414/143: Core71 all39 FIRST, Store70 all214; both original controllers and children joined; two reviews percomponent. New source-commit/full329/shipping/all32 remain pending. All145 failure mappings retained."
+    },
+    {
+      "at": "2026-11-12T23:56:22.696537+00:00",
+      "action": "Recorded naturally closed unchanged A5 full32, rejected2falsepasses, blocked8unexecutedlateauthority rows, verified0cells. Applied reviewed harness batch and passed208 units. Actual Store/Core causal counter reached intended noDML epoch/PCM loss aftercleanup; continuity production fix remains pending."
+    },
+    {
+      "at": "2026-11-13T01:05:20.647004+00:00",
+      "action": "Recorded Ready originalPCM/security+214 retained+9 repaired continuation passes,208 harness units, actual RTC3 and original Opus32, actual public15 late authority+3operator denials. Kept original failures and all40 current cell mappings unconfirmed until fresh matrix. Next full341/shipping/all32."
     }
   ],
   "tracking_review": {
@@ -3866,5 +3874,1239 @@
     "qualification": false,
     "latest_component_evidence": "docs/evidence/gate-6/g6-058-v216-data-control-store67.json",
     "coherent_focused_evidence": "docs/evidence/gate-6/g6-058-v216-data-control-focused253.json"
+  },
+  "v216_full32_checkpoint": {
+    "source_revision": "a5c1250c11e8622d5ea80fbd90e5fdb2c6ca5503",
+    "summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 32,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 392,
+        "failed": 32,
+        "blocked": 8,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "original_summary": {
+      "cells": {
+        "passed": 2,
+        "failed": 30,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 400,
+        "failed": 32,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "verified_passing_cells": 0,
+    "all32_closed": true,
+    "public_evidence": "docs/evidence/gate-6/transport-matrix-v216.json"
+  },
+  "reviewed_harness_checkpoint": {
+    "passed": 208,
+    "matrix_qualified": false,
+    "receipt_sha256": "c1a931d19e0bb0e253799a942358853783088ebfbdfd7845eeb774ab0af9e5a4"
+  },
+  "v216_actual_audio_cause": {
+    "independently_qualified": true,
+    "review_sha256": "3429ba6458c64ed06b5a82b74bcb376fd78488eb9a1aee333e0f92a9ad1c655a",
+    "original_pcm_age_ms": 35,
+    "first_error": "authority-busy",
+    "durable_state_unchanged": true,
+    "original_epoch_invalidated": true,
+    "actual_core_collect_authority_refusals": 1,
+    "actual_old_output_bytes": 0,
+    "genuine_revocation_and_core_mute_negatives_passed": true,
+    "original_wrapper_parse_bug_preserved": true,
+    "production_fix_verified": false,
+    "matrix_qualified": false
+  },
+  "current_failure_mapping_v216": [
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "cf9530e4322182379b0ed97054be46211afe953cae40f4b8e64e84a1152b9334",
+      "failure_family": "measured-quality-and-missing-capture-prerequisite",
+      "classification_role": "mixed-measured-and-prerequisite",
+      "evidence_summary": "Saved measured quality failures coexist with a later missing capture/control prerequisite. Both are retained separately; neither establishes one shared cause.",
+      "measured_quality_failed_cycles": [
+        1
+      ],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "blocked",
+      "baseline_status": "blocked",
+      "baseline_run": "v216",
+      "report_sha256": "cf9530e4322182379b0ed97054be46211afe953cae40f4b8e64e84a1152b9334",
+      "failure_family": "late-current-authority-unexecuted",
+      "classification_role": "missing-verification-prerequisite",
+      "evidence_summary": "Final original primary-device revocation and six independent after-reads were not executed. Earlier independent authority cases do not supply this phase.",
+      "measured_quality_failed_cycles": [
+        1
+      ],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "b31a80863c2adfe79a27850964ae0de40f95a7f7bd4f8a1933f47f359031b1fd",
+      "failure_family": "measured-quality-and-missing-capture-prerequisite",
+      "classification_role": "mixed-measured-and-prerequisite",
+      "evidence_summary": "Saved measured quality failures coexist with a later missing capture/control prerequisite. Both are retained separately; neither establishes one shared cause.",
+      "measured_quality_failed_cycles": [
+        1
+      ],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "blocked",
+      "baseline_status": "blocked",
+      "baseline_run": "v216",
+      "report_sha256": "b31a80863c2adfe79a27850964ae0de40f95a7f7bd4f8a1933f47f359031b1fd",
+      "failure_family": "late-current-authority-unexecuted",
+      "classification_role": "missing-verification-prerequisite",
+      "evidence_summary": "Final original primary-device revocation and six independent after-reads were not executed. Earlier independent authority cases do not supply this phase.",
+      "measured_quality_failed_cycles": [
+        1
+      ],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "214def9a73cf00bfdaaa9887427cd2ee82afc552b95d64523ed4629333964492",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "37686776541671a2d4324f6cec8267a1adbe26e833d62437b67cffe9f41969da",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "1fd50cb72b9e135ce475cebff9f6701b5baf9ef40cf1bef1710fc9eb27f8e8b5",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "d0f71b23dbbebc4b1b125f52a0332497a0d5fd6bcae84293dffa3b0aac8b14b4",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "98ecb798159702089257a9a26124c97b3a0d61249b5270652abf0ff8d93c20a7",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "4fbf97d83baa8245c3a14309811c350cfd7631197dcb65697b337ae8df1190d8",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "9525270013a68f07df2c136a64aca583dd9a2f7487952119258ea88772efc11e",
+      "failure_family": "measured-quality-and-missing-capture-prerequisite",
+      "classification_role": "mixed-measured-and-prerequisite",
+      "evidence_summary": "Saved measured quality failures coexist with a later missing capture/control prerequisite. Both are retained separately; neither establishes one shared cause.",
+      "measured_quality_failed_cycles": [
+        1,
+        2
+      ],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "blocked",
+      "baseline_status": "blocked",
+      "baseline_run": "v216",
+      "report_sha256": "9525270013a68f07df2c136a64aca583dd9a2f7487952119258ea88772efc11e",
+      "failure_family": "late-current-authority-unexecuted",
+      "classification_role": "missing-verification-prerequisite",
+      "evidence_summary": "Final original primary-device revocation and six independent after-reads were not executed. Earlier independent authority cases do not supply this phase.",
+      "measured_quality_failed_cycles": [
+        1,
+        2
+      ],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "9525270013a68f07df2c136a64aca583dd9a2f7487952119258ea88772efc11e",
+      "failure_family": "original-workload-or-owner-proof-incomplete",
+      "classification_role": "original-owner-prerequisite",
+      "evidence_summary": "Resource verdict reports cycle-3 original-session-or-helper-work-unjoined. Preserve the exact original worker/cleanup prerequisite; no FD or Ready cause is assigned.",
+      "measured_quality_failed_cycles": [
+        1,
+        2
+      ],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P3.2",
+        "P6.1",
+        "P6.2"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "3fbd55d500e9c6706c4d7f89cab3f7b354745c3cf14179e9e602e9e48464aa90",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "blocked",
+      "baseline_status": "blocked",
+      "baseline_run": "v216",
+      "report_sha256": "3fbd55d500e9c6706c4d7f89cab3f7b354745c3cf14179e9e602e9e48464aa90",
+      "failure_family": "late-current-authority-unexecuted",
+      "classification_role": "missing-verification-prerequisite",
+      "evidence_summary": "Final original primary-device revocation and six independent after-reads were not executed. Earlier independent authority cases do not supply this phase.",
+      "measured_quality_failed_cycles": [
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "e0f52dc6db9457ca0cc7317bbdcb438a3297347bade83c792c1e725ebdd90e7a",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "fa07b60238ce8e1835de74e3a776f4dc541bcae98483c34433b8c379e37f02ae",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        2
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "5fa1c8a29d80cc0d5ac6d2f97bee18b7e2eb6ab5c674dcadcf913e289d02bfb2",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "5a39290c912132c4d4a40bec827e2b45dff9ff6fea76d0c054155fac791aa50d",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "5ae1031f944b0e14421f5edd724f64137712952bce2f649fffc46fb057962daf",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "11b24e1d03796c0a1a1b068bbfac1f36765d7e844c8e3e4ef8b4b3769c91a645",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "6d37ce374aa05b7f0b857e8f25683d0a5056142f3246680f0a42ccf906340e05",
+      "failure_family": "missing-original-capture-prerequisite",
+      "classification_role": "missing-media-prerequisite",
+      "evidence_summary": "Saved measured cycles passed, but later original capture/control prerequisite is missing. This row is not a measured zero-FPS or decoded-audio failure for that missing cycle.",
+      "measured_quality_failed_cycles": [],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "blocked",
+      "baseline_status": "blocked",
+      "baseline_run": "v216",
+      "report_sha256": "6d37ce374aa05b7f0b857e8f25683d0a5056142f3246680f0a42ccf906340e05",
+      "failure_family": "late-current-authority-unexecuted",
+      "classification_role": "missing-verification-prerequisite",
+      "evidence_summary": "Final original primary-device revocation and six independent after-reads were not executed. Earlier independent authority cases do not supply this phase.",
+      "measured_quality_failed_cycles": [],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check_id": "owned-drain-and-resource-reclamation",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "6d37ce374aa05b7f0b857e8f25683d0a5056142f3246680f0a42ccf906340e05",
+      "failure_family": "unavailable-resource-observation",
+      "classification_role": "resource-proof-gap",
+      "evidence_summary": "The saved ARM native resource observation includes unavailable descriptor evidence. Absence of a numeric sample is not zero descriptors or proof of a live leak; precise original cause remains unresolved.",
+      "measured_quality_failed_cycles": [],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P6.2"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "32451f36b2603d4f23bbfd061ef1bc8637124c5c3db957a6c9cabf397e2e3e1b",
+      "failure_family": "missing-original-capture-prerequisite",
+      "classification_role": "missing-media-prerequisite",
+      "evidence_summary": "Saved measured cycles passed, but later original capture/control prerequisite is missing. This row is not a measured zero-FPS or decoded-audio failure for that missing cycle.",
+      "measured_quality_failed_cycles": [],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "blocked",
+      "baseline_status": "blocked",
+      "baseline_run": "v216",
+      "report_sha256": "32451f36b2603d4f23bbfd061ef1bc8637124c5c3db957a6c9cabf397e2e3e1b",
+      "failure_family": "late-current-authority-unexecuted",
+      "classification_role": "missing-verification-prerequisite",
+      "evidence_summary": "Final original primary-device revocation and six independent after-reads were not executed. Earlier independent authority cases do not supply this phase.",
+      "measured_quality_failed_cycles": [],
+      "missing_capture_prerequisite_cycles": [
+        3
+      ],
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "bb519c8844d6630d4edfcd0a0ad3d3cf624c47d502184877f3ea3c3d6a48d47c",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "9a66a178b2648f9a987b23a230d16bb591cba11b69463328a7768e981a6d45c6",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "207a31b705baf686e161cb73344eabd67c96c43a4bc42d8b006030c54926a8dc",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "77694609760f8b007fd1749017030743ffed5f351a56b828446ff519b2a2940f",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "5d6f9c938955fa70891864731db1163f6572fb48bb4e144345fd21d785a30d68",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "c717943885f283134cce400dc58ad98e9d12267afe1c0562b76833dd219de843",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "blocked",
+      "baseline_status": "blocked",
+      "baseline_run": "v216",
+      "report_sha256": "a89aa17b2e8b332c649a7d1094bfb7bf817a7325f0a68cff3470f831067c8c73",
+      "failure_family": "late-current-authority-unexecuted",
+      "classification_role": "missing-verification-prerequisite",
+      "evidence_summary": "Final original primary-device revocation and six independent after-reads were not executed. Earlier independent authority cases do not supply this phase.",
+      "measured_quality_failed_cycles": [],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "blocked",
+      "baseline_status": "blocked",
+      "baseline_run": "v216",
+      "report_sha256": "d1031dc1282a9988d324b2e68134b6d64b3c0baeaa8311ae12e5f1b507fe8dd8",
+      "failure_family": "late-current-authority-unexecuted",
+      "classification_role": "missing-verification-prerequisite",
+      "evidence_summary": "Final original primary-device revocation and six independent after-reads were not executed. Earlier independent authority cases do not supply this phase.",
+      "measured_quality_failed_cycles": [],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "bcae71c4f7a88432e10fae9acedc247951867b74580a2d6bb61ce5ce66c338fb",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "129b588c132bfd0836925a16fff72c667e80b6d82e40ffb3f0789d2f3a9ff5d1",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        2
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "9cf05a69e3ef15dec2dbc47be7a5482cd00692d6e01a905808cfb2507c6e9e6f",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "0aad234bdd0a878f80a9225402d3b0da335a9788369f4cec68dc9868082cdefa",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "a7500b6ef3a127ee0d27c0d0275aa0726cee7910c8574a7cae4a67098262ccc4",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_status": "failed",
+      "baseline_run": "v216",
+      "report_sha256": "f3768b844045800043e31c2748a32c377db81fe5c633eac9b329b1794f7492aa",
+      "failure_family": "measured-decoded-quality",
+      "classification_role": "measured-quality-failure",
+      "evidence_summary": "One or more saved decoded audio, video or A/V observer measurements failed the unchanged profile. Per-cycle numeric leaves are retained; source, repair, clock and observer causes remain distinguished and unproven unless separately demonstrated.",
+      "measured_quality_failed_cycles": [
+        1,
+        2,
+        3
+      ],
+      "missing_capture_prerequisite_cycles": [],
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Requirement responsibility and follow-through; not cell-level causal attribution.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    }
+  ],
+  "current_failure_mapping_v216_evidence": {
+    "path": "docs/evidence/gate-6/g6-058-v216-current-failure-mapping.json",
+    "sha256": "c1e0e3fdcccb40f53ca4988bc5947e00a4adab29f6d8d7bd9caeecbe04ac51e5",
+    "summary": {
+      "cells": {
+        "passed": 0,
+        "failed": 32,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 392,
+        "failed": 32,
+        "blocked": 8,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "original_145_mapping_sha256": "9e96234606b082c772083a0023a0dde9e2b4f836cedd3a869943a92be93486ef",
+    "scope": "Append40 current rows separately; original145 v215 rows and all15 task assignments/statuses unchanged. Cell causes remain unconfirmed pending precise causal proof and full rerun."
+  },
+  "current_verified_batch": {
+    "ready": "docs/evidence/gate-6/g6-058-v216-ready-continuity.json",
+    "media": "docs/evidence/gate-6/g6-058-v216-media-components.json",
+    "public_authority": "docs/evidence/gate-6/g6-058-v216-public-authority.json",
+    "harness": "docs/evidence/gate-6/g6-058-v216-harness-batch.json",
+    "next": "Clean commit, full341, normal Mac/nativeARM shipping, all32/all432",
+    "matrix_qualified": false
   }
 }

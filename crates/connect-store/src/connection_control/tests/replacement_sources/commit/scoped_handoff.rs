@@ -1029,3 +1029,6 @@ mod sql_controls;
 mod sql_ready_controls;
 
 mod admission_trace;
+
+// Cross-layer conformance is test-only; production Store remains Core-independent.
+mod continuation_audio;

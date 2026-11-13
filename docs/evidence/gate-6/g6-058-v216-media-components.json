@@ -1,0 +1,38 @@
+{
+  "format": "connect/media-recovery-and-codec-components/1",
+  "updated": "2026-11-13T01:05:20.647004+00:00",
+  "normal_generation": 416,
+  "feedback": {
+    "passed": 3,
+    "planned": 3,
+    "scope": "Actual canonical Backend workers, authenticated loopback RTP/SRTCP, controlled single-fragment loss and Core forwarding. No browser, managed Scene, Store credential mutation, FPS or historical Firefox cause claim.",
+    "repair_arrival_us": 2774,
+    "source_pli_before_expiry": false,
+    "expired_original_age_us": 254353,
+    "stale_fragment_replayed": false,
+    "fallback_source_pli_observed": true,
+    "fresh_media_arrival_us": 9675,
+    "actual_terminal_ffmpeg_decode_passed": true,
+    "authority_pause_generation_foreign_and_cancelled_negatives": 5,
+    "all_original_owners_joined": true,
+    "review_sha256": "114307cd6be1d4ae7843cdb6989921ed9e6e991a3b09ff0f177af74c8efc5c44"
+  },
+  "opus": {
+    "scenarios": 32,
+    "original_inputs": 3072,
+    "original_encoded_packets": 3072,
+    "intentionally_omitted_packets": 16,
+    "actual_decoded_frames": 3056,
+    "ambiguous": 0,
+    "weak": 0,
+    "confidently_wrong": 0,
+    "raw_input_unidentified": 0,
+    "minimum_expected_power_ratio": 16.21804149683041,
+    "all_original_browser_http_context_evaluation_owners_joined": true,
+    "scope": "Original SDK BrowserOpusCodec and unchanged classifier only; excludes Core mixing/reencoding, RTC concealment and historical cell attribution.",
+    "review_sha256": "75b20886a4d34f754b7beb817a52d83d9a1610f09c577e1aa28c8a4c0387c6b1"
+  },
+  "source_binary_inputs_unchanged_during_original_components": true,
+  "matrix_qualified": false,
+  "current_shipping_qualified": false
+}

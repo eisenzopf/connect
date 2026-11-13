@@ -1,0 +1,55 @@
+{
+  "format": "connect/ready-audio-continuity-component/1",
+  "updated": "2026-11-13T01:05:20.647004+00:00",
+  "scope": "Actual Store registered continuation through real Core collect/decode/mix/encode; not a full device handoff or matrix cell.",
+  "normal_generation_tested": 414,
+  "old_causal_counter": {
+    "independently_qualified": true,
+    "authority_busy": true,
+    "durable_state_unchanged": true,
+    "healthy_disjoint_media_current": true,
+    "original_pcm_age_ms": 35,
+    "original_epoch_current": false,
+    "collect_authority_refusals": 1,
+    "output_bytes": 0,
+    "review_sha256": "3429ba6458c64ed06b5a82b74bcb376fd78488eb9a1aee333e0f92a9ad1c655a"
+  },
+  "fixed_counter": {
+    "passed": true,
+    "original_pcm_age_ms": 36,
+    "original_epoch_current": true,
+    "collect_successes": 1,
+    "output_bytes": 160,
+    "output_timestamp": 320,
+    "genuine_credential_revocation_core_mute_and_candidate_writer_refuse": true
+  },
+  "retained_store_controls": {
+    "passed": 214,
+    "planned": 214
+  },
+  "original_short_sql_admission": {
+    "elapsed_us": 40093,
+    "limit_us": 50000,
+    "admitted": true
+  },
+  "focused223": {
+    "passed": 218,
+    "planned": 223,
+    "aggregate_passed": false,
+    "preexisting_fixture_failures": 5,
+    "all_five_reproduced_on_preserved_pre_fix_binary": true,
+    "review_sha256": "1a905c6a8cdb6b365c4bc213e49c808d0d97cf17bea9c22d2199c8f718b478d7"
+  },
+  "fixed_followthrough": {
+    "passed": 9,
+    "planned": 9,
+    "normal_generation": 415,
+    "includes_all_six_repaired_existing_continuation_tests": true,
+    "aggregate12_passed": false,
+    "three_other_rtc_setup_failures_preserved": true,
+    "receipt_sha256": "5e42975a71fb49db26c2b29e431eb3fa693024e9449687ec7f4f320ac7ec6ace"
+  },
+  "production_change": "Exact current already-active pending continuation supplies independently derived complete Read scopes/original minimum expiry for Ready metadata. Old-source Write, root RecordWrite, true candidate Writers, authorization, typed SQL Unit and ordinary phase withdrawal remain.",
+  "matrix_qualified": false,
+  "current_shipping_qualified": false
+}

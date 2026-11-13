@@ -976,6 +976,7 @@ name = "connect-store"
 version = "0.1.0"
 dependencies = [
  "arc-swap",
+ "async-trait",
  "base64 0.22.1",
  "chrono",
  "connect-connector-api",
@@ -989,12 +990,15 @@ dependencies = [
  "ring",
  "rusqlite",
  "rustix",
+ "rvoip-core",
  "serde",
  "serde_jcs",
  "serde_json",
  "sha2",
  "tempfile",
  "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
  "tracing",
  "uuid",
 ]

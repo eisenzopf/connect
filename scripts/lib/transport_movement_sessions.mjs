@@ -1,11 +1,13 @@
 import { recordReadObserverFailure, isolatedProgrammeFailure, emitOriginalObservation } from "./transport_failure_isolation.mjs";
 // Current authorization/topology reads keep all three control owners observed
-// while the media owners retain the original62..67second programme deadline.
+// through the original62s source programme. In-flight reads and all original
+// media/control owners retain the existing67s join deadline.
 import assert from "node:assert/strict";
 import { setTimeout as sleep } from "node:timers/promises";
 
 export async function observeMovementSessions({ workload, primarySessions, controllerSessions, run,
-    now = workload.now ?? (() => performance.now()), wait = (ms, signal) => sleep(ms, undefined, { signal }), observe = () => {} }) {
+    now = workload.now ?? (() => performance.now()), wait = (ms, signal) => sleep(ms, undefined, { signal }), observe = () => {},
+    setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = timer => clearTimeout(timer) }) {
     assert.equal(primarySessions.length, 2); assert.equal(controllerSessions.length, 2);
     assert.ok(Number.isFinite(workload.startedAt));
     assert.deepEqual(controllerSessions.map(session => session.id), primarySessions.map(session => session.id));
@@ -26,10 +28,17 @@ export async function observeMovementSessions({ workload, primarySessions, contr
             stop.abort(firstFailure);
         }
     };
+    const observationUntil = workload.startedAt + 62000;
     const cutoff = workload.startedAt + 67000;
+    // Stop only admission/sleep at the source programme boundary. Never cancel
+    // an original SDK read: active cancellation fences its shared helper.
+    const observationTimer = setTimer(() => stopObserving.abort(), Math.max(0, observationUntil - now()));
     const observing = (async () => {
         while (!stopObserving.signal.aborted && !stop.signal.aborted) {
-            const timeoutMs = Math.min(8000, Math.floor(cutoff - now()));
+            const current = now();
+            assert.ok(current < cutoff, "original-movement-observation-cutoff");
+            if (current >= observationUntil) { stopObserving.abort(); break; }
+            const timeoutMs = Math.min(8000, Math.floor(cutoff - current));
             assert.ok(timeoutMs > 0, "original-movement-observation-cutoff");
             // The shared primary SDK and both independent controller SDKs each
             // perform current-authorized reads. No identity/helper is replaced.
@@ -56,8 +65,9 @@ export async function observeMovementSessions({ workload, primarySessions, contr
                 assert.equal(results.slice(0, 2).filter(result => result.value.isMain).length, 1);
                 cycles++;
             }
+            if (now() >= observationUntil) stopObserving.abort();
             if (!stopObserving.signal.aborted && !stop.signal.aborted) {
-                try { await wait(Math.min(8000, Math.max(0, cutoff - now())), stopObserving.signal); }
+                try { await wait(Math.min(8000, Math.max(0, observationUntil - now())), stopObserving.signal); }
                 catch (failure) { if (!stopObserving.signal.aborted) throw failure; }
             }
         }
@@ -68,8 +78,13 @@ export async function observeMovementSessions({ workload, primarySessions, contr
         value = await run(Object.freeze({ ...workload, signal: stop.signal }));
     } catch (failure) { fail(failure); }
     finally {
+        clearTimer(observationTimer);
         stopObserving.abort();
         await observing;
+        if (cycles === 0 && !firstFailure && !stop.signal.aborted) {
+            fail(Object.assign(Error("Original Session observation coverage missed"),
+                { code: "original-movement-observation-coverage-missed" }));
+        }
         workload.signal.removeEventListener("abort", parentAbort);
         const emitted = emitOriginalObservation(observe, [Object.freeze({ original_control_sdks: 3, current_session_reads: reads,
             completed_cycles: cycles, observers_joined: true, failed_observers: [...failedObservers.keys()],

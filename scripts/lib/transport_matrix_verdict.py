@@ -34,6 +34,67 @@ def native_cycle_join_verified(control, resource):
         return False
 
 
+
+def original_producer_outcome(cell, report, report_sha256):
+    """Whole-cell admission is separate from its independently retained checks."""
+    execution = cell.get("execution", {})
+    component = execution.get("component")
+    component = component if isinstance(component, dict) else {}
+    code = component.get("exit_code")
+    declared = report.get("passed")
+    digest = component.get("report_sha256")
+    failed = (declared is False or component.get("passed") is False
+        or type(code) is int and code != 0
+        or report.get("failure") is not None or component.get("failure_phase") is not None
+        or component.get("failure_kind") is not None
+        or digest is not None and digest != report_sha256)
+    complete = (execution.get("attempted") is True and declared is True
+        and component.get("passed", True) is True and type(code) is int and code == 0 and digest == report_sha256)
+    return dict(status="failed" if failed else "passed" if complete else "blocked",
+        reason="original-producer-failed" if failed else
+            "original-producer-completed" if complete else "original-producer-outcome-missing",
+        report_passed=declared if type(declared) is bool else None,
+        exit_code=code if type(code) is int else None,
+        report_sha256=report_sha256, report_digest_matches=digest == report_sha256,
+        attempted=execution.get("attempted") is True)
+
+
+def original_producer_verified(cell):
+    """Recheck copied terminal metadata at host merge and final summarization."""
+    execution = cell.get("execution", {})
+    component = execution.get("component")
+    verifier = cell.get("verifier", {})
+    outcome = verifier.get("producer_outcome", {})
+    return (isinstance(component, dict) and execution.get("attempted") is True
+        and component.get("passed", True) is True and type(component.get("exit_code")) is int and component["exit_code"] == 0
+        and component.get("failure_phase") is None and component.get("failure_kind") is None
+        and verifier.get("format") == "connect/g6-058-cell-verdict/1" and verifier.get("integrity") is True
+        and outcome.get("status") == "passed" and outcome.get("report_passed") is True
+        and outcome.get("attempted") is True and type(outcome.get("exit_code")) is int
+        and outcome["exit_code"] == 0
+        and outcome.get("report_digest_matches") is True
+        and component.get("report_sha256") == verifier.get("report_sha256") == outcome.get("report_sha256")
+        and isinstance(outcome.get("report_sha256"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", outcome["report_sha256"]) is not None)
+
+
+
+def native_late_controls_verified(report):
+    late = report.get("late_native_controls", {})
+    owners = sorted(("controller-1", "controller-2", "participant-2", "participant-3", "participant-4", "replacement-1"))
+    phases = ([owner + "-before-revocation" for owner in owners]
+        + ["revoke-primary-device", "revoked-primary-native-refusal"]
+        + [owner + "-after-revocation" for owner in owners] + ["original-actor-configs-unchanged"])
+    steps = late.get("steps")
+    return (late.get("attempted") is True and late.get("status") == "passed"
+        and all(late.get(name) is True for name in ("all_required_calls_attempted", "all_before_exact",
+            "primary_revoked", "revoked_primary_refused", "all_after_same", "configs_unchanged"))
+        and isinstance(steps, list) and len(steps) == len(phases)
+        and all(isinstance(step, dict) and step.get("phase") == phase and step.get("status") == "passed"
+            for step, phase in zip(steps, phases))
+        and "revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable" in report.get("checks", []))
+
+
 def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     """Evaluate all 12 native / 14 browser requirements, without short circuit."""
     from .transport_matrix_execution import browser_selection_verified, browser_resource_plateau_verified
@@ -145,12 +206,15 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     authority = report.get("current_authority", observation.get("current_authority", {}))
     record("current-revocation-expiry-and-conflicting-operation-refusals",
            all(name in authority for name in ("revocation", "expiry", "conflict"))
-           and (browser or all(authority[name].get("executed") is True for name in ("revocation", "expiry"))),
+           and (browser or all(authority[name].get("executed") is True for name in ("revocation", "expiry")))
+           and (browser or report.get("late_native_controls", {}).get("attempted") is True),
            all(authority.get(name, {}).get("passed") is True for name in ("revocation", "expiry", "conflict"))
            and (not (browser and plateau) or complete_cycles and all(
                all(c.get("current_authority", {}).get(name, {}).get("passed") is True for name in ("revocation", "expiry", "conflict")) for c in cycles))
-           and (browser or all(authority_verdict(authority[name], name) for name in ("revocation", "expiry"))),
-           "current_authority", "every-current-authority-subcase-required")
+           and (browser or all(authority_verdict(authority[name], name) for name in ("revocation", "expiry")))
+           and (browser or native_late_controls_verified(report)),
+           "current_authority" if browser else "current_authority+late_native_controls",
+           "every-current-authority-subcase-and-original-late-control-required")
     idle = report.get("idle_resources", {})
     retirement = observation.get("retirement", {})
     if plateau:
@@ -186,11 +250,16 @@ def evaluate_cell(cell, report, report_sha256, *, environment, revision):
     if set(outcomes) != required:
         raise ValueError("Requirement evaluator coverage differs")
     cell["check_results"] = outcomes
-    cell["status"] = ("passed" if all(r["status"] == "passed" for r in outcomes.values()) else
-                      "failed" if any(r["status"] == "failed" for r in outcomes.values()) else "blocked")
-    cell["reason"] = "all-required-checks-passed" if cell["status"] == "passed" else "original-attempt-requirement-results"
+    producer = original_producer_outcome(cell, report, report_sha256)
+    cell["status"] = ("passed" if producer["status"] == "passed"
+                          and all(r["status"] == "passed" for r in outcomes.values()) else
+                      "failed" if producer["status"] == "failed"
+                          or any(r["status"] == "failed" for r in outcomes.values()) else "blocked")
+    cell["reason"] = ("all-required-checks-and-original-producer-passed" if cell["status"] == "passed" else
+        producer["reason"] if producer["status"] != "passed" else "original-attempt-requirement-results")
     cell["verifier"] = dict(format="connect/g6-058-cell-verdict/1", required=len(required),
-        evaluated=len(outcomes), report_sha256=report_sha256, integrity=integrity)
+        evaluated=len(outcomes), report_sha256=report_sha256, integrity=integrity,
+        producer_outcome=producer)
     failures = [observation.get("failure", {}), *programme.get("failures", [])]
     cell["library_gaps"] = [dict(kind=f.get("kind"), problem=f.get("problem"),
         stage=f.get("stage", "device-replacement"), report_sha256=report_sha256)
@@ -209,6 +278,7 @@ def summarize(matrix):
                 for status in ("passed", "failed", "blocked", "not-run", "running")})
     matrix["matrix_qualified"] = matrix["task_complete"] = (
         len(cells) == 32 and counts["passed"] == 32 and len(requirements) == 432
-        and all(r["status"] == "passed" for r in requirements))
+        and all(r["status"] == "passed" for r in requirements)
+        and all(original_producer_verified(cell) for cell in cells))
     matrix["whole_gate_qualified"] = False
     return matrix["summary"]

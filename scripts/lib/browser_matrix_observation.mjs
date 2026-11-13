@@ -1,3 +1,4 @@
+import {rtcDecodedVideoOwners} from './browser_matrix_rtc_decoded.mjs';
 import {nativeMembership} from "../../sdk/typescript/dist/browser_native_activation.js";
 import {browserMatrixRtcObservation} from './browser_matrix_rtc_observation.mjs';
 import {browserMatrixPipeline} from './browser_matrix_pipeline.mjs';
@@ -320,13 +321,14 @@ export class DecodedRoute {
         this.omittedPresentationRefusals = 0;
         this.videoHigh=false;this.begin=null;
     }
-    report(include=()=>true){
+    report(include=()=>true,renderedRoute=null){
         const originalAudio=this.audio.filter(row=>include(row,'audio')),originalVideo=this.video.filter(row=>include(row,'video'));
+        const markerVideo=renderedRoute?renderedRoute.video:originalVideo;
         this.audioProvenance=audioProvenance(originalAudio);
         // Rebuild only bounded numeric observations. Original callbacks, times,
         // bytes and decoded media are neither replayed nor altered.
         this.envelope=new AudioEnvelope();for(const row of originalAudio)this.envelope.sample(row.seconds,row.rms);
-        this.videoEdges=[];let high=false;for(const row of originalVideo){if(row.kind==='pulse'&&!high)this.videoEdges.push(row.seconds);high=row.kind==='pulse';}
+        this.videoEdges=[];let high=false;for(const row of markerVideo){if(row.kind==='pulse'&&!high)this.videoEdges.push(row.seconds);high=row.kind==='pulse';}
         const start=1,end=61,seconds=60,inWindow=row=>row.seconds>=start&&row.seconds<end;
         const audio=originalAudio.filter(inWindow),video=originalVideo.filter(inWindow),identified=audio.filter(row=>row.identified&&!row.duplicate);
         const boundaries=[start,...identified.map(row=>row.seconds),end];
@@ -385,10 +387,14 @@ export class DecodedRoute {
         const requiredFrames=cleanBinDurations(videoCoverage,start*1000,seconds).map(ms=>Math.ceil(ms*24/1000-1e-9));
         const identity=sourceIdentityReport(counts,this.expected);
         const envelope=transitionEnvelope(originalAudio,audioCoverage,start,this.envelope.report(start));
-        if(videoCoverage.transitions.length){
+        // Chrome direct decoded pixels qualify FPS; its independent rendered
+        // pixels retain the ORIGINAL marker onset/transition clock for A/V.
+        const markerCoverage=renderedRoute?transitionCoverage(markerVideo.filter(row=>inWindow(row)&&row.changed&&!row.duplicate&&row.dimensions&&[String(this.expected),'pulse'].includes(row.kind)).map(row=>row.seconds*1000),renderedRoute.videoCuts,
+            {startMs:start*1000,endMs:end*1000,frameMs:1000/30,minimumGapMs:50}):videoCoverage;
+        if(markerCoverage.transitions.length){
             this.videoEdges=[];let high=null,next=0;
-            for(const row of originalVideo){
-                if(next<videoCoverage.transitions.length&&row.seconds*1000>=videoCoverage.transitions[next].resumed_sample_ms){high=null;next++;}
+            for(const row of markerVideo){
+                if(next<markerCoverage.transitions.length&&row.seconds*1000>=markerCoverage.transitions[next].resumed_sample_ms){high=null;next++;}
                 if(row.kind==='pulse'&&high===false)this.videoEdges.push(row.seconds);
                 high=row.kind==='pulse';
             }
@@ -411,17 +417,26 @@ export class DecodedRoute {
                 &&audio.every(row=>row.identified&&!row.duplicate)};
         const decodedPerSecond=Array(60).fill(0);for(const row of video)decodedPerSecond[Math.floor(row.seconds-start)]++;
         const callbackTimes=[start,...video.map(row=>row.seconds),end];
-        const videoResult={presentation_identity_diagnostics:{
+        const renderedCounts={};if(renderedRoute)for(const row of markerVideo.filter(inWindow))renderedCounts[row.kind]=(renderedCounts[row.kind]??0)+1;
+        const renderedIdentity=renderedRoute?sourceIdentityReport(renderedCounts,this.expected):null;
+        const presentationRoute=renderedRoute??this;
+        const videoResult={observer_profile:renderedRoute?'native-decoded-frames/1':(this.presentationOwners.size?'render-callback/1':'original-decoder-output'),
+            ...(renderedRoute?{rendered_observation:{profile:'render-callback/1',scope:'Independent actual rendered pixels and original marker onsets; no additional FPS credit',
+                observed_frames:markerVideo.filter(inWindow).length,identity:renderedIdentity,transition_coverage:markerCoverage,
+                invalid:renderedRoute.invalid,passed:renderedIdentity.status==='passed'&&!renderedRoute.invalid.length
+                    &&markerVideo.filter(inWindow).every(row=>row.dimensions&&!row.duplicate)}}:{}),
+            presentation_identity_diagnostics:{
                 scope:'Actual per-element RTC presentation metadata identifies observed callbacks. Frame credit counts each observed presentation once',
-                limit:16, samples:this.presentationSamples.slice(), refusals:this.presentationRefusals.slice(),
-                omitted_samples:this.omittedPresentationSamples, omitted_refusals:this.omittedPresentationRefusals},
+                limit:16, samples:presentationRoute.presentationSamples.slice(), refusals:presentationRoute.presentationRefusals.slice(),
+                omitted_samples:presentationRoute.omittedPresentationSamples, omitted_refusals:presentationRoute.omittedPresentationRefusals},
             decoded_frames_per_second:decodedPerSecond,
             maximum_decode_callback_gap_ms:Math.max(...callbackTimes.slice(1).map((at,i)=>Math.max(0,at-callbackTimes[i])))*1000,
             decoded_frames:video.length,changing_frames_per_second:perSecond,minimum_fps:Math.min(...perSecond),
             identity,dimension_refusals:video.filter(row=>!row.dimensions).length,original_source_timestamp_overlaps:videoSourceOverlaps,duplicate_frames:video.filter(row=>row.duplicate).length,
             transition_coverage:videoCoverage,required_changing_frames_per_second:requiredFrames,
             passed:videoSourceOverlaps===0&&perSecond.every((count,index)=>count>=requiredFrames[index])
-                &&changingVideo.length>=1440&&identity.status==='passed'&&video.every(row=>row.dimensions&&!row.duplicate)};
+                &&changingVideo.length>=1440&&identity.status==='passed'&&video.every(row=>row.dimensions&&!row.duplicate)
+                &&(!renderedRoute||(renderedIdentity.status==='passed'&&!renderedRoute.invalid.length&&markerVideo.filter(inWindow).every(row=>row.dimensions&&!row.duplicate)))};
         return {route:this.index,expected_source_id:this.expected,window_start_ms:1000,window_end_ms:61000,
             audio:audioResult,video:videoResult,sync,invalid:this.invalid,
             audio_provenance_diagnostics:this.audioProvenance,
@@ -434,11 +449,14 @@ export class DecodedRoute {
 /** Fixture-owned observer of actual borrowed decoder outputs. The public render
  * owner still receives every frame normally. Copies contain only this run's
  * synthetic media; no borrowed frame is retained or closed by the observer. */
-export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportStatistics=null}={}) {
+export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportStatistics=null,rtcVideoObserver='render-callback/1'}={}) {
+    check(!Rtc||['native-decoded-frames/1','render-callback/1'].includes(rtcVideoObserver),'Declared RTC decoded video observer required');
+    const nativeRtcVideo=Boolean(Rtc&&rtcVideoObserver==='native-decoded-frames/1');
     const routes=plan.routes.map(route=>{
         const peers=plan.routes.filter(other=>other.session===route.session),at=peers.indexOf(route);
         const selected=peers[(at+peers.length-1)%peers.length];
-        return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1),selected,active:null};
+        return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1),
+            rendered:nativeRtcVideo?new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1):null,selected,active:null};
     });
     const bindings=new Map(),owners=[],surfaces=new Set(),pendingRenders=new Set(),initialRenders=new Map(),originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
     let closed=false,closing,lastReport,measurementsRetired=false;const rtcStages=Rtc?browserMatrixRtcStages():null;
@@ -487,7 +505,17 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                 const context=owner.context;context.drawImage(frame,0,0,8,8);const bytes=context.getImageData(0,0,8,8).data;
                 const gray=Array.from({length:64},(_,i)=>.299*bytes[i*4]+.587*bytes[i*4+1]+.114*bytes[i*4+2]);
                 context.drawImage(frame,0,0,128,72);const pixels=context.getImageData(0,0,128,72).data;
-                routes[owner.index].measure.videoFrame(connection,timestamp,at,gray,pixels,width,height,null,presentation);
+                (routes[owner.index].rendered??routes[owner.index].measure).videoFrame(connection,timestamp,at,gray,pixels,width,height,null,presentation);
+            }catch(error){invalidRtc(connection,String(error.message));}
+        },
+        videoObserver:rtcVideoObserver,decodedVideoOwnerFactory:rtcDecodedVideoOwners,
+        decodedVideo(connection,timestamp,at,frame,width,height){
+            const owner=bindings.get(connection);if(closed||!owner||routes[owner.index].active!==connection)return;
+            try{
+                const context=owner.context;context.drawImage(frame,0,0,8,8);const bytes=context.getImageData(0,0,8,8).data;
+                const gray=Array.from({length:64},(_,i)=>.299*bytes[i*4]+.587*bytes[i*4+1]+.114*bytes[i*4+2]);
+                context.drawImage(frame,0,0,128,72);const pixels=context.getImageData(0,0,128,72).data;
+                routes[owner.index].measure.videoFrame(connection,timestamp,at,gray,pixels,width,height,null,null);
             }catch(error){invalidRtc(connection,String(error.message));}
         },
         invalid:invalidRtc,
@@ -577,7 +605,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                     'Original initial renderer must have completed startup and remain owned');
             }
         },
-        start(origin){pipeline?.start(origin.originMs);rtcStages?.start(origin.originMs);webTransportStatistics?.start(origin.originMs);for(const route of routes)route.measure.start(origin.originMs);},
+        start(origin){pipeline?.start(origin.originMs);rtcStages?.start(origin.originMs);webTransportStatistics?.start(origin.originMs);for(const route of routes){route.measure.start(origin.originMs);route.rendered?.start(origin.originMs);}},
         activate(index,connectionId,options){const owner=bindings.get(connectionId);check(!closed&&owner?.index===index,'Original prepared observer required');
             const recordCut=()=>{
                 const measure=routes[index].measure;if(measure.begin===null)return;
@@ -587,7 +615,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                     if(plan.routes[route.measure.index].session!==plan.routes[index].session)continue;
                     check(route.measure.audioCuts.length<2,'Bounded original Session handoffs');
                     route.measure.audioCuts.push(cut);
-                    if(route.measure.index===index||route.selected.index===index)route.measure.videoCuts.push(cut);
+                    if(route.measure.index===index||route.selected.index===index){route.measure.videoCuts.push(cut);route.rendered?.videoCuts.push(cut);}
                 }
             };
             if(!Rtc){const boundary=owner.readActivation?.();owner.readActivation=undefined;
@@ -612,23 +640,32 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                     const cut=owner.activation.audience.streams.find(c=>c.stream_id===owner[kind]);check(cut,'Original native stream cut missing');
                     return nativeMembership(cut,row.native)==='public';
                 }catch(error){if(route.measure.invalid.length<16)route.measure.invalid.push(String(error.message));return false;}
-            }));return lastReport=structuredClone({format:Rtc?'connect/browser-matrix-decoded-media/1':'connect/browser-matrix-decoded-media/2',
+            },route.rendered));const nativeVideo=rtc?.decodedVideoReport()??null;
+            const decodedVideoComplete=!nativeRtcVideo||(nativeVideo?.owners.length>=6&&nativeVideo.owners.every(owner=>owner.frames>0&&!owner.failed));
+            return lastReport=structuredClone({format:Rtc?'connect/browser-matrix-decoded-media/1':'connect/browser-matrix-decoded-media/2',
             quality_profile:'connect/decoded-audio-quality/3',
             metric_scope:'measurable-decoded-quality-source-quanta-diagnostic',
             original_source_sample_coverage_proved:false,
             native_activation: Rtc?null:[...bindings].filter(([,owner])=>!owner.initial).map(([connection,owner])=>({connection,boundary:owner.activation??null})),
-            method:Rtc?'Independent content measurements on actual public WebRTC render-graph PCM and video pixels, started after original completion receipt validation at a known local renderer cut; no server RTP-cut or physical playback claim':
+            video_observer:Rtc?rtcVideoObserver:'original-decoder-output',native_decoded_observer:nativeVideo,
+            method:nativeRtcVideo?'Independent public RTC PCM and borrowed received-track decoded video pixels; independent rendered A/V marker pixels retain original onset callbacks and receipt-bound public cuts; no stats-as-frame or physical playback claim':Rtc?'Independent content measurements on actual public WebRTC render-graph PCM and video pixels, started after original completion receipt validation at a known local renderer cut; no server RTP-cut or physical playback claim':
                 'Independent content measurements on actual WebCodecs decoded PCM/pixels at local receive callback times; no physical playback claim',
             window_ms:60000,source_counters_used:false,rtc_media_pipeline:rtcStages?.report()??null,
             webtransport_statistics:webTransportStatistics?.report()??null,
             rtc_audio_boundary_diagnostics:rtc?.report()??null,
             pipeline:pipeline?.report(routes.map((route,index)=>({index,source:route.selected.index,
-                audio:route.measure.envelope.edges,audioEnvelope:route.measure.envelope.report(1),video:route.measure.videoEdges}))),passed:measured.every(route=>route.passed),routes:measured});},
+                audio:route.measure.envelope.edges,audioEnvelope:route.measure.envelope.report(1),video:route.measure.videoEdges}))),passed:decodedVideoComplete&&measured.every(route=>route.passed),routes:measured});},
         // Stop and join the original diagnostic read while its peer is still
         // live. The same bounded receipt is reused by close; pending work never
         // becomes a synthetic join after peer retirement.
         stopStatistics(){return rtcStages?.close();},
-        close(){return closing??=(async()=>{closed=true;pipeline?.close();Renderer.prototype.audio=originalAudio;Renderer.prototype.video=originalVideo;
+        close(){return closing??=(async()=>{closed=true;
+            // New borrowed-frame owners always start retirement, even if an
+            // unrelated original renderer/audio cleanup fails. Their original
+            // read/clone joins are awaited in finally, never abandoned.
+            const decodedVideoWork=rtc?.stopDecodedVideo();
+            try{
+            pipeline?.close();Renderer.prototype.audio=originalAudio;Renderer.prototype.video=originalVideo;
             // Stop scheduling diagnostics at original close, before joining
             // render owners. A pending original getStats is never a fake join.
             const statisticsWork=rtcStages?.close(),webTransportStatisticsWork=webTransportStatistics?.close();
@@ -645,9 +682,10 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                     &&['closed','not-created'].includes(receipt.audioGraph),'Original renderer retirement receipt differs');
                 return receipt;
             }));
-            await rtc?.close();const statistics=await statisticsWork,webTransportStatisticsClosure=await webTransportStatisticsWork;
+            const rtcClosure=await rtc?.close();const statistics=await statisticsWork,webTransportStatisticsClosure=await webTransportStatisticsWork;
             const diagnosticOwnersJoined=(!rtcStages||statistics?.joined===true)
-                &&(!webTransportStatistics||webTransportStatisticsClosure?.joined===true);
+                &&(!webTransportStatistics||webTransportStatisticsClosure?.joined===true)
+                &&(!nativeRtcVideo||rtcClosure?.decoded_video?.joined===true);
             if(diagnosticOwnersJoined)retirements.forEach((result,index)=>{
                 if(result.status!=='fulfilled')return;
                 for(const canvas of owners[index].surfaces){canvas.width=0;canvas.height=0;surfaces.delete(canvas);}
@@ -668,23 +706,26 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
             const count=owners.length,workingState=()=>{
                 const total={};for(const route of routes)for(const [key,value] of Object.entries(route.measure.workingState()))
                     total[key]=(total[key]??0)+value;
+                for(const route of routes)if(route.rendered)for(const [key,value] of Object.entries(route.rendered.workingState()))
+                    total['rendered_'+key]=(total['rendered_'+key]??0)+value;
                 return total;
             };
             const before=workingState();
-            const playbackPassed=outcomes.every(value=>value.status==='fulfilled');
+            const playbackPassed=outcomes.every(value=>value.status==='fulfilled')&&(!nativeRtcVideo||rtcClosure?.decoded_video?.passed===true);
             const joined=retirements.every(value=>value.status==='fulfilled')&&diagnosticOwnersJoined&&surfaces.size===0;
             if(joined){
                 // Preserve the most recent complete proof before dropping only
                 // no-longer-needed numeric measurement working histories.
                 lastReport=this.report();
-                for(const route of routes)route.measure.retireWorkingState();
+                for(const route of routes){route.measure.retireWorkingState();route.rendered?.retireWorkingState();}
                 measurementsRetired=true;
             }
             owners.length=0;bindings.clear();initialRenders.clear();
-            return {owners:count,statistics,webtransport_statistics:webTransportStatisticsClosure,joined,playback_passed:playbackPassed,
+            return {owners:count,statistics,webtransport_statistics:webTransportStatisticsClosure,native_decoded_observer:rtcClosure?.decoded_video??null,joined,playback_passed:playbackPassed,
                 measurement_working_state:{retired:joined,before,retained:workingState(),
                     scope:'Decoded-route working histories only. Captured report evidence remains unchanged. No garbage collection or RSS return claim.'},
                 owner_outcomes:ownerOutcomes,retirement_outcomes:retirementOutcomes,retained_surfaces:surfaces.size};
+            }finally{await decodedVideoWork;}
         })();},
     };
 }

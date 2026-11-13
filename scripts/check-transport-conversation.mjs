@@ -149,6 +149,11 @@ try {
     const originalReference = create.referenceJson();
     let conversation = await complete(create);
     const cid = conversation.id;
+    report.original_created_conversation = {
+        format: "connect/original-native-created-conversation/1", conversation_id: cid,
+        create_operation_id: originalReference.operation_id,
+        original_reference_sha256: hash(encode(originalReference)),
+    };
     await writeFile(join(privateDirectory, "original-operation.json"), encode(originalReference), { flag: "wx", mode: 0o600 });
     let view = await conversation.refresh(options);
     assert.equal(view.participants.filter(p => p.active).length, 3);

@@ -270,6 +270,13 @@ class NativeMatrixProducers(unittest.TestCase):
             conversation_control=dict(passed=False,retirement=retirement(),programme_profile=PROFILE,programme_worker=worker_receipt()),native_av_decoded=dict(passed=False),
             current_authority={"expiry":authority_result("expiry"),"revocation":authority_result("revocation"),"conflict":{"passed":True}},
             idle_resources=idle_result(),servers=[dict(original_joined=True)]*2)
+        owners=sorted(("controller-1","controller-2","participant-2","participant-3","participant-4","replacement-1"))
+        phases=([owner+"-before-revocation" for owner in owners]+["revoke-primary-device","revoked-primary-native-refusal"]
+            +[owner+"-after-revocation" for owner in owners]+["original-actor-configs-unchanged"])
+        report["late_native_controls"]=dict(attempted=True,status="passed",all_required_calls_attempted=True,
+            all_before_exact=True,primary_revoked=True,revoked_primary_refused=True,all_after_same=True,
+            configs_unchanged=True,steps=[dict(phase=phase,status="passed") for phase in phases])
+        report["checks"]=["revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable"]
         evaluate_cell(cell,report,"b"*64,environment=matrix["execution_environment"],revision="a"*40)
         self.assertEqual(cell["check_results"]["current-revocation-expiry-and-conflicting-operation-refusals"]["status"],"passed")
         self.assertEqual(cell["check_results"]["owned-drain-and-resource-reclamation"]["status"],"passed")

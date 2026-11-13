@@ -117,9 +117,16 @@ def cleanup_evidence(report):
             and value["process_owner"].get("original_supervisor_joined") is True
             and value["process_owner"].get("original_workers_joined") is True)
         for name, value in authority.items() if name in {"expiry", "revocation"}) if not browser else True
-    return dict(confirmed=servers_joined and clients_joined and namespace_joined and capture_joined and authority_joined,
+    public_commands = report.get("public_control_owner_cleanup")
+    public_commands_joined = ("public_control_owner_cleanup" not in report or (isinstance(public_commands, dict)
+        and public_commands.get("confirmed") is True
+        and type(public_commands.get("owners_started")) is int
+        and type(public_commands.get("owners_joined")) is int
+        and 0 <= public_commands["owners_started"] == public_commands["owners_joined"]
+        and "unconfirmed_owner" not in public_commands))
+    return dict(confirmed=servers_joined and clients_joined and namespace_joined and capture_joined and authority_joined and public_commands_joined,
         servers_joined=servers_joined, clients_joined=clients_joined, namespace_joined=namespace_joined,
-        capture_joined=capture_joined, authority_joined=authority_joined)
+        capture_joined=capture_joined, authority_joined=authority_joined, public_commands_joined=public_commands_joined)
 
 
 class GuardedVmWorkloadLease:

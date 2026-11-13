@@ -1,0 +1,127 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+@@ -296,29 +296,62 @@
+         }
+     }
+     fn rewrite(sdp: &str, proxy: SocketAddr) -> (String, SocketAddr) {
++        Self::checked_rewrite(sdp, proxy)
++            .expect("isolated same-socket muxed RTP/RTCP UDP candidates required")
++    }
++    fn checked_rewrite(sdp: &str, proxy: SocketAddr) -> Option<(String, SocketAddr)> {
++        if !proxy.ip().is_loopback() || proxy.port() == 0 {
++            return None;
++        }
+         let mut original = None;
+         let mut output = String::new();
++        let (mut active_rtp, mut muxed, mut observed_rtp, mut component_one) =
++            (false, false, false, false);
+         for line in sdp.lines() {
++            if let Some(media) = line.strip_prefix("m=") {
++                if active_rtp && !muxed {
++                    return None;
++                }
++                let fields = media.split_whitespace().collect::<Vec<_>>();
++                if fields.len() < 3 {
++                    return None;
++                }
++                let port = fields[1].split('/').next()?.parse::<u16>().ok()?;
++                active_rtp = matches!(fields[0], "audio" | "video") && port != 0;
++                muxed = false;
++                observed_rtp |= active_rtp;
++            }
++            if active_rtp && line == "a=rtcp-mux" {
++                muxed = true;
++            }
+             if line.starts_with("a=candidate:") {
+                 let mut fields = line
+                     .split_whitespace()
+                     .map(str::to_owned)
+                     .collect::<Vec<_>>();
+-                assert!(
+-                    fields.len() >= 8
+-                        && fields[1] == "1"
+-                        && fields[2].eq_ignore_ascii_case("udp")
+-                        && fields[6] == "typ"
+-                        && fields[7] == "host",
+-                    "isolated single-host UDP candidate required"
+-                );
+-                let address: SocketAddr = format!("{}:{}", fields[4], fields[5]).parse().unwrap();
+-                assert!(address.ip().is_loopback());
+-                assert!(
+-                    original
+-                        .replace(address)
+-                        .is_none_or(|previous| previous == address)
+-                );
++                // Pinned rtc SDP adds component1 AND2 aliases for each SAME
++                // candidate. RTCP-mux plus exact same loopback socket is the
++                // fixture isolation invariant, not the component label alone.
++                if !active_rtp
++                    || fields.len() < 8
++                    || !matches!(fields[1].as_str(), "1" | "2")
++                    || !fields[2].eq_ignore_ascii_case("udp")
++                    || fields[6] != "typ"
++                    || fields[7] != "host"
++                {
++                    return None;
++                }
++                let ip = fields[4].parse::<std::net::IpAddr>().ok()?;
++                let port = fields[5].parse::<u16>().ok()?;
++                let address = SocketAddr::new(ip, port);
++                if !address.ip().is_loopback()
++                    || address.port() == 0
++                    || original.is_some_and(|previous| previous != address)
++                {
++                    return None;
++                }
++                original = Some(address);
++                component_one |= fields[1] == "1";
+                 fields[4] = proxy.ip().to_string();
+                 fields[5] = proxy.port().to_string();
+                 output.push_str(&fields.join(" "));
+@@ -327,7 +360,37 @@
+             }
+             output.push_str("\r\n");
+         }
+-        (output, original.expect("actual ICE host candidate"))
++        if active_rtp && !muxed || !observed_rtp || !component_one {
++            return None;
++        }
++        Some((output, original?))
++    }
++    fn verify_candidate_isolation() {
++        let source = "v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=rtcp-mux\r\na=candidate:a 1 udp 100 127.0.0.1 40001 typ host\r\na=candidate:a 2 udp 100 127.0.0.1 40001 typ host\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=rtcp-mux\r\na=candidate:a 1 udp 100 127.0.0.1 40001 typ host\r\na=candidate:a 2 udp 100 127.0.0.1 40001 typ host\r\n";
++        let proxy = "127.0.0.1:40002".parse().unwrap();
++        let (rewritten, original) = Self::checked_rewrite(source, proxy).unwrap();
++        assert_eq!(original, "127.0.0.1:40001".parse::<SocketAddr>().unwrap());
++        assert!(
++            rewritten.contains("a=candidate:a 1 udp 100 127.0.0.1 40002 typ host")
++                && rewritten.contains("a=candidate:a 2 udp 100 127.0.0.1 40002 typ host")
++        );
++        for invalid in [
++            source.replacen("40001", "40003", 1),
++            source.replace("127.0.0.1", "192.0.2.1"),
++            source.replace("a 2 udp", "a 3 udp"),
++            source.replace("a 1 udp", "a 2 udp"),
++            source.replace("a=rtcp-mux\r\n", ""),
++            source.replace(
++                "m=video 9 UDP/TLS/RTP/SAVPF 96\r\na=rtcp-mux",
++                "m=video 9 UDP/TLS/RTP/SAVPF 96",
++            ),
++            source.replace("a 2 udp", "a 2 tcp"),
++        ] {
++            assert!(
++                Self::checked_rewrite(&invalid, proxy).is_none(),
++                "foreign/nonmuxed/incorrect component may not enter original proxy"
++            );
++        }
+     }
+     fn start(&mut self, server: SocketAddr, client: SocketAddr) {
+         let (a, b, state, dropped, stop) = (
+@@ -458,6 +521,7 @@
+ }
+ impl Harness {
+     fn new() -> Self {
++        Proxy::verify_candidate_isolation();
+         Self {
+             policy: Arc::new(Policy {
+                 owners: [

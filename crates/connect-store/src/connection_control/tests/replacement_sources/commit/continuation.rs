@@ -7,6 +7,71 @@ fn immutable(error: rusqlite::Error, expected: &str) {
             if code.code == rusqlite::ErrorCode::ConstraintViolation && message == expected));
 }
 
+// Controlled fixture mutation still uses the real current complete authority
+// protocol. It never bypasses SQL writer hooks or installs packet permission.
+fn fixture_writer(
+    m: &Movement,
+    store: &Store,
+    activation: &crate::NativeReplacementActivation,
+) -> Arc<crate::AuthorityGuardSet> {
+    store
+        .stable_authority(
+            &crate::AuthorityWait::new(std::time::Duration::from_secs(1)),
+            || {
+                let c = store.connection()?;
+                let mut scopes = crate::authority_admission::conversation_scopes(
+                    &c,
+                    m.sources[0].conversation_id(),
+                    crate::AuthorityMode::Write,
+                )?;
+                for source in &m.sources {
+                    scopes.push(crate::AuthorityScope::connection(
+                        source.connection_id(),
+                        crate::AuthorityMode::Write,
+                    )?);
+                }
+                scopes.extend([
+                    crate::AuthorityScope::connection(
+                        activation.origin().connection_id(),
+                        crate::AuthorityMode::Write,
+                    )?,
+                    crate::AuthorityScope::record(
+                        activation.origin().offer_record_id(),
+                        crate::AuthorityMode::Write,
+                    )?,
+                ]);
+                crate::AuthorityScope::merged(&scopes)
+            },
+        )
+        .unwrap()
+}
+fn fixture_write<T>(
+    m: &Movement,
+    store: &Store,
+    activation: &crate::NativeReplacementActivation,
+    action: impl FnOnce(&rusqlite::Connection) -> T,
+) -> T {
+    let writer = fixture_writer(m, store, activation);
+    let c = store.connection_with_authority(&writer).unwrap();
+    action(&c)
+    // SQL Unit drops before its complete Writer; no Writer crosses packet read.
+}
+fn held_complete_source_pair(
+    m: &Movement,
+    activation: &crate::NativeReplacementActivation,
+) -> crate::NativeMediaRead {
+    // Reverse actual pair has the retained source as target (required by the
+    // held-source API) and contains BOTH current Connection dependencies.
+    m.f.store
+        .try_native_replacement_continuation_media_read(
+            &m.sources[1],
+            None,
+            Some((activation.origin(), Some(activation))),
+            None,
+        )
+        .unwrap()
+}
+
 #[test]
 fn exact_started_commit_can_read_current_public_pair_before_journal_projection() {
     let m = fixture_scoped(true, &["stream.subscribe"]);
@@ -73,10 +138,23 @@ fn exact_started_commit_can_read_current_public_pair_before_journal_projection()
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let mut attempt = Some(attempt);
     for captured in [false, true] {
-        let held =
+        let partial =
             m.f.store
                 .try_native_media_read(&m.sources[1], None)
                 .unwrap();
+        assert!(
+            m.f.store
+                .try_native_replacement_continuation_media_read(
+                    activation.origin(),
+                    Some(&activation),
+                    Some((&m.sources[1], None)),
+                    Some(&partial),
+                )
+                .is_err(),
+            "unary custody must not silently gain candidate ConnectionRead"
+        );
+        drop(partial);
+        let held = held_complete_source_pair(&m, &activation);
         let current =
             m.f.store
                 .try_native_replacement_continuation_media_read(
@@ -159,7 +237,8 @@ fn pending_pair_refuses_foreign_worker_attempt_and_current_authority_loss() {
         };
         assert!(read().unwrap().current(), "positive {mutation}");
         continuation_actual_hit(&activation, || read());
-        let c = m.f.store.connection().unwrap();
+        let writer = fixture_writer(&m, &m.f.store, &activation);
+        let c = m.f.store.connection_with_authority(&writer).unwrap();
         let record = activation.origin().offer_record_id();
         match mutation {
             "installation-as-worker" => {
@@ -295,6 +374,7 @@ fn pending_pair_refuses_foreign_worker_attempt_and_current_authority_loss() {
             _ => unreachable!(),
         }
         drop(c);
+        drop(writer);
         assert!(read().is_err(), "refused {mutation}");
         assert_eq!(m.f.count("native_replacement_lifetimes"), 0);
     }
@@ -325,7 +405,8 @@ fn pending_receiver_metadata_observes_subscribe_withdrawal_on_the_same_actor() {
         let current = read(paired).unwrap();
         assert!(current.current() && current.permits_subscriptions());
     }
-    let c = m.f.store.connection().unwrap();
+    let writer = fixture_writer(&m, &m.f.store, &activation);
+    let c = m.f.store.connection_with_authority(&writer).unwrap();
     let raw: String = c
         .query_row(
             "SELECT operations FROM credentials WHERE id=?1",
@@ -345,6 +426,7 @@ fn pending_receiver_metadata_observes_subscribe_withdrawal_on_the_same_actor() {
     )
     .unwrap();
     drop(c);
+    drop(writer);
     let actor =
         m.f.store
             .revalidate(&m.target_request.credentials[0])
@@ -543,8 +625,10 @@ fn pending_continuation_memo_separates_phase_source_and_observes_external_commit
     continuation_actual_hit(&activation, || read());
     // Time itself can withdraw a credential without a SQL commit. A positive
     // memo must never turn its captured expiry into an authorization TTL.
-    let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+    let external = Store::open_administration(m.f.store.path(), crate::Limits::default()).unwrap();
     let original_expiry: i64 = external
+        .connection()
+        .unwrap()
         .query_row(
             "SELECT expires_at FROM credentials WHERE id=?1",
             [&m.target_request.credentials[0]],
@@ -553,12 +637,13 @@ fn pending_continuation_memo_separates_phase_source_and_observes_external_commit
         .unwrap();
     let short_expiry = crate::now() + 2;
     assert!(short_expiry < original_expiry);
-    external
-        .execute(
+    fixture_write(&m, &external, &activation, |c| {
+        c.execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",
             params![m.target_request.credentials[0], short_expiry],
         )
-        .unwrap();
+        .unwrap()
+    });
     continuation_actual_hit(&activation, || read());
     let short = read().unwrap();
     assert!(short.expires_at() <= short_expiry);
@@ -572,44 +657,46 @@ fn pending_continuation_memo_separates_phase_source_and_observes_external_commit
         std::thread::sleep(std::time::Duration::from_millis(2));
     }
     assert_eq!(read().err().unwrap().code, "unauthorized");
-    external
-        .execute(
+    fixture_write(&m, &external, &activation, |c| {
+        c.execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",
             params![m.target_request.credentials[0], original_expiry],
         )
-        .unwrap();
+        .unwrap()
+    });
     continuation_actual_hit(&activation, || read());
     // A second handle in this process is also a distinct writer. It cannot be
     // hidden behind a Manager-local epoch or this observer's total_changes.
     // Exercise its reversible expiry changes before the final revocation.
     let admin = Store::open_administration(m.f.store.path(), crate::Limits::default()).unwrap();
-    let c = admin.connection().unwrap();
-    c.execute(
-        "UPDATE credentials SET expires_at=?2 WHERE id=?1",
-        params![m.target_request.credentials[0], crate::now() - 1],
-    )
-    .unwrap();
-    drop(c);
+    fixture_write(&m, &admin, &activation, |c| {
+        c.execute(
+            "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+            params![m.target_request.credentials[0], crate::now() - 1],
+        )
+        .unwrap();
+    });
     assert_eq!(read().err().unwrap().code, "unauthorized");
-    let c = admin.connection().unwrap();
-    c.execute(
-        "UPDATE credentials SET expires_at=?2 WHERE id=?1",
-        params![m.target_request.credentials[0], original_expiry],
-    )
-    .unwrap();
-    drop(c);
+    fixture_write(&m, &admin, &activation, |c| {
+        c.execute(
+            "UPDATE credentials SET expires_at=?2 WHERE id=?1",
+            params![m.target_request.credentials[0], original_expiry],
+        )
+        .unwrap();
+    });
     drop(admin);
     continuation_actual_hit(&activation, || read());
     let before = activation.continuation_memo_counts_for_test();
     // This independent SQLite connection has its own total_changes value:
     // PRAGMA data_version, not an in-process notification, must invalidate us.
     // Revocation is intentionally final; the schema forbids unrevocation.
-    external
-        .execute(
+    fixture_write(&m, &external, &activation, |c| {
+        c.execute(
             "UPDATE credentials SET revoked=1 WHERE id=?1",
             [&m.target_request.credentials[0]],
         )
-        .unwrap();
+        .unwrap()
+    });
     assert_eq!(read().err().unwrap().code, "unauthorized");
     let after = activation.continuation_memo_counts_for_test();
     assert!(
@@ -635,13 +722,14 @@ fn pending_continuation_positive_memo_keeps_phase_source_and_expiry_across_clock
             .unwrap();
     let activation = attempt.activation().clone();
     drop(scene);
-    let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
-    external
-        .execute(
+    let external = Store::open_administration(m.f.store.path(), crate::Limits::default()).unwrap();
+    fixture_write(&m, &external, &activation, |c| {
+        c.execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",
             params![m.target_request.credentials[0], base + 4],
         )
-        .unwrap();
+        .unwrap()
+    });
     for selected in 0..crate::packet_observation::OBSERVERS {
         clock.set(base);
         let _occupied: Vec<_> =
@@ -668,10 +756,7 @@ fn pending_continuation_positive_memo_keeps_phase_source_and_expiry_across_clock
         let before = activation.continuation_memo_counts_for_test();
         for second in [base + 2, base + 1] {
             clock.set(second);
-            let held =
-                m.f.store
-                    .try_native_media_read(&m.sources[1], None)
-                    .unwrap();
+            let held = held_complete_source_pair(&m, &activation);
             let current =
                 m.f.store
                     .try_native_replacement_continuation_media_read(

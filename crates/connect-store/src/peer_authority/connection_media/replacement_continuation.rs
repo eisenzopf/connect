@@ -179,6 +179,23 @@ fn current_facts(
     }
 }
 impl Store {
+    /// Fresh domain facts for the exact already-active continuation being
+    /// projected to ordinary metadata. This creates no reader, epoch or Core
+    /// grant. The constructor keeps these current dependencies and the actual
+    /// pending minimum rather than borrowing the longer ordinary lifetime.
+    pub(crate) fn replacement_publication_continuation_scopes(
+        &self,
+        c: &Connection,
+        activation: &NativeReplacementActivation,
+    ) -> Result<(Vec<AuthorityScope>, i64)> {
+        let (_, scopes, until) = pending_facts(self, c, activation)?;
+        // A future dependency that changes authority cannot be silently turned
+        // into a read-only continuation-publication footprint.
+        if scopes.iter().any(|scope| scope != &scope.read_scope()) {
+            return Err(Error::forbidden());
+        }
+        Ok((scopes, until))
+    }
     /// Exact pending target/source pair only. This returns domain readers, not
     /// a Core route grant. Only immutable facts reuse the existing exact-version
     /// memo. Every call owns fresh authority or validates the actual held source

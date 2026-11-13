@@ -104,3 +104,79 @@ test("a failed original observer is never retried while the remaining original o
     assert.deepEqual(observation.failed_observers,[3]);assert.equal(observation.passed,false);
     assert.equal(observation.observers_joined,true);assert.equal(parent.signal.aborted,false);
 });
+
+
+test("the original62s boundary stops sleeping observers while current retirement continues", async () => {
+    let clock = 56000, boundary, finishRun, enteredSleep;
+    const runGate = new Promise(resolve => { finishRun = resolve; });
+    const sleeping = new Promise(resolve => { enteredSleep = resolve; });
+    const parent = new AbortController(), calls = [], cleared = [];
+    const session = index => ({ id: "session-" + index, async refresh(options) {
+        calls.push(options); return { id: this.id, state: "accepted", isMain: index === 0 };
+    } });
+    const pending = observeMovementSessions({ workload: { startedAt: 0, signal: parent.signal },
+        primarySessions: [0, 1].map(session), controllerSessions: [0, 1].map(session), now: () => clock,
+        setTimer(fn, ms) { assert.equal(ms, 6000); boundary = fn; return "original-boundary"; },
+        clearTimer(timer) { cleared.push(timer); },
+        async wait(ms, signal) {
+            assert.equal(ms, 6000); enteredSleep();
+            await new Promise(resolve => signal.addEventListener("abort", resolve, { once: true }));
+        }, async run(current) { await runGate; assert.equal(current.signal.aborted, false); return "retired-originals"; } });
+    await sleeping;
+    clock = 62000; boundary(); await Promise.resolve(); await Promise.resolve();
+    clock = 65968; await Promise.resolve();
+    assert.equal(calls.length, 4, "no retirement-phase refresh may be started");
+    assert.ok(calls.every(options => options.timeoutMs === 8000 && options.signal === undefined));
+    assert.equal(parent.signal.aborted, false);
+    clock = 66018; finishRun();
+    const result = await pending;
+    assert.equal(result.value, "retired-originals");
+    assert.equal(result.observation.observers_joined, true);
+    assert.equal(result.observation.original_cutoff_monotonic_ms, 67000);
+    assert.deepEqual(cleared, ["original-boundary"]);
+});
+
+for (const mode of ["success", "read-failure", "work-failure"]) {
+    test("a refresh in flight at62s is joined without SDK cancellation or losing first failure: " + mode, async () => {
+        let clock = 61000, boundary, finishRun, reportWorkFailure, settled = false;
+        const runGate = new Promise(resolve => { finishRun = resolve; });
+        const workReported = new Promise(resolve => { reportWorkFailure = resolve; });
+        const parent = new AbortController(), pendingReads = [], calls = [];
+        const readFailure = Object.assign(Error("original current read refused"), { certainty: "read-only" });
+        const workFailure = Object.assign(Error("original movement failure"), { certainty: "read-only" });
+        const session = index => ({ id: "session-" + index, refresh(options) {
+            calls.push(options);
+            return new Promise((resolve, reject) => pendingReads.push({ index, resolve, reject }));
+        } });
+        const pending = observeMovementSessions({ workload: { startedAt: 0, signal: parent.signal,
+                reportFailure(error) { if (error === workFailure) reportWorkFailure(); } },
+            primarySessions: [0, 1].map(session), controllerSessions: [0, 1].map(session), now: () => clock,
+            setTimer(fn, ms) { assert.equal(ms, 1000); boundary = fn; return "original-boundary"; },
+            clearTimer(timer) { assert.equal(timer, "original-boundary"); },
+            wait() { throw Error("no sleep after the programme boundary"); },
+            async run() { await runGate; if (mode === "work-failure") throw workFailure; return "same-run"; } });
+        pending.then(() => { settled = true; }, () => { settled = true; });
+        await Promise.resolve(); await Promise.resolve();
+        assert.equal(pendingReads.length, 4);
+        assert.ok(calls.every(options => options.timeoutMs === 6000 && options.signal === undefined));
+        clock = 62000; boundary();
+        if (mode !== "read-failure") finishRun();
+        await Promise.resolve(); await Promise.resolve();
+        assert.equal(settled, false, "stopping observation must not abandon original reads");
+        assert.equal(parent.signal.aborted, false);
+        if (mode === "work-failure") await workReported;
+        clock = 63000;
+        for (const [offset, read] of pendingReads.entries()) {
+            if (mode !== "success" && offset === 0) read.reject(readFailure);
+            else read.resolve({ id: "session-" + read.index, state: "accepted", isMain: read.index === 0 });
+        }
+        if (mode === "read-failure") { await Promise.resolve(); await Promise.resolve(); finishRun(); }
+        if (mode === "success") {
+            const result = await pending;
+            assert.equal(result.value, "same-run");
+            assert.equal(result.observation.observers_joined, true);
+            assert.equal(result.observation.original_cutoff_monotonic_ms, 67000);
+        } else await assert.rejects(pending, error => error === (mode === "read-failure" ? readFailure : workFailure));
+        assert.equal(calls.length, 4); assert.equal(parent.signal.aborted, false);
+    });
+}

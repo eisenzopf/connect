@@ -25,6 +25,9 @@ from lib.transport_fixture import FixtureError, RELIABLE_PAYLOAD_BYTES, material
 from lib.transport_matrix import digest, native_three_cycle_quality
 from lib.native_matrix_idle import run_native_matrix
 from lib.native_matrix_authority import run_native_authority
+from lib.native_conversation_visibility import owned_conversation_ids
+from lib.native_programme_controls import (LATE_MARKER, ordinary_native_check, record_native_failure,
+    original_native_owners_joined, run_late_native_controls, late_controls_not_run, wait_original_control_child, terminate_original_control_child)
 from lib.mac_linux_fixture import MacLinuxFixture, rewrite_paths
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -261,23 +264,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         command = namespace.client_command(command)
                 child = subprocess.Popen(command, cwd=ROOT, env=env,
                     stdin=incoming, stdout=out, stderr=errors, start_new_session=True)
-                joined = False
-                try:
-                    result = child.wait(timeout=30)
-                    joined = True
-                finally:
-                    if not joined:
-                        if namespace is not None:
-                            namespace.client_forced = True
-                        try:
-                            os.killpg(child.pid, signal.SIGKILL)
-                        except PermissionError:
-                            subprocess.run(["sudo", "-n", "/bin/kill", "-KILL", "--", "-" + str(child.pid)],
-                                env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL, timeout=5, check=False)
-                        except ProcessLookupError:
-                            pass
-                        child.wait(timeout=5)
+                result = wait_original_control_child(child,
+                    lambda: terminate_original_control_child(child.pid, namespace=namespace, env=env), report, name)
             report["commands"].append(dict(name=name, verb=arguments[0], exit_code=result))
             assert (result == 0) == success, "Public fixture command result differs"
             return path.read_bytes()
@@ -784,40 +772,86 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         (PRIVATE / "native-av-decoder-failure.log").write_text(traceback.format_exc())
                         report["native_av_decoder_failure"] = dict(name=type(decode_error).__name__,
                             line=traceback.extract_tb(decode_error.__traceback__)[-1].lineno)
+                # Independent ordinary verdicts must not suppress late current-authority
+                # controls after all original programme owners have actually drained.
+                ordinary = lambda name, value: ordinary_native_check(report, name, value)
                 if media_workload:
-                    assert report["native_process_profile"]["collection_complete"]
-                if media_workload:
-                    assert "native_media_diagnostics_after_failure" not in report
-                assert code == 0
-                assert observed["passed"] and observed["all_observed_helpers_joined"]
-                assert observed["maximum_active_members_observed"] == 4 and observed["concurrent_session_intents_observed"] == 2
-                assert observed["signing_algorithm"] == signing_algorithm and observed["host"]["platform"] == ("ubuntu24-arm64" if remote is not None else server_platform)
-                assert observed["source_revision"] == report["source_revision"] and observed["binary_sha256"] == report.get("client_binary_sha256", report["binary_sha256"]) and observed["server_binary_sha256"] == report["binary_sha256"]
+                    ordinary("native-process-profile-complete", report["native_process_profile"].get("collection_complete") is True)
+                    ordinary("native-profile-health-after", "native_media_diagnostics_after_failure" not in report)
+                ordinary("public-sdk-conversation-exit", code == 0)
+                control_ok = ordinary("public-sdk-conversation-control", observed.get("passed") is True
+                    and observed.get("all_observed_helpers_joined") is True)
+                control_ok &= ordinary("declared-native-participant-session-counts", observed.get("maximum_active_members_observed") == 4
+                    and observed.get("concurrent_session_intents_observed") == 2)
+                identity_ok = ordinary("original-native-host-signing", observed.get("signing_algorithm") == signing_algorithm
+                    and observed.get("host", {}).get("platform") == ("ubuntu24-arm64" if remote is not None else server_platform))
+                identity_ok &= ordinary("original-native-source-binaries", observed.get("source_revision") == report["source_revision"]
+                    and observed.get("binary_sha256") == report.get("client_binary_sha256", report["binary_sha256"])
+                    and observed.get("server_binary_sha256") == report["binary_sha256"])
+                control_ok &= identity_ok
                 if data_workload:
-                    assert observed["actual_connection_workload_observed"] and observed["actual_topology_verified"]
-                    workload = observed["data_workload"]
-                    assert workload["connections"] == 6 and workload["participants"] == 4 and workload["sessions"] == 2
-                    assert workload["verified_payloads"] == workload["original_connections_retired"] == 6
-                    assert workload["total_received_bytes"] == 6 * 65536
+                    control_ok &= ordinary("actual-native-connection-topology", observed.get("actual_connection_workload_observed") is True
+                        and observed.get("actual_topology_verified") is True)
+                    workload = observed.get("data_workload", {})
+                    control_ok &= ordinary("actual-native-data-workload-counts", workload.get("connections") == 6
+                        and workload.get("participants") == 4 and workload.get("sessions") == 2)
+                    control_ok &= ordinary("actual-native-data-retirement", workload.get("verified_payloads") == workload.get("original_connections_retired") == 6)
+                    control_ok &= ordinary("actual-native-data-bytes", workload.get("total_received_bytes") == 6 * 65536)
                 if media_workload:
-                    phase = "independent-native-opus-vp8-decode"
-                    assert decoded is not None and decoded["passed"]
-                    assert all(report["current_authority"][kind]["passed"] for kind in ("expiry", "revocation", "conflict"))
-                    assert report["idle_resources"]["passed"]
-                    report["checks"].append("six-native-opus-vp8-routes-have-independently-decoded-source-identity-and-moving-360p-content")
-                report["checks"].append("public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery")
-                before_revocation = {name: rooms(name + "-before-revocation", Path(records[name]["config"])) for name in sorted(before_revocation)}
-                assert all(len(value) == 1 for value in before_revocation.values())
-                assert len({value[0]["id"] for value in before_revocation.values()}) == 1
-            revoke = ["revoke", "--config", state / "operator.application.toml", "--operation-id", "transport-actor-revoke-primary-1", records["participant-1"]["credential_id"]]
-            assert json.loads(run("revoke-primary-device", revoke))["result"]["Ok"]["revoked"] is True
-            refusal = json.loads(run("revoked-primary-native-refusal", ["request", "--config", records["participant-1"]["config"], "--envelope"],
-                dict(command=dict(type="conversation.list", payload=dict(filter={}, limit=20)), scope={}), success=False))
-            assert refusal["result"]["Err"]["code"] == "unauthorized"
-            for name in sorted(records.keys() - {"participant-1"}):
-                assert rooms(name + "-after-revocation", Path(records[name]["config"])) == before_revocation[name]
-            assert files(directory) == installed
-            report["checks"].append("revoked-primary-device-refuses-while-independent-replacement-and-other-devices-remain-usable")
+                    media_ok = ordinary("independent-native-opus-vp8-decode", decoded is not None and decoded.get("passed") is True)
+                    ordinary("independent-native-current-authority", all(report.get("current_authority", {}).get(kind, {}).get("passed") is True for kind in ("expiry", "revocation", "conflict")))
+                    ordinary("native-idle-resources", report.get("idle_resources", {}).get("passed") is True)
+                    if media_ok:
+                        report["checks"].append("six-native-opus-vp8-routes-have-independently-decoded-source-identity-and-moving-360p-content")
+                if control_ok:
+                    report["checks"].append("public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery")
+                create_proofs = []
+                for index, original in enumerate(cycle_observations, 1):
+                    cycle_directory = PRIVATE / ("native-cycle-" + str(index)) if resource_cycles == 3 else PRIVATE
+                    owned_directory = cycle_directory / "conversation-control"
+                    owned_plan = owned_directory / "plan.json"
+                    original_reference = owned_directory / "original-operation.json"
+                    assert not owned_plan.is_symlink() and digest(owned_plan) == original["plan_sha256"]
+                    assert not original_reference.is_symlink()
+                    create_proofs.append(dict(planned_create_operation_id=json.loads(owned_plan.read_text())["create"],
+                        reference=json.loads(original_reference.read_text()), reference_sha256=digest(original_reference)))
+                expected_owned = owned_conversation_ids(cycle_observations, create_proofs, resource_cycles)
+                report["native_programme_conversation_ownership"] = dict(
+                    cycles=resource_cycles, exact_owned_conversation_ids=sorted(expected_owned),
+                    original_create_operation_ids=[proof["planned_create_operation_id"] for proof in create_proofs],
+                    before_revocation_exact=False, after_revocation_exact=False)
+                def revoke_original_primary():
+                    command = ["revoke", "--config", state / "operator.application.toml", "--operation-id", "transport-actor-revoke-primary-1", records["participant-1"]["credential_id"]]
+                    return json.loads(run("revoke-primary-device", command))["result"]["Ok"]["revoked"] is True
+                def original_primary_refused():
+                    refusal = json.loads(run("revoked-primary-native-refusal", ["request", "--config", records["participant-1"]["config"], "--envelope"],
+                        dict(command=dict(type="conversation.list", payload=dict(filter={}, limit=20)), scope={}), success=False))
+                    return refusal["result"]["Err"]["code"] == "unauthorized"
+                report["late_native_controls"] = (late_controls_not_run("original-programme-source-identity-unconfirmed")
+                    if not identity_ok else run_late_native_controls(report,
+                    owners_joined=original_native_owners_joined(report, media_workload, resource_cycles),
+                    owners=records.keys() - {"participant-1"}, expected=expected_owned,
+                    before_read=lambda name: rooms(name + "-before-revocation", Path(records[name]["config"])),
+                    revoke_primary=revoke_original_primary, primary_refused=original_primary_refused,
+                    after_read=lambda name: rooms(name + "-after-revocation", Path(records[name]["config"])),
+                    configs_unchanged=lambda: files(directory) == installed))
+                report["native_programme_conversation_ownership"].update(
+                    before_revocation_exact=report["late_native_controls"].get("all_before_exact") is True,
+                    after_revocation_exact=report["late_native_controls"].get("all_after_same") is True)
+                if report["late_native_controls"]["status"] == "passed":
+                    report["checks"].append(LATE_MARKER)
+                elif report["late_native_controls"]["status"] == "not-run":
+                    record_native_failure(report, report["late_native_controls"]["reason"])
+            else:
+                revoke = ["revoke", "--config", state / "operator.application.toml", "--operation-id", "transport-actor-revoke-primary-1", records["participant-1"]["credential_id"]]
+                assert json.loads(run("revoke-primary-device", revoke))["result"]["Ok"]["revoked"] is True
+                refusal = json.loads(run("revoked-primary-native-refusal", ["request", "--config", records["participant-1"]["config"], "--envelope"],
+                    dict(command=dict(type="conversation.list", payload=dict(filter={}, limit=20)), scope={}), success=False))
+                assert refusal["result"]["Err"]["code"] == "unauthorized"
+                for name in sorted(records.keys() - {"participant-1"}):
+                    assert rooms(name + "-after-revocation", Path(records[name]["config"])) == before_revocation[name]
+                assert files(directory) == installed
+                report["checks"].append(LATE_MARKER)
         if capture is not None:
             phase = "owned-native-packet-capture-finish"
             report["packet_capture"] = capture.finish()
@@ -836,13 +870,15 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
         assert files(seed) == original_seed
         assert len(report["servers"]) == 2 and all(v["original_joined"] for v in report["servers"])
         report["checks"].append("seed-unchanged-and-original-server-groups-joined")
-        report["passed"] = True
+        report["passed"] = not report.get("failure")
     except BaseException as error:
         (PRIVATE / "failure.log").write_text(traceback.format_exc())
-        report["failure"] = dict(phase=phase, name=type(error).__name__, line=traceback.extract_tb(error.__traceback__)[-1].lineno)
-        if isinstance(error, FixtureError):
+        record_native_failure(report, phase, error, line=traceback.extract_tb(error.__traceback__)[-1].lineno)
+        if isinstance(error, FixtureError) and report["failure"]["phase"] == phase:
             report["failure"]["code"] = str(error)
     finally:
+        if conversation and "late_native_controls" not in report:
+            report["late_native_controls"] = late_controls_not_run("original-programme-control-prerequisites-unavailable")
         if remote is not None:
             try:
                 report["remote_client_owner"] = remote.close()

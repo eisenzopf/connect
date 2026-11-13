@@ -1,0 +1,64 @@
+{
+  "format": "connect/harness-focused-verification/1",
+  "scope": "Focused fixture/grading/observation/resource units; no live browser, full-media, shipping or matrix qualification.",
+  "passed": 208,
+  "planned": 208,
+  "javascript_passed": 137,
+  "python_passed": 71,
+  "original_controller_exit_code": 0,
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "original_receipt_sha256": "c1a931d19e0bb0e253799a942358853783088ebfbdfd7845eeb774ab0af9e5a4",
+  "groups": [
+    {
+      "runtime": "Python",
+      "test_files": [
+        "scripts/tests/test_operational_process_resources.py",
+        "scripts/tests/test_matrix_original_producer.py",
+        "scripts/tests/test_transport_matrix_full.py",
+        "scripts/tests/test_transport_matrix_execution.py",
+        "scripts/tests/test_browser_matrix_execution.py",
+        "scripts/tests/test_matrix_native_witnesses.py",
+        "scripts/tests/test_native_matrix_producers.py",
+        "scripts/tests/test_native_conversation_visibility.py",
+        "scripts/tests/test_native_programme_controls.py"
+      ],
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "log_sha256": "f871e46d9153ad36358b1595c7b05eef42c307a751f5f67a34f225ab4eb59f6c"
+    },
+    {
+      "runtime": "Node",
+      "test_files": [
+        "scripts/tests/transport_movement_sessions.test.mjs",
+        "scripts/tests/transport_programme_clock_consumers.test.mjs",
+        "scripts/tests/transport_movement_workload.test.mjs",
+        "scripts/tests/native_session_retirement.test.mjs",
+        "scripts/tests/transport_programme_lifetime.test.mjs",
+        "scripts/tests/browser_matrix_rtc_decoded.test.mjs",
+        "scripts/tests/browser_matrix_observation.test.mjs",
+        "scripts/tests/browser_matrix_rtc_observation.test.mjs",
+        "scripts/tests/browser_matrix_sdk_asset.test.mjs",
+        "scripts/tests/browser_matrix_stages.test.mjs",
+        "scripts/tests/browser_matrix_programme.test.mjs",
+        "scripts/video/decoded-video-frames.test.mjs"
+      ],
+      "exit_code": 0,
+      "wait_returned": true,
+      "naturally_exited": true,
+      "group_absent": true,
+      "log_sha256": "72b54fb4040c32b80264ad586b324ffc93f0fde9ef1848328f3575963635f1d5"
+    }
+  ],
+  "fixes": [
+    "Original62s observation admission boundary with original67s inflightjoin and firstfailure/coverage.",
+    "Strict unknown FD handling and narrow samebirth singlethread terminal classification.",
+    "Exact original owned Conversation CID sets, original late authority calls and failclosed CLI custody.",
+    "Strict originalproducer outcome and original fullauthority phase proof.",
+    "Approved Chrome decodedpixel profile, separate originalrendered AV and joined reader clones."
+  ],
+  "first_attempt": "Python first attempt exposed an incomplete synthetic retirement worker and stale Cargo.lock source binding; both corrected and independently source-reviewed, original failures preserved.",
+  "matrix_qualified": false
+}

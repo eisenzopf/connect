@@ -110,6 +110,8 @@ try{
             else if(url.pathname==='/_matrix/retirement-hooks.mjs')file=path.join(root,'scripts/lib/browser_matrix_retirement_hooks.mjs');
             else if(url.pathname==='/_matrix/programme.mjs')file=path.join(root,'scripts/lib/browser_matrix_programme.mjs');
             else if(url.pathname==='/video/marker_calibration.mjs')file=path.join(root,'scripts/video/marker_calibration.mjs');
+            else if(url.pathname==='/video/decoded_video_frames.mjs')file=path.join(root,'scripts/video/decoded_video_frames.mjs');
+            else if(url.pathname==='/_matrix/browser_matrix_rtc_decoded.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_decoded.mjs');
             else if(url.pathname==='/video/source_identity.mjs')file=path.join(root,'scripts/video/source_identity.mjs');
             else{
                 // The observation module retains its valid Node-relative SDK
@@ -273,7 +275,8 @@ try{
                 const {browserMatrixObservation}=await import('/_matrix/observation.mjs');
                 const {BrowserMediaRenderer}=await import('/sdk/browser_media_renderer.js');
                 observer=browserMatrixObservation(BrowserMediaRenderer,plan,selected==='webtransport'?BrowserMediaPeer:null,
-                    selected==='wss-webrtc'?BrowserRtcConnection:null,{webTransportStatistics});
+                    selected==='wss-webrtc'?BrowserRtcConnection:null,{webTransportStatistics,
+                        rtcVideoObserver:spec.browserName==='chrome'?'native-decoded-frames/1':'render-callback/1'});
             }
             state=await browserMatrixAdmission({actors,plan,state,selectedTransport:selected,journal:event=>journal(event),
                 startMedia:input=>sources.start(input),
