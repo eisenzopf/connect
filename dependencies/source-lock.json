@@ -2308,6 +2308,36 @@
       "path": "patches/rvoip/connect-selected-route-direction-fixture-controls.patch",
       "sha256": "b8e344a7a66894ba93d97d15b63db58a70f2c06bf1c8d84146ebb440750ce325",
       "source": "Test-only correction after actual428 selected-route suite passed3 but source-only direction fixture subscribed a non-receiving endpoint and failed setup NotReady before the intended metadata assertions. Subscribe only actual receive sinks, retain all original direction/speaking/hint assertions. Explicit all-owner cleanup result precedes rethrow; no production or Gate6 acceptance change."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-explicit-video-repair-first-poll-controls.patch",
+      "sha256": "a1ad877d86d3657c9bdb35a67ee2b4cf6f4569411ef621560a03b1c08218c362",
+      "source": "Tests only: actual Core explicit retained video repair must refuse temporarily unavailable metadata in its first poll without IO, preserve the original later request and attempt/age accounting, and deny withdrawn source, target, audience, gates, cancellation or expiry. Original controller cleanup precedes the oracle. Registered OLD counter; no production or acceptance change."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-explicit-repair-counter-compilation.patch",
+      "sha256": "c47210869e54266725498faadf9e7c65fa27b61bc0b9f4f223cc12cf3639b7fa",
+      "source": "Test-only correction from actual430 Core compiler errors: import the existing futures_util FutureExt and observe the original four-attempt repair budget through public repair successes then Backpressure rather than private fields. Preserves first-poll OLD oracle and original-owner cleanup. No production or acceptance change."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-repair-counter-std-panic-boundary.patch",
+      "sha256": "d24dc27ba1c89b57538ef4de23be752ec7666d1efdcdeba37cb983dee3ae073f",
+      "source": "Test-only follow-up from actual431 compiler errors: Core has no direct futures_util dependency. Reuse the existing std-only per-poll async panic boundary so original controllers close before the unchanged first-poll repair oracle. No new dependency, worker, timeout, production or acceptance change."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-cooperative-metadata-driver.patch",
+      "sha256": "2d1b22a9b88b5aa8ccc4783d55d91648370785f5107a5030a9a2df2047056efd",
+      "source": "Cooperative WebRTC metadata preparation after actual432 Core OLD first-poll counter. Primary producers preserve exact original packets, state, claim and earliest deadline outside the mutable peer driver while metadata is busy; readiness never grants IO, and final fresh admission plus actual guarded socket semantics remain. Explicit retained video repair makes one fresh attempt without inline metadata sleep. Two fixed driver lanes share the original257 resident budget, cap media255 for two control slots, and retain tokens through preparation and IO without per-packet tasks. Natural original close is observed within existing4s before unchanged forced/unknown fallback. Seven Core/producer and six driver controls plus two retained OLD controls; tracked combined patch preserves reviewed source chain and std-only test panic boundaries. No Gate acceptance change or historical media-cause claim."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-original-generation-terminal-fence.patch",
+      "sha256": "6631c6f9c20522aa2348d80b2afeaa7aa1c3fbb9c374b7c69e08bc2e50ed2ab1",
+      "source": "Fix actual433 focused49/50 stale gate-generation refusal: only after temporary Busy/NotReady, permanently superseded original source/target tickets or captured irreversible cancellation return terminal Cancelled. Healthy packets add no checks, policy reads or grants; temporary quiescence remains retryable. Same strict negative now checks final IO and FIRST-poll preparation across authority/audience/gates/cancellation/age; same positive proves real original-ticket quiescence resumes exact original. No new selector, timeout or Gate acceptance change."
     }
   ]
 }

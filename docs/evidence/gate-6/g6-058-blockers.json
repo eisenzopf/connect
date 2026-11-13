@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T20:25:06.717844+00:00",
-  "run_status": "Latest matrix remains v217:2/32 cells,400/432 checks. Codec readiness batch implemented and independently verified: actualC/Python1,Node4 andRust4 allpass. Both complete62s signing profiles pass quality,4handoffs,4Gate+8Subscribe EACH and all owned cleanup65.955/65.041s<67s. First encode now3.6\u20138.1ms vs prior diagnostic116ms; sample200ms unchanged. Fresh402+138 prerequisites andARM11 are next; no original failed401/402 or matrix result promoted.",
+  "updated": "2026-11-13T22:30:33.845061+00:00",
+  "run_status": "Latest completed matrix v218:1/32 cells and399/432 checks pass; all32/432 ran. Registered434 RTC scheduling batch now builds3/3 and focused50/50 pass (15new+35retained): Core19/19, Stack17/17, WebRTC14/14. Real encrypted media/feedback progresses during held preparation; stale generations terminate while temporary original-ticket quiescence resumes. Source/binaries stay unchanged and all original owners join. Native footer component passes its documented continuous640/fresh320 scopes. Next: fresh611 whole-source prerequisites before local ARM/normal builds/full32. No matrix promotion; historical audio-zero cause unresolved; G6-054 remains deferred.",
   "blockers": [
     {
       "id": "B01",
@@ -1735,6 +1735,30 @@
       "change": "Opt-in initialized readiness from the same original native encoders before assigning the programme capture anchor; no sample preencoding/retagging or extra media age. Applied to all original representative/initial-AV and Node consumers.",
       "evidence": "9/9 targeted components independently accepted51a54e48; g6-058-v218-codec-readiness-progress.json; actual source images and all original waits retained.",
       "next": "Fresh clean-source402 Rust+138 scripts, then normal ARM SourcePrep, affected ARM11, normal releases and full32/432 matrix."
+    },
+    {
+      "id": "V219-RTC-REPAIR",
+      "title": "Explicit video repair waits for metadata inside peer driver",
+      "status": "Component verified on434; no matrix qualification",
+      "change": "Applied one fresh best-effort repair admission, unchanged original200ms/four attempts. OLD real Core counter reproduces Pending instead of immediate MetadataBusy; original controllers close before oracle.",
+      "evidence": "Actual50/50 +3/3 testbuilds; docs/evidence/gate-6/g6-058-v219-focused50-fixed.json",
+      "next": "Fresh whole611 prerequisite cohort, local ARM preparation/affected tests and normal shipping artifacts, then full32/432."
+    },
+    {
+      "id": "V219-RTC-DRIVER",
+      "title": "Primary metadata preparation monopolizes same-peer driver",
+      "status": "Component verified on434; no matrix qualification",
+      "change": "Applied metadata-only preparation outside mutable driver with final current-authorized IO. Shared257 resident slots, media255, two control slots, sameoriginal request/cutoff and no per-packet tasks. Normal close observes exactoriginal within existing4s before unchanged uncertain fallback.",
+      "evidence": "Actual50/50 +3/3 testbuilds; docs/evidence/gate-6/g6-058-v219-focused50-fixed.json",
+      "next": "Fresh whole611 prerequisite cohort, local ARM preparation/affected tests and normal shipping artifacts, then full32/432."
+    },
+    {
+      "id": "V219-RTC-FENCE",
+      "title": "Obsolete original generation is classified as temporary metadata",
+      "status": "Component verified on434; no matrix qualification",
+      "change": "Only after Busy/NotReady, original ticket supersession or captured irreversible cancellation becomes terminal. Temporary original-ticket quiescence remains retryable. No new healthy-packet check.",
+      "evidence": "Actual50/50 +3/3 testbuilds; docs/evidence/gate-6/g6-058-v219-focused50-fixed.json",
+      "next": "Fresh whole611 prerequisite cohort, local ARM preparation/affected tests and normal shipping artifacts, then full32/432."
     }
   ],
   "workplan_tasks": [
@@ -3533,6 +3557,33 @@
       "title": "Keep qualified clean HEAD through nativeARM source/preparation/shipping then all32 cells/all432 checks with no filters/reuse/GitHub/cloud | owner /root; reviewer /root/v198_resources",
       "status": "preflight fixture repaired; finalsource qualification next",
       "completion": "Corrected normalMac/ARMshipping actualPASS;39\u219252 preflight refusal preserved; protectedMac52 actualschema/CA+16unitsPASS. Fresh42source then sameall32/432local."
+    },
+    {
+      "id": "V219-RTC-REPAIR",
+      "title": "Remove inline metadata wait from explicit video repair",
+      "status": "Component verified50/50; whole-source/matrix pending",
+      "completion": "Actual434:15new+35retained checks pass, original source/binaries unchanged and all groups joined. Evidence: docs/evidence/gate-6/g6-058-v219-focused50-fixed.json",
+      "owner_agent": "/root/v198_resources",
+      "reviewer": "/root/fixture_blockers",
+      "coordinator": "/root"
+    },
+    {
+      "id": "V219-RTC-DRIVER",
+      "title": "Keep same-peer RTP/control responsive during metadata preparation",
+      "status": "Component verified50/50; whole-source/matrix pending",
+      "completion": "Actual434:15new+35retained checks pass, original source/binaries unchanged and all groups joined. Evidence: docs/evidence/gate-6/g6-058-v219-focused50-fixed.json",
+      "owner_agent": "/root/fixture_blockers",
+      "reviewer": "/root/v198_resources",
+      "coordinator": "/root"
+    },
+    {
+      "id": "V219-RTC-FENCE",
+      "title": "Terminate obsolete original generations without blocking media queue",
+      "status": "Component verified50/50; whole-source/matrix pending",
+      "completion": "Actual434:15new+35retained checks pass, original source/binaries unchanged and all groups joined. Evidence: docs/evidence/gate-6/g6-058-v219-focused50-fixed.json",
+      "owner_agent": "/root/v198_resources",
+      "reviewer": "/root/media_blockers",
+      "coordinator": "/root"
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -5924,13 +5975,9 @@
     "next": "Separate Python62,JavaScript49,affected example5 andCore48 scopes passed. Full365 and matching shipping/fresh32/432 remain required."
   },
   "current_workplan_tasks": [
-    "DC1",
-    "DC2",
-    "DC3",
-    "DC4",
-    "DC5",
-    "DC6",
-    "DC7"
+    "V219-RTC-REPAIR",
+    "V219-RTC-DRIVER",
+    "V219-RTC-FENCE"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -18584,5 +18631,37 @@
     "whole_qualified": false,
     "both_full_native_programmes_passed": true,
     "corrected_original_cutoff_fixture_separately_passed": true
+  },
+  "v219_rtc_scheduling_work": {
+    "coordinator": "/root",
+    "core_producer_owner": "v198_resources",
+    "driver_mailbox_owner": "fixture_blockers",
+    "reviewer": "media_blockers",
+    "status": "component-verified-50-of50-awaiting-whole-source-and-matrix",
+    "existing_pending_request_budget_retained": 257,
+    "media_resident_ceiling": 255,
+    "control_reserved_minimum": 2,
+    "healthy_packet_extra_preflight": false,
+    "no_per_packet_tasks_added": true,
+    "current_generation_still": 434,
+    "actual_causal_and_security_tests": "50/50:15new+35retained; Core19/19, Stack17/17, WebRTC14/14; three testbuilds pass; unchanged source/binaries and all original owners joined",
+    "historical_audio_zero_cause_proven": false,
+    "matrix_qualified": false,
+    "source_lock_sha256": "08e215b0408979e01efe4d5605a72f7f6dd87d4bb9a742c66b4da4e94473e0da",
+    "combined_patch": "patches/rvoip/connect-rtc-cooperative-metadata-driver.patch",
+    "combined_patch_sha256": "2d1b22a9b88b5aa8ccc4783d55d91648370785f5107a5030a9a2df2047056efd",
+    "remaining_hazards": [
+      "one pending original holds later media-lane jobs",
+      "actual socket IO",
+      "Core mutex acquisition",
+      "top-loop output drains"
+    ],
+    "evidence": "docs/evidence/gate-6/g6-058-v219-focused50-fixed.json",
+    "evidence_sha256": "7b8eb9e17aa52a6555d73bd76617c276ecccee573084c2648446d93359104788"
+  },
+  "native_footer_codec_component": {
+    "evidence": "docs/evidence/gate-6/g6-058-native-browser-footer-codec.json",
+    "sha256": "b08d1ad95b4e203059e6ffdac554d44003574132e3ca73028f6c9f02854bee6f",
+    "scope": "4continuous640 sweeps and16fresh firstobserved320 patterns; all original owners joined; no matrix credit"
   }
 }

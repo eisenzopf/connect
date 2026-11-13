@@ -1,0 +1,60 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
+@@ -253,7 +253,7 @@
+ // no claim is made here about actual UDP/RTCP progress or a historical zero run.
+ #[tokio::test]
+ async fn explicit_repair_busy_is_one_attempt_and_later_request_preserves_exact_original() {
+-    use futures::FutureExt as _;
++    use futures_util::FutureExt as _;
+     for medium in [Medium::Video, Medium::Screen] {
+         let (f, armed, busy) = fixture(medium).await;
+         let work = std::panic::AssertUnwindSafe(async {
+@@ -273,7 +273,6 @@
+             drop(pending); // OLD pending attempt is destroyed before the next request.
+             let no_io = calls.load(Ordering::Acquire) == 0;
+             let released = f.policy.0.try_write().is_ok();
+-            let debited_once = repair.remaining.load(Ordering::Acquire) == MAX_VIDEO_REPAIRS - 1;
+             let same = Arc::new(AtomicBool::new(false));
+             let observed = same.clone();
+             // This is a distinct subsequent request, not replay of entered IO.
+@@ -285,9 +284,20 @@
+                     && frame.payload_type == expected.payload_type, Ordering::Release);
+                 Ok(())
+             }).await.is_ok();
+-            (immediate_busy, no_io, released, debited_once, second,
++            // Observe the original public attempt budget rather than private state:
++            // first refused request + second success leave exactly two attempts.
++            let mut remaining_succeeded = 0;
++            for _ in 0..MAX_VIDEO_REPAIRS - 2 {
++                if repair.repair(|_, _| async { Ok(()) }).await.is_ok() {
++                    remaining_succeeded += 1;
++                }
++            }
++            let exhausted = matches!(repair.repair(|_, _| async {
++                panic!("exhausted original repair entered IO")
++            }).await, Err(StreamControlError::Backpressure));
++            (immediate_busy, no_io, released, second,
+              same.load(Ordering::Acquire), repair.expires_at() == expires,
+-             repair.remaining.load(Ordering::Acquire) == MAX_VIDEO_REPAIRS - 2)
++             remaining_succeeded == MAX_VIDEO_REPAIRS - 2 && exhausted)
+         }).catch_unwind().await;
+         let joined = close(&f).await;
+         println!("explicit_repair_busy medium={medium:?} busy={} original_owners_joined={joined}", busy.load(Ordering::Acquire));
+@@ -295,7 +305,7 @@
+         let facts = match work { Ok(value) => value, Err(error) => std::panic::resume_unwind(error) };
+         println!("explicit_repair_busy facts={facts:?}");
+         assert_eq!(busy.load(Ordering::Acquire), 1);
+-        assert!(facts.1 && facts.2 && facts.3 && facts.4 && facts.5 && facts.6 && facts.7,
++        assert!(facts.1 && facts.2 && facts.3 && facts.4 && facts.5 && facts.6,
+             "repair counter prerequisites or later original request failed");
+         assert!(facts.0, "explicit repair metadata refusal must complete in its FIRST poll without awaiting retry");
+     }
+@@ -303,7 +313,7 @@
+ 
+ #[tokio::test]
+ async fn explicit_repair_later_request_cannot_restore_revoked_or_expired_original() {
+-    use futures::FutureExt as _;
++    use futures_util::FutureExt as _;
+     for action in ["source", "target", "audience", "source-gate", "target-gate", "cancel", "age"] {
+         let (f, armed, busy) = fixture(Medium::Video).await;
+         let work = std::panic::AssertUnwindSafe(async {

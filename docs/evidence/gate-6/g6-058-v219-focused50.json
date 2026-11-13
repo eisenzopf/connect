@@ -1,0 +1,171 @@
+{
+  "format": "connect/g6-058-v219-rtc-focused50/1",
+  "updated_at": "2026-11-13T22:20:53.050117+00:00",
+  "source_generation": 433,
+  "source_lock_sha256": "6b40ec2f7334bda9b5a463c05b99e681d5d5b6dadeaf99c349c9aba1a712954b",
+  "combined_patch_sha256": "2d1b22a9b88b5aa8ccc4783d55d91648370785f5107a5030a9a2df2047056efd",
+  "build_groups": {
+    "passed": 3,
+    "failed": 0,
+    "original_joined": true,
+    "actual_tool_session": 7148,
+    "actual_tool_chunk": "75363b",
+    "wrapper_exit_code": 0,
+    "receipt_sha256": "b2b919c6165708854c4dd18bb75e9a8bf5ef9e4620a295d10b88b60990df5bb5"
+  },
+  "focused_tests": {
+    "planned": 50,
+    "passed": 49,
+    "failed": 1,
+    "ignored": 0,
+    "all_groups_complete": true,
+    "all_original_groups_joined": true,
+    "source_and_binaries_unchanged": true,
+    "wrapper_original_join": {
+      "tool_session": 10163,
+      "tool_chunk": "fedbbc",
+      "exit_code": 1,
+      "joined": true
+    },
+    "receipt_sha256": "83e8ef7257a7a1f3d964d18b4747a3e4fcc5e91277dbc193c403b6dec1e01a26"
+  },
+  "groups": [
+    {
+      "name": "core",
+      "planned": 19,
+      "summary": {
+        "status": "FAILED",
+        "passed": 18,
+        "failed": 1,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 850
+      },
+      "exit_code": 101,
+      "forced": false,
+      "original_joined": true,
+      "process_group_absent": true,
+      "elapsed_seconds": 1.726762056350708,
+      "source_and_binary_unchanged": true,
+      "binary_sha256": "d4fe8d2af1bef6e267777fab18468575b1be64d4fa96263251e735a97fd35320",
+      "log_sha256": "8e05a2ff4b9a3e1c88b6162fb666c2bd48d15a28bfbb4a7465f21568a1aed54c",
+      "selectors": [
+        "staged_streams::tests::video_repair::cancelled_repair_future_destroys_io_before_releasing_current_policy",
+        "staged_streams::tests::video_repair::concurrent_repair_requests_share_one_atomic_attempt_budget",
+        "staged_streams::tests::video_repair::expired_failed_and_unsupported_originals_never_issue_repair_authority",
+        "staged_streams::tests::video_repair::metadata_busy::explicit_repair_busy_is_one_attempt_and_later_request_preserves_exact_original",
+        "staged_streams::tests::video_repair::metadata_busy::explicit_repair_later_request_cannot_restore_revoked_or_expired_original",
+        "staged_streams::tests::video_repair::metadata_busy::metadata_retry_never_repeats_an_entered_video_callback_or_issues_repair_after_refusal",
+        "staged_streams::tests::video_repair::metadata_busy::one_metadata_busy_video_fragment_delivers_and_repairs_same_original_with_no_renewed_age",
+        "staged_streams::tests::video_repair::metadata_busy::preparation_cancellation_and_original_cutoff_end_without_reader_or_io",
+        "staged_streams::tests::video_repair::metadata_busy::prepared_delivery_releases_readers_and_final_busy_retains_same_original",
+        "staged_streams::tests::video_repair::metadata_busy::prepared_hint_cannot_restore_changed_authority_gate_or_original_age",
+        "staged_streams::tests::video_repair::metadata_busy::prepared_hint_keeps_shorter_original_grant_and_entered_callback_is_never_deferred",
+        "staged_streams::tests::video_repair::metadata_busy::retrying_video_metadata_cannot_restore_revoked_audience_generation_or_expired_original",
+        "staged_streams::tests::video_repair::original_video_pending_io_keeps_original_age",
+        "staged_streams::tests::video_repair::repair_obeys_new_shorter_source_and_recipient_grants_without_idle_readers",
+        "staged_streams::tests::video_repair::repair_video_pending_io_keeps_original_age",
+        "staged_streams::tests::video_repair::retained_video_rechecks_current_source_target_audience_and_media_grants",
+        "staged_streams::tests::video_repair::source_and_target_pause_resume_invalidate_old_video_repair",
+        "staged_streams::tests::video_repair::successful_video_and_screen_repair_preserve_exact_original_and_bound_attempts",
+        "staged_streams::tests::video_repair::unsubscribe_and_reselection_cannot_restore_an_old_video_repair_ticket"
+      ]
+    },
+    {
+      "name": "stack",
+      "planned": 17,
+      "summary": {
+        "status": "ok",
+        "passed": 17,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 26
+      },
+      "exit_code": 0,
+      "forced": false,
+      "original_joined": true,
+      "process_group_absent": true,
+      "elapsed_seconds": 4.787467956542969,
+      "source_and_binary_unchanged": true,
+      "binary_sha256": "80a689cf331ed8d88da24f96497659e7ba98177f1d4ef69a38a9467ef9d211cd",
+      "log_sha256": "aa432998bae90b9b1164e7157f5a64e3e56fc9d5d0781a0f373c231412460026",
+      "selectors": [
+        "media_stream::track_local::owned_rtp::producer_freeze_tests::an_entered_or_started_sink_cannot_return_temporary_deferral",
+        "media_stream::track_local::owned_rtp::producer_freeze_tests::cancelled_or_expired_original_can_never_defer_again",
+        "media_stream::track_local::owned_rtp::producer_freeze_tests::completed_freeze_does_not_override_actual_deadline_or_caller_cancellation_result",
+        "media_stream::track_local::owned_rtp::producer_freeze_tests::current_deadline_and_caller_cancellation_still_refuse_finished_ticket_and_started_is_uncertain",
+        "media_stream::track_local::owned_rtp::producer_freeze_tests::exact_finished_no_write_preserves_completed_refusal_and_clones_cannot_claim_or_begin",
+        "media_stream::track_local::owned_rtp::producer_freeze_tests::pre_io_deferred_keeps_same_claim_pending_without_freeze_or_reclaim",
+        "peer_connection::driver::cooperative_tests::cancelled_close_observation_keeps_original_driver_and_refusal_receipt",
+        "peer_connection::driver::cooperative_tests::original_metadata_prepare_does_not_stop_same_peer_encrypted_rtp_and_rtcp",
+        "peer_connection::driver::cooperative_tests::pending_prepare_normal_refusal_destroys_future_before_original_receipt_and_token",
+        "peer_connection::driver::cooperative_tests::stuck_driver_fallback_preserves_unknown_original_request_cleanup",
+        "peer_connection::driver::mailbox::tests::cancelled_send_and_close_release_capacity_without_losing_original_event",
+        "peer_connection::driver::mailbox::tests::media_saturation_keeps_control_reserve_inside_same_resident_budget",
+        "peer_connection::driver::owned_video::tests::ambiguous_sender_collision_never_guesses_and_expiry_releases_producers",
+        "peer_connection::driver::owned_video::tests::four_refused_attempts_do_not_renew_original_expiry",
+        "peer_connection::driver::owned_video::tests::packet_byte_bounds_evict_oldest_and_replace_without_accounting_leaks",
+        "peer_connection::driver::owned_video::tests::retained_fact_checks_header_extensions_marker_ssrc_and_payload",
+        "media_stream::track_local::static_rtp::tests::rtp_write_waits_for_temporary_driver_backpressure"
+      ]
+    },
+    {
+      "name": "webrtc",
+      "planned": 14,
+      "summary": {
+        "status": "ok",
+        "passed": 14,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 218
+      },
+      "exit_code": 0,
+      "forced": false,
+      "original_joined": true,
+      "process_group_absent": true,
+      "elapsed_seconds": 7.3381507396698,
+      "source_and_binary_unchanged": true,
+      "binary_sha256": "d8bf29bf69cd6ae42fcd058497aa42a02efcf74746fa6ec575acd601513e60a5",
+      "log_sha256": "7b400c7d3a393db8caa9a48c7e65e4245e0db7d39dd1f859e787cd50791e977b",
+      "selectors": [
+        "media::core_audio::clock_tests::actual_primary_rtc_uncertainty_burns_only_original_packet_next_fresh_mix_continues_and_neutral_refuses",
+        "media::core_audio::clock_tests::actual_rtc_driver_before_begin_denial_restores_same_writer_and_keeps_original_neutral_usable",
+        "media::core_audio::clock_tests::same_actual_physical_rtc_writer_prepared_successor_preserves_old_until_new_ordinary_binding_writes",
+        "media::core_audio::clock_tests::same_actual_rtc_writer_maps_first_remote_fences_queued_neutral_and_preserves_real_capture_delta",
+        "media::core_video::picture_tests::current_cached_nack_repair_does_not_request_a_keyframe",
+        "media::core_video::picture_tests::expired_original_nack_requests_fresh_source_pli_without_replaying_media",
+        "media::core_video::picture_tests::nack_identity_cannot_select_foreign_or_previous_source_and_rechecks_authority",
+        "media::core_video::picture_tests::rtc_picture_hint_after_four_busy_admissions_uses_fresh_current_authority",
+        "media::core_video::picture_tests::rtc_picture_hint_after_last_media_expiry_does_not_replay_the_old_packet",
+        "media::core_video::picture_tests::rtc_picture_hint_earlier_grant_expiry_drops_pending_io_without_reentry",
+        "media::core_video::picture_tests::rtc_picture_hint_refuses_revoked_wrong_route_and_current_generation_changes",
+        "media::core_video::picture_tests::source_switch_delta_requests_one_fresh_keyframe_without_receiver_feedback",
+        "media::core_video::picture_tests::source_switch_hint_refuses_superseded_revoked_and_closed_sources",
+        "media::core_video::picture_tests::source_switch_waits_for_optional_feedback_and_preserves_ordinary_pli_metadata"
+      ]
+    }
+  ],
+  "sole_failure": {
+    "selector": "staged_streams::tests::video_repair::metadata_busy::prepared_hint_cannot_restore_changed_authority_gate_or_original_age",
+    "action": "source-gate pause/resume",
+    "actual": "Final current admission refuses old ticket with NotReady; cooperative wrapper returns Deferred instead of terminal error. No old IO occurs.",
+    "cause": "Gate commits replace original PeerRouteTicket; blanket temporary NotReady handling does not distinguish permanent original generation invalidation.",
+    "next": "Failure-path-only immutable original ticket check, preserving current authority and no additional healthy-packet checks; prepare and final negatives."
+  },
+  "real_transport_result": "Same-peer encrypted RTP and RTCP progress while metadata prepare stays pending passes; queue reserve, cancellation, natural-close and forced-unknown controls pass.",
+  "matrix_qualified": false,
+  "latest_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "limitations": [
+    "This focused run fails49/50 and is not whole-source qualification.",
+    "Metadata scheduling result does not establish historical audio-zero cause or cure.",
+    "One pending request still holds later media-lane jobs; actual socket/core mutex/top-loop waits remain separate."
+  ]
+}

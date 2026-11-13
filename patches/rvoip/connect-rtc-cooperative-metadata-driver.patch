@@ -1,0 +1,2727 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -16,12 +16,12 @@
+     collections::{BTreeMap, BTreeSet},
+     future::Future,
+     sync::{
++        Arc, Mutex, Weak,
+         atomic::{AtomicU32, Ordering},
+-        Arc, Mutex, Weak,
+     },
+     time::{Duration, Instant},
+ };
+-use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
++use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
+ use tokio_util::sync::CancellationToken;
+ 
+ #[derive(Debug, thiserror::Error)]
+@@ -1387,6 +1387,16 @@
+     Submitted(ControlResult<()>),
+ }
+ 
++/// An original asynchronous transport attempt. Deferred is possible only before
++/// callback entry, contains no permission, and retains the exact original media.
++pub enum ReadyMediaDelivery<T> {
++    Complete(ControlResult<T>),
++    Deferred {
++        queued: QueuedMedia,
++        problem: StreamControlError,
++    },
++}
++
+ pub mod audio_egress_clock;
+ 
+ impl QueuedMedia {
+@@ -1602,17 +1612,33 @@
+         F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
+         Fut: Future<Output = ControlResult<()>>,
+     {
++        self.deliver_with_origin_mode(send, true).await
++    }
++    // Explicit repairs are best-effort attempts, not primary queued delivery.
++    // A refusal retains no reader; a later genuine NACK may ask again.
++    async fn deliver_with_origin_mode<F, Fut>(
++        self,
++        send: F,
++        retry_metadata: bool,
++    ) -> ControlResult<()>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
+         let observation = self.target.diagnostics.get().cloned();
+         let admitted_at = self.admitted_at;
+         let realtime = self.frame.kind != StreamKind::Data;
+         let sending = observation.clone();
+         let result = self
+-            .deliver_observed(move |frame, origin| {
+-                if let Some(observation) = &sending {
+-                    observation.forwarded_age(admitted_at);
+-                }
+-                send(frame, origin)
+-            })
++            .deliver_observed(
++                move |frame, origin| {
++                    if let Some(observation) = &sending {
++                        observation.forwarded_age(admitted_at);
++                    }
++                    send(frame, origin)
++                },
++                retry_metadata,
++            )
+             .await;
+         if realtime && matches!(&result, Err(StreamControlError::Deadline)) {
+             if let Some(observation) = &observation {
+@@ -1621,7 +1647,7 @@
+         }
+         result
+     }
+-    async fn deliver_observed<F, Fut>(self, send: F) -> ControlResult<()>
++    async fn deliver_observed<F, Fut>(self, send: F, retry_metadata: bool) -> ControlResult<()>
+     where
+         F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
+         Fut: Future<Output = ControlResult<()>>,
+@@ -1678,6 +1704,11 @@
+                         || (matches!(&problem, StreamControlError::MetadataBusy)
+                             && self.frame.kind != StreamKind::Data) =>
+                 {
++                    if !retry_metadata {
++                        tracing::trace!(target: "rvoip_core::video_repair",
++                            problem = ?problem, "Explicit repair admission deferred without waiting");
++                        return Err(problem);
++                    }
+                     // Only metadata remains here: a failed attempt dropped every
+                     // source/target authority and generation reader. Never extend
+                     // the original frame's age or recapture a newer audience.
+@@ -1729,6 +1760,176 @@
+         }
+         self.observe_delivery(&admitted, &result);
+         result
++    }
++    // Keep only the earliest observed numeric cutoff, never a reader or grant.
++    fn retain_delivery_deadline(&mut self, until: tokio::time::Instant) {
++        for source in &mut self.sources {
++            source.admission_deadline = Some(
++                source
++                    .admission_deadline
++                    .map_or(until, |old| old.min(until)),
++            );
++        }
++    }
++    /// Wait for one original realtime packet's metadata to be available. This
++    /// returns the SAME queued metadata, not permission or a disclosed frame.
++    /// Every policy/generation reader is destroyed before Pending or return.
++    /// The actual transport must use deliver_ready_with_origin afterwards.
++    pub async fn prepare_delivery(mut self, deadline: Instant) -> ControlResult<Self> {
++        if self.data.is_some() || self.frame.kind == StreamKind::Data {
++            return Err(StreamControlError::Unsupported);
++        }
++        let mut until = tokio::time::Instant::from_std(
++            deadline.min(self.admitted_at + Duration::from_millis(200)),
++        );
++        // Local injection already has a synchronous single-admission path and
++        // no metadata retry loop. It must still use that exact current path at IO.
++        if self.local.is_some() {
++            return if tokio::time::Instant::now() < until {
++                Ok(self)
++            } else {
++                Err(StreamControlError::Deadline)
++            };
++        }
++        loop {
++            if tokio::time::Instant::now() >= until {
++                return Err(StreamControlError::Deadline);
++            }
++            let attempt = self.admit_queued_media_with_deadline(&mut until);
++            self.retain_delivery_deadline(until);
++            match attempt {
++                Ok(admitted) => {
++                    drop(admitted);
++                    if tokio::time::Instant::now() >= until {
++                        return Err(StreamControlError::Deadline);
++                    }
++                    return Ok(self);
++                }
++                Err(StreamControlError::NotReady | StreamControlError::MetadataBusy) => {
++                    if tokio::time::Instant::now() >= until {
++                        return Err(StreamControlError::Deadline);
++                    }
++                    tokio::time::sleep_until(
++                        until.min(tokio::time::Instant::now() + Duration::from_millis(1)),
++                    )
++                    .await;
++                }
++                Err(problem) => return Err(problem),
++            }
++        }
++    }
++    /// One fresh admission immediately around actual asynchronous transport IO.
++    /// A temporary pre-IO refusal returns the exact original for its SAME owned
++    /// producer to prepare again. Callback errors are terminal, even if they
++    /// happen to be NotReady or MetadataBusy. No IO future can escape its grants.
++    pub async fn deliver_ready_with_origin<F, Fut>(self, send: F) -> ReadyMediaDelivery<()>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        let observation = self.target.diagnostics.get().cloned();
++        let admitted_at = self.admitted_at;
++        let sending = observation.clone();
++        let result = self
++            .deliver_ready_observed(move |frame, origin| {
++                if let Some(observation) = &sending {
++                    observation.forwarded_age(admitted_at);
++                }
++                send(frame, origin)
++            })
++            .await;
++        if matches!(
++            &result,
++            ReadyMediaDelivery::Complete(Err(StreamControlError::Deadline))
++        ) {
++            if let Some(observation) = &observation {
++                observation.stale_if_expired(admitted_at);
++            }
++        }
++        result
++    }
++    async fn deliver_ready_observed<F, Fut>(mut self, send: F) -> ReadyMediaDelivery<()>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        if self.local.is_some() {
++            // Existing local audio has no metadata sleep and remains guarded by
++            // its unchanged local source-purpose/subscription/credential checks.
++            return ReadyMediaDelivery::Complete(self.deliver_local_audio(send).await);
++        }
++        if self.data.is_some() || self.frame.kind == StreamKind::Data {
++            return ReadyMediaDelivery::Complete(Err(StreamControlError::Unsupported));
++        }
++        let delivery = self
++            .direct
++            .as_ref()
++            .and_then(|stamp| stamp.delivery_counters());
++        use direct_subscriptions::delivery::Phase as VideoPhase;
++        if let Some(counters) = &delivery {
++            counters.record::<()>(VideoPhase::Dequeue, self.admitted_at, None);
++        }
++        let mut until =
++            tokio::time::Instant::from_std(self.admitted_at + Duration::from_millis(200));
++        let attempt = self.admit_queued_media_with_deadline(&mut until);
++        self.retain_delivery_deadline(until);
++        if let Some(counters) = &delivery {
++            counters.record(
++                VideoPhase::QueuedAdmission,
++                self.admitted_at,
++                Some(&attempt),
++            );
++        }
++        let admitted = match attempt {
++            Ok(admitted) => admitted,
++            Err(problem @ (StreamControlError::NotReady | StreamControlError::MetadataBusy)) => {
++                if tokio::time::Instant::now() >= until {
++                    return ReadyMediaDelivery::Complete(Err(StreamControlError::Deadline));
++                }
++                return ReadyMediaDelivery::Deferred {
++                    queued: self,
++                    problem,
++                };
++            }
++            Err(problem) => return ReadyMediaDelivery::Complete(Err(problem)),
++        };
++        let target = &admitted.target;
++        let tokens = &admitted.tokens;
++        let deadline = admitted.deadline;
++        let origin = self.delivery_origin();
++        tracing::trace!(target: "rvoip_core::audio_path", target = %target.connection,
++            age_us = self.admitted_at.elapsed().as_micros() as u64, "Guarded audio entering IO");
++        if let Some(counters) = &delivery {
++            counters.record::<()>(VideoPhase::DeliveryFence, self.admitted_at, None);
++        }
++        let result = tokio::select! {
++            biased;
++            _=audio_consumer::any_cancelled(tokens.to_vec())=>{
++                if let Some(counters) = &delivery {
++                    counters.record::<()>(VideoPhase::DeliveryFence, self.admitted_at, Some(&Err(StreamControlError::Cancelled)));
++                }
++                Err(StreamControlError::Cancelled)
++            },
++            result=tokio::time::timeout_at(deadline,send(self.frame.clone(),origin))=>match result {
++                Ok(result) => {
++                    if let Some(counters) = &delivery {
++                        counters.record(VideoPhase::DeliveryFence, self.admitted_at, Some(&Ok(())));
++                    }
++                    result
++                }
++                Err(_) => {
++                    if let Some(counters) = &delivery {
++                        counters.record::<()>(VideoPhase::DeliveryFence, self.admitted_at, Some(&Err(StreamControlError::Deadline)));
++                    }
++                    Err(StreamControlError::Deadline)
++                }
++            },
++        };
++        if let Some(counters) = &delivery {
++            counters.record(VideoPhase::IoResult, self.admitted_at, Some(&result));
++        }
++        self.observe_delivery(&admitted, &result);
++        ReadyMediaDelivery::Complete(result)
+     }
+     // Synchronous acquisition ensures a refused attempt releases all readers
+     // before the caller waits. These are exact original frame/ticket checks.
+@@ -4685,7 +4886,7 @@
+ pub use video_feedback::VideoFeedbackRoute;
+ 
+ mod video_repair;
+-pub use video_repair::{VideoRepair, MAX_VIDEO_REPAIRS};
++pub use video_repair::{MAX_VIDEO_REPAIRS, VideoRepair};
+ 
+ mod transport_update;
+ pub use transport_update::TransportUpdateSlot;
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
+@@ -120,7 +120,11 @@
+             Err(_) => "other-refusal",
+         };
+         let joined = close(&f).await;
+-        println!("video_metadata_busy medium={medium:?} busy={} pending={pending} no_readers={no_readers} no_early_io={no_early_io} result={result_kind} same_expiry={same_expiry} repaired={repaired} writes={} joined={joined}", busy.load(Ordering::Acquire), delivered.load(Ordering::Acquire));
++        println!(
++            "video_metadata_busy medium={medium:?} busy={} pending={pending} no_readers={no_readers} no_early_io={no_early_io} result={result_kind} same_expiry={same_expiry} repaired={repaired} writes={} joined={joined}",
++            busy.load(Ordering::Acquire),
++            delivered.load(Ordering::Acquire)
++        );
+         assert!(
+             joined,
+             "all original controlled Core ports must close before the oracle"
+@@ -130,8 +134,15 @@
+             no_readers && no_early_io,
+             "refused metadata held authority or entered IO"
+         );
+-        assert!(pending && result_kind == "ok" && same_expiry && repaired && same_original.load(Ordering::Acquire) && delivered.load(Ordering::Acquire) == 2,
+-            "one transient MetadataBusy discarded the original current VP8 fragment before guarded delivery/repair");
++        assert!(
++            pending
++                && result_kind == "ok"
++                && same_expiry
++                && repaired
++                && same_original.load(Ordering::Acquire)
++                && delivered.load(Ordering::Acquire) == 2,
++            "one transient MetadataBusy discarded the original current VP8 fragment before guarded delivery/repair"
++        );
+     }
+ }
+ 
+@@ -247,7 +258,6 @@
+     }
+ }
+ 
+-
+ // Test-only async panic boundary using std. Catch each actual poll; a pending
+ // original future stays pinned/owned and its eventual panic is returned only
+ // after its own locals unwind. This spawns no worker and adds no timeout.
+@@ -276,7 +286,10 @@
+             let packet = queued(&f, medium).await;
+             let expected = packet.frame.clone();
+             let expires = packet.admitted_at + Duration::from_millis(200);
+-            let repair = packet.deliver_video_with_repair(|_, _| async { Ok(()) }).await.unwrap();
++            let repair = packet
++                .deliver_video_with_repair(|_, _| async { Ok(()) })
++                .await
++                .unwrap();
+             let calls = Arc::new(AtomicUsize::new(0));
+             let entered = calls.clone();
+             armed.store(true, Ordering::Release);
+@@ -285,21 +298,28 @@
+                 Ok(())
+             }));
+             let first = std::future::poll_fn(|cx| Poll::Ready(pending.as_mut().poll(cx))).await;
+-            let immediate_busy = matches!(&first, Poll::Ready(Err(StreamControlError::MetadataBusy)));
++            let immediate_busy =
++                matches!(&first, Poll::Ready(Err(StreamControlError::MetadataBusy)));
+             drop(pending); // OLD pending attempt is destroyed before the next request.
+             let no_io = calls.load(Ordering::Acquire) == 0;
+             let released = f.policy.0.try_write().is_ok();
+             let same = Arc::new(AtomicBool::new(false));
+             let observed = same.clone();
+             // This is a distinct subsequent request, not replay of entered IO.
+-            let second = repair.repair(move |frame, _| async move {
+-                observed.store(frame.payload == expected.payload
+-                    && frame.timestamp_rtp == expected.timestamp_rtp
+-                    && frame.captured_at == expected.captured_at
+-                    && frame.stream_id == expected.stream_id
+-                    && frame.payload_type == expected.payload_type, Ordering::Release);
+-                Ok(())
+-            }).await.is_ok();
++            let second = repair
++                .repair(move |frame, _| async move {
++                    observed.store(
++                        frame.payload == expected.payload
++                            && frame.timestamp_rtp == expected.timestamp_rtp
++                            && frame.captured_at == expected.captured_at
++                            && frame.stream_id == expected.stream_id
++                            && frame.payload_type == expected.payload_type,
++                        Ordering::Release,
++                    );
++                    Ok(())
++                })
++                .await
++                .is_ok();
+             // Observe the original public attempt budget rather than private state:
+             // first refused request + second success leave exactly two attempts.
+             let mut remaining_succeeded = 0;
+@@ -308,57 +328,348 @@
+                     remaining_succeeded += 1;
+                 }
+             }
+-            let exhausted = matches!(repair.repair(|_, _| async {
+-                panic!("exhausted original repair entered IO")
+-            }).await, Err(StreamControlError::Backpressure));
+-            (immediate_busy, no_io, released, second,
+-             same.load(Ordering::Acquire), repair.expires_at() == expires,
+-             remaining_succeeded == MAX_VIDEO_REPAIRS - 2 && exhausted)
+-        }).await;
+-        let joined = close(&f).await;
+-        println!("explicit_repair_busy medium={medium:?} busy={} original_owners_joined={joined}", busy.load(Ordering::Acquire));
+-        assert!(joined, "original Core controllers must close before repair oracle");
+-        let facts = match work { Ok(value) => value, Err(error) => std::panic::resume_unwind(error) };
++            let exhausted = matches!(
++                repair
++                    .repair(|_, _| async { panic!("exhausted original repair entered IO") })
++                    .await,
++                Err(StreamControlError::Backpressure)
++            );
++            (
++                immediate_busy,
++                no_io,
++                released,
++                second,
++                same.load(Ordering::Acquire),
++                repair.expires_at() == expires,
++                remaining_succeeded == MAX_VIDEO_REPAIRS - 2 && exhausted,
++            )
++        })
++        .await;
++        let joined = close(&f).await;
++        println!(
++            "explicit_repair_busy medium={medium:?} busy={} original_owners_joined={joined}",
++            busy.load(Ordering::Acquire)
++        );
++        assert!(
++            joined,
++            "original Core controllers must close before repair oracle"
++        );
++        let facts = match work {
++            Ok(value) => value,
++            Err(error) => std::panic::resume_unwind(error),
++        };
+         println!("explicit_repair_busy facts={facts:?}");
+         assert_eq!(busy.load(Ordering::Acquire), 1);
+-        assert!(facts.1 && facts.2 && facts.3 && facts.4 && facts.5 && facts.6,
+-            "repair counter prerequisites or later original request failed");
+-        assert!(facts.0, "explicit repair metadata refusal must complete in its FIRST poll without awaiting retry");
++        assert!(
++            facts.1 && facts.2 && facts.3 && facts.4 && facts.5 && facts.6,
++            "repair counter prerequisites or later original request failed"
++        );
++        assert!(
++            facts.0,
++            "explicit repair metadata refusal must complete in its FIRST poll without awaiting retry"
++        );
+     }
+ }
+ 
+ #[tokio::test]
+ async fn explicit_repair_later_request_cannot_restore_revoked_or_expired_original() {
+-    for action in ["source", "target", "audience", "source-gate", "target-gate", "cancel", "age"] {
++    for action in [
++        "source",
++        "target",
++        "audience",
++        "source-gate",
++        "target-gate",
++        "cancel",
++        "age",
++    ] {
+         let (f, armed, busy) = fixture(Medium::Video).await;
+         let work = catch_future(async {
+             let repair = retained(&f).await;
+             armed.store(true, Ordering::Release);
+-            let mut pending = Box::pin(repair.repair(|_, _| async { panic!("busy repair entered IO") }));
++            let mut pending =
++                Box::pin(repair.repair(|_, _| async { panic!("busy repair entered IO") }));
+             let first = std::future::poll_fn(|cx| Poll::Ready(pending.as_mut().poll(cx))).await;
+-            let immediate_busy = matches!(&first, Poll::Ready(Err(StreamControlError::MetadataBusy)));
++            let immediate_busy =
++                matches!(&first, Poll::Ready(Err(StreamControlError::MetadataBusy)));
+             drop(pending);
+             match action {
+-                "source" | "target" => { f.policy.0.try_write().unwrap().revoked.insert(if action == "source" { "alice" } else { "bob" }.into()); }
++                "source" | "target" => {
++                    f.policy
++                        .0
++                        .try_write()
++                        .unwrap()
++                        .revoked
++                        .insert(if action == "source" { "alice" } else { "bob" }.into());
++                }
+                 "audience" => f.policy.0.try_write().unwrap().private = true,
+                 "source-gate" | "target-gate" => {
+                     let c = if action == "source-gate" { &f.a } else { &f.b };
+                     let ids = [desired(Medium::Video).logical_id].into_iter().collect();
+                     for change in [StreamGateAction::Pause, StreamGateAction::Resume] {
+-                        c.set_media_gate(c.revision(), &ids, change, deadline()).await.unwrap();
++                        c.set_media_gate(c.revision(), &ids, change, deadline())
++                            .await
++                            .unwrap();
+                     }
+                 }
+                 "cancel" => f.b.shutdown.cancel(),
+-                _ => tokio::time::sleep_until(tokio::time::Instant::from_std(repair.expires_at() + Duration::from_millis(1))).await,
+-            }
+-            let denied = repair.repair(|_, _| async { panic!("withdrawn repair entered IO") }).await;
++                _ => {
++                    tokio::time::sleep_until(tokio::time::Instant::from_std(
++                        repair.expires_at() + Duration::from_millis(1),
++                    ))
++                    .await
++                }
++            }
++            let denied = repair
++                .repair(|_, _| async { panic!("withdrawn repair entered IO") })
++                .await;
+             let expired = matches!(&denied, Err(StreamControlError::Deadline));
+-            (immediate_busy, denied.is_err(), action != "age" || expired, f.policy.0.try_write().is_ok())
+-        }).await;
++            (
++                immediate_busy,
++                denied.is_err(),
++                action != "age" || expired,
++                f.policy.0.try_write().is_ok(),
++            )
++        })
++        .await;
+         let joined = close(&f).await;
+         assert!(joined, "original Core controllers not closed for {action}");
+-        let facts = match work { Ok(value) => value, Err(error) => std::panic::resume_unwind(error) };
++        let facts = match work {
++            Ok(value) => value,
++            Err(error) => std::panic::resume_unwind(error),
++        };
+         assert_eq!(busy.load(Ordering::Acquire), 1);
+-        assert!(facts.0 && facts.1 && facts.2 && facts.3, "repair denial/cutoff changed for {action}");
+-    }
+-}
++        assert!(
++            facts.0 && facts.1 && facts.2 && facts.3,
++            "repair denial/cutoff changed for {action}"
++        );
++    }
++}
++
++// Actual queued Core metadata; no frame/permission escapes prepare and no
++// factory/encoder runs again when the final current attempt defers.
++#[tokio::test]
++async fn prepared_delivery_releases_readers_and_final_busy_retains_same_original() {
++    let (f, armed, busy) = fixture(Medium::Video).await;
++    let work = catch_future(async {
++        let packet = queued(&f, Medium::Video).await;
++        let expected = packet.frame.clone();
++        let original_age = packet.admitted_at;
++        armed.store(true, Ordering::Release);
++        let mut preparation =
++            Box::pin(packet.prepare_delivery(original_age + Duration::from_millis(200)));
++        let first = std::future::poll_fn(|cx| Poll::Ready(preparation.as_mut().poll(cx))).await;
++        assert!(first.is_pending(), "actual current metadata did not defer");
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "prepare held current readers while Pending"
++        );
++        let packet = preparation.await.unwrap();
++        assert_eq!(packet.admitted_at, original_age);
++        assert!(
++            f.policy.0.try_write().is_ok(),
++            "prepared hint retained permission"
++        );
++        armed.store(true, Ordering::Release); // race after hint, before actual IO.
++        let packet = match packet
++            .deliver_ready_with_origin(|_, _| async {
++                panic!("final temporary refusal entered IO")
++            })
++            .await
++        {
++            ReadyMediaDelivery::Deferred {
++                queued,
++                problem: StreamControlError::MetadataBusy,
++            } => queued,
++            _ => panic!("final refusal lost the same original"),
++        };
++        assert!(f.policy.0.try_write().is_ok());
++        assert_eq!(packet.admitted_at, original_age);
++        let packet = packet
++            .prepare_delivery(original_age + Duration::from_millis(200))
++            .await
++            .unwrap();
++        let mut writes = 0;
++        let result = packet
++            .deliver_ready_with_origin(|frame, _| {
++                writes += 1;
++                async move {
++                    assert_eq!(frame.payload, expected.payload);
++                    assert_eq!(frame.timestamp_rtp, expected.timestamp_rtp);
++                    assert_eq!(frame.captured_at, expected.captured_at);
++                    assert_eq!(frame.stream_id, expected.stream_id);
++                    Ok(())
++                }
++            })
++            .await;
++        assert!(matches!(result, ReadyMediaDelivery::Complete(Ok(()))));
++        assert_eq!(writes, 1);
++        assert_eq!(busy.load(Ordering::Acquire), 2);
++    })
++    .await;
++    let joined = close(&f).await;
++    assert!(
++        joined,
++        "original Core controllers must close before two-phase oracle"
++    );
++    if let Err(error) = work {
++        std::panic::resume_unwind(error);
++    }
++}
++
++#[tokio::test]
++async fn prepared_hint_cannot_restore_changed_authority_gate_or_original_age() {
++    for action in [
++        "source",
++        "target",
++        "audience",
++        "source-gate",
++        "target-gate",
++        "cancel",
++        "age",
++    ] {
++        let (f, _, _) = fixture(Medium::Video).await;
++        let work = catch_future(async {
++            let packet = queued(&f, Medium::Video).await;
++            let expires = packet.admitted_at + Duration::from_millis(200);
++            let packet = packet.prepare_delivery(expires).await.unwrap();
++            assert!(f.policy.0.try_write().is_ok());
++            match action {
++                "source" | "target" => {
++                    f.policy
++                        .0
++                        .try_write()
++                        .unwrap()
++                        .revoked
++                        .insert(if action == "source" { "alice" } else { "bob" }.into());
++                }
++                "audience" => f.policy.0.try_write().unwrap().private = true,
++                "source-gate" | "target-gate" => {
++                    let c = if action == "source-gate" { &f.a } else { &f.b };
++                    let ids = [desired(Medium::Video).logical_id].into_iter().collect();
++                    for action in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                        c.set_media_gate(c.revision(), &ids, action, deadline())
++                            .await
++                            .unwrap();
++                    }
++                }
++                "cancel" => f.b.shutdown.cancel(),
++                _ => {
++                    tokio::time::sleep_until(tokio::time::Instant::from_std(
++                        expires + Duration::from_millis(1),
++                    ))
++                    .await
++                }
++            }
++            let result = packet
++                .deliver_ready_with_origin(|_, _| async {
++                    panic!("prepared stale hint granted IO")
++                })
++                .await;
++            assert!(
++                matches!(result, ReadyMediaDelivery::Complete(Err(_))),
++                "stale {action} became permission or a temporary retry"
++            );
++            assert!(f.policy.0.try_write().is_ok());
++        })
++        .await;
++        let joined = close(&f).await;
++        assert!(joined, "original controllers not closed for {action}");
++        if let Err(error) = work {
++            std::panic::resume_unwind(error);
++        }
++    }
++}
++
++#[tokio::test]
++async fn preparation_cancellation_and_original_cutoff_end_without_reader_or_io() {
++    for cancel in [false, true] {
++        let (f, armed, busy) = fixture(Medium::Video).await;
++        let work = catch_future(async {
++            let packet = queued(&f, Medium::Video).await;
++            if cancel {
++                armed.store(true, Ordering::Release);
++                let mut pending =
++                    Box::pin(packet.prepare_delivery(Instant::now() + Duration::from_millis(200)));
++                let first = std::future::poll_fn(|cx| Poll::Ready(pending.as_mut().poll(cx))).await;
++                assert!(first.is_pending());
++                assert!(f.policy.0.try_write().is_ok());
++                f.b.shutdown.cancel();
++                assert!(pending.await.is_err());
++                assert_eq!(busy.load(Ordering::Acquire), 1);
++            } else {
++                assert!(matches!(
++                    packet.prepare_delivery(Instant::now()).await,
++                    Err(StreamControlError::Deadline)
++                ));
++            }
++            assert!(f.policy.0.try_write().is_ok());
++        })
++        .await;
++        let joined = close(&f).await;
++        assert!(
++            joined,
++            "original controllers not closed after cancelled preparation"
++        );
++        if let Err(error) = work {
++            std::panic::resume_unwind(error);
++        }
++    }
++}
++
++#[tokio::test]
++async fn prepared_hint_keeps_shorter_original_grant_and_entered_callback_is_never_deferred() {
++    for shorter in [true, false] {
++        let expiry: Expiry = Arc::new(Mutex::new(None));
++        let f = Fixture::with_policy(
++            8,
++            Some(Box::new({
++                let expiry = expiry.clone();
++                move |inner| Arc::new(ExpiringPolicy { inner, expiry })
++            })),
++        );
++        f.start(&[Medium::Video]).await;
++        let work = catch_future(async {
++            let packet = queued(&f, Medium::Video).await;
++            if shorter {
++                *expiry.lock().unwrap() = Some((
++                    "bob".into(),
++                    chrono::Utc::now() + chrono::Duration::milliseconds(30),
++                ));
++                let packet = packet
++                    .prepare_delivery(Instant::now() + Duration::from_millis(200))
++                    .await
++                    .unwrap();
++                *expiry.lock().unwrap() = None; // a later longer grant cannot renew the observed cutoff.
++                tokio::time::sleep(Duration::from_millis(35)).await;
++                assert!(matches!(
++                    packet
++                        .deliver_ready_with_origin(|_, _| async { panic!("shorter grant renewed") })
++                        .await,
++                    ReadyMediaDelivery::Complete(Err(StreamControlError::Deadline))
++                ));
++            } else {
++                let mut calls = 0;
++                let result = packet
++                    .deliver_ready_with_origin(|_, _| {
++                        calls += 1;
++                        async { Err(StreamControlError::MetadataBusy) }
++                    })
++                    .await;
++                assert!(matches!(
++                    result,
++                    ReadyMediaDelivery::Complete(Err(StreamControlError::MetadataBusy))
++                ));
++                assert_eq!(calls, 1);
++            }
++        })
++        .await;
++        let joined = close(&f).await;
++        assert!(
++            joined,
++            "original controllers not closed before grant/entered-IO oracle"
++        );
++        if let Err(error) = work {
++            std::panic::resume_unwind(error);
++        }
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_feedback.rs
+@@ -347,7 +347,10 @@
+             target.shutdown.clone(),
+             self.direct.cancel.clone(),
+         ];
+-        for scene in [&scope.source_scene, &scope.target_scene].into_iter().flatten() {
++        for scene in [&scope.source_scene, &scope.target_scene]
++            .into_iter()
++            .flatten()
++        {
+             tokens.push(scene.cancel.clone());
+         }
+         Ok((
+@@ -476,4 +479,65 @@
+             .await?;
+         Ok((repair, installed))
+     }
+-}
++    /// One original current admission for the RTC two-phase producer. A prepared
++    /// hint never replaces this final policy/epoch check around the socket IO.
++    pub async fn deliver_ready_video_with_repair_and_feedback<F, Fut>(
++        self,
++        send: F,
++    ) -> ReadyMediaDelivery<(VideoRepair, Option<VideoFeedbackRoute>)>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        let medium = self.target.binding.negotiated.requested.medium;
++        if self.frame.kind != StreamKind::Video
++            || self.data.is_some()
++            || self.local.is_some()
++            || self.sources.len() != 1
++            || self.target_consumer.is_some()
++            || !matches!(medium, Medium::Video | Medium::Screen)
++            || self.sources[0].source.binding.negotiated.requested.medium != medium
++            || self.sources[0].consumer.is_some()
++        {
++            return ReadyMediaDelivery::Complete(Err(StreamControlError::Unsupported));
++        }
++        let source = &self.sources[0];
++        let scope = Scope {
++            source: Arc::downgrade(&source.source),
++            target: Arc::downgrade(&self.target),
++            source_ticket: source.ticket.clone(),
++            target_ticket: self.target_ticket.clone(),
++            source_scene: source.scene.clone(),
++            target_scene: self.target_scene.clone(),
++        };
++        let descriptor = source.descriptor.clone();
++        let Some(direct) = self.direct.clone() else {
++            return ReadyMediaDelivery::Complete(Err(StreamControlError::Authority));
++        };
++        let mut installed = None;
++        let output = &mut installed;
++        let repair = self
++            .deliver_ready_video_with_repair(move |frame, origin| async move {
++                // Auxiliary metadata contention cannot turn an otherwise valid
++                // primary RTP write into a failure. A previous hint still needs
++                // current exact route admission; no old authority is reused.
++                let route = match VideoFeedbackRoute::issued(scope, descriptor, direct) {
++                    Ok(route) => Some(route),
++                    Err(StreamControlError::Backpressure) => None,
++                    Err(problem) => return Err(problem),
++                };
++                send(frame, origin).await?;
++                *output = route;
++                Ok(())
++            })
++            .await;
++        match repair {
++            ReadyMediaDelivery::Deferred { queued, problem } => {
++                ReadyMediaDelivery::Deferred { queued, problem }
++            }
++            ReadyMediaDelivery::Complete(result) => {
++                ReadyMediaDelivery::Complete(result.map(|repair| (repair, installed)))
++            }
++        }
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/video_repair.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_repair.rs
+@@ -28,6 +28,9 @@
+ 
+     /// One explicit repair request, not an automatic retry of uncertain IO.
+     /// Every call consumes one attempt, even when current admission refuses.
++    /// Metadata contention is returned after one fresh admission attempt without
++    /// sleeping in the peer driver. A later genuine NACK may request the same
++    /// cached original again within the unchanged age and repair-attempt bounds.
+     /// Dropping the future destroys active IO before releasing its Core guards.
+     pub async fn repair<F, Fut>(&self, send: F) -> ControlResult<()>
+     where
+@@ -40,7 +43,10 @@
+         self.remaining
+             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| n.checked_sub(1))
+             .map_err(|_| StreamControlError::Backpressure)?;
+-        self.queued.video_copy().deliver_with_origin(send).await
++        self.queued
++            .video_copy()
++            .deliver_with_origin_mode(send, false)
++            .await
+     }
+ }
+ impl QueuedMedia {
+@@ -98,4 +104,49 @@
+             expires,
+         })
+     }
++
++    // The primary transport's one-attempt counterpart. No repair handle escapes
++    // a deferred/refused callback; original retained metadata is never a grant.
++    pub(super) async fn deliver_ready_video_with_repair<F, Fut>(
++        self,
++        send: F,
++    ) -> ReadyMediaDelivery<VideoRepair>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        if self.frame.kind != StreamKind::Video
++            || self.data.is_some()
++            || self.local.is_some()
++            || self.sources.len() != 1
++            || !matches!(&self.target.binding.negotiated.format,
++                MediaFormat::Encoded { name, clock_rate_hz: 90000, channels: 0, fmtp }
++                if name.eq_ignore_ascii_case("vp8") && fmtp.as_ref().is_none_or(|v| v.is_empty()))
++            || self.frame.payload_type.is_none_or(|pt| {
++                crate::video_bridge::normalize_packet(&self.frame, 1, pt).is_none()
++            })
++        {
++            return ReadyMediaDelivery::Complete(Err(StreamControlError::Unsupported));
++        }
++        let expires = self.admitted_at + Duration::from_millis(200);
++        let original = self.video_copy();
++        match self.deliver_ready_with_origin(send).await {
++            ReadyMediaDelivery::Deferred { queued, problem } => {
++                ReadyMediaDelivery::Deferred { queued, problem }
++            }
++            ReadyMediaDelivery::Complete(Err(problem)) => {
++                ReadyMediaDelivery::Complete(Err(problem))
++            }
++            ReadyMediaDelivery::Complete(Ok(())) => {
++                if Instant::now() >= expires {
++                    return ReadyMediaDelivery::Complete(Err(StreamControlError::Deadline));
++                }
++                ReadyMediaDelivery::Complete(Ok(VideoRepair {
++                    queued: original,
++                    remaining: AtomicU32::new(MAX_VIDEO_REPAIRS),
++                    expires,
++                }))
++            }
++        }
++    }
+ }
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/mod.rs
+@@ -1,7 +1,6 @@
+ use crate::error::Result;
+ use crate::media_stream::Track;
+-use crate::peer_connection::driver::PeerConnectionDriverEvent;
+-use crate::runtime::Sender;
++use crate::peer_connection::driver::mailbox::DriverEventSender;
+ use rtc::media_stream::MediaStreamTrack;
+ use rtc::rtp_transceiver::RTCRtpSenderId;
+ use rtc::rtp_transceiver::rtp_sender::RTCRtpParameters;
+@@ -18,7 +17,7 @@
+ pub struct TrackLocalContext {
+     pub(crate) rtp_sender_id: RTCRtpSenderId,
+     pub(crate) rtp_parameters: RTCRtpParameters,
+-    pub(crate) driver_event_tx: Sender<PeerConnectionDriverEvent>,
++    pub(crate) driver_event_tx: DriverEventSender,
+ }
+ 
+ #[async_trait::async_trait]
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
+@@ -125,6 +125,9 @@
+             .phase
+             .compare_exchange(PENDING, STARTED, Ordering::AcqRel, Ordering::Acquire)
+             .is_ok()
++    }
++    pub(crate) fn pending(&self) -> bool {
++        self.0.phase.load(Ordering::Acquire) == PENDING
+     }
+     pub(crate) fn started(&self) -> bool {
+         self.0.phase.load(Ordering::Acquire) == STARTED
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
+@@ -17,12 +17,23 @@
+ }
+ pub type OwnedRtpResult = std::result::Result<(), OwnedRtpError>;
+ 
++/// A temporary result cannot resolve the original submission receipt. Only the
++/// driver may retry it, with the SAME request/control/capacity token, before IO.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum OwnedRtpAttempt {
++    Complete(OwnedRtpResult),
++    DeferredNoIo,
++}
++
+ /// A borrowed actual driver sink. It accepts at most one negotiated audio or reviewed VP8 RTP
+ /// packet. It cannot be retained by the producer or detached from its guard.
+ #[async_trait::async_trait]
+ pub trait OwnedRtpIo: Send {
+     async fn write(&mut self, packet: rtp::Packet) -> Result<()>;
+     fn written(&self) -> bool;
++    /// Has the exact original sink callback attempted packet submission?
++    /// Deferral is prohibited after this point even if no bytes were accepted.
++    fn attempted(&self) -> bool;
+     /// Exact original driver submission. Freezing it atomically proves a
+     /// never-started refusal; a true result means possible IO and no rollback.
+     fn submission_control(&self) -> OwnedRtpControl;
+@@ -38,13 +49,20 @@
+         Err(rtc::shared::error::Error::ErrRTPTransceiverCodecUnsupported)
+     }
+ }
+-/// Runs in the driver immediately before wire IO, not while enqueuing a job.
+-/// A Core producer calls QueuedMedia::deliver here, supplying its packet only
+-/// under fresh source/target permission. That future owns its guard and IO;
+-/// destruction must drop IO before releasing authorization.
++/// Preparation owns only original metadata outside the mutable driver. The
++/// actual write runs in the driver, using ONE fresh Core admission immediately
++/// before wire IO. That future owns its guard and IO; destruction must drop IO
++/// before releasing authorization. Readiness is never an IO permission lease.
+ #[async_trait::async_trait]
+ pub trait OwnedRtpProducer: Send + Sync {
+-    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult;
++    /// Owns only original packet/sender metadata, never a current grant or the
++    /// driver. Each Pending point releases all admission/generation readers.
++    /// Success is a readiness hint, not permission; actual IO rechecks current.
++    async fn prepare(&self, control: OwnedRtpControl) -> OwnedRtpResult;
++    /// One fresh admission attempt. Never await metadata retry here. A semantic
++    /// refusal or entered callback is terminal; only pre-callback temporary
++    /// exclusion may return DeferredNoIo retaining the same original producer.
++    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt;
+     /// Metadata only. None disables caching; it never grants repair permission.
+     fn repair_deadline(&self) -> Option<Instant> {
+         None
+@@ -91,7 +109,7 @@
+     pub(crate) fn current(&self) -> bool {
+         self.inner.current(self.deadline)
+     }
+-    async fn cancelled(&self) {
++    pub(crate) async fn cancelled(&self) {
+         self.inner.cancelled().await;
+     }
+ }
+@@ -174,23 +192,38 @@
+     producer: &dyn OwnedRtpProducer,
+     io: &mut dyn OwnedRtpIo,
+     control: &OwnedRtpControl,
+-) -> OwnedRtpResult {
++) -> OwnedRtpAttempt {
+     let mut flight = Box::pin(producer.write(io));
+     let result = tokio::select! {biased;
+-        _=tokio::time::sleep_until(tokio::time::Instant::from_std(control.deadline()))=>Err(stopped(control)),
+-        _=control.cancelled()=>Err(stopped(control)),
++        _=tokio::time::sleep_until(tokio::time::Instant::from_std(control.deadline()))=>OwnedRtpAttempt::Complete(Err(stopped(control))),
++        _=control.cancelled()=>OwnedRtpAttempt::Complete(Err(stopped(control))),
+         result=&mut flight=>result,
+     };
+-    // No receipt can release caller custody until the IO/authorization future
+-    // has actually been destroyed, including cancellation and deadline races.
++    // Destroy the actual original IO/authorization future BEFORE every receipt
++    // or deferral. A deferred hint cannot retain or resurrect current authority.
+     drop(flight);
+     if !control.current() {
+-        return Err(stopped(control));
++        return OwnedRtpAttempt::Complete(Err(stopped(control)));
+     }
+     match result {
+-        Ok(()) if io.written() => Ok(()),
+-        Ok(()) => Err(OwnedRtpError::Refused),
+-        Err(_) if control.inner.started() => Err(OwnedRtpError::OutcomeUnknown),
++        OwnedRtpAttempt::DeferredNoIo
++            if !io.attempted() && !io.written() && control.inner.pending() =>
++        {
++            OwnedRtpAttempt::DeferredNoIo
++        }
++        OwnedRtpAttempt::DeferredNoIo => {
++            OwnedRtpAttempt::Complete(Err(if control.inner.started() {
++                OwnedRtpError::OutcomeUnknown
++            } else {
++                control.freeze_producer();
++                OwnedRtpError::Refused
++            }))
++        }
++        OwnedRtpAttempt::Complete(Ok(())) if io.written() => OwnedRtpAttempt::Complete(Ok(())),
++        OwnedRtpAttempt::Complete(Ok(())) => OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused)),
++        OwnedRtpAttempt::Complete(Err(_)) if control.inner.started() => {
++            OwnedRtpAttempt::Complete(Err(OwnedRtpError::OutcomeUnknown))
++        }
+         result => result,
+     }
+ }
+@@ -209,6 +242,9 @@
+         fn written(&self) -> bool {
+             false
+         }
++        fn attempted(&self) -> bool {
++            false
++        }
+         fn submission_control(&self) -> OwnedRtpControl {
+             self.control.clone()
+         }
+@@ -216,9 +252,12 @@
+     struct Refused;
+     #[async_trait::async_trait]
+     impl OwnedRtpProducer for Refused {
+-        async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
++        async fn prepare(&self, _: OwnedRtpControl) -> OwnedRtpResult {
++            Ok(())
++        }
++        async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
+             assert!(!io.submission_control().freeze_producer());
+-            Err(OwnedRtpError::Refused)
++            OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused))
+         }
+     }
+     #[tokio::test]
+@@ -230,7 +269,7 @@
+         };
+         assert_eq!(
+             complete(&Refused, &mut io, &control).await,
+-            Err(OwnedRtpError::Refused)
++            OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused))
+         );
+         assert!(!control.clone().claim());
+         assert!(!control.clone().begin());
+@@ -252,7 +291,7 @@
+             };
+             assert_eq!(
+                 complete(&Refused, &mut io, &control).await,
+-                Err(OwnedRtpError::DeadlineBeforeWrite)
++                OwnedRtpAttempt::Complete(Err(OwnedRtpError::DeadlineBeforeWrite))
+             );
+         }
+     }
+@@ -275,4 +314,97 @@
+         assert!(started.freeze_producer());
+         assert_eq!(stopped(&started), OwnedRtpError::OutcomeUnknown);
+     }
+-}
++
++    struct Deferred;
++    #[async_trait::async_trait]
++    impl OwnedRtpProducer for Deferred {
++        async fn prepare(&self, _: OwnedRtpControl) -> OwnedRtpResult {
++            Ok(())
++        }
++        async fn write(&self, _: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
++            OwnedRtpAttempt::DeferredNoIo
++        }
++    }
++    #[tokio::test]
++    async fn pre_io_deferred_keeps_same_claim_pending_without_freeze_or_reclaim() {
++        let control = OwnedRtpControl::new(Instant::now() + std::time::Duration::from_millis(200));
++        assert!(control.claim());
++        let mut io = Io {
++            control: control.clone(),
++        };
++        for _ in 0..3 {
++            assert_eq!(
++                complete(&Deferred, &mut io, &control).await,
++                OwnedRtpAttempt::DeferredNoIo
++            );
++            assert!(control.inner.pending());
++            assert!(!control.clone().claim());
++        }
++        assert!(!control.freeze_producer());
++        assert_eq!(
++            complete(&Deferred, &mut io, &control).await,
++            OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused))
++        );
++    }
++    #[tokio::test]
++    async fn cancelled_or_expired_original_can_never_defer_again() {
++        for cancel in [false, true] {
++            let control = OwnedRtpControl::new(if cancel {
++                Instant::now() + std::time::Duration::from_millis(200)
++            } else {
++                Instant::now()
++            });
++            if cancel {
++                assert!(!control.cancel());
++            }
++            let mut io = Io {
++                control: control.clone(),
++            };
++            assert_eq!(
++                complete(&Deferred, &mut io, &control).await,
++                OwnedRtpAttempt::Complete(Err(OwnedRtpError::DeadlineBeforeWrite))
++            );
++        }
++    }
++    struct EnteredIo {
++        control: OwnedRtpControl,
++    }
++    #[async_trait::async_trait]
++    impl OwnedRtpIo for EnteredIo {
++        async fn write(&mut self, _: rtp::Packet) -> Result<()> {
++            panic!("protocol probe does not send")
++        }
++        fn written(&self) -> bool {
++            false
++        }
++        fn attempted(&self) -> bool {
++            true
++        }
++        fn submission_control(&self) -> OwnedRtpControl {
++            self.control.clone()
++        }
++    }
++    #[tokio::test]
++    async fn an_entered_or_started_sink_cannot_return_temporary_deferral() {
++        for started in [false, true] {
++            let control =
++                OwnedRtpControl::new(Instant::now() + std::time::Duration::from_millis(200));
++            assert!(control.claim());
++            if started {
++                assert!(control.begin());
++            }
++            let mut io = EnteredIo {
++                control: control.clone(),
++            };
++            let expected = if started {
++                OwnedRtpError::OutcomeUnknown
++            } else {
++                OwnedRtpError::Refused
++            };
++            assert_eq!(
++                complete(&Deferred, &mut io, &control).await,
++                OwnedRtpAttempt::Complete(Err(expected))
++            );
++        }
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs
+@@ -435,7 +435,8 @@
+     #[tokio::test]
+     async fn rtp_write_waits_for_temporary_driver_backpressure() {
+         let track = audio_track();
+-        let (driver_event_tx, mut driver_event_rx) = channel(1);
++        let (driver_event_tx, mut driver_events) =
++            crate::peer_connection::driver::mailbox::one_slot_driver_channel_for_test();
+         track
+             .bind(TrackLocalContext {
+                 rtp_sender_id: RTCRtpSenderId::default(),
+@@ -463,7 +464,7 @@
+         );
+ 
+         assert!(matches!(
+-            driver_event_rx.recv().await,
++            driver_events.recv_media_for_test().await,
+             Some(PeerConnectionDriverEvent::SenderRtp(_, _))
+         ));
+         tokio::time::timeout(Duration::from_secs(1), blocked)
+@@ -472,7 +473,7 @@
+             .expect("write task should not panic")
+             .expect("write should succeed after temporary backpressure");
+         assert!(matches!(
+-            driver_event_rx.recv().await,
++            driver_events.recv_media_for_test().await,
+             Some(PeerConnectionDriverEvent::SenderRtp(_, _))
+         ));
+     }
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_remote/static_rtp.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_remote/static_rtp.rs
+@@ -2,7 +2,8 @@
+ use crate::media_stream::Track;
+ use crate::media_stream::track_remote::{TrackRemote, TrackRemoteEvent};
+ use crate::peer_connection::driver::PeerConnectionDriverEvent;
+-use crate::runtime::{Mutex, Receiver, Sender};
++use crate::peer_connection::driver::mailbox::DriverEventSender;
++use crate::runtime::{Mutex, Receiver};
+ use rtc::media_stream::{
+     MediaStreamId, MediaStreamTrack, MediaStreamTrackId, MediaStreamTrackState,
+     MediaTrackCapabilities, MediaTrackConstraints, MediaTrackSettings,
+@@ -16,7 +17,7 @@
+ pub(crate) struct TrackRemoteStaticRTP {
+     track: Mutex<MediaStreamTrack>,
+     receiver_id: RTCRtpReceiverId,
+-    msg_tx: Sender<PeerConnectionDriverEvent>,
++    msg_tx: DriverEventSender,
+     evt_rx: Mutex<Receiver<TrackRemoteEvent>>,
+ }
+ 
+@@ -24,7 +25,7 @@
+     pub fn new(
+         track: MediaStreamTrack,
+         receiver_id: RTCRtpReceiverId,
+-        msg_tx: Sender<PeerConnectionDriverEvent>,
++        msg_tx: DriverEventSender,
+         evt_rx: Receiver<TrackRemoteEvent>,
+     ) -> Self {
+         Self {
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -7,16 +7,20 @@
+ use super::ice_gatherer::{RTCIceGatherer, RTCIceGathererEvent};
+ use crate::data_channel::{DataChannelEvent, DataChannelImpl};
+ use crate::media_stream::track_local::owned_dtmf::*;
++use crate::media_stream::track_local::owned_rtp::{
++    OwnedRtpAttempt, OwnedRtpControl, OwnedRtpProducer, OwnedRtpRequest, OwnedRtpResult,
++};
+ use crate::media_stream::track_remote::static_rtp::TrackRemoteStaticRTP;
+ use crate::media_stream::track_remote::{TrackRemote, TrackRemoteEvent};
+ use crate::peer_connection::PeerConnectionRef;
+ use crate::rtp_transceiver::rtp_receiver::RtpReceiverImpl;
+ use crate::rtp_transceiver::{RtpReceiver, RtpTransceiverImpl};
+-use crate::runtime::{AsyncUdpSocket, Receiver, channel};
++use crate::runtime::{AsyncUdpSocket, channel};
+ use bytes::BytesMut;
+ use futures::FutureExt; // For .fuse() in futures::select!
+ use futures::stream::{FuturesUnordered, StreamExt};
+ use log::{error, trace};
++use mailbox::{DriverAdmission, DriverEnvelope, DriverEventReceivers};
+ use rtc::interceptor::{Interceptor, NoopInterceptor};
+ use rtc::media_stream::MediaStreamTrack;
+ use rtc::peer_connection::event::{RTCDataChannelEvent, RTCPeerConnectionEvent, RTCTrackEvent};
+@@ -68,6 +72,94 @@
+     Close,
+ }
+ 
++struct PendingRtp {
++    sender: RTCRtpSenderId,
++    request: Option<OwnedRtpRequest>,
++    admission: Option<DriverAdmission>,
++    preparing: Option<std::pin::Pin<Box<dyn std::future::Future<Output = OwnedRtpResult> + Send>>>,
++}
++impl PendingRtp {
++    fn new(sender: RTCRtpSenderId, request: OwnedRtpRequest, admission: DriverAdmission) -> Self {
++        let producer = request.producer.clone();
++        let control = request.control.clone();
++        let preparing = Box::pin(async move {
++            use crate::media_stream::track_local::owned_rtp::stopped;
++            tokio::select! { biased;
++                _ = tokio::time::sleep_until(tokio::time::Instant::from_std(control.deadline())) => Err(stopped(&control)),
++                _ = control.cancelled() => Err(stopped(&control)),
++                result = producer.prepare(control.clone()) => result,
++            }
++        });
++        Self {
++            sender,
++            request: Some(request),
++            admission: Some(admission),
++            preparing: Some(preparing),
++        }
++    }
++    fn into_ready(mut self) -> (RTCRtpSenderId, OwnedRtpRequest, DriverAdmission) {
++        drop(self.preparing.take());
++        (
++            self.sender,
++            self.request.take().expect("original request"),
++            self.admission.take().expect("same admission"),
++        )
++    }
++    fn refuse(mut self) {
++        drop(self.preparing.take());
++        if let Some(request) = self.request.take() {
++            refuse_rtp(request);
++        }
++        drop(self.admission.take());
++    }
++}
++impl Drop for PendingRtp {
++    fn drop(&mut self) {
++        // Forced original-driver destruction gives NO positive receipt. Its
++        // original worker still observes OutcomeUnknown/drained=false. Keep
++        // the capacity token until the exact future and request are destroyed.
++        if let Some(request) = &self.request {
++            request.control.cancel();
++        }
++        drop(self.preparing.take());
++        drop(self.request.take());
++        drop(self.admission.take());
++    }
++}
++
++fn refuse_rtp(request: OwnedRtpRequest) {
++    use crate::media_stream::track_local::owned_rtp::stopped;
++    let OwnedRtpRequest {
++        producer,
++        control,
++        completion,
++    } = request;
++    let error = stopped(&control);
++    drop(producer);
++    let _ = completion.send(Err(error));
++}
++fn refuse_queued(envelope: DriverEnvelope) {
++    let DriverEnvelope { event, admission } = envelope;
++    match event {
++        PeerConnectionDriverEvent::OwnedRtp(_, request) => refuse_rtp(request),
++        PeerConnectionDriverEvent::OwnedDtmf(_, request) => {
++            let OwnedDtmfRequest {
++                packet,
++                authority,
++                control,
++                completion,
++                ..
++            } = request;
++            let error = stopped(&control);
++            drop(packet);
++            drop(authority);
++            let _ = completion.send(Err(error));
++        }
++        _ => {}
++    }
++    drop(admission);
++}
++
+ /// The driver for a peer connection
+ ///
+ /// Runs the event loop following rtc's EventLoop pattern with select!
+@@ -122,7 +214,7 @@
+     /// This follows rtc Event Loop pattern exactly with select!
+     pub(crate) async fn event_loop(
+         &mut self,
+-        mut driver_event_rx: Receiver<PeerConnectionDriverEvent>,
++        mut driver_events: DriverEventReceivers,
+     ) -> Result<()> {
+         // Collect socket info into a vec for indexed access
+         let socket_list: Vec<(SocketAddr, Arc<dyn AsyncUdpSocket>)> = self
+@@ -156,6 +248,7 @@
+             .collect();
+ 
+         let mut close_deadline = None;
++        let mut pending_rtp: Option<PendingRtp> = None;
+         loop {
+             if let Some(deadline) = close_deadline {
+                 if self.ice_gatherer.relays_closed() {
+@@ -243,64 +336,167 @@
+                 .checked_duration_since(Instant::now())
+                 .unwrap_or(Duration::from_secs(0));
+ 
+-            // 4.b handle immediate timeout
+-            if delay_from_now.is_zero() {
+-                let now = Instant::now();
+-                self.ice_gatherer.handle_timeout(now)?;
+-                if close_deadline.is_none() {
+-                    self.inner.core.lock().await.handle_timeout(now)?;
+-                }
+-                continue;
+-            }
+-
++            // A due timer is a ready select branch, not a continue loop that
++            // prevents control/UDP/original preparation from ever being polled.
+             let timer = crate::runtime::sleep(delay_from_now);
+             futures::pin_mut!(timer);
+ 
+-            // Runtime-agnostic select!
+-            futures::select! {
+-                // Timer expired
+-                _ = timer.fuse() => {
++            enum Wake {
++                Timer,
++                Control(Option<DriverEnvelope>),
++                Media(Option<DriverEnvelope>),
++                Prepared(OwnedRtpResult),
++                Socket(
++                    Option<
++                        std::io::Result<(usize, SocketAddr, SocketAddr, usize, Vec<u8>, Instant)>,
++                    >,
++                ),
++            }
++            // Preparation owns no driver borrow or permission reader. All these
++            // futures are destroyed before dispatch mutably borrows the driver.
++            let wake = {
++                let open = close_deadline.is_none();
++                let media_ready = open && pending_rtp.is_none();
++                let control_rx = &mut driver_events.control;
++                let media_rx = &mut driver_events.media;
++                let control = async {
++                    if open {
++                        control_rx.recv().await
++                    } else {
++                        std::future::pending().await
++                    }
++                }
++                .fuse();
++                let media = async {
++                    if media_ready {
++                        media_rx.recv().await
++                    } else {
++                        std::future::pending().await
++                    }
++                }
++                .fuse();
++                let preparing = async {
++                    if let Some(pending) = pending_rtp.as_mut() {
++                        pending
++                            .preparing
++                            .as_mut()
++                            .expect("original preparing future")
++                            .as_mut()
++                            .await
++                    } else {
++                        std::future::pending().await
++                    }
++                }
++                .fuse();
++                futures::pin_mut!(control, media, preparing);
++                // Fair selection after the control admission reserve. There is
++                // no sleep or renewed packet deadline in this scheduler.
++                futures::select! {
++                    event = control => Wake::Control(event),
++                    _ = timer.fuse() => Wake::Timer,
++                    result = socket_recv_futures.next().fuse() => Wake::Socket(result),
++                    result = preparing => Wake::Prepared(result),
++                    event = media => Wake::Media(event),
++                }
++            };
++            match wake {
++                Wake::Timer => {
+                     let now = Instant::now();
+                     self.ice_gatherer.handle_timeout(now)?;
+                     if close_deadline.is_none() {
+                         self.inner.core.lock().await.handle_timeout(now)?;
+                     }
+                 }
+-
+-                // Driver events (RTP, RTCP, or ICE candidate)
+-                evt = driver_event_rx.recv().fuse() => {
+-                    if let Some(evt) = evt {
+-                        let is_closed = self.handle_driver_event(evt).await;
+-                        if is_closed && close_deadline.is_none() {
+-                            self.ice_gatherer.begin_relay_close()?;
+-                            close_deadline = Some(Instant::now() + Duration::from_secs(3));
+-                        }
+-                    }
+-                }
+-
+-                // Incoming network packet from any socket
+-                result = socket_recv_futures.next().fuse() => {
++                Wake::Control(Some(envelope)) => {
++                    let DriverEnvelope { event, admission } = envelope;
++                    let is_closed = self.handle_driver_event(event).await;
++                    drop(admission);
++                    if is_closed && close_deadline.is_none() {
++                        driver_events.close();
++                        if let Some(pending) = pending_rtp.take() {
++                            pending.refuse();
++                        }
++                        while let Some(queued) = driver_events.drain_one() {
++                            refuse_queued(queued);
++                        }
++                        self.ice_gatherer.begin_relay_close()?;
++                        close_deadline = Some(Instant::now() + Duration::from_secs(3));
++                    }
++                }
++                Wake::Media(Some(envelope)) => {
++                    let DriverEnvelope { event, admission } = envelope;
++                    match event {
++                        PeerConnectionDriverEvent::OwnedRtp(sender, request) => {
++                            // Healthy first attempt retains the existing single
++                            // current admission. Allocate a preparation future
++                            // ONLY for a validated pre-IO metadata race.
++                            if let Some(request) = self.handle_owned_rtp(sender, request).await {
++                                pending_rtp = Some(PendingRtp::new(sender, request, admission));
++                            } else {
++                                drop(admission);
++                            }
++                        }
++                        event => {
++                            self.handle_driver_event(event).await;
++                            drop(admission);
++                        }
++                    }
++                }
++                Wake::Prepared(result) => {
++                    let (sender, request, admission) = pending_rtp
++                        .take()
++                        .expect("original pending preparation")
++                        .into_ready();
++                    if let Err(error) = result {
++                        let OwnedRtpRequest {
++                            producer,
++                            control,
++                            completion,
++                        } = request;
++                        control.freeze_producer();
++                        drop(producer);
++                        let _ = completion.send(Err(error));
++                        drop(admission);
++                    } else if let Some(request) = self.handle_owned_rtp(sender, request).await {
++                        // A final current-metadata race happened before ANY IO.
++                        // Preserve SAME request/control/token and original cutoff.
++                        pending_rtp = Some(PendingRtp::new(sender, request, admission));
++                    } else {
++                        drop(admission);
++                    }
++                }
++                Wake::Control(None) | Wake::Media(None) => {}
++                Wake::Socket(result) => {
+                     match result {
+                         Some(Ok((n, local_addr, peer_addr, idx, buf, received_at))) => {
+                             trace!("Received {} bytes from {} to {}", n, peer_addr, local_addr);
+ 
+-                            if let Err(err) = self.handle_read(TaggedBytesMut {
+-                                now: received_at,
+-                                transport: TransportContext {
+-                                    local_addr,
+-                                    peer_addr,
+-                                    ecn: None,
+-                                    transport_protocol: TransportProtocol::UDP,
+-                                },
+-                                message: BytesMut::from(&buf[..n]),
+-                            }).await {
+-                                 error!("handle_read error: {}", err);
++                            if let Err(err) = self
++                                .handle_read(TaggedBytesMut {
++                                    now: received_at,
++                                    transport: TransportContext {
++                                        local_addr,
++                                        peer_addr,
++                                        ecn: None,
++                                        transport_protocol: TransportProtocol::UDP,
++                                    },
++                                    message: BytesMut::from(&buf[..n]),
++                                })
++                                .await
++                            {
++                                error!("handle_read error: {}", err);
+                             }
+ 
+                             // Immediately create a new future for this socket and reuse the buffer
+                             let (socket_local_addr, socket) = &socket_list[idx];
+                             socket_recv_futures.push(
+-                                create_socket_recv_future(idx, *socket_local_addr, socket.clone(), buf).boxed()
++                                create_socket_recv_future(
++                                    idx,
++                                    *socket_local_addr,
++                                    socket.clone(),
++                                    buf,
++                                )
++                                .boxed(),
+                             );
+                         }
+                         Some(Err(err)) => {
+@@ -434,7 +630,7 @@
+         &mut self,
+         sender: RTCRtpSenderId,
+         request: crate::media_stream::track_local::owned_rtp::OwnedRtpRequest,
+-    ) {
++    ) -> Option<crate::media_stream::track_local::owned_rtp::OwnedRtpRequest> {
+         use crate::media_stream::track_local::owned_rtp::*;
+         let OwnedRtpRequest {
+             producer,
+@@ -463,7 +659,7 @@
+             .await
+             .unwrap_or_else(|_| Err(stopped(&control)));
+         let (result, candidate) = match ready {
+-            Err(error) => (Err(error), None),
++            Err(error) => (OwnedRtpAttempt::Complete(Err(error)), None),
+             Ok(()) => {
+                 let mut io = RtpIo {
+                     driver: self,
+@@ -478,6 +674,19 @@
+                 (result, io.written_video.take())
+             }
+         };
++        let result = match result {
++            OwnedRtpAttempt::DeferredNoIo => {
++                return Some(OwnedRtpRequest {
++                    producer,
++                    control,
++                    completion,
++                });
++            }
++            OwnedRtpAttempt::Complete(result) => result,
++        };
++        if result.is_err() {
++            control.freeze_producer();
++        }
+         if result.is_ok() {
+             if let (Some((fact, track)), Some(expiry)) = (candidate, producer.repair_deadline()) {
+                 self.video_repairs.insert(owned_video::RepairEntry::new(
+@@ -494,6 +703,7 @@
+         // `complete` destroys the producer's future (and hence Core guards)
+         // before this exact original receipt is acknowledged.
+         let _ = completion.send(result);
++        None
+     }
+ 
+     async fn handle_write(&mut self, msg: TaggedBytesMut) {
+@@ -870,7 +1080,8 @@
+     async fn handle_driver_event(&mut self, evt: PeerConnectionDriverEvent) -> bool {
+         match evt {
+             PeerConnectionDriverEvent::OwnedRtp(sender, request) => {
+-                self.handle_owned_rtp(sender, request).await;
++                let _ = sender;
++                refuse_rtp(request);
+             }
+             PeerConnectionDriverEvent::OwnedDtmf(sender, request) => {
+                 self.handle_owned_dtmf(sender, request).await;
+@@ -963,6 +1174,9 @@
+ {
+     fn written(&self) -> bool {
+         self.written
++    }
++    fn attempted(&self) -> bool {
++        self.attempted
+     }
+     fn submission_control(&self) -> crate::media_stream::track_local::owned_rtp::OwnedRtpControl {
+         self.control.clone()
+@@ -1159,3 +1373,8 @@
+ 
+ mod audio_facts;
+ mod owned_video;
++
++pub(crate) mod mailbox;
++
++#[cfg(test)]
++mod cooperative_tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/cooperative_tests.rs
+@@ -0,0 +1,310 @@
++//! Real ICE/DTLS/SRTP/SRTCP progress with a held fail-closed producer preparation.
++//! This checks driver scheduling/custody; Core policy/IO guards have separate controls.
++use super::*;
++use crate::media_stream::track_local::owned_rtp::*;
++use crate::media_stream::track_local::{TrackLocal, static_rtp::TrackLocalStaticRTP};
++use crate::peer_connection::{
++    PeerConnection, PeerConnectionBuilder, PeerConnectionEventHandler, RTCPeerConnectionState,
++};
++use rtc::peer_connection::configuration::media_engine::MediaEngine;
++use rtc::rtp_transceiver::rtp_sender::{
++    RTCRtpCodec, RTCRtpCodecParameters, RTCRtpCodingParameters, RTCRtpEncodingParameters,
++    RtpCodecKind,
++};
++use std::future::Future;
++use std::sync::{
++    Mutex,
++    atomic::{AtomicBool, AtomicUsize, Ordering},
++};
++use tokio::sync::{Notify, mpsc};
++use tokio::time::timeout;
++
++struct Preparation {
++    entered: Arc<Notify>,
++    release: Arc<Notify>,
++    events: Arc<Mutex<Vec<&'static str>>>,
++}
++struct FutureDropped(Arc<Mutex<Vec<&'static str>>>);
++impl Drop for FutureDropped {
++    fn drop(&mut self) {
++        self.0.lock().unwrap().push("preparation-dropped");
++    }
++}
++impl Drop for Preparation {
++    fn drop(&mut self) {
++        self.events.lock().unwrap().push("producer-dropped");
++    }
++}
++#[async_trait::async_trait]
++impl OwnedRtpProducer for Preparation {
++    async fn prepare(&self, _: OwnedRtpControl) -> OwnedRtpResult {
++        let _original = FutureDropped(self.events.clone());
++        self.entered.notify_one();
++        self.release.notified().await;
++        Err(OwnedRtpError::Refused)
++    }
++    async fn write(&self, _: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
++        OwnedRtpAttempt::DeferredNoIo
++    }
++}
++#[tokio::test]
++async fn pending_prepare_normal_refusal_destroys_future_before_original_receipt_and_token() {
++    for forced in [false, true] {
++        let (tx, mut rx) = mailbox::driver_channel();
++        let events = Arc::new(Mutex::new(Vec::new()));
++        let producer = Arc::new(Preparation {
++            entered: Arc::new(Notify::new()),
++            release: Arc::new(Notify::new()),
++            events: events.clone(),
++        });
++        let control = OwnedRtpControl::new(Instant::now() + Duration::from_secs(1));
++        assert!(control.claim());
++        let (completion, receipt) = tokio::sync::oneshot::channel();
++        tx.send(PeerConnectionDriverEvent::OwnedRtp(
++            Default::default(),
++            OwnedRtpRequest {
++                producer,
++                control,
++                completion,
++            },
++        ))
++        .await
++        .unwrap();
++        let DriverEnvelope { event, admission } = rx.media.recv().await.unwrap();
++        let PeerConnectionDriverEvent::OwnedRtp(sender, request) = event else {
++            panic!("owned original");
++        };
++        let mut pending = PendingRtp::new(sender, request, admission);
++        let first = std::future::poll_fn(|cx| {
++            std::task::Poll::Ready(pending.preparing.as_mut().unwrap().as_mut().poll(cx))
++        })
++        .await;
++        assert!(first.is_pending());
++        if forced {
++            drop(pending);
++            assert!(receipt.await.is_err());
++        } else {
++            pending.refuse();
++            assert_eq!(
++                receipt.await.unwrap(),
++                Err(OwnedRtpError::DeadlineBeforeWrite)
++            );
++        }
++        assert_eq!(
++            *events.lock().unwrap(),
++            vec!["preparation-dropped", "producer-dropped"]
++        );
++        // Normal delivers an exact refusal; forced destruction sends no positive
++        // driver receipt, so the existing original worker reports unknown drain.
++        rx.close();
++        while rx.drain_one().is_some() {}
++    }
++}
++
++struct Handler {
++    gathered: mpsc::Sender<()>,
++    connected: mpsc::Sender<()>,
++    track: mpsc::Sender<Arc<dyn TrackRemote>>,
++    rtcp: mpsc::Sender<()>,
++    block: Arc<AtomicBool>,
++    blocked: Arc<Notify>,
++    release: Arc<Notify>,
++}
++#[async_trait::async_trait]
++impl PeerConnectionEventHandler for Handler {
++    async fn on_ice_gathering_state_change(&self, state: RTCIceGatheringState) {
++        if state == RTCIceGatheringState::Complete {
++            let _ = self.gathered.try_send(());
++        }
++    }
++    async fn on_connection_state_change(&self, state: RTCPeerConnectionState) {
++        if state == RTCPeerConnectionState::Connected {
++            let _ = self.connected.try_send(());
++        }
++    }
++    async fn on_track(&self, track: Arc<dyn TrackRemote>) {
++        let _ = self.track.try_send(track);
++    }
++    async fn on_rtcp_packet(&self, packet: &dyn rtc::rtcp::Packet) -> bool {
++        if packet
++            .as_any()
++            .is::<rtc::rtcp::payload_feedbacks::picture_loss_indication::PictureLossIndication>()
++        {
++            let _ = self.rtcp.try_send(());
++            if self.block.load(Ordering::Acquire) {
++                self.blocked.notify_one();
++                self.release.notified().await;
++            }
++            return true;
++        }
++        false
++    }
++}
++fn codec() -> RTCRtpCodecParameters {
++    RTCRtpCodecParameters {
++        payload_type: 0,
++        rtp_codec: RTCRtpCodec {
++            mime_type: "audio/PCMU".into(),
++            clock_rate: 8000,
++            ..Default::default()
++        },
++    }
++}
++fn media() -> MediaEngine {
++    let mut m = MediaEngine::default();
++    m.register_codec(codec(), RtpCodecKind::Audio).unwrap();
++    m
++}
++fn local(ssrc: u32) -> Arc<TrackLocalStaticRTP> {
++    Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
++        "s".into(),
++        format!("t{ssrc}").into(),
++        "cooperative".into(),
++        RtpCodecKind::Audio,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: RTCRtpCodingParameters {
++                ssrc: Some(ssrc),
++                ..Default::default()
++            },
++            codec: codec().rtp_codec,
++            ..Default::default()
++        }],
++    )))
++}
++fn packet(ssrc: u32, sequence: u16) -> rtp::Packet {
++    rtp::Packet {
++        header: rtp::Header {
++            version: 2,
++            ssrc,
++            payload_type: 0,
++            sequence_number: sequence,
++            timestamp: u32::from(sequence) * 160,
++            ..Default::default()
++        },
++        payload: bytes::Bytes::from_static(&[0xff; 160]),
++    }
++}
++async fn receive(track: &Arc<dyn TrackRemote>, sequence: u16) -> rtp::Packet {
++    loop {
++        if let Some(TrackRemoteEvent::OnRtpPacket(packet, _)) = track.poll().await {
++            if packet.header.sequence_number == sequence {
++                return packet;
++            }
++        }
++    }
++}
++
++async fn exercise(mode: &str) {
++    let mut originals: Vec<Arc<dyn PeerConnection>> = Vec::new();
++    let sockets = Arc::new(AtomicUsize::new(0));
++    let block = Arc::new(AtomicBool::new(false));
++    let blocked = Arc::new(Notify::new());
++    let handler_release = Arc::new(Notify::new());
++    let prepare_release = Arc::new(Notify::new());
++    let entered = Arc::new(Notify::new());
++    let events = Arc::new(Mutex::new(Vec::new()));
++    let mut original_write = None;
++    let work=std::panic::AssertUnwindSafe(async{
++        let (ag,mut agr)=mpsc::channel(1);let(bg,mut bgr)=mpsc::channel(1);
++        let(ac,mut acr)=mpsc::channel(1);let(bc,mut bcr)=mpsc::channel(1);
++        let(at,mut atr)=mpsc::channel(1);let(bt,mut btr)=mpsc::channel(1);
++        let(ar,mut arr)=mpsc::channel(2);let(br,_brr)=mpsc::channel(2);
++        let mut am=media();let mut bm=media();
++        let a_registry=rtc::peer_connection::configuration::interceptor_registry::register_owned_dtmf_interceptors(&mut am,rtc::interceptor::SenderClockHandle::default()).unwrap();
++        let b_registry=rtc::peer_connection::configuration::interceptor_registry::register_owned_dtmf_interceptors(&mut bm,rtc::interceptor::SenderClockHandle::default()).unwrap();
++        let a:Arc<dyn PeerConnection>=Arc::new(PeerConnectionBuilder::new().with_media_engine(am).with_interceptor_registry(a_registry).with_handler(Arc::new(Handler{gathered:ag,connected:ac,track:at,rtcp:ar,block:block.clone(),blocked:blocked.clone(),release:handler_release.clone()})).with_allocated_udp_socket_counter(sockets.clone()).with_udp_addrs(vec!["127.0.0.1:0"]).build().await.unwrap());
++        originals.push(a.clone());
++        let b:Arc<dyn PeerConnection>=Arc::new(PeerConnectionBuilder::new().with_media_engine(bm).with_interceptor_registry(b_registry).with_handler(Arc::new(Handler{gathered:bg,connected:bc,track:bt,rtcp:br,block:Arc::new(AtomicBool::new(false)),blocked:Arc::new(Notify::new()),release:Arc::new(Notify::new())})).with_allocated_udp_socket_counter(sockets.clone()).with_udp_addrs(vec!["127.0.0.1:0"]).build().await.unwrap());
++        originals.push(b.clone());let al=local(12001);let bl=local(12002);
++        a.add_track(al.clone()).await.unwrap();b.add_track(bl.clone()).await.unwrap();
++        a.set_local_description(a.create_offer(None).await.unwrap()).await.unwrap();timeout(Duration::from_secs(3),agr.recv()).await.unwrap().unwrap();
++        b.set_remote_description(a.local_description().await.unwrap()).await.unwrap();b.set_local_description(b.create_answer(None).await.unwrap()).await.unwrap();timeout(Duration::from_secs(3),bgr.recv()).await.unwrap().unwrap();a.set_remote_description(b.local_description().await.unwrap()).await.unwrap();
++        timeout(Duration::from_secs(5),acr.recv()).await.unwrap().unwrap();timeout(Duration::from_secs(5),bcr.recv()).await.unwrap().unwrap();
++        al.write_rtp(packet(12001,10)).await.unwrap();bl.write_rtp(packet(12002,20)).await.unwrap();
++        let inbound_a=timeout(Duration::from_secs(2),atr.recv()).await.unwrap().unwrap();let inbound_b=timeout(Duration::from_secs(2),btr.recv()).await.unwrap().unwrap();
++        timeout(Duration::from_secs(2),receive(&inbound_a,20)).await.unwrap();timeout(Duration::from_secs(2),receive(&inbound_b,10)).await.unwrap();
++        // Transport preflight may report a known no-IO NotReady while draining
++        // prior handshake/RTCP output. That is setup, not the scheduling oracle.
++        // Drain EACH such original before another fail-closed no-payload probe.
++        let setup_until=tokio::time::Instant::now()+Duration::from_secs(2);
++        loop {
++            let producer=Arc::new(Preparation{entered:entered.clone(),release:prepare_release.clone(),events:events.clone()});
++            original_write=Some(al.owned_rtp(producer,Instant::now()+Duration::from_secs(1)));
++            let entered_original=tokio::time::timeout_at(setup_until,async{
++                tokio::select!{biased;
++                    _=entered.notified()=>true,
++                    result=original_write.as_ref().unwrap().result()=>{assert_eq!(result,Err(OwnedRtpError::NotReady));false},
++                }
++            }).await.unwrap();
++            if entered_original { break; }
++            assert!(original_write.as_ref().unwrap().cancel_and_drain().await.is_ok());
++        }
++        events.lock().unwrap().clear();
++        if mode=="progress"{
++            bl.write_rtp(packet(12002,21)).await.unwrap();
++            inbound_b.write_rtcp(vec![Box::new(rtc::rtcp::payload_feedbacks::picture_loss_indication::PictureLossIndication{sender_ssrc:12002,media_ssrc:12001})]).await.unwrap();
++            let received=timeout(Duration::from_millis(100),receive(&inbound_a,21)).await.unwrap();
++            timeout(Duration::from_millis(100),arr.recv()).await.unwrap().unwrap();
++            let expected=packet(12002,21);
++            assert_eq!((received.header.ssrc,received.header.sequence_number,received.header.timestamp,received.header.payload_type,received.payload),(expected.header.ssrc,expected.header.sequence_number,expected.header.timestamp,expected.header.payload_type,expected.payload));
++            assert!(events.lock().unwrap().is_empty(),"metadata preparation must still be owned and pending during encrypted inbound/RTCP progress");
++            prepare_release.notify_one();
++            assert_eq!(original_write.as_ref().unwrap().result().await,Err(OwnedRtpError::Refused));
++            assert!(original_write.as_ref().unwrap().cancel_and_drain().await.is_ok());
++        }else{
++            block.store(true,Ordering::Release);
++            inbound_b.write_rtcp(vec![Box::new(rtc::rtcp::payload_feedbacks::picture_loss_indication::PictureLossIndication{sender_ssrc:12002,media_ssrc:12001})]).await.unwrap();
++            timeout(Duration::from_millis(100),blocked.notified()).await.unwrap();
++            let mut observed=Box::pin(original_write.as_ref().unwrap().result());
++            assert!(std::future::poll_fn(|cx|std::task::Poll::Ready(observed.as_mut().poll(cx))).await.is_pending(),"the exact original request must still be pending at the blocked callback");
++            drop(observed);
++            assert!(events.lock().unwrap().is_empty(),"original preparation must not have ended before close observation");
++            if mode=="cancel-close"{
++                let mut first=Box::pin(a.close());
++                assert!(std::future::poll_fn(|cx|std::task::Poll::Ready(first.as_mut().poll(cx))).await.is_pending());drop(first);
++                handler_release.notify_one();
++                timeout(Duration::from_secs(2),a.close()).await.unwrap().unwrap();
++                assert!(original_write.as_ref().unwrap().cancel_and_drain().await.is_ok());
++            }else{
++                assert!(timeout(Duration::from_secs(5),a.close()).await.unwrap().is_err(),"forced fallback cannot claim confirmed original receipts");
++                assert_eq!(original_write.as_ref().unwrap().result().await,Err(OwnedRtpError::OutcomeUnknown));
++                assert_eq!(original_write.as_ref().unwrap().cancel_and_drain().await,Err(OwnedRtpError::OutcomeUnknown));
++            }
++        }
++    }).catch_unwind().await;
++    block.store(false, Ordering::Release);
++    handler_release.notify_one();
++    prepare_release.notify_one();
++    let mut cleanup = true;
++    // Complete the SAME internal bounded close/fallback even if an earlier
++    // observation failed or was cancelled. A short outer timeout is not join.
++    for (index, peer) in originals.iter().enumerate() {
++        let result = peer.close().await;
++        cleanup &= result.is_ok() || (mode == "forced-close" && index == 0);
++    }
++    // Every original driver has now actually ended. Its exact receipt sender
++    // was either acknowledged or destroyed; observe the SAME request worker.
++    if let Some(write) = &original_write {
++        let drained = write.cancel_and_drain().await;
++        cleanup &= drained.is_ok() || mode == "forced-close";
++    }
++    assert!(
++        cleanup && sockets.load(Ordering::Acquire) == 0,
++        "all original peer/socket/request owners close before scheduling oracle"
++    );
++    if let Err(error) = work {
++        std::panic::resume_unwind(error);
++    }
++}
++#[tokio::test]
++async fn original_metadata_prepare_does_not_stop_same_peer_encrypted_rtp_and_rtcp() {
++    exercise("progress").await;
++}
++#[tokio::test]
++async fn cancelled_close_observation_keeps_original_driver_and_refusal_receipt() {
++    exercise("cancel-close").await;
++}
++#[tokio::test]
++async fn stuck_driver_fallback_preserves_unknown_original_request_cleanup() {
++    exercise("forced-close").await;
++}
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/mailbox.rs
+@@ -0,0 +1,156 @@
++//! Two bounded lanes with one original queued256+active1 resident budget.
++//! Capacity tokens are not permission and survive every metadata preparation.
++use super::PeerConnectionDriverEvent as Event;
++use crate::runtime::{Receiver, SendError, Sender, TryRecvError, TrySendError, channel};
++use std::sync::Arc;
++use tokio::sync::{OwnedSemaphorePermit, Semaphore, TryAcquireError};
++
++pub(super) const RESIDENT_LIMIT: usize = 257;
++pub(super) const MEDIA_LIMIT: usize = 255;
++const RING_CAPACITY: usize = super::PEER_CONNECTION_DRIVER_EVENT_CHANNEL_CAPACITY;
++
++pub(crate) struct DriverEnvelope {
++    pub(super) event: Event,
++    pub(super) admission: DriverAdmission,
++}
++pub(super) struct DriverAdmission {
++    _resident: OwnedSemaphorePermit,
++    _media: Option<OwnedSemaphorePermit>,
++}
++#[derive(Clone)]
++pub(crate) struct DriverEventSender {
++    control: Sender<DriverEnvelope>,
++    media: Sender<DriverEnvelope>,
++    resident: Arc<Semaphore>,
++    media_quota: Arc<Semaphore>,
++}
++pub(crate) struct DriverEventReceivers {
++    pub(super) control: Receiver<DriverEnvelope>,
++    pub(super) media: Receiver<DriverEnvelope>,
++    resident: Arc<Semaphore>,
++    media_quota: Arc<Semaphore>,
++}
++fn media(event: &Event) -> bool {
++    matches!(
++        event,
++        Event::OwnedRtp(..)
++            | Event::OwnedDtmf(..)
++            | Event::SenderRtp(..)
++            | Event::SenderRtpWithClock(..)
++    )
++}
++pub(crate) fn driver_channel() -> (DriverEventSender, DriverEventReceivers) {
++    driver_channel_with_capacity(RING_CAPACITY)
++}
++fn driver_channel_with_capacity(capacity: usize) -> (DriverEventSender, DriverEventReceivers) {
++    let (control, control_rx) = channel(capacity);
++    let (media_tx, media_rx) = channel(capacity);
++    let resident = Arc::new(Semaphore::new(RESIDENT_LIMIT));
++    let media_quota = Arc::new(Semaphore::new(MEDIA_LIMIT));
++    (
++        DriverEventSender {
++            control,
++            media: media_tx,
++            resident: resident.clone(),
++            media_quota: media_quota.clone(),
++        },
++        DriverEventReceivers {
++            control: control_rx,
++            media: media_rx,
++            resident,
++            media_quota,
++        },
++    )
++}
++impl DriverEventSender {
++    pub async fn send(&self, event: Event) -> Result<(), SendError<Event>> {
++        let is_media = media(&event);
++        let quota = if is_media {
++            match self.media_quota.clone().acquire_owned().await {
++                Ok(value) => Some(value),
++                Err(_) => return Err(SendError(event)),
++            }
++        } else {
++            None
++        };
++        let resident = match self.resident.clone().acquire_owned().await {
++            Ok(value) => value,
++            Err(_) => return Err(SendError(event)),
++        };
++        let envelope = DriverEnvelope {
++            event,
++            admission: DriverAdmission {
++                _resident: resident,
++                _media: quota,
++            },
++        };
++        let tx = if is_media { &self.media } else { &self.control };
++        tx.send(envelope)
++            .await
++            .map_err(|error| SendError(error.0.event))
++    }
++    pub fn try_send(&self, event: Event) -> Result<(), TrySendError<Event>> {
++        let is_media = media(&event);
++        let quota = if is_media {
++            match self.media_quota.clone().try_acquire_owned() {
++                Ok(value) => Some(value),
++                Err(TryAcquireError::Closed) => return Err(TrySendError::Disconnected(event)),
++                Err(TryAcquireError::NoPermits) => return Err(TrySendError::Full(event)),
++            }
++        } else {
++            None
++        };
++        let resident = match self.resident.clone().try_acquire_owned() {
++            Ok(value) => value,
++            Err(TryAcquireError::Closed) => return Err(TrySendError::Disconnected(event)),
++            Err(TryAcquireError::NoPermits) => return Err(TrySendError::Full(event)),
++        };
++        let envelope = DriverEnvelope {
++            event,
++            admission: DriverAdmission {
++                _resident: resident,
++                _media: quota,
++            },
++        };
++        let tx = if is_media { &self.media } else { &self.control };
++        tx.try_send(envelope).map_err(|error| match error {
++            TrySendError::Full(value) => TrySendError::Full(value.event),
++            TrySendError::Disconnected(value) => TrySendError::Disconnected(value.event),
++        })
++    }
++}
++impl DriverEventReceivers {
++    #[cfg(test)]
++    pub(crate) async fn recv_media_for_test(&mut self) -> Option<Event> {
++        self.media.recv().await.map(|envelope| envelope.event)
++    }
++    pub(super) fn close(&mut self) {
++        // Wake ALL original senders, including ones waiting on shared capacity.
++        self.control.0.close();
++        self.media.0.close();
++        self.resident.close();
++        self.media_quota.close();
++    }
++    pub(super) fn drain_one(&mut self) -> Option<DriverEnvelope> {
++        self.control
++            .try_recv()
++            .ok()
++            .or_else(|| self.media.try_recv().ok())
++    }
++}
++
++#[cfg(test)]
++mod tests;
++
++#[cfg(test)]
++pub(crate) fn one_slot_driver_channel_for_test() -> (DriverEventSender, DriverEventReceivers) {
++    driver_channel_with_capacity(1)
++}
++
++impl Drop for DriverEventReceivers {
++    fn drop(&mut self) {
++        // Original-driver errors/aborts also wake every capacity waiter. No
++        // abandoned sender may report Full indefinitely after both lanes die.
++        self.close();
++    }
++}
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/mailbox/tests.rs
+@@ -0,0 +1,65 @@
++use super::*;
++use std::future::Future;
++use std::task::Poll;
++fn packet() -> Event {
++    Event::SenderRtp(Default::default(), rtc::rtp::Packet::default())
++}
++
++#[test]
++fn media_saturation_keeps_control_reserve_inside_same_resident_budget() {
++    let (tx, mut rx) = driver_channel();
++    for _ in 0..MEDIA_LIMIT {
++        tx.try_send(packet()).unwrap();
++    }
++    let active = rx.media.try_recv().unwrap();
++    assert!(matches!(tx.try_send(packet()), Err(TrySendError::Full(_))));
++    tx.try_send(Event::WriteNotify).unwrap();
++    tx.try_send(Event::Close).unwrap();
++    assert_eq!(tx.resident.available_permits(), 0);
++    assert!(matches!(
++        tx.try_send(Event::WriteNotify),
++        Err(TrySendError::Full(_))
++    ));
++    assert!(matches!(
++        rx.control.try_recv().unwrap().event,
++        Event::WriteNotify
++    ));
++    assert!(matches!(rx.control.try_recv().unwrap().event, Event::Close));
++    assert_eq!(tx.resident.available_permits(), 2);
++    // Dequeue is not settlement; the same pending/ready/active token stays held.
++    assert_eq!(tx.media_quota.available_permits(), 0);
++    drop(active);
++    assert_eq!(tx.media_quota.available_permits(), 1);
++    tx.try_send(packet()).unwrap();
++    rx.close();
++    while rx.drain_one().is_some() {}
++    assert_eq!(tx.resident.available_permits(), RESIDENT_LIMIT);
++    assert_eq!(tx.media_quota.available_permits(), MEDIA_LIMIT);
++}
++
++#[tokio::test]
++async fn cancelled_send_and_close_release_capacity_without_losing_original_event() {
++    let (tx, mut rx) = driver_channel();
++    for _ in 0..MEDIA_LIMIT {
++        tx.try_send(packet()).unwrap();
++    }
++    let mut waiting = Box::pin(tx.send(packet()));
++    let first = std::future::poll_fn(|cx| Poll::Ready(waiting.as_mut().poll(cx))).await;
++    assert!(first.is_pending());
++    drop(waiting);
++    assert_eq!(
++        tx.resident.available_permits(),
++        RESIDENT_LIMIT - MEDIA_LIMIT
++    );
++    assert_eq!(tx.media_quota.available_permits(), 0);
++    rx.close();
++    let error = tx.send(packet()).await.unwrap_err();
++    assert!(matches!(error.0, Event::SenderRtp(..)));
++    assert!(matches!(
++        tx.try_send(Event::Close),
++        Err(TrySendError::Disconnected(Event::Close))
++    ));
++    while rx.drain_one().is_some() {}
++    assert_eq!(tx.resident.available_permits(), RESIDENT_LIMIT);
++    assert_eq!(tx.media_quota.available_permits(), MEDIA_LIMIT);
++}
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs
+@@ -105,8 +105,11 @@
+ struct RepairProducer(Arc<dyn OwnedRtpProducer>);
+ #[async_trait::async_trait]
+ impl OwnedRtpProducer for RepairProducer {
+-    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
+-        self.0.repair(io).await
++    async fn prepare(&self, _: OwnedRtpControl) -> OwnedRtpResult {
++        Ok(())
++    }
++    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
++        OwnedRtpAttempt::Complete(self.0.repair(io).await)
+     }
+ }
+ impl<I: Interceptor + 'static> PeerConnectionDriver<I> {
+@@ -151,7 +154,10 @@
+                 };
+                 // The callback must acquire fresh permission. The cache only
+                 // checks its supplied packet; it never sends stored bytes.
+-                complete(&RepairProducer(entry.producer.clone()), &mut io, &control).await
++                match complete(&RepairProducer(entry.producer.clone()), &mut io, &control).await {
++                    OwnedRtpAttempt::Complete(result) => result,
++                    OwnedRtpAttempt::DeferredNoIo => Err(OwnedRtpError::Refused),
++                }
+             };
+             if result.is_err() {
+                 unavailable.push(sequence);
+@@ -162,7 +168,10 @@
+             // The original repair future and every current reader have dropped.
+             // This reports an unsatisfied request; it neither replays old bytes
+             // nor assumes an entered repair write was definitely unsent.
+-            self.inner.handler.on_unrepaired_video_nack(nack.media_ssrc, &unavailable).await;
++            self.inner
++                .handler
++                .on_unrepaired_video_nack(nack.media_ssrc, &unavailable)
++                .await;
+         }
+         true
+     }
+@@ -174,8 +183,11 @@
+     struct NoBytes;
+     #[async_trait::async_trait]
+     impl OwnedRtpProducer for NoBytes {
+-        async fn write(&self, _: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
+-            Err(OwnedRtpError::Refused)
++        async fn prepare(&self, _: OwnedRtpControl) -> OwnedRtpResult {
++            Ok(())
++        }
++        async fn write(&self, _: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
++            OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused))
+         }
+     }
+     fn entry(sender: usize, sequence: u16) -> RepairEntry {
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+@@ -20,10 +20,7 @@
+ use crate::runtime::{JoinHandle, Runtime, default_runtime};
+ use crate::runtime::{Mutex, Sender, channel};
+ 
+-use driver::{
+-    DATA_CHANNEL_EVENT_CHANNEL_CAPACITY, PEER_CONNECTION_DRIVER_EVENT_CHANNEL_CAPACITY,
+-    PeerConnectionDriver,
+-};
++use driver::{DATA_CHANNEL_EVENT_CHANNEL_CAPACITY, PeerConnectionDriver};
+ use ice_gatherer::RTCIceGatherOptions;
+ use ice_gatherer::RTCIceGatherer;
+ 
+@@ -394,11 +391,15 @@
+     ) -> Result<RTCSessionDescription>;
+     /// Transport-only restart on the same original peer. Default deny.
+     async fn create_transport_restart_offer(&self) -> Result<RTCSessionDescription> {
+-        Err(Error::Other("Transport-only restart is not installed".into()))
++        Err(Error::Other(
++            "Transport-only restart is not installed".into(),
++        ))
+     }
+     /// Answer a prevalidated transport-only restart; no new media ownership.
+     async fn create_transport_restart_answer(&self) -> Result<RTCSessionDescription> {
+-        Err(Error::Other("Transport-only restart is not installed".into()))
++        Err(Error::Other(
++            "Transport-only restart is not installed".into(),
++        ))
+     }
+     /// Set the local description
+     async fn set_local_description(&self, desc: RTCSessionDescription) -> Result<()>;
+@@ -492,7 +493,7 @@
+     /// RTP Transceivers
+     pub(crate) rtp_transceivers: Mutex<HashMap<RTCRtpTransceiverId, Arc<RtpTransceiverImpl<I>>>>,
+     /// Unified channel for all outgoing driver events
+-    pub(crate) driver_event_tx: Sender<PeerConnectionDriverEvent>,
++    pub(crate) driver_event_tx: driver::mailbox::DriverEventSender,
+     /// Channels for incoming data channel events
+     pub(crate) data_channel_events_tx: Mutex<HashMap<RTCDataChannelId, Sender<DataChannelEvent>>>,
+     /// Channels for incoming track remote events
+@@ -535,8 +536,7 @@
+             .iter()
+             .any(|s| s.urls.iter().any(|u| u.starts_with("turn:")));
+         let driver_result = Arc::new(AtomicUsize::new(0));
+-        let (driver_event_tx, driver_event_rx) =
+-            channel(PEER_CONNECTION_DRIVER_EVENT_CHANNEL_CAPACITY);
++        let (driver_event_tx, driver_event_rx) = driver::mailbox::driver_channel();
+         let peer_connection = Self {
+             inner: Arc::new(PeerConnectionRef {
+                 core: Mutex::new(core),
+@@ -605,8 +605,7 @@
+             .iter()
+             .any(|s| s.urls.iter().any(|u| u.starts_with("turn:")));
+         let driver_result = Arc::new(AtomicUsize::new(0));
+-        let (driver_event_tx, driver_event_rx) =
+-            channel(PEER_CONNECTION_DRIVER_EVENT_CHANNEL_CAPACITY);
++        let (driver_event_tx, driver_event_rx) = driver::mailbox::driver_channel();
+         let peer_connection = Self {
+             inner: Arc::new(PeerConnectionRef {
+                 core: Mutex::new(core),
+@@ -687,13 +686,16 @@
+             core.close()
+         };
+         // A full/disconnected event queue cannot skip actual driver cleanup.
+-        let _ = self
++        let close_queued = self
+             .inner
+             .driver_event_tx
+-            .try_send(PeerConnectionDriverEvent::Close);
++            .try_send(PeerConnectionDriverEvent::Close)
++            .is_ok();
+         let mut original = self.driver_handle.lock().await;
+         if let Some(handle) = original.as_ref() {
+-            if self.relay_close_required {
++            if close_queued {
++                // Same existing maximum observation; tighter caller cutoffs
++                // still cancel this wait while preserving this exact handle.
+                 let deadline = Instant::now() + std::time::Duration::from_secs(4);
+                 while !handle.is_finished() && Instant::now() < deadline {
+                     crate::runtime::sleep(std::time::Duration::from_millis(5)).await;
+@@ -704,8 +706,15 @@
+             handle.abort_and_wait().await;
+         }
+         original.take();
+-        if self.relay_close_required && self.driver_result.load(Ordering::Acquire) != 1 {
+-            return Err(Error::Other("TURN allocation cleanup unconfirmed".into()));
++        if self.driver_result.load(Ordering::Acquire) != 1 {
++            return Err(Error::Other(
++                if self.relay_close_required {
++                    "TURN allocation cleanup unconfirmed"
++                } else {
++                    "Original peer driver cleanup unconfirmed"
++                }
++                .into(),
++            ));
+         }
+         closed
+     }
+@@ -1016,7 +1025,11 @@
+     }
+ 
+     async fn ice_descriptions_ready(&self, local_sdp: &str, remote_sdp: &str) -> bool {
+-        self.inner.core.lock().await.ice_descriptions_ready(local_sdp, remote_sdp)
++        self.inner
++            .core
++            .lock()
++            .await
++            .ice_descriptions_ready(local_sdp, remote_sdp)
+     }
+ 
+     async fn ice_generation_ready(
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -5,7 +5,9 @@
+ //! write owner, and call cancel_and_drain before acknowledging port cleanup.
+ use super::outbound::{OutboundAudioRtpState, OutboundAudioRtpWriter};
+ use rvoip_core::{
+-    staged_streams::{AdapterMediaPort, ControlResult, QueuedMedia, StreamControlError},
++    staged_streams::{
++        AdapterMediaPort, ControlResult, QueuedMedia, ReadyMediaDelivery, StreamControlError,
++    },
+     stream::StreamKind,
+     stream_lifecycle::{MediaFormat, Medium},
+ };
+@@ -161,33 +163,70 @@
+ }
+ #[async_trait::async_trait]
+ impl OwnedRtpProducer for CoreProducer {
+-    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
++    async fn prepare(&self, control: OwnedRtpControl) -> OwnedRtpResult {
+         let Packet { queued, state } = self
+             .packet
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .take()
+             .ok_or(OwnedRtpError::Refused)?;
+-        let audio_stamp = queued
+-            .audio_egress_stamp()
++        // Sender sequence custody is metadata only. Core drops every current
++        // policy/generation reader before yielding or returning this hint.
++        let queued = queued
++            .prepare_delivery(control.deadline())
++            .await
+             .map_err(|_| OwnedRtpError::Refused)?;
+-        let mut state = CoreAudioState::new(state, io.submission_control());
+-        // Only Core can disclose the frame. Its fresh source/target authority,
+-        // route generation, cancellation and original age cover this IO future.
+-        queued
+-            .deliver(|frame| async move {
+-                write_frame(
+-                    &mut state,
+-                    self.writer.as_ref(),
+-                    self.payload_type,
+-                    audio_stamp,
+-                    frame,
+-                    io,
+-                )
+-                .await
++        *self.packet.lock().unwrap_or_else(|p| p.into_inner()) = Some(Packet { queued, state });
++        Ok(())
++    }
++    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
++        let packet = self.packet.lock().unwrap_or_else(|p| p.into_inner()).take();
++        let Some(Packet { queued, state }) = packet else {
++            return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
++        };
++        let control = io.submission_control();
++        let audio_stamp = match queued.audio_egress_stamp() {
++            Ok(stamp) => stamp,
++            Err(_) => {
++                control.freeze_producer();
++                return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
++            }
++        };
++        let mut original_state = Some(state);
++        // A preparation hint is not permission. This SINGLE actual admission
++        // may defer with the same original before callback entry. Constructing
++        // CoreAudioState earlier would freeze its one-use control on deferral.
++        let result = queued
++            .deliver_ready_with_origin(|frame, _| {
++                let state = original_state.take().expect("one original Core callback");
++                async move {
++                    let mut state = CoreAudioState::new(state, io.submission_control());
++                    write_frame(
++                        &mut state,
++                        self.writer.as_ref(),
++                        self.payload_type,
++                        audio_stamp,
++                        frame,
++                        io,
++                    )
++                    .await
++                }
+             })
+-            .await
+-            .map_err(|_| OwnedRtpError::Refused)
++            .await;
++        match result {
++            ReadyMediaDelivery::Deferred { queued, .. } => {
++                let state = original_state.expect("deferred before original callback");
++                *self.packet.lock().unwrap_or_else(|p| p.into_inner()) =
++                    Some(Packet { queued, state });
++                OwnedRtpAttempt::DeferredNoIo
++            }
++            ReadyMediaDelivery::Complete(result) => {
++                if original_state.is_some() {
++                    control.freeze_producer();
++                }
++                OwnedRtpAttempt::Complete(result.map_err(|_| OwnedRtpError::Refused))
++            }
++        }
+     }
+ }
+ 
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio/clock_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio/clock_tests.rs
+@@ -36,13 +36,24 @@
+     fn written(&self) -> bool {
+         self.0.written()
+     }
++    fn attempted(&self) -> bool {
++        self.0.attempted()
++    }
+     fn submission_control(&self) -> OwnedRtpControl {
+         self.0.submission_control()
+     }
+ }
+ #[async_trait::async_trait]
+ impl OwnedRtpProducer for Producer {
+-    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
++    async fn prepare(&self, _: OwnedRtpControl) -> OwnedRtpResult {
++        Ok(())
++    }
++    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
++        OwnedRtpAttempt::Complete(self.write_original(io).await)
++    }
++}
++impl Producer {
++    async fn write_original(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
+         let TestPacket {
+             state,
+             frame,
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -8,8 +8,8 @@
+ };
+ use rvoip_core::{
+     staged_streams::{
+-        AdapterMediaPort, ControlResult, MediaDeliveryOrigin, QueuedMedia, StreamControlError,
+-        VideoFeedbackRoute, VideoRepair,
++        AdapterMediaPort, ControlResult, MediaDeliveryOrigin, QueuedMedia, ReadyMediaDelivery,
++        StreamControlError, VideoFeedbackRoute, VideoRepair,
+     },
+     stream::{MediaFrame, StreamKind},
+     stream_lifecycle::{MediaFormat, Medium},
+@@ -239,13 +239,22 @@
+ }
+ impl PictureRequests {
+     fn record(
+-        &self, feedback: Option<VideoFeedbackRoute>, source: Source,
+-        output_ssrc: u32, sequence: u16,
++        &self,
++        feedback: Option<VideoFeedbackRoute>,
++        source: Source,
++        output_ssrc: u32,
++        sequence: u16,
+     ) {
+         let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+-        let source_changed = state.actual_source.as_ref().is_some_and(|old| old != &source);
++        let source_changed = state
++            .actual_source
++            .as_ref()
++            .is_some_and(|old| old != &source);
+         let was_eligible = state.source_change_pending
+-            && state.latest.as_ref().is_some_and(|(_, current)| current == &source);
++            && state
++                .latest
++                .as_ref()
++                .is_some_and(|(_, current)| current == &source);
+         if state.actual_source.as_ref() != Some(&source) {
+             // Initial delivery does not request a new keyframe. Only an actual
+             // successful transition from an established source begins a hint.
+@@ -259,14 +268,21 @@
+         if let Some(route) = feedback {
+             state.latest = Some((route, source.clone()));
+         }
+-        if state.latest.as_ref().is_some_and(|(_, current)| current == &source) {
++        if state
++            .latest
++            .as_ref()
++            .is_some_and(|(_, current)| current == &source)
++        {
+             if state.sent.len() == 512 {
+                 state.sent.pop_front();
+             }
+             state.sent.push_back((output_ssrc, sequence));
+         }
+         let hint = state.source_change_pending
+-            && state.latest.as_ref().is_some_and(|(_, current)| current == &source)
++            && state
++                .latest
++                .as_ref()
++                .is_some_and(|(_, current)| current == &source)
+             && (source_changed || !was_eligible);
+         drop(state);
+         if published {
+@@ -290,15 +306,23 @@
+             // same source exists. Older PLI metadata cannot satisfy it.
+             return None;
+         }
+-        let request = PictureRequest { source, key: *state.sent.back()? };
++        let request = PictureRequest {
++            source,
++            key: *state.sent.back()?,
++        };
+         state.source_change_pending = false;
+         Some(request)
+     }
+     pub(crate) fn request_for_nack(&self, hints: &[(u32, u16)]) -> Option<PictureRequest> {
+         let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+         let (_, current) = state.latest.as_ref()?;
+-        hints.iter().find(|key| state.sent.contains(key))
+-            .map(|key| PictureRequest { source: current.clone(), key: *key })
++        hints
++            .iter()
++            .find(|key| state.sent.contains(key))
++            .map(|key| PictureRequest {
++                source: current.clone(),
++                key: *key,
++            })
+     }
+     pub(crate) async fn changed(&self) {
+         self.changed.notified().await;
+@@ -330,7 +354,8 @@
+             .state
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+-            .latest.clone();
++            .latest
++            .clone();
+         let Some((route, source)) = retained else {
+             return PictureAttempt::MetadataRefused;
+         };
+@@ -345,7 +370,10 @@
+             .dispatch_current(until, move |port, descriptor| async move {
+                 if let Some(key) = key {
+                     let state = state.lock().unwrap_or_else(|p| p.into_inner());
+-                    if state.latest.as_ref().is_none_or(|(_, current)| current != &source)
++                    if state
++                        .latest
++                        .as_ref()
++                        .is_none_or(|(_, current)| current != &source)
+                         || !state.sent.contains(&key)
+                     {
+                         return Err(StreamControlError::Authority);
+@@ -394,46 +422,84 @@
+ }
+ #[async_trait::async_trait]
+ impl OwnedRtpProducer for Producer {
+-    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
+-        let (queued, mut timeline) = self
++    async fn prepare(&self, control: OwnedRtpControl) -> OwnedRtpResult {
++        let (queued, timeline) = self
+             .original
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .take()
+             .ok_or(OwnedRtpError::Refused)?;
++        let queued = queued
++            .prepare_delivery(control.deadline())
++            .await
++            .map_err(|_| OwnedRtpError::Refused)?;
++        *self.original.lock().unwrap_or_else(|p| p.into_inner()) = Some((queued, timeline));
++        Ok(())
++    }
++    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
++        let original = self
++            .original
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take();
++        let Some((queued, timeline)) = original else {
++            return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
++        };
++        let control = io.submission_control();
++        let mut original_timeline = Some(timeline);
+         let mut metadata = None;
+         let saved = &mut metadata;
+-        let (core, feedback) = queued
+-            .deliver_video_with_repair_and_feedback(|frame, origin| async move {
+-                let origin = origin.ok_or(StreamControlError::Unsupported)?;
+-                let mut packet = self.packet(&frame)?;
+-                // Read the original source SSRC before hop normalization rewrites it.
+-                let source_packet = rtp::Packet::unmarshal(&mut frame.payload.as_ref())
+-                    .map_err(|_| StreamControlError::Unsupported)?;
+-                let source = Source {
+-                    origin,
+-                    ssrc: source_packet.header.ssrc,
+-                };
+-                let mapping = timeline.allocate(source.clone(), &source_packet)?;
+-                packet.header.sequence_number = mapping.sequence;
+-                packet.header.timestamp = mapping.timestamp;
+-                io.write_with_clock(packet, self.clock.clone(), timing(&frame, mapping.offset))
+-                    .await
+-                    .map_err(|_| StreamControlError::NotReady)?;
+-                *saved = Some((source, mapping));
+-                Ok(())
++        let attempt = queued
++            .deliver_ready_video_with_repair_and_feedback(|frame, origin| {
++                let mut timeline = original_timeline
++                    .take()
++                    .expect("one original video callback");
++                async move {
++                    let origin = origin.ok_or(StreamControlError::Unsupported)?;
++                    let mut packet = self.packet(&frame)?;
++                    // Read the original source SSRC before hop normalization rewrites it.
++                    let source_packet = rtp::Packet::unmarshal(&mut frame.payload.as_ref())
++                        .map_err(|_| StreamControlError::Unsupported)?;
++                    let source = Source {
++                        origin,
++                        ssrc: source_packet.header.ssrc,
++                    };
++                    let mapping = timeline.allocate(source.clone(), &source_packet)?;
++                    packet.header.sequence_number = mapping.sequence;
++                    packet.header.timestamp = mapping.timestamp;
++                    io.write_with_clock(packet, self.clock.clone(), timing(&frame, mapping.offset))
++                        .await
++                        .map_err(|_| StreamControlError::NotReady)?;
++                    *saved = Some((source, mapping));
++                    Ok(())
++                }
+             })
+-            .await
+-            .map_err(|_| OwnedRtpError::Refused)?;
+-        let (source, mapping) = metadata.ok_or(OwnedRtpError::Refused)?;
++            .await;
++        let (core, feedback) = match attempt {
++            ReadyMediaDelivery::Deferred { queued, .. } => {
++                let timeline = original_timeline.expect("deferred before original video callback");
++                *self.original.lock().unwrap_or_else(|p| p.into_inner()) = Some((queued, timeline));
++                return OwnedRtpAttempt::DeferredNoIo;
++            }
++            ReadyMediaDelivery::Complete(Ok(value)) => value,
++            ReadyMediaDelivery::Complete(Err(_)) => {
++                control.freeze_producer();
++                return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
++            }
++        };
++        let Some((source, mapping)) = metadata else {
++            control.freeze_producer();
++            return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
++        };
+         let retained = Retained {
+             core: Arc::new(core),
+             source,
+             mapping,
+         };
+         *self.retained.lock().unwrap_or_else(|p| p.into_inner()) = Some(retained.clone());
+-        self.pictures.record(feedback, retained.source, self.ssrc, mapping.sequence);
+-        Ok(())
++        self.pictures
++            .record(feedback, retained.source, self.ssrc, mapping.sequence);
++        OwnedRtpAttempt::Complete(Ok(()))
+     }
+     fn repair_deadline(&self) -> Option<Instant> {
+         self.retained

@@ -1,0 +1,66 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
+@@ -248,15 +248,31 @@
+ }
+ 
+ 
++// Test-only async panic boundary using std. Catch each actual poll; a pending
++// original future stays pinned/owned and its eventual panic is returned only
++// after its own locals unwind. This spawns no worker and adds no timeout.
++async fn catch_future<F: std::future::Future>(future: F) -> std::thread::Result<F::Output> {
++    let mut future = std::pin::pin!(future);
++    std::future::poll_fn(|cx| {
++        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++            std::future::Future::poll(future.as_mut(), cx)
++        })) {
++            Ok(std::task::Poll::Pending) => std::task::Poll::Pending,
++            Ok(std::task::Poll::Ready(value)) => std::task::Poll::Ready(Ok(value)),
++            Err(panic) => std::task::Poll::Ready(Err(panic)),
++        }
++    })
++    .await
++}
++
+ // These controls exercise the actual Core queued/repair API, not an RTC-loop
+ // heartbeat. The OLD counter is the first repair's completed first-poll result;
+ // no claim is made here about actual UDP/RTCP progress or a historical zero run.
+ #[tokio::test]
+ async fn explicit_repair_busy_is_one_attempt_and_later_request_preserves_exact_original() {
+-    use futures_util::FutureExt as _;
+     for medium in [Medium::Video, Medium::Screen] {
+         let (f, armed, busy) = fixture(medium).await;
+-        let work = std::panic::AssertUnwindSafe(async {
++        let work = catch_future(async {
+             let packet = queued(&f, medium).await;
+             let expected = packet.frame.clone();
+             let expires = packet.admitted_at + Duration::from_millis(200);
+@@ -298,7 +314,7 @@
+             (immediate_busy, no_io, released, second,
+              same.load(Ordering::Acquire), repair.expires_at() == expires,
+              remaining_succeeded == MAX_VIDEO_REPAIRS - 2 && exhausted)
+-        }).catch_unwind().await;
++        }).await;
+         let joined = close(&f).await;
+         println!("explicit_repair_busy medium={medium:?} busy={} original_owners_joined={joined}", busy.load(Ordering::Acquire));
+         assert!(joined, "original Core controllers must close before repair oracle");
+@@ -313,10 +329,9 @@
+ 
+ #[tokio::test]
+ async fn explicit_repair_later_request_cannot_restore_revoked_or_expired_original() {
+-    use futures_util::FutureExt as _;
+     for action in ["source", "target", "audience", "source-gate", "target-gate", "cancel", "age"] {
+         let (f, armed, busy) = fixture(Medium::Video).await;
+-        let work = std::panic::AssertUnwindSafe(async {
++        let work = catch_future(async {
+             let repair = retained(&f).await;
+             armed.store(true, Ordering::Release);
+             let mut pending = Box::pin(repair.repair(|_, _| async { panic!("busy repair entered IO") }));
+@@ -339,7 +354,7 @@
+             let denied = repair.repair(|_, _| async { panic!("withdrawn repair entered IO") }).await;
+             let expired = matches!(&denied, Err(StreamControlError::Deadline));
+             (immediate_busy, denied.is_err(), action != "age" || expired, f.policy.0.try_write().is_ok())
+-        }).catch_unwind().await;
++        }).await;
+         let joined = close(&f).await;
+         assert!(joined, "original Core controllers not closed for {action}");
+         let facts = match work { Ok(value) => value, Err(error) => std::panic::resume_unwind(error) };

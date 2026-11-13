@@ -1,0 +1,363 @@
+{
+  "format": "connect/g6-058-native-browser-footer-codec-component/1",
+  "updated_at": "2026-11-13T22:23:45.908924+00:00",
+  "result": "passed-with-explicit-path-scope",
+  "mode": "native-only",
+  "browser": "157.0.8103.52",
+  "browser_sha256": "5441ca699b9eff7763f2f10765e2e8409a4b05f38917826b5247f6f6bb3b0c6b",
+  "source_manifest_sha256": "52715f5aef4be9bb15d97eb2b89d90b2604a279d7b4a726c6e2c72e8d0b2d321",
+  "inputs_unchanged": true,
+  "raw_summary_sha256": "a54562ff095b1054dec928584ec8dcc88536bc2200baf5cb69ecccfc1a9be8aa",
+  "continuous": [
+    {
+      "source": 0,
+      "geometry_patterns": 2048,
+      "public_programme_patterns": 1860,
+      "exact_all_geometry_ordinals": true,
+      "exact_programme_ordinals": true,
+      "unknown_clean": 0,
+      "wrong_clean": 0,
+      "errors": [],
+      "exact640_warm_ready": true,
+      "preprogramme_640_wait": {
+        "started_at_ms": 326.3000000715256,
+        "deadline_ms": 30326.300000071526,
+        "max_wait_ms": 30000,
+        "programme_credit": 0,
+        "ready_at_ms": 6387
+      },
+      "closed": true
+    },
+    {
+      "source": 1,
+      "geometry_patterns": 2048,
+      "public_programme_patterns": 1860,
+      "exact_all_geometry_ordinals": true,
+      "exact_programme_ordinals": true,
+      "unknown_clean": 0,
+      "wrong_clean": 0,
+      "errors": [],
+      "exact640_warm_ready": true,
+      "preprogramme_640_wait": {
+        "started_at_ms": 6632.900000095367,
+        "deadline_ms": 36632.90000009537,
+        "max_wait_ms": 30000,
+        "programme_credit": 0,
+        "ready_at_ms": 12694.400000095367
+      },
+      "closed": true
+    },
+    {
+      "source": 2,
+      "geometry_patterns": 2048,
+      "public_programme_patterns": 1860,
+      "exact_all_geometry_ordinals": true,
+      "exact_programme_ordinals": true,
+      "unknown_clean": 0,
+      "wrong_clean": 0,
+      "errors": [],
+      "exact640_warm_ready": true,
+      "preprogramme_640_wait": {
+        "started_at_ms": 12934.5,
+        "deadline_ms": 42934.5,
+        "max_wait_ms": 30000,
+        "programme_credit": 0,
+        "ready_at_ms": 19004.5
+      },
+      "closed": true
+    },
+    {
+      "source": 3,
+      "geometry_patterns": 2048,
+      "public_programme_patterns": 1860,
+      "exact_all_geometry_ordinals": true,
+      "exact_programme_ordinals": true,
+      "unknown_clean": 0,
+      "wrong_clean": 0,
+      "errors": [],
+      "exact640_warm_ready": true,
+      "preprogramme_640_wait": {
+        "started_at_ms": 19247.900000095367,
+        "deadline_ms": 49247.90000009537,
+        "max_wait_ms": 30000,
+        "programme_credit": 0,
+        "ready_at_ms": 25318.700000047684
+      },
+      "closed": true
+    }
+  ],
+  "fresh_first_observed": [
+    {
+      "path": "native-rtc-fresh-0",
+      "source": 0,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 0,
+        "source_observation": 0,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-0",
+      "source": 1,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 0,
+        "source_observation": 1,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-0",
+      "source": 2,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 0,
+        "source_observation": 2,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-0",
+      "source": 3,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 0,
+        "source_observation": 3,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-9",
+      "source": 0,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 9,
+        "source_observation": null,
+        "pulse_exception": true,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-9",
+      "source": 1,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 9,
+        "source_observation": null,
+        "pulse_exception": true,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-9",
+      "source": 2,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 9,
+        "source_observation": null,
+        "pulse_exception": true,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-9",
+      "source": 3,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 9,
+        "source_observation": null,
+        "pulse_exception": true,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-915",
+      "source": 0,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 915,
+        "source_observation": 0,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-915",
+      "source": 1,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 915,
+        "source_observation": 1,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-915",
+      "source": 2,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 915,
+        "source_observation": 2,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-915",
+      "source": 3,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 915,
+        "source_observation": 3,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-1859",
+      "source": 0,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 1859,
+        "source_observation": 0,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-1859",
+      "source": 1,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 1859,
+        "source_observation": 1,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-1859",
+      "source": 2,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 1859,
+        "source_observation": 2,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    },
+    {
+      "path": "native-rtc-fresh-1859",
+      "source": 3,
+      "geometry": {
+        "width": 320,
+        "height": 180,
+        "ordinal": 1859,
+        "source_observation": 3,
+        "pulse_exception": false,
+        "exact_requested_pattern": true,
+        "first_observed_640_geometry_proved": false
+      },
+      "closed": true
+    }
+  ],
+  "owners": {
+    "originals": 20,
+    "peer_connections_created": 40,
+    "peer_connections_closed": 40,
+    "all_readers_joined": true,
+    "all_warm_timers_cleared": true,
+    "browser_joined": true,
+    "contexts_joined": true,
+    "evaluation_joined": true,
+    "server_joined": true
+  },
+  "original_process": {
+    "argv": [
+      "node",
+      "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.local/gate-6/footer-codec-control-v218-v7-candidate/run.mjs",
+      "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation",
+      "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.local/gate-6/v218-footer-codec-root-r7/actual",
+      "native-only"
+    ],
+    "pid": 17294,
+    "original_joined": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "process_group_absent": true,
+    "elapsed_seconds": 189.44627785682678
+  },
+  "root_tool_join": {
+    "session": 78317,
+    "chunk": "533cc4",
+    "exit_code": 0,
+    "joined": true
+  },
+  "independent_review": {
+    "receipt_sha256": "727c431e1a88f223e6d2f3c476a7f73040b3d97d6ef76c3b36e13aba7e8c56b5",
+    "scope": "Exact native geometry, first-observed scope, source and original-owner closure accepted"
+  },
+  "software_executed": false,
+  "native_640_sweep_complete": true,
+  "first_ever_native_decoder_frame_proved": false,
+  "native_first_observed_640_geometry_proved": false,
+  "quality_qualified": false,
+  "matrix_qualified": false,
+  "limitations": [
+    "16fresh controls observe requested first callback at320x180; no first-ever decoder or640cold-start proof.",
+    "The5s initial startup check is unchanged; naturally adaptive640 preparation has a separate30s preprogramme bound inside original global540/600s. Programme geometry remains640.",
+    "No native packet-loss, cross-adapter handoff, G6media-quality or full32-cell qualification.",
+    "Earlier failed setup controls remain failed and unregraded."
+  ]
+}

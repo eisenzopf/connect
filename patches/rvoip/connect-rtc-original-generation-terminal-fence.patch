@@ -1,0 +1,236 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1761,6 +1761,43 @@
+         self.observe_delivery(&admitted, &result);
+         result
+     }
++    // Failure-only classification. A superseded/retired original ticket and an
++    // explicitly cancelled original generation can NEVER become current again.
++    // Temporary quiescence is deliberately excluded: is_current ignores pause.
++    // Do not use consumer-active/readiness checks here or capture a newer stamp.
++    fn original_delivery_invalidated(&self) -> bool {
++        !self.target_ticket.is_current()
++            || self
++                .sources
++                .iter()
++                .any(|source| !source.ticket.is_current())
++            || self
++                .direct
++                .as_ref()
++                .is_some_and(|stamp| stamp.cancel.is_cancelled())
++            || self
++                .subscription
++                .as_ref()
++                .is_some_and(|stamp| stamp.cancel.is_cancelled())
++            || self
++                .target_scene
++                .as_ref()
++                .is_some_and(|stamp| stamp.cancel.is_cancelled())
++            || self
++                .target_consumer
++                .as_ref()
++                .is_some_and(|stamp| stamp.cancellation.is_cancelled())
++            || self.sources.iter().any(|source| {
++                source
++                    .scene
++                    .as_ref()
++                    .is_some_and(|stamp| stamp.cancel.is_cancelled())
++                    || source
++                        .consumer
++                        .as_ref()
++                        .is_some_and(|stamp| stamp.cancellation.is_cancelled())
++            })
++    }
+     // Keep only the earliest observed numeric cutoff, never a reader or grant.
+     fn retain_delivery_deadline(&mut self, until: tokio::time::Instant) {
+         for source in &mut self.sources {
+@@ -1806,6 +1843,9 @@
+                     return Ok(self);
+                 }
+                 Err(StreamControlError::NotReady | StreamControlError::MetadataBusy) => {
++                    if self.original_delivery_invalidated() {
++                        return Err(StreamControlError::Cancelled);
++                    }
+                     if tokio::time::Instant::now() >= until {
+                         return Err(StreamControlError::Deadline);
+                     }
+@@ -1883,6 +1923,9 @@
+         let admitted = match attempt {
+             Ok(admitted) => admitted,
+             Err(problem @ (StreamControlError::NotReady | StreamControlError::MetadataBusy)) => {
++                if self.original_delivery_invalidated() {
++                    return ReadyMediaDelivery::Complete(Err(StreamControlError::Cancelled));
++                }
+                 if tokio::time::Instant::now() >= until {
+                     return ReadyMediaDelivery::Complete(Err(StreamControlError::Deadline));
+                 }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
+@@ -469,6 +469,28 @@
+             f.policy.0.try_write().is_ok(),
+             "prepared hint retained permission"
+         );
++        let original_ticket = packet.sources[0].ticket.clone();
++        let quiescence = original_ticket.quiesce().await.unwrap();
++        assert!(original_ticket.is_current() && !original_ticket.is_active());
++        let packet = match packet
++            .deliver_ready_with_origin(|_, _| async {
++                panic!("temporarily quiesced original entered IO")
++            })
++            .await
++        {
++            ReadyMediaDelivery::Deferred {
++                queued,
++                problem: StreamControlError::NotReady,
++            } => queued,
++            _ => panic!("temporary original quiescence was mistaken for permanent retirement"),
++        };
++        assert!(f.policy.0.try_write().is_ok());
++        drop(quiescence);
++        assert!(original_ticket.is_current() && original_ticket.is_active());
++        let packet = packet
++            .prepare_delivery(original_age + Duration::from_millis(200))
++            .await
++            .unwrap();
+         armed.store(true, Ordering::Release); // race after hint, before actual IO.
+         let packet = match packet
+             .deliver_ready_with_origin(|_, _| async {
+@@ -518,64 +540,83 @@
+ 
+ #[tokio::test]
+ async fn prepared_hint_cannot_restore_changed_authority_gate_or_original_age() {
+-    for action in [
+-        "source",
+-        "target",
+-        "audience",
+-        "source-gate",
+-        "target-gate",
+-        "cancel",
+-        "age",
+-    ] {
+-        let (f, _, _) = fixture(Medium::Video).await;
+-        let work = catch_future(async {
+-            let packet = queued(&f, Medium::Video).await;
+-            let expires = packet.admitted_at + Duration::from_millis(200);
+-            let packet = packet.prepare_delivery(expires).await.unwrap();
+-            assert!(f.policy.0.try_write().is_ok());
+-            match action {
+-                "source" | "target" => {
+-                    f.policy
+-                        .0
+-                        .try_write()
+-                        .unwrap()
+-                        .revoked
+-                        .insert(if action == "source" { "alice" } else { "bob" }.into());
+-                }
+-                "audience" => f.policy.0.try_write().unwrap().private = true,
+-                "source-gate" | "target-gate" => {
+-                    let c = if action == "source-gate" { &f.a } else { &f.b };
+-                    let ids = [desired(Medium::Video).logical_id].into_iter().collect();
+-                    for action in [StreamGateAction::Pause, StreamGateAction::Resume] {
+-                        c.set_media_gate(c.revision(), &ids, action, deadline())
+-                            .await
+-                            .unwrap();
++    for preparing in [false, true] {
++        for action in [
++            "source",
++            "target",
++            "audience",
++            "source-gate",
++            "target-gate",
++            "cancel",
++            "age",
++        ] {
++            let (f, _, _) = fixture(Medium::Video).await;
++            let work = catch_future(async {
++                let packet = queued(&f, Medium::Video).await;
++                let expires = packet.admitted_at + Duration::from_millis(200);
++                let packet = packet.prepare_delivery(expires).await.unwrap();
++                assert!(f.policy.0.try_write().is_ok());
++                match action {
++                    "source" | "target" => {
++                        f.policy
++                            .0
++                            .try_write()
++                            .unwrap()
++                            .revoked
++                            .insert(if action == "source" { "alice" } else { "bob" }.into());
++                    }
++                    "audience" => f.policy.0.try_write().unwrap().private = true,
++                    "source-gate" | "target-gate" => {
++                        let c = if action == "source-gate" { &f.a } else { &f.b };
++                        let ids = [desired(Medium::Video).logical_id].into_iter().collect();
++                        for action in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                            c.set_media_gate(c.revision(), &ids, action, deadline())
++                                .await
++                                .unwrap();
++                        }
++                    }
++                    "cancel" => f.b.shutdown.cancel(),
++                    _ => {
++                        tokio::time::sleep_until(tokio::time::Instant::from_std(
++                            expires + Duration::from_millis(1),
++                        ))
++                        .await
+                     }
+                 }
+-                "cancel" => f.b.shutdown.cancel(),
+-                _ => {
+-                    tokio::time::sleep_until(tokio::time::Instant::from_std(
+-                        expires + Duration::from_millis(1),
+-                    ))
+-                    .await
++                if preparing {
++                    let mut pending = Box::pin(packet.prepare_delivery(expires));
++                    let first =
++                        std::future::poll_fn(|cx| Poll::Ready(pending.as_mut().poll(cx))).await;
++                    drop(pending);
++                    assert!(
++                        matches!(&first, Poll::Ready(Err(_))),
++                        "permanently stale {action} parked preparation instead of terminating"
++                    );
++                    if action == "source-gate" || action == "target-gate" {
++                        assert!(
++                            matches!(first, Poll::Ready(Err(StreamControlError::Cancelled))),
++                            "superseded original {action} ticket was not terminal"
++                        );
++                    }
++                } else {
++                    let result = packet
++                        .deliver_ready_with_origin(|_, _| async {
++                            panic!("prepared stale hint granted IO")
++                        })
++                        .await;
++                    assert!(
++                        matches!(result, ReadyMediaDelivery::Complete(Err(_))),
++                        "stale {action} became permission or a temporary retry"
++                    );
+                 }
+-            }
+-            let result = packet
+-                .deliver_ready_with_origin(|_, _| async {
+-                    panic!("prepared stale hint granted IO")
+-                })
+-                .await;
+-            assert!(
+-                matches!(result, ReadyMediaDelivery::Complete(Err(_))),
+-                "stale {action} became permission or a temporary retry"
+-            );
+-            assert!(f.policy.0.try_write().is_ok());
+-        })
+-        .await;
+-        let joined = close(&f).await;
+-        assert!(joined, "original controllers not closed for {action}");
+-        if let Err(error) = work {
+-            std::panic::resume_unwind(error);
++                assert!(f.policy.0.try_write().is_ok());
++            })
++            .await;
++            let joined = close(&f).await;
++            assert!(joined, "original controllers not closed for {action}");
++            if let Err(error) = work {
++                std::panic::resume_unwind(error);
++            }
+         }
+     }
+ }

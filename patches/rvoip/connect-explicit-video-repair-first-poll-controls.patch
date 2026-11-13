@@ -1,0 +1,97 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
+@@ -246,3 +246,94 @@
+         );
+     }
+ }
++
++
++// These controls exercise the actual Core queued/repair API, not an RTC-loop
++// heartbeat. The OLD counter is the first repair's completed first-poll result;
++// no claim is made here about actual UDP/RTCP progress or a historical zero run.
++#[tokio::test]
++async fn explicit_repair_busy_is_one_attempt_and_later_request_preserves_exact_original() {
++    use futures::FutureExt as _;
++    for medium in [Medium::Video, Medium::Screen] {
++        let (f, armed, busy) = fixture(medium).await;
++        let work = std::panic::AssertUnwindSafe(async {
++            let packet = queued(&f, medium).await;
++            let expected = packet.frame.clone();
++            let expires = packet.admitted_at + Duration::from_millis(200);
++            let repair = packet.deliver_video_with_repair(|_, _| async { Ok(()) }).await.unwrap();
++            let calls = Arc::new(AtomicUsize::new(0));
++            let entered = calls.clone();
++            armed.store(true, Ordering::Release);
++            let mut pending = Box::pin(repair.repair(move |_, _| async move {
++                entered.fetch_add(1, Ordering::AcqRel);
++                Ok(())
++            }));
++            let first = std::future::poll_fn(|cx| Poll::Ready(pending.as_mut().poll(cx))).await;
++            let immediate_busy = matches!(&first, Poll::Ready(Err(StreamControlError::MetadataBusy)));
++            drop(pending); // OLD pending attempt is destroyed before the next request.
++            let no_io = calls.load(Ordering::Acquire) == 0;
++            let released = f.policy.0.try_write().is_ok();
++            let debited_once = repair.remaining.load(Ordering::Acquire) == MAX_VIDEO_REPAIRS - 1;
++            let same = Arc::new(AtomicBool::new(false));
++            let observed = same.clone();
++            // This is a distinct subsequent request, not replay of entered IO.
++            let second = repair.repair(move |frame, _| async move {
++                observed.store(frame.payload == expected.payload
++                    && frame.timestamp_rtp == expected.timestamp_rtp
++                    && frame.captured_at == expected.captured_at
++                    && frame.stream_id == expected.stream_id
++                    && frame.payload_type == expected.payload_type, Ordering::Release);
++                Ok(())
++            }).await.is_ok();
++            (immediate_busy, no_io, released, debited_once, second,
++             same.load(Ordering::Acquire), repair.expires_at() == expires,
++             repair.remaining.load(Ordering::Acquire) == MAX_VIDEO_REPAIRS - 2)
++        }).catch_unwind().await;
++        let joined = close(&f).await;
++        println!("explicit_repair_busy medium={medium:?} busy={} original_owners_joined={joined}", busy.load(Ordering::Acquire));
++        assert!(joined, "original Core controllers must close before repair oracle");
++        let facts = match work { Ok(value) => value, Err(error) => std::panic::resume_unwind(error) };
++        println!("explicit_repair_busy facts={facts:?}");
++        assert_eq!(busy.load(Ordering::Acquire), 1);
++        assert!(facts.1 && facts.2 && facts.3 && facts.4 && facts.5 && facts.6 && facts.7,
++            "repair counter prerequisites or later original request failed");
++        assert!(facts.0, "explicit repair metadata refusal must complete in its FIRST poll without awaiting retry");
++    }
++}
++
++#[tokio::test]
++async fn explicit_repair_later_request_cannot_restore_revoked_or_expired_original() {
++    use futures::FutureExt as _;
++    for action in ["source", "target", "audience", "source-gate", "target-gate", "cancel", "age"] {
++        let (f, armed, busy) = fixture(Medium::Video).await;
++        let work = std::panic::AssertUnwindSafe(async {
++            let repair = retained(&f).await;
++            armed.store(true, Ordering::Release);
++            let mut pending = Box::pin(repair.repair(|_, _| async { panic!("busy repair entered IO") }));
++            let first = std::future::poll_fn(|cx| Poll::Ready(pending.as_mut().poll(cx))).await;
++            let immediate_busy = matches!(&first, Poll::Ready(Err(StreamControlError::MetadataBusy)));
++            drop(pending);
++            match action {
++                "source" | "target" => { f.policy.0.try_write().unwrap().revoked.insert(if action == "source" { "alice" } else { "bob" }.into()); }
++                "audience" => f.policy.0.try_write().unwrap().private = true,
++                "source-gate" | "target-gate" => {
++                    let c = if action == "source-gate" { &f.a } else { &f.b };
++                    let ids = [desired(Medium::Video).logical_id].into_iter().collect();
++                    for change in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                        c.set_media_gate(c.revision(), &ids, change, deadline()).await.unwrap();
++                    }
++                }
++                "cancel" => f.b.shutdown.cancel(),
++                _ => tokio::time::sleep_until(tokio::time::Instant::from_std(repair.expires_at() + Duration::from_millis(1))).await,
++            }
++            let denied = repair.repair(|_, _| async { panic!("withdrawn repair entered IO") }).await;
++            let expired = matches!(&denied, Err(StreamControlError::Deadline));
++            (immediate_busy, denied.is_err(), action != "age" || expired, f.policy.0.try_write().is_ok())
++        }).catch_unwind().await;
++        let joined = close(&f).await;
++        assert!(joined, "original Core controllers not closed for {action}");
++        let facts = match work { Ok(value) => value, Err(error) => std::panic::resume_unwind(error) };
++        assert_eq!(busy.load(Ordering::Acquire), 1);
++        assert!(facts.0 && facts.1 && facts.2 && facts.3, "repair denial/cutoff changed for {action}");
++    }
++}
