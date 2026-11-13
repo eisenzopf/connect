@@ -240,6 +240,7 @@ pub struct Store {
     // Bounded read-only WAL observers; never command transactions or grants.
     packet_connections: packet_observation::Observers,
     session_readers: session_observation::Readers,
+    snapshot_reader: events::SnapshotReader,
     pub(crate) limits: Limits,
     path: PathBuf,
     blob_directory: PathBuf,
@@ -697,6 +698,7 @@ impl Store {
             connection: Mutex::new(connection),
             packet_connections: packet_observation::Observers::new(path)?,
             session_readers: session_observation::Readers::open(path)?,
+            snapshot_reader: events::SnapshotReader::open(path)?,
             limits,
             path: path.into(),
             blob_directory,
@@ -797,6 +799,7 @@ impl Store {
             connection: Mutex::new(connection),
             packet_connections: packet_observation::Observers::new(path)?,
             session_readers: session_observation::Readers::open(path)?,
+            snapshot_reader: events::SnapshotReader::open(path)?,
             limits,
             path: path.into(),
             blob_directory,

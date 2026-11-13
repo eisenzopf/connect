@@ -1,0 +1,135 @@
+{
+  "format": "connect/g6-058-snapshot-start-focused36/1",
+  "updated": "2026-11-13T02:30:22.704051+00:00",
+  "scope": "Actual snapshot/start security and contention controls; no full programme, shipping or matrix qualification.",
+  "source_base_revision": "b01601a2",
+  "working_source_sha256": "8da14438611d2d35b0ac228944e7931a1b7a8648dd8a8456f0bd66fe693e51ad",
+  "normal_generation": 416,
+  "passed": true,
+  "completed": 14,
+  "successful": 14,
+  "normal_default_four_libraries_passed": true,
+  "normal_features": [
+    {
+      "package": "connect-service",
+      "features": [
+        []
+      ]
+    },
+    {
+      "package": "connect-client",
+      "features": [
+        []
+      ]
+    },
+    {
+      "package": "rvoip-core",
+      "features": [
+        [
+          "default",
+          "identity",
+          "media",
+          "opus",
+          "rtp",
+          "sip",
+          "uctp",
+          "vcon"
+        ]
+      ]
+    },
+    {
+      "package": "rvoip-uctp",
+      "features": [
+        []
+      ]
+    }
+  ],
+  "normal_default_elapsed_seconds": 2.5749482919927686,
+  "normal_test_profile": {
+    "opt_level": "0",
+    "debuginfo": 2,
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "test": true
+  },
+  "cases": [
+    {
+      "selector": "peer_authority::tests::authorized_snapshot_completes_while_primary_sql_unit_is_owned_elsewhere",
+      "passed": true
+    },
+    {
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::snapshot_reader_controls::snapshot_read_transaction_does_not_reserve_cleanup_writer_but_affected_reader_still_fences",
+      "passed": true
+    },
+    {
+      "selector": "peer_authority::tests::four_current_snapshot_transactions_are_independent_and_saturation_preserves_original_wait",
+      "passed": true
+    },
+    {
+      "selector": "peer_authority::tests::borrowed_runtime_snapshot_cannot_complete_or_page_after_actual_owner_retires",
+      "passed": true
+    },
+    {
+      "selector": "peer_authority::tests::snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_checks",
+      "passed": true
+    },
+    {
+      "selector": "peer_authority::tests::snapshot_planning_rechecks_each_credential_after_admission",
+      "passed": true
+    },
+    {
+      "selector": "peer_authority::tests::snapshot_new_source_after_admission_requires_its_current_fence",
+      "passed": true
+    },
+    {
+      "selector": "peer_authority::tests::snapshot_retired_source_after_admission_is_not_returned",
+      "passed": true
+    },
+    {
+      "selector": "peer_authority::tests::snapshot_page_planning_reuses_only_the_exact_frozen_page",
+      "passed": true
+    },
+    {
+      "selector": "events::tests::snapshot_pages_freeze_one_revision_and_watermark_while_new_facts_catch_up",
+      "passed": true
+    },
+    {
+      "selector": "events::tests::queued_snapshot_pages_recheck_revocation_membership_epochs_and_hidden_items",
+      "passed": true
+    },
+    {
+      "selector": "events::tests::eviction_and_restart_invalidate_bounded_snapshots_without_pinning_database_state",
+      "passed": true
+    },
+    {
+      "selector": "connection_control::tests::replacement_sources::start::mixed_authority::dormant_start_activation_keeps_live_io_and_drains_real_revocation_before_uncertain_capture",
+      "passed": true
+    },
+    {
+      "selector": "connection_control::tests::replacement_sources::start::mixed_authority::dormant_start_activation_preserves_queued_old_source_epoch",
+      "passed": true
+    }
+  ],
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "binaries_unchanged": true,
+  "input_boundaries_unchanged": true,
+  "original_controller_joined": true,
+  "original_exit_code": 0,
+  "actual_results_sha256": "158259f3cb6067b6203d077bf7cd9ef707e79baa7a67235f997bff2ed088d421",
+  "root_join_sha256": "ccde26690b6d43955805092c01c0e881e11b2a664ae3b9c4961efec3fd144eef",
+  "changes": [
+    "Four independent query-only snapshot readers remove primary SQL and unnecessary writer reservation; original current authority and2sSQLite timeout retained.",
+    "Native/RTC start return and retain one closed just-validated proof/read pair; all original expiry/fences/current checks preserved.",
+    "Existing boxed native worker futures get explicit safe Send type boundaries; no new allocation or owner.",
+    "Five obsolete fixture setups now test real Writer refusal under a held Reader, then genuine coordinated state change and current admission after Reader release. No fabricated proof or disabled trigger."
+  ],
+  "failed_history_retained": {
+    "old32": "0/2pass at intended causal assertions",
+    "fixed33": "7/12, five legacy setup failures reproduced on preserved old binary",
+    "focused35": "Normal production check passed634.662s; Store tests failed E0433 enum module path before executing any test. Corrected one test path in36."
+  },
+  "compiler_measurement_limit": "Current normal service check2.575s versus previous634.662s is a warm incremental observation. No cold-build benchmark or exact sampled-type attribution.",
+  "next": "Clean commit and complete361 regression, matching normal Mac/nativeARM shipping and fresh all32/all432.",
+  "matrix_qualified": false
+}

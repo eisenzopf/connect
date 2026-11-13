@@ -995,9 +995,8 @@ impl Runtime {
                 let wait = wait.clone();
                 let (proof, read) = store_call(move || {
                     // Same current Read as native dormant muted activation.
-                    let proof = store
+                    let (proof, read) = store
                         .resume_native_replacement_start_activation_authority(&origin, &wait)?;
-                    let read = store.native_replacement_start_read_under(&origin, &proof)?;
                     Ok((Arc::new(proof), Arc::new(read)))
                 })
                 .await?;

@@ -1032,3 +1032,5 @@ mod admission_trace;
 
 // Cross-layer conformance is test-only; production Store remains Core-independent.
 mod continuation_audio;
+
+mod snapshot_reader_controls;

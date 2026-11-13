@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T01:56:10.532971+00:00",
-  "revision": 60,
+  "updated_at": "2026-11-13T02:30:22.704051+00:00",
+  "revision": 62,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -443,8 +443,8 @@
       "depends_on": [
         "P2.1"
       ],
-      "status": "in-progress",
-      "implementation_state": "Ready dispatch ownership is verified in batch20. The remaining real pre/post SQL case and exact resume/CAS counterexamples now pass targeted controls21 after fixing its fixture latch; deadlines and once-only capture retained. Combined final qualification remains open.",
+      "status": "component-verified",
+      "implementation_state": "Focused36 all14 pass, including original contention counters, runtime owner/saturation, current credential/key/source/page regressions and both dormant activation controls. Single Start read and snapshot isolation verified; full programme and matrix effect pending.",
       "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
       "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
       "coordinator_review": {
@@ -512,6 +512,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
           "result": "ES256 wholefull62passes; EdDSA route0 replacementstart0downlink fails beforecleanup; rootcause under investigation.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-focused36.json",
+          "result": "14/14pass plus normal four-library default feature check. All original groups/source/binary/input guards held.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -520,7 +525,7 @@
         "f29ffaea"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-13T01:56:10.532971+00:00",
+      "updated_at": "2026-11-13T02:30:22.704051+00:00",
       "mapped_check_count": 66,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -554,8 +559,8 @@
         "B192"
       ],
       "depends_on": [],
-      "status": "combined-workload-verified",
-      "implementation_state": "Both full workloads completed both Session Ends; last waits64.525885/64.554161 seconds under the original67-second cutoff. Ten-second idle observed no runtime owners. Full cases still fail video; matrix resource qualification remains pending.",
+      "status": "component-verified",
+      "implementation_state": "Focused36 all14 pass, including original contention counters, runtime owner/saturation, current credential/key/source/page regressions and both dormant activation controls. Single Start read and snapshot isolation verified; full programme and matrix effect pending.",
       "proposed_fix": "Batch both current Session refreshes, then both original End submissions, then both waits. Preserve the same Client, logical IDs, topology CAS, first failure and original 67-second cutoff.",
       "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
@@ -616,6 +621,16 @@
           "independent_evidence": "docs/evidence/gate-6/g6-058-v216-components24-independent.json",
           "result": "239/241; per-task assertions only, no matrix qualification",
           "source_revision": "07e414617b63f5a97cf4b3fbabd3972a3cba62a5"
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-snapshot-contention.json",
+          "result": "Old2intendedfailures; fixed4/4newcontrols. Overall7/12 with5preexisting setup failures; no matrix promotion.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-focused36.json",
+          "result": "14/14pass plus normal four-library default feature check. All original groups/source/binary/input guards held.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -623,7 +638,7 @@
         "e3e0b398"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T12:03:37.029798+00:00",
+      "updated_at": "2026-11-13T02:30:22.704051+00:00",
       "mapped_check_count": 16,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -1283,7 +1298,7 @@
         "P7.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Complete341 finished340pass1cleanupfail on clean6d0/416. Both full programmes pass media quality; ES256 passes all, EdDSA Connection retirement starves Session cleanup. Actual original controllers joined; shipping and all32 remain blocked on this regression.",
+      "implementation_state": "Coherent snapshot/single-Start-read/compiler-boundary batch passes focused14 and normal four-library default check. Commit/push and complete361 before shipping/all32.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1377,7 +1392,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-13T01:43:18.522851+00:00",
+      "updated_at": "2026-11-13T02:30:22.704051+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -3767,6 +3782,16 @@
       "at": "2026-11-13T01:56:10.532971+00:00",
       "revision": 60,
       "event": "Diagnostics31 original6873 joined1/2; ES256 cleanup64.816s, EdDSA initial candidate has0downlink. Added B208; snapshot readonly causal controls and startup diagnosis assigned in parallel."
+    },
+    {
+      "at": "2026-11-13T02:10:58.010894+00:00",
+      "revision": 61,
+      "event": "Snapshot contention causally reproduced; fixed4newcontrols pass,5oldsetupfailures reproduced. Single Start read implemented; preparing coherent security and media retest."
+    },
+    {
+      "at": "2026-11-13T02:30:22.704051+00:00",
+      "revision": 62,
+      "event": "Focused36 passes14/14 and normal default features; original17068exit0joined. Commit batch then full361; failed prior scopes preserved."
     }
   ],
   "tracking_review": {
@@ -5139,9 +5164,11 @@
     "media": "docs/evidence/gate-6/g6-058-v216-media-components.json",
     "public_authority": "docs/evidence/gate-6/g6-058-v216-public-authority.json",
     "harness": "docs/evidence/gate-6/g6-058-v216-harness-batch.json",
-    "next": "Diagnose and fix Connection/Session retirement contention, verify causal controls, repeat complete regression before normal shipping and all32.",
+    "next": "Clean commit and complete361 regression, matching normal Mac/nativeARM shipping and fresh all32/all432.",
     "matrix_qualified": false,
     "complete_regression": "docs/evidence/gate-6/g6-058-v216-components30.json",
-    "diagnostics": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json"
+    "diagnostics": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
+    "snapshot_contention": "docs/evidence/gate-6/g6-058-v216-snapshot-contention.json",
+    "focused36": "docs/evidence/gate-6/g6-058-v216-focused36.json"
   }
 }

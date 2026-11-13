@@ -228,11 +228,15 @@ fn queued_snapshot_pages_recheck_revocation_membership_epochs_and_hidden_items()
         .iter()
         .any(|i| matches!(i,SnapshotItem::Participant(m)if m.identity_id==f.ids[2])));
     assert!(!page.has_more);
-    {
-        let c = f.store.connection().unwrap();
-        c.execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&f.keys[1]])
-            .unwrap();
-    }
+    f.store
+        .execute_provisioning(
+            &f.keys[0],
+            connect_protocol::provisioning::ProvisioningCommand::RevokeCredential {
+                operation_id: "snapshot-revoke-current-bob".into(),
+                credential_id: f.keys[1].clone(),
+            },
+        )
+        .unwrap();
     assert_eq!(
         f.store
             .conversation_snapshot(
@@ -248,15 +252,61 @@ fn queued_snapshot_pages_recheck_revocation_membership_epochs_and_hidden_items()
         "unauthorized"
     );
     let alice = f.snapshot(0, 1);
-    {
-        let c = f.store.connection().unwrap();
-        c.execute(
-            "UPDATE participants SET active=0 WHERE identity_id=?1 AND conversation_id=?2",
-            params![f.ids[0], f.cid],
+    let before_epoch = f.store.membership_snapshot(&f.keys[0], &f.cid).unwrap();
+    let old_epoch = before_epoch
+        .participants
+        .iter()
+        .find(|p| p.identity_id == f.ids[0])
+        .unwrap()
+        .membership_epoch;
+    f.store
+        .execute_membership(
+            &f.keys[0],
+            MembershipRequest {
+                operation_id: "snapshot-alice-real-leave".into(),
+                conversation_id: f.cid.clone(),
+                expected_revision: before_epoch.revision,
+                change: MembershipAction::Leave {},
+            },
         )
         .unwrap();
-        c.execute("UPDATE participants SET active=1,membership_epoch=membership_epoch+1 WHERE identity_id=?1 AND conversation_id=?2",params![f.ids[0],f.cid]).unwrap();
-    }
+    // The unchanged actual operator credential may manage membership after
+    // leaving; no new credential/scope or synthetic membership row is used.
+    let left_revision: u64 = f
+        .store
+        .connection()
+        .unwrap()
+        .query_row(
+            "SELECT revision FROM conversations WHERE id=?1",
+            [&f.cid],
+            |r| r.get(0),
+        )
+        .unwrap();
+    f.store
+        .execute_membership(
+            &f.keys[0],
+            MembershipRequest {
+                operation_id: "snapshot-alice-real-rejoin".into(),
+                conversation_id: f.cid.clone(),
+                expected_revision: left_revision,
+                change: MembershipAction::Add {
+                    identity_id: f.ids[0].clone(),
+                    kind: connect_protocol::provisioning::IdentityKind::Human,
+                    role: "participant".into(),
+                },
+            },
+        )
+        .unwrap();
+    let current = f.store.membership_snapshot(&f.keys[0], &f.cid).unwrap();
+    assert!(
+        current
+            .participants
+            .iter()
+            .find(|p| p.identity_id == f.ids[0])
+            .unwrap()
+            .membership_epoch
+            > old_epoch
+    );
     assert_eq!(
         f.store
             .conversation_snapshot(

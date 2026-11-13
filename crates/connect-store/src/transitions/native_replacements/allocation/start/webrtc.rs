@@ -137,6 +137,16 @@ impl Store {
         origin: &NativeReplacementStartOrigin,
         wait: &crate::AuthorityWait,
     ) -> Result<PeerAuthorityGuard> {
+        let (proof, _read) = self.resume_native_replacement_start_with_read(origin, wait)?;
+        Ok(proof)
+    }
+    // One closed fresh admission derives the SAME proof and its current target
+    // projection together. No caller-supplied facts or returned reusable token.
+    fn resume_native_replacement_start_with_read(
+        &self,
+        origin: &NativeReplacementStartOrigin,
+        wait: &crate::AuthorityWait,
+    ) -> Result<(PeerAuthorityGuard, NativeReplacementStartRead)> {
         let expiry = origin.expires_at;
         let remaining = chrono::DateTime::from_timestamp(expiry, 0)
             .and_then(|expiry| (expiry - chrono::Utc::now()).to_std().ok())
@@ -144,17 +154,18 @@ impl Store {
         let mut proof =
             self.admit_peer_authority_mode(&origin.request, &wait.bounded(remaining), false)?;
         proof.limit_expiry(expiry)?;
-        self.native_replacement_start_read_under(origin, &proof)?;
-        Ok(proof)
+        let read = self.native_replacement_start_read_under(origin, &proof)?;
+        Ok((proof, read))
     }
     /// The dormant target's initial muted Core activation owns exact current
-    /// source/target authority. No existing route or durable lineage changes.
+    /// source/target authority and its SAME just-validated projection. No existing
+    /// route or durable lineage changes; the pair retains the original expiry.
     pub fn resume_native_replacement_start_activation_authority(
         &self,
         origin: &NativeReplacementStartOrigin,
         wait: &crate::AuthorityWait,
-    ) -> Result<PeerAuthorityGuard> {
-        self.resume_native_replacement_start_authority(origin, wait)
+    ) -> Result<(PeerAuthorityGuard, NativeReplacementStartRead)> {
+        self.resume_native_replacement_start_with_read(origin, wait)
     }
     pub fn native_replacement_start_read_under(
         &self,

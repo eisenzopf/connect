@@ -29,6 +29,12 @@ use rvoip_uctp::{
 };
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
+// Preserve the existing owned Box and lexical poll/drop boundary. Check Send
+// here without exposing the complete child coroutine shape to its caller.
+// This is control-plane ownership only, never a media permission or new task.
+type OriginalWorker<'a, T> =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<T>> + Send + 'a>>;
+
 /// Preserve temporary metadata unavailability while installing observers on an
 /// already admitted original route. The caller retains its original deadline;
 /// no negotiation, media effect, or physical writer is repeated by this retry.
@@ -280,7 +286,9 @@ impl Runtime {
             };
             work.spawn(async move {
                 let cancellation = registration.as_ref().map(|guard| guard.cancellation());
-                let retired = Box::pin(runtime.clone().native_worker(a, physical, credential, tx, cancellation)).await;
+                let original: OriginalWorker<'_, ()> =
+                    Box::pin(runtime.clone().native_worker(a, physical, credential, tx, cancellation));
+                let retired = original.await;
                 if let Err(error) = retired {
                     runtime.retirement_failed.store(true, std::sync::atomic::Ordering::Release);
                     tracing::debug!(code=%error.code,"Original native custodian retirement remains incomplete");
@@ -343,7 +351,7 @@ impl Runtime {
         let mut stage = "source";
         let invocation_stop = a.invocation_cancellation();
         let outcome = {
-            let mut negotiation = Box::pin(self.native_start(
+            let mut negotiation: OriginalWorker<'_, Reply> = Box::pin(self.native_start(
                 a,
                 physical.clone(),
                 &credential,

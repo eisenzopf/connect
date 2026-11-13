@@ -461,10 +461,23 @@ impl Runtime {
             drop(roles);
             tracing::debug!(target:"connect_service::canonical_replacement",stage="quarantined-negotiate","Replacement resource start");
             let prepared = native.prepare_quarantined_native_offer(&id, a.clone(), candidate, Some(challenge))
-                .await.map_err(|error| { tracing::debug!(target:"connect_service::canonical_replacement",?error,"Replacement resource preparation refused"); Error::forbidden() })?;
+                .await.map_err(|error| { tracing::debug!(target:"connect_service::canonical_replacement",connection=%id, ?error,"Replacement resource preparation refused"); Error::forbidden() })?;
+            tracing::debug!(target:"connect_service::canonical_replacement",stage="quarantined-prepared",connection=%id,
+                original_start_remaining_us=deadline.saturating_duration_since(tokio::time::Instant::now()).as_micros(),
+                "Replacement resource start");
+            let fresh_began = tracing::enabled!(target:"connect_service::canonical_replacement",tracing::Level::DEBUG)
+                .then(tokio::time::Instant::now);
             let invocation = self.fresh_replacement_start_invocation(
                 &start_origin, &policy, &peer, &physical, &allocated, deadline,
-            ).await?;
+            ).await.map_err(|error| {
+                tracing::debug!(target:"connect_service::canonical_replacement",stage="fresh-start-returned-error",connection=%id,
+                    elapsed_us=fresh_began.map(|began|began.elapsed().as_micros()),
+                    original_start_remaining_us=deadline.saturating_duration_since(tokio::time::Instant::now()).as_micros(),
+                    code=%error.code,detail=%error.message,"Replacement resource start refused");
+                error
+            })?;
+            tracing::debug!(target:"connect_service::canonical_replacement",stage="fresh-start-admitted",connection=%id,
+                elapsed_us=fresh_began.map(|began|began.elapsed().as_micros()),"Replacement resource start");
             let outcome = prepared.activate_muted(invocation.clone()).await.map_err(|error| {
                 tracing::debug!(target:"connect_service::canonical_replacement",?error,"Replacement initial activation refused"); Error::forbidden()
             })?;
@@ -595,18 +608,30 @@ impl Runtime {
             until.saturating_duration_since(tokio::time::Instant::now()),
         );
         let _cancel_wait = wait.cancel_on_drop();
+        tracing::debug!(target:"connect_service::canonical_replacement",stage="fresh-start-entry",
+            record=%origin.operation_record_id(),
+            original_start_remaining_us=deadline.saturating_duration_since(tokio::time::Instant::now()).as_micros(),
+            admission_remaining_us=until.saturating_duration_since(tokio::time::Instant::now()).as_micros(),
+            "Replacement resource start");
         let root = policy.root.upgrade().ok_or_else(Error::forbidden)?;
         let cancelled = root.handle.cancellation();
         let (proof, read, entries) = super::webrtc::admission::read(until, &wait, async {
             tokio::select! { _=self.stop.cancelled()=>{}, _=physical.lifetime.cancelled()=>{}, _=cancelled.cancelled()=>{} }
         }, || async {
+            let record = origin.operation_record_id();
             let store = self.media.store.clone(); let origin = origin.clone(); let wait = wait.clone();
             let (proof, read) = store_call(move || {
                 // This exact Read covers only the dormant target's initial muted cut.
-                let proof = store.resume_native_replacement_start_activation_authority(&origin, &wait)?;
-                let read = store.native_replacement_start_read_under(&origin, &proof)?;
+                let (proof, read) = store.resume_native_replacement_start_activation_authority(&origin, &wait)?;
                 Ok((Arc::new(proof), Arc::new(read)))
-            }).await?;
+            }).await.map_err(|error| {
+                // The original Store task has returned and released its SQL;
+                // failed attempts carry no partial Reader into this diagnostic.
+                tracing::debug!(target:"connect_service::canonical_replacement",stage="fresh-start-store-attempt-error",
+                    record=%record,code=%error.code,detail=%error.message,
+                    "Replacement resource start refused");
+                error
+            })?;
             if allocated.physical.upgrade().is_none_or(|p| !Arc::ptr_eq(&p, physical)) ||
                 physical.lifetime.is_cancelled() {
                 return Err(Error::forbidden());

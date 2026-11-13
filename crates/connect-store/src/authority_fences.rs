@@ -183,7 +183,7 @@ impl AuthorityWait {
         self.projection_diagnostic = true;
         self
     }
-    fn pause(&self) -> Result<()> {
+    pub(crate) fn pause(&self) -> Result<()> {
         self.check()?;
         std::thread::sleep(
             self.poll_interval

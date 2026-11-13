@@ -1,0 +1,47 @@
+{
+  "format": "connect/g6-058-snapshot-contention-components/1",
+  "updated": "2026-11-13T02:30:22.704051+00:00",
+  "scope": "Actual old/fixed structural contention controls and snapshot authority tests; no historical full341 stall attribution or matrix promotion.",
+  "old": {
+    "actual_tests_passed": 0,
+    "actual_tests_failed": 2,
+    "both_intended_assertions_qualified": true,
+    "independent_review_sha256": "0bd57afd05eb7f477b8581988d31167fc1ffab23eb27e6d8ccc4fdaa87ff37ed",
+    "primary_mutex_blocks_valid_snapshot": true,
+    "disjoint_snapshot_blocks_actual_native_retirement": true,
+    "actual_affected_media_reader_still_blocks_retirement": true,
+    "same_opaque_cleanup_recovers_after_snapshot_joins": true,
+    "root_controller_joined": true
+  },
+  "fixed": {
+    "component_new_controls_passed": 4,
+    "component_new_controls_planned": 4,
+    "cases": [
+      "authorized_snapshot_completes_while_primary_sql_unit_is_owned_elsewhere",
+      "snapshot_read_transaction_does_not_reserve_cleanup_writer_but_affected_reader_still_fences",
+      "four_current_snapshot_transactions_are_independent_and_saturation_preserves_original_wait",
+      "borrowed_runtime_snapshot_cannot_complete_or_page_after_actual_owner_retires"
+    ],
+    "whole_targeted_suite_passed": 7,
+    "whole_targeted_suite_planned": 12,
+    "whole_targeted_suite_qualified": false,
+    "legacy_negative_fixture_setup_failures": 5,
+    "all_five_same_setup_failures_reproduced_on_preserved_old_binary": true,
+    "root_controllers_joined": true,
+    "source_binary_input_guards_held": true,
+    "result_sha256": "d5587903b78c911d39c9518bd17ea014a8c038a6149e420242fdc2a10e7c5c4b"
+  },
+  "implementation": "Four independently owned READ_ONLY/query_only snapshot connections, fresh deferred SQL, original2s SQLite busy timeout and bounded original authority wait. Same current peer/key/source/projection checks and installation owner checks before and after COMMIT. No transaction, row or grant cache. Events path unchanged.",
+  "source_review_sha256": "50e931e3bb692766c8dd3d405a82b5e1d444582537bf7af02e5ab39b1c917c23",
+  "additional_change": "Native and RTC start now consume one closed proof/current-read pair instead of deriving the same projection twice. Source reviewed; execution verification pending.",
+  "next": "Clean commit and complete361 regression, matching normal Mac/nativeARM shipping and fresh all32/all432.",
+  "matrix_qualified": false,
+  "repaired_followthrough": {
+    "passed": 14,
+    "planned": 14,
+    "normal_default_four_libraries_passed": true,
+    "evidence": "docs/evidence/gate-6/g6-058-v216-focused36.json",
+    "all_original_owners_joined": true
+  },
+  "independent_before_after_review_sha256": "338de1ac535885b1a5b87517bbd4ebb6dcf3b3885fb76bbec5a42e1ffd2068ac"
+}

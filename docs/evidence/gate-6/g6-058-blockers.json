@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T01:56:10.532971+00:00",
-  "run_status": "Latest complete341:340passed1cleanupfail. Diagnostics31:1/2 full programmes pass; ES256 cleanup64.816s, EdDSA candidate receives no packets before initial readiness cutoff. B192 and B208 under causal investigation; original matrix0/32 remains.",
+  "updated": "2026-11-13T02:30:22.704051+00:00",
+  "run_status": "Focused36 passes14/14 plus normal default four-library check. Snapshot/retirement contention and single Start-read fixes are component verified; prior failures preserved. Preparing coherent commit/full361, then normal Mac/nativeARM shipping and all32/all432. Original matrix remains0/32 qualified.",
   "blockers": [
     {
       "id": "B01",
@@ -1571,10 +1571,10 @@
     {
       "id": "B192",
       "title": "Retained-owner control requests exhaust shared cleanup cutoff",
-      "status": "Reopened: EdDSA full programme passes mediaquality but fails Session cleanup; ES256 allpasses.",
+      "status": "Component verified: causal old contention fixed; all14snapshot/start controls pass including genuine retirement and current security. Wholeprogramme67s cleanup still pending.",
       "change": "Remove serialized helper/server latency within the original shared 62\u201367second deadline.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-components30.json",
-      "next": "Fix measured4.872536s Connection-retirement bottleneck; retain original67s cutoff and zero-owned-resource idle checks, then complete regression."
+      "evidence": "docs/evidence/gate-6/g6-058-v216-focused36.json",
+      "next": "Retain all current controls in full361 and prove both full programme cleanup/idle, then all32."
     },
     {
       "id": "B193",
@@ -1699,9 +1699,9 @@
     {
       "id": "B208",
       "title": "Replacement candidate fails before Core receive attachment",
-      "status": "Observed: diagnostic EdDSA first candidate0downlink/0receiver notices; separate from cleanup regression. Underlying leaf unproven.",
+      "status": "Single fresh proof/read pair and startup diagnostics implemented; both dormant activation/security controls pass. Actual original startup failure cause and wholeprogramme effect remain pending.",
       "change": "Resource traces initial replacement activation/admission; Media implements and Fixture reviews snapshot-reader contention controls. Preserve root IDs, no blind effect retry.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-focused36.json",
       "next": "Capture exact original start refusal and verify a causal fix alongside snapshot read/write isolation, then complete regression and all32."
     }
   ],
@@ -17474,6 +17474,18 @@
   },
   "current_component_verification": [
     {
+      "name": "Current snapshot/start security and contention batch; normal default features pass",
+      "passed": 14,
+      "planned": 14,
+      "evidence": "g6-058-v216-focused36.json"
+    },
+    {
+      "name": "New snapshot isolation/current owner/saturation controls; broader12 scope has5legacy setup failures",
+      "passed": 4,
+      "planned": 4,
+      "evidence": "g6-058-v216-snapshot-contention.json"
+    },
+    {
       "name": "Complete341 coherent regression on6d0/416; one cleanup failure",
       "passed": 340,
       "planned": 341,
@@ -17941,6 +17953,180 @@
     },
     "implementation": "Numeric phase diagnostics preserve original futures, scheduling, operation IDs and budgets. Production change is DEBUG-only native retirement attempt context.",
     "next": "Causal snapshot read/write contention controls plus replacement-start failure diagnosis; no cleanup or media criteria waived.",
+    "matrix_qualified": false
+  },
+  "snapshot_contention_components": {
+    "format": "connect/g6-058-snapshot-contention-components/1",
+    "updated": "2026-11-13T02:10:58.010894+00:00",
+    "scope": "Actual old/fixed structural contention controls and snapshot authority tests; no historical full341 stall attribution or matrix promotion.",
+    "old": {
+      "actual_tests_passed": 0,
+      "actual_tests_failed": 2,
+      "both_intended_assertions_qualified": true,
+      "independent_review_sha256": "0bd57afd05eb7f477b8581988d31167fc1ffab23eb27e6d8ccc4fdaa87ff37ed",
+      "primary_mutex_blocks_valid_snapshot": true,
+      "disjoint_snapshot_blocks_actual_native_retirement": true,
+      "actual_affected_media_reader_still_blocks_retirement": true,
+      "same_opaque_cleanup_recovers_after_snapshot_joins": true,
+      "root_controller_joined": true
+    },
+    "fixed": {
+      "component_new_controls_passed": 4,
+      "component_new_controls_planned": 4,
+      "cases": [
+        "authorized_snapshot_completes_while_primary_sql_unit_is_owned_elsewhere",
+        "snapshot_read_transaction_does_not_reserve_cleanup_writer_but_affected_reader_still_fences",
+        "four_current_snapshot_transactions_are_independent_and_saturation_preserves_original_wait",
+        "borrowed_runtime_snapshot_cannot_complete_or_page_after_actual_owner_retires"
+      ],
+      "whole_targeted_suite_passed": 7,
+      "whole_targeted_suite_planned": 12,
+      "whole_targeted_suite_qualified": false,
+      "legacy_negative_fixture_setup_failures": 5,
+      "all_five_same_setup_failures_reproduced_on_preserved_old_binary": true,
+      "root_controllers_joined": true,
+      "source_binary_input_guards_held": true,
+      "result_sha256": "d5587903b78c911d39c9518bd17ea014a8c038a6149e420242fdc2a10e7c5c4b"
+    },
+    "implementation": "Four independently owned READ_ONLY/query_only snapshot connections, fresh deferred SQL, original2s SQLite busy timeout and bounded original authority wait. Same current peer/key/source/projection checks and installation owner checks before and after COMMIT. No transaction, row or grant cache. Events path unchanged.",
+    "source_review_sha256": "50e931e3bb692766c8dd3d405a82b5e1d444582537bf7af02e5ab39b1c917c23",
+    "additional_change": "Native and RTC start now consume one closed proof/current-read pair instead of deriving the same projection twice. Source reviewed; execution verification pending.",
+    "next": "Repair five obsolete security fixture mutations without bypassing Reader/Writer rules; unit-test complete snapshot/start batch, then both full programmes and complete regression before shipping/all32.",
+    "matrix_qualified": false
+  },
+  "focused_snapshot_start36": {
+    "format": "connect/g6-058-snapshot-start-focused36/1",
+    "updated": "2026-11-13T02:30:22.704051+00:00",
+    "scope": "Actual snapshot/start security and contention controls; no full programme, shipping or matrix qualification.",
+    "source_base_revision": "b01601a2",
+    "working_source_sha256": "8da14438611d2d35b0ac228944e7931a1b7a8648dd8a8456f0bd66fe693e51ad",
+    "normal_generation": 416,
+    "passed": true,
+    "completed": 14,
+    "successful": 14,
+    "normal_default_four_libraries_passed": true,
+    "normal_features": [
+      {
+        "package": "connect-service",
+        "features": [
+          []
+        ]
+      },
+      {
+        "package": "connect-client",
+        "features": [
+          []
+        ]
+      },
+      {
+        "package": "rvoip-core",
+        "features": [
+          [
+            "default",
+            "identity",
+            "media",
+            "opus",
+            "rtp",
+            "sip",
+            "uctp",
+            "vcon"
+          ]
+        ]
+      },
+      {
+        "package": "rvoip-uctp",
+        "features": [
+          []
+        ]
+      }
+    ],
+    "normal_default_elapsed_seconds": 2.5749482919927686,
+    "normal_test_profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    },
+    "cases": [
+      {
+        "selector": "peer_authority::tests::authorized_snapshot_completes_while_primary_sql_unit_is_owned_elsewhere",
+        "passed": true
+      },
+      {
+        "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::snapshot_reader_controls::snapshot_read_transaction_does_not_reserve_cleanup_writer_but_affected_reader_still_fences",
+        "passed": true
+      },
+      {
+        "selector": "peer_authority::tests::four_current_snapshot_transactions_are_independent_and_saturation_preserves_original_wait",
+        "passed": true
+      },
+      {
+        "selector": "peer_authority::tests::borrowed_runtime_snapshot_cannot_complete_or_page_after_actual_owner_retires",
+        "passed": true
+      },
+      {
+        "selector": "peer_authority::tests::snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_checks",
+        "passed": true
+      },
+      {
+        "selector": "peer_authority::tests::snapshot_planning_rechecks_each_credential_after_admission",
+        "passed": true
+      },
+      {
+        "selector": "peer_authority::tests::snapshot_new_source_after_admission_requires_its_current_fence",
+        "passed": true
+      },
+      {
+        "selector": "peer_authority::tests::snapshot_retired_source_after_admission_is_not_returned",
+        "passed": true
+      },
+      {
+        "selector": "peer_authority::tests::snapshot_page_planning_reuses_only_the_exact_frozen_page",
+        "passed": true
+      },
+      {
+        "selector": "events::tests::snapshot_pages_freeze_one_revision_and_watermark_while_new_facts_catch_up",
+        "passed": true
+      },
+      {
+        "selector": "events::tests::queued_snapshot_pages_recheck_revocation_membership_epochs_and_hidden_items",
+        "passed": true
+      },
+      {
+        "selector": "events::tests::eviction_and_restart_invalidate_bounded_snapshots_without_pinning_database_state",
+        "passed": true
+      },
+      {
+        "selector": "connection_control::tests::replacement_sources::start::mixed_authority::dormant_start_activation_keeps_live_io_and_drains_real_revocation_before_uncertain_capture",
+        "passed": true
+      },
+      {
+        "selector": "connection_control::tests::replacement_sources::start::mixed_authority::dormant_start_activation_preserves_queued_old_source_epoch",
+        "passed": true
+      }
+    ],
+    "all_original_groups_joined": true,
+    "source_unchanged": true,
+    "binaries_unchanged": true,
+    "input_boundaries_unchanged": true,
+    "original_controller_joined": true,
+    "original_exit_code": 0,
+    "actual_results_sha256": "158259f3cb6067b6203d077bf7cd9ef707e79baa7a67235f997bff2ed088d421",
+    "root_join_sha256": "ccde26690b6d43955805092c01c0e881e11b2a664ae3b9c4961efec3fd144eef",
+    "changes": [
+      "Four independent query-only snapshot readers remove primary SQL and unnecessary writer reservation; original current authority and2sSQLite timeout retained.",
+      "Native/RTC start return and retain one closed just-validated proof/read pair; all original expiry/fences/current checks preserved.",
+      "Existing boxed native worker futures get explicit safe Send type boundaries; no new allocation or owner.",
+      "Five obsolete fixture setups now test real Writer refusal under a held Reader, then genuine coordinated state change and current admission after Reader release. No fabricated proof or disabled trigger."
+    ],
+    "failed_history_retained": {
+      "old32": "0/2pass at intended causal assertions",
+      "fixed33": "7/12, five legacy setup failures reproduced on preserved old binary",
+      "focused35": "Normal production check passed634.662s; Store tests failed E0433 enum module path before executing any test. Corrected one test path in36."
+    },
+    "compiler_measurement_limit": "Current normal service check2.575s versus previous634.662s is a warm incremental observation. No cold-build benchmark or exact sampled-type attribution.",
+    "next": "Clean commit and complete361 regression, matching normal Mac/nativeARM shipping and fresh all32/all432.",
     "matrix_qualified": false
   }
 }

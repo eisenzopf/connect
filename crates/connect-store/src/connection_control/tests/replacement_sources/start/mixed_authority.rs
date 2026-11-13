@@ -202,9 +202,13 @@ fn dormant_start_activation_preserves_queued_old_source_epoch() {
         &origin,
         &AuthorityWait::new(Duration::from_secs(1)),
     );
-    let current = proof
-        .as_ref()
-        .is_ok_and(|proof| proof.current() && proof.expires_at() <= origin.expires_at());
+    let current = proof.as_ref().is_ok_and(|(proof, read)| {
+        proof.current()
+            && read.current()
+            && read.target().publication_suspended
+            && proof.expires_at() <= origin.expires_at()
+            && read.expires_at() <= origin.expires_at()
+    });
     let preserved = epoch.current() && snapshot.admit_original(stamp).is_ok();
     drop(proof);
     drop(snapshot);
@@ -232,14 +236,11 @@ fn dormant_start_activation_keeps_live_io_and_drains_real_revocation_before_unce
     let io = source_admitted(&snapshot);
     let stamp = io.snapshot_stamp().unwrap();
     let epoch = io.packet_epoch().unwrap();
-    let proof = store
+    let (proof, read) = store
         .resume_native_replacement_start_activation_authority(
             &origin,
             &AuthorityWait::new(Duration::from_secs(1)),
         )
-        .unwrap();
-    let read = store
-        .native_replacement_start_read_under(&origin, &proof)
         .unwrap();
     assert!(read.current() && io.current() && snapshot.admit_original(stamp).is_ok());
     assert!(read.target().publication_suspended && read.expires_at() <= origin.expires_at());

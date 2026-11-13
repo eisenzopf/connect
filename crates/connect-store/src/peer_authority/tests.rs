@@ -2,6 +2,7 @@
 use super::*;
 use crate::Scope;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use connect_protocol::membership::{MembershipAction, MembershipRequest};
 use connect_protocol::{messages::*, provisioning::*, Limits, Operation, Outcome};
 use ring::signature::{Ed25519KeyPair, KeyPair};
 use std::time::{Duration, Instant};
@@ -1181,6 +1182,26 @@ fn multi_credential_snapshot_keeps_each_credentials_projection_revalidation() {
     // the full topology. The race cases below verify both credentials separately.
     assert_eq!(crate::events::snapshot_capture_count() - before, 1);
 }
+// These controlled row changes obey the same coordinated Writer protocol as
+// production. A live Snapshot Reader is never bypassed or replaced with a
+// fabricated proof. Its exclusion is tested first; mutation follows its drop.
+fn assert_snapshot_fixture_writer_is_fenced(f: &Fixture, scope: AuthorityScope) {
+    assert!(matches!(f.store.try_acquire_authority(&[scope]),
+        Err(error) if error.code == "authority-busy"));
+}
+fn snapshot_fixture_write(f: &Fixture, action: impl FnOnce(&rusqlite::Connection)) {
+    let writer = f
+        .store
+        .stable_authority(&AuthorityWait::new(Duration::from_secs(1)), || {
+            let c = f.store.connection()?;
+            crate::authority_admission::conversation_scopes(&c, &f.cid, AuthorityMode::Write)
+        })
+        .unwrap();
+    let c = f.store.connection_with_authority(&writer).unwrap();
+    action(&c);
+    // The real SQL Unit drops before its complete Writer; no Writer crosses a read.
+}
+
 #[test]
 fn snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_checks() {
     let f = Fixture::new(300);
@@ -1211,23 +1232,26 @@ fn snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_ch
         query: query.clone(),
     };
     let proof = f.admit(&request).unwrap();
-    // Bypass ordinary write fencing only in this test to prove the reader
-    // still revalidates its current key rather than trusting old admission.
+    assert_snapshot_fixture_writer_is_fenced(
+        &f,
+        AuthorityScope::identity(&f.identity, AuthorityMode::Write).unwrap(),
+    );
+    assert!(proof.current());
+    drop(proof);
+    // A conflicting key mutation cannot coexist with the admitted Reader.
+    // After that actual Reader drains, revoke through the real public command;
+    // current admission must reject the original key, never reuse its old proof.
     f.store
-        .connection()
-        .unwrap()
-        .execute(
-            "UPDATE peer_signing_keys SET revoked=1 WHERE key_id='key'",
-            [],
+        .execute_provisioning(
+            &f.admin,
+            ProvisioningCommand::RevokeSigningKey {
+                operation_id: "snapshot-current-key-revoke".into(),
+                key_id: "key".into(),
+                expected_revision: 0,
+            },
         )
         .unwrap();
-    assert_eq!(
-        f.store
-            .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
-            .unwrap_err()
-            .code,
-        "forbidden"
-    );
+    assert_eq!(f.admit(&request).err().unwrap().code, "forbidden");
 }
 
 #[test]
@@ -1245,31 +1269,33 @@ fn snapshot_planning_rechecks_each_credential_after_admission() {
                 query: query.clone(),
             };
             request.credentials = vec![f.admin.clone(), f.user.clone()];
-            f.store
-                .connection()
-                .unwrap()
-                .execute(
+            snapshot_fixture_write(&f, |c| {
+                c.execute(
                     "INSERT INTO credential_signing_keys(credential_id,key_id) VALUES(?1,'key')",
                     [&f.admin],
                 )
                 .unwrap();
+            });
             let proof = f.admit(&request).unwrap();
-            // Deliberately bypass cooperative fences to model a stale proof:
-            // execution must independently check either selected credential.
+            assert_snapshot_fixture_writer_is_fenced(
+                &f,
+                AuthorityScope::identity(&f.identity, AuthorityMode::Write).unwrap(),
+            );
+            assert!(proof.current());
+            drop(proof);
+            // No credential write is possible while that original Reader is
+            // held. The real complete Writer below changes committed state,
+            // and BOTH selected credentials are checked on fresh admission.
             let sql = match change {
                 "revoke" => "UPDATE credentials SET revoked=1 WHERE id=?1",
                 "expire" => "UPDATE credentials SET expires_at=0 WHERE id=?1",
                 _ => "UPDATE credentials SET operations='[]' WHERE id=?1",
             };
-            f.store
-                .connection()
-                .unwrap()
-                .execute(sql, [&request.credentials[credential_index]])
-                .unwrap();
-            let error = f
-                .store
-                .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
-                .unwrap_err();
+            snapshot_fixture_write(&f, |c| {
+                c.execute(sql, [&request.credentials[credential_index]])
+                    .unwrap();
+            });
+            let error = f.admit(&request).err().unwrap();
             assert!(
                 matches!(error.code.as_str(), "forbidden" | "unauthorized"),
                 "credential {credential_index} {change}: {}",
@@ -1293,21 +1319,37 @@ fn snapshot_new_source_after_admission_requires_its_current_fence() {
         query: query.clone(),
     };
     let proof = f.admit(&request).unwrap();
-    // A real membership mutation is fenced. This bypass demonstrates that a
-    // newly visible source can never be returned under the old footprint.
-    f.store.connection().unwrap().execute(
-        "INSERT INTO participants(conversation_id,identity_id,participant_id,role) VALUES(?1,?2,'new-snapshot-participant','participant')",
-        rusqlite::params![f.cid, new_identity],
-    ).unwrap();
-    assert_eq!(
-        f.store
-            .conversation_snapshot_with_peer(&f.user, &f.cid, query.clone(), Some(&proof),)
-            .unwrap_err()
-            .code,
-        "authority-busy"
+    // Actual authority exclusion makes topology growth impossible under the
+    // old footprint. Drain that original Reader before the public Add.
+    assert_snapshot_fixture_writer_is_fenced(
+        &f,
+        AuthorityScope::conversation(&f.cid, AuthorityMode::Write).unwrap(),
     );
     drop(proof);
+    f.store
+        .execute_membership(
+            &f.admin,
+            MembershipRequest {
+                operation_id: "new-snapshot-participant".into(),
+                conversation_id: f.cid.clone(),
+                expected_revision: f
+                    .store
+                    .membership_snapshot(&f.user, &f.cid)
+                    .unwrap()
+                    .revision,
+                change: MembershipAction::Add {
+                    identity_id: new_identity.clone(),
+                    kind: IdentityKind::Human,
+                    role: "participant".into(),
+                },
+            },
+        )
+        .unwrap();
     let fresh = f.admit(&request).unwrap();
+    assert!(f.store.authority_covers(
+        &fresh._scopes,
+        &[AuthorityScope::identity(&new_identity, AuthorityMode::Read).unwrap()]
+    ));
     let page = f
         .store
         .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&fresh))
@@ -1325,10 +1367,25 @@ fn snapshot_retired_source_after_admission_is_not_returned() {
         .create_identity("retired-snapshot-source")
         .unwrap()
         .id;
-    f.store.connection().unwrap().execute(
-        "INSERT INTO participants(conversation_id,identity_id,participant_id,role) VALUES(?1,?2,'retiring-snapshot-participant','participant')",
-        rusqlite::params![f.cid, retired_identity],
-    ).unwrap();
+    f.store
+        .execute_membership(
+            &f.admin,
+            MembershipRequest {
+                operation_id: "retiring-snapshot-participant-add".into(),
+                conversation_id: f.cid.clone(),
+                expected_revision: f
+                    .store
+                    .membership_snapshot(&f.user, &f.cid)
+                    .unwrap()
+                    .revision,
+                change: MembershipAction::Add {
+                    identity_id: retired_identity.clone(),
+                    kind: IdentityKind::Human,
+                    role: "participant".into(),
+                },
+            },
+        )
+        .unwrap();
     let query = connect_protocol::events::SnapshotQuery {
         page: None,
         limit: Some(100),
@@ -1339,14 +1396,34 @@ fn snapshot_retired_source_after_admission_is_not_returned() {
         query: query.clone(),
     };
     let proof = f.admit(&request).unwrap();
-    f.store
-        .connection()
+    assert_snapshot_fixture_writer_is_fenced(
+        &f,
+        AuthorityScope::conversation(&f.cid, AuthorityMode::Write).unwrap(),
+    );
+    drop(proof);
+    let membership = f.store.membership_snapshot(&f.user, &f.cid).unwrap();
+    let retired_participant = membership
+        .participants
+        .iter()
+        .find(|p| p.identity_id == retired_identity)
         .unwrap()
-        .execute(
-            "UPDATE participants SET active=0 WHERE participant_id='retiring-snapshot-participant'",
-            [],
+        .participant_id
+        .clone();
+    f.store
+        .execute_membership(
+            &f.admin,
+            MembershipRequest {
+                operation_id: "retiring-snapshot-participant-remove".into(),
+                conversation_id: f.cid.clone(),
+                expected_revision: membership.revision,
+                change: MembershipAction::Remove {
+                    participant_id: retired_participant,
+                    reason: None,
+                },
+            },
         )
         .unwrap();
+    let proof = f.admit(&request).unwrap();
     let page = f
         .store
         .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
@@ -1391,4 +1468,255 @@ fn snapshot_page_planning_reuses_only_the_exact_frozen_page() {
     assert!(matches!(page.items.as_slice(),
         [connect_protocol::events::SnapshotItem::Participant(member)]
             if member.identity_id == f.identity));
+}
+
+#[test]
+fn authorized_snapshot_completes_while_primary_sql_unit_is_owned_elsewhere() {
+    let f = Fixture::new(300);
+    let query = connect_protocol::events::SnapshotQuery::default();
+    let mut request = f.request.clone();
+    request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    let proof = f.admit(&request).unwrap();
+    let baseline = f
+        .store
+        .conversation_snapshot_with_peer(&f.user, &f.cid, query.clone(), Some(&proof))
+        .unwrap();
+    assert!(!baseline.items.is_empty());
+    let (finished, observed) = std::sync::mpsc::sync_channel(1);
+    let primary = f.store.connection().unwrap();
+    let primary_changes = primary.total_changes();
+    let (completed_while_owned, primary_unchanged, result) = std::thread::scope(|workers| {
+        let attempt = workers.spawn(|| {
+            let result =
+                f.store
+                    .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof));
+            let _ = finished.send(());
+            result
+        });
+        let completed = observed.recv_timeout(Duration::from_secs(1)).is_ok();
+        // Always release/join the original call before the intended old failure.
+        let primary_unchanged = primary.total_changes() == primary_changes;
+        drop(primary);
+        (completed, primary_unchanged, attempt.join().unwrap())
+    });
+    let result = result.unwrap();
+    assert!(primary_unchanged);
+    assert!(proof.current());
+    assert_eq!(result.conversation_id, baseline.conversation_id);
+    assert_eq!(result.revision, baseline.revision);
+    assert_eq!(result.items, baseline.items);
+    assert!(
+        completed_while_owned,
+        "a valid public snapshot waited on the unrelated primary SQL mutex"
+    );
+}
+
+#[test]
+fn four_current_snapshot_transactions_are_independent_and_saturation_preserves_original_wait() {
+    let f = Fixture::new(300);
+    let query = connect_protocol::events::SnapshotQuery::default();
+    let mut request = f.request.clone();
+    request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    let proof = f.admit(&request).unwrap();
+    let baseline = f
+        .store
+        .conversation_snapshot_with_peer(&f.user, &f.cid, query.clone(), Some(&proof))
+        .unwrap();
+    {
+        let reader = f.store.snapshot_reader.take(None).unwrap();
+        let error = reader
+            .execute_batch("CREATE TABLE snapshot_reader_must_never_write(value INTEGER)")
+            .unwrap_err();
+        assert!(
+            matches!(error, rusqlite::Error::SqliteFailure(code, _) if code.code == rusqlite::ErrorCode::ReadOnly)
+        );
+    }
+    let (entered, observed) = std::sync::mpsc::channel();
+    let mut releases = Vec::new();
+    let (entered_count, saturated, expired_code, cancelled_code, results, no_peer_result) =
+        std::thread::scope(|workers| {
+            let mut attempts = Vec::new();
+            for _ in 0..4 {
+                let entered = entered.clone();
+                let (release, resumed) = std::sync::mpsc::sync_channel(1);
+                releases.push(release);
+                let query = query.clone();
+                let f = &f;
+                let proof = &proof;
+                attempts.push(workers.spawn(move || {
+                    crate::events::snapshot_test_probe::with_checkpoint(
+                        move || {
+                            let _ = entered.send(());
+                            let _ = resumed.recv_timeout(Duration::from_secs(3));
+                        },
+                        || {
+                            f.store.conversation_snapshot_with_peer(
+                                &f.user,
+                                &f.cid,
+                                query,
+                                Some(proof),
+                            )
+                        },
+                    )
+                }));
+            }
+            let mut entered_count = 0;
+            for _ in 0..4 {
+                if observed.recv_timeout(Duration::from_secs(1)).is_ok() {
+                    entered_count += 1;
+                } else {
+                    break;
+                }
+            }
+            let saturated = if entered_count == 4 {
+                Some(f.store.conversation_snapshot_with_peer(
+                    &f.user,
+                    &f.cid,
+                    query.clone(),
+                    Some(&proof),
+                ))
+            } else {
+                None
+            };
+            // All four original SQL owners are visibly parked. These calls
+            // exercise actual expiry/cancellation before any owner is released.
+            let (expired_code, cancelled_code) = if entered_count == 4 {
+                let wait = crate::AuthorityWait::new(Duration::from_millis(20));
+                let expired = f
+                    .store
+                    .snapshot_reader
+                    .take(Some(&wait))
+                    .err()
+                    .map(|error| error.code);
+                let cancelled = crate::AuthorityWait::new(Duration::from_secs(1));
+                cancelled.cancel();
+                let cancelled = f
+                    .store
+                    .snapshot_reader
+                    .take(Some(&cancelled))
+                    .err()
+                    .map(|error| error.code);
+                (expired, cancelled)
+            } else {
+                (None, None)
+            };
+            let no_peer = if entered_count == 4 {
+                let query = query.clone();
+                let f = &f;
+                Some(workers.spawn(move || f.store.conversation_snapshot(&f.user, &f.cid, query)))
+            } else {
+                None
+            };
+            // Release actual owners even if setup was incomplete. The no-peer
+            // caller retains its original AuthorityWait; release renews no budget.
+            std::thread::sleep(Duration::from_millis(20));
+            for release in &releases {
+                let _ = release.send(());
+            }
+            let results = attempts
+                .into_iter()
+                .map(|owner| owner.join().unwrap())
+                .collect::<Vec<_>>();
+            let no_peer_result = no_peer.map(|owner| owner.join().unwrap());
+            (
+                entered_count,
+                saturated,
+                expired_code,
+                cancelled_code,
+                results,
+                no_peer_result,
+            )
+        });
+    assert_eq!(
+        entered_count, 4,
+        "four genuine authorized snapshot transactions must coexist"
+    );
+    assert!(matches!(saturated, Some(Err(ref error)) if error.code == "authority-busy"));
+    assert_eq!(expired_code.as_deref(), Some("authority-busy"));
+    assert_eq!(cancelled_code.as_deref(), Some("cancelled"));
+    for result in results {
+        assert_eq!(result.unwrap().items, baseline.items);
+    }
+    assert_eq!(no_peer_result.unwrap().unwrap().items, baseline.items);
+    assert!(proof.current());
+}
+
+#[test]
+fn borrowed_runtime_snapshot_cannot_complete_or_page_after_actual_owner_retires() {
+    let f = Fixture::new(300);
+    let owner = f.store.require_runtime_owner().unwrap();
+    let borrowed = Store::open_with_ownership(f.store.path(), Limits::default(), &owner).unwrap();
+    let query = connect_protocol::events::SnapshotQuery {
+        page: None,
+        limit: Some(1),
+    };
+    let mut request = f.request.clone();
+    request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    let proof = f.admit(&request).unwrap();
+    let baseline = borrowed
+        .conversation_snapshot_with_peer(&f.user, &f.cid, query.clone(), Some(&proof))
+        .unwrap();
+    let next = baseline
+        .next
+        .clone()
+        .expect("actual snapshot must have a second page");
+    let (entered, observed) = std::sync::mpsc::sync_channel(1);
+    let (release, resumed) = std::sync::mpsc::sync_channel(1);
+    let (entered_actual_snapshot, result) = std::thread::scope(|workers| {
+        let attempt = workers.spawn(|| {
+            crate::events::snapshot_test_probe::with_checkpoint(
+                move || {
+                    let _ = entered.send(());
+                    let _ = resumed.recv_timeout(Duration::from_secs(2));
+                },
+                || {
+                    borrowed.conversation_snapshot_with_peer(
+                        &f.user,
+                        &f.cid,
+                        query.clone(),
+                        Some(&proof),
+                    )
+                },
+            )
+        });
+        let entered_actual_snapshot = observed.recv_timeout(Duration::from_secs(1)).is_ok();
+        if entered_actual_snapshot {
+            owner.retire();
+        }
+        // Release/join the SAME authorized SQL snapshot before every oracle.
+        let _ = release.send(());
+        (entered_actual_snapshot, attempt.join().unwrap())
+    });
+    assert!(entered_actual_snapshot);
+    assert!(matches!(result, Err(ref error) if error.code == "forbidden"));
+    assert_eq!(
+        borrowed
+            .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        borrowed
+            .conversation_snapshot(
+                &f.user,
+                &f.cid,
+                connect_protocol::events::SnapshotQuery {
+                    page: Some(next),
+                    limit: Some(1)
+                }
+            )
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
 }

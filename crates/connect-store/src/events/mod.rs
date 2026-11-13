@@ -4,7 +4,11 @@ mod connection_revision;
 mod journal;
 pub(crate) use connection_revision::stream_revision;
 pub(crate) mod observations;
+pub(crate) mod snapshot_reader;
 mod snapshots;
+pub(crate) use snapshot_reader::SnapshotReader;
+#[cfg(test)]
+pub(crate) mod snapshot_test_probe;
 pub use observations::{SessionObservationActivity, SessionObservationSource};
 #[cfg(test)]
 mod tests;
@@ -138,11 +142,15 @@ impl Store {
         peer: Option<&crate::PeerAuthorityGuard>,
         wait: &crate::AuthorityWait,
     ) -> Result<SnapshotPage> {
+        // A read connection is never authority. Retain the actual installation
+        // owner through this same bounded snapshot and recheck before return.
+        let owner = self.runtime_ownership.permit(&self.path)?;
         let owned = if peer.is_none() {
             Some(self.stable_authority(wait, || {
-                let c = self.connection()?;
-                let actor = actor_from_connection(&c, credential)?;
-                admission::snapshot_scopes(&c, &actor, cid, &query, self)
+                let mut c = self.snapshot_reader.take(Some(wait))?;
+                let tx = c.transaction().map_err(|_| Error::storage())?;
+                let actor = actor_from_connection(&tx, credential)?;
+                admission::snapshot_scopes(&tx, &actor, cid, &query, self)
             })?)
         } else {
             None
@@ -151,17 +159,17 @@ impl Store {
             Some(proof) => Self::peer_scopes(proof),
             None => owned.as_ref().ok_or_else(Error::forbidden)?,
         };
-        let mut c = self.connection()?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+        let mut c = self
+            .snapshot_reader
+            .take(if peer.is_none() { Some(wait) } else { None })?;
+        let tx = c.transaction().map_err(|_| Error::storage())?;
         if let Some(peer) = peer {
             self.require_peer_snapshot_source(&tx, peer, credential, cid, &query)?;
         }
         let actor = actor_from_connection(&tx, credential)?;
         let epoch = authorize(&tx, &actor, cid, "conversation.get")?;
         let size = limit(self, query.limit)?;
-        // One immediate transaction freezes the SQL projection while current
+        // One read-only deferred snapshot freezes the SQL projection while current
         // source fences exclude authority changes. Validate the very items we
         // return instead of capturing the entire topology three times. The
         // final actor/key/peer checks and both coverage checks remain current.
@@ -188,7 +196,15 @@ impl Store {
         if let Some(peer) = peer {
             self.require_peer_snapshot_source(&tx, peer, credential, cid, &query)?;
         }
+        if let Some(owner) = &owner {
+            owner.check(&self.path)?;
+        }
+        #[cfg(test)]
+        snapshot_test_probe::checkpoint();
         tx.commit().map_err(|_| Error::storage())?;
+        if let Some(owner) = &owner {
+            owner.check(&self.path)?;
+        }
         Ok(result)
     }
     /// One bounded catch-up page. A live transport can long-poll this same read;
