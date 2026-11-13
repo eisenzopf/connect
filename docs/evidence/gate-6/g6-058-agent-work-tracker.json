@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 126,
-    "verified_at": "2026-11-13T20:54:24.007325+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v218.json",
-    "readback_evidence_sha256": "ff52755e9f038f7ce1e6b4151baf980c384116428138cf7eaa48a6601f26635a",
+    "content_revision": 127,
+    "verified_at": "2026-11-13T21:44:05.317Z",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v218-postrun.json",
+    "readback_evidence_sha256": "3d8a1d86c53c1f9bcca3f055d7e3a6eb94faea4cf6083f8e7476c1573af1badb",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -5404,5 +5404,30 @@
     "script_cases_passed": 167,
     "sdk_cases_passed": 55,
     "source_acceptance_is_not_media_quality": true
+  },
+  "v218_cohort56_diagnostic": {
+    "evidence": "docs/evidence/gate-6/g6-058-v218-cohort56-diagnostic.json",
+    "evidence_sha256": "17a39f6a05e1e31f0841dbbcad2646e115850c8797e2524b431b10dad383e8ea",
+    "cohort_passed": 595,
+    "cohort_failed": 1,
+    "whole_qualified": false,
+    "both_full_native_programmes_passed": true,
+    "corrected_original_cutoff_fixture_separately_passed": true
+  },
+  "v219_rtc_scheduling_work": {
+    "coordinator": "/root",
+    "core_producer_owner": "v198_resources",
+    "driver_mailbox_owner": "fixture_blockers",
+    "reviewer": "media_blockers",
+    "status": "source-candidate-being-implemented-not-applied",
+    "existing_pending_request_budget_retained": 257,
+    "media_resident_ceiling": 255,
+    "control_reserved_minimum": 2,
+    "healthy_packet_extra_preflight": false,
+    "no_per_packet_tasks_added": true,
+    "current_generation_still": 429,
+    "actual_causal_and_security_tests": "authored-unrun",
+    "historical_audio_zero_cause_proven": false,
+    "matrix_qualified": false
   }
 }

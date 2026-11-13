@@ -18575,5 +18575,14 @@
     "script_cases_passed": 167,
     "sdk_cases_passed": 55,
     "source_acceptance_is_not_media_quality": true
+  },
+  "v218_cohort56_diagnostic": {
+    "evidence": "docs/evidence/gate-6/g6-058-v218-cohort56-diagnostic.json",
+    "evidence_sha256": "17a39f6a05e1e31f0841dbbcad2646e115850c8797e2524b431b10dad383e8ea",
+    "cohort_passed": 595,
+    "cohort_failed": 1,
+    "whole_qualified": false,
+    "both_full_native_programmes_passed": true,
+    "corrected_original_cutoff_fixture_separately_passed": true
   }
 }

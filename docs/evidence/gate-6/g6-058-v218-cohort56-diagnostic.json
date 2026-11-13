@@ -1,0 +1,77 @@
+{
+  "format": "connect/g6-058-prerequisite56-diagnostic-and-clock-fixture/1",
+  "updated_at": "2026-11-13T21:45:29.189625+00:00",
+  "attempt_source_revision": "adb3c4749b104ae72f92328faa4258f272a094ec",
+  "normal_generation": 429,
+  "attempt": {
+    "rust": {
+      "passed": 420,
+      "failed": 1,
+      "expected": 421
+    },
+    "scripts": {
+      "passed": 175,
+      "failed": 0
+    },
+    "build_phases": {
+      "passed": 7,
+      "failed": 0
+    },
+    "all_original_groups_joined": true,
+    "source_unchanged_during_attempt": true,
+    "inputs_unchanged_during_attempt": true,
+    "whole_qualified": false,
+    "runtime_sha256": "75bee7140ede367f958e37818c954c9a99ea261e15d15ac425c88fff2f4635ef",
+    "runtime_original_root_join_sha256": "dcfbc881c7227df7b2b97921b812ce82bdfa492741f95cf1aaca831d7416e7e3",
+    "build_sha256": "550c4eacd5d67c62e0e55125b28f27b5ab4e99d97f24081c4b10b22d02703ba8",
+    "script_sha256": "3d0e79f83a53d64c5b9e0b670078cd191dffe6c3bf0428a9076056b289cc4be3"
+  },
+  "full_native_programmes": [
+    {
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "passed": true,
+      "original_exit_code": 0,
+      "original_group_absent": true,
+      "elapsed_seconds": 88.9661721669836,
+      "four_original_commit_captures": 4,
+      "gate_recordings": 4,
+      "subscription_recordings": 8,
+      "log_sha256": "67bf32bcb100ae6563ad992aa6ce56726845eb99e0bcb73d784635547693a16c"
+    },
+    {
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::signed_es256_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "passed": true,
+      "original_exit_code": 0,
+      "original_group_absent": true,
+      "elapsed_seconds": 90.1849843749078,
+      "four_original_commit_captures": 4,
+      "gate_recordings": 4,
+      "subscription_recordings": 8,
+      "log_sha256": "89d549cc7c762c39d0ab33dad1becf08c83a10d37cf2de419027ff13facfd41e"
+    }
+  ],
+  "one_failure": {
+    "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_ready_controls::scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_validation",
+    "original_error": "again=1794604094 versus until=1794604093",
+    "cause": "Test reused an unlimited hint across fresh now()+5 observations. Production carries the original hint.until.",
+    "production_change": false,
+    "corrected_test_path": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scoped_handoff/sql_ready_controls.rs",
+    "before_sha256": "9eb4201797fa9321971bbcbbfa010ce5f5ffe1b76e212e4f7ff1c2e4677ade71",
+    "after_sha256": "887a7c600108f01f7ec4af2fea3db10e8457b62943c5ee2640c8b08b32f76c2b",
+    "first_unlimited_hint_still_proves_authoritative_cap": true,
+    "original_cutoff_pinned_for_subsequent_checks": true,
+    "actual_clock_crossover_ms": 1100,
+    "all_six_forgery_no_DML_exact_unit_checks_retained": true,
+    "corrected_exact_test_passed": true,
+    "fixed_original_exit_code": 0,
+    "fixed_original_joined": true,
+    "fixed_log_sha256": "175188b397d6cfe4975dd462c322304530e610fc62d3df14d889b6bf0d9a8ccb",
+    "fixed_result_sha256": "2c3680040c3751a25e13061636681035c6267d5df49e07b0e341ac4219a83c5b",
+    "independent_source_review_sha256": "5fc77a602562e793745b46db2f75e4cf22d7bfeaf09ff0ee2ecafb835ec72f77",
+    "whole_failed_attempt_not_regraded": true
+  },
+  "next_scope": "RTC repair and driver scheduling candidates remain unapplied/untested; native browser control remains independently unqualified. Next combined source requires fresh qualification before32cells.",
+  "matrix_cells_passed_unchanged": 1,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}

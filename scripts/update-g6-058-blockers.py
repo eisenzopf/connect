@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Render the current blocker ledger without changing recorded matrix verdicts."""
 import argparse
+import hashlib
 import html
 import json
 import re
@@ -15,7 +16,6 @@ END = "<!-- G6-058-BLOCKERS-END -->"
 
 def latest_matrix_section(data):
     """Current adjudicated rows coexist with every unchanged historical table."""
-    import hashlib
     latest = data["latest_full_run"]
     evidence_root = (ROOT / "docs/evidence/gate-6").resolve()
     matrix_path = (PAGE.parent / latest["status_url"]).resolve()
@@ -132,7 +132,18 @@ def main():
             + esc(checks["passed"]) + ' passed, ' + esc(checks["failed"])
             + ' failed and ' + esc(checks["blocked"]) + ' blocked.')
         focused = data.get("current_focused_verification")
-        if focused:
+        diagnostic = data.get("v218_cohort56_diagnostic")
+        if diagnostic:
+            proof_path = (ROOT / diagnostic["evidence"]).resolve()
+            assert proof_path.parent == (ROOT / "docs/evidence/gate-6").resolve()
+            assert hashlib.sha256(proof_path.read_bytes()).hexdigest() == diagnostic["evidence_sha256"]
+            overview += (' Postrun prerequisite attempt: ' + esc(diagnostic["cohort_passed"])
+                + ' passed, ' + esc(diagnostic["cohort_failed"]) + ' failed. '
+                + 'Both full native programmes passed. The expiry fixture was corrected and passed separately; '
+                + 'the failed whole attempt remains recorded. <a href="../evidence/gate-6/'
+                + esc(proof_path.name) + '">Current prerequisite evidence</a>. '
+                + 'These results do not qualify matrix cells.')
+        elif focused:
             count = esc(focused["passed"])
             if focused.get("planned") is not None:
                 count += ' of ' + esc(focused["planned"])

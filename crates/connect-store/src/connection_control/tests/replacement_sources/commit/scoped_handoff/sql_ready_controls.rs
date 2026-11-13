@@ -536,7 +536,7 @@ fn scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_valid
     let tx = c
         .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
         .unwrap();
-    let inputs = captured
+    let mut inputs = captured
         .scoped_ready_inputs_for_test(&tx, i64::MAX)
         .unwrap();
     let (permit, until) = boundary
@@ -545,6 +545,13 @@ fn scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_valid
         .expect("genuine closed inputs must construct a usable permit FIRST");
     assert!(until < i64::MAX && until > crate::now());
     drop(permit);
+    // The production caller carries its original planning cutoff into every
+    // fresh derivation. MAX above proves that current facts impose their cap;
+    // subsequent calls must preserve that first cap across a clock rollover.
+    inputs.hint_until = until;
+    let first_second = crate::now();
+    std::thread::sleep(std::time::Duration::from_millis(1100));
+    assert!(crate::now() > first_second && until > crate::now());
     let changes = tx.total_changes();
     for fault in [
         "expired",

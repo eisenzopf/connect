@@ -1,0 +1,21 @@
+{
+  "format": "connect/mobile-coordinator-readback/1",
+  "content_revision": 127,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMTSdxYQ17RWx-eDiBlsYjG4giI52PPA793Ck2b4X72eS83QkDkINh51iTFrt1svYMmZY_7F7urUrXB_t2-pLNgQWpaeF4bkrXSMJ2M",
+  "verified_at": "2026-11-13T21:44:05.317Z",
+  "actual_get_document_readback": true,
+  "all_expected_scoped_paragraphs_exact": true,
+  "matrix_cells_passed": 1,
+  "matrix_checks_passed": 399,
+  "cohort_attempt": {
+    "rust_passed": 420,
+    "rust_failed": 1,
+    "scripts_passed": 175,
+    "build_phases_passed": 7,
+    "whole_qualified": false
+  },
+  "fixed_original_cutoff_fixture_separate_pass": true,
+  "rtc_repair_and_driver_candidates_applied": false,
+  "no_new_matrix_credit": true
+}
