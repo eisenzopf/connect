@@ -231,6 +231,31 @@ Linux x86_64 and local ARM64 Chromium remain156.0.8078.4; Firefox remains
 recovery and cleanup checks are unchanged. This records an installed version,
 not a browser/media pass or evidence that ARM fixes any Mac failure.
 
+November 12 Mac Chrome patch baseline amendment, before the next affected run:
+the Mac fixture advances to authentic Google-signed Google Chrome157.0.8103.52
+after both installed copies updated from157.0.8103.39. Freeze that exact Mac patch and
+its recorded executable hash for the next fresh matrix. No affected media run
+had started under this update; the old-version preflight refusal stays recorded.
+The historical .39 schema observation and all prior results retain their original
+browser, source scope and verdict. They do not qualify .52.
+
+Only the macOS Chrome pin changes. The current local ARM Linux Chrome for Testing
+pin remains156.0.8078.4, its browser image stays unchanged, and Firefox remains
+158.0.1. Before any .52 media launch, require actual fresh private-profile schema
+observation, ordinary configured-CA HTTPS/WSS acceptance, untrusted-CA and
+wrong-host refusal, exact browser product/version and Google signature checks,
+and all original browser/listener joins. Actual owned .52 calibration passed
+these normal TLS cases and generated the fresh empty schema; its hashes are
+recorded in the separate .52 fixture.
+This establishes schema/trust compatibility only, not decoded media acceptance.
+Preserve the existing CA trust bytes and all certificate verification; no exception flags, global trust edits or version fallback apply.
+Then qualify a fresh complete362 cohort on the final whole-source revision and
+bind source preparation, normal shipping and launch receipts to that source.
+The32cells,432requirements, signals, observers, clocks, media/FPS/identity/skew,
+authority, storage and ownership/cleanup limits are unchanged. This amendment
+records the next baseline; it does not establish a browser/media pass or waive
+acceptance.
+
 ## Default bounds
 
 November4 local WebTransport trust clarification, before the next affected run:

@@ -1,0 +1,93 @@
+{
+  "format": "connect/chrome-isolated-certificate-schema/1",
+  "client_platform": "macos-arm64",
+  "browser_version": "Google Chrome 157.0.8103.52",
+  "observation_complete": true,
+  "schema_source": "Actual Chrome157.0.8103.52-created isolated untrusted profile from the owned local calibration; original browser/tool joined, no configured CA in this independently created empty database. Separate configured-CA HTTPS/WSS acceptance and foreign-CA/wrong-host refusal also passed.",
+  "expected_browser_binary_sha256": "5441ca699b9eff7763f2f10765e2e8409a4b05f38917826b5247f6f6bb3b0c6b",
+  "browser_binary_sha256": "5441ca699b9eff7763f2f10765e2e8409a4b05f38917826b5247f6f6bb3b0c6b",
+  "observation_report_sha256": "96863d35c4ce1608240b5afcbdcefe12053e107f3265f8a97162bf077f2adffe",
+  "original_database_sha256": "180ffbc2a4f10b5563f5a7bfe62d23909f0aa77572a06e59a9be4c6fca7176f7",
+  "historical_schema_reference": {
+    "path": "scripts/fixtures/browser-profile/chrome157-server-certificate-schema.json",
+    "sha256": "ed2607021cb419fd60c38df197bf1eaac9992410cdad93f4eb85d93add5e53d6",
+    "browser_version": "Google Chrome 157.0.8103.39"
+  },
+  "tables": {
+    "meta": [
+      [
+        0,
+        "key",
+        "LONGVARCHAR",
+        1,
+        null,
+        1
+      ],
+      [
+        1,
+        "value",
+        "LONGVARCHAR",
+        0,
+        null,
+        0
+      ]
+    ],
+    "certificates": [
+      [
+        0,
+        "sha256hash_hex",
+        "TEXT",
+        0,
+        null,
+        1
+      ],
+      [
+        1,
+        "der_cert",
+        "BLOB",
+        1,
+        null,
+        0
+      ],
+      [
+        2,
+        "trust_settings",
+        "BLOB",
+        1,
+        null,
+        0
+      ]
+    ]
+  },
+  "meta": [
+    [
+      "last_compatible_version",
+      "1"
+    ],
+    [
+      "mmap_status",
+      "-1"
+    ],
+    [
+      "version",
+      "1"
+    ]
+  ],
+  "actual_original_certificate_rows": 0,
+  "scope": "Actual Mac52 isolated SQLite schema and ordinary local HTTPS/WSS trust calibration only. Original .39 observation remains historical. No media, transport, source-preparation, shipping, whole-cohort or matrix pass transfers to this new browser baseline.",
+  "normal_ca_calibration_sha256": "bd674de132f56d9e8c1c48ca4b38450cf57c5f67044a8b6298b1d581cd667233",
+  "untrusted_summary_sha256": "41ab826bcbf539f218718d8d7174ec3099f4fa993ae26159793307ed17f904f7",
+  "configured_summary_sha256": "1d259affa4319c303542859992ad8c11a3cb3d6451f4e38418eb3f6501c16ffc",
+  "original_calibration_tools": {
+    "untrusted": {
+      "tool_session": 34782,
+      "actual_exit0_joined": true,
+      "browser_exit_code": 0
+    },
+    "trusted": {
+      "tool_session": 83459,
+      "actual_exit0_joined": true,
+      "browser_exit_code": 0
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T03:26:13.451032+00:00",
-  "run_status": "First-page race causally fixed; focused39 all15 pass plus normaldefault4. Priorcomplete361 stays360/361 withbothfull62quality/cleanupPASS. Preparing coherent commit/current12/complete362, then normalMac/ARMshipping andall32. Matrix0/32 remains.",
+  "updated": "2026-11-13T04:48:07.477612+00:00",
+  "run_status": "Complete40 passed all362 on clean1fc/416, including both full62 media/Data/cleanup programmes. Corrected normalMac/ARM shipping passed. Browserautoupdate blocked preflight beforeanycell; Mac52 signed/protected fixture and actualCA/schema calibration plus16units pass. Qualify finalMac52 whole source withfresh42 then all32/432; oldmatrix0/32 unchanged.",
   "blockers": [
     {
       "id": "B01",
@@ -1707,10 +1707,26 @@
     {
       "id": "B209",
       "title": "Concurrent initial snapshot creation can lose its own cache entry",
-      "status": "Causally reproduced: lawful cache eviction makes initial page resync and originalfour-reader test reports matchingresync. Ownedfirstpagefix passesall15focusedcontrols; whole362/matrixpending.",
+      "status": "Component/cohort verified: causal initial-page race fixed; focused15 and complete362 allPASS on1fc/416. Cell qualification pending.",
       "change": "Fixture authors same-renderer local captured first-page fix and deterministic lawful eviction control; Media independentlyreviews.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-firstpage39.json",
-      "next": "Retainquota2/currentchecks; complete362 withdeterministiccounter then actualshipping/all32."
+      "next": "FreshMac52 source qualification and all32/432; same cache quotas/current authorization/continuation resync rules retained."
+    },
+    {
+      "id": "B210",
+      "title": "Release runner artifact path shadows its input manifest",
+      "status": "Fixed and actual normal Mac/ARM shipping verified; old failed attempts retained.",
+      "change": "Rename only artifact-local manifest variable; two AST regressions reject the original collision. Corrected original99610/76452 exit0 joined, normal opt3/debug0/no test-support and all original owner/lease checks pass.",
+      "evidence": "docs/evidence/gate-6/g6-058-v217-shipping-browser.json",
+      "next": "Retain corrected runner through fresh source qualification; no library change or matrix promotion."
+    },
+    {
+      "id": "B211",
+      "title": "Mac browser auto-update changes the frozen test runtime",
+      "status": "Fixture calibration verified; fresh whole-source qualification pending before any cell.",
+      "change": "Record Mac157.0.8103.52 before affectedrun, Google signature/main hash, private immutable fixture, separate actual empty schema, configured/unconfigured CA HTTPS/WSS and wrong-name refusals,16units. Linux156.0.8078.4 and Firefox158.0.1 unchanged.",
+      "evidence": "docs/evidence/gate-6/g6-058-v217-shipping-browser.json",
+      "next": "Actual fresh12/15 and complete362 finalsource; matching sourceprep/shipping, freshpreflight, all32/432. Preserve prior preflight failure and all media/auth/cleanup limits."
     }
   ],
   "workplan_tasks": [
@@ -3501,14 +3517,14 @@
     {
       "id": "DC6",
       "title": "Commit/push exact tested code+tracked actual26/RCA/evidence; complete expanded coherent regression includes all296 plus new controls and both full62 LAST | owner /root; reviewer /root/fixture_blockers",
-      "status": "next: batch commit/push, then full329 on new clean byte-identical code; both full62 last and mandatory4+8 actual capture traces",
-      "completion": "Every case actually executes; ordinary failures continue; all decoded quality and original67s owner checks pass without deadline/threshold changes; all original processes join."
+      "status": "complete362 verified; finalMac52 source qualification pending",
+      "completion": "Actual all362 on1fc/416, exact4+8 each fullprogramme; currentMac52 profile requires freshwhole-source362. No thresholds changed."
     },
     {
       "id": "DC7",
       "title": "Keep qualified clean HEAD through nativeARM source/preparation/shipping then all32 cells/all432 checks with no filters/reuse/GitHub/cloud | owner /root; reviewer /root/v198_resources",
-      "status": "waiting-for-DC6",
-      "completion": "Fresh storage/namespace/ownership/BPF/source/normal-shipping gates; strict all-cell recorded outcomes. No matrix closure inferred from unit/media cohorts."
+      "status": "preflight fixture repaired; finalsource qualification next",
+      "completion": "Corrected normalMac/ARMshipping actualPASS;39\u219252 preflight refusal preserved; protectedMac52 actualschema/CA+16unitsPASS. Fresh42source then sameall32/432local."
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -17564,6 +17580,18 @@
       "passed": 15,
       "planned": 15,
       "evidence": "g6-058-v216-public-authority.json"
+    },
+    {
+      "name": "Complete signed and component regression on1fc/416",
+      "passed": 362,
+      "planned": 362,
+      "evidence": "g6-058-v216-components40.json"
+    },
+    {
+      "name": "CurrentMac52 browser profile and platform pin units",
+      "passed": 16,
+      "planned": 16,
+      "evidence": "g6-058-v217-shipping-browser.json"
     }
   ],
   "current_production_check": {
@@ -18279,6 +18307,25 @@
     "source_review_sha256": "d3ec01425bbf60b045af6c469f14a22c70722e7914d978b143e33a29e64cc5a3",
     "limits": "Previous complete361 remains360pass1fail, although both full media programmes pass. Focused39 does not promote it or any matrix cell. Optional reader-pool opacity was not applied.",
     "next": "Commit coherent testedcachefix; freshReady/RTC12 and complete362 with all361+deterministiccachecase, then actual ARMsourceprep/normalshipping/all32.",
+    "matrix_qualified": false
+  },
+  "complete362_actual": {
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components40.json",
+    "expected": 362,
+    "passed": 362,
+    "source_revision": "1fc58c17a930e8d82eeeeed92eae7e360c35a68c",
+    "runtime_result_sha256": "7405bffb5599adc377fefaa39bdd22b84dd06164b796051a365060cebe6246b3",
+    "matrix_qualified": false
+  },
+  "shipping_and_browser_fixture_actual": {
+    "evidence": "docs/evidence/gate-6/g6-058-v217-shipping-browser.json",
+    "normal_shipping_roles_passed": [
+      "Mac",
+      "ARM"
+    ],
+    "mac_patch52_tls_cases_passed": 2,
+    "profile_units_passed": 16,
+    "final_mac52_source_qualification_pending": true,
     "matrix_qualified": false
   }
 }

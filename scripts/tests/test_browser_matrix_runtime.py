@@ -21,7 +21,7 @@ class BrowserMatrixRuntime(unittest.TestCase):
     def test_approved_mac_chrome157_and_linux_chrome156_use_client_platform_pins(self):
         contract = json.loads((ROOT / 'contracts/gate6-transport-matrix.json').read_text())
         for linux, platform, product, expected in [
-            (False, 'macos-arm64', 'Google Chrome', '157.0.8103.39'),
+            (False, 'macos-arm64', 'Google Chrome', '157.0.8103.52'),
             (True, 'ubuntu24-arm64', 'Google Chrome for Testing', '156.0.8078.4'),
         ]:
             for transport in ['chrome-webtransport', 'chrome-wss-webrtc']:

@@ -1,0 +1,239 @@
+{
+  "format": "connect/g6-058-shipping-browser-preflight/1",
+  "shipping_source_revision": "1fc58c17a930e8d82eeeeed92eae7e360c35a68c",
+  "normal_generation": 416,
+  "shipping_corrected_runner_candidate_sha256": "127649b2ac7ffcd2f770087e67c5ee500f64790784ab4ab75cb8f43e5ff857a7",
+  "normal_shipping": {
+    "Mac": {
+      "passed": true,
+      "receipt_sha256": "601d115885414a1a081552b7d1e8e905786a4c06ba308a8c353b7f0def9c5ca1",
+      "original_root_session": 99610,
+      "original_root_join_sha256": "3be85392d8ec8d937b480998b770298b3b6e1d94bc2d2bf79d2e6fa2d0781031",
+      "commands": [
+        {
+          "label": "shipping-git-clean-before",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 1.0495439160149544
+        },
+        {
+          "label": "normal-prepare",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 1.0530537500744686
+        },
+        {
+          "label": "shipping-server",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 1.0648811659775674
+        },
+        {
+          "label": "shipping-physical-peer",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 1.0654104170389473
+        },
+        {
+          "label": "shipping-git-clean-after",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 1.0417432499816641
+        }
+      ],
+      "artifacts": [
+        {
+          "label": "shipping-server",
+          "sha256": "ab0886fd5a21600f96433bcdeae43725a1b27dbab731c85ad5ae344685b4ec02",
+          "profile": {
+            "opt_level": "3",
+            "debuginfo": 0,
+            "debug_assertions": false,
+            "overflow_checks": false,
+            "test": false
+          },
+          "features": [
+            "cli",
+            "default"
+          ],
+          "fresh": true
+        },
+        {
+          "label": "shipping-physical-peer",
+          "sha256": "d883fa4bad353ececbf74cfb014d88c51a71d04858b97ea44224c5e9a8ec43bf",
+          "profile": {
+            "opt_level": "3",
+            "debuginfo": 0,
+            "debug_assertions": false,
+            "overflow_checks": false,
+            "test": false
+          },
+          "features": [],
+          "fresh": true
+        }
+      ],
+      "all_original_command_groups_natural_joined": true,
+      "inputs_unchanged": true,
+      "source_unchanged": true,
+      "cleanup_confirmed": true,
+      "public_control_owner_cleanup": {
+        "confirmed": true,
+        "owners_started": 0,
+        "owners_joined": 0,
+        "public_sdk_launches_allowed": false
+      }
+    },
+    "ARM": {
+      "passed": true,
+      "receipt_sha256": "c90d3401a4e955136c2a9459315a1b68a7f20f514e35b57a0bd9d54ee69eedbd",
+      "original_root_session": 76452,
+      "original_root_join_sha256": "33107053fbdec25b599b2abb310ed3ddc1db9ae650a3801f6520ab3eb0f893ae",
+      "commands": [
+        {
+          "label": "shipping-git-clean-before",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 1.0252715770038776
+        },
+        {
+          "label": "normal-prepare",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 1.023080411949195
+        },
+        {
+          "label": "shipping-server",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 1.0238103159936145
+        },
+        {
+          "label": "shipping-physical-peer",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 1.0234042829833925
+        },
+        {
+          "label": "shipping-git-clean-after",
+          "exit_code": 0,
+          "joined": true,
+          "elapsed_seconds": 0.014342173002660275
+        }
+      ],
+      "artifacts": [
+        {
+          "label": "shipping-server",
+          "sha256": "a3529bd9de75b457b31bcc17b9f65bca2ace56da6afc86c01e482cdef90b4d5c",
+          "profile": {
+            "opt_level": "3",
+            "debuginfo": 0,
+            "debug_assertions": false,
+            "overflow_checks": false,
+            "test": false
+          },
+          "features": [
+            "cli",
+            "default"
+          ],
+          "fresh": true
+        },
+        {
+          "label": "shipping-physical-peer",
+          "sha256": "02d443ffef1d8edcfd8a2a2a73e02b3794e49c3fcafed9cbf044c6c8894d3251",
+          "profile": {
+            "opt_level": "3",
+            "debuginfo": 0,
+            "debug_assertions": false,
+            "overflow_checks": false,
+            "test": false
+          },
+          "features": [],
+          "fresh": true
+        }
+      ],
+      "all_original_command_groups_natural_joined": true,
+      "inputs_unchanged": true,
+      "source_unchanged": true,
+      "cleanup_confirmed": true,
+      "public_control_owner_cleanup": {
+        "confirmed": true,
+        "owners_started": 0,
+        "owners_joined": 0,
+        "public_sdk_launches_allowed": false
+      }
+    }
+  },
+  "shipping_independent_review_sha256": "27ed154be08bf8a1375aa4f8add7eb33b26d9b08af31d47bab6ad8c62314ed72",
+  "retained_failed_shipping_attempts": {
+    "Mac_original92724_exit_code": 1,
+    "ARM_original61497_exit_code": 1,
+    "reason": "Artifact-local manifest Path shadowed original input manifest dict at finalizer; actual five commands passed per role, final attempts remain unqualified. Two AST regressions pass after local rename."
+  },
+  "retained_failed_preflight": {
+    "original_session": 19551,
+    "exit_code": 1,
+    "matrix_or_guest_probe_started": false,
+    "reason": "Automatic MacChrome39 to52 update broke exact version/main hash pin before any cell."
+  },
+  "current_mac_browser_calibration": {
+    "browser_version": "Google Chrome 157.0.8103.52",
+    "main_sha256": "5441ca699b9eff7763f2f10765e2e8409a4b05f38917826b5247f6f6bb3b0c6b",
+    "passed": true,
+    "cases": {
+      "untrusted": {
+        "original_tool_session": 34782,
+        "actual_original_exit0_joined": true,
+        "summary_sha256": "41ab826bcbf539f218718d8d7174ec3099f4fa993ae26159793307ed17f904f7",
+        "browser_exit_code": 0,
+        "outcomes": {
+          "valid": {
+            "https": false,
+            "wss": false
+          },
+          "foreign": {
+            "https": false,
+            "wss": false
+          },
+          "wrong_name": {
+            "https": false,
+            "wss": false
+          }
+        },
+        "seconds": 1.8028118748916313
+      },
+      "trusted": {
+        "original_tool_session": 83459,
+        "actual_original_exit0_joined": true,
+        "summary_sha256": "1d259affa4319c303542859992ad8c11a3cb3d6451f4e38418eb3f6501c16ffc",
+        "browser_exit_code": 0,
+        "outcomes": {
+          "valid": {
+            "https": true,
+            "wss": true
+          },
+          "foreign": {
+            "https": false,
+            "wss": false
+          },
+          "wrong_name": {
+            "https": false,
+            "wss": false
+          }
+        },
+        "seconds": 1.424058249918744
+      }
+    },
+    "schema_observation_sha256": "96863d35c4ce1608240b5afcbdcefe12053e107f3265f8a97162bf077f2adffe",
+    "calibration_sha256": "bd674de132f56d9e8c1c48ca4b38450cf57c5f67044a8b6298b1d581cd667233",
+    "fresh_owned_browser_census_remaining": [],
+    "system_trust_or_user_profile_changed": false
+  },
+  "next": "Finish Mac-only52 metadata fixture update, qualify new whole source with exact362 and normal builds, then fresh32/432. Linux156.0.8078.4/Firefox158.0.1 and all media/auth/cleanup limits unchanged.",
+  "matrix_qualified": false,
+  "browser_profile_unit_verification": {
+    "executed": 16,
+    "passed": 16,
+    "actual_original_tool_completed_exit0": true,
+    "scope": "Mac52 profile schema/provenance, exact product/version refusal and platform runtime pins; no matrix pass"
+  }
+}

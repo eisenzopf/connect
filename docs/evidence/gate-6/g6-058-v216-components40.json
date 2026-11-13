@@ -1,0 +1,75 @@
+{
+  "format": "connect/g6-058-actual-components40/1",
+  "source_revision": "1fc58c17a930e8d82eeeeed92eae7e360c35a68c",
+  "normal_generation": 416,
+  "expected": 362,
+  "executed": 362,
+  "passed": 362,
+  "all11_ignored_explicitly_executed": true,
+  "normal_default_four_crate_check_qualified": true,
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "binaries_unchanged": true,
+  "inputs_unchanged": true,
+  "runtime_results_sha256": "7405bffb5599adc377fefaa39bdd22b84dd06164b796051a365060cebe6246b3",
+  "build_results_sha256": "7552ed8eadb96ca1e94a5618471a3e0435c6f744866c46cd7a1842832e8fca98",
+  "root_build_original_session": 10640,
+  "root_build_join_sha256": "fbb770937bfb4db813846a091f468ea87b8bdfffb4f2e9ebf825517ced7b2083",
+  "root_runtime_original_session": 78456,
+  "root_runtime_join_sha256": "5cb7a341965fd35160cab15906dde361fc6a81bfea1b15570ee63384459e740e",
+  "independent_actual_review_sha256": "6f9b88d329c5e6535707d32487bdda725aed239e552a0ff72429c049236829b0",
+  "both_full_programmes": [
+    {
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "ok": true,
+      "exit_code": 0,
+      "original_owner_group_absent": true,
+      "log_sha256": "036712f94c859a0e1257d731648e8af5a2b5985721560626404e973e3e436996",
+      "actual_data_control": {
+        "expected_first_recordings": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "observed_lines": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "unique_records_by_kind": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "duplicate_lines": 0,
+        "malformed_lines": 0,
+        "overflow_lines": 0,
+        "required_paths_observed": true
+      }
+    },
+    {
+      "selector": "sdk_handles::replacement_video_recovery::readiness::representative::signed_es256_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "ok": true,
+      "exit_code": 0,
+      "original_owner_group_absent": true,
+      "log_sha256": "5f148fbb0ce8eb12f2f16c3f8b0418bdbb47f2f19053da66d44817ee2b207c48",
+      "actual_data_control": {
+        "expected_first_recordings": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "observed_lines": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "unique_records_by_kind": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "duplicate_lines": 0,
+        "malformed_lines": 0,
+        "overflow_lines": 0,
+        "required_paths_observed": true
+      }
+    }
+  ],
+  "scope": "Actual component/cohort verification on named original source only. Subsequent Mac browser pin metadata needs its own source qualification. No historical matrix verdict is promoted.",
+  "matrix_qualified": false
+}

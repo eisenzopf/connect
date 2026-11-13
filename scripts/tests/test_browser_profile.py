@@ -108,8 +108,14 @@ class ChromeProfileContract(unittest.TestCase):
             return PROFILE.create_profile('chrome', self.binary, destination, self.root_der)
 
     def test_approved_mac157_seeds_actual_chrome157_schema_and_preserves_trust_bytes(self):
-        fixture_path = Path(__file__).resolve().parents[1] / 'fixtures/browser-profile/chrome157-server-certificate-schema.json'
+        fixture_path = Path(__file__).resolve().parents[1] / 'fixtures/browser-profile/chrome157-patch52-server-certificate-schema.json'
         original = json.loads(fixture_path.read_text())
+        self.assertIs(original['observation_complete'], True, 'Actual .52 schema observation is required; pending or relabeled .39 evidence cannot pass')
+        for field in ['browser_binary_sha256', 'observation_report_sha256', 'original_database_sha256',
+                      'normal_ca_calibration_sha256', 'untrusted_summary_sha256', 'configured_summary_sha256']:
+            self.assertRegex(original[field], r'^[0-9a-f]{64}$')
+        self.assertEqual(original['browser_binary_sha256'], original['expected_browser_binary_sha256'])
+        self.assertEqual(original['actual_original_certificate_rows'], 0)
         version = 'Google Chrome ' + self.contract['expected_browsers_by_client_platform']['macos-arm64']['chrome']
         self.assertEqual(version, original['browser_version'], 'New approved runtime needs an actual schema observation')
         result = self.create(version)
@@ -140,7 +146,8 @@ class ChromeProfileContract(unittest.TestCase):
     def test_stale_foreign_product_or_platform_runtime_refuses_before_profile_creation(self):
         for index, (system, version) in enumerate([
                 ('darwin', 'Google Chrome 156.0.8078.80'),
-                ('darwin', 'Google Chrome for Testing 157.0.8103.39'),
+                ('darwin', 'Google Chrome 157.0.8103.39'),
+                ('darwin', 'Google Chrome for Testing 157.0.8103.52'),
                 ('linux', 'Google Chrome 157.0.8103.39'),
                 ('linux', 'Google Chrome for Testing 156.0.8078.5')]):
             with self.subTest(system=system, version=version):

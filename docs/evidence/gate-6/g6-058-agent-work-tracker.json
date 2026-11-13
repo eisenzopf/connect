@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T03:26:13.451032+00:00",
-  "revision": 64,
+  "updated_at": "2026-11-13T04:48:07.477612+00:00",
+  "revision": 65,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -1300,7 +1300,9 @@
       "coordinator": "/root",
       "blocker_ids": [
         "B198",
-        "B209"
+        "B209",
+        "B210",
+        "B211"
       ],
       "depends_on": [
         "P1.2",
@@ -1316,7 +1318,7 @@
         "P7.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Bothfull62 programmes pass in complete361360/361; sole snapshot creation race now causallyfixed and focused15pass. Commit and complete362 retainingall361 plusnewcounter before shipping/all32.",
+      "implementation_state": "Actual all362 passed on1fc/416, bothfull62 quality/Data/cleanup. Corrected normalshipping bothroles PASS. Preflight stoppedbeforecells atMacautoupdate; authenticMac52 fixture/signature/schema/normalCA calibration and16units pass. Freshfinalsource42 required.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1403,6 +1405,17 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-components30.json",
           "result": "340/341pass; EdDSA cleanup fails; bothfull mediaquality and4+8Data traces pass. All11ignored and source/binary/input/originalowner guards verified.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components40.json",
+          "result": "362/362 actual, bothfull62LAST4+8/currentowners/normaldefault4; no matrixpromotion",
+          "source_revision": "1fc58c17a930e8d82eeeeed92eae7e360c35a68c",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v217-shipping-browser.json",
+          "result": "Both corrected normalshipping1fc actualPASS; Mac52 isolatedCAcases2/2 and profileunits16/16; finalwhole-source42 pending",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -1410,7 +1423,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-13T03:26:13.451032+00:00",
+      "updated_at": "2026-11-13T04:48:07.477612+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -1447,7 +1460,7 @@
         "P7.2"
       ],
       "status": "in-progress",
-      "implementation_state": "Original32 closed0qualified; all40 current nonpass rows explicitly mapped. Units+actual late authority+RTC+codec controls pass; fresh whole32 pending.",
+      "implementation_state": "Originalv216 remains0qualified/392passed32failed8blocked; nextall32/432 awaiting finalMac52whole-sourcequalification. Preflightautoupdatefailure was beforeanycell; no thresholdwaiver.",
       "proposed_fix": "Execute one frozen all32/all432local matrix; coordinator reconciles original check artifacts to every proposed fix and reopens any residual.",
       "required_evidence": "All required cycles and32cells/432checks pass; no inherited results, skipped failures, x86/GitHub builds, altered criteria or unjoined processes. No task is matrix-resolved on unit evidence alone.",
       "coordinator_review": {
@@ -1463,7 +1476,7 @@
       "verification_runs": [],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-13T01:05:20.647004+00:00",
+      "updated_at": "2026-11-13T04:48:07.477612+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": []
@@ -3820,6 +3833,11 @@
       "at": "2026-11-13T03:26:13.451032+00:00",
       "revision": 64,
       "event": "B209 causal old38-r2 bothresyncfailures reproduced; focused39all15pass afterowned-firstpagefix. Noquota/criteriachange; complete362 next."
+    },
+    {
+      "at": "2026-11-13T04:48:07.477612+00:00",
+      "revision": 65,
+      "event": "Actualcomplete362+correctednormalshippingPASS on1fc; preserved runner/preflightfailures, calibrated authenticatedMac52fixture and16units; newsourcequalification before32/432."
     }
   ],
   "tracking_review": {
@@ -5188,17 +5206,12 @@
     "scope": "Append40 current rows separately; original145 v215 rows and all15 task assignments/statuses unchanged. Cell causes remain unconfirmed pending precise causal proof and full rerun."
   },
   "current_verified_batch": {
-    "ready": "docs/evidence/gate-6/g6-058-v216-ready-continuity.json",
-    "media": "docs/evidence/gate-6/g6-058-v216-media-components.json",
-    "public_authority": "docs/evidence/gate-6/g6-058-v216-public-authority.json",
-    "harness": "docs/evidence/gate-6/g6-058-v216-harness-batch.json",
-    "next": "Commit coherent testedcachefix; freshReady/RTC12 and complete362 with all361+deterministiccachecase, then actual ARMsourceprep/normalshipping/all32.",
-    "matrix_qualified": false,
-    "complete_regression": "docs/evidence/gate-6/g6-058-v216-components30.json",
-    "diagnostics": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
-    "snapshot_contention": "docs/evidence/gate-6/g6-058-v216-snapshot-contention.json",
-    "focused36": "docs/evidence/gate-6/g6-058-v216-focused36.json",
-    "complete361": "docs/evidence/gate-6/g6-058-v216-components34.json",
-    "first_page39": "docs/evidence/gate-6/g6-058-v216-firstpage39.json"
+    "evidence": "docs/evidence/gate-6/g6-058-v216-components40.json",
+    "actual_passed": 362,
+    "expected": 362,
+    "source_revision": "1fc58c17a930e8d82eeeeed92eae7e360c35a68c",
+    "setup_evidence": "docs/evidence/gate-6/g6-058-v217-shipping-browser.json",
+    "next": "FreshfinalMac52whole-source42; then strict32/432",
+    "matrix_qualified": false
   }
 }
