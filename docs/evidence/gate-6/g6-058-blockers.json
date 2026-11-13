@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T22:30:33.845061+00:00",
-  "run_status": "Latest completed matrix v218:1/32 cells and399/432 checks pass; all32/432 ran. Registered434 RTC scheduling batch now builds3/3 and focused50/50 pass (15new+35retained): Core19/19, Stack17/17, WebRTC14/14. Real encrypted media/feedback progresses during held preparation; stale generations terminate while temporary original-ticket quiescence resumes. Source/binaries stay unchanged and all original owners join. Native footer component passes its documented continuous640/fresh320 scopes. Next: fresh611 whole-source prerequisites before local ARM/normal builds/full32. No matrix promotion; historical audio-zero cause unresolved; G6-054 remains deferred.",
+  "updated": "2026-11-13T23:52:43.989392+00:00",
+  "run_status": "Latest full matrix v218 remains1/32 cells and399/432 checks passed. RTC scheduling fixes pass50/50. New actualOLD library burst counter delivered10 of65 and refused55; the nonwaiting bounded436 fix now passes65/65 focused checks (fournew+61retained), including130normalization/old11backlog,65inorder,independentpublisher/laterprogress,clock/gate/age/cleanup. Suites overlap and are not summed. Earlier4e0 source stage passed175scripts+7builds;436Rust runtime explicitlydeferred for this newly found defect. Next: final combined440Rust+175scripts, ARM/normalrelease/full32. No matrix cure or historical39-bin/audio-zero cause claimed;G6-054deferred.",
   "blockers": [
     {
       "id": "B01",
@@ -1759,6 +1759,14 @@
       "change": "Only after Busy/NotReady, original ticket supersession or captured irreversible cancellation becomes terminal. Temporary original-ticket quiescence remains retryable. No new healthy-packet check.",
       "evidence": "Actual50/50 +3/3 testbuilds; docs/evidence/gate-6/g6-058-v219-focused50-fixed.json",
       "next": "Fresh whole611 prerequisite cohort, local ARM preparation/affected tests and normal shipping artifacts, then full32/432."
+    },
+    {
+      "id": "V219-WSS-INGRESS",
+      "title": "A valid RTC video reorder burst overruns its ten-packet input",
+      "status": "Component verified43665/65; matrix effect pending",
+      "change": "Same nonwaiting publisher and perPort worker;video140queued+1current covers130normalized+old11. Freeze original video clock, retain perpacket200ms and fresh Core authority. No new task/queue/semaphore or sharedwait.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-wss-burst-fixed.json",
+      "next": "Fresh combined615 qualification and localARM/release then full32. Actual39-bin causal link unproved."
     }
   ],
   "workplan_tasks": [
@@ -3583,6 +3591,15 @@
       "completion": "Actual434:15new+35retained checks pass, original source/binaries unchanged and all groups joined. Evidence: docs/evidence/gate-6/g6-058-v219-focused50-fixed.json",
       "owner_agent": "/root/v198_resources",
       "reviewer": "/root/media_blockers",
+      "coordinator": "/root"
+    },
+    {
+      "id": "V219-WSS-INGRESS",
+      "title": "Remove deterministic video burst self-drop while preserving isolation",
+      "status": "Component verified65/65",
+      "completion": "OLD10/55reproduced;fixed65/65. Wholecombined615/ARM/release/matrix remain.",
+      "owner_agent": "/root/media_blockers",
+      "reviewer": "/root/fixture_blockers",
       "coordinator": "/root"
     }
   ],
@@ -5977,7 +5994,8 @@
   "current_workplan_tasks": [
     "V219-RTC-REPAIR",
     "V219-RTC-DRIVER",
-    "V219-RTC-FENCE"
+    "V219-RTC-FENCE",
+    "V219-WSS-INGRESS"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -18663,5 +18681,21 @@
     "evidence": "docs/evidence/gate-6/g6-058-native-browser-footer-codec.json",
     "sha256": "b08d1ad95b4e203059e6ffdac554d44003574132e3ca73028f6c9f02854bee6f",
     "scope": "4continuous640 sweeps and16fresh firstobserved320 patterns; all original owners joined; no matrix credit"
+  },
+  "v219_wss_ingress_work": {
+    "status": "component-verified65-of65-whole-source-and-matrix-pending",
+    "owner_agent": "/root/media_blockers",
+    "reviewers": [
+      "/root/fixture_blockers",
+      "/root/v198_resources"
+    ],
+    "coordinator": "/root",
+    "verified_generation": 436,
+    "source_lock_sha256": "01935a88dbc5b41c32c2984b061dabf781dadb15fe0ff2d821775e4bc617ffe8",
+    "old_counter_evidence": "docs/evidence/gate-6/g6-058-v219-wss-burst-old-counter.json",
+    "fixed_evidence": "docs/evidence/gate-6/g6-058-v219-wss-burst-fixed.json",
+    "fixed_evidence_sha256": "f3b72ecfbf3374a51e35b630a360e20e077719eb22fbfe2394687253b58bae1e",
+    "actual_matrix_cause_or_cure_proven": false,
+    "next": "Fresh440Rust+175script/normalbuilds/full62LAST thenARM/release/full32."
   }
 }

@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T22:30:33.845061+00:00",
+  "updated_at": "2026-11-13T23:52:43.989392+00:00",
   "revision": 75,
   "status": "in-progress",
   "coordinator_agent": "/root",
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 129,
-    "verified_at": "2026-11-13T22:30:33.845061+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-fixed.json",
-    "readback_evidence_sha256": "ca25eda0d473567a9521abf12ac715cdc60e87dab21469b2e6ef751890d923f5",
+    "content_revision": 131,
+    "verified_at": "2026-11-13T23:52:43.989392+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-wss-fixed.json",
+    "readback_evidence_sha256": "068b370cc9e8016c49563f3f130b35637e5ade82363977440c7deda6d84dc465",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1320,7 +1320,8 @@
         "P7.1",
         "V219-RTC-REPAIR",
         "V219-RTC-DRIVER",
-        "V219-RTC-FENCE"
+        "V219-RTC-FENCE",
+        "V219-WSS-INGRESS"
       ],
       "status": "in-progress",
       "implementation_state": "Actual all362 passed on1fc/416, bothfull62 quality/Data/cleanup. Corrected normalshipping bothroles PASS. Preflight stoppedbeforecells atMacautoupdate; authenticMac52 fixture/signature/schema/normalCA calibration and16units pass. Freshfinalsource42 required.",
@@ -1600,6 +1601,47 @@
         "regression_verified": true
       },
       "updated_at": "2026-11-13T22:30:33.845061+00:00"
+    },
+    {
+      "id": "V219-WSS-INGRESS",
+      "plan_id": "V219-WSS-INGRESS",
+      "title": "Preserve bounded RTC video bursts without delaying other targets",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "additional_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-WSS-INGRESS"
+      ],
+      "depends_on": [
+        "V219-RTC-DRIVER",
+        "V219-RTC-FENCE"
+      ],
+      "status": "component-verified",
+      "implementation_state": "ActualOLD65\u219210/55; fixed65/65 includes4new+61retained; sync pertarget140queue+1current; exact original age/clock/gates/cleanup.",
+      "required_evidence": "Fresh combined615/currentARM+normalrelease and full32; no summing overlapping50+65 or treating source counter as actual39-bin cause.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-wss-burst-old-counter.json",
+          "result": "ExpectedOLDfailure qualified after originalcleanup",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-wss-burst-fixed.json",
+          "result": "65/65passed,0ignored,unchangedsource/binary/alloriginalsjoined",
+          "matrix_result": false
+        }
+      ],
+      "coordinator_review": {
+        "status": "Root and independent actual65 source/binary/original-join evidence accepted",
+        "root_cause_confirmed": true,
+        "failure_mapping_verified": true,
+        "counterexample_verified": true,
+        "regression_verified": true,
+        "actual_matrix_effect_verified": false
+      },
+      "matrix_result_refs": [],
+      "updated_at": "2026-11-13T23:52:43.989392+00:00"
     }
   ],
   "failure_mapping": [
@@ -5563,5 +5605,21 @@
     "evidence": "docs/evidence/gate-6/g6-058-native-browser-footer-codec.json",
     "sha256": "b08d1ad95b4e203059e6ffdac554d44003574132e3ca73028f6c9f02854bee6f",
     "scope": "4continuous640 sweeps and16fresh firstobserved320 patterns; all original owners joined; no matrix credit"
+  },
+  "v219_wss_ingress_work": {
+    "status": "component-verified65-of65-whole-source-and-matrix-pending",
+    "owner_agent": "/root/media_blockers",
+    "reviewers": [
+      "/root/fixture_blockers",
+      "/root/v198_resources"
+    ],
+    "coordinator": "/root",
+    "verified_generation": 436,
+    "source_lock_sha256": "01935a88dbc5b41c32c2984b061dabf781dadb15fe0ff2d821775e4bc617ffe8",
+    "old_counter_evidence": "docs/evidence/gate-6/g6-058-v219-wss-burst-old-counter.json",
+    "fixed_evidence": "docs/evidence/gate-6/g6-058-v219-wss-burst-fixed.json",
+    "fixed_evidence_sha256": "f3b72ecfbf3374a51e35b630a360e20e077719eb22fbfe2394687253b58bae1e",
+    "actual_matrix_cause_or_cure_proven": false,
+    "next": "Fresh440Rust+175script/normalbuilds/full62LAST thenARM/release/full32."
   }
 }

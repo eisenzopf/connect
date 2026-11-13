@@ -2338,6 +2338,18 @@
       "path": "patches/rvoip/connect-rtc-original-generation-terminal-fence.patch",
       "sha256": "6631c6f9c20522aa2348d80b2afeaa7aa1c3fbb9c374b7c69e08bc2e50ed2ab1",
       "source": "Fix actual433 focused49/50 stale gate-generation refusal: only after temporary Busy/NotReady, permanently superseded original source/target tickets or captured irreversible cancellation return terminal Cancelled. Healthy packets add no checks, policy reads or grants; temporary quiescence remains retryable. Same strict negative now checks final IO and FIRST-poll preparation across authority/audience/gates/cancellation/age; same positive proves real original-ticket quiescence resumes exact original. No new selector, timeout or Gate acceptance change."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-reorder-port-burst-counter.patch",
+      "sha256": "e153ebe2bd2283c0a3855cabe4cfe4252d8a0cf7f76aa79631c2dd3783b331d6",
+      "source": "Test-only real canonical RTC reorder-to-PortIo ingress burst counter. Actual PacketReorder releases65 ordered original RTP packets into the ten-slot publisher; original Core controllers, healthy fresh recovery, expired-original refusal and worker/physical cleanup precede the unique expected65-delivered/zero-self-drop oracle. Source predicts old10/55 only; Root actual proof required. No production or acceptance change."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-video-burst-isolated-input.patch",
+      "sha256": "b84e438fd73bbe86cdae06d458dfe8b7451597bda03a9c56604643b20f0fb866",
+      "source": "Fix actual435 canonical RTC burst counter:65 ordered originals delivered10 and self-refused55. Bound video input to140 queued plus one in-flight original141, covering at most65 reordered inputs times2 normalized RTP fragments plus old10queued/onecurrent; <=166380 resident serialized wire bytes plus bounded metadata/current marshal/Core queues. Same private channel constructor serves production and tests. Synchronous per-target try_send preserves independent target/later-source progress; no publisher capacity await, new task, queue or semaphore. Freeze original video clock at TrackRemote observation through reorder/input/current Core ingress, without later CNAME/SR recapture; preserve original UDP receipt/per-original200ms, gate/scene/current-policy boundaries. Four real Core controls cover65loss,130normalization/backlog,65inorder,full-target primitive isolation/laterprogress and age/stop/withdrawal/clock/gate/mixed-expiry negatives. V2sharedwait and V3globalmin rejected unapplied; no historical39-bin cause/quality waiver."
     }
   ]
 }

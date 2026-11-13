@@ -1,0 +1,117 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+@@ -765,3 +765,114 @@
+     drop(peer_owner);
+     physical_lifetime.cancel();
+ }
++
++
++// Actual reorder -> normalize -> PortIo publisher -> original ingress -> Core
++// path. This is a packet/queue scheduling counter, not a codec/network or v218
++// cause claim. The original C/VP8 encoder is deliberately not involved.
++#[tokio::test(flavor = "current_thread")]
++async fn rtc_reordered_burst_does_not_self_drop_before_original_age() {
++    use futures::FutureExt as _;
++    use rvoip_core::peer_admission::PeerAdmissionOwner;
++    use crate::media::video_reorder::{PacketReorder, ReceivedPacket};
++    let mut f = Fixture::new(Medium::Video).await;
++    let physical_lifetime = CancellationToken::new();
++    let mut accepted = principal("burst-publication");
++    accepted.assurance = IdentityAssurance::Identified {
++        credential_kind: rvoip_core::identity::CredentialKind::Oidc,
++    };
++    let peer_owner = PeerAdmissionOwner::new(
++        &accepted, IdentityId::new(), DeviceId::new(),
++        physical_lifetime.child_token(), Default::default(),
++    ).unwrap();
++    let peer = peer_owner.peer();
++    let physical = WebRtcPhysicalBinding::new(&peer, physical_lifetime.child_token());
++    let ports = Arc::new(DashMap::<StreamId, Arc<PortIo>>::new());
++    let (input, receive) = mpsc::channel(10);
++    let io = Arc::new(PortIo {
++        port: f.port.downgrade(), binding: f.port.binding().clone(), physical,
++        health: WorkerHealth::new(physical_lifetime.child_token()),
++        input, input_refused: AtomicU64::new(0), close: OnceLock::new(),
++        map: Arc::downgrade(&ports),
++    });
++    io.start(ingress(io.port.clone(), io.health.stop.clone(), receive, f.source.clone())).unwrap();
++    {
++        let setup = io.health.setup.lock().unwrap();
++        io.health.activate(&setup).unwrap();
++    }
++    ports.insert(io.binding.transport_id.clone(), io.clone());
++    let (ready, _ready_observation) = watch::channel(None);
++    let work = std::panic::AssertUnwindSafe(async {
++        let original = Instant::now();
++        let make = |sequence| {
++            let mut packet = f.packet(sequence, 90000).packet;
++            // Legal RTP/VP8-descriptor metadata only. No decoded picture claim.
++            packet.header.marker = sequence == 75;
++            if sequence != 11 { packet.payload = Bytes::from(vec![0, 0, sequence as u8, 2]); }
++            ReceivedPacket::new(packet, original)
++        };
++        let mut reorder = PacketReorder::default();
++        let seed = reorder.push(make(10), original);
++        assert_eq!(seed.packets.len(), 1);
++        for sequence in 12..=75 {
++            assert!(reorder.push(make(sequence), original).packets.is_empty());
++        }
++        let burst = reorder.push(make(11), original);
++        let sequences: Vec<_> = burst.packets.iter()
++            .map(|value| value.packet.header.sequence_number).collect();
++        assert_eq!(sequences, (11..=75).collect::<Vec<_>>());
++        assert!(burst.packets.iter().all(|value|
++            value.inserted == original && value.packet.header.timestamp == 90000));
++        assert!(original.elapsed() < Duration::from_millis(200));
++        // No test yield / scheduler advance is inserted into the production
++        // publisher. Its exact synchronous burst has to meet its own ten-slot
++        // adapter boundary; a future paced implementation must keep this oracle.
++        let source = f.source.clone();
++        // Both original futures stay in this task. The actual publisher is
++        // polled first; an eventual backpressure await must permit this SAME
++        // Core receiver to drain, without a detached collector or test yield.
++        let (_, frames) = tokio::join!(biased;
++            async {
++                let mut mapping = crate::media::video_normalize::SequenceMapper::default();
++                publish_video(burst, &mut mapping, &source, &ports, &ready);
++            },
++            f.delivered(65),
++        );
++        let input_refused = io.input_refused.load(Ordering::Acquire);
++        let received = frames.len();
++        assert!(frames.iter().all(|frame| frame.timestamp_rtp == 90000));
++        assert!(f.input.try_recv().is_err());
++        let fresh = f.packet(90, 93000);
++        publish_source(fresh.packet, fresh.at, &f.source, &ports, &ready);
++        let fresh = f.delivered(1).await;
++        let fresh_ok = timestamps(&fresh) == [93000];
++        // A genuinely expired original remains excluded without queue admission.
++        let old = f.packet(91, 96000);
++        let expired = Instant::now().checked_sub(Duration::from_millis(201)).unwrap();
++        let source_refused_before = f.source.refused.load(Ordering::Acquire);
++        publish_source(old.packet, expired, &f.source, &ports, &ready);
++        let expired_refused = f.source.refused.load(Ordering::Acquire) == source_refused_before + 1;
++        let no_expired_input = f.input.try_recv().is_err();
++        (received, input_refused, fresh_ok, expired_refused, no_expired_input)
++    }).catch_unwind().await;
++    // Every original worker/controller settles BEFORE the intended OLD oracle.
++    let io_closed = io.close().await.is_ok();
++    let workers_joined = io.health.setup.lock().unwrap().tasks.is_empty();
++    let map_empty = ports.is_empty();
++    let input_closed = io.input.is_closed();
++    let a_outstanding = f.a.shutdown(deadline()).await;
++    let b_outstanding = f.b.shutdown(deadline()).await;
++    let no_policy_reader = f.policy.guard.clone().try_write_owned().is_ok();
++    physical_lifetime.cancel();
++    drop(peer_owner);
++    let peer_closed = peer.is_closed();
++    assert!(io_closed && workers_joined && map_empty && input_closed && peer_closed
++        && a_outstanding == 0 && b_outstanding == 0 && no_policy_reader,
++        "original burst IO/Controllers/physical resource failed to settle");
++    let facts = match work { Ok(facts) => facts, Err(error) => std::panic::resume_unwind(error) };
++    assert!(facts.2 && facts.3 && facts.4, "fresh recovery/expired-original qualifier failed");
++    println!("rtc_reorder_original_burst released=65 delivered={} input_refused={} fresh={} expired_refused={} all_originals_joined=true",
++        facts.0, facts.1, facts.2, facts.3);
++    assert_eq!((facts.0, facts.1), (65, 0),
++        "actual original reorder burst self-dropped at bounded PortIo publisher");
++}

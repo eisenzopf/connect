@@ -1,0 +1,1061 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -71,6 +71,9 @@
+ struct Received {
+     packet: rtc::rtp::Packet,
+     at: Instant,
++    // Video's source epoch at TrackRemote observation survives reorder/input waits.
++    // Metadata/liveness only, not authority; audio keeps its existing capture.
++    original_video_clock: Option<rvoip_core::stream::MediaSourceClock>,
+ }
+ // Power-of-two numeric refusal observations only. Never log packet payloads,
+ // credentials or SDP, and never alter a delivery, deadline or permission check.
+@@ -208,11 +211,7 @@
+                         clean = false;
+                     }
+                 }
+-                if clean {
+-                    Ok(())
+-                } else {
+-                    Err(())
+-                }
++                if clean { Ok(()) } else { Err(()) }
+             });
+             async move { task.await.unwrap_or(Err(())) }
+                 .boxed()
+@@ -646,7 +645,7 @@
+         if connection != self.id {
+             return Err(StreamControlError::Authority);
+         }
+-        let (tx, rx) = mpsc::channel(10);
++        let (tx, rx) = input_channel(b.negotiated.requested.medium);
+         let io = Arc::new(PortIo {
+             port: prepared.port.downgrade(),
+             binding: b.clone(),
+@@ -788,6 +787,9 @@
+         if let Err(error) = io.input.try_send(Received {
+             packet: packet.clone(),
+             at,
++            original_video_clock: (source.medium != Medium::Audio)
++                .then(|| source.lease.capture(source.ssrc))
++                .flatten(),
+         }) {
+             let reason = match error {
+                 mpsc::error::TrySendError::Closed(_) => "closed",
+@@ -797,33 +799,129 @@
+         }
+     }
+ }
++// Video may release64 retained reorder originals plus the newly closing
++// original, each normalized into at most2 <=1180-byte RTP packets. Keep the
++// existing perPort worker/nonwaiting fanout, but budget its queue for that burst
++// plus the old10 queued items. One more original may be in current Core retry.
++// Audio retains its original10-slot queue. No shared permit can starve peers.
++const VIDEO_INPUT_CAPACITY: usize = 2 * (crate::media::video_reorder::REORDER_LIMIT + 1) + 10;
++fn input_capacity(medium: Medium) -> usize {
++    if medium == Medium::Audio {
++        10
++    } else {
++        VIDEO_INPUT_CAPACITY
++    }
++}
++fn input_channel(medium: Medium) -> (mpsc::Sender<Received>, mpsc::Receiver<Received>) {
++    mpsc::channel(input_capacity(medium))
++}
+ fn publish_video(
+     output: crate::media::video_reorder::ReorderOutput,
+     mapping: &mut crate::media::video_normalize::SequenceMapper,
+     source: &Arc<Source>,
+     ports: &DashMap<StreamId, Arc<PortIo>>,
+     ready: &watch::Sender<Option<std::result::Result<Arc<Source>, ()>>>,
++    stop: &CancellationToken,
+ ) {
++    // No shared capacity wait remains. Preserve EACH actual original receipt's
++    //200ms cutoff across ALL its normalized fragments/targets. An expired item
++    // cannot discard a younger original in the same actual reorder release.
++    // No enqueue/fragment/target/retry gets a renewed deadline.
+     for received in output.packets {
+-        if received.inserted.elapsed() >= Duration::from_millis(200) {
++        let until = received.inserted + Duration::from_millis(200);
++        if stop.is_cancelled() {
++            return;
++        }
++        if Instant::now() >= until {
+             packet_refusal(
+                 &source.refused,
+                 source.medium,
+                 "video-reorder-age",
+-                "original 200ms bound",
++                "original 200ms publisher cutoff",
+             );
+             continue;
+         }
+-        match crate::media::video_normalize::normalize(received.packet, mapping) {
+-            Ok(packets) => {
+-                for packet in packets {
+-                    publish_source(packet, received.inserted, source, ports, ready);
++        if source.lease.required
++            && received
++                .source_clock
++                .as_ref()
++                .is_none_or(|clock| !(clock.is_current)())
++        {
++            packet_refusal(
++                &source.refused,
++                source.medium,
++                "video-original-clock",
++                "original observed source retired",
++            );
++            continue;
++        }
++        let packets = match crate::media::video_normalize::normalize(received.packet, mapping) {
++            Ok(packets) if packets.len() <= 2 => packets,
++            Ok(_) => {
++                packet_refusal(
++                    &source.refused,
++                    source.medium,
++                    "video-normalize",
++                    "declared fragment residency bound",
++                );
++                continue;
++            }
++            Err(error) => {
++                packet_refusal(&source.refused, source.medium, "video-normalize", error);
++                continue;
++            }
++        };
++        for packet in packets {
++            if stop.is_cancelled() {
++                return;
++            }
++            if Instant::now() >= until {
++                break;
++            }
++            if ready.borrow().is_none() {
++                ready.send_replace(Some(Ok(source.clone())));
++            }
++            for entry in ports.iter() {
++                let io = entry.value();
++                if !receives_rtp(&io.binding, source.medium)
++                    || !io.health.ready.load(Ordering::Acquire)
++                    || io.health.stop.is_cancelled()
++                    || io
++                        .port
++                        .upgrade()
++                        .is_none_or(|port| port.status() != PortStatus::Active)
++                {
++                    continue;
+                 }
+-            }
+-            Err(error) => packet_refusal(&source.refused, source.medium, "video-normalize", error),
+-        }
+-    }
+-}
++                if Instant::now() >= until {
++                    break;
++                }
++                if source.lease.required
++                    && received
++                        .source_clock
++                        .as_ref()
++                        .is_none_or(|clock| !(clock.is_current)())
++                {
++                    break;
++                }
++                // Only this target's bounded queue is spent. No capacity wait,
++                // detached task or shared global burst reservation exists.
++                if let Err(error) = io.input.try_send(Received {
++                    packet: packet.clone(),
++                    at: received.inserted,
++                    original_video_clock: received.source_clock.clone(),
++                }) {
++                    let reason = match error {
++                        mpsc::error::TrySendError::Closed(_) => "closed",
++                        mpsc::error::TrySendError::Full(_) => "full",
++                    };
++                    packet_refusal(&io.input_refused, source.medium, "port-input", reason);
++                }
++            }
++        }
++    }
++}
++
+ fn publish_audio(
+     output: crate::media::audio_reorder::AudioRelease,
+     source: &Arc<Source>,
+@@ -918,6 +1016,7 @@
+                 &source,
+                 &ports,
+                 ready,
++                &stop,
+             );
+         }
+         let wait = if medium == Medium::Audio {
+@@ -937,7 +1036,12 @@
+                 {
+                     continue;
+                 }
+-                if source.lease.required && source.lease.capture(ssrc).is_none() {
++                let original_clock = source
++                    .lease
++                    .required
++                    .then(|| source.lease.capture(ssrc))
++                    .flatten();
++                if source.lease.required && original_clock.is_none() {
+                     return Err(StreamControlError::NotReady);
+                 }
+                 if medium == Medium::Audio {
+@@ -977,13 +1081,19 @@
+                 } else if packet.payload.len() <= 1500 {
+                     publish_video(
+                         reorder.push(
+-                            crate::media::video_reorder::ReceivedPacket::new(packet, at),
++                            {
++                                let mut received =
++                                    crate::media::video_reorder::ReceivedPacket::new(packet, at);
++                                received.source_clock = original_clock;
++                                received
++                            },
+                             Instant::now(),
+                         ),
+                         &mut mapping,
+                         &source,
+                         &ports,
+                         ready,
++                        &stop,
+                     );
+                 }
+             }
+@@ -1037,11 +1147,19 @@
+             payload_type: Some(source.payload_type),
+             source_clock: None,
+         };
+-        // Freeze this source clock before the first admission attempt. A new
+-        // CNAME/SSRC generation during a temporary refusal cannot retimestamp
+-        // this original packet; its own current predicate remains mandatory.
+-        let clock = source.lease.capture(source.ssrc);
+-        if source.lease.required && clock.is_none() {
++        // Audio keeps its existing first-admission capture. Video already froze
++        // this source epoch at TrackRemote observation, before reorder/input waits.
++        // A newer CNAME/SR must not retimestamp either retained original.
++        let clock = if source.medium == Medium::Audio {
++            source.lease.capture(source.ssrc)
++        } else {
++            received.original_video_clock.clone()
++        };
++        if source.lease.required
++            && (clock.is_none()
++                || source.medium != Medium::Audio
++                    && clock.as_ref().is_some_and(|clock| !(clock.is_current)()))
++        {
+             packet_refusal(
+                 &refused,
+                 source.medium,
+@@ -1463,34 +1581,44 @@
+         let logical = Medium::Screen;
+         assert_eq!(rtp_medium(logical).unwrap(), Medium::Video);
+         assert_eq!(logical, Medium::Screen);
+-        assert!(validate_rtp_slots([
+-            (Medium::Audio, StreamDirection::Both),
+-            (logical, StreamDirection::Both)
+-        ])
+-        .is_ok());
+-        assert!(validate_rtp_slots([
+-            (Medium::Audio, StreamDirection::Both),
+-            (Medium::Video, StreamDirection::Both)
+-        ])
+-        .is_ok());
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, StreamDirection::Both),
++                (logical, StreamDirection::Both)
++            ])
++            .is_ok()
++        );
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, StreamDirection::Both),
++                (Medium::Video, StreamDirection::Both)
++            ])
++            .is_ok()
++        );
+     }
+     #[test]
+     fn a_single_video_rtp_slot_cannot_admit_camera_and_screen_or_data() {
+-        assert!(validate_rtp_slots([
+-            (Medium::Video, StreamDirection::Both),
+-            (Medium::Screen, StreamDirection::Both)
+-        ])
+-        .is_err());
+-        assert!(validate_rtp_slots([
+-            (Medium::Screen, StreamDirection::Both),
+-            (Medium::Screen, StreamDirection::Both)
+-        ])
+-        .is_err());
+-        assert!(validate_rtp_slots([
+-            (Medium::Audio, StreamDirection::Both),
+-            (Medium::Data, StreamDirection::Both)
+-        ])
+-        .is_err());
++        assert!(
++            validate_rtp_slots([
++                (Medium::Video, StreamDirection::Both),
++                (Medium::Screen, StreamDirection::Both)
++            ])
++            .is_err()
++        );
++        assert!(
++            validate_rtp_slots([
++                (Medium::Screen, StreamDirection::Both),
++                (Medium::Screen, StreamDirection::Both)
++            ])
++            .is_err()
++        );
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, StreamDirection::Both),
++                (Medium::Data, StreamDirection::Both)
++            ])
++            .is_err()
++        );
+         assert!(rtp_medium(Medium::Data).is_err());
+     }
+ 
+@@ -1498,12 +1626,14 @@
+     fn replacement_video_halves_share_one_physical_slot_without_duplicate_direction() {
+         use StreamDirection::{Both, Receive, Send};
+         for (first, second) in [(Receive, Send), (Send, Receive)] {
+-            assert!(validate_rtp_slots([
+-                (Medium::Audio, Both),
+-                (Medium::Video, first),
+-                (Medium::Video, second),
+-            ])
+-            .is_ok());
++            assert!(
++                validate_rtp_slots([
++                    (Medium::Audio, Both),
++                    (Medium::Video, first),
++                    (Medium::Video, second),
++                ])
++                .is_ok()
++            );
+         }
+         for first in [Receive, Send, Both] {
+             for second in [Receive, Send, Both] {
+@@ -1521,26 +1651,32 @@
+     #[test]
+     fn directional_profile_does_not_alias_camera_screen_or_split_audio() {
+         use StreamDirection::{Both, Receive, Send};
+-        assert!(validate_rtp_slots([
+-            (Medium::Audio, Both),
+-            (Medium::Video, Receive),
+-            (Medium::Screen, Send),
+-        ])
+-        .is_err());
+-        assert!(validate_rtp_slots([
+-            (Medium::Audio, Both),
+-            (Medium::Screen, Receive),
+-            (Medium::Video, Send),
+-        ])
+-        .is_err());
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, Both),
++                (Medium::Video, Receive),
++                (Medium::Screen, Send),
++            ])
++            .is_err()
++        );
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, Both),
++                (Medium::Screen, Receive),
++                (Medium::Video, Send),
++            ])
++            .is_err()
++        );
+         assert!(validate_rtp_slots([(Medium::Audio, Receive), (Medium::Audio, Send),]).is_err());
+-        assert!(validate_rtp_slots([
+-            (Medium::Audio, Both),
+-            (Medium::Video, Receive),
+-            (Medium::Video, Send),
+-            (Medium::Video, Send),
+-        ])
+-        .is_err());
++        assert!(
++            validate_rtp_slots([
++                (Medium::Audio, Both),
++                (Medium::Video, Receive),
++                (Medium::Video, Send),
++                (Medium::Video, Send),
++            ])
++            .is_err()
++        );
+     }
+ 
+     #[test]
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+@@ -382,6 +382,9 @@
+                 },
+             },
+             at: Instant::now(),
++            original_video_clock: (self.medium != Medium::Audio)
++                .then(|| self.source.lease.capture(self.source.ssrc))
++                .flatten(),
+         }
+     }
+     fn start(
+@@ -391,7 +394,7 @@
+         CancellationToken,
+         tokio::task::JoinHandle<ControlResult<()>>,
+     ) {
+-        let (send, receive) = mpsc::channel(10);
++        let (send, receive) = input_channel(self.medium);
+         let stop = CancellationToken::new();
+         let task = tokio::spawn(ingress(
+             self.port.downgrade(),
+@@ -743,19 +746,24 @@
+     // Always release/join before asserting; no detached fixture owner remains.
+     drop(publication);
+     worker.join().unwrap();
+-    assert!(matches!(before_release, Ok(Err(StreamControlError::NotReady))), "actual RTC current must refuse missing preparation while control publication is still held");
++    assert!(
++        matches!(before_release, Ok(Err(StreamControlError::NotReady))),
++        "actual RTC current must refuse missing preparation while control publication is still held"
++    );
+     assert!(matches!(
+         publication_result,
+         Err(StreamControlError::NotReady)
+     ));
+     assert!(!invoked.load(std::sync::atomic::Ordering::Acquire));
+     let original = activation.clone();
+-    assert!(std::thread::spawn(move || {
+-        let _publication = original.publication.lock().unwrap();
+-        panic!("controlled RTC publication poison");
+-    })
+-    .join()
+-    .is_err());
++    assert!(
++        std::thread::spawn(move || {
++            let _publication = original.publication.lock().unwrap();
++            panic!("controlled RTC publication poison");
++        })
++        .join()
++        .is_err()
++    );
+     assert!(matches!(
+         activation.current(owner("publication")),
+         Err(StreamControlError::Authority)
+@@ -766,15 +774,14 @@
+     physical_lifetime.cancel();
+ }
+ 
+-
+ // Actual reorder -> normalize -> PortIo publisher -> original ingress -> Core
+ // path. This is a packet/queue scheduling counter, not a codec/network or v218
+ // cause claim. The original C/VP8 encoder is deliberately not involved.
+ #[tokio::test(flavor = "current_thread")]
+ async fn rtc_reordered_burst_does_not_self_drop_before_original_age() {
++    use crate::media::video_reorder::{PacketReorder, ReceivedPacket};
+     use futures::FutureExt as _;
+     use rvoip_core::peer_admission::PeerAdmissionOwner;
+-    use crate::media::video_reorder::{PacketReorder, ReceivedPacket};
+     let mut f = Fixture::new(Medium::Video).await;
+     let physical_lifetime = CancellationToken::new();
+     let mut accepted = principal("burst-publication");
+@@ -782,20 +789,34 @@
+         credential_kind: rvoip_core::identity::CredentialKind::Oidc,
+     };
+     let peer_owner = PeerAdmissionOwner::new(
+-        &accepted, IdentityId::new(), DeviceId::new(),
+-        physical_lifetime.child_token(), Default::default(),
+-    ).unwrap();
++        &accepted,
++        IdentityId::new(),
++        DeviceId::new(),
++        physical_lifetime.child_token(),
++        Default::default(),
++    )
++    .unwrap();
+     let peer = peer_owner.peer();
+     let physical = WebRtcPhysicalBinding::new(&peer, physical_lifetime.child_token());
+     let ports = Arc::new(DashMap::<StreamId, Arc<PortIo>>::new());
+-    let (input, receive) = mpsc::channel(10);
++    let (input, receive) = input_channel(Medium::Video);
+     let io = Arc::new(PortIo {
+-        port: f.port.downgrade(), binding: f.port.binding().clone(), physical,
++        port: f.port.downgrade(),
++        binding: f.port.binding().clone(),
++        physical,
+         health: WorkerHealth::new(physical_lifetime.child_token()),
+-        input, input_refused: AtomicU64::new(0), close: OnceLock::new(),
++        input,
++        input_refused: AtomicU64::new(0),
++        close: OnceLock::new(),
+         map: Arc::downgrade(&ports),
+     });
+-    io.start(ingress(io.port.clone(), io.health.stop.clone(), receive, f.source.clone())).unwrap();
++    io.start(ingress(
++        io.port.clone(),
++        io.health.stop.clone(),
++        receive,
++        f.source.clone(),
++    ))
++    .unwrap();
+     {
+         let setup = io.health.setup.lock().unwrap();
+         io.health.activate(&setup).unwrap();
+@@ -808,8 +829,12 @@
+             let mut packet = f.packet(sequence, 90000).packet;
+             // Legal RTP/VP8-descriptor metadata only. No decoded picture claim.
+             packet.header.marker = sequence == 75;
+-            if sequence != 11 { packet.payload = Bytes::from(vec![0, 0, sequence as u8, 2]); }
+-            ReceivedPacket::new(packet, original)
++            if sequence != 11 {
++                packet.payload = Bytes::from(vec![0, 0, sequence as u8, 2]);
++            }
++            let mut received = ReceivedPacket::new(packet, original);
++            received.source_clock = f.source.lease.capture(f.source.ssrc);
++            received
+         };
+         let mut reorder = PacketReorder::default();
+         let seed = reorder.push(make(10), original);
+@@ -818,29 +843,46 @@
+             assert!(reorder.push(make(sequence), original).packets.is_empty());
+         }
+         let burst = reorder.push(make(11), original);
+-        let sequences: Vec<_> = burst.packets.iter()
+-            .map(|value| value.packet.header.sequence_number).collect();
++        let sequences: Vec<_> = burst
++            .packets
++            .iter()
++            .map(|value| value.packet.header.sequence_number)
++            .collect();
+         assert_eq!(sequences, (11..=75).collect::<Vec<_>>());
+-        assert!(burst.packets.iter().all(|value|
+-            value.inserted == original && value.packet.header.timestamp == 90000));
++        assert!(
++            burst
++                .packets
++                .iter()
++                .all(|value| value.inserted == original && value.packet.header.timestamp == 90000)
++        );
+         assert!(original.elapsed() < Duration::from_millis(200));
+         // No test yield / scheduler advance is inserted into the production
+-        // publisher. Its exact synchronous burst has to meet its own ten-slot
+-        // adapter boundary; a future paced implementation must keep this oracle.
++        // publisher. Its exact synchronous burst must fit the SAME declared
++        // production constructor, without blocking another source/target.
++        let expected_payloads: Vec<_> = burst
++            .packets
++            .iter()
++            .map(|value| value.packet.marshal().unwrap().freeze())
++            .collect();
+         let source = f.source.clone();
++        let publishing_stop = CancellationToken::new();
+         // Both original futures stay in this task. The actual publisher is
+         // polled first; an eventual backpressure await must permit this SAME
+         // Core receiver to drain, without a detached collector or test yield.
+         let (_, frames) = tokio::join!(biased;
+             async {
+                 let mut mapping = crate::media::video_normalize::SequenceMapper::default();
+-                publish_video(burst, &mut mapping, &source, &ports, &ready);
++                publish_video(burst, &mut mapping, &source, &ports, &ready, &publishing_stop);
+             },
+             f.delivered(65),
+         );
+         let input_refused = io.input_refused.load(Ordering::Acquire);
+         let received = frames.len();
+         assert!(frames.iter().all(|frame| frame.timestamp_rtp == 90000));
++        let exact_prefix_bytes = frames
++            .iter()
++            .zip(&expected_payloads)
++            .all(|(actual, expected)| actual.payload == *expected);
+         assert!(f.input.try_recv().is_err());
+         let fresh = f.packet(90, 93000);
+         publish_source(fresh.packet, fresh.at, &f.source, &ports, &ready);
+@@ -848,13 +890,24 @@
+         let fresh_ok = timestamps(&fresh) == [93000];
+         // A genuinely expired original remains excluded without queue admission.
+         let old = f.packet(91, 96000);
+-        let expired = Instant::now().checked_sub(Duration::from_millis(201)).unwrap();
++        let expired = Instant::now()
++            .checked_sub(Duration::from_millis(201))
++            .unwrap();
+         let source_refused_before = f.source.refused.load(Ordering::Acquire);
+         publish_source(old.packet, expired, &f.source, &ports, &ready);
+         let expired_refused = f.source.refused.load(Ordering::Acquire) == source_refused_before + 1;
+         let no_expired_input = f.input.try_recv().is_err();
+-        (received, input_refused, fresh_ok, expired_refused, no_expired_input)
+-    }).catch_unwind().await;
++        (
++            received,
++            input_refused,
++            fresh_ok,
++            expired_refused,
++            no_expired_input,
++            exact_prefix_bytes,
++        )
++    })
++    .catch_unwind()
++    .await;
+     // Every original worker/controller settles BEFORE the intended OLD oracle.
+     let io_closed = io.close().await.is_ok();
+     let workers_joined = io.health.setup.lock().unwrap().tasks.is_empty();
+@@ -866,13 +919,445 @@
+     physical_lifetime.cancel();
+     drop(peer_owner);
+     let peer_closed = peer.is_closed();
+-    assert!(io_closed && workers_joined && map_empty && input_closed && peer_closed
+-        && a_outstanding == 0 && b_outstanding == 0 && no_policy_reader,
+-        "original burst IO/Controllers/physical resource failed to settle");
+-    let facts = match work { Ok(facts) => facts, Err(error) => std::panic::resume_unwind(error) };
+-    assert!(facts.2 && facts.3 && facts.4, "fresh recovery/expired-original qualifier failed");
+-    println!("rtc_reorder_original_burst released=65 delivered={} input_refused={} fresh={} expired_refused={} all_originals_joined=true",
+-        facts.0, facts.1, facts.2, facts.3);
+-    assert_eq!((facts.0, facts.1), (65, 0),
+-        "actual original reorder burst self-dropped at bounded PortIo publisher");
+-}
++    assert!(
++        io_closed
++            && workers_joined
++            && map_empty
++            && input_closed
++            && peer_closed
++            && a_outstanding == 0
++            && b_outstanding == 0
++            && no_policy_reader,
++        "original burst IO/Controllers/physical resource failed to settle"
++    );
++    let facts = match work {
++        Ok(facts) => facts,
++        Err(error) => std::panic::resume_unwind(error),
++    };
++    assert!(
++        facts.2 && facts.3 && facts.4 && facts.5,
++        "fresh/expiry/original ordered bytes qualifier failed"
++    );
++    println!(
++        "rtc_reorder_original_burst released=65 delivered={} input_refused={} fresh={} expired_refused={} all_originals_joined=true",
++        facts.0, facts.1, facts.2, facts.3
++    );
++    assert_eq!(
++        (facts.0, facts.1),
++        (65, 0),
++        "actual original reorder burst self-dropped at bounded PortIo publisher"
++    );
++}
++
++struct BurstPortOwner {
++    io: Arc<PortIo>,
++    lifetime: CancellationToken,
++    peer_owner: Option<rvoip_core::peer_admission::PeerAdmissionOwner>,
++}
++impl BurstPortOwner {
++    fn new(f: &Fixture, ports: &Arc<DashMap<StreamId, Arc<PortIo>>>) -> Self {
++        use rvoip_core::peer_admission::PeerAdmissionOwner;
++        let lifetime = CancellationToken::new();
++        let mut accepted = principal("burst-resource");
++        accepted.assurance = IdentityAssurance::Identified {
++            credential_kind: rvoip_core::identity::CredentialKind::Oidc,
++        };
++        let owner = PeerAdmissionOwner::new(
++            &accepted,
++            IdentityId::new(),
++            DeviceId::new(),
++            lifetime.child_token(),
++            Default::default(),
++        )
++        .unwrap();
++        let physical = WebRtcPhysicalBinding::new(&owner.peer(), lifetime.child_token());
++        // EXACT same private channel constructor as Backend.prepare_port.
++        let (input, receive) = input_channel(Medium::Video);
++        let io = Arc::new(PortIo {
++            port: f.port.downgrade(),
++            binding: f.port.binding().clone(),
++            physical,
++            health: WorkerHealth::new(lifetime.child_token()),
++            input,
++            input_refused: AtomicU64::new(0),
++            close: OnceLock::new(),
++            map: Arc::downgrade(ports),
++        });
++        io.start(ingress(
++            io.port.clone(),
++            io.health.stop.clone(),
++            receive,
++            f.source.clone(),
++        ))
++        .unwrap();
++        {
++            let setup = io.health.setup.lock().unwrap();
++            io.health.activate(&setup).unwrap();
++        }
++        ports.insert(io.binding.transport_id.clone(), io.clone());
++        Self {
++            io,
++            lifetime,
++            peer_owner: Some(owner),
++        }
++    }
++    async fn close(&mut self, f: &Fixture) -> bool {
++        let closed = self.io.close().await.is_ok();
++        let joined = self.io.health.setup.lock().unwrap().tasks.is_empty();
++        let input_closed = self.io.input.is_closed();
++        let a = f.a.shutdown(deadline()).await;
++        let b = f.b.shutdown(deadline()).await;
++        let reader_free = f.policy.guard.clone().try_write_owned().is_ok();
++        let peer = self.peer_owner.as_ref().unwrap().peer();
++        self.lifetime.cancel();
++        drop(self.peer_owner.take());
++        closed && joined && input_closed && a == 0 && b == 0 && reader_free && peer.is_closed()
++    }
++}
++fn original_video_packet(
++    f: &Fixture,
++    sequence: u16,
++    timestamp: u32,
++    at: Instant,
++    large: bool,
++) -> crate::media::video_reorder::ReceivedPacket {
++    let mut original = f.packet(sequence, timestamp);
++    if large {
++        let mut payload = vec![0x10];
++        payload.extend((0..1499).map(|n| (n as u16 + sequence) as u8));
++        original.packet.payload = payload.into();
++    }
++    let mut received = crate::media::video_reorder::ReceivedPacket::new(original.packet, at);
++    received.source_clock = original.original_video_clock;
++    received
++}
++fn actual_reordered_burst(
++    f: &Fixture,
++    large: bool,
++) -> (crate::media::video_reorder::ReorderOutput, Vec<Bytes>) {
++    use crate::media::video_reorder::PacketReorder;
++    let at = Instant::now();
++    let mut reorder = PacketReorder::default();
++    assert_eq!(
++        reorder
++            .push(original_video_packet(f, 10, 90000, at, large), at)
++            .packets
++            .len(),
++        1
++    );
++    for sequence in 12..=75 {
++        assert!(
++            reorder
++                .push(original_video_packet(f, sequence, 90000, at, large), at)
++                .packets
++                .is_empty()
++        );
++    }
++    let output = reorder.push(original_video_packet(f, 11, 90000, at, large), at);
++    assert_eq!(output.packets.len(), 65);
++    let mut expected_mapper = crate::media::video_normalize::SequenceMapper::default();
++    let expected = output
++        .packets
++        .iter()
++        .flat_map(|received| {
++            crate::media::video_normalize::normalize(received.packet.clone(), &mut expected_mapper)
++                .unwrap()
++        })
++        .map(|packet| packet.marshal().unwrap().freeze())
++        .collect();
++    (output, expected)
++}
++async fn fill_original_video_input(f: &Fixture, io: &PortIo, queued: usize) -> Instant {
++    f.policy.mode.store(1, Ordering::SeqCst);
++    let first = f.packet(400, 1000);
++    let at = first.at;
++    io.input.send(first).await.unwrap();
++    f.wait_attempt(0).await;
++    for n in 0..queued {
++        io.input
++            .try_send(f.packet(401 + n as u16, 2000 + n as u32))
++            .unwrap();
++    }
++    assert_eq!(io.input.capacity(), VIDEO_INPUT_CAPACITY - queued);
++    at
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn rtc_video_input_budget_covers_normalized_and_in_order_source_turns() {
++    use futures::FutureExt as _;
++    for large in [false, true] {
++        let mut f = Fixture::new(Medium::Video).await;
++        let ports = Arc::new(DashMap::new());
++        let mut owner = BurstPortOwner::new(&f, &ports);
++        let work = std::panic::AssertUnwindSafe(async {
++            assert_eq!(input_capacity(Medium::Audio), 10);
++            assert_eq!(VIDEO_INPUT_CAPACITY + 1, 141);
++            fill_original_video_input(&f, &owner.io, 10).await;
++            let (ready, _ready_observation) = watch::channel(None);
++            let stop = CancellationToken::new();
++            let mut mapper = crate::media::video_normalize::SequenceMapper::default();
++            let expected = if large {
++                let (output, expected) = actual_reordered_burst(&f, true);
++                assert_eq!(expected.len(), 130);
++                publish_video(output, &mut mapper, &f.source, &ports, &ready, &stop);
++                expected
++            } else {
++                //65 INDEPENDENT in-order releases before any consumer poll.
++                let at = Instant::now();
++                let mut reorder = crate::media::video_reorder::PacketReorder::default();
++                let mut expected = Vec::new();
++                for sequence in 10..75 {
++                    let output =
++                        reorder.push(original_video_packet(&f, sequence, 90000, at, false), at);
++                    assert_eq!(output.packets.len(), 1);
++                    expected.push(output.packets[0].packet.marshal().unwrap().freeze());
++                    publish_video(output, &mut mapper, &f.source, &ports, &ready, &stop);
++                }
++                expected
++            };
++            assert_eq!(
++                owner.io.input.capacity(),
++                VIDEO_INPUT_CAPACITY - 10 - expected.len()
++            );
++            assert_eq!(owner.io.input_refused.load(Ordering::Acquire), 0);
++            assert!(f.policy.guard.clone().try_write_owned().is_ok());
++            assert!(
++                expected
++                    .iter()
++                    .all(|bytes| bytes.len() <= rvoip_core::video_bridge::MAX_VIDEO_RTP_BYTES)
++            );
++            f.policy.mode.store(0, Ordering::SeqCst);
++            let frames = f.delivered(11 + expected.len()).await;
++            let originals: Vec<_> = frames
++                .iter()
++                .filter(|frame| frame.timestamp_rtp == 90000)
++                .collect();
++            let exact = originals.len() == expected.len()
++                && originals
++                    .iter()
++                    .zip(&expected)
++                    .all(|(actual, bytes)| actual.payload == *bytes);
++            (exact, frames.len(), expected.len())
++        })
++        .catch_unwind()
++        .await;
++        let clean = owner.close(&f).await;
++        let empty = ports.is_empty();
++        assert!(clean && empty, "original positive owners did not join");
++        let facts = match work {
++            Ok(value) => value,
++            Err(error) => std::panic::resume_unwind(error),
++        };
++        assert!(
++            facts.0 && facts.1 == 11 + facts.2,
++            "original normalized/inorder loss/order large={large}"
++        );
++    }
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn rtc_publisher_primitive_isolates_full_target_and_later_source_turn() {
++    use futures::FutureExt as _;
++    // Composed publisher primitive: two real independently guarded Core ports,
++    // NOT a claim canonical whole-ticket validation permits steady twoRx.
++    let mut blocked = Fixture::new(Medium::Video).await;
++    let mut healthy = Fixture::new(Medium::Video).await;
++    let ports = Arc::new(DashMap::new());
++    let mut blocked_owner = BurstPortOwner::new(&blocked, &ports);
++    let mut healthy_owner = BurstPortOwner::new(&healthy, &ports);
++    let work = std::panic::AssertUnwindSafe(async {
++        assert_ne!(
++            blocked_owner.io.binding.transport_id, healthy_owner.io.binding.transport_id,
++            "two distinct actual source port resources required"
++        );
++        let blocked_at =
++            fill_original_video_input(&blocked, &blocked_owner.io, VIDEO_INPUT_CAPACITY).await;
++        let (ready, _ready_observation) = watch::channel(None);
++        let stop = CancellationToken::new();
++        let mut mapper = crate::media::video_normalize::SequenceMapper::default();
++        let (burst, mut expected) = actual_reordered_burst(&healthy, false);
++        publish_video(burst, &mut mapper, &healthy.source, &ports, &ready, &stop);
++        // A LATER source-loop turn must run while the blocked target stays full.
++        let at = Instant::now();
++        let later = original_video_packet(&healthy, 90, 180000, at, false);
++        let mut output = crate::media::video_reorder::ReorderOutput::default();
++        let mut expected_mapper = crate::media::video_normalize::SequenceMapper::default();
++        expected.push(
++            crate::media::video_normalize::normalize(later.packet.clone(), &mut expected_mapper)
++                .unwrap()[0]
++                .marshal()
++                .unwrap()
++                .freeze(),
++        );
++        // Mapper90 preserves the actual source gap after original75.
++        output.packets.push(later);
++        publish_video(output, &mut mapper, &healthy.source, &ports, &ready, &stop);
++        let frames = healthy.delivered(66).await;
++        let before_release = blocked.policy.mode.load(Ordering::SeqCst) == 1
++            && blocked_owner.io.input.capacity() == 0
++            && blocked_at.elapsed() < Duration::from_millis(200);
++        let exact = frames.len() == 66
++            && frames
++                .iter()
++                .zip(&expected)
++                .all(|(actual, bytes)| actual.payload == *bytes);
++        let later_seen = frames
++            .last()
++            .is_some_and(|frame| frame.timestamp_rtp == 180000);
++        let blocked_refused = blocked_owner.io.input_refused.load(Ordering::Acquire);
++        blocked.policy.mode.store(0, Ordering::SeqCst);
++        let prior = blocked.delivered(VIDEO_INPUT_CAPACITY + 1).await;
++        (
++            before_release,
++            exact,
++            later_seen,
++            blocked_refused,
++            prior.len(),
++        )
++    })
++    .catch_unwind()
++    .await;
++    let blocked_clean = blocked_owner.close(&blocked).await;
++    let healthy_clean = healthy_owner.close(&healthy).await;
++    let empty = ports.is_empty();
++    assert!(
++        blocked_clean && healthy_clean && empty,
++        "original fanout owners did not join"
++    );
++    let facts = match work {
++        Ok(value) => value,
++        Err(error) => std::panic::resume_unwind(error),
++    };
++    assert!(
++        facts.0 && facts.1 && facts.2 && facts.3 == 66 && facts.4 == VIDEO_INPUT_CAPACITY + 1,
++        "full target stopped healthy burst or later source turn: {facts:?}"
++    );
++}
++
++#[tokio::test(flavor = "current_thread")]
++async fn rtc_video_budget_preserves_age_stop_clock_and_current_gate() {
++    use futures::FutureExt as _;
++    for action in ["age", "stop", "withdrawal", "clock", "gate", "mixed-expiry"] {
++        let mut f = Fixture::new(Medium::Video).await;
++        let ports = Arc::new(DashMap::new());
++        let mut owner = BurstPortOwner::new(&f, &ports);
++        let work = std::panic::AssertUnwindSafe(async {
++            fill_original_video_input(&f, &owner.io, 0).await;
++            let (ready, _ready_observation) = watch::channel(None);
++            let stop = CancellationToken::new();
++            let (burst, mixed_expected) = if action == "mixed-expiry" {
++                // Actual monotonic wait, after controller/port activation: old12
++                // expires, then SAME push also releases genuinely fresh13.
++                let mut reorder = crate::media::video_reorder::PacketReorder::default();
++                let old = Instant::now();
++                assert_eq!(
++                    reorder
++                        .push(original_video_packet(&f, 10, 90000, old, false), old)
++                        .packets
++                        .len(),
++                    1
++                );
++                assert!(
++                    reorder
++                        .push(original_video_packet(&f, 12, 90000, old, false), old)
++                        .packets
++                        .is_empty()
++                );
++                tokio::time::sleep(Duration::from_millis(215)).await;
++                let now = Instant::now();
++                let fresh = original_video_packet(&f, 13, 90000, now, false);
++                let expected = fresh.packet.marshal().unwrap().freeze();
++                let output = reorder.push(fresh, now);
++                assert_eq!(
++                    output
++                        .packets
++                        .iter()
++                        .map(|r| r.packet.header.sequence_number)
++                        .collect::<Vec<_>>(),
++                    [12, 13]
++                );
++                assert!(output.packets[0].inserted.elapsed() >= Duration::from_millis(200));
++                assert_eq!(output.packets[1].inserted, now);
++                (output, Some(expected))
++            } else {
++                (actual_reordered_burst(&f, false).0, None)
++            };
++            let mut mapper = crate::media::video_normalize::SequenceMapper::default();
++            if action == "withdrawal" {
++                ports.remove(&owner.io.binding.transport_id);
++            }
++            let source_refused_before = f.source.refused.load(Ordering::Acquire);
++            publish_video(burst, &mut mapper, &f.source, &ports, &ready, &stop);
++            let mixed_refusal = action != "mixed-expiry"
++                || f.source.refused.load(Ordering::Acquire) == source_refused_before + 1;
++            if action == "age" {
++                tokio::time::sleep(Duration::from_millis(215)).await;
++            }
++            if action == "stop" {
++                owner.io.health.retire();
++            }
++            if action == "clock" {
++                f.clock.cname(77, b"successor-burst-clock");
++                assert!(f.clock.sender_report(77, 11 << 32, 90000, 2, 101 << 32));
++                assert!(f.source.lease.capture(77).is_some());
++            }
++            if action == "gate" {
++                let ids = [desired(Medium::Video).logical_id].into_iter().collect();
++                for change in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                    f.a.set_media_gate(f.a.revision(), &ids, change, deadline())
++                        .await
++                        .unwrap();
++                }
++            }
++            f.policy.mode.store(0, Ordering::SeqCst);
++            let frames = f
++                .delivered(if action == "withdrawal" { 1 } else { 66 })
++                .await;
++            let originals: Vec<_> = frames
++                .iter()
++                .filter(|frame| frame.timestamp_rtp == 90000)
++                .collect();
++            let original_count = originals.len();
++            let mixed_exact = mixed_expected
++                .as_ref()
++                .is_none_or(|bytes| originals.len() == 1 && originals[0].payload == *bytes);
++            let fresh_ok = if ["age", "clock", "gate"].contains(&action) {
++                let at = Instant::now();
++                let mut output = crate::media::video_reorder::ReorderOutput::default();
++                output
++                    .packets
++                    .push(original_video_packet(&f, 2000, 180000, at, false));
++                publish_video(
++                    output,
++                    &mut mapper,
++                    &f.source,
++                    &ports,
++                    &ready,
++                    &CancellationToken::new(),
++                );
++                timestamps(&f.delivered(1).await) == [180000]
++            } else {
++                true
++            };
++            (original_count, fresh_ok, mixed_refusal && mixed_exact)
++        })
++        .catch_unwind()
++        .await;
++        let clean = owner.close(&f).await;
++        let empty = ports.is_empty();
++        assert!(clean && empty, "original negative owners failed: {action}");
++        let facts = match work {
++            Ok(value) => value,
++            Err(error) => std::panic::resume_unwind(error),
++        };
++        assert_eq!(
++            facts.0,
++            if action == "mixed-expiry" { 1 } else { 0 },
++            "expired/old-epoch relabelled, or fresh original discarded: {action}"
++        );
++        assert!(
++            facts.1 && facts.2,
++            "fresh current/mixed-expiry bytes/accounting failed after {action}"
++        );
++    }
++}

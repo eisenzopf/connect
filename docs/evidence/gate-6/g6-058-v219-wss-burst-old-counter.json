@@ -1,0 +1,70 @@
+{
+  "format": "connect/g6-058-wss-original-burst-counter/1",
+  "updated_at": "2026-11-13T23:32:50.094699+00:00",
+  "counter_source_generation": 435,
+  "source_lock_sha256": "614ed1e6db65339f4cdfd185a6dc94c4a2c88fc34fbdd9a98260e8ac5d09032f",
+  "test_only_patch": "patches/rvoip/connect-rtc-reorder-port-burst-counter.patch",
+  "test_only_patch_sha256": "e153ebe2bd2283c0a3855cabe4cfe4252d8a0cf7f76aa79631c2dd3783b331d6",
+  "production_changed": false,
+  "source_and_binary_unchanged": true,
+  "before_hashes": {
+    "binary": "227be4533fa83ce89c169f9dd267d580a574fe6463d9a491f9a3a5d8ccd1e90a",
+    "lock": "614ed1e6db65339f4cdfd185a6dc94c4a2c88fc34fbdd9a98260e8ac5d09032f",
+    "fixture": "a429f117e24fe512d45930de4a3556a911aad022a55bcd3e6d45f7c9613d8bcf",
+    "production": "9c0b8156c35fc0faae6f02974cf164a6a655a332d080427505897fb0357fae81"
+  },
+  "expected_old_failure_qualified": true,
+  "actual_original_test_exit_code": 101,
+  "root_adjudicator_exit_code": 0,
+  "originals_joined": true,
+  "forced": false,
+  "process_group_absent": true,
+  "original_tool_joins": {
+    "original_build_session": 56568,
+    "actual_build_join_chunk": "8744bb",
+    "original_build_exit_code": 0,
+    "original_run_session": 56622,
+    "actual_run_join_chunk": "c6ed54",
+    "original_run_exit_code": 0,
+    "actual_write_stdin_joined": true
+  },
+  "result": {
+    "actual_reorder_originals_released": 65,
+    "actual_core_deliveries": 10,
+    "input_refusals": 55,
+    "fresh_recovery_passed": true,
+    "expired_original_refusal_passed": true,
+    "original_core_controllers_and_io_joined_before_oracle": true
+  },
+  "raw_log_sha256": "e1cad8ea9a768ad6839c31d8b1f1967ae7f8512909e14518a35aeb161b4594b5",
+  "private_receipt_sha256": "c5c86ec70eb6dce9eadaeb7138a07f58b95fe015f5f03c75404fa32e0f3e7d40",
+  "source_cause": "The actual reorder releases65 current original RTP packets; synchronous per-packet canonical publication tries a ten-slot input queue before its original ingress owner can run. Remaining55 are refused as full.",
+  "scope": "Real PacketReorder/normalization/PortIo/current Core forwarding; legal RTP and VP8 descriptor metadata, not a decoded-picture or network test.",
+  "proposed_fix_status": "Unapplied V3 under review: video140queued+oneinflight explicitly bounded141, audio10+one unchanged; no shared source-loop wait and no new worker/semaphore/queue; frozen source clock and original receivedAt/current authorization retained.",
+  "rejected_proposal": "V2 capacity-await candidate remains unapplied: Root found it could block later source-loop input, and a transient old/new port overlap. Source reviews were corrected additively.",
+  "historical39_browser_fps_cause_proven": false,
+  "matrix_qualified": false,
+  "prior_combined_source_stage": {
+    "head": "4e0ad6ff0c2d4ccef4362d1d1a71bf3da4923a3e",
+    "generation": 434,
+    "script_checks_passed": 175,
+    "build_phases_passed": 7,
+    "build_receipt_sha256": "c5d06a0ecf32944108687eaf50c0b7c31070ba93afc9df2dd6b5d1ebabe8d4e1",
+    "build_original_tool_session": 35888,
+    "build_original_join_chunk": "e6aaf8",
+    "build_original_exit_code": 0,
+    "all_original_groups_joined": true,
+    "source_and_inputs_unchanged": true,
+    "rust_runtime436_executed": 0,
+    "runtime_status": "Explicitly deferred to address newly confirmed library burst defect before next whole-source/matrix run.",
+    "whole611_qualified": false
+  },
+  "latest_full_matrix": {
+    "label": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "next": "Implement independently reviewed bounded nonwaiting V3, test actual original and negative/cancellation/clock/gate/residency cases, batch commit and fresh combined-source then ARM/release/full32."
+}
