@@ -17604,6 +17604,12 @@
       "passed": 50,
       "planned": 50,
       "evidence": "g6-058-v217-handoff-diagnostics-progress.json"
+    },
+    {
+      "name": "Store control-only snapshot preparation and surrounding authorization regression; no Root/SQL/media qualification",
+      "passed": 36,
+      "planned": 36,
+      "evidence": "g6-058-v217-store-route-control.json"
     }
   ],
   "current_production_check": {
@@ -18384,8 +18390,8 @@
         "scope": "Receive-history reset remains staged. Actual four WebCodecs cases and public Core Opus consumer found no ambiguity/clock-regression causal effect; no matrix/WSS cure claim."
       },
       "S4": {
-        "status": "boundary-characterized-fresh-continuity-fixes-in-progress",
-        "scope": "Actual managed forward/return confirms discarded private Ready PCM and empty first ordinary source only while fresh input is artificially paused; not itself a product violation or continuous-stall cause. Fresh decoder history and exact affected-route warmup are being staged under unchanged privacy/prestart/current grants. No historical PCM transfer or matrix cure claim."
+        "status": "control-primitive-verified-service-integration-staging",
+        "scope": "Store control-only snapshot warmup primitive passes36 authorization cases including4 new controls. Actual marked-packet signed Root OLD/fixed fixtures are staged. Private decoder/filter history transfer was rejected/unapplied; baseline resets remain. No media or matrix pass claimed."
       },
       "S5": {
         "status": "applied-component-verified",
@@ -18415,8 +18421,10 @@
       }
     },
     "postrun_progress_evidence": "docs/evidence/gate-6/g6-058-v217-handoff-diagnostics-progress.json",
-    "postrun_progress_sha256": "8e79a1f2368959afde700796849e921e232227e880b06727e7347d339fd7e50c",
+    "postrun_progress_sha256": "ee0a7a47cd92be02d5bb1979b92d6e83659765362dd40be5f1ff232630a2c357",
     "postrun_diagnostic_checks_passed": 29,
-    "postrun_Core_regression_passed": 50
+    "postrun_Core_regression_passed": 50,
+    "store_route_control_evidence": "docs/evidence/gate-6/g6-058-v217-store-route-control.json",
+    "store_route_control_sha256": "418efb4edc0958d18bf8521a0ac626ec7346c1f5c735c11421333ac544049145"
   }
 }

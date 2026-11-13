@@ -344,6 +344,14 @@ impl Store {
         }
         self.register_native_media_snapshot_hints(&hints, refresh, true)
     }
+    /// Bounded control-plane preparation of this Store's exact registration.
+    /// Runs its existing current-authority factory once off media; no retry,
+    /// retained lease, IO permission or queued-packet epoch renewal is returned.
+    pub fn try_prepare_native_media_snapshot(&self, snapshot: &NativeMediaSnapshot) -> Result<()> {
+        self.media_authorization_registry()
+            .try_prepare_current(&snapshot.handle)
+    }
+
     fn register_native_media_snapshot_hints(
         &self,
         hints: &[AuthorityScope],

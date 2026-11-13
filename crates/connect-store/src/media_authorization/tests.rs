@@ -1,3 +1,4 @@
+mod control_prepare;
 mod probe_metadata;
 use super::*;
 use crate::authority_fences::{AuthorityMode, AuthorityWait, Manager};

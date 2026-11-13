@@ -1,0 +1,50 @@
+{
+  "format": "connect/g6-058-store-route-control/1",
+  "recorded_at": "2026-11-13T11:21:47.446268+00:00",
+  "owner": "/root",
+  "reviewer": "fixture_blockers",
+  "dependency_generation": 426,
+  "change": "Add an explicit control-only current-snapshot preparation primitive using the existing guarded factory. Healthy current registrations keep their original stamp. Packet admission and actual Service handoff are unchanged.",
+  "source_sha256": {
+    "crates/connect-store/src/media_authorization.rs": "c04558b8523a8e2d996bdd25e4e849b8bf37d25f96a4584b6cb38edd55ada50b",
+    "crates/connect-store/src/peer_authority/connection_media.rs": "6da5611653b85010faf1264a3dbe2ed95e6d136b2614628b97151699ce77eea2",
+    "crates/connect-store/src/media_authorization/tests.rs": "c62f9d553f688fa00b2f9bf6b63fd85b6f67d0987eef1a6a6e97537cc72b08cd",
+    "crates/connect-store/src/media_authorization/tests/control_prepare.rs": "9af4c39690ead3111b53f5f5dc0d075aab2dd3acffd43d4f8c10d1023a57a1a1"
+  },
+  "tests": {
+    "passed": 36,
+    "planned": 36,
+    "new_control_cases": 4,
+    "existing_authorization_cases": 32,
+    "includes_idempotent_control_replay": true,
+    "original_cargo_pid": 91082,
+    "original_exit_code": 0,
+    "all_originals_naturally_joined": true,
+    "outer_original_wait_session": 47871,
+    "outer_exit_code": 0,
+    "private_original_receipt_sha256": "e47cc5e2b2085baac330094f202719282855c2ed9dd77b3364b954595bfa2f0b"
+  },
+  "source_review_sha256": "fd81321de23fac6ec4cc58bee894fa997acabb371920061a801117d5d547b4b9",
+  "limitations": [
+    "New primitive controls use real Manager resource fences with dummy facts and a non-SQL factory. Surrounding32 tests include existing owned worker and external-kernel Writer checks.",
+    "This is not actual Native SQL, a signed Root handoff pass or a matrix-cell pass.",
+    "Service/Core route selection integration and exact-marked-packet OLD/fixed tests are staged, unexecuted.",
+    "The private decoder/resampler state-transfer draft was rejected and never applied; baseline resets remain."
+  ],
+  "decoder_state_transfer_rejected": {
+    "production_fix": false,
+    "active_paths_unchanged": 8,
+    "source_audit_sha256": "e4a1479aad42828f86d5e107d0ee1d4509bbec3f20a148e97e65c0c7be9cb89b",
+    "reason": "Discard-only preparation decoder/filter state contains private sample-derived history without irreversible capture-time ordinary-recipient consent. Fresh publication checks alone cannot authorize that history."
+  },
+  "matrix_unchanged": {
+    "run": "v217",
+    "cells_passed": 2,
+    "cells_total": 32,
+    "checks_passed": 400,
+    "checks_total": 432,
+    "new_matrix_launched": false
+  },
+  "acceptance_changed": false,
+  "wire_HTTP_OpenAPI_change": false
+}

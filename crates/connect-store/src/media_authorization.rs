@@ -685,6 +685,25 @@ impl Registry {
         self.changed.notify_all();
         Ok(Handle { slot })
     }
+    /// One control-plane refresh, never called by packet admission. The
+    /// original factory owns all SQL/file work outside Registry/map locks.
+    /// Success is an observation only; subsequent IO must still admit normally.
+    pub(crate) fn try_prepare_current<T: SnapshotFacts>(&self, handle: &Handle<T>) -> Result<()> {
+        if !Arc::ptr_eq(&self.availability, &handle.slot.availability) {
+            return Err(Error::forbidden());
+        }
+        self.availability.check()?;
+        // Off-media expiry/owner retirement only. Never refresh an old queued
+        // stamp or retain the temporary admission beyond this control call.
+        drop(handle.slot.published_scopes());
+        if handle.admit().is_ok() {
+            return Ok(());
+        }
+        handle.slot.refresh_if_missing(self);
+        drop(handle.observe()?);
+        Ok(())
+    }
+
     /// Invoke before any local writer waits for file admission; retain returned
     /// notice until its original full Write interval and SQL outcome have ended.
     pub(crate) fn before_write(

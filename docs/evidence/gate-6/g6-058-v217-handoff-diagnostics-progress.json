@@ -102,21 +102,22 @@
       "task": "v217/S4/decoder-history",
       "owner": "v198_resources",
       "reviewer": "fixture_blockers",
-      "status": "staging",
-      "scope": "Consider exact same-root source decoder/to_mix continuation for fresh authorized input only; no prepared PCM transfer."
+      "status": "rejected-unapplied",
+      "scope": "Actual decoder/filter history contains private sample-derived state without irreversible capture-time ordinary-recipient consent. Draft never active; baseline resets retained.",
+      "source_audit_sha256": "e4a1479aad42828f86d5e107d0ee1d4509bbec3f20a148e97e65c0c7be9cb89b"
     },
     {
       "task": "v217/S4/first-fresh-route",
       "owner": "capture_epoch_transition",
       "reviewer": "Root",
-      "status": "staging",
-      "scope": "Explicit off-media exact continuation routes after Commit Writer closes; use existing fully fenced refresh/admit to avoid lazy first-packet miss and extra watcher turn."
+      "status": "store-primitive-verified-service-staged",
+      "scope": "Root Store control-only primitive passes36 authorization tests. Service/Core selected-route warmup and exact-packet signed Root OLD/fixed fixtures staged, unexecuted."
     },
     {
       "task": "v217/S6/fixture-optin",
       "owner": "fixture_blockers",
       "reviewer": "Root",
-      "status": "staging",
+      "status": "applied-component-verified",
       "scope": "Wire explicit fixture-only recording option before original observer; preserve default off, graph and criteria."
     },
     {
