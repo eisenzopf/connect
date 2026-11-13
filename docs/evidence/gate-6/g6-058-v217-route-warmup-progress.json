@@ -1,0 +1,237 @@
+{
+  "format": "connect/g6-058-control-plane-route-warmup/1",
+  "updated_at": "2026-11-13T13:30:10.436857+00:00",
+  "coordinator": "/root",
+  "independent_reviewers": [
+    "fixture_blockers",
+    "v198_resources"
+  ],
+  "dependency_generation": 429,
+  "source_lock_sha256": "2f1795ab433e4564ce132021e37740790c6bfd7240150742329631ebf3558ccc",
+  "change": "Prepare exact current Core-selected audio authorization routes off the media path after physical capture and again after ordinary publication. Release role/Core/map guards before the existing Store factory. Every packet retains its current authority and original cutoff; hints grant nothing.",
+  "causal_scope": "Explicit cold unary native route at each real signed Root handoff boundary; not a claim that every historical media failure shares this cause.",
+  "old": {
+    "generation": 427,
+    "pending": "Exact original marked packet MetadataBusy; one lazy registration miss; watcher paused. All original owners joined before the intended final assertion.",
+    "ordinary": "Exact original marked packet MetadataBusy; one lazy registration miss; watcher paused. All original owners joined before the intended final assertion.",
+    "independent_receipt_sha256": "869559f38db30d301acd2d59fc1132a0c86d397774ed513b6470bbc87fef72f6"
+  },
+  "fixed": {
+    "generation": 429,
+    "selected_route_controls_passed": 4,
+    "exact_native_observation_controls_passed": 2,
+    "signed_Root_phases_passed": 2,
+    "pending": {
+      "first_packet": "admitted",
+      "lazy_registration_misses": 0,
+      "watcher_paused_before_and_after": true,
+      "role_coordinator_available": true
+    },
+    "ordinary": {
+      "first_packet": "admitted",
+      "lazy_registration_misses": 0,
+      "watcher_paused_before_and_after": true,
+      "role_coordinator_available": true
+    },
+    "all_originals_naturally_joined": true,
+    "outer_exec_actual_exit_code": 0,
+    "independent_receipt_sha256": "01a4be107d10502097da023c164629540ed7b6963aaf3f2560220db80c8693e3",
+    "original_receipt_sha256": "6002405422431b45e0db1da87fb92b16401de81e62b57dd7024df78d92a74577"
+  },
+  "surrounding_regressions": {
+    "generation": 429,
+    "continuation": {
+      "passed": 4,
+      "failed": 3,
+      "retirement": "KnownCapture outcome not settled; unarmed diagnostic hook eagerly looks up already retired controller.",
+      "expiry": "Unknown/commitUnknown after original grant expiry; exact cause under investigation.",
+      "video": "Initial signed stream.subscribe emits preparing; helper requires completed before movement starts."
+    },
+    "publication": {
+      "passed": 2,
+      "failed": 0
+    },
+    "lifecycle_with_registry_contention": {
+      "passed": 2,
+      "failed": 0
+    },
+    "all_originals_naturally_joined": true,
+    "original_receipt_sha256": "1c64544ce44f7a61781961150e4632eb30c375be1ab4021052af6c76efc9f844",
+    "OLD427_comparison": "All three failures reproduce with the retained original427 binary. Original failure logs remain unchanged.",
+    "OLD427_original_receipt_sha256": "b1fd4b38be9b586dfc7571692f4262d064607db11467380a89920c1cc4d64f1f",
+    "classification": "Historical pre-correction failure attempt retained; superseded by the exact later controls below, never rewritten into passes."
+  },
+  "diagnostic_hook_correction": {
+    "scope": "Test-support only; defer original controller lookup until an exact diagnostic pause is armed. No shipping behavior or acceptance change.",
+    "independent_source_review_sha256": "01485b62d3c8f5dcc455a867f88af3e8a680c49f0f99d0b7f7011f306a8198c0",
+    "applied": true,
+    "tests": "Two actual Policy controls and all13 signed runtime cases passed. Retirement and original grant expiry now settle without Ready or replay; ordinary lifecycle/current authority controls remain passing.",
+    "closed_async_source_review_sha256": "0e5c5c807a05bb7a4193517812de8eb12d188e8c1ecd4c2c27f356843f629bad",
+    "closed_async_boundary": "Consume the conditional lookup callback synchronously; the asynchronous watcher receives only closed original state. No added allocation or shipping behavior change."
+  },
+  "limitations": [
+    "No decoded media quality or full matrix pass follows from these route controls.",
+    "Selection tests cover exact stream/connection/participant selection, same-participant exclusion, speaking/direction and the existing scene selection rule; they do not grant private audience consent.",
+    "Rejected private decoder/resampler history transfer remains unapplied.",
+    "Fresh complete cohort, shipping builds, ARM synchronization, preflight and full32/432 remain required."
+  ],
+  "matrix_unchanged": {
+    "run": "v217",
+    "cells_passed": 2,
+    "cells_total": 32,
+    "checks_passed": 400,
+    "checks_total": 432,
+    "new_matrix_started": false
+  },
+  "acceptance_changed": false,
+  "HTTP_OpenAPI_wire_change": false,
+  "current_targeted_verification": {
+    "original_batch": {
+      "passed": 51,
+      "failed": 3,
+      "actual_required_tests": 54,
+      "all_three_failures": "Test fixture serialized result:null on noncompleted states; Envelope rejected InvalidPayload before the Completion gate.",
+      "cases": [
+        {
+          "label": "Store-authorization36",
+          "passed": 36,
+          "failed": 0,
+          "ignored": 0,
+          "original_exit_code": 0,
+          "log_sha256": "9f7a65197e9de57e7b525a0180a84ea011d18f9602364d00c5792f40d4219503"
+        },
+        {
+          "label": "Service-lazy-hooks2",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "original_exit_code": 0,
+          "log_sha256": "2421a3c890d6697af235e21f16b8dcd91a387c2403b8a085d867e7e742371b7e"
+        },
+        {
+          "label": "AV-completion3",
+          "passed": 0,
+          "failed": 3,
+          "ignored": 0,
+          "original_exit_code": 101,
+          "log_sha256": "a59401d031860615f48f766cc316e7e12c38f7e53b7984d1d869cbf1f6d8b465"
+        },
+        {
+          "label": "continuation7",
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "original_exit_code": 0,
+          "log_sha256": "ac7e00dccd2f33c320c47eb0679d930734cd4eeab89339e78e338d68845bed3d"
+        },
+        {
+          "label": "publication2",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "original_exit_code": 0,
+          "log_sha256": "62dfe159b4ea0f6a6841f8f6793eda56d335867167b5f08bb2bbe03cddb9fdd5"
+        },
+        {
+          "label": "lifecycle2",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "original_exit_code": 0,
+          "log_sha256": "ee075a96b7e912cb5c6c367ec7d5ae357b63e8eb1154c4e74a7203601b4b78f9"
+        },
+        {
+          "label": "fixed-routes2",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "original_exit_code": 0,
+          "log_sha256": "9149ee358c0f45c84069537dc76eb97c2e4fcd232927317d9fc0d9fe5593e718"
+        }
+      ],
+      "receipt_sha256": "f0a7dae08c01660fb4640cda1ae2b54441ac2b22c7d47643ccb2c4cf5b9e09d7",
+      "outer_original_wait_exit_code": 0,
+      "aggregate_passed": false
+    },
+    "fixture_correction": {
+      "change": "Only the test update() constructor now omits result unless state==completed, as required by the unchanged wire schema.",
+      "cases": [
+        {
+          "label": "AV-completion3",
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "original_exit_code": 0,
+          "log_sha256": "b584c22e792a5af0253cdce47c224c4a2eeedb2fea6ff873156ec8839d1a48b5"
+        },
+        {
+          "label": "actual-signed-video1",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "original_exit_code": 0,
+          "log_sha256": "2756791ad48b4fce9048c865c79ec29e2f2af18a53e16d2c0d0924b012d7953d"
+        }
+      ],
+      "parser_tests_passed": 3,
+      "actual_signed_video_retest_passed": 1,
+      "receipt_sha256": "c73301fb1de59eba3c98bef589c33d98043420727922a215901d7f54fed77254",
+      "outer_original_wait_exit_code": 0,
+      "production_Completion_prefix_and_parent_loop_unchanged": true
+    },
+    "signed_runtime_cases_passed": 13,
+    "current_Store_authorization_cases_passed": 36,
+    "unarmed_and_armed_diagnostic_hook_cases_passed": 2,
+    "all_originals_naturally_joined": true,
+    "independent_adjudication_sha256": "c9125d5e07f9aed2296ea11ac867cb35c8f54a266a94ca5290e28f8a6b542ba6",
+    "whole_original_54_pass_claimed": false
+  },
+  "signed_AV_progress_helper": {
+    "scope": "Test-only; retain original mutation and service late signed offers while querying the same operation under one8-second cutoff. Final completion/revision/media assertions unchanged.",
+    "source_review_sha256": "6b9431339da2782aa7b5eadbb6d695c873f88c2be528f67c28726cb648bd8bbf",
+    "unit_fixture_schema_review_sha256": "453e4be682b131b88f59c662ae406c55cbbbac158e8ac29841af5219a352dfc6",
+    "query_intent_note": "operation.get issues no repeated mutating command; its existing Store path may perform authorized recovery, so no query_only SQL claim."
+  },
+  "compiler_interruption": {
+    "original_outer_exit_code": 130,
+    "original_cargo_exit_code": -2,
+    "all_original_owners_joined": true,
+    "tests_run": 0,
+    "compiler_error_observed": false,
+    "reason": "Retained bounded compile interrupted by its original supervisor to batch independently reviewed closed test-hook and AV-helper changes.",
+    "speedup_claimed": false,
+    "receipt_sha256": "ee9a23acf186c3b50b6ed59bc6682217a95ce2392202c7cf7a4b28f0847354ab"
+  },
+  "current_source_sha256": {
+    "crates/connect-service/src/canonical_media/native_snapshots.rs": "7c28134f03a040d5f7fe0bcff45d4807f0060fb291a1b7d2c770c97b0f94c484",
+    "crates/connect-service/src/canonical_media/replacement.rs": "66efe654840ef1990982606da97a67e1b3d4a7fb5d8282b5bafe1aba558cfe81",
+    "crates/connect-service/src/canonical_replacement/movement.rs": "576d73908fa284ed9ced0b568ad5863febaf34635733634a6c5348bba76b8d24",
+    "crates/connect-service/src/canonical_media/route_enrollment_fixture.rs": "381439867eb52b1c49515032cea2fb9e13f918e798c29342112472bd71b616ef",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/av.rs": "979195b3a1326cdc57b456619c2786d2455c361d9c2d4f84b34255ca577cf1d7",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/av/operation_completion.rs": "f6c5cdc4401a65f44dbc97dd9d54fa91c9e8806f8002f8bc7c11466dc9df300d"
+  },
+  "next_qualification": {
+    "staged_only": true,
+    "rust_cases": 402,
+    "script_cases": 133,
+    "all_new_current54_in_full402": true,
+    "shipping_source_preparation_and_preflight_required": true,
+    "local_hosts": [
+      "macos-arm64",
+      "ubuntu24-arm64"
+    ],
+    "actual_runs_started": false
+  },
+  "storage_followthrough": {
+    "additional_task_owned_unreferenced_objects_deleted": 16343,
+    "additional_allocated_bytes": 42952220672,
+    "observed_physical_available_byte_increase": 42961010688,
+    "external_free_gib_after": 67.31,
+    "protected_existing_object_names_preserved": 86171,
+    "source_binaries_libraries_evidence_DB_records_deleted": false,
+    "independent_fresh_keep_review_sha256": "4624d29a99eced5887712514f870a05c39dd98e2cb0286d94b7189dac226d6bc",
+    "private_reclamation_receipt_sha256": "1e5277a2e85b482f1a24aab606a89173a65f332a9c9fcc87993cab55164857f9",
+    "outer_original_exec_wait_exit_code": 0,
+    "earlier_R1_inventory_failed_without_deletion": true
+  }
+}

@@ -12,6 +12,9 @@ pub(super) mod pre_core;
 #[cfg(feature = "test-support")]
 #[path = "activation/publication.rs"]
 pub(super) mod publication;
+#[cfg(feature = "test-support")]
+#[path = "activation/route_enrollment.rs"]
+pub(super) mod route_enrollment;
 
 #[tokio::test]
 async fn production_captured_replacement_revocation_never_publishes_ready_or_replays_movement() {

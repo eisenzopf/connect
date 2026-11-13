@@ -188,6 +188,8 @@ async fn exercise_replacement_with_control(
 enum ActivationAudit {
     None,
     #[cfg(feature = "test-support")]
+    RouteEnrollment(activation::route_enrollment::Boundary),
+    #[cfg(feature = "test-support")]
     Continuation(activation::continuation::Case),
     RevokeBeforeReady,
     #[cfg(feature = "test-support")]
@@ -1005,6 +1007,20 @@ async fn exercise_replacement_with_av_transfer(
                     None
                 };
             #[cfg(feature = "test-support")]
+            let route_enrollment_audit =
+                if let ActivationAudit::RouteEnrollment(boundary) = activation_audit {
+                    let record = status(&f, &key.id, &command.operation_id).await;
+                    Some((
+                        boundary,
+                        f.server
+                            .service
+                            .pause_canonical_route_enrollment_for_test(&record.record_id, boundary)
+                            .unwrap(),
+                    ))
+                } else {
+                    None
+                };
+            #[cfg(feature = "test-support")]
             let continuation_audit = if let ActivationAudit::Continuation(case) = activation_audit {
                 assert!(!deferred_projection && !candidate_target && !observer);
                 let record = status(&f, &key.id, &command.operation_id).await;
@@ -1122,6 +1138,41 @@ async fn exercise_replacement_with_av_transfer(
                 continue;
             }
 
+            #[cfg(feature = "test-support")]
+            if let Some((boundary, pause)) = route_enrollment_audit {
+                let (first, misses, roles_available, owners) =
+                    activation::route_enrollment::paused(
+                        &f, &key.id, &command, &mut peers, boundary, pause,
+                    )
+                    .await;
+                for peer in peers {
+                    let _ = peer.client.shutdown().await;
+                }
+                wait_slots(&f, 0).await;
+                let movement_controller = super::sdk_movements::before_shutdown(&f).await;
+                f.server.shutdown().await.unwrap();
+                super::sdk_movements::shutdown_joined(movement_controller);
+                activation::continuation::owners_joined(&owners);
+                // Desired continuity assertion follows all original joins.
+                eprintln!(
+                    "G6_ROUTE_ENROLLMENT_JOINED {:?}",
+                    (boundary, &first, misses, roles_available)
+                );
+                assert!(
+                    first == "admitted" || misses > 0,
+                    "unqualified OLD refusal without actual lazy miss"
+                );
+                assert_eq!(
+                    first, "admitted",
+                    "first fresh {boundary:?} packet: {first}"
+                );
+                assert_eq!(misses, 0, "first fresh packet performed lazy registration");
+                assert!(
+                    roles_available,
+                    "route preparation retained role coordinator"
+                );
+                continue;
+            }
             #[cfg(feature = "test-support")]
             if let Some((case, pause)) = continuation_audit {
                 let (stopped, owners) = activation::continuation::paused(

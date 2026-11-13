@@ -351,6 +351,19 @@ impl Service {
             .pause_replacement_projection_for_test(record)
     }
 
+    #[cfg(feature = "test-support")]
+    pub fn pause_canonical_route_enrollment_for_test(
+        &self,
+        record: &str,
+        boundary: crate::canonical_media::route_enrollment_fixture::RouteEnrollmentBoundary,
+    ) -> Result<crate::canonical_media::route_enrollment_fixture::RouteEnrollmentPause> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .pause_route_enrollment_for_test(record, boundary)
+    }
+
     /// Inject one adoption-preparation refusal for an exact original record.
     /// The returned flag becomes false only when the injection is consumed.
     /// Test-support only: this cannot grant permission or invoke movement.
@@ -1140,6 +1153,9 @@ pub mod canonical_media_projection_fixture {
     pub use crate::canonical_media::continuation_fixture::ReplacementProjectionPause;
     pub use crate::canonical_media::preparation_custody_fixture::{
         PreparationCustodyObservation, PreparationCustodyPhase, PreparationCustodyProbe,
+    };
+    pub use crate::canonical_media::route_enrollment_fixture::{
+        RouteEnrollmentBoundary, RouteEnrollmentMark, RouteEnrollmentPause,
     };
     pub use crate::canonical_media::video_preparation_fixture::VideoPreparationProbe;
 }

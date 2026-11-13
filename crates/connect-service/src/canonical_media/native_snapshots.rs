@@ -133,7 +133,7 @@ fn busy() -> connect_protocol::Error {
         "Media route authorization is being prepared",
     )
 }
-fn phase_error(error: StreamControlError) -> connect_protocol::Error {
+pub(super) fn phase_error(error: StreamControlError) -> connect_protocol::Error {
     match error {
         StreamControlError::MetadataBusy | StreamControlError::NotReady => busy(),
         _ => connect_protocol::Error::forbidden(),
@@ -388,6 +388,51 @@ impl Connection {
         );
         Ok(())
     }
+    /// Control-plane preparation only. All route-map guards are gone before
+    /// the Store factory runs. The packet path continues using snapshot_read_for.
+    pub(super) fn prepare_snapshot_route_current(
+        self: &Arc<Self>,
+        store: &Arc<Store>,
+        source: Option<&Arc<Connection>>,
+        target_continuation: Option<&Arc<Continuation>>,
+        source_continuation: Option<&Arc<Continuation>>,
+    ) -> connect_protocol::Result<()> {
+        self.register_snapshot_route_for(store, source, target_continuation, source_continuation)?;
+        let route = key(source, target_continuation, source_continuation);
+        let snapshot = {
+            let routes = self
+                .snapshots
+                .snapshot()
+                .map_err(|_| connect_protocol::Error::forbidden())?;
+            let registered = routes.get(&route).ok_or_else(busy)?;
+            if !registered.live() || !same_source_owner(registered.source.as_ref(), source) {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            registered.snapshot.clone()
+        };
+        store.try_prepare_native_media_snapshot(&snapshot)?;
+        if let Some(current) = target_continuation {
+            require_current_phase(current, self)?;
+        }
+        if let Some(current) = source_continuation {
+            require_current_phase(
+                current,
+                source.ok_or_else(connect_protocol::Error::forbidden)?,
+            )?;
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "test-support")]
+    pub(super) fn withdraw_unary_route_for_test(
+        &self,
+        phase: Option<&Arc<Continuation>>,
+    ) -> connect_protocol::Result<()> {
+        let mut routes = self.snapshots.try_lock().map_err(|_| busy())?;
+        routes.remove(&key(None, phase, None));
+        Ok(())
+    }
+
     pub(super) fn snapshot_read_for(
         self: &Arc<Self>,
         store: &Arc<Store>,
@@ -403,6 +448,12 @@ impl Connection {
             .map_err(|_| connect_protocol::Error::forbidden())?;
         let Some(published) = routes.get(&route) else {
             drop(routes);
+            #[cfg(feature = "test-support")]
+            if source.is_none() {
+                if let Some(policy) = self.domain.upgrade() {
+                    policy.observe_cold_unary_miss_for_test(self.origin.runtime_connection_id());
+                }
+            }
             self.register_snapshot_route_for(
                 store,
                 source,

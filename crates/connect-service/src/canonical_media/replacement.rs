@@ -624,6 +624,86 @@ impl super::Policy {
     }
 }
 impl ReplacementAdoption {
+    #[cfg(feature = "test-support")]
+    pub(crate) fn route_fixture_continuation(
+        &self,
+    ) -> Arc<super::public_continuation::Continuation> {
+        self.continuation.clone()
+    }
+
+    /// One off-media pass over exact current Core-selected route hints. Hints
+    /// grant nothing; every route runs its existing current Store/Core factory.
+    pub(crate) fn prepare_current_media_routes(
+        &self,
+        routes: &std::collections::BTreeSet<(ConnectionId, Option<ConnectionId>)>,
+        until: tokio::time::Instant,
+        stop: &tokio_util::sync::CancellationToken,
+    ) -> connect_protocol::Result<()> {
+        let root = self
+            .target
+            .root
+            .upgrade()
+            .ok_or_else(connect_protocol::Error::forbidden)?;
+        // Existing pending continuation supports public native/RTC scope only.
+        // Private or unsupported preparation keeps its existing route policy.
+        if self.metadata.target().private_consultation.is_some()
+            || self.metadata.target().handoff_preparation
+        {
+            return Ok(());
+        }
+        let candidate = self.target.pending.binding().connection();
+        let resolve = |id: &ConnectionId| -> connect_protocol::Result<_> {
+            let entry = if id == candidate {
+                self.entry.clone()
+            } else {
+                self.target
+                    .base
+                    .entry(id)
+                    .map_err(super::native_snapshots::phase_error)?
+            };
+            let phase = self
+                .target
+                .base
+                .replacement_target(id)
+                .map_err(super::native_snapshots::phase_error)?
+                .map(|target| target.current_continuation())
+                .transpose()
+                .map_err(super::native_snapshots::phase_error)?
+                .flatten();
+            if phase
+                .as_ref()
+                .is_some_and(|phase| !Arc::ptr_eq(&phase.entry, &entry))
+            {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            Ok((entry, phase))
+        };
+        let mut first_error = None;
+        for (target, source) in routes {
+            if stop.is_cancelled()
+                || root.handle.cancellation().is_cancelled()
+                || !root.handle.is_committed()
+                || tokio::time::Instant::now() >= until.min(root.deadline)
+            {
+                return Err(connect_protocol::Error::forbidden());
+            }
+            let result = (|| {
+                let (target, target_phase) = resolve(target)?;
+                let source = source.as_ref().map(&resolve).transpose()?;
+                target.prepare_snapshot_route_current(
+                    &self.target.base.store,
+                    source.as_ref().map(|(source, _)| source),
+                    target_phase.as_ref(),
+                    source.as_ref().and_then(|(_, phase)| phase.as_ref()),
+                )
+            })();
+            if let Err(error) = result {
+                first_error.get_or_insert(error);
+            }
+        }
+        first_error.map_or(Ok(()), Err)
+    }
+
     /// After successful publication, retain this exact capture's already-
     /// installed entry for lifecycle attachment; another registry
     /// lookup cannot add authority and can spuriously fail under contention.

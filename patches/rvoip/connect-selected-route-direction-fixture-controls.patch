@@ -1,0 +1,34 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/subscriptions/route_preparation_hints.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/subscriptions/route_preparation_hints.rs
+@@ -31,10 +31,14 @@
+             failures.push(format!("adapter {i}: original cleanup not confirmed"));
+         }
+     }
++    eprintln!(
++        "G6_SELECTED_ROUTE_OWNERS_JOINED controllers={} work_failed={} cleanup_failures={:?}",
++        s.controllers.len(), work.is_err(), failures
++    );
++    assert!(failures.is_empty(), "{failures:?}");
+     if let Err(error) = work {
+         std::panic::resume_unwind(error);
+     }
+-    assert!(failures.is_empty(), "{failures:?}");
+ }
+ fn hints(s: &Scene, at: usize) -> BTreeSet<(ConnectionId, Option<ConnectionId>)> {
+     s.mixer
+@@ -184,7 +188,14 @@
+         for i in 0..4 {
+             s.bind_unsubscribed(i, i != 1).await;
+         }
+-        s.subscribe_all().await;
++        let sources = s.controllers.iter().map(|c| {
++            AudioSubscription::Participant(c.origin_member.participant().clone())
++        }).collect::<Vec<_>>();
++        // Source-only Carol has no receive port and cannot subscribe. Use the
++        // same real subscription mutation only for the actual receive sinks.
++        for target in [0, 1, 3] {
++            subscribe(&s, target, sources.clone()).await;
++        }
+         // Core Receive means incoming source only; Send means outgoing sink only.
+         // Bob cannot speak but may still receive candidate audio.
+         assert_eq!(

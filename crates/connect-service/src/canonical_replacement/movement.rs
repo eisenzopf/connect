@@ -22,6 +22,36 @@ pub(super) enum Capture {
     NotSubmitted(Arc<NativeReplacementCommitNotSubmitted>),
 }
 impl Runtime {
+    async fn prepare_current_replacement_routes(
+        &self,
+        root: &Arc<PreparedReplacement>,
+        adoption: &Arc<crate::canonical_media::replacement::ReplacementAdoption>,
+        candidate: &rvoip_core::ids::ConnectionId,
+    ) {
+        // This returns only owned IDs. No Core, role or map guard enters SQL.
+        let routes = self.core.staged_audio_route_preparation_hints(
+            &rvoip_core::ids::SessionId::from_string(&root.origin.request().session_id),
+            candidate,
+        );
+        let result = match routes {
+            Ok(routes) => {
+                let adoption = adoption.clone();
+                let stop = self.stop.clone();
+                let until = root.deadline;
+                store_call(move || adoption.prepare_current_media_routes(&routes, until, &stop))
+                    .await
+            }
+            Err(error) => Err(super::projection::core_plan_error(error)),
+        };
+        // A known moved effect must still be recorded after any warmup refusal.
+        // No success here is retained as a packet grant or readiness event.
+        if let Err(error) = result {
+            tracing::debug!(target:"connect_service::canonical_replacement",
+                operation=%root.origin.request().operation_id, code=%error.code,
+                "Current replacement route preparation deferred");
+        }
+    }
+
     pub(super) async fn move_native_replacement(
         self: &Arc<Self>,
         root: &Arc<PreparedReplacement>,
@@ -307,6 +337,33 @@ impl Runtime {
         let capture = Arc::new(KnownCapture::new(committed));
         *started.commit.lock().map_err(|_| Error::storage())? =
             Some(Capture::Known(capture.clone()));
+        // Actual immutable effect is now owned. Release the coordinator before
+        // any off-media authority factory; recording below remains mandatory.
+        drop(roles);
+        #[cfg(feature = "test-support")]
+        let route_fixture = self.media.prepare_route_enrollment_fixture(
+            root.origin.record_id(),
+            crate::canonical_media::route_enrollment_fixture::RouteEnrollmentBoundary::Pending,
+            || {
+                Ok((
+                    adoption.route_fixture_continuation(),
+                    self.connection_media_controller(&outcome.admitted)?
+                        .original_ingress_owner_for_test(),
+                ))
+            },
+        )?;
+        #[cfg(feature = "test-support")]
+        let route_fixture = self
+            .media
+            .begin_route_enrollment_fixture(route_fixture)
+            .await?;
+        self.prepare_current_replacement_routes(root, &adoption, &outcome.admitted)
+            .await;
+        #[cfg(feature = "test-support")]
+        self.media
+            .finish_route_enrollment_fixture(route_fixture, root.deadline, &self.stop)
+            .await?;
+
         // Carry the exact signed resources through the actual Core audience
         // commit for both surviving peers and the admitted target. Moving
         // epoch metadata still needs fresh current continuation authority;
@@ -329,19 +386,16 @@ impl Runtime {
         });
         // A confirmation refusal is propagated only after this Known effect
         // has been recorded, just like a refused activation boundary.
-        let recorded = super::projection::record(
-            roles,
-            super::diagnostics::metadata(
-                &self.stop,
-                &capture.value,
-                super::diagnostics::Phase::Capture,
-                Some(&capture.recording),
-                || {
-                    let store = self.media.store.clone();
-                    let capture = capture.value.clone();
-                    move || store.record_native_replacement_committed(&capture)
-                },
-            ),
+        let recorded = super::diagnostics::metadata(
+            &self.stop,
+            &capture.value,
+            super::diagnostics::Phase::Capture,
+            Some(&capture.recording),
+            || {
+                let store = self.media.store.clone();
+                let capture = capture.value.clone();
+                move || store.record_native_replacement_committed(&capture)
+            },
         )
         .await;
         if let Err(error) = recorded {
@@ -455,6 +509,27 @@ impl Runtime {
                 return Err(error);
             }
         };
+        #[cfg(feature = "test-support")]
+        let ordinary_route_fixture = self.media.prepare_route_enrollment_fixture(
+            root.origin.record_id(),
+            crate::canonical_media::route_enrollment_fixture::RouteEnrollmentBoundary::Ordinary,
+            || {
+                Ok((
+                    installed.adoption.route_fixture_continuation(),
+                    self.connection_media_controller(&outcome.admitted)?
+                        .original_ingress_owner_for_test(),
+                ))
+            },
+        )?;
+        #[cfg(feature = "test-support")]
+        let ordinary_route_fixture = self
+            .media
+            .begin_route_enrollment_fixture(ordinary_route_fixture)
+            .await?;
+        // Ordinary has a distinct route key: prepare it after the actual SQL
+        // publication, independently of the earlier pending-phase preparation.
+        self.prepare_current_replacement_routes(root, &installed.adoption, &outcome.admitted)
+            .await;
         // Publication establishes the ordinary origin used by each fresh
         // lifecycle authorization. The original captured writer can now emit
         // packet epochs; cached metadata alone never publishes private media.
@@ -481,6 +556,10 @@ impl Runtime {
             self.stop_unactivated_replacement(&capture).await;
             return Err(error);
         }
+        #[cfg(feature = "test-support")]
+        self.media
+            .finish_route_enrollment_fixture(ordinary_route_fixture, root.deadline, &self.stop)
+            .await?;
         tracing::debug!(target:"connect_service::canonical_replacement", generation=origin.generation(),
             connection=%outcome.admitted, stage="adopted", elapsed_us=commit_began.elapsed().as_micros() as u64,
             "Replacement actual managed movement activated");

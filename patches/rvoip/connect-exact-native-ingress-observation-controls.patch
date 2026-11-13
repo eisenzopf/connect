@@ -1,0 +1,182 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -1,6 +1,8 @@
+ //! Original native receive custody across definite temporary metadata refusal.
+ //! No authority, model lock or delivery guard survives a retry boundary.
+ use super::*;
++#[cfg(feature = "test-support")]
++pub mod native_observation;
+ 
+ pub(super) struct OriginalStamp {
+     revision: Option<u64>,
+@@ -43,6 +45,8 @@
+     received_at: Instant,
+     deadline: tokio::time::Instant,
+     finished: bool,
++    #[cfg(feature = "test-support")]
++    native_wire: Option<native_observation::Frame>,
+ }
+ impl AdapterMediaPort {
+     /// Capture original active port/route/consumer/scene generations before
+@@ -182,10 +186,32 @@
+             received_at,
+             deadline: (received_at + Duration::from_millis(200)).into(),
+             finished: false,
++            #[cfg(feature = "test-support")]
++            native_wire: None,
+         }))
+     }
+ }
++#[cfg(feature = "test-support")]
++impl StreamController {
++    pub fn original_ingress_owner_for_test(&self) -> native_observation::Owner {
++        native_observation::Owner(Arc::downgrade(&self.subscription_commit_identity))
++    }
++}
+ impl OriginalIngress {
++    #[cfg(feature = "test-support")]
++    pub fn note_native_wire_for_test(&mut self, sequence: u32, ssrc: u32, timestamp: u32) {
++        // Metadata only from THIS retained original and its original actual port.
++        // A failed diagnostic correlation never changes its admission result.
++        self.native_wire = self.port.0.owner.upgrade().filter(|_| self.frame.timestamp_rtp == timestamp)
++            .map(|owner| native_observation::Frame {
++                owner: owner.original_ingress_owner_for_test(), connection: owner.connection.clone(),
++                stream_local_id: self.port.0.binding.stream_local_id,
++                connection_generation: self.port.0.binding.connection_generation,
++                stream_generation: self.port.0.binding.generation,
++                sequence, ssrc, timestamp,
++            });
++    }
++
+     #[cfg(test)]
+     pub(super) fn captured_model_revision_for_test(&self) -> Option<u64> {
+         self.stamp.captured_revision
+@@ -205,6 +231,9 @@
+         }
+         #[cfg(feature = "test-support")]
+         let observation = audio_diagnostic::original_frame(&self.port.0, &self.frame);
++        #[cfg(feature = "test-support")]
++        let result = native_observation::with_frame(self.native_wire.clone(), || self.publish(observe));
++        #[cfg(not(feature = "test-support"))]
+         let result = self.publish(observe);
+         #[cfg(feature = "test-support")]
+         if let Some(observation) = observation {
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress/native_observation.rs
+@@ -0,0 +1,90 @@
++//! Test-support-only synchronous wire identity. No payload, grant or owner is
++//! retained. This context never crosses await and cannot authorize admission.
++use super::*;
++use std::cell::RefCell;
++
++#[derive(Clone)]
++pub struct Owner(pub(super) Weak<()>);
++#[derive(Clone)]
++pub struct Frame {
++    pub(super) owner: Owner,
++    pub connection: ConnectionId,
++    pub stream_local_id: u16,
++    pub connection_generation: u64,
++    pub stream_generation: u64,
++    /// Outer native datagram sequence; distinct from inner RTP u16 sequence.
++    pub sequence: u32,
++    pub ssrc: u32,
++    pub timestamp: u32,
++}
++impl Frame {
++    pub fn matches(
++        &self, owner: &Owner, connection: &ConnectionId,
++        stream_local_id: u16, sequence: u32, ssrc: u32, timestamp: u32,
++    ) -> bool {
++        Weak::ptr_eq(&self.owner.0, &owner.0) && self.owner.0.strong_count() > 0
++            && &self.connection == connection && self.stream_local_id == stream_local_id
++            && self.sequence == sequence && self.ssrc == ssrc && self.timestamp == timestamp
++    }
++}
++thread_local! {
++    static CURRENT: RefCell<Option<Frame>> = const { RefCell::new(None) };
++}
++struct Restore(Option<Frame>);
++impl Drop for Restore {
++    fn drop(&mut self) { CURRENT.with(|current| *current.borrow_mut() = self.0.take()); }
++}
++pub(super) fn with_frame<T>(frame: Option<Frame>, body: impl FnOnce() -> T) -> T {
++    // Replacing with None is deliberate: unrelated nested original ingress
++    // cannot borrow the surrounding native frame's diagnostic identity.
++    let _restore = Restore(CURRENT.with(|current| current.replace(frame)));
++    body()
++}
++pub fn current() -> Option<Frame> { CURRENT.with(|current| current.borrow().clone()) }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn frame(owner: &Arc<()>, sequence: u32) -> Frame {
++        Frame { owner: Owner(Arc::downgrade(owner)),
++            connection: ConnectionId::from_string("native-exact-marker"),
++            stream_local_id: 7, connection_generation: 2, stream_generation: 3,
++            sequence, ssrc: 0x4736_8e01, timestamp: 123456 }
++    }
++    #[test]
++    fn native_marker_requires_exact_numbers_and_live_original_controller() {
++        let owner = Arc::new(());
++        let other = Arc::new(());
++        let expected = frame(&owner, 42);
++        let identity = expected.owner.clone();
++        let yes = |owner: &Owner, handle, sequence, ssrc, timestamp| {
++            expected.matches(owner, &expected.connection, handle, sequence, ssrc, timestamp)
++        };
++        assert!(yes(&identity, 7, 42, 0x4736_8e01, 123456));
++        assert!(!yes(&Owner(Arc::downgrade(&other)), 7, 42, 0x4736_8e01, 123456));
++        assert!(!yes(&identity, 8, 42, 0x4736_8e01, 123456));
++        assert!(!yes(&identity, 7, 41, 0x4736_8e01, 123456));
++        assert!(!yes(&identity, 7, 42, 0x4736_8002, 123456));
++        assert!(!yes(&identity, 7, 42, 0x4736_8e01, 123455));
++        drop(owner);
++        assert!(!yes(&identity, 7, 42, 0x4736_8e01, 123456));
++    }
++    #[test]
++    fn native_context_clears_nested_none_and_restores_after_panic() {
++        let owner = Arc::new(());
++        let outer = frame(&owner, 10);
++        let nested = frame(&owner, 11);
++        assert!(current().is_none());
++        with_frame(Some(outer), || {
++            assert_eq!(current().unwrap().sequence, 10);
++            with_frame(None, || assert!(current().is_none()));
++            assert_eq!(current().unwrap().sequence, 10);
++            let result = std::panic::catch_unwind(|| {
++                with_frame(Some(nested), || panic!("observation-only unwind"));
++            });
++            assert!(result.is_err());
++            assert_eq!(current().unwrap().sequence, 10);
++        });
++        assert!(current().is_none());
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -577,7 +577,12 @@
+             .ok_or(StreamControlError::Cancelled)
+             .and_then(|port| port.retain_original_ingress(frame, received_at));
+         match result {
+-            Ok(Some(original)) => Ok(Some(Box::new(OriginalNativeIngress {
++            Ok(Some(original)) => {
++                #[cfg(feature = "test-support")]
++                let mut original = original;
++                #[cfg(feature = "test-support")]
++                original.note_native_wire_for_test(sequence, ssrc, timestamp);
++                Ok(Some(Box::new(OriginalNativeIngress {
+                 ingress: self,
+                 original,
+                 ssrc,
+@@ -586,7 +591,8 @@
+                 timestamp,
+                 finished: false,
+                 deferred: false,
+-            }))),
++            })))
++            },
+             Ok(None) => {
+                 self.counters.accepted.fetch_add(1, Ordering::AcqRel);
+                 if let (Some(flow), Some(port)) = (&self.flow, self.port.upgrade()) {

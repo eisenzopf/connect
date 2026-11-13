@@ -14,6 +14,11 @@ use std::sync::{
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+#[cfg(feature = "test-support")]
+mod watcher_pause;
+#[cfg(feature = "test-support")]
+pub use watcher_pause::MediaAuthorizationWatcherPause;
+
 const MAX_PUBLICATIONS: usize = 4096;
 const MAX_WRITERS: usize = 1024;
 const MAX_REFRESH_PER_TURN: usize = 8;
@@ -559,6 +564,8 @@ pub(crate) struct Registry {
     probe: Box<Probe>,
     availability: Arc<Availability>,
     watcher_started: AtomicBool,
+    #[cfg(feature = "test-support")]
+    worker_pause: Mutex<Option<Arc<watcher_pause::State>>>,
     #[cfg(test)]
     original_idle_waits: AtomicUsize,
 }
@@ -592,6 +599,8 @@ impl Registry {
             probe: Box::new(probe),
             availability: Arc::new(Availability(AtomicU8::new(DISABLED))),
             watcher_started: AtomicBool::new(false),
+            #[cfg(feature = "test-support")]
+            worker_pause: Mutex::new(None),
             #[cfg(test)]
             original_idle_waits: AtomicUsize::new(0),
         })
@@ -794,6 +803,8 @@ impl Registry {
             .spawn(move || {
                 let _exit = WatcherExit(registry.clone());
                 while !registry.stopped() {
+                    #[cfg(feature = "test-support")]
+                    let worker_pause = registry.take_worker_pause_for_test();
                     let slots = match registry.control.lock() {
                         Ok(mut state) => {
                             state.slots.retain(|s| s.strong_count() > 0);
@@ -859,6 +870,13 @@ impl Registry {
                     // Bound new/invalidated refresh work between writer-intent
                     // probes. Factories retain their own existing short cutoff;
                     // no callback may perform an unbounded wait or network IO.
+                    #[cfg(feature = "test-support")]
+                    registry.pause_worker_turn_for_test(
+                        worker_pause,
+                        !scopes.is_empty()
+                            && matches!(&blocked, Ok(Some(scopes)) if scopes.is_empty()),
+                        blocked.is_err(),
+                    );
                     let cursor = match registry.control.lock() {
                         Ok(mut state) => {
                             let cursor = state.refresh_cursor;

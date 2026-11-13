@@ -1,5 +1,7 @@
 //! Signed native AV resources and explicit post-commit video gates, not quality qualification.
 use super::*;
+#[path = "av/operation_completion.rs"]
+mod operation_completion;
 #[path = "av/transfer.rs"]
 pub(super) mod transfer;
 
@@ -112,11 +114,20 @@ async fn control(
         operation_id: Some(operation.into()),
         expected_revision: Some(revision),
     };
-    let request = client.send_value(kind, input, scope.clone()).await.unwrap();
+    // One original cutoff includes submission, callback handling and all reads.
+    // A progress update/ACK accepts work; only the same operation's completed
+    // record satisfies the fixture's existing final result/revision assertions.
+    let until = tokio::time::Instant::now() + Duration::from_secs(8);
+    let request = tokio::time::timeout_at(until, client.send_value(kind, input, scope.clone()))
+        .await
+        .expect("signed AV command submission exceeded its original cutoff")
+        .unwrap();
+    let mut reply = request;
     let mut callback = None;
-    let mut result = None;
+    let mut completion = operation_completion::Completion::new(operation);
+    let mut reply_observed = false;
     loop {
-        let frame = tokio::time::timeout(Duration::from_secs(8), client.receive_control())
+        let frame = tokio::time::timeout_at(until, client.receive_control())
             .await
             .unwrap()
             .unwrap();
@@ -144,27 +155,52 @@ async fn control(
                     json!({"id":s["strm_id"],"kind":s["kind"],"direction":match s["direction"].as_str().unwrap(){
                         "sendonly"=>"recvonly", "recvonly"=>"sendonly", _=>"sendrecv"}, "codec":s["codec"]})
                 }).collect::<Vec<_>>();
-                client.answer_connection_offer(&frame, serde_json::from_value(json!({
+                tokio::time::timeout_at(until, client.answer_connection_offer(&frame, serde_json::from_value(json!({
                     "by_participant":p["by_participant"], "substrate":"quic", "capabilities":av_capabilities(),
-                    "streams_answered":streams, "substrate_setup":p["substrate_setup"]})).unwrap(), &scope).await.unwrap();
+                    "streams_answered":streams, "substrate_setup":p["substrate_setup"]})).unwrap(), &scope)).await
+                    .expect("signed AV offer answer exceeded its original cutoff").unwrap();
                 callback = Some(frame);
             }
             "operation.updated" => {
-                assert_eq!(frame.original()["in_reply_to"], request);
-                assert_eq!(
-                    frame.original()["payload"]["state"],
-                    "completed",
-                    "{:?}",
-                    frame.original()
-                );
-                assert!(result
-                    .replace(frame.original()["payload"].clone())
-                    .is_none());
+                completion.observe(&frame, &reply);
+                reply_observed = true;
             }
             "ack" => {
-                assert_eq!(frame.original()["in_reply_to"], request);
-                return (result.unwrap(), callback);
+                assert_eq!(frame.original()["in_reply_to"], reply);
+                assert!(
+                    reply_observed,
+                    "signed AV ACK omitted its operation observation"
+                );
+                if let Some(result) = completion.completed() {
+                    return (result, callback);
+                }
+                // Read the SAME logical operation, never replay the mutation.
+                // Keep raw verified reception so any late connection.offer is
+                // answered by the unchanged branch while this read is in flight.
+                let wake = (tokio::time::Instant::now() + Duration::from_millis(10)).min(until);
+                tokio::time::sleep_until(wake).await;
+                assert!(
+                    tokio::time::Instant::now() < until,
+                    "signed AV operation did not complete within its original cutoff"
+                );
+                let query_scope = CommandScope {
+                    expected_revision: None,
+                    ..scope.clone()
+                };
+                reply = tokio::time::timeout_at(
+                    until,
+                    client.send_value(
+                        "operation.get",
+                        json!({"operation_id":operation}),
+                        query_scope,
+                    ),
+                )
+                .await
+                .expect("signed AV status read exceeded its original cutoff")
+                .unwrap();
+                reply_observed = false;
             }
+            "error" => panic!("signed AV operation was refused: {:?}", frame.original()),
             _ => panic!(
                 "unexpected signed AV control result: {:?}",
                 frame.original()

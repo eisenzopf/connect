@@ -1,0 +1,388 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -438,6 +438,80 @@
+ }
+ 
+ impl GuardedMediaScene {
++    /// Current selection hints touching one actual live endpoint. This returns
++    /// owned IDs only, never permission. No Core lock survives the call and the
++    /// host must acquire fresh Store/physical admission for every hinted route.
++    pub(crate) fn audio_route_preparation_hints(
++        &self,
++        connection: &ConnectionId,
++    ) -> ControlResult<BTreeSet<(ConnectionId, Option<ConnectionId>)>> {
++        fn busy<T>(error: std::sync::TryLockError<T>) -> StreamControlError {
++            match error {
++                std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++                std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
++            }
++        }
++        let members = self.members.try_lock().map_err(busy)?;
++        let target = members.get(connection).ok_or(StreamControlError::NotReady)?;
++        let (descriptor, receives) = {
++            let state = target.controller.state.try_lock().map_err(busy)?;
++            let source = match target.current_descriptor(&state, true) {
++                Ok(value) => value,
++                Err(StreamControlError::NotReady) => None,
++                Err(error) => return Err(error),
++            };
++            let receives = match target.current_descriptor(&state, false) {
++                Ok(value) => value.is_some(),
++                Err(StreamControlError::NotReady) => false,
++                Err(error) => return Err(error),
++            };
++            (source.filter(|_| target.audio_consumer.role_snapshot().0), receives)
++        };
++        let (program, rules) = {
++            let state = target.audio_consumer.subscriptions.state.try_lock().map_err(busy)?;
++            (state.program.clone(), state.rules.clone())
++        };
++        let mut routes = BTreeSet::new();
++        if descriptor.is_some() { routes.insert((connection.clone(), None)); }
++        // One source-catalog scan, not an all-receiver/all-source cross product.
++        for (id, member) in members.iter().filter(|(_, member)| {
++            member.controller.origin_member.participant()
++                != target.controller.origin_member.participant()
++        }) {
++            let (source, receiver) = {
++                let state = member.controller.state.try_lock().map_err(busy)?;
++                let source = match member.current_descriptor(&state, true) {
++                    Ok(value) => value,
++                    Err(StreamControlError::NotReady | StreamControlError::Cancelled) => None,
++                    Err(error) => return Err(error),
++                };
++                let receiver = match member.current_descriptor(&state, false) {
++                    Ok(value) => value.is_some(),
++                    Err(StreamControlError::NotReady | StreamControlError::Cancelled) => false,
++                    Err(error) => return Err(error),
++                };
++                (source.filter(|_| member.audio_consumer.role_snapshot().0), receiver)
++            };
++            if let Some(source) = source.filter(|_| receives) {
++                if program.allows(&member.controller, &source.logical_id)
++                    && rules.iter().all(|rule| rule.allows(&member.controller))
++                {
++                    routes.insert((id.clone(), None));
++                    routes.insert((connection.clone(), Some(id.clone())));
++                }
++            }
++            if let Some(source) = descriptor.as_ref().filter(|_| receiver) {
++                let state = member.audio_consumer.subscriptions.state.try_lock().map_err(busy)?;
++                if state.program.allows(&target.controller, &source.logical_id)
++                    && state.rules.iter().all(|rule| rule.allows(&target.controller))
++                {
++                    routes.insert((id.clone(), Some(connection.clone())));
++                }
++            }
++        }
++        Ok(routes)
++    }
++
+     /// A trusted engine operation, not a durable operation receipt. Public
+     /// handlers must use the held variant and their retained mutation identity.
+     pub(crate) async fn change_subscriptions(
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -1094,6 +1094,18 @@
+         }
+         Ok(result)
+     }
++    /// Exact currently selected audio route hints touching this endpoint.
++    /// Metadata only: all scene/controller locks end before host SQL work.
++    pub fn staged_audio_route_preparation_hints(
++        &self,
++        session: &SessionId,
++        connection: &ConnectionId,
++    ) -> ControlResult<std::collections::BTreeSet<(ConnectionId, Option<ConnectionId>)>> {
++        let runtime = self.participant_runtime(session)?;
++        let scene = runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?;
++        Ok(scene.audio_route_preparation_hints(connection)?)
++    }
++
+     /// Wake hints only. A reconciliation must re-read the committed selection
+     /// and source catalog and acquire fresh current policy independently.
+     pub fn staged_media_selection_changes(
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/subscriptions.rs
+@@ -673,3 +673,6 @@
+     drop(held);
+     writer.await.unwrap();
+ }
++
++#[path = "subscriptions/route_preparation_hints.rs"]
++mod route_preparation_hints;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/subscriptions/route_preparation_hints.rs
+@@ -0,0 +1,272 @@
++//! Selected-route metadata controls. They do not create Store grants or IO epochs.
++use super::*;
++use std::future::Future;
++
++async fn caught<F: Future>(future: F) -> std::thread::Result<F::Output> {
++    let mut future = std::pin::pin!(future);
++    std::future::poll_fn(|cx| {
++        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++            Future::poll(future.as_mut(), cx)
++        })) {
++            Ok(std::task::Poll::Ready(value)) => std::task::Poll::Ready(Ok(value)),
++            Ok(std::task::Poll::Pending) => std::task::Poll::Pending,
++            Err(error) => std::task::Poll::Ready(Err(error)),
++        }
++    })
++    .await
++}
++async fn finish(s: &Scene, work: std::thread::Result<()>) {
++    // No spawned mixer worker in Scene. Always close every original controller
++    // and its actual adapter cleanup, even after a negative source assertion.
++    let mut failures = Vec::new();
++    for (i, c) in s.controllers.iter().enumerate() {
++        match caught(c.shutdown(deadline())).await {
++            Ok(0) => {}
++            Ok(n) => failures.push(format!("controller {i}: {n} outstanding")),
++            Err(_) => failures.push(format!("controller {i}: close panic")),
++        }
++    }
++    for (i, a) in s.adapters.iter().enumerate() {
++        if a.outstanding.load(Ordering::Acquire) != 0 {
++            failures.push(format!("adapter {i}: original cleanup not confirmed"));
++        }
++    }
++    if let Err(error) = work {
++        std::panic::resume_unwind(error);
++    }
++    assert!(failures.is_empty(), "{failures:?}");
++}
++fn hints(s: &Scene, at: usize) -> BTreeSet<(ConnectionId, Option<ConnectionId>)> {
++    s.mixer
++        .audio_route_preparation_hints(&s.controllers[at].connection)
++        .unwrap()
++}
++fn expected(
++    s: &Scene,
++    values: &[(usize, Option<usize>)],
++) -> BTreeSet<(ConnectionId, Option<ConnectionId>)> {
++    values
++        .iter()
++        .map(|(t, source)| {
++            (
++                s.controllers[*t].connection.clone(),
++                source.map(|i| s.controllers[i].connection.clone()),
++            )
++        })
++        .collect()
++}
++async fn subscribe(s: &Scene, at: usize, items: Vec<AudioSubscription>) {
++    route(s, at, AudioSubscriptionChange::Subscribe(items))
++        .await
++        .unwrap();
++}
++#[tokio::test]
++async fn selected_route_hints_match_stream_connection_participant_and_exact_unsubscribe() {
++    let s = Scene::new(&four()[..4], 8000).await;
++    let work = caught(async {
++        for i in 0..4 {
++            s.bind_unsubscribed(i, true).await;
++        }
++        assert_eq!(hints(&s, 2), expected(&s, &[(2, None)]));
++        subscribe(&s, 2, vec![stream(&s, 0)]).await;
++        assert_eq!(
++            hints(&s, 2),
++            expected(&s, &[(2, None), (0, None), (2, Some(0))])
++        );
++        route(&s, 2, AudioSubscriptionChange::Clear).await.unwrap();
++        subscribe(
++            &s,
++            2,
++            vec![AudioSubscription::Connection(
++                s.controllers[0].connection.clone(),
++            )],
++        )
++        .await;
++        assert_eq!(
++            hints(&s, 2),
++            expected(&s, &[(2, None), (0, None), (2, Some(0))])
++        );
++        route(&s, 2, AudioSubscriptionChange::Clear).await.unwrap();
++        subscribe(
++            &s,
++            2,
++            vec![AudioSubscription::Participant(
++                s.controllers[0].origin_member.participant().clone(),
++            )],
++        )
++        .await;
++        assert_eq!(
++            hints(&s, 2),
++            expected(
++                &s,
++                &[(2, None), (0, None), (3, None), (2, Some(0)), (2, Some(3))]
++            )
++        );
++        let AudioSubscription::Stream(key) = stream(&s, 0) else {
++            unreachable!()
++        };
++        route(&s, 2, AudioSubscriptionChange::Unsubscribe(vec![key]))
++            .await
++            .unwrap();
++        assert_eq!(
++            hints(&s, 2),
++            expected(&s, &[(2, None), (3, None), (2, Some(3))])
++        );
++        // Actual mixer corroborates exclusion and whole-participant matching.
++        let mut out = s.port(2).take_egress().unwrap();
++        s.publish(0, 1000);
++        s.publish(3, 500);
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 500).await;
++    })
++    .await;
++    finish(&s, work).await;
++}
++#[tokio::test]
++async fn selected_route_hints_exclude_all_devices_of_the_receiver_participant() {
++    let s = Scene::new(&four()[..4], 8000).await;
++    let work = caught(async {
++        for i in 0..4 {
++            s.bind(i, true).await;
++        }
++        let mut own0 = s.port(0).take_egress().unwrap();
++        let mut own3 = s.port(3).take_egress().unwrap();
++        s.publish(0, 1000);
++        s.publish(3, 500);
++        s.mixer.tick();
++        assert!(own0.try_recv().is_err());
++        assert!(own3.try_recv().is_err());
++        // Sources 0 and 3 are separate genuine devices of SAME participant.
++        // The production mixer above excluded both; hints must agree.
++        assert_eq!(
++            hints(&s, 0),
++            expected(
++                &s,
++                &[
++                    (0, None),
++                    (1, None),
++                    (2, None),
++                    (0, Some(1)),
++                    (0, Some(2)),
++                    (1, Some(0)),
++                    (2, Some(0))
++                ]
++            )
++        );
++    })
++    .await;
++    finish(&s, work).await;
++}
++#[tokio::test]
++async fn selected_route_hints_respect_speaking_role_and_negotiated_direction() {
++    let people = [
++        ("a", "alice", audio(), 0),
++        ("b", "bob", audio(), 0),
++        ("c", "carol", audio(), 0),
++        ("d", "dave", audio(), 0),
++    ];
++    let s = Scene::new(&people, 8000).await;
++    let work = caught(async {
++        for (index, direction) in [(2, StreamDirection::Receive), (3, StreamDirection::Send)] {
++            let mut desired = desired(Medium::Audio);
++            desired.direction = direction;
++            s.controllers[index]
++                .change(
++                    s.controllers[index].revision(),
++                    &[desired],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++        }
++        for i in 0..4 {
++            s.bind_unsubscribed(i, i != 1).await;
++        }
++        s.subscribe_all().await;
++        // Core Receive means incoming source only; Send means outgoing sink only.
++        // Bob cannot speak but may still receive candidate audio.
++        assert_eq!(
++            hints(&s, 0),
++            expected(
++                &s,
++                &[
++                    (0, None),
++                    (2, None),
++                    (0, Some(2)),
++                    (1, Some(0)),
++                    (3, Some(0))
++                ]
++            )
++        );
++    })
++    .await;
++    finish(&s, work).await;
++}
++#[tokio::test]
++async fn selected_route_hints_apply_the_same_closed_audience_rule_as_queued_mix_selection() {
++    use crate::staged_streams::audience::{AudioAudienceRequest, AudioAudienceRule};
++    let s = Scene::new(&four()[..3], 8000).await;
++    let work = caught(async {
++        for i in 0..3 {
++            s.bind(i, true).await;
++        }
++        let plan = s
++            .mixer
++            .plan_audio_audience(AudioAudienceRequest {
++                operation_id: "hint-rule-component".into(),
++                expected_revision: s.mixer.audience_revision(),
++                private_connections: BTreeSet::from([
++                    s.controllers[0].connection.clone(),
++                    s.controllers[1].connection.clone(),
++                ]),
++                receivers: BTreeMap::from([
++                    (
++                        s.controllers[0].connection.clone(),
++                        vec![AudioSubscription::Connection(
++                            s.controllers[1].connection.clone(),
++                        )],
++                    ),
++                    (
++                        s.controllers[1].connection.clone(),
++                        vec![AudioSubscription::Connection(
++                            s.controllers[0].connection.clone(),
++                        )],
++                    ),
++                ]),
++                activate_muted: None,
++            })
++            .unwrap();
++        // Component seam: use the real scene-issued closed group, install ONLY
++        // its selection rules. This is not a committed private-audience or
++        // authority transaction and creates no MediaPolicy/Store grant.
++        for c in &s.controllers {
++            let consumer = c
++                .audio_consumer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .and_then(Weak::upgrade)
++                .unwrap();
++            consumer
++                .subscriptions
++                .add_new_source_rule(AudioAudienceRule {
++                    group: plan.group.clone(),
++                    inside: plan.group.contains(c),
++                });
++        }
++        assert_eq!(
++            hints(&s, 0),
++            expected(&s, &[(0, None), (1, None), (0, Some(1)), (1, Some(0))])
++        );
++        let mut inside = s.port(1).take_egress().unwrap();
++        let mut outside = s.port(2).take_egress().unwrap();
++        s.publish(0, 1000);
++        s.mixer.tick();
++        heard(inside.try_recv().unwrap(), 1000).await;
++        assert!(outside.try_recv().is_err());
++    })
++    .await;
++    finish(&s, work).await;
++}

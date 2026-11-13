@@ -20,6 +20,8 @@ pub(crate) mod public_continuation;
 mod publication_fixture;
 pub(crate) mod reconciliation;
 pub(crate) mod replacement;
+#[cfg(feature = "test-support")]
+pub(crate) mod route_enrollment_fixture;
 mod sources;
 #[cfg(feature = "test-support")]
 pub(crate) mod video_preparation_fixture;
@@ -85,6 +87,15 @@ pub(crate) struct Policy {
         Published<BTreeMap<ConnectionId, Weak<crate::telephone_replacement::media::Policy>>>,
     initial_targets: Published<BTreeMap<ConnectionId, Weak<crate::initial_telephone::policy::Leg>>>,
     capacity: usize,
+    #[cfg(feature = "test-support")]
+    route_enrollment_pauses: Mutex<
+        BTreeMap<
+            (String, route_enrollment_fixture::RouteEnrollmentBoundary),
+            Arc<route_enrollment_fixture::State>,
+        >,
+    >,
+    #[cfg(feature = "test-support")]
+    route_enrollment_observations: Mutex<BTreeMap<String, Arc<route_enrollment_fixture::State>>>,
     #[cfg(feature = "test-support")]
     video_preparation_probes: Mutex<BTreeMap<String, Weak<video_preparation_fixture::Probe>>>,
     #[cfg(feature = "test-support")]
@@ -843,6 +854,10 @@ impl Policy {
             telephone_targets: Published::new(BTreeMap::new()),
             initial_targets: Published::new(BTreeMap::new()),
             capacity,
+            #[cfg(feature = "test-support")]
+            route_enrollment_pauses: Default::default(),
+            #[cfg(feature = "test-support")]
+            route_enrollment_observations: Default::default(),
             #[cfg(feature = "test-support")]
             replacement_projection_pauses: Default::default(),
             #[cfg(feature = "test-support")]

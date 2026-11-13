@@ -102,6 +102,8 @@ impl Policy {
                     queued, original, ?error, "Current packet policy refused");
             });
         #[cfg(feature = "test-support")]
+        self.observe_route_original_publish_for_test(scope, original, &result);
+        #[cfg(feature = "test-support")]
         audio_diagnostic::result(scope.connection, Stage::PolicyResult, result.as_ref().err());
         result
     }

@@ -2290,6 +2290,24 @@
       "path": "patches/rvoip/connect-adoption-explicit-prestart-privacy-controls.patch",
       "sha256": "f5e4a54487501c2de0cad22099c3cc52404a44684cd385f0572b8ec63e4d68df",
       "source": "Corrective test-only scope after independent assessment: rename both diagnostic experiments as explicit prestart privacy negatives, asserting no ordinary PCM without fresh public input while retaining actual Ready/publication/progress/recovery/all-owner checks. Original419/423/424/425 patches, binaries and intended failed forensic oracles remain immutable. No-new-input continuity was never approved Gate6 criteria; no acceptance or production change. Fresh-source decoder continuity has separate positive controls."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-exact-native-ingress-observation-controls.patch",
+      "sha256": "072ba6840c33738a2a1d3760f45f67d2dd2874f9daaf9f1aa7d29adc46a3b1fd",
+      "source": "Test-support-only exact original native ingress numeric identity and scoped synchronous diagnostic context. Capture actual outer sequence/RTP SSRC/timestamp plus retained controller incarnation/generation without payload, admission changes or an await-spanning context. Supports real signed Root OLD/fixed cold-route controls; nested-None/panic/foreign-owner/number negative controls. Normal production feature compiles all hooks out; no historical media attribution or matrix pass."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-selected-audio-route-control-preparation.patch",
+      "sha256": "2db22ad4f0ea59f77f344217c8a8a1ba2eb662d9743a7cd127f5f3b47baa9cea",
+      "source": "Control-plane-only selected audio route preparation hints touching one endpoint. Reuse actual current direction/speaking/Program/audience rules and mixer same-participant exclusion, return owned IDs after all Core guards drop; no route grant, all-pair scan, PCM/codec carry, packet age or permission changes. Four real guarded mixer selector/negative/cleanup controls. Actual SourceSigned OLD cold-route pending/ordinary original packets were refused before Service warming; this registered helper enables bounded existing Store factories off media at both phase boundaries."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-selected-route-direction-fixture-controls.patch",
+      "sha256": "b8e344a7a66894ba93d97d15b63db58a70f2c06bf1c8d84146ebb440750ce325",
+      "source": "Test-only correction after actual428 selected-route suite passed3 but source-only direction fixture subscribed a non-receiving endpoint and failed setup NotReady before the intended metadata assertions. Subscribe only actual receive sinks, retain all original direction/speaking/hint assertions. Explicit all-owner cleanup result precedes rethrow; no production or Gate6 acceptance change."
     }
   ]
 }

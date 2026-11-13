@@ -269,6 +269,12 @@ impl Store {
         self.media_authorization.enable_after_writer_boundary()?;
         Ok(watcher)
     }
+    #[cfg(feature = "test-support")]
+    pub fn pause_media_authorization_watcher_for_test(
+        &self,
+    ) -> connect_protocol::Result<MediaAuthorizationWatcherPause> {
+        self.media_authorization.pause_worker_for_test()
+    }
     /// Create a new database. Refuses to reuse an existing path.
     pub fn initialize(path: &Path, limits: Limits) -> Result<Self> {
         limits.validate()?;
@@ -1073,3 +1079,6 @@ pub use replacement_scene_snapshot::{
 
 #[cfg(test)]
 mod scoped_phase_timing;
+
+#[cfg(feature = "test-support")]
+pub use media_authorization::MediaAuthorizationWatcherPause;
