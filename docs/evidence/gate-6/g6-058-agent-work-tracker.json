@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T15:52:05.184485+00:00",
-  "revision": 74,
+  "updated_at": "2026-11-13T20:25:06.717844+00:00",
+  "revision": 75,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 113,
-    "verified_at": "2026-11-13T15:52:51.930Z",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217.json",
-    "readback_evidence_sha256": "f97e298deaa159a290654c41a57289a54247b7f0aea6f3b3a4a26d2b4da0b4b0",
+    "content_revision": 126,
+    "verified_at": "2026-11-13T20:54:24.007325+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v218.json",
+    "readback_evidence_sha256": "ff52755e9f038f7ce1e6b4151baf980c384116428138cf7eaa48a6601f26635a",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -5362,5 +5362,47 @@
     "component_evidence_sha256": "6fffa8c7a76f9d00c3716cad808916a353091a780a08382ad84d803df0e01ae0",
     "component_passed": 9,
     "component_required": 9
+  },
+  "v218_full32_checkpoint": {
+    "summary": {
+      "cells": {
+        "passed": 1,
+        "failed": 31,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 399,
+        "failed": 33,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "source_revision": "454fa7cfb095dda3cce0720ad8ba58846e4647c4",
+    "normal_generation": 429,
+    "evidence": "docs/evidence/gate-6/g6-058-v218-final-checkpoint.json",
+    "evidence_sha256": "626020e2811519895cd961f7f90421f485aa555fae80e84d200a262c5d79bd8e",
+    "mapping_evidence": "docs/evidence/gate-6/g6-058-v218-current-failure-mapping.json",
+    "mapping_sha256": "8dabe5133186f88b8ed9b045b3cf740d0dd8f6710aacc442440bb2d19375bead",
+    "all_original_owners_closed": true,
+    "strict_current_matrix_qualified": false,
+    "task_complete": false,
+    "scope": "31 decoded-media requirement failures +one replacement +one resource. Exact current33 mappings; stable145 historical mappings and original15task IDs unchanged. Whole-run cleanup does not waive per-cycle results."
+  },
+  "v218_slowdown_fix_batch": {
+    "evidence": "docs/evidence/gate-6/g6-058-v218-slowdown-fix-batch.json",
+    "evidence_sha256": "a2869446cb931e4047e868c3bf02961b238198a17cae6a452d7ff3c53310588b",
+    "status": "applied-focused-verification-complete-broader-media-pending",
+    "matrix_cells_passed": 1,
+    "matrix_checks_passed": 399,
+    "rust_cases_passed": 352,
+    "script_cases_passed": 167,
+    "sdk_cases_passed": 55,
+    "source_acceptance_is_not_media_quality": true
   }
 }

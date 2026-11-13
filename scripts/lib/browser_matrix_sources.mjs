@@ -21,7 +21,7 @@ export function matrixSourceFrame(elapsedMs) {
 // Keep the independently sampled 8x8 identity/pulse centres untouched. The
 // bottom macroblock starts below their final y=337.5 centre; its eight visible
 // rows remain inside the observer's actual 128x72 change sample.
-function paintMatrixVideoFrame(paint, {frame, pulse}, role) {
+function paintMatrixVideoFrame(paint, {frame, pulse, footerFrame=frame}, role) {
     paint.fillStyle = `hsl(${frame % 360} 90% 40%)`;
     paint.fillRect(0, 0, 640, 360);
     paint.fillStyle = 'white';
@@ -37,7 +37,7 @@ function paintMatrixVideoFrame(paint, {frame, pulse}, role) {
     // Actual source-frame bits change even while the cadence pulse is white.
     // They grant no identity or frame credit without real decoded pixels.
     for (let bit = 0; bit < 11; bit++) {
-        paint.fillStyle = frame & (1 << bit) ? 'white' : 'black';
+        paint.fillStyle = footerFrame & (1 << bit) ? 'white' : 'black';
         paint.fillRect(bit * 32, 352, 32, 8);
     }
 }
@@ -111,7 +111,10 @@ export async function browserMatrixSources() {
                     const {frame,pulse,ordinal}=coordinate;
                     record.maximumDrawGapMs=Math.max(record.maximumDrawGapMs,record.lastDrawMs===null?0:now-record.lastDrawMs);
                     record.lastDrawMs=now;
-                    paintMatrixVideoFrame(paint, coordinate, role);
+                    // Reserved existing11-bit value identifies PREprogramme pixels.
+                    // Public programme0..1859 stimulus is byte-for-byte unchanged.
+                    paintMatrixVideoFrame(paint, {...coordinate,
+                        footerFrame:elapsed===null||elapsed<0?2047:frame}, role);
                     if(pulse&&record.lastPulseOrdinal!==ordinal){record.lastPulseOrdinal=ordinal;record.pulseOrdinals.push(ordinal);}
                     record.draws++;
                 };

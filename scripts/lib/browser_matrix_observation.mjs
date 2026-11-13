@@ -1,3 +1,4 @@
+import {matrixFrameIdentity,MATRIX_FRAME_ID_PROFILE} from './browser_matrix_frame_identity.mjs';
 import {rtcDecodedVideoOwners} from './browser_matrix_rtc_decoded.mjs';
 import {nativeMembership} from "../../sdk/typescript/dist/browser_native_activation.js";
 import {browserMatrixRtcObservation} from './browser_matrix_rtc_observation.mjs';
@@ -176,7 +177,7 @@ function audioProvenance(rows) {
 function duplicateVideoSnapshot(row,index,presentation=row.presentation){
     const value={owner:row.owner,row_index:index,original_timestamp_us:row.timestamp,
         callback_seconds:row.seconds,kind:row.kind,changed:row.changed,dimensions:row.dimensions,
-        native:null,presentation:null};
+        native:null,presentation:null,source_frame_identity:row.sourceFrameIdentity?Object.freeze({...row.sourceFrameIdentity}):null};
     if(row.native){
         const n=row.native,sequences=n.datagramSequences??[];
         value.native=Object.freeze({profile:n.profile??null,ssrc:n.ssrc??null,
@@ -194,8 +195,37 @@ function duplicateVideoSnapshot(row,index,presentation=row.presentation){
     return Object.freeze(value);
 }
 
+// Derive identity only AFTER the caller's exact public-membership filter,
+// and only over the declared quality window. Private/prewindow observations
+// can never spend a public frame ID or poison a later genuine public sample.
+function includedSourceVideo(rows,start,end){
+    const ids=new Map(),timestamps=new Map(),duplicates=[],reuses=[];
+    let omittedDuplicates=0,omittedReuses=0;
+    const derived=rows.map(original=>{
+        const row={...original,duplicate:false};
+        if(row.seconds<start||row.seconds>=end)return row;
+        if(typeof row.sourceFrameKey==='string'){
+            const first=ids.get(row.sourceFrameKey);
+            row.duplicate=first!==undefined;
+            if(first){
+                if(duplicates.length<16)duplicates.push(Object.freeze({first:duplicateVideoSnapshot(first,first.row_index),
+                    current:duplicateVideoSnapshot(row,row.row_index),matching_original_row_available:true}));
+                else omittedDuplicates++;
+            }else ids.set(row.sourceFrameKey,row);
+        }
+        const key=row.owner+':v:'+row.timestamp,first=timestamps.get(key);
+        if(first){
+            if(reuses.length<16)reuses.push(Object.freeze({first:duplicateVideoSnapshot(first,first.row_index),
+                current:duplicateVideoSnapshot(row,row.row_index),matching_original_row_available:true}));
+            else omittedReuses++;
+        }else timestamps.set(key,row);
+        return row;
+    });
+    return {rows:derived,duplicates,reuses,omittedDuplicates,omittedReuses};
+}
+
 export class DecodedRoute {
-    constructor(index,expected){this.index=index;this.expected=expected;this.audio=[];this.video=[];this.envelope=new AudioEnvelope();
+    constructor(index,expected,{sourceFrameIdentity=false}={}){this.sourceFrameIdentity=sourceFrameIdentity;this.index=index;this.expected=expected;this.audio=[];this.video=[];this.envelope=new AudioEnvelope();
         this.audioBoundaries=[];this.omittedAudioBoundaries=0;this.invalid=[];this.seen=new Set();this.videoHigh=false;this.lastPixels=null;this.videoEdges=[];this.begin=null;this.ownerPixels=new Map();
         this.audioCuts=[];this.videoCuts=[];
         this.audioClocks = new Map();
@@ -300,7 +330,18 @@ export class DecodedRoute {
             }
             this.recordVideoPresentation(owner, timestamp, at, presentation);
         }
-        const kind=classifySourceFrame(gray),duplicate=this.seen.has(key);this.seen.add(key);
+        const kind=classifySourceFrame(gray);
+        const identity=this.sourceFrameIdentity?matrixFrameIdentity(pixels,kind,this.expected):null;
+        // One authored programme/logical source continues across physical moves.
+        // Neither owner changes nor PTS changes can hide original frame reuse.
+        const sourceFrameKey=identity?.status==='identified'
+            ?JSON.stringify([MATRIX_FRAME_ID_PROFILE,this.expected,identity.ordinal]):null;
+        const timestampKey=owner+':v:'+timestamp;
+        // Exact public membership and qualification window are known only in report().
+        const duplicate=this.sourceFrameIdentity
+            ?false:this.seen.has(key);
+        this.seen.add(this.sourceFrameIdentity?timestampKey:key);
+
         let changed;
         if(native!==null&&native!==undefined){
             // Native private preparation has its own physical history. It must
@@ -313,14 +354,15 @@ export class DecodedRoute {
             changed=this.lastPixels!==null&&pixels.some((v,i)=>v!==this.lastPixels[i]);this.lastPixels=pixels.slice();
         }
         if(kind==='pulse'&&!this.videoHigh)this.videoEdges.push(seconds);this.videoHigh=kind==='pulse';
-        const row={owner,seconds,timestamp,kind,duplicate,changed,native,
+        const row={owner,seconds,timestamp,kind,duplicate,changed,native,row_index:this.video.length,sourceFrameIdentity:identity,sourceFrameKey,
             presentation:presentation ? {element_id:presentation.element_id, presentedFrames:presentation.presentedFrames} : null,
             dimensions:width===640&&height===360};
         if(duplicate){
             if(this.videoDuplicateEvents.length<16){
                 // At most16 searches of the existing bounded10000-row array.
                 // Reconstruct the SAME original key; no new per-frame map.
-                const first=this.video.findIndex(previous=>(previous.presentation
+                const first=this.video.findIndex(previous=>this.sourceFrameIdentity
+                    ?previous.sourceFrameKey===sourceFrameKey:(previous.presentation
                     ?JSON.stringify([previous.owner,'rtc-presentation',previous.presentation.element_id,previous.presentation.presentedFrames])
                     :previous.owner+':v:'+previous.timestamp)===key);
                 this.videoDuplicateEvents.push(Object.freeze({
@@ -340,7 +382,7 @@ export class DecodedRoute {
         audio_provenance_edges:this.audioProvenance?Object.values(this.audioProvenance.window_edges).filter(value=>value!==null&&typeof value==='object').length:0,
         presentation_owners:this.presentationOwners.size, presentation_samples:this.presentationSamples.length,
         presentation_refusals:this.presentationRefusals.length,
-        video_duplicate_events:this.videoDuplicateEvents.length, video_duplicate_events_omitted:this.omittedVideoDuplicateEvents,
+        video_frame_identity_rows:this.video.filter(row=>row.sourceFrameIdentity?.status==='identified').length,video_duplicate_events:this.videoDuplicateEvents.length, video_duplicate_events_omitted:this.omittedVideoDuplicateEvents,
         video_edges:this.videoEdges.length,audio_cuts:this.audioCuts.length,video_cuts:this.videoCuts.length,
         last_pixel_bytes:this.lastPixels?.byteLength??0,
         owner_pixel_bytes:[...this.ownerPixels.values()].reduce((sum,pixels)=>sum+pixels.byteLength,0)};}
@@ -364,14 +406,21 @@ export class DecodedRoute {
         this.videoHigh=false;this.begin=null;
     }
     report(include=()=>true,renderedRoute=null){
-        const originalAudio=this.audio.filter(row=>include(row,'audio')),originalVideo=this.video.filter(row=>include(row,'video'));
+        const originalAudio=this.audio.filter(row=>include(row,'audio'));
+        const start=1,end=61,seconds=60,inWindow=row=>row.seconds>=start&&row.seconds<end;
+        const capturedVideo=this.video.filter(row=>include(row,'video'));
+        const sourceVideo=this.sourceFrameIdentity?includedSourceVideo(capturedVideo,start,end):null;
+        const originalVideo=sourceVideo?.rows??capturedVideo;
+        const includedIndices=new Set(originalVideo.map(row=>row.row_index));
+        const videoIncluded=index=>this.sourceFrameIdentity?includedIndices.has(index):originalVideo.includes(this.video[index]);
+        const duplicateEvents=sourceVideo?.duplicates??this.videoDuplicateEvents;
+        const timestampEvents=sourceVideo?.reuses??[];
         const markerVideo=renderedRoute?renderedRoute.video:originalVideo;
         this.audioProvenance=audioProvenance(originalAudio);
         // Rebuild only bounded numeric observations. Original callbacks, times,
         // bytes and decoded media are neither replayed nor altered.
         this.envelope=new AudioEnvelope();for(const row of originalAudio)this.envelope.sample(row.seconds,row.rms);
         this.videoEdges=[];let high=false;for(const row of markerVideo){if(row.kind==='pulse'&&!high)this.videoEdges.push(row.seconds);high=row.kind==='pulse';}
-        const start=1,end=61,seconds=60,inWindow=row=>row.seconds>=start&&row.seconds<end;
         const audio=originalAudio.filter(inWindow),video=originalVideo.filter(inWindow),identified=audio.filter(row=>row.identified&&!row.duplicate);
         const boundaries=[start,...identified.map(row=>row.seconds),end];
         const maximumGap=Math.max(...boundaries.slice(1).map((at,i)=>Math.max(0,at-boundaries[i]-(i===0?0:.02))));
@@ -421,9 +470,10 @@ export class DecodedRoute {
         // physical moves. Quantized callback times are never duplicate keys.
         for(const row of video)if(row.native){const key=row.native.rtpTimestamp;if(videoSourceSeen.has(key))videoSourceOverlaps++;videoSourceSeen.add(key);}
         const counts={};for(const row of video)counts[row.kind]=(counts[row.kind]??0)+1;
-        const perSecond=Array(60).fill(0);for(const row of video)if(row.changed&&!row.duplicate&&row.dimensions&&
+        const validFrameId=row=>!this.sourceFrameIdentity||row.sourceFrameIdentity?.status==='identified';
+        const perSecond=Array(60).fill(0);for(const row of video)if(validFrameId(row)&&row.changed&&!row.duplicate&&row.dimensions&&
             [String(this.expected),'pulse'].includes(row.kind))perSecond[Math.floor(row.seconds-start)]++;
-        const changingVideo=video.filter(row=>row.changed&&!row.duplicate&&row.dimensions&&[String(this.expected),'pulse'].includes(row.kind));
+        const changingVideo=video.filter(row=>validFrameId(row)&&row.changed&&!row.duplicate&&row.dimensions&&[String(this.expected),'pulse'].includes(row.kind));
         const videoCoverage=transitionCoverage(changingVideo.map(row=>row.seconds*1000),this.videoCuts,
             {startMs:start*1000,endMs:end*1000,frameMs:1000/30,minimumGapMs:50});
         const requiredFrames=cleanBinDurations(videoCoverage,start*1000,seconds).map(ms=>Math.ceil(ms*24/1000-1e-9));
@@ -476,15 +526,24 @@ export class DecodedRoute {
             decoded_frames:video.length,changing_frames_per_second:perSecond,minimum_fps:Math.min(...perSecond),
             identity,dimension_refusals:video.filter(row=>!row.dimensions).length,original_source_timestamp_overlaps:videoSourceOverlaps,duplicate_frames:video.filter(row=>row.duplicate).length,
             duplicate_diagnostics:Object.freeze({profile:'connect/decoded-video-duplicate-evidence/1',limit:16,
-                scope:'Repeated original observer identity only; no packet-duplicate cause, pixel equality, additional frame credit or quality exception',
-                source_frame_bits:null,
-                source_frame_bits_unavailable:'Generic decoded routes have no self-identifying source-bit layout; no pixels are reread or reinterpreted',
-                omitted:this.omittedVideoDuplicateEvents,
-                events:Object.freeze(this.videoDuplicateEvents.filter(event=>
-                    originalVideo.includes(this.video[event.current.row_index])
-                    &&(!event.first||originalVideo.includes(this.video[event.first.row_index]))))}),
+                scope:this.sourceFrameIdentity?'Repeated decoded source ordinal among exact included public quality-window rows; no inferred transport cause':'Repeated original observer identity only; no packet-duplicate cause, pixel equality, additional frame credit or quality exception',
+                source_frame_bits:this.sourceFrameIdentity?MATRIX_FRAME_ID_PROFILE:null,
+                source_frame_bits_unavailable:this.sourceFrameIdentity?null:'Generic decoded routes have no declared source-bit layout',
+                omitted:sourceVideo?.omittedDuplicates??this.omittedVideoDuplicateEvents,
+                events:Object.freeze(duplicateEvents.filter(event=>videoIncluded(event.current.row_index)
+                    &&(!event.first||videoIncluded(event.first.row_index))))}),
+            source_frame_identity:{profile:this.sourceFrameIdentity?MATRIX_FRAME_ID_PROFILE:null,
+                scope:'Original decoded footer ordinal; expected source is logical-route association. White pulses retain the declared source-identity exception, never an invented pixel-source ID',
+                status:!this.sourceFrameIdentity?'not-requested':video.length>0&&video.every(validFrameId)?'passed':'failed',
+                identified_frames:video.filter(row=>row.sourceFrameIdentity?.status==='identified').length,
+                unavailable_frames:video.filter(row=>this.sourceFrameIdentity&&!validFrameId(row)).length,
+                pulse_exception_frames:video.filter(row=>row.sourceFrameIdentity?.pulse_exception).length},
+            timestamp_reuse_diagnostics:{profile:'connect/decoded-video-timestamp-reuse/1',limit:16,
+                scope:'Repeated browser/decoder timestamp only; source-frame duplicates remain independently mandatory',
+                omitted:sourceVideo?.omittedReuses??0,events:Object.freeze(timestampEvents.filter(event=>
+                    videoIncluded(event.current.row_index)&&(!event.first||videoIncluded(event.first.row_index))))},
             transition_coverage:videoCoverage,required_changing_frames_per_second:requiredFrames,
-            passed:videoSourceOverlaps===0&&perSecond.every((count,index)=>count>=requiredFrames[index])
+            passed:video.every(validFrameId)&&videoSourceOverlaps===0&&perSecond.every((count,index)=>count>=requiredFrames[index])
                 &&changingVideo.length>=1440&&identity.status==='passed'&&video.every(row=>row.dimensions&&!row.duplicate)
                 &&(!renderedRoute||(renderedIdentity.status==='passed'&&!renderedRoute.invalid.length&&markerVideo.filter(inWindow).every(row=>row.dimensions&&!row.duplicate)))};
         return {route:this.index,expected_source_id:this.expected,window_start_ms:1000,window_end_ms:61000,
@@ -505,8 +564,8 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
     const routes=plan.routes.map(route=>{
         const peers=plan.routes.filter(other=>other.session===route.session),at=peers.indexOf(route);
         const selected=peers[(at+peers.length-1)%peers.length];
-        return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1),
-            rendered:nativeRtcVideo?new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1):null,selected,active:null};
+        return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1,{sourceFrameIdentity:true}),
+            rendered:nativeRtcVideo?new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1,{sourceFrameIdentity:true}):null,selected,active:null};
     });
     const bindings=new Map(),owners=[],surfaces=new Set(),pendingRenders=new Set(),initialRenders=new Map(),originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
     let closed=false,closing,lastReport,measurementsRetired=false;const rtcStages=Rtc?browserMatrixRtcStages():null;

@@ -1,3 +1,4 @@
+import { clonePublicationPacket, settlePublicationPacket, } from "./browser_video_publication.js";
 import { ConnectError } from "./errors.js";
 import { identifier } from "./uctp_wire.js";
 export const MEDIA_LIMITS = Object.freeze({
@@ -398,13 +399,18 @@ export class MediaSendQueue {
         return this.packets.length;
     }
     clear() {
+        for (const packet of this.packets)
+            settlePublicationPacket(packet.bytes, false);
         this.packets = [];
         this.size = 0;
     }
-    shift() {
+    shift(dropped = false) {
         const p = this.packets.shift();
-        if (p)
+        if (p) {
             this.size -= p.bytes.length;
+            if (dropped)
+                settlePublicationPacket(p.bytes, false);
+        }
         return p?.bytes;
     }
     push(packets, audio, now = performance.now()) {
@@ -422,18 +428,21 @@ export class MediaSendQueue {
             this.packets.filter((p) => p.audio === audio).length +
                 packets.length >
                 limit) {
-            this.shift();
+            this.shift(true);
             this.droppedPackets++;
         }
-        for (const packet of packets)
-            this.packets.push({ bytes: packet.slice(), audio, created: now });
+        for (const packet of packets) {
+            const bytes = packet.slice();
+            clonePublicationPacket(packet, bytes);
+            this.packets.push({ bytes, audio, created: now });
+        }
         this.size += bytes;
         return true;
     }
     expire(now) {
         while (this.packets[0] &&
             now - this.packets[0].created >= MEDIA_LIMITS.assemblyMs) {
-            this.shift();
+            this.shift(true);
             this.droppedPackets++;
         }
     }

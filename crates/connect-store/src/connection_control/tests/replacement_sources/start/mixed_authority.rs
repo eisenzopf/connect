@@ -300,3 +300,115 @@ fn dormant_start_activation_keeps_live_io_and_drains_real_revocation_before_unce
         .unwrap();
     assert_eq!(row(), captured);
 }
+
+// Actual current Start proof, original journal attempt and real primary custody.
+// No modeled authority or physical start callback is introduced here.
+#[test]
+fn dormant_start_projection_uses_query_only_observer_under_primary_sql_custody() {
+    let (f, _attempt, origin, _) = submitting_start();
+    let (proof, original) = f
+        .store
+        .resume_native_replacement_start_activation_authority(
+            &origin,
+            &AuthorityWait::new(Duration::from_secs(1)),
+        )
+        .unwrap();
+    let expected_connection = original.target().connection.connection_id.clone();
+    let expected_generation = original.target().connection.generation;
+    let expected_expiry = original.expires_at();
+    drop(original);
+    let journal_before = f.count("journal");
+    let steps_before = f.count("native_replacement_steps");
+    let primary = f.store.connection().unwrap();
+    // Keep primary SQL held throughout this REAL projection. Old code refuses
+    // its first try_connection; the fixed query-only observer must not need it.
+    let projected = f.store.native_replacement_start_read_under(&origin, &proof);
+    let current = projected.as_ref().is_ok_and(|read| {
+        read.current()
+            && read.target().connection.connection_id == expected_connection
+            && read.target().connection.generation == expected_generation
+            && read.target().publication_suspended
+            && read.expires_at() <= expected_expiry
+            && read.expires_at() <= origin.expires_at()
+    });
+    let error = projected
+        .as_ref()
+        .err()
+        .map(|e| (e.code.clone(), e.message.clone()));
+    drop(projected);
+    drop(primary);
+    drop(proof);
+    let unchanged =
+        f.count("journal") == journal_before && f.count("native_replacement_steps") == steps_before;
+    let writer = f.controlled_conversation_writer(0);
+    let writer_progress = f.store.connection_with_authority(&writer).is_ok();
+    drop(writer);
+    println!("dormant_start_projection current={current} unchanged={unchanged} writer_progress={writer_progress} error={error:?}");
+    assert!(
+        unchanged && writer_progress,
+        "original projection cleanup/attempt identity failed"
+    );
+    assert!(
+        current,
+        "dormant Start projection must use its current proof independently of primary SQL custody"
+    );
+}
+
+#[test]
+fn dormant_start_projection_observer_refusal_retains_no_extra_reader_or_effect() {
+    let (f, _attempt, origin, _) = submitting_start();
+    let (proof, original) = f
+        .store
+        .resume_native_replacement_start_activation_authority(
+            &origin,
+            &AuthorityWait::new(Duration::from_secs(1)),
+        )
+        .unwrap();
+    drop(original);
+    let journal_before = f.count("journal");
+    let steps_before = f.count("native_replacement_steps");
+    let observation = f.store.packet_connections.observe().unwrap();
+    let observers: Vec<_> = (0..crate::packet_observation::OBSERVERS)
+        .map(|_| f.store.try_packet_connection(&observation).unwrap())
+        .collect();
+    let refused = f.store.native_replacement_start_read_under(&origin, &proof);
+    let code = refused.as_ref().err().map(|e| e.code.clone());
+    drop(refused);
+    drop(observers);
+    let recovered = f.store.native_replacement_start_read_under(&origin, &proof);
+    let current = recovered.as_ref().is_ok_and(|read| read.current());
+    drop(recovered);
+    drop(proof);
+    let writer = f.controlled_conversation_writer(0);
+    let writer_progress = f.store.connection_with_authority(&writer).is_ok();
+    drop(writer);
+    let unchanged =
+        f.count("journal") == journal_before && f.count("native_replacement_steps") == steps_before;
+    assert_eq!(code.as_deref(), Some("authority-busy"));
+    assert!(current && writer_progress && unchanged);
+}
+
+#[test]
+fn dormant_start_projection_rejects_foreign_proof_without_fallback_or_new_effect() {
+    let (f, _attempt, origin, _) = submitting_start();
+    let (other, _other_attempt, other_origin, _) = submitting_start();
+    let (foreign, other_read) = other
+        .store
+        .resume_native_replacement_start_activation_authority(
+            &other_origin,
+            &AuthorityWait::new(Duration::from_secs(1)),
+        )
+        .unwrap();
+    drop(other_read);
+    let journal_before = f.count("journal");
+    let steps_before = f.count("native_replacement_steps");
+    let result = f
+        .store
+        .native_replacement_start_read_under(&origin, &foreign);
+    let code = result.as_ref().err().map(|e| e.code.clone());
+    drop(result);
+    drop(foreign);
+    assert_eq!(code.as_deref(), Some("forbidden"));
+    assert_eq!(f.count("journal"), journal_before);
+    assert_eq!(f.count("native_replacement_steps"), steps_before);
+}

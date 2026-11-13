@@ -606,4 +606,89 @@ assert os.read(0,8)==b'', 'original command was reissued'
         wrong.raw_path = linked;
         assert!(Encoder::open(&wrong).await.is_err());
     }
+    // Actual helper wire/owner control, not a physical Root authorization test.
+    // The separate signed integration must prove ordinary guarded publication.
+    #[tokio::test]
+    async fn fresh_public_key_discards_original_private_pending_reply_without_retagging() {
+        use std::future::Future;
+        use std::panic::{catch_unwind, AssertUnwindSafe};
+        use std::task::Poll;
+        let fixture = Fixture::new();
+        let mut encoder = Encoder::open(&fixture.program).await.unwrap();
+        let pid = encoder.pid;
+        // Keep ownership outside caught work; every original reply is consumed
+        // or the SAME encoder's stop_and_join drains it before an oracle escapes.
+        let work = {
+            let work = async {
+                encoder
+                    .request(
+                        0,
+                        true,
+                        tokio::time::Instant::now() + Duration::from_millis(200),
+                    )
+                    .unwrap();
+                let private_key = encoder.receive().await.unwrap();
+                assert!(video::key(&private_key.bytes));
+                encoder
+                    .request(
+                        1,
+                        false,
+                        tokio::time::Instant::now() + Duration::from_millis(200),
+                    )
+                    .unwrap();
+                assert!(encoder.pending());
+                let mut public = super::super::media::FreshPublicVideoKey::default();
+                public.completed(Duration::from_micros(33_334));
+                let pending_private = encoder.receive().await.unwrap();
+                assert_eq!(pending_private.index, 1);
+                assert!(public.private_coordinate(pending_private.index as usize));
+                public.sent(
+                    pending_private.index as usize,
+                    video::key(&pending_private.bytes),
+                    true,
+                );
+                assert!(public.needed, "private pending output cannot clear the fresh request, even if independently key");
+                // This is the next ORIGINAL coordinate, never frame1 retagged.
+                encoder
+                    .request(
+                        2,
+                        public.needed,
+                        tokio::time::Instant::now() + Duration::from_millis(200),
+                    )
+                    .unwrap();
+                let fresh = encoder.receive().await.unwrap();
+                assert_eq!(fresh.index, 2);
+                assert_eq!(fresh.index * 3000, 6000);
+                assert!(
+                    video::key(&fresh.bytes),
+                    "actual C helper must honor the eligible force-key request"
+                );
+                public.sent(2, true, false);
+                assert!(
+                    public.needed,
+                    "partial public output cannot clear the request"
+                );
+                public.sent(2, true, true);
+                assert!(!public.needed);
+            };
+            tokio::pin!(work);
+            std::future::poll_fn(|cx| {
+                match catch_unwind(AssertUnwindSafe(|| work.as_mut().poll(cx))) {
+                    Ok(Poll::Pending) => Poll::Pending,
+                    Ok(Poll::Ready(())) => Poll::Ready(Ok(())),
+                    Err(panic) => Poll::Ready(Err(panic)),
+                }
+            })
+            .await
+        };
+        let joined = encoder.stop_and_join().await;
+        fixture.gone(pid);
+        assert!(
+            joined.is_ok_and(|joined| joined.joined && (joined.clean || joined.cancelled)),
+            "original helper must be closed and joined before any work oracle escapes"
+        );
+        if let Err(panic) = work {
+            std::panic::resume_unwind(panic);
+        }
+    }
 }

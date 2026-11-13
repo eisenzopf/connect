@@ -55,11 +55,11 @@ impl Pending {
     }
     pub(super) fn try_send(
         &mut self,
-        peer: &CanonicalClient,
+        peer: &crate::canonical::OwnedNativeIo,
         cache: &std::sync::Mutex<NativeCache>,
         stop: &CancellationToken,
     ) -> Result<Option<LocalMediaSubmission>> {
-        self.try_send_with(cache, stop, |bytes| peer.send_native_media_datagram(bytes))
+        self.try_send_with(cache, stop, |bytes| peer.send(bytes))
     }
     fn try_send_with(
         &mut self,

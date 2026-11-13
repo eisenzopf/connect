@@ -603,11 +603,9 @@ impl Runtime {
         allocated: &Arc<AllocatedReplacement>,
         deadline: tokio::time::Instant,
     ) -> Result<Arc<StartInvocation>> {
-        let until = deadline.min(tokio::time::Instant::now() + Duration::from_secs(2));
-        let wait = connect_store::AuthorityWait::new(
-            until.saturating_duration_since(tokio::time::Instant::now()),
-        );
-        let _cancel_wait = wait.cancel_on_drop();
+        // Current-state admission consumes the ORIGINAL start budget. This is
+        // effect-free waiting, not a new RTC work interval or deadline renewal.
+        let until = deadline;
         tracing::debug!(target:"connect_service::canonical_replacement",stage="fresh-start-entry",
             record=%origin.operation_record_id(),
             original_start_remaining_us=deadline.saturating_duration_since(tokio::time::Instant::now()).as_micros(),
@@ -615,9 +613,9 @@ impl Runtime {
             "Replacement resource start");
         let root = policy.root.upgrade().ok_or_else(Error::forbidden)?;
         let cancelled = root.handle.cancellation();
-        let (proof, read, entries) = super::webrtc::admission::read(until, &wait, async {
+        let (proof, read, entries) = super::webrtc::admission::read_start(until, async {
             tokio::select! { _=self.stop.cancelled()=>{}, _=physical.lifetime.cancelled()=>{}, _=cancelled.cancelled()=>{} }
-        }, || async {
+        }, |wait| async move {
             let record = origin.operation_record_id();
             let store = self.media.store.clone(); let origin = origin.clone(); let wait = wait.clone();
             let (proof, read) = store_call(move || {

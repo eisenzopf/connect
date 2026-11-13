@@ -1,0 +1,25 @@
+{
+  "format": "connect/mobile-coordinator-readback/1",
+  "content_revision": 126,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "revision_id": "AHj4eMRYcgnalMLa1zlDO_yUovpsV_p2dAwEjby7NzegoXZBL9uc-o6Ozh-xuqs3map0rs-u0nd4gaJXyEZSRhqTfG2X6cZhuBZvOPxBadQ",
+  "verified_at": "2026-11-13T20:53:03.806Z",
+  "actual_get_document_readback": true,
+  "all_five_expected_paragraphs_exact": true,
+  "matrix_cells_passed": 1,
+  "matrix_checks_passed": 399,
+  "whole_matrix_qualified": false,
+  "component_scopes": {
+    "rust": 352,
+    "scripts": 167,
+    "sdk": 55
+  },
+  "pending": [
+    "actual browser codec robustness",
+    "S6 intermittent audio zeros",
+    "fresh complete source and ARM/release qualification",
+    "fresh32-cell run"
+  ],
+  "no_new_matrix_credit": true
+}

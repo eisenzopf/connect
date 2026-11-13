@@ -68,6 +68,36 @@ pub(super) struct Observation {
     pub source_start_video_index: usize,
     pub control_packet_events: u32,
     pub video_feedback_requests: u32,
+    pub fresh_public_video_key: Option<Value>,
+}
+
+// A request is fresh only when its ORIGINAL programme due coordinate is at
+// or after the observed completed Root. This is not a grant or a new clock.
+#[derive(Default)]
+pub(super) struct FreshPublicVideoKey {
+    floor: Option<usize>,
+    pub(super) needed: bool,
+}
+impl FreshPublicVideoKey {
+    pub(super) fn completed(&mut self, elapsed: Duration) {
+        let mut index = (elapsed.as_micros() * 30 / 1_000_000) as usize;
+        // Preserve sub-microsecond boundary precision and the actual schedule's
+        // integer-microsecond division. A floor/rounded label can admit a frame
+        // whose original capture coordinate precedes this completion.
+        while Duration::from_micros(index as u64 * 1_000_000 / 30) < elapsed {
+            index += 1;
+        }
+        self.floor = Some(index);
+        self.needed = true;
+    }
+    pub(super) fn private_coordinate(&self, index: usize) -> bool {
+        self.floor.is_some_and(|floor| index < floor)
+    }
+    pub(super) fn sent(&mut self, index: usize, key: bool, complete: bool) {
+        if self.needed && !self.private_coordinate(index) && key && complete {
+            self.needed = false;
+        }
+    }
 }
 
 pub(super) struct Pump<'a> {
@@ -87,6 +117,7 @@ pub(super) struct Pump<'a> {
     video_seq: u16,
     video_octets: u32,
     first_video_key: bool,
+    fresh_public_key: FreshPublicVideoKey,
     last_video_clock: Option<usize>,
     encoder: Option<&'a mut encoder::Encoder>,
     encoded: Option<encoder::Frame>,
@@ -152,6 +183,7 @@ impl<'a> Pump<'a> {
             video_seq: 0,
             video_octets: 0,
             first_video_key: true,
+            fresh_public_key: FreshPublicVideoKey::default(),
             last_video_clock: None,
             encoder,
             encoded: None,
@@ -165,7 +197,17 @@ impl<'a> Pump<'a> {
         if self.observation.root_observed {
             return Err("root completion already observed".into());
         }
-        self.observation.root_observed_programme_us = Some(self.start.elapsed().as_micros());
+        let elapsed = self.start.elapsed();
+        if self.source.video.is_some() {
+            self.fresh_public_key.completed(elapsed);
+            self.observation.fresh_public_video_key = Some(json!({
+                "boundary_programme_us":elapsed.as_micros(),
+                "original_frame_floor":self.fresh_public_key.floor,
+                "first_complete_fresh_key_index":null,
+                "basis":"first original due coordinate at/after observed completed root; not exact server cut"
+            }));
+        }
+        self.observation.root_observed_programme_us = Some(elapsed.as_micros());
         self.observation.root_observed = true;
         Ok(())
     }
@@ -368,6 +410,7 @@ impl<'a> Pump<'a> {
                 && !pending
             {
                 if !self.observation.video_prepared
+                    || self.fresh_public_key.private_coordinate(self.video_index)
                     || self.start.elapsed().as_micros().saturating_sub(original_us) >= 200_000
                 {
                     self.encoded = None;
@@ -377,6 +420,12 @@ impl<'a> Pump<'a> {
                 } else if let Some(frame) = self.encoded.take() {
                     if frame.index as usize != self.video_index {
                         return Err("encoder changed original programme position".into());
+                    }
+                    let key = video::key(&frame.bytes);
+                    if self.fresh_public_key.needed && !key {
+                        return Err(
+                            "fresh public original video request returned a delta frame".into()
+                        );
                     }
                     let timestamp = frame.index * 3000;
                     let mut complete = true;
@@ -398,6 +447,13 @@ impl<'a> Pump<'a> {
                         self.video_octets += (packet.len() - 20) as u32;
                     }
                     self.first_video_key = !complete;
+                    let needed = self.fresh_public_key.needed;
+                    self.fresh_public_key.sent(self.video_index, key, complete);
+                    if needed && !self.fresh_public_key.needed {
+                        if let Some(row) = &mut self.observation.fresh_public_video_key {
+                            row["first_complete_fresh_key_index"] = json!(self.video_index);
+                        }
+                    }
                     if complete
                         && self
                             .last_video_clock
@@ -430,12 +486,65 @@ impl<'a> Pump<'a> {
                         .ok_or("missing live video encoder")?
                         .request(
                             self.video_index as u32,
-                            self.first_video_key || feedback,
+                            self.first_video_key || self.fresh_public_key.needed || feedback,
                             deadline,
                         )?;
                 }
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod fresh_public_key_tests {
+    use super::*;
+
+    #[test]
+    fn fresh_public_key_floor_preserves_every_original_due_coordinate_and_submicro_boundary() {
+        for index in 0..1860 {
+            let due = Duration::from_micros(index * 1_000_000 / 30);
+            let mut state = FreshPublicVideoKey::default();
+            state.completed(due);
+            assert_eq!(state.floor, Some(index as usize));
+            state.completed(due + Duration::from_nanos(1));
+            assert_eq!(state.floor, Some(index as usize + 1));
+        }
+    }
+
+    #[test]
+    fn fresh_public_key_rejects_private_pending_reply_and_survives_partial_or_expired_output() {
+        let mut state = FreshPublicVideoKey::default();
+        // A private key and its following P request precede the completed Root.
+        state.sent(0, true, true);
+        state.completed(Duration::from_millis(50));
+        assert_eq!(state.floor, Some(2));
+        assert!(state.private_coordinate(1));
+        state.sent(1, false, true); // Retained original pending reply, not fresh.
+        assert!(state.needed);
+        state.sent(1, true, true); // Even a private key cannot satisfy it.
+        assert!(state.needed);
+        state.sent(2, true, false); // Partial/expired eligible original key.
+        assert!(state.needed);
+        state.sent(3, false, true); // Delta cannot overwrite the sticky request.
+        assert!(state.needed);
+        state.sent(4, true, true);
+        assert!(!state.needed);
+    }
+
+    #[test]
+    fn fresh_public_key_does_not_retime_or_reuse_the_discarded_original_coordinate() {
+        let mut state = FreshPublicVideoKey::default();
+        state.completed(Duration::from_micros(33_334));
+        let indices: Vec<_> = (1..5)
+            .filter(|index| !state.private_coordinate(*index))
+            .collect();
+        assert_eq!(indices, [2, 3, 4]);
+        // Packet timestamps remain the exact existing programme coordinates.
+        assert_eq!(
+            indices.iter().map(|index| index * 3000).collect::<Vec<_>>(),
+            [6000, 9000, 12000]
+        );
+        assert!(state.needed);
     }
 }

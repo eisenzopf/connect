@@ -566,6 +566,7 @@ pub(super) async fn run(
         source_start_video_index,
         control_packet_events,
         video_feedback_requests,
+        fresh_public_video_key,
     } = media;
     // Epoch notices can arrive after datagrams. Preserve physical read order
     // in the evidence without renewing an arrival or RTP timestamp.
@@ -573,7 +574,7 @@ pub(super) async fn run(
     let shutdown = client.shutdown().await;
     let result = json!({"format":"connect/native-replacement-peer-observation/1",
         "passed":work.is_ok() && shutdown.is_ok() && decoder_join.is_ok() && encoder_join.as_ref().is_ok_and(|joined| joined.as_ref().is_none_or(|joined| joined.joined && (joined.clean || joined.cancelled))),"encoder_process":encoder_join.as_ref().ok().and_then(|joined| joined.as_ref()),"sent_audio_packets":sent,"skipped_original_frames":skipped,
-        "captured_bytes":captured_bytes,"received":rows,"packet_events_during_control":control_packet_events,"video_feedback_requests":video_feedback_requests,"original_client_joined":shutdown.is_ok(),
+        "captured_bytes":captured_bytes,"received":rows,"packet_events_during_control":control_packet_events,"video_feedback_requests":video_feedback_requests,"fresh_public_video_key":fresh_public_video_key,"original_client_joined":shutdown.is_ok(),
         "failure_stage":if work.is_err(){Some(phase)}else{None},
         "operation_completed_inferred":false,"decoded_media_verified":false,
         "video_enabled":source.video.is_some(),"original_root_completed_observed":root_observed,

@@ -181,35 +181,42 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let (member, saved, descriptor) = {
-            let c = self.try_connection()?;
-            let (member, saved, scopes, expires) = facts(self, &c, origin)?;
-            if !self.authority_covers(Self::peer_scopes(proof), &scopes) || crate::now() >= expires
-            {
-                return Err(Error::forbidden());
-            }
-            let descriptor: serde_json::Value =
-                serde_json::from_str(&origin.target).map_err(|_| Error::storage())?;
-            if descriptor["public_key"] != serde_json::json!(proof.key.public_key)
-                || descriptor["key_id"] != proof.key_id()
-            {
-                return Err(Error::forbidden());
-            }
-            (member, saved, descriptor)
-        };
-        let source = origin
-            .allocated
-            .attempt
-            .prepared
-            .selection
-            .read_with_peer(self, proof)?;
-        let target = projection(&source, member, &saved, &descriptor)?;
-        Ok(NativeReplacementStartRead {
-            source,
-            target,
-            descriptor,
-        })
+        let descriptor: serde_json::Value =
+            serde_json::from_str(&origin.target).map_err(|_| Error::storage())?;
+        // This is an owned CONTROL projection under the SAME current proof.
+        // Resolve both halves using one query-only observer, with the existing
+        // before/after SQL-version and clock seals. Never wait for primary SQL
+        // while holding its file reader, or reacquire a second reader for the
+        // selected source. A refused observer leaves no partial read behind.
+        self.try_current_packet_projection_under(
+            |c| {
+                let (member, saved, scopes, expires) = facts(self, c, origin)?;
+                if descriptor["public_key"] != serde_json::json!(proof.key.public_key)
+                    || descriptor["key_id"] != proof.key_id()
+                {
+                    return Err(Error::forbidden());
+                }
+                Ok(((member, saved), scopes, expires))
+            },
+            |c, (member, saved), held, expires| {
+                let source = origin
+                    .allocated
+                    .attempt
+                    .prepared
+                    .selection
+                    .read_with_connection(self, c, held, expires)?;
+                let target = projection(&source, member.clone(), saved, &descriptor)?;
+                Ok(NativeReplacementStartRead {
+                    source,
+                    target,
+                    descriptor: descriptor.clone(),
+                })
+            },
+            Self::peer_scopes(proof),
+            proof.expires_at(),
+        )
     }
+
     pub fn native_replacement_start_record_with_peer(
         &self,
         origin: &NativeReplacementStartOrigin,

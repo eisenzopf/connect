@@ -1,3 +1,4 @@
+import {readMatrixFrameOrdinal,matrixFrameIdentity} from '../lib/browser_matrix_frame_identity.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {browserMatrixSources,matrixSourceFrame} from '../lib/browser_matrix_sources.mjs';
@@ -54,6 +55,10 @@ async function fixture(run) {
         assert.ok(pixel, 'Actual source drawing must cover the sample');
         return pixel.value;
     });
+    const sampleFooter = canvas => Array.from({length:11},(_,bit)=>{
+        const x=(Math.floor((16+32*bit)/5)+.5)*5,y=357.5;
+        return rectangles.get(canvas).findLast(row=>x>=row.x&&x<row.x+row.width&&y>=row.y&&y<row.y+row.height).value;
+    });
     const values={AudioContext:Audio,MediaStream:Stream,performance:{now:()=>clock},
         document:{createElement:createCanvas},
         setInterval:fn=>{intervals.add(fn);return fn;},clearInterval:fn=>intervals.delete(fn),
@@ -70,7 +75,7 @@ async function fixture(run) {
     }});
     try{
         owner=await browserMatrixSources();
-        await run({owner,route,connection,captures,tracks,gains,audio,canvasCaptures,sample,
+        await run({owner,route,connection,captures,tracks,gains,audio,canvasCaptures,sample,sampleFooter,
             tick:(time,sourceTime)=>{clock=time;audio.currentTime=sourceTime;for(const fn of [...intervals])fn();},
             setClock:time=>{clock=time;},
             takeTimeout:()=>{const callback=[...timeouts][0];assert.ok(callback,'Original terminal timer required');timeouts.delete(callback);return callback;},
@@ -276,4 +281,20 @@ test('actual source footer preserves source identity and never changes a repeate
         assert.ok(first[index].some((value, pixel) => value !== next[pixel]));
         assert.equal(classifySourceFrame(f.sample(source.canvas, 8, 8)), String(source.sourceId));
     }
+}));
+
+// Geometry of the ORIGINAL painter, independent of codec/downsampling proof.
+test('actual canvas painter tags preprogramme separately and preserves all1860 programme footer IDs and source/cadence pixels',()=>fixture(async f=>{
+ for(let source=0;source<6;source++)await f.owner.start({route:f.route(source),connection:f.connection('footer-source-'+source),options:{}});
+ const rgba=new Uint8ClampedArray(128*72*4);for(let i=3;i<rgba.length;i+=4)rgba[i]=255;
+ const read=source=>{const values=f.sampleFooter(source.canvas);for(let bit=0;bit<11;bit++){const offset=(71*128+Math.floor((16+32*bit)/5))*4;rgba[offset]=rgba[offset+1]=rgba[offset+2]=values[bit];}return readMatrixFrameOrdinal(rgba);};
+ for(const source of f.owner.sources){assert.equal(read(source).ordinal,2047);assert.equal(matrixFrameIdentity(rgba,String(source.sourceId),source.sourceId).status,'unavailable');}
+ const programme=f.owner.beginProgramme();
+ for(let ordinal=0;ordinal<1860;ordinal++){
+  const elapsed=ordinal*1000/30+.001;f.tick(programme.originMs+elapsed,programme.audioOriginSeconds+elapsed/1000);
+  for(const source of f.owner.sources){assert.equal(read(source).ordinal,ordinal);const kind=classifySourceFrame(f.sample(source.canvas,8,8));
+   const identity=matrixFrameIdentity(rgba,kind,source.sourceId);assert.equal(identity.status,'identified');assert.equal(identity.ordinal,ordinal);
+   assert.equal(identity.observed_source_id,kind==='pulse'?null:source.sourceId);
+  }
+ }
 }));

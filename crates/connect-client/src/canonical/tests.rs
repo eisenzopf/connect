@@ -17,7 +17,7 @@ mod sdk_events;
 mod sdk_invitations;
 mod sdk_movements;
 mod sdk_multiplex;
-mod sdk_native;
+pub(super) mod sdk_native;
 mod sdk_raw;
 mod sdk_receipts;
 mod sdk_snapshots;
@@ -435,6 +435,7 @@ pub(super) async fn controlled(
         owned_signaling: None,
         native_datagram_reader: Arc::new(AtomicBool::new(false)),
         native_video: Arc::new(native_video::Shared::default()),
+        write_pause: None,
     };
     (client, task, ready)
 }

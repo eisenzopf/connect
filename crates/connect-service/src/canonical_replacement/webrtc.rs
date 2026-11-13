@@ -970,14 +970,11 @@ impl Runtime {
             .prepare()
             .await
             .map_err(denied)?;
-        let until = deadline.min(Instant::now() + Duration::from_secs(2));
-        let wait =
-            connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
-        let _cancel_wait = wait.cancel_on_drop();
+        // Only effect-free current-state admission follows. Keep the original
+        // resource deadline; SDP/prepare work above retains its own limits.
         let root_cancelled = root.handle.cancellation();
-        let (proof, read, entries) = admission::read(
-            until,
-            &wait,
+        let (proof, read, entries) = admission::read_start(
+            deadline,
             async {
                 tokio::select! { biased;
                     _ = self.stop.cancelled() => {},
@@ -986,41 +983,46 @@ impl Runtime {
                     _ = driver.closed() => {},
                 }
             },
-            || async {
-                // Retry only fresh metadata after the original SDP/physical
-                // start. Each failed observation drops its grant and registry
-                // entries before another attempt; no Core effect runs here.
-                let store = self.media.store.clone();
-                let origin = source.origin.clone();
-                let wait = wait.clone();
-                let (proof, read) = store_call(move || {
-                    // Same current Read as native dormant muted activation.
-                    let (proof, read) = store
-                        .resume_native_replacement_start_activation_authority(&origin, &wait)?;
-                    Ok((Arc::new(proof), Arc::new(read)))
-                })
-                .await?;
-                if !adapter.is_connection_live(id)
-                    || allocated
-                        .physical
-                        .upgrade()
-                        .is_none_or(|current| !Arc::ptr_eq(&current, physical))
-                {
-                    return Err(Error::forbidden());
+            |wait| {
+                let source = source.clone();
+                let adapter = adapter.clone();
+                let allocated = allocated.clone();
+                async move {
+                    // Retry only fresh metadata after the original SDP/physical
+                    // start. Each failed observation drops its grant and registry
+                    // entries before another attempt; no Core effect runs here.
+                    let store = self.media.store.clone();
+                    let origin = source.origin.clone();
+                    let wait = wait.clone();
+                    let (proof, read) = store_call(move || {
+                        // Same current Read as native dormant muted activation.
+                        let (proof, read) = store
+                            .resume_native_replacement_start_activation_authority(&origin, &wait)?;
+                        Ok((Arc::new(proof), Arc::new(read)))
+                    })
+                    .await?;
+                    if !adapter.is_connection_live(id)
+                        || allocated
+                            .physical
+                            .upgrade()
+                            .is_none_or(|current| !Arc::ptr_eq(&current, physical))
+                    {
+                        return Err(Error::forbidden());
+                    }
+                    let entries = self.media.replacement_preparation_entries(read.source())?;
+                    let (_, plan) = crate::canonical_media::offer_plan(
+                        read.target(),
+                        &crate::canonical_native::base_profile()?,
+                        &source.policy.principal,
+                    )
+                    .map_err(denied)?;
+                    if plan.selected() != source.policy.plan.selected()
+                        || plan.rejected() != source.policy.plan.rejected()
+                    {
+                        return Err(Error::forbidden());
+                    }
+                    Ok((proof, read, entries))
                 }
-                let entries = self.media.replacement_preparation_entries(read.source())?;
-                let (_, plan) = crate::canonical_media::offer_plan(
-                    read.target(),
-                    &crate::canonical_native::base_profile()?,
-                    &source.policy.principal,
-                )
-                .map_err(denied)?;
-                if plan.selected() != source.policy.plan.selected()
-                    || plan.rejected() != source.policy.plan.rejected()
-                {
-                    return Err(Error::forbidden());
-                }
-                Ok((proof, read, entries))
             },
         )
         .await
@@ -1100,6 +1102,13 @@ impl Runtime {
         drop(invocation);
         drop(read);
         drop(proof);
+        // Admission has joined its original Store work. Historical recording
+        // and origin recovery share one metadata cancellation owner and the
+        // SAME original start cutoff; this creates no fresh work interval.
+        let until = deadline;
+        let wait =
+            connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
+        let _cancel_wait = wait.cancel_on_drop();
         #[cfg(feature = "test-support")]
         let record_probe = self
             .media

@@ -1,3 +1,4 @@
+import { type VideoPublication } from "./browser_video_publication.js";
 import { type NativeEgressIdentity, type NativeDecodedObservation, type NativeActivationBoundary } from "./browser_native_activation.js";
 import { type NativeDecodeIdentity } from "./browser_native_readiness.js";
 import { BrowserVideoOrder } from "./browser_video_order.js";
@@ -58,6 +59,7 @@ export interface BrowserMediaCallbacks {
     error?: (error: Error) => void;
 }
 interface Route {
+    publication?: VideoPublication;
     nativeEgress?: NativeEgressIdentity;
     decodedObservation?: NativeDecodedObservation;
     receiveEpoch?: VideoNotice;

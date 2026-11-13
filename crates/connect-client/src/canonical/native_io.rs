@@ -390,3 +390,104 @@ mod tests {
         }
     }
 }
+
+/// One SDK child owns the SAME authenticated physical datagram reader. Unlike
+/// the public bounded receive API, idle SDK media has no packet deadline.
+/// This is crate-private raw IO, never stream ownership or new authority.
+pub(crate) struct OwnedNativeIo {
+    connection: quinn::Connection,
+    closed: Arc<AtomicBool>,
+    expires_at: chrono::DateTime<chrono::Utc>,
+    status: super::owned_signaling::NativeStatus,
+    _reader: ReaderClaim,
+}
+impl OwnedNativeIo {
+    pub(super) fn current(&self) -> Result<()> {
+        if self.closed.load(Ordering::Acquire) || self.connection.close_reason().is_some() {
+            return Err(self
+                .status
+                .terminal_error()
+                .unwrap_or(ClientError::Transport));
+        }
+        if chrono::Utc::now() >= self.expires_at {
+            self.closed.store(true, Ordering::Release);
+            self.connection
+                .close(0u32.into(), b"canonical authority expired");
+            return Err(ClientError::Authentication);
+        }
+        Ok(())
+    }
+    pub(crate) fn terminal_error(&self) -> Option<ClientError> {
+        self.status.terminal_error()
+    }
+    pub(crate) fn send(&self, bytes: &[u8]) -> Result<()> {
+        super::native::datagram(bytes)?;
+        self.submit(bytes)
+    }
+    pub(crate) fn send_feedback(&self, bytes: &[u8]) -> Result<()> {
+        rvoip_uctp::substrate::observe_video_feedback_datagram(bytes)
+            .map_err(|_| ClientError::Protocol)?;
+        self.submit(bytes)
+    }
+    fn submit(&self, bytes: &[u8]) -> Result<()> {
+        self.current()?;
+        if self
+            .connection
+            .max_datagram_size()
+            .is_none_or(|n| bytes.len() > n)
+        {
+            return Err(ClientError::Protocol);
+        }
+        super::native_admission::try_submit(&self.connection, bytes)
+    }
+    pub(crate) async fn receive(&self) -> Result<Vec<u8>> {
+        self.current()?;
+        let bytes = self.connection.read_datagram().await.map_err(|_| {
+            self.status
+                .terminal_error()
+                .unwrap_or(ClientError::Transport)
+        })?;
+        self.current()?;
+        if bytes.len() > super::native::MAX_NATIVE_MEDIA_DATAGRAM + 16 {
+            return Err(ClientError::Protocol);
+        }
+        Ok(bytes.to_vec())
+    }
+}
+impl CanonicalClient {
+    pub(crate) fn start_owned_native_io(&mut self) -> Result<OwnedNativeIo> {
+        self.check_current()?;
+        let reader = ReaderClaim::take(&self.native_datagram_reader)?;
+        self.start_signaling_reader()?;
+        // A successful start installs exactly this peer's original reader.
+        // No fallible setup follows creation of that new owned task.
+        let status = self
+            .owned_signaling
+            .as_ref()
+            .expect("started owned signaling")
+            .native_status();
+        Ok(OwnedNativeIo {
+            connection: self.connection.clone(),
+            closed: self.closed.clone(),
+            expires_at: self.authenticated_until.min(self.server_key_expires_at),
+            status,
+            _reader: reader,
+        })
+    }
+    #[cfg(test)]
+    pub(crate) fn take_owned_native_io(&self) -> Result<OwnedNativeIo> {
+        self.check_current()?;
+        let status = self
+            .owned_signaling
+            .as_ref()
+            .ok_or(ClientError::Protocol)?
+            .native_status();
+        Ok(OwnedNativeIo {
+            connection: self.connection.clone(),
+            closed: self.closed.clone(),
+            expires_at: self.authenticated_until.min(self.server_key_expires_at),
+            status,
+            _reader: ReaderClaim::take(&self.native_datagram_reader)?,
+        })
+    }
+}

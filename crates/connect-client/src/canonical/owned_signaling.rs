@@ -8,6 +8,9 @@ struct Inbox {
     frames: VecDeque<Envelope>,
     bytes: usize,
     failure: Option<ClientError>,
+    // Stable evidence for the one SDK native child; ordinary frame errors
+    // retain their original consume-once behavior. No extra queue or lock.
+    native_failure: Option<ClientError>,
     ended: bool,
 }
 impl Inbox {
@@ -138,6 +141,31 @@ fn observe_expected_step_up(frame: &Envelope, expected: &Mutex<Option<ExpectedSt
     true
 }
 
+/// Shared terminal evidence; no second reader, queue or lock is created.
+pub(super) struct NativeStatus {
+    inbox: Arc<Mutex<Inbox>>,
+}
+impl NativeStatus {
+    pub(super) fn terminal_error(&self) -> Option<ClientError> {
+        match self.inbox.lock() {
+            Ok(inbox) => inbox.native_failure.as_ref().map(copy_terminal_error),
+            Err(_) => Some(ClientError::Protocol),
+        }
+    }
+}
+fn copy_terminal_error(error: &ClientError) -> ClientError {
+    match error {
+        ClientError::Configuration => ClientError::Configuration,
+        ClientError::Transport => ClientError::Transport,
+        ClientError::MediaBackpressure => ClientError::MediaBackpressure,
+        ClientError::MediaEnded => ClientError::MediaEnded,
+        ClientError::Timeout => ClientError::Timeout,
+        ClientError::Cancelled => ClientError::Cancelled,
+        ClientError::Authentication => ClientError::Authentication,
+        ClientError::Protocol => ClientError::Protocol,
+        ClientError::Application(error) => ClientError::Application(error.clone()),
+    }
+}
 pub(super) struct OwnedSignaling {
     inbox: Arc<Mutex<Inbox>>,
     changed: Arc<Notify>,
@@ -154,6 +182,11 @@ impl Drop for OwnedSignaling {
     }
 }
 impl OwnedSignaling {
+    pub(super) fn native_status(&self) -> NativeStatus {
+        NativeStatus {
+            inbox: self.inbox.clone(),
+        }
+    }
     /// Explicit ownership close joins the reader after cancellation. Drop remains
     /// the nonblocking emergency boundary for callers which skip shutdown.
     pub(super) async fn shutdown(&mut self) -> Result<()> {
@@ -255,6 +288,10 @@ impl OwnedSignaling {
                         .push(frame)?;
                     notify.notify_one();
                     if terminal {
+                        received
+                            .lock()
+                            .map_err(|_| ClientError::Protocol)?
+                            .native_failure = Some(ClientError::Authentication);
                         return Err(ClientError::Transport);
                     }
                     tokio::task::consume_budget().await;
@@ -264,7 +301,11 @@ impl OwnedSignaling {
                 tokio::select! { result = work => result, result = expiration => result };
             {
                 let mut inbox = received.lock().unwrap_or_else(|p| p.into_inner());
-                inbox.failure = Some(result.err().unwrap_or(ClientError::Transport));
+                let cause = result.err().unwrap_or(ClientError::Transport);
+                if inbox.native_failure.is_none() {
+                    inbox.native_failure = Some(copy_terminal_error(&cause));
+                }
+                inbox.failure = Some(cause);
                 inbox.ended = true;
             }
             closed.store(true, Ordering::Release);
@@ -340,17 +381,7 @@ impl OwnedSignaling {
             Ok(inbox) => inbox,
             Err(_) => return Some(ClientError::Protocol),
         };
-        inbox.failure.as_ref().map(|error| match error {
-            ClientError::Configuration => ClientError::Configuration,
-            ClientError::Transport => ClientError::Transport,
-            ClientError::MediaBackpressure => ClientError::MediaBackpressure,
-            ClientError::MediaEnded => ClientError::MediaEnded,
-            ClientError::Timeout => ClientError::Timeout,
-            ClientError::Cancelled => ClientError::Cancelled,
-            ClientError::Authentication => ClientError::Authentication,
-            ClientError::Protocol => ClientError::Protocol,
-            ClientError::Application(error) => ClientError::Application(error.clone()),
-        })
+        inbox.failure.as_ref().map(copy_terminal_error)
     }
     pub(super) async fn receive(&self) -> Result<Envelope> {
         loop {

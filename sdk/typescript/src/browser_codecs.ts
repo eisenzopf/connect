@@ -1,3 +1,9 @@
+import {
+    originalPublicationInput,
+    acceptPublicationInput,
+    encodedPublication,
+    type VideoPublicationInput,
+} from "./browser_video_publication.js";
 import { ConnectError } from "./errors.js";
 import { MEDIA_LIMITS, type Vp8Frame } from "./browser_rtp.js";
 
@@ -394,7 +400,10 @@ export class BrowserVp8Codec {
 
     private lastKey = -Infinity;
     private lastFrame = -Infinity;
-    private readonly frameTimes: number[] = [];
+    private readonly frameTimes: {
+        timestamp: number;
+        publication?: VideoPublicationInput;
+    }[] = [];
     private forceKey = false;
     private dropUntilKey = false;
     private suspendedUntil = -Infinity;
@@ -468,6 +477,12 @@ export class BrowserVp8Codec {
                     chunk.copyTo(bytes);
                     this.encodeCounts.forwardedOutputs++;
                     this.encodeCounts.lastEncodedTimestampUs = chunk.timestamp;
+                    encodedPublication(
+                        bytes,
+                        this.frameTimes.find(
+                            (input) => input.timestamp === chunk.timestamp,
+                        )?.publication,
+                    );
                     callbacks.encoded({
                         bytes,
                         timestampUs: chunk.timestamp,
@@ -533,7 +548,7 @@ export class BrowserVp8Codec {
         try {
             while (
                 this.frameTimes.length &&
-                frame.timestamp - this.frameTimes[0] >= 1000000
+                frame.timestamp - this.frameTimes[0].timestamp >= 1000000
             )
                 this.frameTimes.shift();
             this.encodeCounts.inputCalls++;
@@ -559,7 +574,8 @@ export class BrowserVp8Codec {
                 return false;
             }
             this.lastFrame = frame.timestamp;
-            this.frameTimes.push(frame.timestamp);
+            const publication = originalPublicationInput(frame);
+            this.frameTimes.push({ timestamp: frame.timestamp, publication });
             // Refresh references within 500 ms after loss; the profile permits
             // at most one second between keyframes. Bitrate bounds still apply.
             const keyFrame =
@@ -569,6 +585,7 @@ export class BrowserVp8Codec {
             if (keyFrame) this.lastKey = frame.timestamp;
             this.forceKey = false;
             this.encoder.encode(frame, { keyFrame });
+            acceptPublicationInput(publication);
             this.encodeCounts.acceptedFrames++;
             return true;
         } finally {
@@ -682,6 +699,7 @@ export class BrowserVp8Codec {
         if (this.stopped) return;
         this.stopped = true;
         this.pendingDecode.length = 0;
+        this.frameTimes.length = 0;
         if (this.encoder.state !== "closed") this.encoder.close();
         if (this.decoder.state !== "closed") this.decoder.close();
     }

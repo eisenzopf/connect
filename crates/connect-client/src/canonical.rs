@@ -8,6 +8,7 @@ pub use connect_protocol::replacement_activation::{
     SequenceMembership,
 };
 pub use native_io::NativeDatagrams;
+pub(crate) use native_io::OwnedNativeIo;
 pub use native_video::{NativeVideoDatagram, NativeVideoDatagrams};
 use rvoip_auth_core::sig9421::{
     ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier, SignatureVerificationContext,
@@ -160,6 +161,8 @@ pub struct CanonicalClient {
     owned_signaling: Option<owned_signaling::OwnedSignaling>,
     native_datagram_reader: Arc<AtomicBool>,
     native_video: Arc<native_video::Shared>,
+    #[cfg(test)]
+    write_pause: Option<Arc<tests::sdk_native::isolation::WritePause>>,
 }
 struct Pending {
     connection: quinn::Connection,
@@ -283,6 +286,8 @@ impl CanonicalClient {
             owned_signaling: None,
             native_datagram_reader: Arc::new(AtomicBool::new(false)),
             native_video: Arc::new(native_video::Shared::default()),
+            #[cfg(test)]
+            write_pause: None,
         };
         let hello = envelope(
             "auth.hello",
@@ -388,6 +393,11 @@ impl CanonicalClient {
         let mut pending = self.pending()?;
         self.native_video.outgoing(checked.original())?;
         tokio::time::timeout(self.deadline, async {
+            // Only controlled unit fixtures can hold this ORIGINAL write.
+            #[cfg(test)]
+            if let Some(pause) = &self.write_pause {
+                pause.enter().await;
+            }
             self.writer
                 .write_all(&(raw.len() as u32).to_be_bytes())
                 .await

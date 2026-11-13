@@ -1,0 +1,88 @@
+{
+  "format": "connect/g6-058-v218-final-checkpoint/1",
+  "updated": "2026-11-13T20:25:06.717844+00:00",
+  "source_revision": "454fa7cfb095dda3cce0720ad8ba58846e4647c4",
+  "normal_generation": 429,
+  "summary": {
+    "cells": {
+      "passed": 1,
+      "failed": 31,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0,
+      "incomplete": 0
+    },
+    "required_cells": 32,
+    "required_checks": 432,
+    "checks": {
+      "passed": 399,
+      "failed": 33,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0
+    }
+  },
+  "original_execution": {
+    "controller_pid": 44621,
+    "controller_joined": true,
+    "controller_exit_code": 1,
+    "host_worker_exit_codes": {
+      "macos-arm64": 1,
+      "ubuntu24-arm64": 1
+    },
+    "all32_original_attempts_completed": true,
+    "original_supervisor_absent_observed": true,
+    "independent_adjudication_sha256": "a82b120438b936c7ae91cfa921ac0d198c11d24284d5762f3934fbdc4c197857"
+  },
+  "closed_custody": {
+    "arm_archive_custodies": 16,
+    "mac_guest_payload_sets": 8,
+    "original_copy_transports": 72,
+    "copy_failures": 0,
+    "released_original_guest_guardians": 16,
+    "kernel_lease_rows": 0,
+    "host_census_sha256": "5690563c527bfa38729833db47f357b381838d2678f234fc760b406ea9f94eb8",
+    "guest_census_sha256": "790052a305bccb46813b4b2e56b2e5c785b5284b2e05a7ff89d2c9645e415e07",
+    "scope": "Actual original wait/custody receipts plus Root read-only final host/guest/kernel observations. Independent reviewer checked original metadata/ack bindings; no archive rescan or new guest action."
+  },
+  "current_failed_requirements": {
+    "decoded_media_requirement": 31,
+    "replacement_and_retirement_requirement": 1,
+    "original_resource_requirement": 1,
+    "exact_mapping_sha256": "8dabe5133186f88b8ed9b045b3cf740d0dd8f6710aacc442440bb2d19375bead",
+    "scope": "Mixed measured media leaves and programme prerequisites require separate per-cycle diagnosis. Whole-run cleanup does not waive failed per-cycle retirement/resource requirements."
+  },
+  "sole_qualified_cell": {
+    "id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+    "report_sha256": "d674957d2448b8069527c715295e96e5c309816c868e5179c8e0bb9226feaa1c",
+    "checks": 14,
+    "exit_code": 0,
+    "report_passed": true,
+    "integrity": true
+  },
+  "same_source_prerequisites": {
+    "mac_component_rust": 402,
+    "mac_script_checks": 138,
+    "mac_component_total": 540,
+    "affected_arm_checks": 11,
+    "normal_mac_and_arm_release_passed": true,
+    "scope": "Prerequisites verified separately before the original full32. They do not transfer full matrix qualification."
+  },
+  "current_work": {
+    "staged_unrun": "SDK media/control isolation10, fresh Start observer/deadline6, video source-frame identity8, native fresh-key4; same-source actual validation remains pending.",
+    "source_review_only": "Staged alternatives do not promote the original failing cells or change the current acceptance profile.",
+    "historical_audio_state_carry": "Unapplied decoder/resampler state carry remains rejected; no preconsent history transfer.",
+    "rca": "WSS packet-to-PCM and video send/forward/decode diagnostics remain bounded, source-specific work; no blanket cause."
+  },
+  "preserved_v217": {
+    "cells_passed": 2,
+    "cells_required": 32,
+    "checks_passed": 400,
+    "checks_required": 432,
+    "evidence": "docs/evidence/gate-6/g6-058-v217-final-checkpoint.json"
+  },
+  "next": "G6-058 remains open. Validate narrow staged work after original closure, then rerun the same strict required32/432 on one frozen qualified source; G6-054 stays parked.",
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}

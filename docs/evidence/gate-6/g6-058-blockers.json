@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T15:52:05.187995+00:00",
+  "updated": "2026-11-13T20:25:06.717844+00:00",
   "run_status": "Latest matrix remains v217:2/32 cells,400/432 checks. Codec readiness batch implemented and independently verified: actualC/Python1,Node4 andRust4 allpass. Both complete62s signing profiles pass quality,4handoffs,4Gate+8Subscribe EACH and all owned cleanup65.955/65.041s<67s. First encode now3.6\u20138.1ms vs prior diagnostic116ms; sample200ms unchanged. Fresh402+138 prerequisites andARM11 are next; no original failed401/402 or matrix result promoted.",
   "blockers": [
     {
@@ -5914,9 +5914,9 @@
     "post_verification_changes": "Progress documentation and its renderer only; library, upstream patch, lock and test bytes unchanged."
   },
   "latest_full_run": {
-    "evidence_key": "completed_v217_actual",
-    "label": "v217 (independently adjudicated)",
-    "status_url": "../evidence/gate-6/transport-matrix-v217.json"
+    "evidence_key": "completed_v218_actual",
+    "label": "v218 (independently adjudicated)",
+    "status_url": "../evidence/gate-6/transport-matrix-v218.json"
   },
   "current_focused_verification": {
     "passed": 164,
@@ -17976,7 +17976,7 @@
     "source_unchanged": true,
     "matrix_qualified": false
   },
-  "latest_failure_mapping": "g6-058-v217-current-failure-mapping.json",
+  "latest_failure_mapping": "g6-058-v218-current-failure-mapping.json",
   "completed_v216_components30_actual": {
     "format": "connect/g6-058-complete341/1",
     "updated": "2026-11-13T01:43:18.522851+00:00",
@@ -18538,5 +18538,42 @@
     "component_evidence_sha256": "6fffa8c7a76f9d00c3716cad808916a353091a780a08382ad84d803df0e01ae0",
     "component_passed": 9,
     "component_required": 9
+  },
+  "completed_v218_actual": {
+    "summary": {
+      "cells": {
+        "passed": 1,
+        "failed": 31,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 399,
+        "failed": 33,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "source_revision": "454fa7cfb095dda3cce0720ad8ba58846e4647c4",
+    "normal_generation": 429,
+    "all_original_owners_closed": true,
+    "evidence": "docs/evidence/gate-6/g6-058-v218-final-checkpoint.json",
+    "evidence_sha256": "626020e2811519895cd961f7f90421f485aa555fae80e84d200a262c5d79bd8e"
+  },
+  "v218_slowdown_fix_batch": {
+    "evidence": "docs/evidence/gate-6/g6-058-v218-slowdown-fix-batch.json",
+    "evidence_sha256": "a2869446cb931e4047e868c3bf02961b238198a17cae6a452d7ff3c53310588b",
+    "status": "applied-focused-verification-complete-broader-media-pending",
+    "matrix_cells_passed": 1,
+    "matrix_checks_passed": 399,
+    "rust_cases_passed": 352,
+    "script_cases_passed": 167,
+    "sdk_cases_passed": 55,
+    "source_acceptance_is_not_media_quality": true
   }
 }

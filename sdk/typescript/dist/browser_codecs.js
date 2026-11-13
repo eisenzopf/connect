@@ -1,3 +1,4 @@
+import { originalPublicationInput, acceptPublicationInput, encodedPublication, } from "./browser_video_publication.js";
 import { ConnectError } from "./errors.js";
 import { MEDIA_LIMITS } from "./browser_rtp.js";
 export const OPUS_CONFIG = Object.freeze({
@@ -391,6 +392,7 @@ export class BrowserVp8Codec {
                     chunk.copyTo(bytes);
                     this.encodeCounts.forwardedOutputs++;
                     this.encodeCounts.lastEncodedTimestampUs = chunk.timestamp;
+                    encodedPublication(bytes, this.frameTimes.find((input) => input.timestamp === chunk.timestamp)?.publication);
                     callbacks.encoded({
                         bytes,
                         timestampUs: chunk.timestamp,
@@ -454,7 +456,7 @@ export class BrowserVp8Codec {
     encode(frame, currentFeedback = false) {
         try {
             while (this.frameTimes.length &&
-                frame.timestamp - this.frameTimes[0] >= 1000000)
+                frame.timestamp - this.frameTimes[0].timestamp >= 1000000)
                 this.frameTimes.shift();
             this.encodeCounts.inputCalls++;
             this.encodeCounts.lastInputTimestampUs = frame.timestamp;
@@ -476,7 +478,8 @@ export class BrowserVp8Codec {
                 return false;
             }
             this.lastFrame = frame.timestamp;
-            this.frameTimes.push(frame.timestamp);
+            const publication = originalPublicationInput(frame);
+            this.frameTimes.push({ timestamp: frame.timestamp, publication });
             // Refresh references within 500 ms after loss; the profile permits
             // at most one second between keyframes. Bitrate bounds still apply.
             const keyFrame = this.forceKey ||
@@ -486,6 +489,7 @@ export class BrowserVp8Codec {
                 this.lastKey = frame.timestamp;
             this.forceKey = false;
             this.encoder.encode(frame, { keyFrame });
+            acceptPublicationInput(publication);
             this.encodeCounts.acceptedFrames++;
             return true;
         }
@@ -587,6 +591,7 @@ export class BrowserVp8Codec {
             return;
         this.stopped = true;
         this.pendingDecode.length = 0;
+        this.frameTimes.length = 0;
         if (this.encoder.state !== "closed")
             this.encoder.close();
         if (this.decoder.state !== "closed")

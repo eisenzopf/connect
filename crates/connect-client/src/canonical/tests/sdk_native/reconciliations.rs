@@ -112,7 +112,7 @@ async fn hint(writer: &mut quinn::SendStream, signer: &Sig9421Signer, case: Case
         .unwrap();
     writer.write_all(&bytes).await.unwrap();
 }
-async fn reply(
+pub(super) async fn reply(
     writer: &mut quinn::SendStream,
     signer: &Sig9421Signer,
     request: &Envelope,
@@ -160,7 +160,7 @@ async fn reply(
         write(writer, signer, request, "ack", json!({}), true).await;
     }
 }
-async fn send_callback(
+pub(super) async fn send_callback(
     writer: &mut quinn::SendStream,
     signer: &Sig9421Signer,
     caps: &Value,

@@ -68,10 +68,29 @@ export function ordinalSync(videoEdges,audioEdges,seconds){
     const byAudio=new Map(audio.ordinals.map((ordinal,index)=>[ordinal,audioEdges[index]]));
     const pairs=video.ordinals.flatMap((ordinal,index)=>byAudio.has(ordinal)?[{ordinal,video_emit_seconds:videoEdges[index],
         audio_emit_seconds:byAudio.get(ordinal),signed_video_minus_audio_ms:(videoEdges[index]-byAudio.get(ordinal))*1000}]:[]);
-    const values=pairs.map(pair=>Math.abs(pair.signed_video_minus_audio_ms)).sort((a,b)=>a-b);
+    // Forward binary64 error bound for represented seconds, subtraction and
+    // multiplication by1000. Only the existing nonnegative300s cadence horizon
+    // qualifies; large absolute clocks do not acquire an arbitrary tolerance.
+    const values=pairs.map(pair=>({value:Math.abs(pair.signed_video_minus_audio_ms),
+        roundoff:pair.video_emit_seconds>=0&&pair.audio_emit_seconds>=0
+            &&pair.video_emit_seconds<=horizon&&pair.audio_emit_seconds<=horizon
+            ?Number.EPSILON*(1000*(Math.abs(pair.video_emit_seconds)+Math.abs(pair.audio_emit_seconds))
+                +2*Math.abs(pair.signed_video_minus_audio_ms)):0})).sort((a,b)=>a.value-b.value);
     Object.assign(result,{marker_pairs:pairs,paired:pairs.length,unmatched_video_markers:videoEdges.length-pairs.length,unmatched_audio_markers:audioEdges.length-pairs.length});
-    if(values.length){result.median_abs_skew_ms=(values[Math.floor((values.length-1)/2)]+values[Math.floor(values.length/2)])/2;
-        result.p95_abs_skew_ms=values[Math.ceil(values.length*.95)-1];
+    if(values.length){
+        const lower=values[Math.floor((values.length-1)/2)],upper=values[Math.floor(values.length/2)],
+            percentile=values[Math.ceil(values.length*.95)-1],median=(lower.value+upper.value)/2;
+        const medianError=lower.roundoff||upper.roundoff
+                ?(lower.roundoff+upper.roundoff)/2+Number.EPSILON*Math.abs(median):0,
+            percentileError=percentile.roundoff;
+        const boundary=(value,limit,error)=>value>limit&&value-limit<=error?limit:value;
+        result.median_abs_skew_ms=boundary(median,80,medianError);
+        result.p95_abs_skew_ms=boundary(percentile.value,120,percentileError);
+        result.quantile_roundoff={profile:"connect/coded-av-binary64-roundoff/1",
+            raw_median_abs_skew_ms:median,raw_p95_abs_skew_ms:percentile.value,
+            median_error_bound_ms:medianError,p95_error_bound_ms:percentileError,
+            median_normalized:result.median_abs_skew_ms!==median,
+            p95_normalized:result.p95_abs_skew_ms!==percentile.value};
         result.status=values.length>=seconds*.7&&result.median_abs_skew_ms<=80&&result.p95_abs_skew_ms<=120?"passed":"failed";}
     return result;
 }

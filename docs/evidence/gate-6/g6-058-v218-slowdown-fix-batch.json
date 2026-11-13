@@ -1,0 +1,204 @@
+{
+  "format": "connect/g6-058-v218-postrun-slowdown-fixes/1",
+  "updated_at": "2026-11-13T20:54:24.007325+00:00",
+  "source_base_revision": "454fa7cfb095dda3cce0720ad8ba58846e4647c4",
+  "source_lock_generation": 429,
+  "source_files_sha256": {
+    "crates/connect-client/src/canonical.rs": "fea4246d36284c9dff22e0caa82f0b7c2d1e5f800379a460d04329b9a7e6bec4",
+    "crates/connect-client/src/canonical/native.rs": "e843dfcce85883ec3e9ffe5c89a43bbca1f7b7245482244e27cee8a020b802d8",
+    "crates/connect-client/src/canonical/native_io.rs": "7cb326432d6f4700cbfef0fdaf9e44d9334b4a465b442208e01353c773356f92",
+    "crates/connect-client/src/canonical/owned_signaling.rs": "86495fbb4d0946fc576c64e0e4a0fa0e5c26923c62e2866c01162d3d25175080",
+    "crates/connect-client/src/canonical/tests.rs": "4e3f6f239ce945f954a1cb38501bdcee32e3eba526ef4b83a0f55d89538c5f51",
+    "crates/connect-client/src/canonical/tests/owned_signaling.rs": "2b701f403ec87816276ca5adc1261a47ae331975c2368c1421584619f7e2b141",
+    "crates/connect-client/src/canonical/tests/sdk_native.rs": "89f3df1f03089d80e3d6b6648e29d1fda233b74d945a4e6c9a135722707615b4",
+    "crates/connect-client/src/canonical/tests/sdk_native/isolation.rs": "b9b6625ec8e06dff0923986a70083505f7580956985b2b4c07a010e9f037ba6d",
+    "crates/connect-client/src/canonical/tests/sdk_native/reconciliations.rs": "e7f161c963012608632b3f968283b9763c8694a559cdc98c90cd209e1687a54f",
+    "crates/connect-client/src/sdk/worker.rs": "774b46c7654f34db11bb58d83958584f1b8ad53b7f6ad4a9c595454273da0bb4",
+    "crates/connect-client/src/sdk/worker/media_admission.rs": "4e2b78d6751f8f3105e9f7c5752757041caf989e7009454735f6d1d3e197e877",
+    "crates/connect-client/src/sdk/worker/native_io.rs": "3f28f0d6db3adf0b4c308c11a24ac04688713fee86483ca0d24befc680676d52",
+    "crates/connect-service/src/canonical_replacement/start.rs": "b08157ead4b61d10bb5a0a860da8e4ada70725026aca731f99512c396a3c661f",
+    "crates/connect-service/src/canonical_replacement/webrtc.rs": "16cadea8f8ac2871c46919ca3fe14a36709e9e46984948092b909e1ef1c555f3",
+    "crates/connect-service/src/canonical_replacement/webrtc/admission.rs": "61a3fe63efd4ccb95a0751dc5ed24d3ffac5c8f4a3c502a56c8b5087e13f306a",
+    "crates/connect-store/src/connection_control/tests/replacement_sources/start/mixed_authority.rs": "3a958ae522ad44da6343b4156c0e683e4ab4407d3718f2535d8f46a9db124e36",
+    "crates/connect-store/src/transitions/native_replacements/allocation/start/webrtc.rs": "4c5a032c4427d49899700f40ade524f07a1df89afc513a134add3ac8d348d2fa",
+    "examples/rust-sdk-journey/src/replacement_peer.rs": "0e4c864dc6a26e8773a059cbb223dad85928179a99ca261f3cb35f4d231fd621",
+    "examples/rust-sdk-journey/src/replacement_peer/encoder.rs": "d640fe65f1faacd0fa9874df2d75c5b2158d27c68a7d9e9e9b764c59130378fa",
+    "examples/rust-sdk-journey/src/replacement_peer/media.rs": "c2206f1dd221c75f470c42625a0207e19a42108e79e3ee450ca5f1a898bc4f47",
+    "scripts/lib/browser_matrix_frame_identity.mjs": "4f1e3ce8b956da7eda020c9670330e05df8c02aff5ba9d6dcf6f172cc5c2a67a",
+    "scripts/lib/browser_matrix_observation.mjs": "256461b9e02935c77944272b542052c4d8a84b1de0a351bddb8f060912fc064a",
+    "scripts/lib/browser_matrix_sources.mjs": "8e49b62fc73629d90ccc4a453200188ea518d3e23c935651bc7bbc21667b0fc9",
+    "scripts/tests/av_skew_roundoff_observed.json": "22251c5309142406a394a3f4e69dcee08c082370b9723acdb928e88ed16076d9",
+    "scripts/tests/browser_matrix_frame_identity.test.mjs": "2ca824a89956e4324b32a7f0b7125b8f9f8dd39961fbfe1fedf50e4d9c972715",
+    "scripts/tests/browser_matrix_sources.test.mjs": "6a4907f2e6c388dbf88bf9dd4f05d6c8109079b5cfad31f1e1e3934fc697dc80",
+    "scripts/tests/marker_calibration_roundoff.test.mjs": "44b1f4d28b95990e7037c5c594519cedfcd5cf6666a310596014195c1f93301b",
+    "scripts/tests/test_marker_calibration_roundoff.py": "246a2a73c5ca93062268b264d8c21ac97e35dcd70a1dcb1e413046a31b0aad15",
+    "scripts/video/browser_matrix_admission.mjs": "4eaa9eb73c9d757843a03b1e6f32017e330b682c3c34099d728c42cbb2b29b6d",
+    "scripts/video/marker_calibration.mjs": "0ae5c1f08097c79a5c095508cf29068935fa60db5d7b50d7aebe21bf230d5382",
+    "scripts/video/marker_calibration.py": "12c300046cc0981036d5ce81ccaa2a06f790cf123b603f79b6c36ba420190361",
+    "sdk/tests/browser_video_publication.test.mjs": "6ae9975f5b0ec2c87fa67b4c42c99a0a099d7c30899a1e0f7d6adf352df4dcd3",
+    "sdk/typescript/dist/browser_codecs.js": "b34334eb19d37507b3944900bafe8ef2ec96a786965557e03e0112bd231efce6",
+    "sdk/typescript/dist/browser_media.d.ts": "2a5ea8e601e0eb766b2f5b764ae18de4d952b853dccec51c2b4a5961f78f6ec4",
+    "sdk/typescript/dist/browser_media.js": "90e34d3848d33f083385d68db01635b367f40353071caf25eeb783d403c399d9",
+    "sdk/typescript/dist/browser_media_capture.js": "3379d35089d2310b517f2a69646499170001cc6d221df24386caf0795449ab4a",
+    "sdk/typescript/dist/browser_rtp.js": "5eb503005dd9039424ab84b60ed42a14a5957b036c4c2b34839b77929b0dcfe2",
+    "sdk/typescript/dist/browser_video_publication.d.ts": "df782981d384fd05d3c60bc2bb74c853103c1c35b6a6e63ed3988bf98da60c56",
+    "sdk/typescript/dist/browser_video_publication.js": "0909f3874c78dceb3a2e956355e36f77b0b5dd5c0f8096143351c0048844b4a9",
+    "sdk/typescript/src/browser_codecs.ts": "5b7e73699327a5280e6072db2d087d0b198223c7ae3f34428fa5bd581dc2ce5d",
+    "sdk/typescript/src/browser_media.ts": "07f094797235c00bea9b63e9ef0e42c29a9bdf29b5df8e3a147e79c4cc25ed5f",
+    "sdk/typescript/src/browser_media_capture.ts": "51d10a5d92285833a02669e04855dab9994d59b00003a07496ea6bca7e5fb580",
+    "sdk/typescript/src/browser_rtp.ts": "d2cd5165f21a044ad5c9a0def89e1a3db591bedf67723fa1534cb1b60f405731",
+    "sdk/typescript/src/browser_video_publication.ts": "91309697cfb31235f22d4f373f07e533d22765ff9fdbcc439707a4d83bc94cda"
+  },
+  "source_binding_scope": "Root applied component source and actual focused execution; not a whole-source cohort or release qualification",
+  "matrix_result_unchanged": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_failed": 31,
+    "checks_passed": 399,
+    "checks_failed": 33,
+    "blocked": 0
+  },
+  "actual_old_counters": {
+    "qualified": 2,
+    "original_exit_codes": [
+      101,
+      101
+    ],
+    "sdk": "Admitted native send Deadline/Uncertain while original signed write is held; zero send/receive, original client/server/reader cleanup confirmed",
+    "store": "Real primary custody refuses authority-busy/Current state is busy; journal unchanged, original reader/proof cleanup and writer progress confirmed",
+    "evidence_sha256": "02d8ee9b514d0a9708124965be6c08ddef343a3b704e21748b92e4fb6b7d173a",
+    "raw_first_parser_false_preserved": true,
+    "old_binary_not_claimed_retained": true
+  },
+  "fixed_rust": {
+    "client_complete": 336,
+    "store_exact": 10,
+    "service_exact": 3,
+    "native_example_portable_exact": 3,
+    "total": 352,
+    "failed": 0,
+    "ignored": 0,
+    "new_sdk_selectors": 10,
+    "new_sdk_held_write_duplex": {
+      "sent": 2,
+      "received": 2,
+      "original_owners_joined": true
+    },
+    "component_results_sha256": "681c456aa6a6e72f59f7a97ec58f1c04e354c34528680e5a3c0a63116c7ff3a6",
+    "example_results_sha256": "10d38a17efbd30c9d0dfed2b35ce457109df5e23fb0eff63a9647bfa01d590fd",
+    "all_original_processes_joined": true,
+    "independent_runtime_review_sha256": "5a9e639e8e02b54c3474992f5fe086c3ee5746cb422dda12ceedbb5a00911a2b",
+    "independent_example_review_sha256": "77db8f378a911406fd94c91ac482bf00771d9f9d52f01bde3f31954a612f47a9"
+  },
+  "scripts": {
+    "node": 97,
+    "python": 70,
+    "total": 167,
+    "failed": 0,
+    "skipped": 0,
+    "original_joins_sha256": "988d5e04005f9c609f6496a3a348441ee704924229b79886d223b331b5454061"
+  },
+  "typescript": {
+    "build_exit_code": 0,
+    "sdk_tests_passed": 55,
+    "sdk_tests_failed": 0,
+    "new_publication_controls_passed": 8,
+    "evidence_kind": "Root actual tool result, original build session8612 join8696a6 and SDK exec2368be; separate raw TAP not materialized",
+    "dist_files": 222,
+    "dist_map_sha256": "2a3ea478b5672162a0400693486636e036d800eae656c0e825b14d735c9d7cb0"
+  },
+  "compile_attempts": {
+    "first": "Unqualified compile failure retained: inaccessible constant and removed later metadata variables",
+    "corrected_build_exit_code": 0,
+    "correction_review_sha256": "aec8b3eb06f9ac03a43bf9656b2e35756a6c223071913ef6ea8482bdefc990b3"
+  },
+  "fixes": [
+    {
+      "id": "V218-SDK-IO",
+      "owner": "v198_resources",
+      "reviewer": "fixture_blockers",
+      "tasks": [
+        "P5.1"
+      ],
+      "status": "applied-unit-verified",
+      "behavior": "One fixed owned native media child progresses beside original reliable control waits; current authority, existing queues/caps and original shutdown retained"
+    },
+    {
+      "id": "V218-START-ROLLBACK",
+      "owner": "v198_resources",
+      "reviewer": "fixture_blockers",
+      "tasks": [
+        "P3.1"
+      ],
+      "status": "applied-unit-verified",
+      "behavior": "Same-observer sealed compound current projection avoids two contested primary acquisitions; original start cutoff covers admission and later recording"
+    },
+    {
+      "id": "V218-NUMERIC",
+      "owner": "media_blockers",
+      "reviewer": "v198_resources",
+      "tasks": [
+        "P5.1",
+        "P5.2"
+      ],
+      "status": "applied-unit-verified",
+      "behavior": "Normalize only proved binary64 roundoff within derived error bound; genuine123/124.1ms remain beyond120"
+    },
+    {
+      "id": "V218-VIDEO-ID",
+      "owner": "fixture_blockers",
+      "reviewer": "media_blockers",
+      "tasks": [
+        "P5.2"
+      ],
+      "status": "applied-pure-controls-verified-browser-codec-pending",
+      "behavior": "Actual decoded existing pixel ordinal derives content duplication only within authenticated public quality rows; preprogramme sentinel refuses"
+    },
+    {
+      "id": "V218-VIDEO-PUBLIC",
+      "owner": "media_blockers",
+      "reviewer": "v198_resources",
+      "tasks": [
+        "P3.1",
+        "P5.2"
+      ],
+      "status": "applied-unit-verified-physical-followthrough-pending",
+      "behavior": "Original private encode provenance stays private; fresh public key remains requested until complete eligible local write inside original age; original native pending coordinates never retagged"
+    }
+  ],
+  "remaining": [
+    "Actual browser WebCodecs footer/pixel/loss controls pass; native RTC setup produced no frames and remains unqualified pending fixture correction",
+    "Linux ARM actual native helper and affected SDK/Store controls remain pending",
+    "S6 intermittent decoded audio zeros have no proved causal fix: bounded reference replay completed but alignment unknown",
+    "Other actual audio deficits, video FPS bins and genuine skew require current-source media evidence",
+    "Fresh421Rust+175script coherent cohort, source preparation and normal Mac/ARM release qualification remain pending",
+    "Next full32/432 run has not started; G6-054 remains deferred"
+  ],
+  "architecture": {
+    "no_new_production_mutex_or_queue": true,
+    "per_packet_tasks_added": 0,
+    "control_waits_removed_from_sdk_media_owner": true,
+    "current_authorization_retained": true,
+    "no_new_media_budget_or_identity_allowance": true
+  },
+  "quality_qualified": false,
+  "matrix_qualified": false,
+  "whole_gate_qualified": false,
+  "actual_browser_footer_attempt": {
+    "browser": "157.0.8103.52",
+    "whole_component_passed": false,
+    "summary_sha256": "d40089dada93e945448198948cfb1bc65430706661f660c29b1443b3f0378fc6",
+    "original_root_join_sha256": "c88c0f9358c38142d156b3c8dffefbe77de388b56fe45db2844d49eb587bd40d",
+    "original_root_exit_code": 1,
+    "all_original_owners_joined": true,
+    "canvas_geometry_patterns_passed": 8192,
+    "webcodecs_sources": 4,
+    "webcodecs_continuous_patterns_per_source": 2048,
+    "webcodecs_fresh_starts": 16,
+    "webcodecs_loss_reorder_recovery_passed": true,
+    "native_rtc_frames_observed": 0,
+    "native_rtc_setup_timeouts": 5,
+    "failed_phase": "Original native decoder playback",
+    "cause_status": "Fixture paints before SDP/ICE readiness then waits for playback without another frame request; minimal setup fix under investigation, not a proved library media failure"
+  }
+}

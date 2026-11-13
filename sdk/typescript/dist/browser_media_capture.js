@@ -1,3 +1,4 @@
+import { capturePublicationRegistration, ownPublicationFrame, } from "./browser_video_publication.js";
 import { captureAudioNode, captureWorkletModule, } from "./browser_audio_source.js";
 import { captureDevices, } from "./browser_capture.js";
 import { ConnectError } from "./errors.js";
@@ -346,7 +347,11 @@ export class BrowserMediaCapture {
             throw new ConnectError("unsupported-media-profile", "Video capture canvas unavailable");
         await this.bound(video.play());
         let origin;
-        const frame = (_now, metadata) => {
+        const register = () => {
+            const registration = capturePublicationRegistration(this.connection, this.options.videoStreamId);
+            this.callback = video.requestVideoFrameCallback((now, metadata) => frame(now, metadata, registration));
+        };
+        const frame = (_now, metadata, registration) => {
             if (this.stopped)
                 return;
             try {
@@ -376,9 +381,9 @@ export class BrowserMediaCapture {
                     if (!Number.isSafeInteger(timestamp) || timestamp < 0)
                         throw new ConnectError("media-capture", "Invalid video capture timestamp");
                     out.drawImage(video, 0, 0, 640, 360);
-                    this.connection.encodeVideo(this.options.videoStreamId, new VideoFrame(canvas, {
-                        timestamp,
-                    }));
+                    const input = new VideoFrame(canvas, { timestamp });
+                    ownPublicationFrame(input, registration, captureTime, metadata.presentationTime);
+                    this.connection.encodeVideo(this.options.videoStreamId, input);
                 }
             }
             catch (error) {
@@ -388,9 +393,9 @@ export class BrowserMediaCapture {
                 return;
             }
             if (!this.stopped)
-                this.callback = video.requestVideoFrameCallback(frame);
+                register();
         };
-        this.callback = video.requestVideoFrameCallback(frame);
+        register();
     }
     pause() {
         if (this.stopped || this.paused)

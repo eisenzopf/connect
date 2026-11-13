@@ -1,4 +1,9 @@
 import {
+    capturePublicationRegistration,
+    ownPublicationFrame,
+    type CaptureRegistration,
+} from "./browser_video_publication.js";
+import {
     captureAudioNode,
     captureWorkletModule,
 } from "./browser_audio_source.js";
@@ -488,7 +493,20 @@ export class BrowserMediaCapture {
             );
         await this.bound(video.play());
         let origin: number | undefined;
-        const frame = (_now: number, metadata: VideoFrameCallbackMetadata) => {
+        const register = () => {
+            const registration = capturePublicationRegistration(
+                this.connection,
+                this.options.videoStreamId!,
+            );
+            this.callback = video.requestVideoFrameCallback((now, metadata) =>
+                frame(now, metadata, registration),
+            );
+        };
+        const frame = (
+            _now: number,
+            metadata: VideoFrameCallbackMetadata,
+            registration: CaptureRegistration,
+        ) => {
             if (this.stopped) return;
             try {
                 if (!this.paused) {
@@ -535,11 +553,16 @@ export class BrowserMediaCapture {
                             "Invalid video capture timestamp",
                         );
                     out.drawImage(video, 0, 0, 640, 360);
+                    const input = new VideoFrame(canvas, { timestamp });
+                    ownPublicationFrame(
+                        input,
+                        registration,
+                        captureTime,
+                        metadata.presentationTime,
+                    );
                     this.connection.encodeVideo(
                         this.options.videoStreamId!,
-                        new VideoFrame(canvas, {
-                            timestamp,
-                        }),
+                        input,
                     );
                 }
             } catch (error) {
@@ -553,10 +576,9 @@ export class BrowserMediaCapture {
                 );
                 return;
             }
-            if (!this.stopped)
-                this.callback = video.requestVideoFrameCallback(frame);
+            if (!this.stopped) register();
         };
-        this.callback = video.requestVideoFrameCallback(frame);
+        register();
     }
     pause(): void {
         if (this.stopped || this.paused) return;

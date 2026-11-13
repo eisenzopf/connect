@@ -5,6 +5,7 @@ mod controls;
 mod data;
 mod events;
 mod media_admission;
+mod native_io;
 mod reconciliations;
 mod selections;
 mod video_epochs;
@@ -111,10 +112,11 @@ impl Shared {
         let authority_expires = peer
             .sdk_authority_expires()
             .map_err(|e| Error::transport(e, None))?;
-        peer.start_signaling_reader()
+        // Reserve the sole native reader BEFORE starting any new child owner.
+        let io = peer
+            .start_owned_native_io()
             .map_err(|e| Error::transport(e, None))?;
-        let (media_requests, mut media_receiver) =
-            mpsc::channel::<MediaCommand>(media::SEND_CAPACITY);
+        let (media_requests, media_receiver) = mpsc::channel::<MediaCommand>(media::SEND_CAPACITY);
         let media = Arc::new(media::Inbox::default());
         let owned_media = media.clone();
         let invitations = Arc::new(super::invitations::Inbox::default());
@@ -131,11 +133,19 @@ impl Shared {
         let native = Arc::new(std::sync::Mutex::new(NativeCache::new()));
         let owned_native = native.clone();
         let task = tokio::spawn(async move {
+            let mut media_task = tokio::spawn(native_io::run(
+                io,
+                owned_native.clone(),
+                owned_media.clone(),
+                media_receiver,
+                stopping.clone(),
+            ));
+            let mut media_joined = false;
+            let mut media_join_failed = false;
             let mut active: Vec<InFlight> = Vec::new();
-            let mut pending_media: Option<media_admission::Pending> = None;
             let mut reconciliations = reconciliations::Driver::default();
             let mut events = events::Driver::default();
-            let failure = loop {
+            let work = native_io::catch_work(async { loop {
                 let tick = tokio::select! {biased;
                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
                     result=reconciliations.tick(&mut peer,&owned_native,&owned_slots)=>result,
@@ -160,10 +170,13 @@ impl Shared {
                 if !active.is_empty() && tokio::time::Instant::now() >= next_deadline {
                     break ErrorKind::Deadline;
                 }
-                let media_wakeup = pending_media.as_ref().map(|p| p.wakeup());
                 // Fair selection keeps both packet directions and control live.
                 tokio::select! {
                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
+                    result=&mut media_task=>{
+                        media_joined=true;
+                        match result {Ok(kind)=>break kind, Err(_)=>{media_join_failed=true;break ErrorKind::Protocol;}}
+                    },
                     _=tokio::time::sleep_until(next_deadline), if !active.is_empty()=>break ErrorKind::Deadline,
                     _=tokio::time::sleep_until(reconciliation_wakeup.unwrap_or_else(||tokio::time::Instant::now()+Duration::from_secs(60))), if reconciliation_wakeup.is_some()=>{},
                     _=tokio::time::sleep_until(event_wakeup.unwrap_or_else(||tokio::time::Instant::now()+Duration::from_secs(60))),if event_wakeup.is_some()=>{},
@@ -184,14 +197,13 @@ impl Shared {
                                 let until=active[index].exchange.deadline;
                                 let result=tokio::select! { biased;
                                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
-                                    result=tokio::time::timeout_at(until,confirm_native(&mut peer,&active[index],&frame,&owned_native))=>result
+                                    result=tokio::time::timeout_at(until,confirm_native(&mut peer,&active[index],&frame,&owned_native,&owned_media))=>result
                                 };
                                 let (selected,(participant,local_capabilities,server_capabilities,wire_handles))=match result {Ok(Ok(selected))=>selected,Ok(Err(error))=>break error.kind,Err(_)=>break ErrorKind::Deadline};
                                 let pending=active.swap_remove(index);
                                 let key=pending.key.expect("native key");
                                 let mut cache=match owned_native.lock(){Ok(cache)=>cache,Err(_)=>break ErrorKind::Protocol};
                                 let cid=key.scope.conversation_id.expect("native conversation");let sid=key.scope.session_id.expect("native session");let conn=key.scope.connection_id.expect("native connection");
-                                if let Err(error)=owned_media.install(&cid,&sid,&conn,&selected){break error.kind;}
                                 let reserved_handles=wire_handles.values().copied().collect();
                                 let generations=selected.streams.iter().map(|s|(s.id.clone(),1)).collect();
                                 let known_revision=selected.stream_revision;
@@ -255,48 +267,6 @@ impl Shared {
                             break Error::transport(error,None).kind;
                         }
                     }
-                    datagram=peer.receive_owned_native_datagram()=> {
-                        match datagram {
-                            Ok(bytes)=>if let Err(error)=owned_media.push(bytes){break error.kind;},
-                            Err(crate::ClientError::Protocol)=>if let Err(error)=owned_media.malformed(){break error.kind;},
-                            Err(error)=>break Error::transport(peer.with_owned_signaling_cause(error),None).kind,
-                        }
-                    }
-                    _=tokio::time::sleep_until(media_wakeup.unwrap_or_else(||tokio::time::Instant::now()+Duration::from_secs(60))),if media_wakeup.is_some()=>{
-                        let mut pending=pending_media.take().expect("media wake owns one pending original");
-                        match pending.try_send(&peer,&owned_native,&stopping) {
-                            Ok(None)=>pending_media=Some(pending),
-                            Ok(Some(value))=>pending.finish(Ok(value)),
-                            Err(error)=>pending.finish(Err(error)),
-                        }
-                    },
-                    command=media_receiver.recv(),if pending_media.is_none()=> {
-                        let Some(command)=command else{break ErrorKind::Cancelled;};
-                        if command.reply.is_closed() || command.signal.is_cancelled() || stopping.is_cancelled() || tokio::time::Instant::now()>=command.expires {
-                            let kind=if tokio::time::Instant::now()>=command.expires{ErrorKind::Deadline}else{ErrorKind::Cancelled};
-                            let _=command.reply.send(Err(Error::media(kind,false)));continue;
-                        }
-                        match &command.packet {
-                            MediaSend::Packet(_)=>{
-                                let mut pending=media_admission::Pending::new(command);
-                                match pending.try_send(&peer,&owned_native,&stopping) {
-                                    Ok(None)=>pending_media=Some(pending),
-                                    Ok(Some(value))=>pending.finish(Ok(value)),
-                                    Err(error)=>pending.finish(Err(error)),
-                                }
-                            },
-                            MediaSend::Keyframe(target)=>{
-                                // This call consumes one feedback serial. A capacity
-                                // refusal is explicit NotSubmitted and terminal here;
-                                // never re-run it to generate another request implicitly.
-                                let result=native_binding(&owned_native,&command.key).and_then(|binding|
-                                    owned_media.send_keyframe(&binding,target,|bytes|
-                                        peer.send_owned_video_feedback(bytes).map_err(|error|
-                                            Error::media(Error::transport(error,None).kind,false))));
-                                let _=command.reply.send(result);
-                            },
-                        }
-                    }
                     command=receiver.recv()=> {
                         let command=match command {Some(command)=>command,None=>break ErrorKind::Cancelled};
                         // Cancellation/deadline while queued never becomes a write.
@@ -346,19 +316,34 @@ impl Shared {
                     }
                 }
                 tokio::task::consume_budget().await;
+            }}).await;
+            // Every path, including a caught control panic, retains the SAME
+            // child until its queue is settled and original handle joined.
+            peer.close();
+            stopping.cancel();
+            let media_failure = if media_joined {
+                None
+            } else {
+                match (&mut media_task).await {
+                    Ok(kind) => Some(kind),
+                    Err(_) => {
+                        media_join_failed = true;
+                        Some(ErrorKind::Protocol)
+                    }
+                }
+            };
+            let failure = match &work {
+                Ok(ErrorKind::Cancelled) => media_failure
+                    .filter(|kind| *kind != ErrorKind::Cancelled)
+                    .unwrap_or(ErrorKind::Cancelled),
+                Ok(kind) => *kind,
+                Err(_) => ErrorKind::Protocol,
             };
             owned_closed.store(true, Ordering::Release);
             owned_media.end();
             owned_data.end();
             owned_invitations.end(failure);
             events.end(failure);
-            if let Some(pending) = pending_media.take() {
-                pending.finish(Err(Error::media(failure, false)));
-            }
-            media_receiver.close();
-            while let Some(command) = media_receiver.recv().await {
-                let _ = command.reply.send(Err(Error::media(failure, false)));
-            }
             owned_slots.close();
             // Retire the physical peer on an incomplete exchange, preserving all
             // submitted logical IDs. Unwritten queued commands remain unsubmitted.
@@ -375,7 +360,14 @@ impl Shared {
                         .reply
                         .send(Err(Error::request(failure, command.key.as_ref(), false)));
             }
-            peer.shutdown().await
+            let shutdown = peer.shutdown().await;
+            if let Err(panic) = work {
+                std::panic::resume_unwind(panic);
+            }
+            if media_join_failed {
+                return Err(crate::ClientError::Transport);
+            }
+            shutdown
         });
         Ok(Arc::new(Self {
             authority_expires,
@@ -705,6 +697,7 @@ async fn confirm_native(
     pending: &InFlight,
     frame: &crate::canonical::Envelope,
     cache: &std::sync::Mutex<NativeCache>,
+    media: &media::Inbox,
 ) -> Result<(NativeNegotiation, native_negotiation::Context)> {
     let fail = || Error::request(ErrorKind::Protocol, pending.key.as_ref(), true);
     let negotiation = pending.native.as_ref().ok_or_else(fail)?;
@@ -731,6 +724,15 @@ async fn confirm_native(
         {
             return Err(fail());
         }
+        let key = pending.key.as_ref().ok_or_else(fail)?;
+        let cid = key.scope.conversation_id.as_ref().ok_or_else(fail)?;
+        let sid = key.scope.session_id.as_ref().ok_or_else(fail)?;
+        // Reserve only these exact validated initial receive queues BEFORE
+        // the peer can react to our answer. Public IO still requires the absent
+        // NativeCache entry, published ONLY after this original write succeeds.
+        // Same queue caps/arrival age; any failure retires the whole peer and
+        // clears these queues before its original media child is joined.
+        media.install(cid, sid, connection, &selected)?;
     }
     peer.answer_connection_offer(frame, answer, &negotiation.scope)
         .await

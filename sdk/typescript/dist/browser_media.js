@@ -1,3 +1,4 @@
+import { videoPublication, completeVideoPublication, closeVideoPublication, publicationLookup, publicationConnection, publicationInput, takeEncodedPublication, currentPublicationOutput, publicationPackets, currentPublicationPacket, settlePublicationPacket, } from "./browser_video_publication.js";
 import { nativeEgressIdentity, sameNativeIdentity, } from "./browser_native_activation.js";
 import { BrowserNativeReadiness, } from "./browser_native_readiness.js";
 import { BrowserVideoOrder, } from "./browser_video_order.js";
@@ -54,6 +55,9 @@ export class BrowserMediaPeer {
     constructor(client, callbacks = {}) {
         this.client = client;
         this.callbacks = callbacks;
+        publicationLookup(this, (id, stream) => this.stopped
+            ? undefined
+            : this.connections.get(id)?.routes.get(stream)?.publication);
         const datagrams = client.datagrams;
         if (datagrams.readable.locked ||
             datagrams.writable.locked ||
@@ -616,10 +620,19 @@ export class BrowserMediaPeer {
                 this.routes.set(binding.handle, route);
                 if (binding.direction !== "recvonly")
                     route.sender = new RtpSender(binding, route.video ? this.mtu - 16 : this.mtu);
+                if (route.sender &&
+                    binding.kind !== "audio" &&
+                    state.nativeReadiness &&
+                    !state.nativeReplacementCompleted)
+                    route.publication = videoPublication();
                 const encoded = (frame) => {
                     if (this.stopped ||
                         this.routes.get(binding.handle) !== route ||
                         !route.sender)
+                        return;
+                    const publication = route.publication, input = takeEncodedPublication(frame.bytes);
+                    if (publication &&
+                        !currentPublicationOutput(publication, input, frame.timestampUs, frame.key))
                         return;
                     this.registry.require(binding.handle, "send");
                     route.observed.encoded++;
@@ -629,7 +642,13 @@ export class BrowserMediaPeer {
                     const packets = route.sender.packetize(frame.bytes, rtpTimestampFromMicroseconds(frame.timestampUs, binding.kind === "audio" ? 48000 : 90000));
                     if (packets.length)
                         route.publisherSsrc = new DataView(packets[0].buffer, packets[0].byteOffset).getUint32(16);
-                    const accepted = this.queue.push(packets, binding.kind === "audio");
+                    const queuedAt = performance.now();
+                    if (publication && input)
+                        publicationPackets(input, frame.key, packets, queuedAt);
+                    const accepted = this.queue.push(packets, binding.kind === "audio", queuedAt);
+                    if (!accepted)
+                        for (const packet of packets)
+                            settlePublicationPacket(packet, false);
                     if (!accepted || before !== this.queue.droppedPackets)
                         for (const r of this.routes.values())
                             r.vp8?.requestKeyFrame();
@@ -714,16 +733,26 @@ export class BrowserMediaPeer {
                     continue;
                 }
                 const bytes = this.queue.pop();
-                if (!bytes || this.stopped)
+                if (!bytes || this.stopped) {
+                    if (bytes)
+                        settlePublicationPacket(bytes, false);
                     return;
+                }
+                const packetHandle = new DataView(bytes.buffer, bytes.byteOffset).getUint16(2);
+                if (!currentPublicationPacket(bytes, this.routes.get(packetHandle)?.publication)) {
+                    settlePublicationPacket(bytes, false);
+                    continue;
+                }
                 try {
                     this.registry.require(new DataView(bytes.buffer, bytes.byteOffset).getUint16(2), "send");
                 }
                 catch {
+                    settlePublicationPacket(bytes, false);
                     continue;
                 }
                 const started = performance.now();
                 let timer;
+                let publicationSent = false;
                 try {
                     await Promise.race([
                         this.writer.write(bytes),
@@ -731,6 +760,8 @@ export class BrowserMediaPeer {
                             timer = setTimeout(() => reject(new ConnectError("timeout", "Datagram writer stalled beyond media age")), 200);
                         }),
                     ]);
+                    settlePublicationPacket(bytes, true);
+                    publicationSent = true;
                     this.counters.sent++;
                     const handle = new DataView(bytes.buffer, bytes.byteOffset).getUint16(2);
                     const route = this.routes.get(handle);
@@ -762,6 +793,8 @@ export class BrowserMediaPeer {
                     }
                 }
                 finally {
+                    if (!publicationSent)
+                        settlePublicationPacket(bytes, false);
                     clearTimeout(timer);
                 }
             }
@@ -1473,6 +1506,10 @@ export class BrowserMediaPeer {
                     for (const stream of state.allowed.values())
                         if (stream.direction !== "sendonly")
                             state.selectedKinds.add(String(stream.kind));
+                    const publicationBoundary = performance.now();
+                    for (const route of state.routes.values())
+                        if (route.publication)
+                            completeVideoPublication(route.publication, publicationBoundary);
                     state.nativeReplacementCompleted = true;
                     replacement.committed(receipt);
                 }
@@ -1685,6 +1722,11 @@ export class BrowserMediaPeer {
             frame.close();
             throw new ConnectError("unsupported-media-profile", "No negotiated video sender for this Stream");
         }
+        const publication = publicationInput(route.publication, frame);
+        if (publication === false) {
+            frame.close();
+            return false;
+        }
         const timestamp = frame.timestamp;
         if (!Number.isSafeInteger(timestamp) || timestamp < 0) {
             frame.close();
@@ -1694,7 +1736,7 @@ export class BrowserMediaPeer {
             route.publisherSsrc !== undefined &&
             (route.video?.takeFeedback(performance.now(), route.publisherSsrc) ??
                 false);
-        const accepted = route.vp8.encode(frame, feedback);
+        const accepted = route.vp8.encode(frame, feedback || !!route.publication?.needed);
         if (accepted)
             route.captureClock.observe(timestamp);
         return accepted;
@@ -1809,6 +1851,7 @@ export class BrowserMediaPeer {
         this.registry.retire(route.binding.handle);
         this.routes.delete(route.binding.handle);
         route.opus?.close();
+        closeVideoPublication(route.publication);
         route.vp8?.close();
         route.assembler?.clear();
         route.order?.clear();
@@ -1883,6 +1926,7 @@ export class BrowserMediaConnection {
     constructor(peer, id) {
         this.peer = peer;
         this.id = id;
+        publicationConnection(this, peer, id);
     }
     ownCleanup(work) {
         this.peer.ownCleanup(work);

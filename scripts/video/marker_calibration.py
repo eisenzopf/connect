@@ -82,10 +82,33 @@ def ordinal_sync(video_edges, audio_edges, seconds):
     pairs = [{'ordinal': ordinal, 'video_emit_seconds': at,
         'audio_emit_seconds': by_audio[ordinal], 'signed_video_minus_audio_ms': (at - by_audio[ordinal]) * 1000}
         for ordinal, at in zip(video['ordinals'], video_edges) if ordinal in by_audio]
-    values = sorted(abs(pair['signed_video_minus_audio_ms']) for pair in pairs)
+    # Match the browser's forward binary64 error bound, not a timer allowance.
+    epsilon = 2 ** -52
+    values = sorted(({'value': abs(pair['signed_video_minus_audio_ms']),
+        'roundoff': epsilon * (1000 * (abs(pair['video_emit_seconds']) + abs(pair['audio_emit_seconds']))
+            + 2 * abs(pair['signed_video_minus_audio_ms']))
+            if 0 <= pair['video_emit_seconds'] <= HORIZON_SECONDS
+                and 0 <= pair['audio_emit_seconds'] <= HORIZON_SECONDS else 0}
+        for pair in pairs), key=lambda value: value['value'])
     result.update(marker_pairs=pairs, paired=len(pairs),
         unmatched_video_markers=len(video_edges) - len(pairs), unmatched_audio_markers=len(audio_edges) - len(pairs))
     if values:
-        result.update(median_abs_skew_ms=statistics.median(values), p95_abs_skew_ms=values[math.ceil(len(values) * .95) - 1])
+        lower = values[(len(values) - 1) // 2]; upper = values[len(values) // 2]
+        percentile = values[math.ceil(len(values) * .95) - 1]
+        median = (lower['value'] + upper['value']) / 2
+        median_error = ((lower['roundoff'] + upper['roundoff']) / 2 + epsilon * abs(median)
+            if lower['roundoff'] or upper['roundoff'] else 0)
+        percentile_error = percentile['roundoff']
+        def boundary(value, limit, error):
+            return limit if value > limit and value - limit <= error else value
+        result.update(median_abs_skew_ms=boundary(median, 80, median_error),
+            p95_abs_skew_ms=boundary(percentile['value'], 120, percentile_error),
+            quantile_roundoff={'profile': 'connect/coded-av-binary64-roundoff/1',
+                'raw_median_abs_skew_ms': median, 'raw_p95_abs_skew_ms': percentile['value'],
+                'median_error_bound_ms': median_error, 'p95_error_bound_ms': percentile_error,
+                'median_normalized': False,
+                'p95_normalized': False})
+        result['quantile_roundoff']['median_normalized'] = result['median_abs_skew_ms'] != median
+        result['quantile_roundoff']['p95_normalized'] = result['p95_abs_skew_ms'] != percentile['value']
         result['status'] = 'passed' if len(values) >= seconds * .7 and result['median_abs_skew_ms'] <= 80 and result['p95_abs_skew_ms'] <= 120 else 'failed'
     return result

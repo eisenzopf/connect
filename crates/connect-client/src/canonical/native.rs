@@ -1,6 +1,6 @@
 //! Same-root signed native confirmation and bounded atomic media datagrams.
 use super::*;
-const MAX_NATIVE_MEDIA_DATAGRAM: usize = 16 * 1024 + 20;
+pub(super) const MAX_NATIVE_MEDIA_DATAGRAM: usize = 16 * 1024 + 20;
 fn answer_frame(
     request: &Envelope,
     payload: payloads::ConnectionAnswer,
@@ -205,6 +205,10 @@ impl CanonicalClient {
             .ok_or(ClientError::Protocol)?
             .to_owned();
         self.write(value, true).await?;
+        #[cfg(test)]
+        if let Some(pause) = &self.write_pause {
+            pause.after_answer().await;
+        }
         if seal_video {
             self.native_video.confirmed()?;
         }

@@ -405,3 +405,121 @@ fn incompatible_capabilities_uses_closed_numeric_error_mapping_without_private_d
     assert_eq!(remote.code, "incompatible-capabilities");
     assert!(!serde_json::to_string(&problem).unwrap().contains("private"));
 }
+
+#[cfg(test)]
+mod sdk_owner_tests {
+    use super::*;
+    use crate::canonical::tests::{controlled, Fault};
+    async fn catch<T>(
+        work: impl std::future::Future<Output = T>,
+    ) -> std::result::Result<T, Box<dyn std::any::Any + Send>> {
+        let mut work = std::pin::pin!(work);
+        std::future::poll_fn(|cx| {
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                std::future::Future::poll(work.as_mut(), cx)
+            })) {
+                Ok(std::task::Poll::Ready(value)) => std::task::Poll::Ready(Ok(value)),
+                Ok(std::task::Poll::Pending) => std::task::Poll::Pending,
+                Err(panic) => std::task::Poll::Ready(Err(panic)),
+            }
+        })
+        .await
+    }
+    async fn exercise(bye: bool, expiry: bool) {
+        let (mut peer, mut host, ready) =
+            controlled(Fault::Owned(if bye { Traffic::Bye } else { Traffic::Idle })).await;
+        if !bye && !expiry {
+            peer.deadline = Duration::from_millis(50);
+        }
+        if expiry {
+            peer.authenticated_until = chrono::Utc::now() + chrono::Duration::milliseconds(500);
+        }
+        peer.start_signaling_reader().unwrap();
+        let io = peer.take_owned_native_io().unwrap();
+        let reader = peer.native_datagram_reader.clone();
+        let work = catch(async {
+            assert!(matches!(peer.claim_native_datagrams(), Err(ClientError::Protocol)));
+            peer.keepalive().await.unwrap();
+            if bye {
+                ready.notified().await;
+                assert!(matches!(io.receive().await, Err(ClientError::Authentication)));
+                assert_eq!(peer.receive_owned_frame().await.unwrap().kind(), "auth.bye");
+                assert!(peer.receive_owned_frame().await.is_err());
+                assert!(matches!(io.terminal_error(), Some(ClientError::Authentication)), "control consumption cannot erase verified terminal media evidence");
+                assert!(io.send(&[1,0,0,7,0,0,0,1,0x80,0,0,1,0,0,0,1,0,0,0,1,1]).is_err());
+            } else if expiry {
+                assert!(matches!(tokio::time::timeout(Duration::from_secs(2), io.receive()).await, Ok(Err(ClientError::Authentication))), "owned signaling must drive original idle authority expiry without a packet or control completion");
+                assert!(matches!(io.terminal_error(), Some(ClientError::Authentication)));
+            } else {
+                assert!(tokio::time::timeout(Duration::from_millis(100), io.receive()).await.is_err(), "idle SDK read must outlive the original50ms framed-write timeout");
+                assert!(reader.load(Ordering::Acquire), "cancelled atomic read retains the sole SDK reader owner");
+                assert!(io.current().is_ok());
+            }
+        }).await;
+        drop(io);
+        let shutdown = peer.shutdown().await;
+        let (natural, joined) = match tokio::time::timeout(Duration::from_secs(5), &mut host).await
+        {
+            Ok(result) => (true, result),
+            Err(_) => {
+                host.abort();
+                (false, (&mut host).await)
+            }
+        };
+        assert!(
+            shutdown.is_ok() && natural && joined.is_ok() && !reader.load(Ordering::Acquire),
+            "original native/signaling owners closed"
+        );
+        if let Err(panic) = work {
+            std::panic::resume_unwind(panic);
+        }
+    }
+    #[tokio::test]
+    async fn sdk_constructor_refuses_existing_public_reader_before_spawning_owned_signaling() {
+        let (mut peer, mut host, _) = controlled(Fault::Owned(Traffic::Idle)).await;
+        let reader = peer.native_datagram_reader.clone();
+        let closed = peer.closed.clone();
+        let public = peer.claim_native_datagrams().unwrap();
+        let attempt = peer.start_owned_native_io();
+        let denied_before_start = matches!(&attempt, Err(ClientError::Protocol));
+        let no_owned_reader_started = peer.owned_signaling.is_none();
+        drop(attempt);
+        let created = crate::sdk::Client::from_authenticated_peer(peer, "tenant".parse().unwrap());
+        let denied =
+            matches!(&created, Err(error) if error.kind == crate::sdk::ErrorKind::Protocol);
+        if let Ok(client) = created {
+            let _ = client
+                .close(crate::sdk::RequestOptions::new(Duration::from_secs(60)).unwrap())
+                .await;
+        }
+        drop(public);
+        let (natural, joined) = match tokio::time::timeout(Duration::from_secs(5), &mut host).await
+        {
+            Ok(result) => (true, result),
+            Err(_) => {
+                host.abort();
+                (false, (&mut host).await)
+            }
+        };
+        assert!(natural && joined.is_ok() && !reader.load(Ordering::Acquire));
+        assert!(
+            denied_before_start
+                && no_owned_reader_started
+                && denied
+                && closed.load(Ordering::Acquire),
+            "existing reader refuses before any new signaling owner starts"
+        );
+    }
+    #[tokio::test]
+    async fn sdk_native_owner_keeps_idle_receive_and_exclusive_original_reader() {
+        exercise(false, false).await;
+    }
+    #[tokio::test]
+    async fn sdk_native_owner_stops_idle_receive_at_original_authority_expiry() {
+        exercise(false, true).await;
+    }
+    #[tokio::test]
+    async fn sdk_native_owner_keeps_verified_terminal_cause_after_control_consumes_frame() {
+        exercise(true, false).await;
+    }
+}

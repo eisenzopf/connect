@@ -33,6 +33,28 @@ where
     .await
 }
 
+/// Fresh native/RTC initial activation retains its original start cutoff.
+/// Waiting for current metadata is not a separate two-second work budget.
+/// The same cancellation owner is passed into every original Store task; read
+/// joins that task before returning cancellation/expiry or retrying admission.
+pub(crate) async fn read_start<T, F, Fut, Cancel>(
+    original_deadline: Instant,
+    cancelled: Cancel,
+    mut current: F,
+) -> Result<T>
+where
+    F: FnMut(AuthorityWait) -> Fut,
+    Fut: Future<Output = Result<T>>,
+    Cancel: Future<Output = ()>,
+{
+    let wait = AuthorityWait::new(original_deadline.saturating_duration_since(Instant::now()));
+    let _cancel_wait = wait.cancel_on_drop();
+    read(original_deadline, &wait, cancelled, || {
+        current(wait.clone())
+    })
+    .await
+}
+
 /// Reobserve only immediate, effect-free metadata exclusion. In particular a
 /// storage outage is not a reason to repeat provenance issuance or the reply read.
 /// The caller must retain its exact original attempt/read and submit no effect.
@@ -342,5 +364,129 @@ mod start_metadata_tests {
         .await;
         assert_eq!(result.unwrap_err().code, "forbidden");
         assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+}
+
+#[cfg(test)]
+mod fresh_start_tests {
+    use super::*;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+    use tokio::sync::{Mutex, Notify};
+    use tokio_util::sync::CancellationToken;
+
+    #[tokio::test]
+    async fn fresh_start_state_admission_uses_original_budget_past_two_seconds() {
+        let state = Arc::new(Mutex::new(()));
+        let entered = Arc::new(Notify::new());
+        let mut owner = {
+            let state = state.clone();
+            let entered = entered.clone();
+            tokio::spawn(async move {
+                let guard = state.lock().await;
+                entered.notify_one();
+                tokio::time::sleep(Duration::from_millis(2100)).await;
+                drop(guard);
+            })
+        };
+        entered.notified().await;
+        let calls = AtomicUsize::new(0);
+        let started = AtomicUsize::new(0);
+        let began = Instant::now();
+        let deadline = began + Duration::from_secs(5);
+        let stop = CancellationToken::new();
+        let result = read_start(deadline, stop.cancelled(), |_| async {
+            calls.fetch_add(1, Ordering::SeqCst);
+            let _current = state
+                .try_lock()
+                .map_err(|_| Error::new("authority-busy", "Original state owner is pending"))?;
+            Ok(17u64) // Immutable original-attempt attribution; no effect here.
+        })
+        .await;
+        let joined = match tokio::time::timeout(Duration::from_secs(1), &mut owner).await {
+            Ok(value) => value.is_ok(),
+            Err(_) => {
+                owner.abort();
+                let _ = owner.await;
+                false
+            }
+        };
+        if result.is_ok() {
+            started.fetch_add(1, Ordering::SeqCst);
+        }
+        assert!(joined, "original test state owner must be naturally joined");
+        assert_eq!(result.unwrap(), 17);
+        assert!(began.elapsed() >= Duration::from_secs(2));
+        assert!(Instant::now() < deadline);
+        assert!(calls.load(Ordering::SeqCst) > 1);
+        assert_eq!(started.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn fresh_start_original_expiry_and_cancellation_never_promote_busy_state() {
+        let state = Mutex::new(());
+        let owner = state.lock().await;
+        let starts = AtomicUsize::new(0);
+        let stop = CancellationToken::new();
+        let result: Result<()> = read_start(
+            Instant::now() + Duration::from_millis(50),
+            stop.cancelled(),
+            |_| async {
+                let _current = state
+                    .try_lock()
+                    .map_err(|_| Error::new("authority-busy", "Original state owner is pending"))?;
+                starts.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            },
+        )
+        .await;
+        assert_eq!(result.unwrap_err().code, "timeout");
+        let result: Result<()> = read_start(
+            Instant::now() + Duration::from_secs(5),
+            stop.cancelled(),
+            |_| async {
+                stop.cancel();
+                Err(Error::new(
+                    "authority-busy",
+                    "Original state owner is pending",
+                ))
+            },
+        )
+        .await;
+        drop(owner);
+        assert_eq!(result.unwrap_err().code, "forbidden");
+        assert_eq!(starts.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn fresh_start_current_refusal_after_busy_is_never_retried_as_a_grant() {
+        let calls = AtomicUsize::new(0);
+        let starts = AtomicUsize::new(0);
+        let stop = CancellationToken::new();
+        let result: Result<()> = read_start(
+            Instant::now() + Duration::from_secs(5),
+            stop.cancelled(),
+            |_| async {
+                if calls.fetch_add(1, Ordering::SeqCst) == 0 {
+                    Err(Error::new(
+                        "authority-busy",
+                        "Original state owner is pending",
+                    ))
+                } else {
+                    // Exact current policy refusal; never convert this into
+                    // another admission attempt or a physical start callback.
+                    Err(Error::forbidden())
+                }
+            },
+        )
+        .await;
+        if result.is_ok() {
+            starts.fetch_add(1, Ordering::SeqCst);
+        }
+        assert_eq!(result.unwrap_err().code, "forbidden");
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+        assert_eq!(starts.load(Ordering::SeqCst), 0);
     }
 }

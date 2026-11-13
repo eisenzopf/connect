@@ -3,6 +3,7 @@ use super::*;
 mod codecs;
 mod data;
 mod end;
+pub(in crate::canonical) mod isolation;
 mod reconciliations;
 mod selections;
 mod updates;
@@ -25,6 +26,8 @@ pub(in crate::canonical) enum Case {
     EndWrongRevision,
     EndRefused,
     Media,
+    Isolation(isolation::Case),
+    IsolationSecond,
     ChangedSetup,
     ForeignScope,
     WrongDirection,
@@ -68,18 +71,27 @@ async fn write(
     writer.write_all(&bytes).await.unwrap();
     frame
 }
+async fn status_for(
+    writer: &mut quinn::SendStream,
+    signer: &Sig9421Signer,
+    request: &Envelope,
+    state: &str,
+    operation_id: &str,
+) {
+    let mut value = json!({"operation_id":operation_id,"state":state,"revision":1});
+    if state == "completed" {
+        value["result"] = json!({"streams":["audio","video","data"],"stream_revision":1});
+    }
+    write(writer, signer, request, "operation.updated", value, true).await;
+    write(writer, signer, request, "ack", json!({}), true).await;
+}
 async fn status(
     writer: &mut quinn::SendStream,
     signer: &Sig9421Signer,
     request: &Envelope,
     state: &str,
 ) {
-    let mut value = json!({"operation_id":"native-original","state":state,"revision":1});
-    if state == "completed" {
-        value["result"] = json!({"streams":["audio","video","data"],"stream_revision":1});
-    }
-    write(writer, signer, request, "operation.updated", value, true).await;
-    write(writer, signer, request, "ack", json!({}), true).await;
+    status_for(writer, signer, request, state, "native-original").await;
 }
 pub(super) async fn emit(
     connection: &quinn::Connection,
@@ -90,9 +102,14 @@ pub(super) async fn emit(
     signer: &Sig9421Signer,
     signal: &Notify,
 ) {
+    let logical = if matches!(case, Case::IsolationSecond) {
+        "native-second"
+    } else {
+        "native-original"
+    };
     assert_eq!(first.kind(), "connection.offer");
     assert_eq!(first.original()["expected_revision"], 0);
-    assert_eq!(first.scope(Scope::Operation), Some("native-original"));
+    assert_eq!(first.scope(Scope::Operation), Some(logical));
     if matches!(case, Case::Refused) {
         write(
             writer,
@@ -109,7 +126,7 @@ pub(super) async fn emit(
         status(writer, signer, &first, "completed").await;
         let query = read(reader).await;
         assert_eq!(query.kind(), "operation.get");
-        status(writer, signer, &query, "completed").await;
+        status_for(writer, signer, &query, "completed", logical).await;
         return;
     }
     let audio_direction = match first.original()["payload"]["streams_offered"][0]["direction"]
@@ -126,6 +143,11 @@ pub(super) async fn emit(
         {"strm_id":"video","kind":"video","direction":"sendonly","stream_local_id":8,"codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}}},
         {"strm_id":"data","kind":"data","direction":"sendrecv","stream_local_id":9,"codec":{"name":"json","params":{"reliability":"reliable_ordered"}}}
     ]);
+    if matches!(case, Case::IsolationSecond) {
+        for port in streams.as_array_mut().unwrap() {
+            port["stream_local_id"] = json!(port["stream_local_id"].as_u64().unwrap() + 100);
+        }
+    }
     if matches!(case, Case::Data(data::Case::Text)) {
         streams[2]["codec"]["name"] = json!("text");
     }
@@ -150,7 +172,7 @@ pub(super) async fn emit(
     // The initial answer has arrived, but the server has not requested confirmation.
     let query = read(reader).await;
     assert_eq!(query.kind(), "operation.get");
-    status(writer, signer, &query, "preparing").await;
+    status_for(writer, signer, &query, "preparing", logical).await;
     let offered=streams.as_array().unwrap().iter().map(|s|json!({"id":s["strm_id"],"kind":s["kind"],"direction":s["direction"],"codec_preferences":[s["codec"]["name"]]})).collect::<Vec<_>>();
     let mut payload = json!({"by_participant":"part_one","substrate":"quic","capabilities":capabilities,"streams_offered":offered,"substrate_setup":setup});
     if matches!(case, Case::ChangedSetup) {
@@ -184,7 +206,7 @@ pub(super) async fn emit(
     let confirmation = loop {
         let frame = read(reader).await;
         if frame.kind() == "operation.get" {
-            status(writer, signer, &frame, "preparing").await;
+            status_for(writer, signer, &frame, "preparing", logical).await;
             continue;
         }
         break frame;
@@ -204,10 +226,27 @@ pub(super) async fn emit(
         confirmation.original()["payload"]["streams_answered"][1]["direction"],
         "recvonly"
     );
+    if matches!(case, Case::Isolation(isolation::Case::Arrival)) {
+        // Original signed answer has REALLY reached the server. The client
+        // is held before cache publication while this first RTP is delivered.
+        connection
+            .send_datagram(datagram(7, 299, &raw_rtp(0)).into())
+            .unwrap();
+        connection
+            .send_datagram(datagram(8, 300, &raw_rtp(96)).into())
+            .unwrap();
+    }
     // There is deliberately no final ACK for the original native offer.
-    let query = read(reader).await;
+    let query = if matches!(case, Case::Isolation(isolation::Case::Arrival)) {
+        match selections::maybe_read(reader).await {
+            Some(query) => query,
+            None => return,
+        }
+    } else {
+        read(reader).await
+    };
     assert_eq!(query.kind(), "operation.get");
-    status(writer, signer, &query, "completed").await;
+    status_for(writer, signer, &query, "completed", logical).await;
     if let Case::Data(case) = case {
         data::emit(case, reader, writer, signer, signal).await;
     } else if let Case::Codec(case) = case {
@@ -245,6 +284,10 @@ pub(super) async fn emit(
         .await;
     } else if let Case::Controls(case) = case {
         updates::emit(connection, case, writer, reader, signer, signal).await;
+    } else if matches!(case, Case::IsolationSecond) {
+        isolation::emit_sibling(connection, writer, reader, signer, signal, &capabilities).await;
+    } else if let Case::Isolation(case) = case {
+        isolation::emit(connection, case, writer, reader, signer, signal).await;
     } else if matches!(case, Case::Media) {
         media_wire(connection, writer, reader, signer).await;
     } else if matches!(
