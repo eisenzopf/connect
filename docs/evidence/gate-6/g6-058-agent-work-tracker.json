@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T13:30:10.436857+00:00",
-  "revision": 70,
+  "updated_at": "2026-11-13T15:05:44.274564+00:00",
+  "revision": 71,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,12 +9,12 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 109,
-    "verified_at": "2026-11-13T13:31:15.004Z",
+    "content_revision": 110,
+    "verified_at": "2026-11-13T15:07:01.970Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217.json",
     "readback_evidence_sha256": "f97e298deaa159a290654c41a57289a54247b7f0aea6f3b3a4a26d2b4da0b4b0",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
-    "postrun_readback_sha256": "0f044539828e79096b95d111fdb9e9c9f6c841cd44da75e14c18b277c94d39b9"
+    "postrun_readback_sha256": "66c3a6b85a9833c13b957fd15f8f45efe70190ea8e97c7071f9c970f181aa56f"
   },
   "baseline": {
     "run": "v215",
@@ -5292,7 +5292,7 @@
       }
     },
     "focused_checks_passed": 164,
-    "mobile_revision_reported": 109,
+    "mobile_revision_reported": 110,
     "mobile_readback_claim_added": true,
     "postrun_progress_evidence": "docs/evidence/gate-6/g6-058-v217-handoff-diagnostics-progress.json",
     "postrun_progress_sha256": "ee0a7a47cd92be02d5bb1979b92d6e83659765362dd40be5f1ff232630a2c357",
@@ -5302,5 +5302,30 @@
     "store_route_control_sha256": "418efb4edc0958d18bf8521a0ac626ec7346c1f5c735c11421333ac544049145",
     "route_warmup_evidence": "docs/evidence/gate-6/g6-058-v217-route-warmup-progress.json",
     "route_warmup_sha256": "689cbab74944efb5c16471b5ecc4a5326ddbd40ba051a1c5e72c2fa02216817f"
+  },
+  "v218_prequalification": {
+    "evidence": "docs/evidence/gate-6/g6-058-v218-prequalification.json",
+    "sha256": "95d6a04d9ae0686ddf6fc5e9e3efa97585a792d5cd057bddb9c1b6481ce1720b",
+    "status": "401-of-402-startup-blocker-open",
+    "Rust_passed": 401,
+    "Rust_required": 402,
+    "scripts_passed": 133,
+    "scripts_required": 133,
+    "startup_blocker": {
+      "id": "v218-startup-first-key",
+      "status": "diagnosing",
+      "owner": "/root/fixture_blockers",
+      "reviewers": [
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "first_failed_condition": "All six original decoders usable before the unchanged eight-second startup cutoff.",
+      "observed": "Publishers1/3 stop within their first fragmented VP8 key after8/11 video fragments and10 audio packets. Incoming routes0/2 have no assembled frame. Other four publishers/receivers progress; the second ES256 full programme passes.",
+      "SDK_error": "Deadline/NotSubmitted on local media submission; no operation/journal mutation implied.",
+      "cause": "Not established. First capture-age budget consumption versus local send admission is being measured. No Store SQL/global-registry cause is proved.",
+      "next": "First-original-key numeric capture/encode/send/slack observations after all owner joins, using the same original200ms budget; no handshake or warmup change until evidence.",
+      "failed_log_sha256": "4e1502f6258f0912fa8a0bb90683c70a2ae6d58640608fa7d7ad1ee292646880",
+      "source_privacy_authorization_thresholds_changed": false
+    }
   }
 }

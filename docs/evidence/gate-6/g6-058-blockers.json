@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-13",
-  "run_status": "Completed v217 remains2/32 cells and400/432 checks passed. Current429 passes all13 signed runtime regressions, Store36 and hook2; original54 retains51 passes/3 unit-fixture setup failures, whose corrected3-test rerun and actual signedvideo retest pass separately. Route-causal8 are independently verified. Full402+133, normal Mac/ARM shipping and complete32/432 remain next.",
+  "run_status": "Latest full matrix remainsv217:2/32 cells,400/432 checks. Fresh e60/generation429 prerequisites completed401/402 Rust cases and133/133 scripts, all six build phases passed. One first-key startup failure in EdDSA full62 remains; ES256 full62 passes. All original owners closed; no SourcePrep/shipping/newmatrix launched. Timing diagnostics are being prepared without criterion changes.",
   "blockers": [
     {
       "id": "B01",
@@ -17628,6 +17628,18 @@
       "passed": 3,
       "planned": 3,
       "evidence": "g6-058-v217-route-warmup-progress.json"
+    },
+    {
+      "name": "Fresh e60/429 complete Rust prerequisite cohort (one startup failure)",
+      "passed": 401,
+      "planned": 402,
+      "evidence": "g6-058-v218-prequalification.json"
+    },
+    {
+      "name": "Fresh e60/429 Python65 and Node68 source-bound scripts",
+      "passed": 133,
+      "planned": 133,
+      "evidence": "g6-058-v218-prequalification.json"
     }
   ],
   "current_production_check": {
@@ -18446,5 +18458,30 @@
     "store_route_control_sha256": "418efb4edc0958d18bf8521a0ac626ec7346c1f5c735c11421333ac544049145",
     "route_warmup_evidence": "docs/evidence/gate-6/g6-058-v217-route-warmup-progress.json",
     "route_warmup_sha256": "689cbab74944efb5c16471b5ecc4a5326ddbd40ba051a1c5e72c2fa02216817f"
+  },
+  "v218_prequalification": {
+    "evidence": "docs/evidence/gate-6/g6-058-v218-prequalification.json",
+    "sha256": "95d6a04d9ae0686ddf6fc5e9e3efa97585a792d5cd057bddb9c1b6481ce1720b",
+    "status": "401-of-402-startup-blocker-open",
+    "Rust_passed": 401,
+    "Rust_required": 402,
+    "scripts_passed": 133,
+    "scripts_required": 133,
+    "startup_blocker": {
+      "id": "v218-startup-first-key",
+      "status": "diagnosing",
+      "owner": "/root/fixture_blockers",
+      "reviewers": [
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "first_failed_condition": "All six original decoders usable before the unchanged eight-second startup cutoff.",
+      "observed": "Publishers1/3 stop within their first fragmented VP8 key after8/11 video fragments and10 audio packets. Incoming routes0/2 have no assembled frame. Other four publishers/receivers progress; the second ES256 full programme passes.",
+      "SDK_error": "Deadline/NotSubmitted on local media submission; no operation/journal mutation implied.",
+      "cause": "Not established. First capture-age budget consumption versus local send admission is being measured. No Store SQL/global-registry cause is proved.",
+      "next": "First-original-key numeric capture/encode/send/slack observations after all owner joins, using the same original200ms budget; no handshake or warmup change until evidence.",
+      "failed_log_sha256": "4e1502f6258f0912fa8a0bb90683c70a2ae6d58640608fa7d7ad1ee292646880",
+      "source_privacy_authorization_thresholds_changed": false
+    }
   }
 }

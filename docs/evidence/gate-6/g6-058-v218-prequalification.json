@@ -1,0 +1,193 @@
+{
+  "format": "connect/g6-058-v218-prequalification/1",
+  "updated_at": "2026-11-13T15:05:44.274564+00:00",
+  "source_head": "e60faf5ceda689900890755ddcf3b74f6c29da69",
+  "source_generation": 429,
+  "source_lock_sha256": "2f1795ab433e4564ce132021e37740790c6bfd7240150742329631ebf3558ccc",
+  "qualified": false,
+  "Rust": {
+    "required": 402,
+    "completed": 402,
+    "passed": 401,
+    "failed": 1,
+    "all11_ignored_cases_explicitly_executed": true,
+    "original_results_sha256": "d6f3d35457cba70f0aa8a75ae4a09dc5802b4789851faa688531934638a90138",
+    "actual_outer_tool_exit_code": 1,
+    "actual_original_join_sha256": "b00a16a0a8b0df352491e3bf594be9dcdf4d77d8cdb7e9003c56c46d386edc79"
+  },
+  "scripts": {
+    "passed": 133,
+    "required": 133,
+    "python": 65,
+    "node": 68,
+    "original_results_sha256": "c4ec730faae23154a3c48de12f16fccc82f79f640aa1dfb37259f18686dfb5f0",
+    "actual_outer_tool_exit_code": 0
+  },
+  "builds": {
+    "phases": 6,
+    "passed": 6,
+    "normal_default_four_crate_check": true,
+    "original_results_sha256": "6f62973e4fe4811924955bd295e6d9c11b9b9a0ebc94485852065ec09b704cb6",
+    "actual_outer_tool_exit_code": 0
+  },
+  "source_unchanged": true,
+  "all_binaries_unchanged": true,
+  "all_original_groups_joined": true,
+  "remaining_original_groups": [],
+  "full_programmes": [
+    {
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "4e1502f6258f0912fa8a0bb90683c70a2ae6d58640608fa7d7ad1ee292646880",
+      "data_control_observation": {
+        "expected_first_recordings": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "observed_lines": {
+          "data-gate": 0,
+          "data-subscription": 0
+        },
+        "unique_records_by_kind": {
+          "data-gate": 0,
+          "data-subscription": 0
+        },
+        "duplicate_lines": 0,
+        "malformed_lines": 0,
+        "bounded_events": [],
+        "overflow_lines": 0,
+        "required_paths_observed": false,
+        "limit": "One Source-reviewed narrow control trace after actual COMMIT only; completed replay/fallback emits no such event. Missing traces stay unreported, not promoted from testpass or commandorder. No packet/payload/raw operation ID retained."
+      }
+    },
+    {
+      "test": "sdk_handles::replacement_video_recovery::readiness::representative::signed_es256_full_62_second_six_source_two_session_four_move_av_data_programme_joins_original_owners",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "30922c3618248b8a63d9391f3eed457fcba0a13d98e902776b186ca696c6a556",
+      "data_control_observation": {
+        "expected_first_recordings": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "observed_lines": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "unique_records_by_kind": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "duplicate_lines": 0,
+        "malformed_lines": 0,
+        "bounded_events": [
+          {
+            "line": 224,
+            "kind": "data-gate",
+            "record_fingerprint": "908aa551a90fb698fc18eb70d8aff121e782fadd08fe1a2683994af4ee861bcd",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 229,
+            "kind": "data-subscription",
+            "record_fingerprint": "eb7c0f78e4bb6c0dddce4e19dfef0d0b649074fb8d9cc538ec02ab6f786a6594",
+            "descriptor": "first"
+          },
+          {
+            "line": 234,
+            "kind": "data-subscription",
+            "record_fingerprint": "0e82f896426845a97c0313194abc81be1a1ae65cd4889e2f9c9865084fa328c1",
+            "descriptor": "stale-invisible"
+          },
+          {
+            "line": 250,
+            "kind": "data-gate",
+            "record_fingerprint": "03295293d5515d3c9af214acf0bacb06b531fe98b384a4656974bf8bcae27b86",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 255,
+            "kind": "data-subscription",
+            "record_fingerprint": "b075aca22e0b2e1f4449dbf996ac668d876d9a022a0dcf16d06dde37ba0dfaf0",
+            "descriptor": "first"
+          },
+          {
+            "line": 260,
+            "kind": "data-subscription",
+            "record_fingerprint": "5b113c1059bcaf6e2efb6af596efb69d76854be9f40a6a8ce14b92cbb6c5fcae",
+            "descriptor": "stale-invisible"
+          },
+          {
+            "line": 419,
+            "kind": "data-gate",
+            "record_fingerprint": "9c01e81ec7946ba5ac46902160c37d283183ff7a4134f23f1df6ca686a855b88",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 424,
+            "kind": "data-subscription",
+            "record_fingerprint": "3b062291d53569ec640f955daf6b0646e2694b607ae685fd0c202ed28a3b5e02",
+            "descriptor": "first"
+          },
+          {
+            "line": 429,
+            "kind": "data-subscription",
+            "record_fingerprint": "783d9cc8768c589ba8a1cfb49e4ac14d2b0dae8ba364a1d7278adf1c36397f42",
+            "descriptor": "stale-invisible"
+          },
+          {
+            "line": 447,
+            "kind": "data-gate",
+            "record_fingerprint": "383579dfe61bc5b5c99fd55a9f5621762138e834976c2cabb9ab27821102dcff",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 452,
+            "kind": "data-subscription",
+            "record_fingerprint": "92c671f3853696cddd3bb985e9b5ccd71863858ce8596937de128c02703efd06",
+            "descriptor": "first"
+          },
+          {
+            "line": 457,
+            "kind": "data-subscription",
+            "record_fingerprint": "ea79fb0f94beccb1a0b90c05dc3d845d9f6d89703270510028173dae9937b2ef",
+            "descriptor": "stale-invisible"
+          }
+        ],
+        "overflow_lines": 0,
+        "required_paths_observed": true,
+        "limit": "One Source-reviewed narrow control trace after actual COMMIT only; completed replay/fallback emits no such event. Missing traces stay unreported, not promoted from testpass or commandorder. No packet/payload/raw operation ID retained."
+      }
+    }
+  ],
+  "startup_blocker": {
+    "id": "v218-startup-first-key",
+    "status": "diagnosing",
+    "owner": "/root/fixture_blockers",
+    "reviewers": [
+      "/root/media_blockers",
+      "/root/v198_resources"
+    ],
+    "first_failed_condition": "All six original decoders usable before the unchanged eight-second startup cutoff.",
+    "observed": "Publishers1/3 stop within their first fragmented VP8 key after8/11 video fragments and10 audio packets. Incoming routes0/2 have no assembled frame. Other four publishers/receivers progress; the second ES256 full programme passes.",
+    "SDK_error": "Deadline/NotSubmitted on local media submission; no operation/journal mutation implied.",
+    "cause": "Not established. First capture-age budget consumption versus local send admission is being measured. No Store SQL/global-registry cause is proved.",
+    "next": "First-original-key numeric capture/encode/send/slack observations after all owner joins, using the same original200ms budget; no handshake or warmup change until evidence.",
+    "failed_log_sha256": "4e1502f6258f0912fa8a0bb90683c70a2ae6d58640608fa7d7ad1ee292646880",
+    "source_privacy_authorization_thresholds_changed": false
+  },
+  "independent_review_status": "adjudicated; failed whole cohort remains failed",
+  "shipping_sourceprep_or_matrix_started": false,
+  "latest_matrix_unchanged": {
+    "run": "v217",
+    "cells_passed": 2,
+    "cells_total": 32,
+    "checks_passed": 400,
+    "checks_total": 432
+  },
+  "independent_adjudication_sha256": "deddc2a521ae87e4d859278f8eacf4d15806253ea6f5214d1faafa34853c4360",
+  "ES256_full_owner_quality_supplement_sha256": "d9ba59c5851c746a56f05120b1ffdb2385d42c07c98b71eac92c1a73de2fce55",
+  "ES256_owner_join_elapsed_seconds": 64.779379,
+  "ES256_original_join_bound_seconds": 67
+}
