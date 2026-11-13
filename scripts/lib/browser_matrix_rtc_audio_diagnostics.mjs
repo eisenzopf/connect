@@ -1,8 +1,38 @@
 // Diagnostic metadata from the existing public render tap only. No audio graph,
 // payload retention, sample generation, playout changes, or quality exceptions.
 const number=read=>{try{const value=read();return Number.isFinite(value)?value:null;}catch{return null;}};
-export function rtcAudioBoundaryDiagnostics() {
+export function rtcAudioBoundaryDiagnostics({retainSuspectPcm=false}={}) {
     const limit=32,minimum=128,events=[];let omitted=0,closed=false;
+    const pcmLimit=8,pcmOwners=10,history=new Map(),pcmEvents=[];
+    let pcmOmitted=0,pcmUnknown=0;
+    const copy=frame=>Object.freeze({original_worklet_timestamp_us:frame.timestamp,
+        callback_performance_ms:frame.at,samples:Object.freeze(Array.from(frame.samples))});
+    function retain({owner,clock,timestamp,at,samples},suspect) {
+        if(!retainSuspectPcm)return;
+        if(!(samples instanceof Float32Array)||samples.length!==960||!samples.every(Number.isFinite)
+            ||clock?.owner!==owner||!Number.isSafeInteger(clock?.epoch_id)||clock.epoch_id<1
+            ||typeof owner!=='string'||owner.length>256||!Number.isFinite(timestamp)) {pcmUnknown++;return;}
+        let prior=history.get(clock.epoch_id);
+        if(prior&&prior.owner!==owner) {pcmUnknown++;return;}
+        if(!prior&&history.size>=pcmOwners) {pcmUnknown++;return;}
+        const contiguous=prior&&timestamp-prior.timestamp===20000;
+        if(prior?.pending!==null&&prior?.pending!==undefined) {
+            pcmEvents[prior.pending].after=contiguous?copy({timestamp,at,samples}):null;
+            pcmEvents[prior.pending].after_status=contiguous?'captured':'discontinuous';
+        }
+        let pending=null;
+        if(suspect) {
+            if(pcmEvents.length<pcmLimit) {
+                pending=pcmEvents.length;
+                pcmEvents.push({owner,clock_epoch_id:clock.epoch_id,
+                    before:contiguous?copy(prior):null,current:copy({timestamp,at,samples}),
+                    after:null,after_status:'not-yet-observed'});
+            }else pcmOmitted++;
+        }
+        // The callback borrows samples. Own only one prior960 block per clock;
+        // no track, AudioContext, callback or renderer owner is retained here.
+        history.set(clock.epoch_id,{owner,timestamp,at,samples:samples.slice(),pending});
+    }
     return {
         observe({owner,clock,timestamp,at,origin,samples,context}) {
             if(closed||!Number.isFinite(origin)||!Number.isFinite(at)||at<origin||at>=origin+62000)return;
@@ -11,6 +41,7 @@ export function rtcAudioBoundaryDiagnostics() {
                 run=samples[i]===0?run+1:0;
                 if(run>longest){longest=run;start=i-run+1;}
             }
+            retain({owner,clock,timestamp,at,samples},longest>=minimum);
             if(longest<minimum)return;
             if(events.length>=limit){omitted++;return;}
             let output=null;
@@ -31,7 +62,13 @@ export function rtcAudioBoundaryDiagnostics() {
         },
         report(){return Object.freeze({profile:'connect/rtc-render-audio-boundary/1',
             scope:'Exact zeros copied from original public WebAudio input; context values sampled at main-thread callback, not proof of pre-WebAudio content or physical playout',
-            minimum_exact_zero_samples:minimum,limit,omitted,events:Object.freeze(events.slice())});},
-        close(){closed=true;},
+            minimum_exact_zero_samples:minimum,limit,omitted,events:Object.freeze(events.slice()),
+            suspect_pcm:Object.freeze({enabled:retainSuspectPcm,profile:'connect/original-rtc-suspect-pcm/1',
+                event_limit:pcmLimit,owner_limit:pcmOwners,omitted:pcmOmitted,owner_unknown:pcmUnknown,
+                scope:'Original borrowed public PCM only; no packet-to-PCM identity or quality credit',
+                complete:retainSuspectPcm&&pcmOmitted===0&&pcmUnknown===0
+                    &&pcmEvents.every(row=>row.before&&row.after_status==='captured'),
+                events:Object.freeze(pcmEvents.map(row=>Object.freeze({...row})))})});},
+        close(){closed=true;history.clear();},
     };
 }

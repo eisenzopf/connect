@@ -26,7 +26,10 @@ test("RTP loss and repair counters remain bounded numeric facts without private 
         const clocks=await globalThis.connectPeerClockDiagnostics();
         assert.equal(clocks.length,4);assert(clocks.every(rows=>rows.length===8));
         assert.equal(value.length,4);assert(value.every(rows=>rows.length===8));
-        assert.deepEqual(value[0][0],{peer_index:0,connection_id:null,report_index:0,stats_timestamp_ms:null,type:"inbound-rtp",kind:"audio",packetsLost:2,nackCount:4,
+        const {audio_counter_provenance,...originalFields}=value[0][0];
+        assert.deepEqual(audio_counter_provenance.concealedSamples,{present:true,available:true,value:960});
+        assert.deepEqual(audio_counter_provenance.totalSamplesReceived,{present:false,available:false,value:null});
+        assert.deepEqual(originalFields,{peer_index:0,connection_id:null,report_index:0,stats_timestamp_ms:null,type:"inbound-rtp",kind:"audio",packetsLost:2,nackCount:4,
             concealedSamples:960,silentConcealedSamples:480,concealmentEvents:2,
             jitterBufferDelay:.1,jitterBufferEmittedCount:960,jitterBufferTargetDelay:.2,
             jitterBufferMinimumDelay:.05,totalDecodeTime:.01,totalProcessingDelay:.03,
@@ -130,5 +133,64 @@ test('unsupported clocks, empty buffers and failed clock reads remain explicitly
     }finally{
         globalThis.RTCPeerConnection=original;
         for(const name of ['connectPeerTag','connectPeerDiagnostics','connectPeerMediaDiagnostics','connectPeerCodecDiagnostics','connectPeerClockDiagnostics'])delete globalThis[name];
+    }
+});
+
+
+test('one original RTC statistics poll distinguishes present zero from absent or invalid audio counters',async()=>{
+    const original=globalThis.RTCPeerConnection;let polls=0;
+    class Peer {
+        getTransceivers(){return [];} addEventListener(){}
+        async getStats(){polls++;return new Map([['original-audio',{type:'inbound-rtp',kind:'audio',
+            timestamp:1700000000000,ssrc:77,concealedSamples:0,silentConcealedSamples:0,
+            concealmentEvents:NaN,jitterBufferEmittedCount:960,totalSamplesDuration:0,
+            insertedSamplesForDeceleration:undefined,removedSamplesForAcceleration:-1}]]);}
+    }
+    try {
+        globalThis.RTCPeerConnection=Peer;installPeerDiagnostics();const peer=new globalThis.RTCPeerConnection();
+        globalThis.connectPeerTag(peer,'original-owner');
+        const rows=await globalThis.connectPeerMediaDiagnostics(),row=rows[0][0],p=row.audio_counter_provenance;
+        assert.equal(polls,1);assert.equal(row.connection_id,'original-owner');assert.equal(row.ssrc,77);
+        assert.deepEqual(p.ssrc,{present:true,available:true,value:77});
+        assert.deepEqual(p.concealedSamples,{present:true,available:true,value:0});
+        assert.deepEqual(p.totalSamplesDuration,{present:true,available:true,value:0});
+        assert.deepEqual(p.totalSamplesReceived,{present:false,available:false,value:null});
+        assert.deepEqual(p.concealmentEvents,{present:true,available:false,value:null});
+        assert.deepEqual(p.insertedSamplesForDeceleration,{present:true,available:false,value:null});
+        assert.deepEqual(p.removedSamplesForAcceleration,{present:true,available:false,value:null});
+        assert.ok(Object.isFrozen(p)&&Object.isFrozen(p.concealedSamples));
+        assert.equal(row.concealmentEvents,undefined,'Original top-level omission policy remains unchanged');
+    } finally {
+        globalThis.RTCPeerConnection=original;
+        for(const name of ['connectPeerTag','connectPeerDiagnostics','connectPeerMediaDiagnostics','connectPeerCodecDiagnostics','connectPeerClockDiagnostics'])delete globalThis[name];
+    }
+});
+
+
+test('existing page initialization opts into bounded PCM explicitly before observation and defaults off',async()=>{
+    const originalPeer=globalThis.RTCPeerConnection,originalFlag=Object.getOwnPropertyDescriptor(globalThis,'connectRtcAudioFacts');
+    let peers=0,polls=0;
+    class Peer{constructor(){peers++;}getTransceivers(){return [];}addEventListener(){}async getStats(){polls++;return new Map();}}
+    const globals=['connectPeerTag','connectPeerDiagnostics','connectPeerMediaDiagnostics','connectPeerCodecDiagnostics','connectPeerClockDiagnostics'];
+    try{
+        globalThis.RTCPeerConnection=Peer;
+        Object.defineProperty(globalThis,'connectRtcAudioFacts',{value:true,configurable:true});
+        installPeerDiagnostics();assert.equal(globalThis.connectRtcAudioFacts,false,'Ambient state cannot opt the default fixture in');
+        globalThis.RTCPeerConnection=Peer;
+        installPeerDiagnostics({peerBound:16,rtcAudioFacts:true});
+        const {rtcAudioBoundaryDiagnostics}=await import('../lib/browser_matrix_rtc_audio_diagnostics.mjs');
+        const capture=rtcAudioBoundaryDiagnostics({retainSuspectPcm:globalThis.connectRtcAudioFacts===true});
+        assert.equal(capture.report().suspect_pcm.enabled,true);
+        assert.equal(peers,0);assert.equal(polls,0,'The option adds no peer, graph or statistics poll');
+        const before=globalThis.RTCPeerConnection;
+        for(const rtcAudioFacts of [null,1,'true',{},[]])assert.throws(()=>installPeerDiagnostics({rtcAudioFacts}),TypeError);
+        assert.equal(globalThis.RTCPeerConnection,before,'Invalid configuration fails before installing peer state');
+        capture.close();assert.equal(capture.report().suspect_pcm.events.length,0);
+        globalThis.RTCPeerConnection=Peer;installPeerDiagnostics({rtcAudioFacts:false});
+        assert.equal(globalThis.connectRtcAudioFacts,false);
+    }finally{
+        globalThis.RTCPeerConnection=originalPeer;
+        if(originalFlag)Object.defineProperty(globalThis,'connectRtcAudioFacts',originalFlag);else delete globalThis.connectRtcAudioFacts;
+        for(const name of globals)delete globalThis[name];
     }
 });

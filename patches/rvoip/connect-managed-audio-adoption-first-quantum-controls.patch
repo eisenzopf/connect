@@ -1,0 +1,1627 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound.rs
+@@ -695,3 +695,7 @@
+     assert!(f.orch.session_of(&id).is_none());
+     assert!(!f.route.is_connection_live(&id));
+ }
++
++#[cfg(feature = "test-support")]
++#[path = "private_outbound/managed_adoption_quantum.rs"]
++mod managed_adoption_quantum;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -0,0 +1,1611 @@
++//! Actual managed Orchestrator replacement through controlled SIP endpoints.
++//! This is not a SIP wire or native transport test. No preparation/root/model is fabricated.
++use super::*;
++use crate::orchestrator::participant_control::replacement::*;
++use crate::participant_transitions::PreparedParticipantReplacement;
++use crate::staged_streams::audio_subscriptions::{
++    AudioReplacementPreparationAttempt, AudioSubscription, AudioSubscriptionChange,
++};
++use crate::staged_streams::local_audio::LocalAudioPurpose;
++use std::future::{Future, poll_fn};
++use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
++use std::task::Poll;
++
++struct SignalContext {
++    connection: ConnectionId,
++    session: SessionId,
++    participant: ParticipantId,
++    endpoint: EndpointId,
++    principal: AuthenticatedPrincipal,
++    intent: ParticipantReplacementMutation,
++}
++struct PreparedAdapter {
++    handle: ConnectionHandle,
++    context: Arc<SignalContext>,
++}
++struct ManagedRoute {
++    live: Mutex<HashSet<ConnectionId>>,
++    prepared: Mutex<HashMap<ConnectionId, PreparedAdapter>>,
++    activated: Mutex<HashSet<ConnectionId>>,
++    controllers: Mutex<HashMap<ConnectionId, Arc<StreamController>>>,
++    events: mpsc::Sender<AdapterEvent>,
++    receiver: Mutex<Option<mpsc::Receiver<AdapterEvent>>>,
++    lifecycle: AdapterLifecycleSinkSlot,
++    allocations: AtomicUsize,
++    signals: AtomicUsize,
++    ends: AtomicUsize,
++}
++impl ManagedRoute {
++    fn new() -> Arc<Self> {
++        let (events, receiver) = mpsc::channel(32);
++        Arc::new(Self {
++            live: Mutex::new(HashSet::new()),
++            prepared: Mutex::new(HashMap::new()),
++            activated: Mutex::new(HashSet::new()),
++            controllers: Mutex::new(HashMap::new()),
++            events,
++            receiver: Mutex::new(Some(receiver)),
++            lifecycle: AdapterLifecycleSinkSlot::default(),
++            allocations: AtomicUsize::new(0),
++            signals: AtomicUsize::new(0),
++            ends: AtomicUsize::new(0),
++        })
++    }
++}
++#[async_trait::async_trait]
++impl ConnectionAdapter for ManagedRoute {
++    fn supports_device_replacement_preparation(&self) -> bool {
++        true
++    }
++    fn prepare_device_replacement_connection(
++        &self,
++        request: &DeviceReplacementAdapterRequest,
++    ) -> crate::Result<DeviceReplacementAdapterRoute> {
++        let supplied = request
++            .context::<SignalContext>()
++            .ok_or(RvoipError::InvalidState(
++                "missing owned replacement context",
++            ))?;
++        let record = self.prepared.lock().unwrap();
++        let exact = record
++            .get(request.pending().binding().connection())
++            .ok_or(RvoipError::InvalidState("no owned replacement route"))?;
++        if !Arc::ptr_eq(&supplied, &exact.context)
++            || supplied.connection != *request.pending().binding().connection()
++            || supplied.session != *request.session()
++            || supplied.endpoint != *request.frozen_endpoint().endpoint()
++            || supplied.participant != *request.frozen_member().participant()
++            || request.pending().intent() != &supplied.intent
++        {
++            return Err(RvoipError::InvalidState("foreign replacement route"));
++        }
++        self.live
++            .lock()
++            .unwrap()
++            .insert(supplied.connection.clone());
++        Ok(DeviceReplacementAdapterRoute {
++            handle: exact.handle.clone(),
++            principal: supplied.principal.clone(),
++        })
++    }
++    fn device_replacement_signal_principal(
++        &self,
++        id: &ConnectionId,
++        context: &(dyn Any + Send + Sync),
++    ) -> Option<AuthenticatedPrincipal> {
++        let context = context.downcast_ref::<SignalContext>()?;
++        let records = self.prepared.lock().unwrap();
++        let owned = records.get(id)?;
++        (std::ptr::eq(context, owned.context.as_ref())
++            && id == &context.connection
++            && self.is_connection_live(id))
++        .then(|| context.principal.clone())
++    }
++    fn transport(&self) -> Transport {
++        Transport::Sip
++    }
++    fn kind(&self) -> AdapterKind {
++        AdapterKind::Interop
++    }
++    fn lifecycle_capabilities(&self) -> AdapterLifecycleCapabilities {
++        AdapterLifecycleCapabilities {
++            authoritative_liveness: true,
++            staged_outbound_activation: true,
++            ..Default::default()
++        }
++    }
++    fn install_lifecycle_sink(&self, sink: Arc<dyn AdapterLifecycleSink>) -> crate::Result<()> {
++        self.lifecycle
++            .install(sink)
++            .map_err(|_| RvoipError::InvalidState("fixture duplicate lifecycle"))
++    }
++    fn is_connection_live(&self, id: &ConnectionId) -> bool {
++        self.live.lock().unwrap().contains(id)
++    }
++    fn staged_controller(&self, id: &ConnectionId) -> Option<Arc<StreamController>> {
++        self.controllers.lock().unwrap().get(id).cloned()
++    }
++    async fn originate(&self, r: OriginateRequest) -> crate::Result<ConnectionHandle> {
++        self.allocations.fetch_add(1, Ordering::SeqCst);
++        let id = ConnectionId::new();
++        self.live.lock().unwrap().insert(id.clone());
++        Ok(ConnectionHandle::new(Connection {
++            id,
++            session_id: r.session_id,
++            participant_id: r.participant_id,
++            transport: Transport::Sip,
++            direction: Direction::Outbound,
++            state: ConnectionState::Connecting,
++            capabilities: r.capabilities,
++            negotiated_codecs: NegotiatedCodecs::default(),
++            streams: vec![],
++            messaging_enabled: false,
++            transport_handle: TransportHandle(Arc::new(())),
++            opened_at: chrono::Utc::now(),
++            closed_at: None,
++        }))
++    }
++    async fn activate_outbound(&self, id: ConnectionId) -> crate::Result<()> {
++        if !self.is_connection_live(&id) {
++            return Err(RvoipError::InvalidState("fixture ended"));
++        }
++        if self.activated.lock().unwrap().insert(id) {
++            self.signals.fetch_add(1, Ordering::SeqCst);
++        }
++        Ok(())
++    }
++    async fn accept(&self, _: ConnectionId) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("outbound fixture"))
++    }
++    async fn reject(&self, id: ConnectionId, _: RejectReason) -> crate::Result<()> {
++        self.end(id, EndReason::Normal).await
++    }
++    async fn end(&self, id: ConnectionId, _: EndReason) -> crate::Result<()> {
++        if self.live.lock().unwrap().remove(&id) {
++            self.ends.fetch_add(1, Ordering::SeqCst);
++        }
++        let controller = self.controllers.lock().unwrap().remove(&id);
++        if let Some(c) = controller {
++            c.shutdown(deadline()).await;
++        }
++        Ok(())
++    }
++    async fn hold(&self, _: ConnectionId) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn resume(&self, _: ConnectionId) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn transfer(&self, _: ConnectionId, _: TransferTarget) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn streams(
++        &self,
++        _: ConnectionId,
++    ) -> crate::Result<Vec<Arc<dyn crate::stream::MediaStream>>> {
++        Err(RvoipError::NotImplemented("staged ports only"))
++    }
++    async fn send_message(&self, _: ConnectionId, _: Message) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn send_dtmf(&self, _: ConnectionId, _: &str, _: u32) -> crate::Result<()> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    async fn renegotiate_media(
++        &self,
++        _: ConnectionId,
++        _: CapabilityDescriptor,
++    ) -> crate::Result<NegotiatedCodecs> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++    fn subscribe_events(&self) -> mpsc::Receiver<AdapterEvent> {
++        self.receiver.lock().unwrap().take().unwrap()
++    }
++    fn capabilities(&self) -> CapabilityDescriptor {
++        CapabilityDescriptor::default()
++    }
++    async fn verify_request_signature(
++        &self,
++        _: ConnectionId,
++        _: SignatureHeaders,
++    ) -> crate::Result<IdentityAssurance> {
++        Err(RvoipError::NotImplemented("fixture"))
++    }
++}
++
++#[derive(Clone)]
++struct Resource {
++    owner: MediaOwner,
++    proof: Option<Arc<PreparedMediaObservation>>,
++    pending: Option<PreparedParticipantReplacement>,
++    probe_operation: Option<String>,
++}
++struct World {
++    resources: Mutex<HashMap<ConnectionId, Resource>>,
++    allowed: AtomicBool,
++}
++#[derive(Clone)]
++struct ReplacementGrant {
++    world: Arc<World>,
++    domain: Arc<Domain>,
++    intent: ParticipantReplacementMutation,
++    until: tokio::time::Instant,
++    private_operation: Arc<std::sync::OnceLock<String>>,
++}
++#[derive(Clone)]
++enum Command {
++    Initial(Grant),
++    Resources {
++        root: ReplacementGrant,
++        pending: PreparedParticipantReplacement,
++    },
++    Audience {
++        root: ReplacementGrant,
++        plan: crate::staged_streams::audience::AudioAudiencePlan,
++    },
++    Prepare {
++        root: ReplacementGrant,
++        expected: u64,
++    },
++    Select {
++        connection: ConnectionId,
++        expected: u64,
++        change: AudioSubscriptionChange,
++    },
++}
++struct ReplacementLease(ReplacementGrant);
++impl ParticipantReplacementLease for ReplacementLease {
++    fn current(
++        &self,
++        s: &ParticipantReplacementScope<'_>,
++    ) -> std::result::Result<ParticipantReplacementAuthority, ParticipantControlError> {
++        let g = &self.0;
++        let d = &g.domain;
++        if !g.world.allowed.load(Ordering::Acquire)
++            || !d.allowed.load(Ordering::Acquire)
++            || s.conversation != d.member.conversation()
++            || s.session != &d.session
++            || s.principal.ownership_key() != d.principal.ownership_key()
++            || s.principal.expires_at != d.principal.expires_at
++            || s.intent != &g.intent
++            || tokio::time::Instant::now() >= g.until
++        {
++            return Err(ParticipantControlError::Authority);
++        }
++        Ok(ParticipantReplacementAuthority {
++            actor: d.member.clone(),
++            target: d.member.clone(),
++            endpoint: d.endpoint.clone(),
++            may_send_audio: true,
++            may_receive_audio: true,
++        })
++    }
++}
++impl ParticipantPolicy for World {
++    fn current(
++        &self,
++        _: &ParticipantScope<'_>,
++    ) -> std::result::Result<Box<dyn ParticipantAuthorityLease + '_>, ParticipantControlError> {
++        Err(ParticipantControlError::Unsupported)
++    }
++    fn current_control(
++        &self,
++        s: &ParticipantScope<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> std::result::Result<ParticipantControl, ParticipantControlError> {
++        let Command::Initial(g) = held
++            .downcast_ref::<Command>()
++            .ok_or(ParticipantControlError::Authority)?
++        else {
++            return Err(ParticipantControlError::Authority);
++        };
++        if !self.allowed.load(Ordering::Acquire) {
++            return Err(ParticipantControlError::Authority);
++        }
++        g.domain.current_control(s, g)
++    }
++    fn current_replacement_control(
++        &self,
++        s: &ParticipantReplacementScope<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> std::result::Result<ParticipantReplacementControl, ParticipantControlError> {
++        let g = replacement_grant(held).ok_or(ParticipantControlError::Authority)?;
++        if !std::ptr::eq(self, g.world.as_ref()) {
++            return Err(ParticipantControlError::Authority);
++        }
++        ReplacementLease(g.clone()).current(s)?;
++        ParticipantReplacementControl::new(
++            Box::new(ReplacementLease(g.clone())),
++            CancellationToken::new(),
++            g.until,
++        )
++    }
++}
++impl World {
++    fn raw(&self, id: &ConnectionId) -> ControlResult<Resource> {
++        if !self.allowed.load(Ordering::Acquire) {
++            return Err(StreamControlError::Authority);
++        }
++        self.resources
++            .lock()
++            .unwrap()
++            .get(id)
++            .cloned()
++            .ok_or(StreamControlError::Authority)
++    }
++    fn owner(&self, id: &ConnectionId) -> ControlResult<MediaOwner> {
++        let r = self.raw(id)?;
++        match r.proof.as_ref().filter(|p| p.is_committed()) {
++            Some(p) => match &r.pending {
++                Some(pending) => p.current_replacement_resources(
++                    r.owner,
++                    &self.owner(&pending.intent().source)?,
++                    pending,
++                ),
++                None => p.current(r.owner),
++            },
++            None => Ok(r.owner),
++        }
++    }
++    fn source(&self, s: &MediaSource) -> ControlResult<()> {
++        let o = self.owner(&s.connection)?;
++        o.connection
++            .require_current(&o.member, &o.presence)
++            .map_err(|_| StreamControlError::Authority)?;
++        if s.conversation != *o.member.conversation()
++            || s.session != *o.presence.session()
++            || s.participant != *o.member.participant()
++            || s.membership_epoch != o.member.epoch()
++            || s.connection_generation != o.connection.generation()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        Ok(())
++    }
++    fn scope(&self, s: &MediaScope<'_>) -> ControlResult<MediaOwner> {
++        let mut o = self.owner(s.connection)?;
++        o.actor
++            .revalidate_principal(s.principal, chrono::Utc::now())
++            .map_err(|_| StreamControlError::Authority)?;
++        if s.conversation != o.member.conversation()
++            || s.session != o.presence.session()
++            || s.connection != o.connection.connection()
++        {
++            return Err(StreamControlError::Authority);
++        }
++        if let MediaPurpose::Receive { source } = s.purpose {
++            self.source(source)?;
++            o.may_route_source = true;
++        }
++        Ok(o)
++    }
++    fn lease(self: &Arc<Self>, s: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        Ok(Box::new(WorldLease {
++            world: self.clone(),
++            owner: self.scope(s)?,
++        }))
++    }
++}
++struct WorldLease {
++    world: Arc<World>,
++    owner: MediaOwner,
++}
++impl MediaAuthorityLease for WorldLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn control_owner(&self) -> ControlResult<Box<MediaOwner>> {
++        self.world
++            .owner(self.owner.connection.connection())
++            .map(Box::new)
++    }
++    fn control_prepared(
++        &self,
++        p: &Arc<PreparedMediaObservation>,
++    ) -> ControlResult<Box<MediaOwner>> {
++        let id = self.owner.connection.connection();
++        let r = self.world.raw(id)?;
++        let o = match &r.pending {
++            Some(pending) => {
++                if !pending.binding().same_incarnation(&self.owner.connection) {
++                    return Err(StreamControlError::Authority);
++                }
++                p.activate_replacement_resources(
++                    self.owner.clone(),
++                    &self.world.owner(&pending.intent().source)?,
++                    pending,
++                )?
++            }
++            None => p.activate_for_commit(self.owner.clone())?,
++        };
++        self.world
++            .resources
++            .lock()
++            .unwrap()
++            .get_mut(id)
++            .unwrap()
++            .proof = Some(p.clone());
++        Ok(Box::new(o))
++    }
++    fn control_receive(&self, s: &MediaSource) -> ControlResult<Box<MediaOwner>> {
++        self.world.source(s)?;
++        let mut o = self.world.owner(self.owner.connection.connection())?;
++        o.may_route_source = true;
++        Ok(Box::new(o))
++    }
++    fn control_participant_receive(
++        &self,
++        s: &MediaParticipantSource,
++    ) -> ControlResult<Box<MediaOwner>> {
++        let source = self.world.owner(&s.connection)?;
++        source
++            .member
++            .revalidate_principal(&s.principal, chrono::Utc::now())
++            .map_err(|_| StreamControlError::Authority)?;
++        if s.conversation != *source.member.conversation()
++            || s.session != *source.presence.session()
++            || s.identity != *source.member.identity()
++            || s.participant != *source.member.participant()
++            || s.membership_epoch != source.member.epoch()
++            || s.medium != Medium::Audio
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let mut o = self.world.owner(self.owner.connection.connection())?;
++        o.may_route_source = true;
++        Ok(Box::new(o))
++    }
++}
++struct PolicyView(Arc<World>);
++impl MediaPolicy for PolicyView {
++    fn current(&self, s: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.0.lease(s)
++    }
++    fn current_participant_receive(
++        &self,
++        s: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let l = WorldLease {
++            world: self.0.clone(),
++            owner: self.0.scope(s)?,
++        };
++        let owner = *l.control_participant_receive(source)?;
++        Ok(Box::new(WorldLease {
++            world: self.0.clone(),
++            owner,
++        }))
++    }
++    fn current_audio_preparation(
++        &self,
++        s: &MediaScope<'_>,
++        p: &LocalAudioPurpose,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.current_local_audio(s, p)
++    }
++    fn current_local_audio(
++        &self,
++        s: &MediaScope<'_>,
++        p: &LocalAudioPurpose,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let LocalAudioPurpose::EndpointPreparation { operation_id } = p;
++        let r = self.0.raw(s.connection)?;
++        if r.pending.is_none() || r.probe_operation.as_ref() != Some(operation_id) {
++            return Err(StreamControlError::Authority);
++        }
++        self.0.lease(s)
++    }
++    fn current_device_replacement_signal(
++        &self,
++        s: &DeviceReplacementSignalScope<'_>,
++        held: Option<&(dyn Any + Send + Sync)>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let g = held
++            .and_then(|h| replacement_grant(h))
++            .ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&self.0, &g.world)
++            || s.pending.intent() != &g.intent
++            || s.session != &g.domain.session
++            || s.conversation != g.domain.member.conversation()
++            || s.principal.ownership_key() != g.domain.principal.ownership_key()
++            || s.principal.expires_at != g.domain.principal.expires_at
++            || !s.target_principal.is_some_and(|p| {
++                p.ownership_key() == g.domain.principal.ownership_key()
++                    && p.expires_at == g.domain.principal.expires_at
++            })
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let owner = self.0.owner(s.pending.binding().connection())?;
++        Ok(Box::new(WorldLease {
++            world: self.0.clone(),
++            owner,
++        }))
++    }
++    fn current_control(
++        &self,
++        s: &MediaScope<'_>,
++        intent: &MediaControlIntent<'_>,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        if let Some(root) = held.downcast_ref::<ReplacementGrant>() {
++            if let MediaControlIntent::PreparePrivateAudio {
++                operation,
++                expected,
++            } = intent
++            {
++                let o = self.0.scope(s)?;
++                if !Arc::ptr_eq(&root.world, &self.0)
++                    || s.connection != &root.intent.replacement
++                    || *expected != 2
++                    || !operation.starts_with("replace_")
++                {
++                    return Err(StreamControlError::Authority);
++                }
++                if root
++                    .private_operation
++                    .get_or_init(|| operation.to_string())
++                    .as_str()
++                    != *operation
++                {
++                    return Err(StreamControlError::Authority);
++                }
++                return MediaControl::new(
++                    Box::new(WorldLease {
++                        world: self.0.clone(),
++                        owner: o,
++                    }),
++                    CancellationToken::new(),
++                    root.until,
++                );
++            }
++        }
++        let c = held
++            .downcast_ref::<Command>()
++            .ok_or(StreamControlError::Authority)?;
++        let ok = match (c, intent) {
++            (Command::Initial(g), MediaControlIntent::Initialize) => {
++                g.domain.principal.ownership_key() == s.principal.ownership_key()
++            }
++            (
++                Command::Initial(g),
++                MediaControlIntent::Change {
++                    expected,
++                    desired: actual,
++                    replace,
++                },
++            ) => {
++                g.domain.principal.ownership_key() == s.principal.ownership_key()
++                    && *expected == 0
++                    && *actual == [desired(Medium::Audio)]
++                    && replace.is_empty()
++            }
++            (Command::Resources { root, pending }, MediaControlIntent::Initialize) => {
++                Arc::ptr_eq(&root.world, &self.0) && s.connection == pending.binding().connection()
++            }
++            (
++                Command::Resources { root, pending },
++                MediaControlIntent::Change {
++                    expected,
++                    desired: actual,
++                    replace,
++                },
++            ) => {
++                Arc::ptr_eq(&root.world, &self.0)
++                    && s.connection == pending.binding().connection()
++                    && *expected == 0
++                    && *actual == [desired(Medium::Audio)]
++                    && replace.is_empty()
++            }
++            (
++                Command::Resources { root, pending },
++                MediaControlIntent::Gate {
++                    expected,
++                    streams,
++                    action,
++                },
++            ) => {
++                Arc::ptr_eq(&root.world, &self.0)
++                    && s.connection == pending.binding().connection()
++                    && *expected == 1
++                    && *streams == &BTreeSet::from([desired(Medium::Audio).logical_id])
++                    && *action == StreamGateAction::Mute
++            }
++            (
++                Command::Audience { root, plan },
++                MediaControlIntent::AudioAudience { plan: actual },
++            ) => {
++                Arc::ptr_eq(&root.world, &self.0)
++                    && plan.same_intent(actual)
++                    && actual.replacement_request().is_none()
++                    && actual.handoff_request().is_none()
++                    && actual
++                        .expected_receiver_revisions()
++                        .contains_key(s.connection)
++            }
++            (
++                Command::Audience { root, plan },
++                MediaControlIntent::DeviceReplacement { plan: actual },
++            ) => {
++                Arc::ptr_eq(&root.world, &self.0)
++                    && plan.same_intent(actual)
++                    && actual.replacement_request().is_some()
++                    && actual
++                        .expected_receiver_revisions()
++                        .contains_key(s.connection)
++            }
++            (
++                Command::Prepare { root, expected },
++                MediaControlIntent::PrepareReplacementAudio {
++                    source,
++                    expected: revision,
++                },
++            ) => {
++                Arc::ptr_eq(&root.world, &self.0)
++                    && s.connection == &root.intent.replacement
++                    && *source == &root.intent.source
++                    && expected == revision
++            }
++            (
++                Command::Select {
++                    connection,
++                    expected,
++                    change,
++                },
++                MediaControlIntent::AudioSubscriptions {
++                    expected: revision,
++                    change: actual,
++                },
++            ) => connection == s.connection && expected == revision && change == *actual,
++            _ => false,
++        };
++        if !ok {
++            return Err(StreamControlError::Authority);
++        }
++        MediaControl::new(self.0.lease(s)?, CancellationToken::new(), deadline())
++    }
++}
++fn domain(
++    conversation: &ConversationId,
++    session: &SessionId,
++    name: &str,
++    identity_name: &str,
++) -> Arc<Domain> {
++    let p = principal(identity_name);
++    let identity = IdentityBinding::from_authenticated(
++        &p,
++        IdentityId::from_string(identity_name),
++        chrono::Utc::now(),
++    )
++    .unwrap();
++    let member = Membership::admit(
++        identity.clone(),
++        conversation.clone(),
++        ParticipantId::from_string(identity_name),
++        ParticipantKind::Human,
++        ParticipantRole::Agent,
++    )
++    .unwrap();
++    let mut endpoint = EndpointBinding::provision(
++        identity.clone(),
++        EndpointId::from_string(format!("managed-{name}")),
++        DeviceId::from_string(format!("managed-{name}")),
++        Transport::Sip,
++        format!("sip:{name}@fixture.invalid"),
++    )
++    .unwrap();
++    endpoint
++        .verify(
++            &identity,
++            "owned-managed-endpoint".into(),
++            chrono::Utc::now(),
++        )
++        .unwrap();
++    Arc::new(Domain {
++        principal: p,
++        session: session.clone(),
++        member,
++        alternate_endpoint: endpoint.clone(),
++        endpoint,
++        owner: Mutex::new(None),
++        proof: Mutex::new(None),
++        allowed: AtomicBool::new(true),
++        private_allowed: AtomicBool::new(true),
++        changed_epoch: AtomicBool::new(false),
++        changed_endpoint: AtomicBool::new(false),
++        private_checks: AtomicUsize::new(0),
++        preparations: AtomicUsize::new(0),
++    })
++}
++struct Node {
++    controller: Arc<StreamController>,
++    backend: Arc<Adapter>,
++    out: mpsc::Receiver<QueuedMedia>,
++    sequence: u32,
++}
++impl Node {
++    fn frame(&mut self, sample: i16) -> MediaFrame {
++        use rvoip_media_core::{AudioFrame, codec::factory::CodecFactory};
++        self.sequence += 160;
++        let port = self.backend.port(Medium::Audio);
++        let mut f = frame(&port, self.sequence);
++        let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++        f.payload = codec
++            .encode(&AudioFrame {
++                samples: vec![sample; 160],
++                sample_rate: 8000,
++                channels: 1,
++                duration: Duration::from_millis(20),
++                timestamp: self.sequence,
++            })
++            .unwrap()
++            .into();
++        f
++    }
++    fn publish(&mut self, sample: i16) -> ControlResult<()> {
++        let f = self.frame(sample);
++        self.backend.port(Medium::Audio).try_publish(&f)
++    }
++    fn drain(&mut self) {
++        while self.out.try_recv().is_ok() {}
++    }
++    async fn hear(&mut self, expected: i16) {
++        outgoing(&mut self.out)
++            .await
++            .deliver(move |f| async move {
++                use rvoip_media_core::codec::factory::CodecFactory;
++                let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++                let pcm = codec.decode(&f.payload).unwrap();
++                let mean = pcm.samples.iter().map(|s| i32::from(*s)).sum::<i32>()
++                    / pcm.samples.len() as i32;
++                assert!(
++                    (mean - i32::from(expected)).abs() < 400,
++                    "expected {expected}, actual {mean}"
++                );
++                Ok(())
++            })
++            .await
++            .unwrap();
++    }
++}
++struct ManagedRoom {
++    orch: Arc<Orchestrator>,
++    route: Arc<ManagedRoute>,
++    world: Arc<World>,
++    policy: Arc<PolicyView>,
++    session: SessionId,
++    conversation: ConversationId,
++    nodes: BTreeMap<ConnectionId, Node>,
++    original_owners: Arc<Mutex<Vec<(Arc<StreamController>, Arc<Adapter>)>>>,
++}
++impl ManagedRoom {
++    async fn new() -> Self {
++        let orch = Orchestrator::new(Config::default());
++        let route = ManagedRoute::new();
++        orch.register(route.clone()).unwrap();
++        let conversation = orch
++            .open_conversation(
++                TenantId::from_string("tenant"),
++                crate::conversation::ConversationPolicy::Persistent,
++                HashMap::new(),
++            )
++            .await
++            .unwrap();
++        let session = orch
++            .start_session(
++                conversation.clone(),
++                crate::session::SessionMedium::Voice,
++                vec![],
++            )
++            .await
++            .unwrap();
++        let world = Arc::new(World {
++            resources: Mutex::new(HashMap::new()),
++            allowed: AtomicBool::new(true),
++        });
++        let policy = Arc::new(PolicyView(world.clone()));
++        let mut limits = ParticipantLimits::default();
++        limits.mix_rate_hz = 8000;
++        orch.enable_staged_participant_control(&session, world.clone(), policy.clone(), limits)
++            .unwrap();
++        Self {
++            orch,
++            route,
++            world,
++            policy,
++            session,
++            conversation,
++            nodes: BTreeMap::new(),
++            original_owners: Arc::new(Mutex::new(Vec::new())),
++        }
++    }
++    async fn initial(&mut self, d: Arc<Domain>) -> ConnectionId {
++        let p = self
++            .orch
++            .prepare_outbound_connection(OriginateRequest {
++                session_id: self.session.clone(),
++                participant_id: d.member.participant().clone(),
++                target: d.endpoint.address().into(),
++                direction: Direction::Outbound,
++                capabilities: CapabilityDescriptor::default(),
++                transport: Some(Transport::Sip),
++                context: Default::default(),
++            })
++            .await
++            .unwrap();
++        let id = p.connection_id().clone();
++        let grant = Grant {
++            domain: d.clone(),
++            private_revision: None,
++            private_audio: false,
++            mutation: ParticipantMutation {
++                operation_id: format!("initial-{id}"),
++                correlation_id: format!("initial-{id}"),
++                expected_revision: self.orch.participant_revision(&self.session).unwrap(),
++                participant: d.member.participant().clone(),
++                change: ParticipantChange::Admit {
++                    connection: id.clone(),
++                    role_override: None,
++                },
++            },
++        };
++        let held = Command::Initial(grant.clone());
++        let active = p
++            .activate_initial_participant_with_held(
++                d.principal.clone(),
++                grant.mutation.clone(),
++                deadline(),
++                CancellationToken::new(),
++                Box::new(held.clone()),
++            )
++            .await
++            .unwrap();
++        let world = self.world.clone();
++        let policy = self.policy.clone();
++        let route = self.route.clone();
++        let built = Arc::new(Mutex::new(None));
++        let output = built.clone();
++        let original_owners = self.original_owners.clone();
++        active
++            .commit_staged_participant_with_held(
++                grant.mutation.clone(),
++                deadline(),
++                CancellationToken::new(),
++                Box::new(held.clone()),
++                move |p| async move {
++                    let mut caps = profile();
++                    caps.send.retain(|c| c.medium == Medium::Audio);
++                    caps.receive.retain(|c| c.medium == Medium::Audio);
++                    caps.max_streams = 1;
++                    let owner = MediaOwner {
++                        actor: p.member().clone(),
++                        member: p.member().clone(),
++                        presence: p.appearance().clone(),
++                        endpoint: p.endpoint().clone(),
++                        connection: p.binding().clone(),
++                        may_control: true,
++                        may_route_source: true,
++                        send_media: BTreeSet::from([Medium::Audio]),
++                        receive_media: BTreeSet::from([Medium::Audio]),
++                        local: caps.clone(),
++                        remote: caps,
++                    };
++                    world.resources.lock().unwrap().insert(
++                        p.binding().connection().clone(),
++                        Resource {
++                            owner,
++                            proof: None,
++                            pending: None,
++                            probe_operation: None,
++                        },
++                    );
++                    let backend = Adapter::new();
++                    let controller = StreamController::with_held_control(
++                        p.member().conversation().clone(),
++                        p.appearance().session().clone(),
++                        p.binding().connection().clone(),
++                        p.principal().clone(),
++                        policy,
++                        backend.clone(),
++                        Arc::new(StreamHandleAllocator::default()),
++                        4,
++                        8,
++                        p.cancellation(),
++                        &held,
++                    )?;
++                    // Own each original immediately, before any fallible setup.
++                    original_owners
++                        .lock()
++                        .unwrap()
++                        .push((controller.clone(), backend.clone()));
++                    controller
++                        .change_with_held(
++                            0,
++                            &[desired(Medium::Audio)],
++                            &BTreeSet::new(),
++                            deadline(),
++                            CancellationToken::new(),
++                            Arc::new(held.clone()),
++                        )
++                        .await?;
++                    let out = backend.port(Medium::Audio).take_egress()?;
++                    route
++                        .controllers
++                        .lock()
++                        .unwrap()
++                        .insert(p.binding().connection().clone(), controller.clone());
++                    *output.lock().unwrap() = Some(Node {
++                        controller,
++                        backend,
++                        out,
++                        sequence: 0,
++                    });
++                    Ok(Arc::new(held) as Arc<dyn Any + Send + Sync>)
++                },
++            )
++            .await
++            .unwrap();
++        self.nodes
++            .insert(id.clone(), built.lock().unwrap().take().unwrap());
++        id
++    }
++    async fn select(&self, id: &ConnectionId, sources: Vec<AudioSubscription>) {
++        let expected = self.nodes[id].controller.revision();
++        let change = AudioSubscriptionChange::Subscribe(sources);
++        let held = Command::Select {
++            connection: id.clone(),
++            expected,
++            change: change.clone(),
++        };
++        self.orch
++            .change_staged_audio_subscriptions(
++                &self.session,
++                id,
++                expected,
++                change,
++                deadline(),
++                CancellationToken::new(),
++                Some(&held),
++            )
++            .await
++            .unwrap();
++    }
++}
++
++fn replacement_grant(held: &(dyn Any + Send + Sync)) -> Option<&ReplacementGrant> {
++    if let Some(root) = held.downcast_ref::<ReplacementGrant>() {
++        return Some(root);
++    }
++    match held.downcast_ref::<Command>()? {
++        Command::Resources { root, .. }
++        | Command::Audience { root, .. }
++        | Command::Prepare { root, .. } => Some(root),
++        _ => None,
++    }
++}
++impl ManagedRoom {
++    async fn prepare_move(
++        &mut self,
++        source: &ConnectionId,
++        retained: &ConnectionId,
++        d: Arc<Domain>,
++    ) -> (
++        Arc<DeviceReplacementPreparation>,
++        ReplacementGrant,
++        Arc<SignalContext>,
++        crate::staged_streams::audience::AudioAudienceHandle,
++        crate::staged_streams::endpoint_preparation::AudioEndpointPreparation,
++    ) {
++        let id = ConnectionId::new();
++        let intent = ParticipantReplacementMutation {
++            operation_id: format!("managed-move-{id}"),
++            correlation_id: format!("managed-move-{id}"),
++            expected_revision: self.orch.participant_revision(&self.session).unwrap(),
++            participant: d.member.participant().clone(),
++            source: source.clone(),
++            replacement: id.clone(),
++            retained: retained.clone(),
++            endpoint: d.endpoint.endpoint().clone(),
++            device: d.endpoint.device().clone(),
++            confirmation: EndpointConfirmationPolicy::AnsweredDtmf { digits: "7".into() },
++        };
++        let grant = ReplacementGrant {
++            world: self.world.clone(),
++            domain: d.clone(),
++            intent: intent.clone(),
++            until: deadline(),
++            private_operation: Arc::new(std::sync::OnceLock::new()),
++        };
++        let root = self
++            .orch
++            .prepare_staged_device_replacement_with_held(
++                &self.session,
++                d.principal.clone(),
++                intent.clone(),
++                grant.until,
++                CancellationToken::new(),
++                &grant,
++            )
++            .unwrap();
++        let pending = root.prepared_binding();
++        let mut caps = profile();
++        caps.send.retain(|c| c.medium == Medium::Audio);
++        caps.receive.retain(|c| c.medium == Medium::Audio);
++        caps.max_streams = 1;
++        let owner = MediaOwner {
++            actor: d.member.clone(),
++            member: d.member.clone(),
++            presence: pending.appearance().clone(),
++            endpoint: d.endpoint.clone(),
++            connection: pending.binding().clone(),
++            may_control: true,
++            may_route_source: true,
++            send_media: BTreeSet::from([Medium::Audio]),
++            receive_media: BTreeSet::from([Medium::Audio]),
++            local: caps.clone(),
++            remote: caps,
++        };
++        self.world.resources.lock().unwrap().insert(
++            id.clone(),
++            Resource {
++                owner,
++                proof: None,
++                pending: Some(pending.clone()),
++                probe_operation: None,
++            },
++        );
++        let held = Command::Resources {
++            root: grant.clone(),
++            pending: pending.clone(),
++        };
++        let backend = Adapter::new();
++        let controller = StreamController::with_held_control(
++            self.conversation.clone(),
++            self.session.clone(),
++            id.clone(),
++            d.principal.clone(),
++            self.policy.clone(),
++            backend.clone(),
++            Arc::new(StreamHandleAllocator::default()),
++            4,
++            8,
++            root.cancellation(),
++            &held,
++        )
++        .unwrap();
++        self.original_owners
++            .lock()
++            .unwrap()
++            .push((controller.clone(), backend.clone()));
++        controller
++            .change_with_held(
++                0,
++                &[desired(Medium::Audio)],
++                &BTreeSet::new(),
++                grant.until,
++                CancellationToken::new(),
++                Arc::new(held.clone()),
++            )
++            .await
++            .unwrap();
++        controller
++            .set_media_gate_with_held(
++                1,
++                &BTreeSet::from([desired(Medium::Audio).logical_id]),
++                StreamGateAction::Mute,
++                grant.until,
++                Arc::new(held),
++            )
++            .await
++            .unwrap();
++        let out = backend.port(Medium::Audio).take_egress().unwrap();
++        self.route
++            .controllers
++            .lock()
++            .unwrap()
++            .insert(id.clone(), controller.clone());
++        self.nodes.insert(
++            id.clone(),
++            Node {
++                controller,
++                backend,
++                out,
++                sequence: 0,
++            },
++        );
++        let context = Arc::new(SignalContext {
++            connection: id.clone(),
++            session: self.session.clone(),
++            participant: d.member.participant().clone(),
++            endpoint: d.endpoint.endpoint().clone(),
++            principal: d.principal.clone(),
++            intent,
++        });
++        let handle = ConnectionHandle::new(Connection {
++            id: id.clone(),
++            session_id: self.session.clone(),
++            participant_id: d.member.participant().clone(),
++            transport: Transport::Sip,
++            direction: Direction::Outbound,
++            state: ConnectionState::Connecting,
++            capabilities: CapabilityDescriptor::default(),
++            negotiated_codecs: NegotiatedCodecs::default(),
++            streams: vec![],
++            messaging_enabled: false,
++            transport_handle: TransportHandle(context.clone()),
++            opened_at: chrono::Utc::now(),
++            closed_at: None,
++        });
++        self.route.prepared.lock().unwrap().insert(
++            id.clone(),
++            PreparedAdapter {
++                handle,
++                context: context.clone(),
++            },
++        );
++        assert_eq!(
++            self.orch
++                .prepare_adapter_device_replacement_with_held(&root, context.clone(), &grant)
++                .unwrap(),
++            id
++        );
++        self.orch
++            .start_adapter_device_replacement_with_held(&root, &grant)
++            .await
++            .unwrap();
++        self.orch
++            .attach_staged_device_replacement_with_held(&root, None, &grant)
++            .await
++            .unwrap();
++        let plan = self
++            .orch
++            .plan_staged_device_replacement_muted_activation(&root)
++            .unwrap();
++        let held = Command::Audience {
++            root: grant.clone(),
++            plan: plan.clone(),
++        };
++        let context_handle = self
++            .orch
++            .activate_staged_device_replacement_with_held(&root, plan, &held)
++            .await
++            .unwrap();
++        self.world
++            .resources
++            .lock()
++            .unwrap()
++            .get_mut(&id)
++            .unwrap()
++            .probe_operation = Some(context_handle.operation_id().into());
++        let probe = self
++            .orch
++            .prepare_staged_audio_endpoint(&self.session, &id, context_handle.operation_id())
++            .unwrap();
++        (root, grant, context, context_handle, probe)
++    }
++    async fn prepare_audio(
++        &self,
++        root: &Arc<DeviceReplacementPreparation>,
++        grant: &ReplacementGrant,
++    ) -> crate::staged_streams::audio_subscriptions::AudioReplacementPreparation {
++        let c = &self.nodes[&grant.intent.replacement].controller;
++        let held = Command::Prepare {
++            root: grant.clone(),
++            expected: c.revision(),
++        };
++        loop {
++            match self
++                .orch
++                .prepare_staged_device_replacement_audio_with_held(root, &held)
++                .unwrap()
++            {
++                AudioReplacementPreparationAttempt::Prepared(p) => return p,
++                AudioReplacementPreparationAttempt::MetadataBusy { deadline: until } => {
++                    assert!(tokio::time::Instant::now() < until.min(grant.until));
++                    tokio::task::yield_now().await;
++                }
++            }
++        }
++    }
++    fn signal(
++        &self,
++        root: &Arc<DeviceReplacementPreparation>,
++        grant: &ReplacementGrant,
++        context: &Arc<SignalContext>,
++        event: DeviceReplacementEndpointEvent,
++    ) -> EndpointConfirmationObservation {
++        self.orch
++            .capture_device_replacement_event(
++                root,
++                DeviceReplacementSignalSource::Adapter(context.clone()),
++                event,
++            )
++            .unwrap()
++            .observe_with_held(grant)
++            .unwrap()
++    }
++    async fn close_originals(&mut self) -> Vec<bool> {
++        let mut joined = Vec::new();
++        joined.push(matches!(
++            catch_original(
++                self.orch
++                    .end_session(self.session.clone(), EndReason::Normal)
++            )
++            .await,
++            Ok(Ok(()))
++        ));
++        // This list includes any controller whose later initialization failed,
++        // even when it never reached the complete Node/adapter route maps.
++        let owners = self.original_owners.lock().unwrap().clone();
++        for (controller, _) in &owners {
++            joined.push(matches!(
++                catch_original(controller.shutdown(deadline())).await,
++                Ok(0)
++            ));
++        }
++        let mut ids = self.nodes.keys().cloned().collect::<BTreeSet<_>>();
++        ids.extend(self.route.live.lock().unwrap().iter().cloned());
++        for id in &ids {
++            joined.push(matches!(
++                catch_original(self.route.end(id.clone(), EndReason::Normal)).await,
++                Ok(Ok(()))
++            ));
++        }
++        joined.push(matches!(
++            catch_original(self.orch.drain_prepared_outbound_connections()).await,
++            Ok(())
++        ));
++        joined.push(matches!(
++            catch_original(self.orch.drain_connection_lifecycle_tasks()).await,
++            Ok(Ok(()))
++        ));
++        joined.push(self.orch.connection_lifecycle_task_count() == 0);
++        joined.push(self.route.live.lock().unwrap().is_empty());
++        joined.push(
++            owners
++                .iter()
++                .all(|(_, backend)| backend.outstanding.load(Ordering::Acquire) == 0),
++        );
++        joined
++    }
++}
++async fn catch_original<F: Future>(future: F) -> std::thread::Result<F::Output> {
++    let mut f = std::pin::pin!(future);
++    poll_fn(
++        |cx| match catch_unwind(AssertUnwindSafe(|| Future::poll(f.as_mut(), cx))) {
++            Ok(Poll::Pending) => Poll::Pending,
++            Ok(Poll::Ready(x)) => Poll::Ready(Ok(x)),
++            Err(e) => Poll::Ready(Err(e)),
++        },
++    )
++    .await
++}
++#[derive(Debug)]
++struct Cut {
++    direction: &'static str,
++    operation: String,
++    source: ConnectionId,
++    candidate: ConnectionId,
++    retained: ConnectionId,
++    decoder_transferred: bool,
++    decoder_survived_fresh: bool,
++    ready: bool,
++    remote_delivered: bool,
++    fresh_private_decode: bool,
++    public_commit: bool,
++    post_cut_progress: bool,
++    old_removed: bool,
++    old_codec_gone: bool,
++    first_output_present: bool,
++    first_mean: Option<i32>,
++    first_playable: bool,
++    recovery: bool,
++    age_us: u128,
++}
++#[tokio::test]
++async fn managed_root_private_ready_has_first_playable_source_on_forward_and_return_without_new_ingress()
++ {
++    let mut room = ManagedRoom::new().await;
++    let work = catch_original(async {
++        let alice = domain(&room.conversation, &room.session, "alice-original", "alice");
++        let bob = domain(&room.conversation, &room.session, "bob", "bob");
++        let mut source = room.initial(alice.clone()).await;
++        let retained = room.initial(bob).await;
++        room.select(
++            &source,
++            vec![AudioSubscription::Connection(retained.clone())],
++        )
++        .await;
++        room.select(
++            &retained,
++            vec![AudioSubscription::Connection(source.clone())],
++        )
++        .await;
++        room.nodes.get_mut(&source).unwrap().publish(800).unwrap();
++        room.nodes.get_mut(&retained).unwrap().hear(800).await;
++        let original_endpoint = alice.endpoint.clone();
++        let mut cuts = Vec::new();
++        for (direction, name) in [("forward", "alice-second"), ("return", "alice-original")] {
++            let mut next = domain(&room.conversation, &room.session, name, "alice");
++            // Exact original participant, credential and membership. The return
++            // uses its original verified endpoint, but a fresh physical ID/root.
++            let m = Arc::get_mut(&mut next).unwrap();
++            m.principal = alice.principal.clone();
++            m.member = alice.member.clone();
++            if direction == "return" {
++                m.endpoint = original_endpoint.clone();
++            }
++            let (root, grant, signal, context, probe) =
++                room.prepare_move(&source, &retained, next).await;
++            let candidate = grant.intent.replacement.clone();
++            let old_codec = room
++                .orch
++                .staged_media_weak_owners_for_test(&room.session, &source)
++                .unwrap()
++                .into_iter()
++                .find(|(name, _)| *name == "mixer-decoder")
++                .unwrap()
++                .1;
++            assert!(old_codec.upgrade().is_some());
++            // Real private input and guarded local output establish duplex IO.
++            room.nodes
++                .get_mut(&candidate)
++                .unwrap()
++                .publish(12000)
++                .unwrap();
++            let node = room.nodes.get_mut(&candidate).unwrap();
++            let prompt = node.frame(4000);
++            node.controller
++                .try_queue_local_audio(
++                    &desired(Medium::Audio).logical_id,
++                    prompt,
++                    LocalAudioPurpose::EndpointPreparation {
++                        operation_id: context.operation_id().into(),
++                    },
++                )
++                .unwrap();
++            node.hear(4000).await;
++            assert!(probe.has_duplex_io());
++            // The root-specific existing public method is called on OLD too.
++            let prepared = room.prepare_audio(&root, &grant).await;
++            room.nodes
++                .get_mut(&retained)
++                .unwrap()
++                .publish(6000)
++                .unwrap();
++            room.nodes.get_mut(&candidate).unwrap().hear(6000).await;
++            assert!(prepared.has_delivered_remote_audio());
++            for n in room.nodes.values_mut() {
++                n.drain();
++            }
++            let capture = Instant::now();
++            room.nodes
++                .get_mut(&candidate)
++                .unwrap()
++                .publish(5200)
++                .unwrap();
++            let target = &room.nodes[&candidate].controller;
++            let consumer = target
++                .audio_consumer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .unwrap()
++                .upgrade()
++                .unwrap();
++            let fresh_private_decode = consumer.decoded_since(target, capture);
++            assert!(fresh_private_decode);
++            assert_eq!(
++                room.signal(
++                    &root,
++                    &grant,
++                    &signal,
++                    DeviceReplacementEndpointEvent::Answered
++                ),
++                EndpointConfirmationObservation::Answered
++            );
++            room.signal(
++                &root,
++                &grant,
++                &signal,
++                DeviceReplacementEndpointEvent::MediaObserved,
++            );
++            assert_eq!(
++                room.signal(
++                    &root,
++                    &grant,
++                    &signal,
++                    DeviceReplacementEndpointEvent::Dtmf { digits: "7".into() }
++                ),
++                EndpointConfirmationObservation::Confirmed
++            );
++            let ready = probe.has_duplex_io();
++            let remote_delivered = prepared.has_delivered_remote_audio();
++            assert!(ready && remote_delivered);
++            let private_decoder = probe
++                .probe
++                .decoder
++                .lock()
++                .unwrap()
++                .weak_codec_owners_for_test()[0]
++                .clone();
++            let actual_candidate = room.world.owner(&candidate).unwrap();
++            let plan = room
++                .orch
++                .plan_staged_device_replacement(&root, None)
++                .unwrap();
++            assert_eq!(plan.media().request().source, source);
++            assert_eq!(plan.media().request().admitted, candidate);
++            let held = Command::Audience {
++                root: grant.clone(),
++                plan: plan.media().audience().clone(),
++            };
++            let (outcome, _successor) = room
++                .orch
++                .commit_staged_device_replacement_with_held(plan, &held)
++                .await
++                .unwrap();
++            assert!(root.is_committed());
++            assert_eq!(outcome.replaced, source);
++            assert_eq!(outcome.admitted, candidate);
++            assert_eq!(outcome.retained, retained);
++            assert_eq!(room.orch.session_of(&source), None);
++            assert_eq!(room.orch.session_of(&candidate), Some(room.session.clone()));
++            assert_eq!(
++                room.orch.participant_revision(&room.session).unwrap(),
++                grant.intent.expected_revision + 1
++            );
++            assert!(
++                actual_candidate
++                    .connection
++                    .same_incarnation(root.prepared_binding().binding())
++            );
++            assert_eq!(
++                actual_candidate.connection.endpoint(),
++                &grant.intent.endpoint
++            );
++            assert_eq!(actual_candidate.connection.device(), &grant.intent.device);
++            // Controlled host projection of the ACTUAL public commit result.
++            // No second model stage/commit, readiness construction or new epoch.
++            room.world.resources.lock().unwrap().insert(
++                candidate.clone(),
++                Resource {
++                    owner: actual_candidate,
++                    proof: None,
++                    pending: None,
++                    probe_operation: None,
++                },
++            );
++            let actual_decoder = room
++                .orch
++                .staged_media_weak_owners_for_test(&room.session, &candidate)
++                .unwrap()
++                .into_iter()
++                .find(|(name, _)| *name == "mixer-decoder")
++                .unwrap()
++                .1;
++            let decoder_transferred = private_decoder.ptr_eq(&actual_decoder);
++            let old_removed = room.nodes[&source].controller.shutdown.is_cancelled();
++            let old_codec_gone = old_codec.upgrade().is_none();
++            assert!(old_removed && old_codec_gone);
++            let age_us = capture.elapsed().as_micros();
++            assert!(age_us < 200_000);
++            // Prove an ACTUAL post-cut mixer quantum before checking absence.
++            // Bob's distinct9200 reaches the candidate under fresh guarded IO.
++            // Bob is excluded from his own mix, so this supplies no candidate
++            // source audio and cannot fill the first-output hole at Bob.
++            room.nodes
++                .get_mut(&retained)
++                .unwrap()
++                .publish(9200)
++                .unwrap();
++            room.nodes.get_mut(&candidate).unwrap().hear(9200).await;
++            let post_cut_progress = true;
++            let first = room.nodes.get_mut(&retained).unwrap().out.try_recv().ok();
++            let first_output_present = first.is_some();
++            let mut first_mean = None;
++            if let Some(first) = first {
++                first
++                    .deliver(|f| {
++                        use rvoip_media_core::codec::factory::CodecFactory;
++                        let mut c = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++                        let pcm = c.decode(&f.payload).unwrap();
++                        first_mean = Some(
++                            pcm.samples.iter().map(|s| i32::from(*s)).sum::<i32>()
++                                / pcm.samples.len() as i32,
++                        );
++                        std::future::ready(Ok(()))
++                    })
++                    .await
++                    .unwrap();
++            }
++            let first_playable = first_mean.is_some_and(|m| (m - 5200).abs() < 400);
++            for n in room.nodes.values_mut() {
++                n.drain();
++            }
++            room.nodes
++                .get_mut(&candidate)
++                .unwrap()
++                .publish(6800)
++                .unwrap();
++            room.nodes.get_mut(&retained).unwrap().hear(6800).await;
++            let recovery = true;
++            let fresh_decoder = room
++                .orch
++                .staged_media_weak_owners_for_test(&room.session, &candidate)
++                .unwrap()
++                .into_iter()
++                .find(|(name, _)| *name == "mixer-decoder")
++                .unwrap()
++                .1;
++            let decoder_survived_fresh = private_decoder.ptr_eq(&fresh_decoder);
++            assert!(room.nodes.get_mut(&source).unwrap().publish(9000).is_err());
++            cuts.push(Cut {
++                direction,
++                operation: grant.intent.operation_id.clone(),
++                source: source.clone(),
++                candidate: candidate.clone(),
++                retained: retained.clone(),
++                decoder_transferred,
++                decoder_survived_fresh,
++                ready,
++                remote_delivered,
++                fresh_private_decode,
++                public_commit: true,
++                post_cut_progress,
++                old_removed,
++                old_codec_gone,
++                first_output_present,
++                first_mean,
++                first_playable,
++                recovery,
++                age_us,
++            });
++            drop(prepared);
++            drop(probe);
++            source = candidate;
++        }
++        cuts
++    })
++    .await;
++    let cleanup = room.close_originals().await;
++    drop(room);
++    assert!(
++        cleanup.iter().all(|v| *v),
++        "original managed controllers/conference/adapter/lifecycle work unjoined: {cleanup:?}"
++    );
++    let cuts = match work {
++        Ok(c) => c,
++        Err(e) => resume_unwind(e),
++    };
++    for c in &cuts {
++        eprintln!(
++            "managed_adoption_quantum direction={} operation={} source={} candidate={} retained={} decoder_transferred={} decoder_survived_fresh={} ready={} remote_delivered={} fresh_private_decode={} public_commit={} post_cut_progress={} old_removed={} old_codec_gone={} first_output_present={} first_mean={:?} first_playable={} recovery={} age_us={} originals_joined=true",
++            c.direction,
++            c.operation,
++            c.source,
++            c.candidate,
++            c.retained,
++            c.decoder_transferred,
++            c.decoder_survived_fresh,
++            c.ready,
++            c.remote_delivered,
++            c.fresh_private_decode,
++            c.public_commit,
++            c.post_cut_progress,
++            c.old_removed,
++            c.old_codec_gone,
++            c.first_output_present,
++            c.first_mean,
++            c.first_playable,
++            c.recovery,
++            c.age_us
++        );
++    }
++    assert_eq!(cuts.len(), 2);
++    assert!(
++        cuts.iter()
++            .all(|c| c.first_playable && c.decoder_transferred && c.decoder_survived_fresh),
++        "actual managed-root Ready input was discarded and no first playable ordinary source quantum survived forward/return publication"
++    );
++}

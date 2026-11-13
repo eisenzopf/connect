@@ -1,0 +1,11 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -302,7 +302,7 @@
+         if !self.allowed.load(Ordering::Acquire) {
+             return Err(ParticipantControlError::Authority);
+         }
+-        ParticipantPolicy::current_control(&g.domain, s, g)
++        ParticipantPolicy::current_control(g.domain.as_ref(), s, g)
+     }
+     fn current_replacement_control(
+         &self,

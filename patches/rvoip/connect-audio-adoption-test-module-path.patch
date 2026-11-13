@@ -1,0 +1,8 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
+@@ -712,4 +712,5 @@
+ }
+ 
+ #[cfg(feature = "test-support")]
++#[path = "audio_preroll/adoption_quantum.rs"]
+ mod adoption_quantum;

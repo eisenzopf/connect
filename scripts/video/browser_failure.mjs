@@ -1,5 +1,8 @@
 /** Bounded public peer state diagnostics. Never retain SDP, addresses or credentials. */
-export function installPeerDiagnostics({peerBound=4}={}) {
+export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false}={}) {
+    if(typeof rtcAudioFacts!=="boolean")throw TypeError("Explicit RTC audio diagnostic option must be boolean");
+    // Runs in the existing original page init, before any observer/peer starts.
+    Object.defineProperty(globalThis,"connectRtcAudioFacts",{value:rtcAudioFacts,configurable:true});
     if(!Number.isInteger(peerBound)||peerBound<1||peerBound>16)throw Error('Bounded original peer diagnostics');
     const NativePeer = globalThis.RTCPeerConnection;
     const entries = [];
@@ -80,7 +83,7 @@ export function installPeerDiagnostics({peerBound=4}={}) {
         try{
         const report=await entry.peer.getStats(),rows=[];
         if(!entry.peer)return [];entry.omitted_media_rows=0;
-        const fields=["packetsSent","packetsReceived","bytesSent","bytesReceived","framesEncoded","framesDecoded",
+        const fields=["ssrc","packetsSent","packetsReceived","bytesSent","bytesReceived","framesEncoded","framesDecoded",
             "framesReceived","framesDropped","framesSent","keyFramesEncoded","keyFramesDecoded","frames","framesPerSecond","frameRate","totalEncodeTime","totalSamplesSent","totalSamplesReceived","totalAudioEnergy",
             "totalSamplesDuration","audioLevel","frameWidth","frameHeight"];
         fields.push("packetsLost","nackCount","pliCount","firCount","retransmittedPacketsSent",
@@ -102,6 +105,18 @@ export function installPeerDiagnostics({peerBound=4}={}) {
                 stats_timestamp_ms:Number.isFinite(stat.timestamp)?stat.timestamp:null};
             if(['none','cpu','bandwidth','other'].includes(stat.qualityLimitationReason))row.qualityLimitationReason=stat.qualityLimitationReason;
             for(const field of fields)if(Number.isFinite(stat[field])&&(stat[field]>=0||field==='packetsLost'))row[field]=stat[field];
+            if(stat.type==='inbound-rtp'&&stat.kind==='audio'){
+                // Same original poll, owner and native report identity. Missing
+                // or invalid data stays unavailable; never manufacture zero.
+                const counters=['ssrc','concealedSamples','silentConcealedSamples','concealmentEvents',
+                    'insertedSamplesForDeceleration','removedSamplesForAcceleration','packetsLost','packetsDiscarded',
+                    'jitterBufferDelay','jitterBufferEmittedCount','jitterBufferTargetDelay','jitterBufferMinimumDelay',
+                    'totalSamplesReceived','totalSamplesDuration'];
+                row.audio_counter_provenance=Object.freeze(Object.fromEntries(counters.map(field=>{
+                    const value=stat[field],available=Number.isFinite(value)&&(value>=0||field==='packetsLost');
+                    return [field,Object.freeze({present:field in stat,available,value:available?value:null})];
+                })));
+            }
             rows.push(row);
         });
         return rows;

@@ -1,0 +1,11 @@
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs
+@@ -218,7 +218,7 @@
+         );
+         assert_eq!(
+             cache.bytes,
+-            cache.entries.iter().map(RepairEntry::size).sum()
++            cache.entries.iter().map(RepairEntry::size).sum::<usize>()
+         );
+         let mut over = entry(0, 600);
+         over.fact.payload = vec![1; 1600].into();

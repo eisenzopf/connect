@@ -26,6 +26,8 @@ assert.equal(spec.format,'connect/browser-matrix-admission-input/1');
 assert.ok(['admission','programme','quality'].includes(spec.stage));
 assert.ok(['chrome-webtransport','chrome-wss-webrtc','firefox-wss-webrtc'].includes(spec.transport));
 assert.ok(['EdDSA','ES256'].includes(spec.signingAlgorithm));
+const rtcAudioFacts=spec.rtcAudioFacts??false;
+assert.equal(typeof rtcAudioFacts,'boolean');
 const cycleCount=spec.resourceCycles??1;
 assert.ok([1,3].includes(cycleCount)&& (cycleCount===1||spec.stage==='quality'));
 assert.equal(spec.cycleWorkloads.length,cycleCount);
@@ -145,7 +147,7 @@ try{
     stun=await openLoopbackStun(new URL(spec.origin).hostname,fixtureAddresses);spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
     unavailable=await matrixUnavailableTransports({cycles:cycleCount});spec.unavailableEndpoints=unavailable.endpoints;
     page=await owner.browser.newPage();
-    await page.addInitScript(installPeerDiagnostics,{peerBound:16});
+    await page.addInitScript(installPeerDiagnostics,{peerBound:16,rtcAudioFacts});
     page.on('console',message=>diagnostic(message.text()));
     page.on('pageerror',error=>diagnostic(error.stack??error));
     await page.goto(spec.origin,{timeout:5000});

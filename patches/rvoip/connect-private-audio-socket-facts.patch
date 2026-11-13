@@ -1,0 +1,625 @@
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -83,6 +83,7 @@
+     socket_to_advertised: HashMap<SocketAddr, SocketAddr>,
+     deferred_transmits: VecDeque<TaggedBytesMut>,
+     video_repairs: owned_video::RepairCache,
++    audio_facts: audio_facts::AudioFacts,
+ }
+ 
+ impl<I> PeerConnectionDriver<I>
+@@ -112,6 +113,7 @@
+             socket_to_advertised,
+             deferred_transmits: VecDeque::new(),
+             video_repairs: owned_video::RepairCache::default(),
++            audio_facts: audio_facts::AudioFacts::new(),
+         })
+     }
+ 
+@@ -157,6 +159,7 @@
+         loop {
+             if let Some(deadline) = close_deadline {
+                 if self.ice_gatherer.relays_closed() {
++                    self.audio_facts.close_observed();
+                     return Ok(());
+                 }
+                 if Instant::now() >= deadline {
+@@ -1005,7 +1008,7 @@
+             ));
+         }
+         let inner = self.driver.inner.clone();
+-        let (fact, output) = {
++        let (fact, output, audio_track) = {
+             let mut core = inner.core.lock().await;
+             if !self.control.current() || !core.owned_dtmf_io_ready() {
+                 return Err(refused("current-or-core-ready", Error::ErrConnectionClosed));
+@@ -1061,14 +1064,19 @@
+                     .map_err(|error| refused("sender-pipeline", error))?;
+                 fact
+             };
+-            if clock == 90000 {
++            let audio_track = if clock == 90000 {
+                 self.written_video = Some((original, track));
+-            }
++                None
++            } else if clock == 48000 && self.expected.is_none() {
++                Some(track)
++            } else {
++                None
++            };
+             let mut output = Vec::new();
+             while let Some(message) = core.poll_write() {
+                 output.push(message);
+             }
+-            (fact, output)
++            (fact, output, audio_track)
+         };
+         if output.len() != 1 {
+             return Err(refused("output-count", Error::ErrConnectionClosed));
+@@ -1112,23 +1120,42 @@
+         {
+             return Err(refused("clock-before-socket", Error::ErrConnectionClosed));
+         }
+-        let written = socket
++        // Reuse the existing plaintext fact; diagnostics retain no authority.
++        let fact_slot = match audio_track {
++            Some(track) => {
++                self.driver
++                    .audio_facts
++                    .begin(fact, track, self.sender, message.message.len())
++            }
++            None => None,
++        };
++        let sent = socket
+             .send_to(&message.message, message.transport.peer_addr)
+-            .await
+-            .map_err(|_| refused("socket-send", Error::ErrConnectionClosed))?;
++            .await;
++        self.driver
++            .audio_facts
++            .socket_result(fact_slot, sent.as_ref().ok().copied());
++        let written = sent.map_err(|_| refused("socket-send", Error::ErrConnectionClosed))?;
+         if written != message.message.len() {
+             return Err(refused("short-socket-write", Error::ErrConnectionClosed));
+         }
+         self.written = true;
++        let mut clock_applied = None;
+         if self.expected.is_none() {
+             if let Some((clock, update)) = timing {
+                 if !clock.apply_after_rtp(primary_ssrc, update) {
++                    self.driver.audio_facts.clock_result(fact_slot, Some(false));
+                     return Err(refused("clock-after-write", Error::ErrConnectionClosed));
+                 }
+-            }
+-        }
++                clock_applied = Some(true);
++            }
++        }
++        self.driver
++            .audio_facts
++            .clock_result(fact_slot, clock_applied);
+         Ok(())
+     }
+ }
+ 
++mod audio_facts;
+ mod owned_video;
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/audio_facts.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/audio_facts.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/audio_facts.rs
+@@ -0,0 +1,500 @@
++//! Opt-in private original-socket facts. Never an IO grant or remote receipt.
++use super::*;
++use std::fmt::{self, Write as _};
++use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
++use std::time::SystemTime;
++const TARGET: &str = "rvoip_webrtc_stack::audio_facts";
++const MAX_OWNERS: usize = 10;
++const MAX_PACKETS: usize = 4096;
++const MAX_PAYLOAD_BYTES: usize = 1024 * 1024;
++const MAX_TRACK_BYTES: usize = 256;
++static ACTIVE: AtomicUsize = AtomicUsize::new(0);
++static NEXT: AtomicU64 = AtomicU64::new(1);
++struct Slot;
++impl Drop for Slot {
++    fn drop(&mut self) {
++        ACTIVE.fetch_sub(1, Ordering::AcqRel);
++    }
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum Outcome {
++    Unknown,
++    SendError,
++    ShortWrite,
++    FullClockUnknown,
++    FullClockApplied,
++    FullClockNotApplicable,
++    FullClockRefused,
++}
++struct Fact {
++    ssrc: u32,
++    sequence: u16,
++    timestamp: u32,
++    payload_type: u8,
++    marker: bool,
++    payload: bytes::Bytes,
++    entered_us: u64,
++    completed_us: Option<u64>,
++    expected_bytes: usize,
++    written_bytes: Option<usize>,
++    outcome: Outcome,
++}
++pub(super) struct AudioFacts {
++    id: u64,
++    started: Instant,
++    created_unix_us: u128,
++    wall_calibration_width_us: u64,
++    track: Option<String>,
++    sender: Option<RTCRtpSenderId>,
++    facts: Vec<Fact>,
++    payload_bytes: usize,
++    attempts: u64,
++    omitted: u64,
++    owner_unknown: bool,
++    close_observed: bool,
++    // Release capacity only AFTER the original fact bytes have dropped.
++    slot: Option<Slot>,
++}
++impl AudioFacts {
++    pub(super) fn new() -> Self {
++        Self::enabled(log::log_enabled!(target: TARGET, log::Level::Debug))
++    }
++    fn enabled(enabled: bool) -> Self {
++        let slot = enabled
++            .then(|| {
++                ACTIVE
++                    .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
++                        (n < MAX_OWNERS).then_some(n + 1)
++                    })
++                    .ok()
++                    .map(|_| Slot)
++            })
++            .flatten();
++        let id = if slot.is_some() {
++            NEXT.fetch_add(1, Ordering::AcqRel)
++        } else {
++            0
++        };
++        if enabled && slot.is_none() {
++            log::debug!(target: TARGET,"Owned audio facts unavailable reason=owner-capacity limit={}",MAX_OWNERS);
++        }
++        let started = Instant::now();
++        let created_unix_us = SystemTime::now()
++            .duration_since(SystemTime::UNIX_EPOCH)
++            .map_or(0, |v| v.as_micros());
++        let wall_calibration_width_us = started.elapsed().as_micros().min(u64::MAX as u128) as u64;
++        Self {
++            slot,
++            id,
++            started,
++            created_unix_us,
++            wall_calibration_width_us,
++            track: None,
++            sender: None,
++            facts: if id != 0 {
++                Vec::with_capacity(MAX_PACKETS)
++            } else {
++                Vec::new()
++            },
++            payload_bytes: 0,
++            attempts: 0,
++            omitted: 0,
++            owner_unknown: false,
++            close_observed: false,
++        }
++    }
++    pub(super) fn begin(
++        &mut self,
++        fact: rtp::Packet,
++        track: String,
++        sender: RTCRtpSenderId,
++        expected_bytes: usize,
++    ) -> Option<usize> {
++        if self.slot.is_none() {
++            return None;
++        }
++        self.attempts = self.attempts.saturating_add(1);
++        if track.is_empty()
++            || track.len() > MAX_TRACK_BYTES
++            || !track
++                .bytes()
++                .all(|v| v.is_ascii_alphanumeric() || b"-_.:".contains(&v))
++        {
++            self.owner_unknown = true;
++            self.omitted += 1;
++            return None;
++        }
++        if self.track.as_ref().is_some_and(|old| old != &track)
++            || self.sender.as_ref().is_some_and(|old| old != &sender)
++        {
++            self.owner_unknown = true;
++            self.omitted += 1;
++            return None;
++        }
++        if self.facts.len() == MAX_PACKETS
++            || fact.payload.len() > 1600
++            || self.payload_bytes.saturating_add(fact.payload.len()) > MAX_PAYLOAD_BYTES
++        {
++            self.omitted += 1;
++            return None;
++        }
++        if self.track.is_none() {
++            self.track = Some(track);
++            self.sender = Some(sender);
++        }
++        let index = self.facts.len();
++        self.payload_bytes += fact.payload.len();
++        self.facts.push(Fact {
++            ssrc: fact.header.ssrc,
++            sequence: fact.header.sequence_number,
++            timestamp: fact.header.timestamp,
++            payload_type: fact.header.payload_type,
++            marker: fact.header.marker,
++            payload: fact.payload,
++            entered_us: self.started.elapsed().as_micros().min(u64::MAX as u128) as u64,
++            completed_us: None,
++            expected_bytes,
++            written_bytes: None,
++            outcome: Outcome::Unknown,
++        });
++        Some(index)
++    }
++    pub(super) fn socket_result(&mut self, index: Option<usize>, written: Option<usize>) {
++        let Some(fact) = index.and_then(|i| self.facts.get_mut(i)) else {
++            return;
++        };
++        fact.completed_us = Some(self.started.elapsed().as_micros().min(u64::MAX as u128) as u64);
++        fact.written_bytes = written;
++        fact.outcome = match written {
++            None => Outcome::SendError,
++            Some(n) if n != fact.expected_bytes => Outcome::ShortWrite,
++            Some(_) => Outcome::FullClockUnknown,
++        };
++    }
++    pub(super) fn clock_result(&mut self, index: Option<usize>, applied: Option<bool>) {
++        if let Some(fact) = index.and_then(|i| self.facts.get_mut(i)) {
++            if fact.outcome == Outcome::FullClockUnknown {
++                fact.outcome = match applied {
++                    Some(true) => Outcome::FullClockApplied,
++                    Some(false) => Outcome::FullClockRefused,
++                    None => Outcome::FullClockNotApplicable,
++                };
++            }
++        }
++    }
++    pub(super) fn close_observed(&mut self) {
++        self.close_observed = true;
++    }
++}
++impl Drop for AudioFacts {
++    fn drop(&mut self) {
++        if self.slot.is_some() {
++            // One export at original driver destruction, never per-packet IO.
++            // Driver-close observation is not the caller's original task join.
++            log::debug!(target: TARGET,"Owned audio packet facts {}",Export(self));
++        }
++    }
++}
++struct Export<'a>(&'a AudioFacts);
++impl fmt::Display for Export<'_> {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        let s = self.0;
++        write!(
++            f,
++            "{{\"profile\":\"connect/owned-audio-socket-facts/1\",\"owner\":{},\"process_id\":{},\"created_unix_us\":{},\"wall_calibration_width_us\":{},\"track\":{:?},\"sender\":\"{:?}\",\"attempts\":{},\"captured\":{},\"payload_bytes\":{},\"omitted\":{},\"owner_unknown\":{},\"event_loop_close_observed\":{},\"packet_limit\":{},\"payload_byte_limit\":{},\"complete\":{},\"confirmed_full_socket_writes\":{},\"unresolved_sends\":{},\"full_write_clock_unknown\":{},\"full_write_clock_not_applicable\":{},\"full_write_clock_refused\":{},\"facts\":[",
++            s.id,
++            std::process::id(),
++            s.created_unix_us,
++            s.wall_calibration_width_us,
++            s.track.as_deref().unwrap_or(""),
++            s.sender,
++            s.attempts,
++            s.facts.len(),
++            s.payload_bytes,
++            s.omitted,
++            s.owner_unknown,
++            s.close_observed,
++            MAX_PACKETS,
++            MAX_PAYLOAD_BYTES,
++            s.close_observed
++                && s.omitted == 0
++                && !s.owner_unknown
++                && s.track.is_some()
++                && s.facts.iter().all(|v| matches!(
++                    v.outcome,
++                    Outcome::FullClockApplied | Outcome::FullClockNotApplicable
++                )),
++            s.facts
++                .iter()
++                .filter(|v| matches!(
++                    v.outcome,
++                    Outcome::FullClockUnknown
++                        | Outcome::FullClockNotApplicable
++                        | Outcome::FullClockApplied
++                        | Outcome::FullClockRefused
++                ))
++                .count(),
++            s.facts
++                .iter()
++                .filter(|v| matches!(
++                    v.outcome,
++                    Outcome::Unknown | Outcome::SendError | Outcome::ShortWrite
++                ))
++                .count(),
++            s.facts
++                .iter()
++                .filter(|v| v.outcome == Outcome::FullClockUnknown)
++                .count(),
++            s.facts
++                .iter()
++                .filter(|v| v.outcome == Outcome::FullClockNotApplicable)
++                .count(),
++            s.facts
++                .iter()
++                .filter(|v| v.outcome == Outcome::FullClockRefused)
++                .count()
++        )?;
++        for (i, v) in s.facts.iter().enumerate() {
++            if i != 0 {
++                f.write_char(',')?;
++            }
++            write!(
++                f,
++                "{{\"ordinal\":{},\"ssrc\":{},\"sequence\":{},\"timestamp\":{},\"payload_type\":{},\"marker\":{},\"entered_us\":{},\"completed_us\":{},\"expected_wire_bytes\":{},\"written_wire_bytes\":{},\"outcome\":\"{:?}\",\"payload_hex\":\"",
++                i,
++                v.ssrc,
++                v.sequence,
++                v.timestamp,
++                v.payload_type,
++                v.marker,
++                v.entered_us,
++                v.completed_us
++                    .map_or_else(|| "null".to_owned(), |n| n.to_string()),
++                v.expected_bytes,
++                v.written_bytes
++                    .map_or_else(|| "null".to_owned(), |n| n.to_string()),
++                v.outcome,
++            )?;
++            for byte in v.payload.iter() {
++                write!(f, "{byte:02x}")?;
++            }
++            f.write_str("\"}")?;
++        }
++        f.write_str("]}")
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
++    fn packet(payload: bytes::Bytes, sequence: u16) -> rtp::Packet {
++        rtp::Packet {
++            header: rtp::Header {
++                version: 2,
++                ssrc: 77,
++                sequence_number: sequence,
++                timestamp: u32::from(sequence) * 960,
++                payload_type: 111,
++                ..Default::default()
++            },
++            payload,
++        }
++    }
++    fn report(value: &AudioFacts) -> serde_json::Value {
++        serde_json::from_str(&Export(value).to_string()).unwrap()
++    }
++    #[test]
++    fn original_audio_fact_moves_bytes_and_distinguishes_full_unknown_short_and_clock_refusal() {
++        let _serial = SERIAL.lock().unwrap();
++        let mut value = AudioFacts::enabled(true);
++        let sender = RTCRtpSenderId::default();
++        let payload = bytes::Bytes::from_static(&[0xf8, 0xff, 0xfe]);
++        let pointer = payload.as_ptr();
++        let first = value.begin(packet(payload, 1), "original-track".into(), sender, 31);
++        assert_eq!(
++            value.facts[0].payload.as_ptr(),
++            pointer,
++            "The existing immutable packet allocation moved, no payload copy"
++        );
++        value.socket_result(first, Some(31));
++        value.clock_result(first, Some(true));
++        let second = value.begin(
++            packet(bytes::Bytes::from_static(&[1, 2, 3, 4]), 2),
++            "original-track".into(),
++            sender,
++            32,
++        );
++        value.socket_result(second, Some(32));
++        value.clock_result(second, Some(false));
++        value.begin(
++            packet(bytes::Bytes::from_static(&[7]), 3),
++            "original-track".into(),
++            sender,
++            29,
++        );
++        let fourth = value.begin(
++            packet(bytes::Bytes::from_static(&[8]), 4),
++            "original-track".into(),
++            sender,
++            29,
++        );
++        value.socket_result(fourth, Some(5));
++        value.clock_result(fourth, Some(true));
++        let fifth = value.begin(
++            packet(bytes::Bytes::from_static(&[9]), 5),
++            "original-track".into(),
++            sender,
++            29,
++        );
++        value.socket_result(fifth, None);
++        let sixth = value.begin(
++            packet(bytes::Bytes::from_static(&[10]), 6),
++            "original-track".into(),
++            sender,
++            29,
++        );
++        value.socket_result(sixth, Some(29));
++        value.clock_result(sixth, None);
++        let seventh = value.begin(
++            packet(bytes::Bytes::from_static(&[11]), 7),
++            "original-track".into(),
++            sender,
++            29,
++        );
++        value.socket_result(seventh, Some(29));
++        value.close_observed();
++        let row = report(&value);
++        assert_eq!(
++            row["complete"], false,
++            "Unresolved original send is never a confirmed emission"
++        );
++        let facts = row["facts"].as_array().unwrap();
++        assert_eq!(
++            facts
++                .iter()
++                .map(|v| v["outcome"].as_str().unwrap())
++                .collect::<Vec<_>>(),
++            [
++                "FullClockApplied",
++                "FullClockRefused",
++                "Unknown",
++                "ShortWrite",
++                "SendError",
++                "FullClockNotApplicable",
++                "FullClockUnknown"
++            ]
++        );
++        assert_eq!(facts[0]["payload_hex"], "f8fffe");
++        assert_eq!(facts[1]["payload_hex"], "01020304");
++        assert_eq!(facts[0]["sequence"], 1);
++        assert_eq!(facts[1]["sequence"], 2);
++        assert_eq!(facts[2]["completed_us"], serde_json::Value::Null);
++        assert_eq!(facts[3]["written_wire_bytes"], 5);
++        assert_eq!(row["confirmed_full_socket_writes"], 4);
++        assert_eq!(row["full_write_clock_not_applicable"], 1);
++        assert_eq!(row["full_write_clock_unknown"], 1);
++        assert_eq!(row["unresolved_sends"], 3);
++        assert_eq!(row["full_write_clock_refused"], 1);
++    }
++    #[test]
++    fn audio_fact_capture_disabled_owner_mismatch_and_caps_never_fabricate_history() {
++        let _serial = SERIAL.lock().unwrap();
++        let sender = RTCRtpSenderId::default();
++        let mut disabled = AudioFacts::enabled(false);
++        assert!(
++            disabled
++                .begin(
++                    packet(bytes::Bytes::from_static(&[1]), 1),
++                    "t".into(),
++                    sender,
++                    29
++                )
++                .is_none()
++        );
++        assert_eq!(disabled.facts.capacity(), 0);
++        assert_eq!(disabled.attempts, 0);
++        let mut value = AudioFacts::enabled(true);
++        for index in 0..MAX_PACKETS {
++            let slot = value.begin(
++                packet(bytes::Bytes::from_static(&[1]), index as u16),
++                "t".into(),
++                sender,
++                29,
++            );
++            value.socket_result(slot, Some(29));
++            value.clock_result(slot, Some(true));
++        }
++        assert!(
++            value
++                .begin(
++                    packet(bytes::Bytes::from_static(&[1]), 9),
++                    "t".into(),
++                    sender,
++                    29
++                )
++                .is_none()
++        );
++        assert_eq!(value.facts.len(), MAX_PACKETS);
++        assert_eq!(value.omitted, 1);
++        assert!(
++            value
++                .begin(
++                    packet(bytes::Bytes::from_static(&[1]), 10),
++                    "foreign-track".into(),
++                    sender,
++                    29
++                )
++                .is_none()
++        );
++        assert!(value.owner_unknown);
++        value.close_observed();
++        assert_eq!(report(&value)["complete"], false);
++        let mut bytes = AudioFacts::enabled(true);
++        for index in 0..700 {
++            let _ = bytes.begin(
++                packet(bytes::Bytes::from(vec![42; 1600]), index),
++                "t".into(),
++                sender,
++                1628,
++            );
++        }
++        assert!(bytes.payload_bytes <= MAX_PAYLOAD_BYTES && bytes.omitted > 0);
++        assert!(bytes.facts.iter().all(|v| v.payload.len() == 1600));
++    }
++    #[test]
++    fn audio_fact_owner_capacity_releases_only_original_slots_and_close_is_not_join() {
++        let _serial = SERIAL.lock().unwrap();
++        let before = ACTIVE.load(Ordering::Acquire);
++        assert_eq!(
++            before, 0,
++            "This bounded control requires its own test process/logger scope"
++        );
++        let owners = (0..MAX_OWNERS)
++            .map(|_| AudioFacts::enabled(true))
++            .collect::<Vec<_>>();
++        assert_eq!(ACTIVE.load(Ordering::Acquire), MAX_OWNERS);
++        let omitted = AudioFacts::enabled(true);
++        assert!(omitted.slot.is_none());
++        drop(omitted);
++        assert_eq!(ACTIVE.load(Ordering::Acquire), MAX_OWNERS);
++        drop(owners);
++        assert_eq!(ACTIVE.load(Ordering::Acquire), 0);
++        let mut next = AudioFacts::enabled(true);
++        let slot = next.begin(
++            packet(bytes::Bytes::from_static(&[1]), 1),
++            "t".into(),
++            RTCRtpSenderId::default(),
++            29,
++        );
++        next.socket_result(slot, Some(29));
++        next.clock_result(slot, Some(true));
++        assert_eq!(report(&next)["complete"], false);
++        next.close_observed();
++        assert_eq!(report(&next)["complete"], true);
++        assert!(
++            report(&next).get("original_task_joined").is_none(),
++            "Only the original caller can prove its join"
++        );
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -103,6 +103,11 @@
+         // Metadata only: preparing a successor does not replace an active clock.
+         port.install_audio_egress_binding(writer.audio_bindings.reserve()?)?;
+         let output = port.take_egress()?;
++        tracing::debug!(target: "rvoip_webrtc::audio_facts", process_id=std::process::id(), ssrc, payload_type,
++            logical_stream=%binding.negotiated.requested.logical_id,
++            transport_stream=%binding.transport_id, stream_generation=binding.generation,
++            connection_generation=binding.connection_generation,
++            "Original Core audio writer diagnostic binding");
+         Ok(Self {
+             output,
+             writer,

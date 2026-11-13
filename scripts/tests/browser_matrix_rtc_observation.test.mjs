@@ -403,3 +403,38 @@ test('RTC boundary report uses original renderer and survives close without reta
         f.context.currentTime=9;assert.deepEqual(f.observer.report(),report);
         assert.deepEqual(f.errors,[]);
     },{measurementOrigin:performance.now()-1000}));
+
+
+test('optional suspect PCM owns only real before/current/after blocks and preserves unchanged input and quality',()=>{
+    const diagnostics=rtcAudioBoundaryDiagnostics({retainSuspectPcm:true}),context={};
+    const tone=Float32Array.from({length:960},(_,i)=>.1*Math.sin(i*.08)),bad=boundaryPcm();
+    diagnostics.observe(boundaryInput(tone,context,{timestamp:0,at:1100}));
+    diagnostics.observe(boundaryInput(bad,context,{timestamp:20000,at:1120}));
+    const unfinished=diagnostics.report();assert.equal(unfinished.suspect_pcm.complete,false);
+    diagnostics.observe(boundaryInput(tone,context,{timestamp:40000,at:1140}));
+    const done=diagnostics.report(),pcm=done.suspect_pcm;
+    assert.equal(pcm.complete,true);assert.equal(pcm.events.length,1);
+    assert.deepEqual(pcm.events[0].before.samples,Array.from(tone));
+    assert.deepEqual(pcm.events[0].current.samples,Array.from(bad));
+    assert.deepEqual(pcm.events[0].after.samples,Array.from(tone));
+    assert.equal(unfinished.suspect_pcm.events[0].after,null,'A published report never gains a later synthetic neighbor');
+    const saved=JSON.stringify(pcm);tone.fill(8);bad.fill(9);
+    assert.equal(JSON.stringify(pcm),saved,'Borrowed arrays cannot mutate original evidence');
+    assert.throws(()=>pcm.events[0].current.samples.push(1),TypeError);
+    diagnostics.close();assert.equal(JSON.stringify(diagnostics.report().suspect_pcm),saved);
+    assert.equal(rtcAudioBoundaryDiagnostics().report().suspect_pcm.enabled,false);
+});
+
+test('optional PCM evidence refuses unknown owners, bounds output and never fabricates a discontinuous neighbor',()=>{
+    const diagnostics=rtcAudioBoundaryDiagnostics({retainSuspectPcm:true}),input=boundaryInput(boundaryPcm(),{});
+    diagnostics.observe(input);
+    diagnostics.observe({...input,timestamp:60000,at:1260});
+    assert.equal(diagnostics.report().suspect_pcm.events[0].after_status,'discontinuous');
+    for(let i=0;i<20;i++)diagnostics.observe({...input,timestamp:80000+i*20000,at:1280+i*20});
+    const captured=diagnostics.report().suspect_pcm;
+    assert.equal(captured.events.length,8);assert.ok(captured.omitted>0);assert.equal(captured.complete,false);
+    diagnostics.observe({...input,owner:'foreign',clock:{...input.clock,owner:'foreign'}});
+    assert.ok(diagnostics.report().suspect_pcm.owner_unknown>0,'A reused clock cannot rebind the physical owner');
+    diagnostics.close();const stopped=JSON.stringify(diagnostics.report());diagnostics.observe(input);
+    assert.equal(JSON.stringify(diagnostics.report()),stopped);
+});

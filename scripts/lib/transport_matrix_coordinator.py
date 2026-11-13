@@ -123,6 +123,8 @@ def run(root, args):
     write(output / "state.json", state)
     workers, logs, reports = {}, [], {}
     worker = ["--phase", "worker", "--stage", "full", "--expected-revision", revision]
+    if getattr(args, "rtc_audio_facts", False):
+        worker += ["--rtc-audio-facts"]
     mac_command = [sys.executable, str(root / "scripts/run-gate6-transport-matrix.py"), *worker, "--output", str(output / "macos-arm64")]
     for name in ("chrome", "firefox"):
         if getattr(args, name):

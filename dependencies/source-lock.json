@@ -2242,6 +2242,54 @@
       "path": "patches/rvoip/connect-video-metadata-busy-retry.patch",
       "sha256": "9937e44885ec59927a602ee728c674be0934b26ede98ed625c883b9191c82bd0",
       "source": "Retry pre-IO MetadataBusy for original realtime Video/Screen as Audio already does. Reuse original <=200ms age and every fresh current source/target/audience/generation guard; Data and entered callback outcomes unchanged. Controls registered immediately before this patch reproduce the old original-fragment drop at its final desired oracle after natural owner cleanup. Actual historical matrix loss attribution remains separate."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-audio-adoption-first-quantum-controls.patch",
+      "sha256": "4bb0119b97907dfce47c9ea0f9edcbdbb602c0b86b3a9cc8b37be76943b576c7",
+      "source": "Test-only causal counter for real private decoded Ready followed by same-root AudioAdoption and ParticipantSession publication with no further candidate input. Read-only cfg(test) original FIFO hooks, old playback baseline, exact old queue/decoder removal, first ordinary output and fresh recovery, original capture age and all owner cleanup before the intended final continuity assertion. Existing implementation is being tested for the precise missing first quantum; no production permission/prestart changes."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-audio-adoption-test-module-path.patch",
+      "sha256": "84bdcad0b1c4112affd5996ec51b88cf5eea16b6f4c8c247db6670cd7fd84d7f",
+      "source": "Test-only explicit child path under the parent path-attribute module layout. Original adoption-counter build failed E0583 before executing any test; preserve that original failed attempt. This wiring fix enables the actual Ready/adoption counter, with no production behavior or causal-pass claim."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-private-audio-socket-facts.patch",
+      "sha256": "001621fa698eb75fce79ceaadbb276399f198b36976a229ac70fcad6ffb10c9e",
+      "source": "Opt-in bounded private diagnostic capture of unchanged original48k owned RTP packet facts and exact local write/clock outcomes at the actual guarded socket. No current permission, media behavior, public API or shipping feature change; observation completeness never establishes delivery or quality."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-owned-video-unit-byte-sum-type.patch",
+      "sha256": "b133325445b4588f8d01f16a866cc4b44c7b01e744583535810b9fc427e6ade1",
+      "source": "Test-only usize annotation for existing owned-video repair-cache byte-total oracle. Full Stack unit compilation exposed E0283 sum inference ambiguity before any new audio-facts test ran; exact cache equality assertion and production behavior unchanged. Retain the original failed build separately."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-audio-adoption-first-quantum-controls.patch",
+      "sha256": "77cd8694d07b29fb8bacddc7021a4c2b1ee0e13af69396d8010c4d0536e8c683",
+      "source": "Test-only actual public Orchestrator managed-root first playable source counter for forward and return. Real registered controlled SIP allocation/signal/participant resources, private duplex readiness, managed publication and distinct retained-peer guarded output prove actual postcut mixer progress while candidate input is paused; original input age and all owners close before final continuity oracle. Generic old420 counter remains independently preserved; no production grant/model shortcuts or transport qualification."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-adoption-participant-policy-call.patch",
+      "sha256": "c9d0f95acb00fa0274afceb6d9a468be303734ba5645b9e229cacc2fe025f642",
+      "source": "Test-only fully qualified ParticipantPolicy call in real managed audio adoption counter. Original423 build failed E0034 before executing any test because MediaPolicy has a same-named method; no production behavior or oracle changes. Preserve original failed build."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-adoption-domain-policy-reference.patch",
+      "sha256": "cecc0ce6160c58f51cea388fc51eb855ef67d2950dd0d57a1f7250e1a3bb1972",
+      "source": "Test-only dereference to actual Domain implementor for qualified ParticipantPolicy call. Original424 failed E0277 before tests; use Arc::as_ref with same existing grant and scope, no production/oracle changes. Preserve failed original."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-adoption-explicit-prestart-privacy-controls.patch",
+      "sha256": "f5e4a54487501c2de0cad22099c3cc52404a44684cd385f0572b8ec63e4d68df",
+      "source": "Corrective test-only scope after independent assessment: rename both diagnostic experiments as explicit prestart privacy negatives, asserting no ordinary PCM without fresh public input while retaining actual Ready/publication/progress/recovery/all-owner checks. Original419/423/424/425 patches, binaries and intended failed forensic oracles remain immutable. No-new-input continuity was never approved Gate6 criteria; no acceptance or production change. Fresh-source decoder continuity has separate positive controls."
     }
   ]
 }

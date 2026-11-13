@@ -1,0 +1,189 @@
+{
+  "format": "connect/g6-058-handoff-diagnostics-progress/1",
+  "recorded_at": "2026-11-13T10:57:15.445424+00:00",
+  "coordinator": "/root",
+  "matrix_verdict_unchanged": {
+    "run": "v217",
+    "cells_passed": 2,
+    "cells_total": 32,
+    "checks_passed": 400,
+    "checks_total": 432,
+    "next_matrix_started": false
+  },
+  "source": {
+    "pushed_revision": "38ed2e4c",
+    "working_dependency_generation": 426,
+    "working_source_lock_sha256": "23c17ac2ff152149defb264c88d6b81c2be7924504e7040e97e07f6d350142b5",
+    "pending_changes_not_shipping_qualified": true
+  },
+  "managed_handoff_old_counter": {
+    "owner": "v198_resources",
+    "reviewer": "fixture_blockers",
+    "scope": "Actual public Core Orchestrator managed forward and return; controlled SIP transport; PCMU; no browser, Store or network qualification",
+    "original_cargo_pid": 47272,
+    "original_exit_code": 101,
+    "intended_final_failure_only": true,
+    "originals_joined_before_oracle": true,
+    "outer_original_wait_session": 60777,
+    "outer_exit_code": 0,
+    "directions": [
+      {
+        "direction": "forward",
+        "capture_age_us": 1054
+      },
+      {
+        "direction": "return",
+        "capture_age_us": 3555
+      }
+    ],
+    "each_direction_verified": [
+      "private Ready",
+      "guarded remote delivered",
+      "fresh private input decoded",
+      "actual managed public commit",
+      "distinct retained-peer 9200 output proves actual postcut progress",
+      "old source and decoder retired",
+      "first ordinary source absent with no fresh candidate input",
+      "new candidate input recovers playback",
+      "all original owners joined"
+    ],
+    "independent_receipt_sha256": "37d0144b3115e5a597392409d578707257c909846e11243f7b2efdf950816d32",
+    "private_original_receipt_sha256": "fc21f1e9d8b8f7f0e5eeda32692cfb91d39ce2b0520a7841343e658d1222283b",
+    "earlier_build_failures": [
+      "generation423 E0034 before tests",
+      "generation424 E0277 before tests"
+    ],
+    "raw_extraction_limit": "Saved runner wrong G6 marker-prefix leaves markers empty; independent review parses unchanged exact raw managed_adoption_quantum lines. Original failed receipts remain unchanged.",
+    "contract_limit": "Paused postcut source input isolates discard/prestart behavior. This is not by itself a product-contract violation, continuous-source stall proof, or mandate to transfer historical private PCM. Real continuous-source matrix gap and coverage criteria remain authoritative.",
+    "scope_clarification_sha256": "23c7e739230cfc2b01526607a344e8be886350f66ddafad97438cd208e238d88"
+  },
+  "wss_diagnostic_controls": {
+    "owner": "Root",
+    "reviewer": "fixture_blockers",
+    "passed": 29,
+    "planned": 29,
+    "actual_javascript_tests": 19,
+    "actual_audio_recorder_tests": 3,
+    "actual_retained_video_cache_tests": 4,
+    "original_rust_pids": [
+      8359,
+      8456
+    ],
+    "original_javascript_pid": 3040,
+    "all_original_commands_naturally_joined": true,
+    "independent_receipt_sha256": "f5e2816ae9098da82b5154ec1d9095784e884dfeccab133e2ba7c8840ca7cf9c",
+    "private_original_rust_receipt_sha256": "52fc858ddc67eaa2aa89daa1532653b777c54db1923b561b79c56db28a6d6cb6",
+    "production_media_behavior_changed": false,
+    "bounds": [
+      "default off; at most10 recorder owners",
+      "4096 facts and1MiB payload per owner",
+      "1600 bytes per packet; move existing payload without clone",
+      "private export only at original owner Drop",
+      "eight suspect before/current/after PCM windows per bounded browser clock",
+      "same existing stats poll; missing counters remain unavailable"
+    ],
+    "limitations": [
+      "No new actual socket-payload/native-browser-PCM causal recording yet",
+      "Separate Core binding trace integration not compiled by Stack-only tests",
+      "Not a quality or matrix pass"
+    ],
+    "actual_python_option_propagation_tests": 3,
+    "actual_rust_tests": 7,
+    "explicit_fixture_option": "--rtc-audio-facts",
+    "actual_new_unit_pids": [
+      63878,
+      63882
+    ],
+    "fixture_optin_independent_review_sha256": "0a1f147d53c40834909ad5fb1749943251289fa74af0559af7a6266c2dad4aa3",
+    "fixture_budget_review_sha256": "e10bbd92dfc62af0624d09f68ecf844e7df66dea86ba0f28b34b703c3c766002"
+  },
+  "implementation_queue": [
+    {
+      "task": "v217/S4/decoder-history",
+      "owner": "v198_resources",
+      "reviewer": "fixture_blockers",
+      "status": "staging",
+      "scope": "Consider exact same-root source decoder/to_mix continuation for fresh authorized input only; no prepared PCM transfer."
+    },
+    {
+      "task": "v217/S4/first-fresh-route",
+      "owner": "capture_epoch_transition",
+      "reviewer": "Root",
+      "status": "staging",
+      "scope": "Explicit off-media exact continuation routes after Commit Writer closes; use existing fully fenced refresh/admit to avoid lazy first-packet miss and extra watcher turn."
+    },
+    {
+      "task": "v217/S6/fixture-optin",
+      "owner": "fixture_blockers",
+      "reviewer": "Root",
+      "status": "staging",
+      "scope": "Wire explicit fixture-only recording option before original observer; preserve default off, graph and criteria."
+    },
+    {
+      "task": "v217/S4/prepared-PCM-consent",
+      "owner": "capture_epoch_transition",
+      "reviewer": "Root",
+      "status": "alternative-not-selected",
+      "scope": "Historical private PCM transfer is not currently justified by actual continuous-source failures. Its intended-writer/postcut consent hazard is documented; no new epoch downgrade or bypass is being implemented."
+    }
+  ],
+  "acceptance_unchanged": true,
+  "g6_054": "deferred",
+  "normal_library_check": {
+    "source_generation": 425,
+    "original_cargo_pid": 52491,
+    "exit_code": 0,
+    "naturally_joined": true,
+    "elapsed_seconds": 774.3137319087982,
+    "actual_rebuilt_libraries": [
+      "connect-service",
+      "connect-client",
+      "rvoip-core",
+      "rvoip-webrtc",
+      "rvoip-webrtc-stack (target webrtc)"
+    ],
+    "test_support": false,
+    "independent_adjudication_sha256": "280d78f415951fa490c889dd1e64e37e53eea830e506998f71676ef8a06afa45",
+    "private_original_receipt_sha256": "577d6823103339fececfecc99299f09bddd4072c614d510c88641baae9983ec5",
+    "scope_limit": "Recorded425 check is not relabeled426. Added426 suffix edits only two test functions/oracles and changes no normal production source."
+  },
+  "privacy_scope_correction": {
+    "source_generation": 426,
+    "production_change": false,
+    "matrix_acceptance_changed": false,
+    "approved_media_requirements_unchanged": true,
+    "original_failed_experiments_preserved": true,
+    "new_explicitly_named_privacy_tests_passed": 2,
+    "independent_adjudication_sha256": "38ae4a938c32a0d3085eee794a65727dfc784bab1fa65bacca08124d00f4a935",
+    "meaning": "Paused ingress does not require buffered private PCM publication. These two tests verify no private PCM leaks and fresh public input recovers; no continuity cure or historical failure promotion."
+  },
+  "current_Core_regression": {
+    "source_generation": 426,
+    "retained_and_video_retry_passed": 48,
+    "additional_explicit_privacy_passed": 2,
+    "total_selected_Core_passed": 50,
+    "all_original_commands_naturally_joined": true,
+    "private_original_receipt_sha256": "0104802ceb6f1272b76bf1223e16bdc413785b2b64d2d677e45fbbddb5d18236",
+    "full_fresh_cohort_and_matrix_qualified": false
+  },
+  "task_cache_reclamation": {
+    "metadata_database_review_first": true,
+    "application_history_records_deleted": false,
+    "task_owned_orphan_compiler_objects_deleted": 27954,
+    "selected_allocated_bytes": 42949861376,
+    "observed_available_byte_increase": 42967859200,
+    "after_available_bytes": 64793468928,
+    "existing_protected_object_names_preserved": 65073,
+    "binaries_libraries_source_logs_evidence_deleted": false,
+    "incremental_caches_cleared": false,
+    "cargo_target_lock_held_and_no_build_active": true,
+    "independent_keep_set_review_sha256": "3c45e588b8f6b75193528db78bb4eab70faaf1ed8bdcedfd9622cf57a140300a",
+    "private_original_receipt_sha256": "b6b1df54debc13319c3f338610eda4285be422a6cfa242330c883408a9b32312"
+  },
+  "current_support_regression": {
+    "python_passed": 65,
+    "node_passed": 49,
+    "all_originals_naturally_joined": true,
+    "private_original_receipt_sha256": "9dd9b33675fbfedad217b80a140589ec54db16968b5d6ae669ca7a092c34d72c"
+  }
+}

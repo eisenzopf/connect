@@ -1,0 +1,305 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -1142,6 +1142,18 @@
+     _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ impl GuardedAudioMixer {
++    // Read-only original queues for the adoption regression; no samples,
++    // identities, clock updates or authority can be supplied by this hook.
++    #[cfg(test)]
++    pub(super) fn audio_queue_state_for_test(
++        &self,
++        connection: &ConnectionId,
++    ) -> Option<(usize, bool, usize, usize)> {
++        let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        let member = members.get(connection)?;
++        Some((member.input.len(), member.waiting.is_some(),
++            member.pending.len(), member.target_pending.len()))
++    }
+     #[cfg(feature = "test-support")]
+     pub(super) fn weak_codec_owners_for_test(
+         &self,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -511,6 +511,13 @@
+     _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ impl GuardedMediaScene {
++    #[cfg(test)]
++    pub(super) fn audio_queue_state_for_test(
++        &self,
++        connection: &ConnectionId,
++    ) -> Option<(usize, bool, usize, usize)> {
++        self.audio.audio_queue_state_for_test(connection)
++    }
+     /// Correlate worker timing with the existing terminal scene summary.
+     /// Diagnostic identity only; never an authority or routing decision.
+     pub(crate) fn timing_identity(&self) -> u128 {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll/adoption_quantum.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll/adoption_quantum.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll/adoption_quantum.rs
+@@ -0,0 +1,251 @@
++//! Actual private decode/readiness versus the first ordinary source FIFO.
++use super::*;
++use std::future::{Future, poll_fn};
++use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
++use std::task::Poll;
++
++async fn catch_original<F: Future>(future: F) -> std::thread::Result<F::Output> {
++    let mut future = std::pin::pin!(future);
++    poll_fn(
++        |cx| match catch_unwind(AssertUnwindSafe(|| Future::poll(future.as_mut(), cx))) {
++            Ok(Poll::Pending) => Poll::Pending,
++            Ok(Poll::Ready(value)) => Poll::Ready(Ok(value)),
++            Err(error) => Poll::Ready(Err(error)),
++        },
++    )
++    .await
++}
++
++// Every original close is attempted/awaited even if work or another close
++// panics. No spawned task or timed-out future is abandoned by this fixture.
++async fn close_originals(f: &Move) -> Vec<(String, bool, usize)> {
++    let mut rows = Vec::new();
++    for (name, node) in &f.room.nodes {
++        let closed = catch_original(node.controller.shutdown(deadline())).await;
++        rows.push((
++            name.clone(),
++            matches!(closed, Ok(0)),
++            node.adapter.outstanding.load(Ordering::Acquire),
++        ));
++    }
++    rows
++}
++
++#[derive(Debug)]
++struct Observation {
++    ready: bool,
++    private_consumed: bool,
++    fresh_private_decode: bool,
++    old_ingress: usize,
++    old_removed: bool,
++    old_codec_gone: bool,
++    new_empty: bool,
++    first_playable: bool,
++    first_output_present: bool,
++    first_mean: Option<i32>,
++    fresh_recovery: bool,
++    input_age_us: u128,
++}
++
++#[tokio::test]
++async fn actual_private_ready_adoption_has_first_playable_source_without_new_ingress() {
++    let mut f = Move::for_audio_preroll().await;
++    let work = catch_original(async {
++        f.io().await;
++        f.confirm().await;
++        let prepared = prepare(&f, deadline(), CancellationToken::new()).await;
++        f.room.publish("bob", 6000).unwrap();
++        f.room.tick();
++        f.room.heard("device", 6000).await;
++        drain_outputs(&mut f);
++        assert!(prepared.has_delivered_remote_audio());
++        f.room.publish("alice", 800).unwrap();
++        f.room.tick();
++        f.room.heard("bob", 800).await;
++        drain_outputs(&mut f);
++
++        let old = ConnectionId::from_string("alice");
++        let new = ConnectionId::from_string("device");
++        let old_codec = f
++            .room
++            .scene
++            .weak_media_owners_for_test(&old)
++            .unwrap()
++            .into_iter()
++            .find(|(name, _)| *name == "mixer-decoder")
++            .unwrap()
++            .1;
++        assert!(old_codec.upgrade().is_some());
++        let sequence = f.room.nodes["device"].sequence;
++        let captured = Instant::now();
++        // Actual private decoder input, not a constructed heartbeat or epoch.
++        f.room.publish("device", 5200).unwrap();
++        let private_sequence = f.room.nodes["device"].sequence;
++        assert_eq!(private_sequence, sequence + 1);
++        let fresh_private_decode = {
++            let target = &f.room.nodes["device"].controller;
++            let consumer = target
++                .audio_consumer
++                .lock()
++                .unwrap()
++                .as_ref()
++                .unwrap()
++                .upgrade()
++                .unwrap();
++            consumer.decoded_since(target, captured)
++        };
++        assert!(
++            fresh_private_decode,
++            "the latest private input must really decode after its original capture anchor"
++        );
++        let ready = f._audio_probe.as_ref().unwrap().has_duplex_io()
++            && f.room.scene.replacement_endpoint_ready(&f.context).is_ok();
++        assert!(
++            ready,
++            "actual same-root private duplex readiness prerequisite"
++        );
++        let private_consumed =
++            f.room.scene.audio_queue_state_for_test(&new) == Some((0, false, 0, 0));
++        assert!(
++            private_consumed,
++            "private source input entered ordinary FIFO"
++        );
++        f.room
++            .silent(&["alice", "bob", "public", "other", "hold", "device"]);
++
++        // One genuine old input is enqueued. No mixer tick or new candidate
++        // input occurs between this enqueue and actual replacement publication.
++        f.room.publish("alice", 800).unwrap();
++        let old_state = f.room.scene.audio_queue_state_for_test(&old).unwrap();
++        assert_eq!(old_state.0, 1, "actual old original is queued before cut");
++        let owner = {
++            let read = f.room.domain.base.0.read().await;
++            f.room
++                .domain
++                .resource_owner(&read, read.owners["device"].clone())
++                .unwrap()
++        };
++        let logical = f
++            .model
++            .stage_replacement(
++                &owner.member,
++                &owner.member,
++                f.pending.intent().clone(),
++                &f.pending,
++                &owner.endpoint,
++            )
++            .unwrap();
++        let plan = f.plan().unwrap();
++        let (_outcome, _handle) = f.commit(plan).await.unwrap();
++        f.model.commit_replacement(logical);
++        f.model
++            .require_live_binding(&owner.member, &owner.connection)
++            .unwrap();
++        // Same fixture publication used by the existing successor regression:
++        // actual model-admitted binding, never a constructed presence/epoch.
++        f.room
++            .domain
++            .base
++            .0
++            .write()
++            .await
++            .owners
++            .insert("device".into(), owner);
++        let input_age_us = captured.elapsed().as_micros();
++        let old_removed = !f.room.scene.contains_connection(&old)
++            && f.room.scene.audio_queue_state_for_test(&old).is_none()
++            && f.room.nodes["alice"].controller.shutdown.is_cancelled();
++        let old_codec_gone = old_codec.upgrade().is_none();
++        let new_empty = f.room.scene.audio_queue_state_for_test(&new) == Some((0, false, 0, 0));
++        assert!(
++            old_removed && old_codec_gone,
++            "actual cut did not retire old source FIFO and decoder"
++        );
++        assert_eq!(f.room.nodes["device"].sequence, private_sequence);
++        assert!(
++            input_age_us < 200_000,
++            "original input already older than200ms"
++        );
++
++        f.room.tick();
++        let first = f.room.nodes.get_mut("bob").unwrap().out.try_recv().ok();
++        let first_output_present = first.is_some();
++        let mut first_mean = None;
++        let first_playable = if let Some(first) = first {
++            let mut heard = false;
++            first
++                .deliver(|frame| {
++                    use rvoip_media_core::codec::factory::CodecFactory;
++                    let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++                    let pcm = codec.decode(&frame.payload).unwrap();
++                    let mean = pcm.samples.iter().map(|s| i32::from(*s)).sum::<i32>()
++                        / pcm.samples.len() as i32;
++                    first_mean = Some(mean);
++                    heard = (mean - 5200).abs() < 400;
++                    std::future::ready(Ok(()))
++                })
++                .await
++                .unwrap();
++            heard
++        } else {
++            false
++        };
++        drain_outputs(&mut f);
++
++        // The same installed ordinary path works with a genuinely NEW input.
++        // This recovery cannot fill or qualify the paused first-output edge.
++        f.room.publish("device", 6800).unwrap();
++        f.room.tick();
++        f.room.heard("bob", 6800).await;
++        let fresh_recovery = true;
++        drain_outputs(&mut f);
++        assert!(f.room.publish("alice", 9000).is_err());
++        drop(prepared);
++        Observation {
++            ready,
++            private_consumed,
++            fresh_private_decode,
++            old_ingress: old_state.0,
++            old_removed,
++            old_codec_gone,
++            new_empty,
++            first_playable,
++            first_output_present,
++            first_mean,
++            fresh_recovery,
++            input_age_us,
++        }
++    })
++    .await;
++    let cleanup = close_originals(&f).await;
++    drop(f);
++    assert!(
++        cleanup
++            .iter()
++            .all(|(_, joined, outstanding)| *joined && *outstanding == 0),
++        "every original controller/adapter must close before causal oracle: {cleanup:?}"
++    );
++    let observed = match work {
++        Ok(v) => v,
++        Err(error) => resume_unwind(error),
++    };
++    eprintln!(
++        "adoption_quantum ready={} private_consumed={} fresh_private_decode={} old_ingress={} old_removed={} old_codec_gone={} new_empty={} first_output_present={} first_mean={:?} first_playable={} recovery={} age_us={} originals_joined=true",
++        observed.ready,
++        observed.private_consumed,
++        observed.fresh_private_decode,
++        observed.old_ingress,
++        observed.old_removed,
++        observed.old_codec_gone,
++        observed.new_empty,
++        observed.first_output_present,
++        observed.first_mean,
++        observed.first_playable,
++        observed.fresh_recovery,
++        observed.input_age_us
++    );
++    assert!(
++        observed.first_playable,
++        "actual Ready decoded input was discarded and no playable ordinary source quantum survived adoption"
++    );
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll.rs
+@@ -710,3 +710,6 @@
+         .unwrap();
+     assert!(f.room.publish("alice", 9000).is_err());
+ }
++
++#[cfg(feature = "test-support")]
++mod adoption_quantum;

@@ -42,7 +42,9 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
     // Shared callback-only fixtures have no new static module dependency. The
     // matrix's explicit Chrome entry injects the closed owned-reader factory.
     const decoded=videoObserver===RTC_DECODED_VIDEO_PROFILE?decodedVideoOwnerFactory({observe:decodedVideo,invalid}):null;
-    const audioBoundaries=rtcAudioBoundaryDiagnostics();
+    // Root may opt into bounded private PCM evidence before this original
+    // observer starts. The SDK/browser media profile and graph stay unchanged.
+    const audioBoundaries=rtcAudioBoundaryDiagnostics({retainSuspectPcm:globalThis.connectRtcAudioFacts===true});
     const render=Rtc.prototype.render,capture=Rtc.prototype.capture;
     const sourcePrototype=MediaStreamAudioSourceNode.prototype;
     const sourceConnect=sourcePrototype.connect;

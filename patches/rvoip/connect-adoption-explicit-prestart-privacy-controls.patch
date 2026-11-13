@@ -1,0 +1,71 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll/adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/audio_preroll/adoption_quantum.rs
+@@ -48,7 +48,7 @@
+ }
+ 
+ #[tokio::test]
+-async fn actual_private_ready_adoption_has_first_playable_source_without_new_ingress() {
++async fn private_ready_pcm_is_not_published_without_fresh_ordinary_input() {
+     let mut f = Move::for_audio_preroll().await;
+     let work = catch_original(async {
+         f.io().await;
+@@ -230,7 +230,7 @@
+         Err(error) => resume_unwind(error),
+     };
+     eprintln!(
+-        "adoption_quantum ready={} private_consumed={} fresh_private_decode={} old_ingress={} old_removed={} old_codec_gone={} new_empty={} first_output_present={} first_mean={:?} first_playable={} recovery={} age_us={} originals_joined=true",
++        "prestart_privacy_quantum ready={} private_consumed={} fresh_private_decode={} old_ingress={} old_removed={} old_codec_gone={} new_empty={} first_output_present={} first_mean={:?} first_playable={} recovery={} age_us={} originals_joined=true",
+         observed.ready,
+         observed.private_consumed,
+         observed.fresh_private_decode,
+@@ -244,8 +244,11 @@
+         observed.fresh_recovery,
+         observed.input_age_us
+     );
++    // This explicitly named privacy negative replaces the forensic desired
++    // oracle, not an approved media-quality criterion. Paused postcut input
++    // does not entitle a private Ready frame to ordinary publication.
+     assert!(
+-        observed.first_playable,
+-        "actual Ready decoded input was discarded and no playable ordinary source quantum survived adoption"
++        !observed.first_output_present && observed.first_mean.is_none() && !observed.first_playable,
++        "private prestart PCM entered ordinary playback without fresh ordinary input"
+     );
+ }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -1303,7 +1303,7 @@
+     age_us: u128,
+ }
+ #[tokio::test]
+-async fn managed_root_private_ready_has_first_playable_source_on_forward_and_return_without_new_ingress()
++async fn managed_root_private_pcm_stays_private_without_fresh_input_on_forward_and_return()
+  {
+     let mut room = ManagedRoom::new().await;
+     let work = catch_original(async {
+@@ -1580,7 +1580,7 @@
+     };
+     for c in &cuts {
+         eprintln!(
+-            "managed_adoption_quantum direction={} operation={} source={} candidate={} retained={} decoder_transferred={} decoder_survived_fresh={} ready={} remote_delivered={} fresh_private_decode={} public_commit={} post_cut_progress={} old_removed={} old_codec_gone={} first_output_present={} first_mean={:?} first_playable={} recovery={} age_us={} originals_joined=true",
++            "managed_prestart_privacy_quantum direction={} operation={} source={} candidate={} retained={} decoder_transferred={} decoder_survived_fresh={} ready={} remote_delivered={} fresh_private_decode={} public_commit={} post_cut_progress={} old_removed={} old_codec_gone={} first_output_present={} first_mean={:?} first_playable={} recovery={} age_us={} originals_joined=true",
+             c.direction,
+             c.operation,
+             c.source,
+@@ -1603,9 +1603,13 @@
+         );
+     }
+     assert_eq!(cuts.len(), 2);
++    // The preserved OLD425 experiment established this boundary behavior;
++    // no-new-input continuity was not a product requirement. Fresh-input
++    // decoder continuity has its own separately named positive controls.
+     assert!(
+-        cuts.iter()
+-            .all(|c| c.first_playable && c.decoder_transferred && c.decoder_survived_fresh),
+-        "actual managed-root Ready input was discarded and no first playable ordinary source quantum survived forward/return publication"
++        cuts.iter().all(|c| {
++            !c.first_output_present && c.first_mean.is_none() && !c.first_playable
++        }),
++        "managed replacement published private prestart PCM without fresh ordinary input"
+     );
+ }

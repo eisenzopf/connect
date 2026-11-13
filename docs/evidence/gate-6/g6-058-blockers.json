@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T08:20:34.134677+00:00",
-  "run_status": "Completed v217:2/32 cells qualified;400/432 requirement rows passed,32 failed,0 blocked. All32 original attempts and owners closed.30 decoded-media requirement failures and2 final actor-config integrity failures remain recorded. Later targeted follow-through164 checks passed; no historical matrix promotion.",
+  "updated": "2026-11-13",
+  "run_status": "Completed v217:2/32 cells and400/432 checks passed,32 failed,0 blocked. All originals closed. Later current426 Core50 and WSS diagnostic29 controls pass separately; normal425 libraries compile. Decoder/route fixes in progress; no next matrix or historical promotion.",
   "blockers": [
     {
       "id": "B01",
@@ -17592,6 +17592,18 @@
       "passed": 16,
       "planned": 16,
       "evidence": "g6-058-v217-shipping-browser.json"
+    },
+    {
+      "name": "Bounded WSS RTP/PCM diagnostic controls; no media qualification",
+      "passed": 29,
+      "planned": 29,
+      "evidence": "g6-058-v217-handoff-diagnostics-progress.json"
+    },
+    {
+      "name": "Current426 Core48 retained/video controls plus2 explicit privacy cases; no matrix promotion",
+      "passed": 50,
+      "planned": 50,
+      "evidence": "g6-058-v217-handoff-diagnostics-progress.json"
     }
   ],
   "current_production_check": {
@@ -18372,8 +18384,8 @@
         "scope": "Receive-history reset remains staged. Actual four WebCodecs cases and public Core Opus consumer found no ambiguity/clock-regression causal effect; no matrix/WSS cure claim."
       },
       "S4": {
-        "status": "rca-in-progress",
-        "scope": "Core/browser audio and server-log RCA remains open. Existing target PCM captures cover a superset of actual encoder inputs at48k/no resample; encoded-payload to browser-PCM join remains missing."
+        "status": "boundary-characterized-fresh-continuity-fixes-in-progress",
+        "scope": "Actual managed forward/return confirms discarded private Ready PCM and empty first ordinary source only while fresh input is artificially paused; not itself a product violation or continuous-stall cause. Fresh decoder history and exact affected-route warmup are being staged under unchanged privacy/prestart/current grants. No historical PCM transfer or matrix cure claim."
       },
       "S5": {
         "status": "applied-component-verified",
@@ -18383,8 +18395,8 @@
         "independent_adjudication_sha256": "03c0fcc26d1ff7ecb1e42b9eb7db81a1c0aec1e248fc9406ec9bc66fb8295871"
       },
       "S6": {
-        "status": "rca-in-progress",
-        "scope": "Transport/feedback and server-log RCA continues; no blanket NACK/RTX or observed-loss cause claim."
+        "status": "diagnostic-controls-verified-actual-capture-pending",
+        "scope": "Explicit bounded RTP/PCM diagnostics are wired through both workers for WSS only, default off. Actual Rust7+JS19+Python3 pass, normal425 five libraries rebuilt successfully; independent reviews accepted. No new actual payload/browserPCM capture or media cure yet."
       },
       "S7": {
         "status": "applied-unit-verified",
@@ -18401,6 +18413,10 @@
         ],
         "scope": "Guest late controls/guardian freeze precede host-only decode;62 active Python tests passed. No actual VM runtime-saving or media qualification claim."
       }
-    }
+    },
+    "postrun_progress_evidence": "docs/evidence/gate-6/g6-058-v217-handoff-diagnostics-progress.json",
+    "postrun_progress_sha256": "8e79a1f2368959afde700796849e921e232227e880b06727e7347d339fd7e50c",
+    "postrun_diagnostic_checks_passed": 29,
+    "postrun_Core_regression_passed": 50
   }
 }
