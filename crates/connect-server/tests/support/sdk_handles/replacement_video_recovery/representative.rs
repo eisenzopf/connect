@@ -2440,7 +2440,7 @@ async fn representative_with_algorithm(
             // Observe them after physical cleanup; their same strict verdict
             // still applies before the final result, without spending join grace.
             final_quality_pending = true;
-            data::end_current(&connections,&mut targets,&previous_targets,&sessions,join_cutoff).await;
+            data::end_current(&connections,&mut targets,&previous_targets,&sessions,join_cutoff,began).await;
             cleanup_times.push(("current-connection-ends-settled", Instant::now()));
         }
         eprintln!("representative-six-source verified participants=4 sessions=2 sources=6 original_moves=4 generations=1,2,3 returned_original_device={} private_decoders=4 original_deadline_ms=8000 old_preparation_fps_min=24 genuine_opus_samples_min=2880 fragmented_vp8=true programme_bound_seconds=62",configs[0].device_id);

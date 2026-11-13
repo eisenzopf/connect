@@ -1,0 +1,46 @@
+{
+  "format": "connect/g6-058-cleanup-diagnostics31/1",
+  "updated": "2026-11-13T01:56:10.532971+00:00",
+  "scope": "Two original full62 programmes on diagnostics-only changes; not complete341 or matrix qualification.",
+  "source_base_revision": "8cc1d34e",
+  "normal_generation": 416,
+  "completed": 2,
+  "passed": 1,
+  "aggregate_passed": false,
+  "original_controller_joined": true,
+  "original_exit_code": 1,
+  "source_unchanged": true,
+  "binaries_unchanged": true,
+  "inputs_unchanged": true,
+  "all_original_groups_joined": true,
+  "actual_result_sha256": "9468997da246eaad8aa7ee50d6b4ce3accdd8c3a8011d790285cf29db6b3c68b",
+  "EdDSA": {
+    "passed": false,
+    "first_failure": "First handoff candidate route0 has zero received datagrams and zero receiver notices despite909video and348audio published packets; readiness cutoff expires before cleanup.",
+    "inference_limit": "No proof of underlying admission/activation error; two-second fresh-start admission is a timing hypothesis. SQL timing tracing was enabled for this diagnostic run. No historical matrix cause attribution."
+  },
+  "ES256": {
+    "passed": true,
+    "current_connection_ends_settled_us": 64165342,
+    "sessions_settled_us": 64731397,
+    "all_owners_joined_us": 64815959,
+    "unchanged_cutoff_us": 67000000,
+    "final_connection_snapshot_read_elapsed_us": [
+      283920,
+      286712,
+      432331,
+      645639,
+      774381,
+      818863
+    ],
+    "session_snapshot_reads_elapsed_us": [
+      459211,
+      504560
+    ]
+  },
+  "implementation": "Numeric phase diagnostics preserve original futures, scheduling, operation IDs and budgets. Production change is DEBUG-only native retirement attempt context.",
+  "next": "Causal snapshot read/write contention controls plus replacement-start failure diagnosis; no cleanup or media criteria waived.",
+  "matrix_qualified": false,
+  "independent_actual_review_sha256": "780fced836b3e6b64c268ba6330a968e1d6b94e07d8feec6f89cde2f74f9256e",
+  "actual_data_capture_trace": "Unreported: diagnostic filter omitted native_data_control target. No4+8 trace qualification claimed."
+}

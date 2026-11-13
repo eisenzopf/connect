@@ -252,12 +252,33 @@ pub(super) async fn exchange(
     eprintln!("representative bidirectional-data index={index} phase={phase} incoming_exact_bytes=65536 outgoing_exact_bytes=65536 mutation_replays=0");
 }
 
+// Numeric fixture diagnostics only. This wrapper polls the SAME original
+// future, returns its exact output and does not catch a panic, spawn an owner,
+// cancel a request, create a new timeout or alter the original cutoff.
+async fn trace_current_end_phase<F: std::future::Future>(
+    index: usize,
+    phase: &'static str,
+    began: Instant,
+    until: Instant,
+    original: F,
+) -> F::Output {
+    let entered = Instant::now();
+    eprintln!("representative current-End index={index} phase={phase} stage=entry programme_us={} remaining_us={}",
+        entered.saturating_duration_since(began).as_micros(), until.saturating_duration_since(entered).as_micros());
+    let result = original.await;
+    let returned = Instant::now();
+    eprintln!("representative current-End index={index} phase={phase} stage=returned programme_us={} elapsed_us={} remaining_us={}",
+        returned.saturating_duration_since(began).as_micros(), returned.saturating_duration_since(entered).as_micros(), until.saturating_duration_since(returned).as_micros());
+    result
+}
+
 pub(super) async fn end_current(
     originals: &[sdk::Connection],
     targets: &mut [Candidate],
     current: &[Option<usize>; 2],
     sessions: &[sdk::Session],
     until: Instant,
+    began: Instant,
 ) {
     // The caller has reached the actual62s source boundary and issued stop to
     // every original packet owner. All six current original mutations start
@@ -269,9 +290,21 @@ pub(super) async fn end_current(
         for index in [1usize, 2, 3, 5] {
             let original = originals[index].clone();
             submissions.push(settled(first, async move {
-                let before = original.refresh(programme::request(until)).await.unwrap();
-                original
-                    .end(
+                let before = trace_current_end_phase(
+                    index,
+                    "retained-refresh",
+                    began,
+                    until,
+                    original.refresh(programme::request(until)),
+                )
+                .await
+                .unwrap();
+                let operation = trace_current_end_phase(
+                    index,
+                    "retained-end",
+                    began,
+                    until,
+                    original.end(
                         200,
                         "Synthetic workload complete".into(),
                         None,
@@ -279,12 +312,19 @@ pub(super) async fn end_current(
                             &format!("representative-current-end-{index}"),
                             until,
                         ),
-                    )
-                    .await
-                    .unwrap()
-                    .wait(programme::request(until))
-                    .await
-                    .unwrap();
+                    ),
+                )
+                .await
+                .unwrap();
+                trace_current_end_phase(
+                    index,
+                    "retained-wait",
+                    began,
+                    until,
+                    operation.wait(programme::request(until)),
+                )
+                .await
+                .unwrap();
                 (original, before.generation)
             }));
         }
@@ -298,8 +338,14 @@ pub(super) async fn end_current(
         assert!(a < b);
         let (left, right) = targets.split_at_mut(b);
         let (a, b) = tokio::join!(
-            settled(first, end_moving(&mut left[a], 0, &sessions[0], until)),
-            settled(first, end_moving(&mut right[0], 4, &sessions[1], until))
+            settled(
+                first,
+                end_moving(&mut left[a], 0, &sessions[0], until, began)
+            ),
+            settled(
+                first,
+                end_moving(&mut right[0], 4, &sessions[1], until, began)
+            )
         );
         vec![a, b]
     };
@@ -320,9 +366,20 @@ pub(super) async fn end_current(
         loop {
             // Current public snapshots, not successful End receipts or
             // fixture SQL, prove each exact current owner actually retired.
-            let observations = futures_util::future::join_all(expected.iter().map(
-                |(connection, generation)| async move {
-                    let current = connection.refresh(programme::request(until)).await.unwrap();
+            let observations = futures_util::future::join_all(expected.iter().enumerate().map(
+                |(position, (connection, generation))| async move {
+                    // Diagnostic route order only: the four retained entries,
+                    // followed by the two moving entries, exactly as collected above.
+                    let index = [1usize, 2, 3, 5, 0, 4][position];
+                    let current = trace_current_end_phase(
+                        index,
+                        "verify-retired",
+                        began,
+                        until,
+                        connection.refresh(programme::request(until)),
+                    )
+                    .await
+                    .unwrap();
                     assert_eq!(&current.id, connection.id());
                     assert_eq!(&current.session_id, connection.session_id());
                     current.state == "retired" && current.generation > *generation
@@ -345,6 +402,7 @@ async fn end_moving(
     index: usize,
     session: &sdk::Session,
     until: Instant,
+    began: Instant,
 ) -> (sdk::Connection, u64) {
     let preparation = target.preparation.as_ref().unwrap();
     let id = preparation.connection_id().unwrap().to_owned();
@@ -356,12 +414,18 @@ async fn end_moving(
         operation_id: Some(format!("representative-current-end-{index}")),
         expected_revision: None,
     };
-    command(
-        &mut target.client,
-        "connection.end",
-        json!({"reason_code":200,"reason":"Synthetic workload complete"}),
-        scope,
+    trace_current_end_phase(
+        index,
+        "moving-command",
+        began,
         until,
+        command(
+            &mut target.client,
+            "connection.end",
+            json!({"reason_code":200,"reason":"Synthetic workload complete"}),
+            scope,
+            until,
+        ),
     )
     .await;
     (session.connection_by_id(id.parse().unwrap()), generation)

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T01:43:18.522851+00:00",
-  "revision": 59,
+  "updated_at": "2026-11-13T01:56:10.532971+00:00",
+  "revision": 60,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -366,10 +366,11 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "blocker_ids": [
-        "B194"
+        "B194",
+        "B208"
       ],
       "depends_on": [],
-      "status": "component-verified",
+      "status": "in-progress",
       "implementation_state": "The ordinary initial AV signed regression now passes both actual contention faults, fresh decoded old/target media, exactly linked confirmed native effect, closed original attempt and cleanup. Its former generic observation-column oracle was incorrect. Browser matrix followthrough remains pending.",
       "proposed_fix": "Retain same prepared subscription across definite complete-scene Busy after all fresh proofs drop; preserve permanent refusals, original deadline and one activation. No initial offer retry or mutation resubmission.",
       "required_evidence": "All three WT missing-programme cases linked to original commands; causal regression for each distinct cause, original-effect recovery and no duplicate media admission.",
@@ -403,6 +404,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
           "result": "7/7 targeted controls, including5pure+actualReadySQL+ordinaryinitialAV. Not full175 or matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
+          "result": "ES256 wholefull62passes; EdDSA route0 replacementstart0downlink fails beforecleanup; rootcause under investigation.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -410,7 +416,7 @@
         "f29ffaea"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:06:47.358539+00:00",
+      "updated_at": "2026-11-13T01:56:10.532971+00:00",
       "mapped_check_count": 29,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -431,12 +437,13 @@
       "blocker_ids": [
         "B190",
         "B197",
-        "B199"
+        "B199",
+        "B208"
       ],
       "depends_on": [
         "P2.1"
       ],
-      "status": "component-verified",
+      "status": "in-progress",
       "implementation_state": "Ready dispatch ownership is verified in batch20. The remaining real pre/post SQL case and exact resume/CAS counterexamples now pass targeted controls21 after fixing its fixture latch; deadlines and once-only capture retained. Combined final qualification remains open.",
       "proposed_fix": "Trace 16 preparation503 and25 recorded-source/uncertain-target failures; preserve prepare/activate/retire order, decoded readiness and original operation recovery.",
       "required_evidence": "Each original failure class reproduced and fixed, WebRTC offer/answer and RTP/RTCP continuity retained, four moves complete with original receipts and no make-before-break media loss beyond approved profile.",
@@ -500,6 +507,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-fixture-controls21.json",
           "result": "7/7 targeted controls, including5pure+actualReadySQL+ordinaryinitialAV. Not full175 or matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
+          "result": "ES256 wholefull62passes; EdDSA route0 replacementstart0downlink fails beforecleanup; rootcause under investigation.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -508,7 +520,7 @@
         "f29ffaea"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T04:06:47.358539+00:00",
+      "updated_at": "2026-11-13T01:56:10.532971+00:00",
       "mapped_check_count": 66,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -843,12 +855,13 @@
       "blocker_ids": [
         "B195",
         "B197",
-        "B200"
+        "B200",
+        "B208"
       ],
       "depends_on": [
         "P3.1"
       ],
-      "status": "diagnosing",
+      "status": "in-progress",
       "implementation_state": "Final coherent focused batch passes all253 checks: Store70 214/214 and Core71 39/39 on identical143 guarded source paths, normal dependency generation414/source-lock7ce0e041. Both original Root controllers exited0 and joined, all original build/inventory/test groups joined, and source/binary/input guards held. Independent reviewers verified both components. Ready latency36.038ms is below unchanged50ms (prior focused35.841ms; old53.899ms). All10 Data isolation/security controls,18 retained Gate/Codec/Subscribe controls, exact queued replay and the new closed-input Ready constructor control pass. All four actual Core unchanged-AV routing/resource/selection witness controls pass. Reviewed test-only locator and std panic helper patches correct prior zero-test Core compile failures without changing assertions. Next: commit/push byte-identical tested code with this evidence; execute independently source-reviewed complete329 on the new clean commit, retaining all prior296 and both full62 programmes last. Each full programme additionally proves actual first-COMMIT narrow4DataGates+8subscriptions. Complete329, same-source nativeARM shipping and all32/432 remain unqualified. Last complete26 is295/296 with one21<24fps ES256 retained-video bin; lastmatrixv215 stays0/32. No quality, cleanup, permission or timing acceptance changes. G6-054 stays parked.",
       "proposed_fix": "Trace frame generation, ordering, keyframes, transport/decoder readiness and actual rendering; fix losses independently of auth hypotheses.",
       "required_evidence": "Reordering/loss/keyframe/new-generation controls plus complete programme meet contract FPS, total frames, A/V skew, source identity and duplicate limits, including approved handoff accounting.",
@@ -951,11 +964,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-data-control-focused253.json",
           "result": "ActualStore214+Core39 PASS on identical143/generation414; all original owners/guards; decoded full programme and matrix pending",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
+          "result": "ES256 wholefull62passes; EdDSA route0 replacementstart0downlink fails beforecleanup; rootcause under investigation.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T23:56:22.696537+00:00",
+      "updated_at": "2026-11-13T01:56:10.532971+00:00",
       "mapped_check_count": 28,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -3744,6 +3762,11 @@
       "at": "2026-11-13T01:43:18.522851+00:00",
       "revision": 59,
       "event": "Full341 original runtime joined340pass1cleanupfail; no criteria waived; B192 reopened for Connection retirement contention."
+    },
+    {
+      "at": "2026-11-13T01:56:10.532971+00:00",
+      "revision": 60,
+      "event": "Diagnostics31 original6873 joined1/2; ES256 cleanup64.816s, EdDSA initial candidate has0downlink. Added B208; snapshot readonly causal controls and startup diagnosis assigned in parallel."
     }
   ],
   "tracking_review": {
@@ -5118,6 +5141,7 @@
     "harness": "docs/evidence/gate-6/g6-058-v216-harness-batch.json",
     "next": "Diagnose and fix Connection/Session retirement contention, verify causal controls, repeat complete regression before normal shipping and all32.",
     "matrix_qualified": false,
-    "complete_regression": "docs/evidence/gate-6/g6-058-v216-components30.json"
+    "complete_regression": "docs/evidence/gate-6/g6-058-v216-components30.json",
+    "diagnostics": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json"
   }
 }

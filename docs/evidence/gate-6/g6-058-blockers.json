@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T01:43:18.522851+00:00",
-  "run_status": "Complete341:340 passed,1cleanup failure; both full programmes pass mediaquality. EdDSA Connection retirement leaves126ms for Session cleanup. Investigating contention before shipping/all32. Original matrix remains0/32 qualified.",
+  "updated": "2026-11-13T01:56:10.532971+00:00",
+  "run_status": "Latest complete341:340passed1cleanupfail. Diagnostics31:1/2 full programmes pass; ES256 cleanup64.816s, EdDSA candidate receives no packets before initial readiness cutoff. B192 and B208 under causal investigation; original matrix0/32 remains.",
   "blockers": [
     {
       "id": "B01",
@@ -1695,6 +1695,14 @@
       "change": "Characterize exact known source through actual BrowserOpusCodec and unchanged classifier, separately from confident wrong-source routing.",
       "evidence": "docs/evidence/gate-6/g6-058-v216-media-components.json",
       "next": "Fresh all32; no identity threshold or classifier waiver."
+    },
+    {
+      "id": "B208",
+      "title": "Replacement candidate fails before Core receive attachment",
+      "status": "Observed: diagnostic EdDSA first candidate0downlink/0receiver notices; separate from cleanup regression. Underlying leaf unproven.",
+      "change": "Resource traces initial replacement activation/admission; Media implements and Fixture reviews snapshot-reader contention controls. Preserve root IDs, no blind effect retry.",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
+      "next": "Capture exact original start refusal and verify a causal fix alongside snapshot read/write isolation, then complete regression and all32."
     }
   ],
   "workplan_tasks": [
@@ -17889,6 +17897,50 @@
       }
     },
     "next": "Diagnose and fix Connection/Session retirement contention, verify causal controls, repeat complete regression before normal shipping and all32.",
+    "matrix_qualified": false
+  },
+  "v216_diagnostics31": {
+    "format": "connect/g6-058-cleanup-diagnostics31/1",
+    "updated": "2026-11-13T01:56:10.532971+00:00",
+    "scope": "Two original full62 programmes on diagnostics-only changes; not complete341 or matrix qualification.",
+    "source_base_revision": "8cc1d34e",
+    "normal_generation": 416,
+    "completed": 2,
+    "passed": 1,
+    "aggregate_passed": false,
+    "original_controller_joined": true,
+    "original_exit_code": 1,
+    "source_unchanged": true,
+    "binaries_unchanged": true,
+    "inputs_unchanged": true,
+    "all_original_groups_joined": true,
+    "actual_result_sha256": "9468997da246eaad8aa7ee50d6b4ce3accdd8c3a8011d790285cf29db6b3c68b",
+    "EdDSA": {
+      "passed": false,
+      "first_failure": "First handoff candidate route0 has zero received datagrams and zero receiver notices despite909video and348audio published packets; readiness cutoff expires before cleanup.",
+      "inference_limit": "No proof of underlying admission/activation error; two-second fresh-start admission is a timing hypothesis. SQL timing tracing was enabled for this diagnostic run. No historical matrix cause attribution."
+    },
+    "ES256": {
+      "passed": true,
+      "current_connection_ends_settled_us": 64165342,
+      "sessions_settled_us": 64731397,
+      "all_owners_joined_us": 64815959,
+      "unchanged_cutoff_us": 67000000,
+      "final_connection_snapshot_read_elapsed_us": [
+        283920,
+        286712,
+        432331,
+        645639,
+        774381,
+        818863
+      ],
+      "session_snapshot_reads_elapsed_us": [
+        459211,
+        504560
+      ]
+    },
+    "implementation": "Numeric phase diagnostics preserve original futures, scheduling, operation IDs and budgets. Production change is DEBUG-only native retirement attempt context.",
+    "next": "Causal snapshot read/write contention controls plus replacement-start failure diagnosis; no cleanup or media criteria waived.",
     "matrix_qualified": false
   }
 }

@@ -420,6 +420,7 @@ impl Runtime {
         // Actual end is scoped to this Core route. An unconfirmed drain keeps
         // custody/quota; no other Connection or the physical peer is closed.
         let mut end_refusal_logged = false;
+        let mut retirement_attempt = 0_u64;
         loop {
             self.check_custodian_stop_deadline(&mut cleanup_cutoff)?;
             if native.is_connection_live(&id) {
@@ -451,6 +452,10 @@ impl Runtime {
             // Queueing for a blocking worker consumes this same attempt's
             // budget, narrowed by the original runtime-stop cutoff if present.
             let wait = connect_store::AuthorityWait::new(remaining.min(budget));
+            retirement_attempt = retirement_attempt.saturating_add(1);
+            // Control-plane diagnostics only. Elapsed includes blocking-pool
+            // queueing and the same original Store attempt, never a new budget.
+            let retirement_began = tracing::enabled!(tracing::Level::DEBUG).then(Instant::now);
             let settled = crate::runtime_retention::spawn_blocking(
                 crate::runtime_retention::Kind::NativeRetirement,
                 move || {
@@ -471,16 +476,25 @@ impl Runtime {
                 Ok(Ok(())) => {
                     tracing::debug!(
                         stage = "durable-retirement-recorded",
+                        connection = %id,
+                        retirement_attempt,
+                        elapsed_us = retirement_began.map(|began| began.elapsed().as_micros()),
                         "Native offer cleanup stage"
                     );
                     break;
                 }
                 Ok(Err(error)) => {
-                    tracing::debug!(stage="durable-retirement-retry", code=%error.code, "Native offer cleanup stage");
+                    tracing::debug!(stage="durable-retirement-retry", connection=%id,
+                        retirement_attempt,
+                        elapsed_us=retirement_began.map(|began| began.elapsed().as_micros()),
+                        code=%error.code, detail=%error.message, "Native offer cleanup stage");
                 }
                 Err(_) => {
                     tracing::debug!(
                         stage = "durable-retirement-join",
+                        connection = %id,
+                        retirement_attempt,
+                        elapsed_us = retirement_began.map(|began| began.elapsed().as_micros()),
                         code = "join-error",
                         "Native offer cleanup stage"
                     );
