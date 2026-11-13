@@ -166,8 +166,12 @@ class MacLinuxFixture:
         self.lease = None
         self.lease_failure_recorded = False
         self.lease_cleanup = None
+        self.final_guest_work = None
+        self.collected_directories = set()
 
     def ssh(self, command):
+        if self.final_guest_work is not None:
+            raise RuntimeError("Original guest workload is frozen after final lease barrier")
         return ["colima", "--profile", "connect-gate6", "ssh", "--", "env",
                 *(name + "=" + value for name, value in VM_ENV.items()),
                 *(name + "=" + value for name, value in {
@@ -511,6 +515,8 @@ print(json.dumps(prepare(target)))"""
             guest_boot_id=self.topology["guest"]["boot_id"], client_ip=self.client_ip)
 
     def verify_binaries(self):
+        if self.final_guest_work is not None:
+            return self.final_guest_work["binaries_unchanged"] is True
         expected = {self.client_binary: self.client_binary_sha256}
         if self.peer_binary:
             expected[self.peer_binary] = self.peer_binary_sha256
@@ -649,7 +655,58 @@ print(json.dumps(prepare(target)))"""
     def collect_directory(self, directory):
         relative = str(Path(directory).resolve().relative_to(self.root.resolve()))
         raw = self.call(["python3", self.remote_root / "scripts/lib/mac_linux_guest.py", "collect", self.remote_root, relative], timeout=90)
-        return unpack_verified(raw, directory)
+        manifest = unpack_verified(raw, directory)
+        self.collected_directories.add(relative)
+        return manifest
+
+    def finish_native_guest_work(self, required_directories):
+        """Freeze the original guest after late controls; decode stays on HOST.
+
+        Later GuestDrain is a separate closed-namespace custody operation. It
+        still verifies/copies/acknowledges/unlinks the original payload under
+        its existing one-set bound. This method never deletes that payload.
+        """
+        if self.final_guest_work is not None:
+            if self.receipt.get("original_vm_lease_joined") is not True:
+                raise RuntimeError("Original guest guardian release is unconfirmed")
+            return self.final_guest_work
+        receipt = self.close(release_lease=False)
+        required = {str(Path(p).resolve().relative_to(self.root.resolve())) for p in required_directories}
+        if (not required or not required <= self.collected_directories or self.lease is None
+                or receipt.get("preflight_only") or receipt.get("original_joined") is not True
+                or receipt.get("forced") is not False or receipt.get("cleanup_failures") != []):
+            raise ValueError("Original guest artifacts and natural owner closure required")
+        inputs_unchanged = self.verify_inputs()
+        binaries_unchanged = self.verify_binaries()
+        # No payload hash/read or deletion here. Reuse the exact custody
+        # selector, inode rules and finite one-set budget used by GuestDrain.
+        script = """import json,sys;from pathlib import Path
+root=Path(sys.argv[1]);sys.path.insert(0,str(root/'scripts'))
+from lib.matrix_archive_drain import closed_guest_payload_budget
+print(json.dumps(closed_guest_payload_budget(root,json.load(sys.stdin))))"""
+        pending = json.loads(self.call(["python3", "-c", script, self.remote_root],
+            data=json.dumps(self.inputs).encode(), timeout=30))
+        if (inputs_unchanged is not True or binaries_unchanged is not True
+                or pending.get("all_guest_owners_joined") is not True):
+            raise ValueError("Final original guest input, binary and owner proof required")
+        proof = dict(format="connect/native-guest-final-work/1", run_id=self.run_id,
+            required_artifacts=sorted(required), all_required_artifacts_collected=True,
+            client_inputs_unchanged=True, binaries_unchanged=True,
+            all_guest_owners_joined=True, pending_payload=pending,
+            new_fixture_guest_commands_forbidden=True, original_guardian_joined=False)
+        receipt["client_inputs_unchanged"] = True
+        receipt["all_guest_owners_joined"] = True
+        receipt["final_guest_work"] = proof
+        # Freeze BEFORE closing the original guardian input. release_lease only
+        # waits that existing Popen; no replacement SSH/guardian is created.
+        self.final_guest_work = proof
+        self.release_lease()
+        proof["original_guardian_joined"] = receipt.get("original_vm_lease_joined") is True
+        proof["released_at_unix"] = time.time()
+        atomic_json(self.directory / "final-native-guest-work.json", proof)
+        if proof["original_guardian_joined"] is not True:
+            raise RuntimeError("Original guest guardian release is unconfirmed")
+        return proof
 
     def close(self, *, release_lease=True):
         if self.closed:

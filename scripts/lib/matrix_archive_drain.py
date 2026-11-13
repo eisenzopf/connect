@@ -309,6 +309,32 @@ def guest_candidate(relative, inputs):
     return relative.suffix in {'.pcap','.f32','.rgb','.ivf','.ogg','.wav','.webm','.yuv'}
 
 
+
+def closed_guest_payload_budget(root, inputs):
+    """Metadata-only bound before HOST decode; retain original custody files."""
+    from .mac_linux_guest import lease_owners_joined
+    root = Path(root)
+    files, total = {}, 0
+    for path in root.rglob('*'):
+        relative = path.relative_to(root)
+        if path.is_file() and guest_candidate(relative, inputs):
+            row = signature(path)
+            files[relative.as_posix()] = row
+            total += row['bytes']
+            if len(files) > MAX_GUEST_FILES or total > MAX_GUEST_BYTES:
+                raise ValueError('Bounded pending guest payload required')
+    receipts = 0
+    for path in (root / '.owners').glob('*-receipt.json'):
+        value = json.loads(path.read_text())
+        receipts += 1
+        if value.get('forced') is not False or value.get('original_joined') is not True:
+            raise ValueError('Natural original helper join required')
+    return dict(all_guest_owners_joined=lease_owners_joined(root),
+        natural_helper_receipts=receipts, files=files, file_count=len(files), bytes=total,
+        maximum_files=MAX_GUEST_FILES, maximum_bytes=MAX_GUEST_BYTES,
+        pending_payload_deleted=False)
+
+
 def guest_validate(payload):
     root = Path(payload['guest_root'])
     if (root.parent != GUEST_PARENT or len(root.name)!=43 or not root.name.startswith('mac-remote-')

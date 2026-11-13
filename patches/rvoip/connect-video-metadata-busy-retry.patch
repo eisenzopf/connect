@@ -1,0 +1,12 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1676,7 +1676,7 @@
+                     if (matches!(&problem, StreamControlError::NotReady)
+                         && self.frame.kind != StreamKind::Data)
+                         || (matches!(&problem, StreamControlError::MetadataBusy)
+-                            && self.frame.kind == StreamKind::Audio) =>
++                            && self.frame.kind != StreamKind::Data) =>
+                 {
+                     // Only metadata remains here: a failed attempt dropped every
+                     // source/target authority and generation reader. Never extend

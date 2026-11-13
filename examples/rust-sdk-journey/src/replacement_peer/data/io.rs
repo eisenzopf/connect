@@ -118,11 +118,10 @@ async fn save(path: &Path, value: &Value) -> Result<()> {
     if bytes.len() > 2 * 1024 * 1024 {
         return Err("physical Data private record exceeds bound".into());
     }
-    let mut options = std::fs::OpenOptions::new();
+    let mut options = tokio::fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
     let temporary = path.with_file_name(format!(
@@ -131,13 +130,16 @@ async fn save(path: &Path, value: &Value) -> Result<()> {
             .ok_or("physical Data file name missing")?
             .to_string_lossy()
     ));
-    let mut file = tokio::fs::File::from_std(options.open(&temporary)?);
+    let mut file = options.open(&temporary).await?;
     file.write_all(&bytes).await?;
     file.sync_all().await?;
     drop(file);
     tokio::fs::hard_link(&temporary, path).await?;
     tokio::fs::remove_file(temporary).await?;
-    std::fs::File::open(path.parent().ok_or("physical Data directory missing")?)?.sync_all()?;
+    tokio::fs::File::open(path.parent().ok_or("physical Data directory missing")?)
+        .await?
+        .sync_all()
+        .await?;
     Ok(())
 }
 pub(in super::super) struct Exchange {
@@ -441,5 +443,67 @@ mod tests {
             };
             assert!(bad.validate().is_err());
         }
+    }
+    #[tokio::test]
+    async fn physical_data_save_preserves_private_atomic_bytes_and_original_errors() {
+        use std::{
+            io,
+            time::{SystemTime, UNIX_EPOCH},
+        };
+        let directory = std::env::current_dir()
+            .unwrap()
+            .join(".local")
+            .join(format!(
+                "durable-data-{}-{}",
+                std::process::id(),
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+        tokio::fs::create_dir_all(&directory).await.unwrap();
+        let path = directory.join("original.json");
+        let pending = directory.join("original.json.pending");
+        let value = json!({"operation_id":"same-original","body":"exact"});
+        let first = save(&path, &value).await;
+        let saved = tokio::fs::read(&path).await;
+        let pending_after_success = tokio::fs::try_exists(&pending).await;
+        #[cfg(unix)]
+        let mode = {
+            use std::os::unix::fs::PermissionsExt;
+            tokio::fs::metadata(&path)
+                .await
+                .map(|m| m.permissions().mode() & 0o777)
+        };
+        let duplicate = save(&path, &json!({"operation_id":"must-not-overwrite"})).await;
+        let unchanged = tokio::fs::read(&path).await;
+        let missing = save(&directory.join("missing").join("original.json"), &value).await;
+        let cleanup = tokio::fs::remove_dir_all(&directory).await;
+        assert!(cleanup.is_ok());
+        assert!(
+            first.is_ok(),
+            "file sync, link publication and directory sync completed"
+        );
+        assert_eq!(saved.unwrap(), serde_json::to_vec(&value).unwrap());
+        assert!(!pending_after_success.unwrap());
+        assert_eq!(unchanged.unwrap(), serde_json::to_vec(&value).unwrap());
+        #[cfg(unix)]
+        assert_eq!(mode.unwrap(), 0o600);
+        assert_eq!(
+            duplicate
+                .unwrap_err()
+                .downcast_ref::<io::Error>()
+                .unwrap()
+                .kind(),
+            io::ErrorKind::AlreadyExists
+        );
+        assert_eq!(
+            missing
+                .unwrap_err()
+                .downcast_ref::<io::Error>()
+                .unwrap()
+                .kind(),
+            io::ErrorKind::NotFound
+        );
     }
 }

@@ -69,7 +69,7 @@ test("four retained current owners end after original media; moved0/4 and shared
     const s = scenario(), result = await endRetainedConnections(s.args);
     assert.equal(result.retained_connections_retired, 4); assert.equal(result.shared_sdk_closed, false);
     assert.deepEqual(s.sends, [1, 2, 3, 5]); assert.deepEqual(s.stops, [1, 2, 3, 5]);
-    assert.deepEqual(s.waits, [1, 2, 3, 5]); assert.equal(s.saved.filter(v => v.kind === "receipt").length, 4);
+    assert.deepEqual([...s.waits].sort((a, b) => a - b), [1, 2, 3, 5]); assert.equal(s.saved.filter(v => v.kind === "receipt").length, 4);
     assert.ok(result.receipts.every(v => v.mutation_submissions === 1 && v.original_cutoff_monotonic_ms === 67000));
 });
 test("early programme timer wake waits for the original boundary before any end", async () => {
@@ -104,7 +104,7 @@ test("early programme timer wake retains cancellation before every end", async (
 });
 test("uncertain original is never submitted twice and all sibling originals settle", async () => {
     const s = scenario("unknown"); await assert.rejects(endRetainedConnections(s.args), error => error === s.uncertain);
-    assert.deepEqual(s.sends, [1, 2, 3, 5]); assert.deepEqual(s.waits, [2, 3, 5]);
+    assert.deepEqual(s.sends, [1, 2, 3, 5]); assert.deepEqual([...s.waits].sort((a, b) => a - b), [2, 3, 5]);
     assert.equal(s.saved.filter(v => v.kind === "receipt").length, 3);
 });
 test("packet join consuming original cutoff prevents every mutation", async () => {
@@ -185,7 +185,7 @@ test("an original end refusal survives a later same-owner snapshot or cutoff fai
         const s = scenario(mode);
         await assert.rejects(endRetainedConnections(s.args), error => error === s.originalRefused);
         assert.deepEqual(s.stops, [1, 2, 3, 5]); assert.deepEqual(s.sends, [1, 2, 3, 5]);
-        assert.deepEqual(s.waits, [2, 3, 5]);
+        assert.deepEqual([...s.waits].sort((a, b) => a - b), [2, 3, 5]);
         assert.ok(s.batches.some(batch => batch.client === s.args.clients[5]),
             "successful original sibling must still attempt current observation");
         if (mode === "original-then-snapshot-failure") {
@@ -199,4 +199,123 @@ test("grouping routes1 and5 never reorders original end failures before route2",
     await assert.rejects(endRetainedConnections(s.args), error => error === s.originalRefused && error !== s.laterOriginal);
     assert.deepEqual(s.sends, [1, 2, 3, 5]); assert.deepEqual(s.waits, [1, 3]);
     assert.deepEqual(s.saved.filter(value => value.kind === "receipt").map(value => value.index).sort(), [1, 3]);
+});
+
+
+test("shared exact SDK never begins an original wait before sibling End acknowledgements after staggered packet joins", async () => {
+    let clock = 0, releaseSlowJoin, releaseLongWait;
+    const slowJoin = new Promise(resolve => { releaseSlowJoin = resolve; });
+    const longWait = new Promise(resolve => { releaseLongWait = resolve; });
+    const events = [], acknowledgements = new Set(), stops = [], models = [];
+    let slowJoinEntered = false, slowJoinReleased = false;
+    function model(indices) {
+        let active = false;
+        const queue = [];
+        const client = { identityId: "same-identity-never-merges-distinct-sdk-objects", raw: { read: () => request("snapshot", null, async () => [
+            { value: { type: "ack", payload: {} } },
+            { value: { type: "conversation.snapshot", payload: {
+                revision: 9, cursor: "original-watermark", has_more: false,
+                items: indices.map(index => ({ kind: "connection", data: {
+                    connection_id: "connection-" + index,
+                    session_id: "session-" + (index < 4 ? 0 : 1),
+                    state: "retired", generation: 2,
+                } })),
+            } } },
+        ]) } };
+        function pump() {
+            if (active || !queue.length) return;
+            const job = queue.shift(); active = true;
+            events.push({ stage: "dispatch", kind: job.kind, index: job.index, group: [...indices] });
+            Promise.resolve().then(job.body).then(value => {
+                events.push({ stage: "settled", kind: job.kind, index: job.index, group: [...indices] });
+                job.resolve(value);
+            }, job.reject).finally(() => {
+                active = false; pump();
+            });
+        }
+        function request(kind, index, body) {
+            return new Promise((resolve, reject) => { queue.push({ kind, index, body, resolve, reject }); pump(); });
+        }
+        models.push({ idle: () => !active && queue.length === 0 });
+        return { client, request, indices };
+    }
+    // Exactly routes1/5 share one SDK object, as in the actual native fixture.
+    // Other clients remain separate even with the same textual identity.
+    const shared = model([1, 5]), second = model([2]), third = model([3]);
+    const byIndex = new Map([[1, shared], [5, shared], [2, second], [3, third]]);
+    const controller = new AbortController();
+    const routes = Array.from({ length: 6 }, (_, index) => ({
+        generation: 1, sessionIndex: index < 4 ? 0 : 1,
+        async stopAndJoin() {
+            stops.push(index);
+            if (index === 1) { slowJoinEntered = true; await slowJoin; slowJoinReleased = true; }
+        },
+        connection: { id: "connection-" + index, async end(_input, options) {
+            assert.equal(options.operationId, "end-" + index);
+            assert.ok(options.timeoutMs > 0 && options.timeoutMs <= 5000);
+            const owner = byIndex.get(index);
+            return owner.request("end", index, async () => {
+                acknowledgements.add(index);
+                return { referenceJson: () => ({ operation_id: options.operationId, command: "connection.end",
+                    scope: { conversation_id: "room", session_id: "session-" + (index < 4 ? 0 : 1), connection_id: "connection-" + index } }),
+                    async wait(waitOptions) {
+                        assert.ok(waitOptions.timeoutMs > 0 && waitOptions.timeoutMs <= 5000);
+                        events.push({ stage: "wait-called", index, group: [...owner.indices], acknowledged: [...acknowledgements] });
+                        return owner.request("wait", index, async () => {
+                            if (index === 5) await longWait;
+                            return { snapshot: { state: "completed" }, value: { id: "connection-" + index } };
+                        });
+                    } };
+            });
+        } },
+    }));
+    const saved = [], clients = routes.map((_, index) => byIndex.get(index)?.client ?? { raw: { read() { throw Error("moved owner must not be observed"); } } });
+    const outcome = endRetainedConnections({ routes, clients,
+        ends: [1, 2, 3, 5].map(index => ({ index, operationId: "end-" + index })),
+        conversationId: "room", sessions: [{ id: "session-0" }, { id: "session-1" }], startedAt: 0,
+        signal: controller.signal, now: () => clock,
+        async wait(ms) { clock += ms; },
+        async persist(index, kind, value) { saved.push({ index, kind, value }); },
+    }).then(value => ({ value }), error => ({ error }));
+    let beforeRelease;
+    try {
+        // One real event-loop turn drains all ready promise continuations;
+        // neither release depends on observing the bug or a fabricated timeout.
+        await new Promise(resolve => setImmediate(resolve));
+        beforeRelease = { slow_join_entered: slowJoinEntered, slow_join_released: slowJoinReleased,
+            shared_wait_started: events.some(event => event.stage === "wait-called" && event.group.length === 2),
+            independent_waits_completed: [2, 3].every(index => events.some(event =>
+                event.stage === "settled" && event.kind === "wait" && event.index === index)),
+            independent_snapshots_completed: [2, 3].every(index => events.some(event =>
+                event.stage === "settled" && event.kind === "snapshot" && event.group.length === 1 && event.group[0] === index)) };
+    } finally {
+        releaseSlowJoin(); releaseLongWait();
+    }
+    const settled = await outcome;
+    // Drain the original model pumps before any intended old-condition oracle.
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(settled.error, undefined);
+    assert.equal(settled.value.retained_connections_retired, 4);
+    assert.equal(beforeRelease.slow_join_entered, true);
+    assert.equal(beforeRelease.slow_join_released, false);
+    assert.equal(beforeRelease.independent_waits_completed, true, "independent SDK waits must complete while the shared sibling join is held");
+    assert.equal(beforeRelease.independent_snapshots_completed, true, "independent SDK current snapshots must complete without a global admission barrier");
+    assert.equal(shared.client.identityId, second.client.identityId);
+    assert.equal(shared.client.identityId, third.client.identityId);
+    assert.equal(slowJoinReleased, true);
+    assert.deepEqual(stops, [1, 2, 3, 5]);
+    assert.deepEqual([...acknowledgements].sort((a, b) => a - b), [1, 2, 3, 5]);
+    assert.equal(saved.filter(value => value.kind === "reference").length, 4);
+    assert.equal(saved.filter(value => value.kind === "receipt").length, 4);
+    assert.ok(models.every(owner => owner.idle()), "all original serial model queues must drain");
+    const sharedWaits = events.filter(event => event.stage === "wait-called" && event.group.length === 2);
+    assert.equal(sharedWaits.length, 2);
+    console.error("current-end-shared-sdk counter", JSON.stringify({ original_queues_drained: true,
+        original_packet_joins_drained: true, original_ends: acknowledgements.size,
+        shared_wait_before_slow_join_release: beforeRelease.shared_wait_started,
+        independent_waits_completed_while_shared_join_held: beforeRelease.independent_waits_completed,
+        independent_snapshots_completed_while_shared_join_held: beforeRelease.independent_snapshots_completed,
+        all_shared_waits_after_both_end_acknowledgements: sharedWaits.every(event => [1, 5].every(index => event.acknowledged.includes(index))) }));
+    assert.ok(sharedWaits.every(event => [1, 5].every(index => event.acknowledged.includes(index))),
+        "shared exact SDK began an original wait before sibling End acknowledgement");
 });

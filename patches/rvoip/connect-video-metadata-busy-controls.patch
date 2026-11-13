@@ -1,0 +1,262 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs
+@@ -394,3 +394,5 @@
+         assert!(f.policy.0.try_write().is_ok());
+     }
+ }
++
++mod metadata_busy;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair/metadata_busy.rs
+@@ -0,0 +1,248 @@
++//! A transient policy-metadata refusal cannot discard one current VP8 fragment.
++//! Original packet age, incarnation, audience and current grants remain mandatory.
++use super::*;
++use std::{
++    future::Future,
++    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
++    task::Poll,
++};
++
++struct OneBusyPolicy {
++    inner: Arc<Policy>,
++    armed: Arc<AtomicBool>,
++    busy: Arc<AtomicUsize>,
++}
++impl MediaPolicy for OneBusyPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if scope.connection.as_str() == "bob" && self.armed.swap(false, Ordering::AcqRel) {
++            self.busy.fetch_add(1, Ordering::AcqRel);
++            return Err(StreamControlError::MetadataBusy);
++        }
++        self.inner.current(scope)
++    }
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current_participant_receive(scope, source)
++    }
++}
++async fn fixture(medium: Medium) -> (Fixture, Arc<AtomicBool>, Arc<AtomicUsize>) {
++    let armed = Arc::new(AtomicBool::new(false));
++    let busy = Arc::new(AtomicUsize::new(0));
++    let (a, b) = (armed.clone(), busy.clone());
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new(move |inner| {
++            Arc::new(OneBusyPolicy {
++                inner,
++                armed: a,
++                busy: b,
++            })
++        })),
++    );
++    f.start(&[medium]).await;
++    (f, armed, busy)
++}
++async fn close(f: &Fixture) -> bool {
++    let a = f.a.shutdown(deadline()).await;
++    let b = f.b.shutdown(deadline()).await;
++    a == 0
++        && b == 0
++        && f.aa.outstanding.load(Ordering::Acquire) == 0
++        && f.ba.outstanding.load(Ordering::Acquire) == 0
++}
++
++#[tokio::test]
++async fn one_metadata_busy_video_fragment_delivers_and_repairs_same_original_with_no_renewed_age() {
++    for medium in [Medium::Video, Medium::Screen] {
++        let (f, armed, busy) = fixture(medium).await;
++        let packet = queued(&f, medium).await;
++        let original = packet.frame.clone();
++        let original_until = packet.admitted_at + Duration::from_millis(200);
++        let delivered = Arc::new(AtomicUsize::new(0));
++        let same_original = Arc::new(AtomicBool::new(true));
++        let observed = same_original.clone();
++        let writes = delivered.clone();
++        let expected = original.clone();
++        armed.store(true, Ordering::Release);
++        let mut attempt = Box::pin(
++            packet.deliver_video_with_repair(move |frame, _| async move {
++                observed.fetch_and(
++                    frame.payload == expected.payload
++                        && frame.timestamp_rtp == expected.timestamp_rtp
++                        && frame.captured_at == expected.captured_at
++                        && frame.stream_id == expected.stream_id,
++                    Ordering::AcqRel,
++                );
++                writes.fetch_add(1, Ordering::AcqRel);
++                Ok(())
++            }),
++        );
++        let first = std::future::poll_fn(|cx| Poll::Ready(attempt.as_mut().poll(cx))).await;
++        let pending = first.is_pending();
++        let no_readers = f.policy.0.try_write().is_ok();
++        let no_early_io = delivered.load(Ordering::Acquire) == 0;
++        let outcome = match first {
++            Poll::Ready(result) => {
++                drop(attempt);
++                result
++            }
++            Poll::Pending => attempt.await,
++        };
++        let mut same_expiry = false;
++        let mut repaired = false;
++        let result_kind = match outcome {
++            Ok(repair) => {
++                same_expiry = repair.expires_at() == original_until;
++                let expected = original.clone();
++                let writes = delivered.clone();
++                let observed = same_original.clone();
++                repaired = repair
++                    .repair(move |frame, _| async move {
++                        observed.fetch_and(
++                            frame.payload == expected.payload
++                                && frame.timestamp_rtp == expected.timestamp_rtp
++                                && frame.captured_at == expected.captured_at
++                                && frame.stream_id == expected.stream_id,
++                            Ordering::AcqRel,
++                        );
++                        writes.fetch_add(1, Ordering::AcqRel);
++                        Ok(())
++                    })
++                    .await
++                    .is_ok();
++                drop(repair);
++                "ok"
++            }
++            Err(StreamControlError::MetadataBusy) => "metadata-busy",
++            Err(_) => "other-refusal",
++        };
++        let joined = close(&f).await;
++        println!("video_metadata_busy medium={medium:?} busy={} pending={pending} no_readers={no_readers} no_early_io={no_early_io} result={result_kind} same_expiry={same_expiry} repaired={repaired} writes={} joined={joined}", busy.load(Ordering::Acquire), delivered.load(Ordering::Acquire));
++        assert!(
++            joined,
++            "all original controlled Core ports must close before the oracle"
++        );
++        assert_eq!(busy.load(Ordering::Acquire), 1);
++        assert!(
++            no_readers && no_early_io,
++            "refused metadata held authority or entered IO"
++        );
++        assert!(pending && result_kind == "ok" && same_expiry && repaired && same_original.load(Ordering::Acquire) && delivered.load(Ordering::Acquire) == 2,
++            "one transient MetadataBusy discarded the original current VP8 fragment before guarded delivery/repair");
++    }
++}
++
++#[tokio::test]
++async fn retrying_video_metadata_cannot_restore_revoked_audience_generation_or_expired_original() {
++    for action in [
++        "source",
++        "target",
++        "audience",
++        "source-gate",
++        "target-gate",
++        "cancel",
++        "age",
++    ] {
++        let (f, armed, busy) = fixture(Medium::Video).await;
++        let packet = queued(&f, Medium::Video).await;
++        let original_until = packet.admitted_at + Duration::from_millis(200);
++        let entered = Arc::new(AtomicUsize::new(0));
++        let calls = entered.clone();
++        armed.store(true, Ordering::Release);
++        let mut attempt = Box::pin(packet.deliver_video_with_repair(move |_, _| async move {
++            calls.fetch_add(1, Ordering::AcqRel);
++            Ok(())
++        }));
++        let first = std::future::poll_fn(|cx| Poll::Ready(attempt.as_mut().poll(cx))).await;
++        let pending = first.is_pending();
++        let released = f.policy.0.try_write().is_ok();
++        match action {
++            "source" | "target" => {
++                f.policy
++                    .0
++                    .try_write()
++                    .unwrap()
++                    .revoked
++                    .insert(if action == "source" { "alice" } else { "bob" }.into());
++            }
++            "audience" => f.policy.0.try_write().unwrap().private = true,
++            "source-gate" | "target-gate" => {
++                let c = if action == "source-gate" { &f.a } else { &f.b };
++                let ids = [desired(Medium::Video).logical_id].into_iter().collect();
++                for change in [StreamGateAction::Pause, StreamGateAction::Resume] {
++                    c.set_media_gate(c.revision(), &ids, change, deadline())
++                        .await
++                        .unwrap();
++                }
++            }
++            "cancel" => f.b.shutdown.cancel(),
++            _ => {
++                tokio::time::sleep_until(tokio::time::Instant::from_std(
++                    original_until + Duration::from_millis(1),
++                ))
++                .await
++            }
++        }
++        let result = match first {
++            Poll::Ready(result) => {
++                drop(attempt);
++                result
++            }
++            Poll::Pending => attempt.await,
++        };
++        let refused = result.is_err();
++        let expired = matches!(&result, Err(StreamControlError::Deadline));
++        drop(result);
++        let joined = close(&f).await;
++        assert!(joined, "original Core owners not joined for {action}");
++        assert!(
++            pending && released && busy.load(Ordering::Acquire) == 1,
++            "negative did not enter the original metadata defer: {action}"
++        );
++        assert!(
++            refused && entered.load(Ordering::Acquire) == 0,
++            "withdrawn {action} reached callback"
++        );
++        if action == "age" {
++            assert!(expired, "original 200ms bound was renewed");
++        }
++    }
++}
++
++#[tokio::test]
++async fn metadata_retry_never_repeats_an_entered_video_callback_or_issues_repair_after_refusal() {
++    for metadata in [true, false] {
++        let (f, armed, busy) = fixture(Medium::Video).await;
++        let packet = queued(&f, Medium::Video).await;
++        let entered = Arc::new(AtomicUsize::new(0));
++        let calls = entered.clone();
++        armed.store(true, Ordering::Release);
++        let result = packet
++            .deliver_video_with_repair(move |_, _| async move {
++                calls.fetch_add(1, Ordering::AcqRel);
++                Err(if metadata {
++                    StreamControlError::MetadataBusy
++                } else {
++                    StreamControlError::NotReady
++                })
++            })
++            .await;
++        let original_error = if metadata {
++            matches!(&result, Err(StreamControlError::MetadataBusy))
++        } else {
++            matches!(&result, Err(StreamControlError::NotReady))
++        };
++        drop(result);
++        let released = f.policy.0.try_write().is_ok();
++        let joined = close(&f).await;
++        assert!(joined && released);
++        assert_eq!(busy.load(Ordering::Acquire), 1);
++        assert!(
++            original_error && entered.load(Ordering::Acquire) == 1,
++            "entered IO was replayed or repair authority issued"
++        );
++    }
++}

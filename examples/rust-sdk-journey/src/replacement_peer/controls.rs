@@ -140,17 +140,21 @@ fn observed(
     }
 }
 async fn save(path: &PathBuf, value: &Value) -> Result<()> {
-    let mut options = std::fs::OpenOptions::new();
+    let mut options = tokio::fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
-    let mut file = tokio::fs::File::from_std(options.open(path)?);
+    let mut file = options.open(path).await?;
     file.write_all(&serde_json::to_vec(value)?).await?;
     file.sync_all().await?;
-    std::fs::File::open(path.parent().ok_or("private control directory required")?)?.sync_all()?;
+    #[cfg(test)]
+    durability_tests::before_directory_sync(path)?;
+    tokio::fs::File::open(path.parent().ok_or("private control directory required")?)
+        .await?
+        .sync_all()
+        .await?;
     Ok(())
 }
 fn child_scope(
@@ -635,3 +639,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "controls/durability_tests.rs"]
+mod durability_tests;

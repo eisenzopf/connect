@@ -2230,6 +2230,18 @@
       "path": "patches/rvoip/connect-owned-video-feedback-ice-component-alias-controls.patch",
       "sha256": "b88c3372229aaebd8801f88ca8951acf091d7b1f4b264d9d3ebac9b0bdf9c00d",
       "source": "Test-only correction of actual RTC feedback controls: pinned rtc SDP emits component1 and2 aliases for one socket. Require exact same loopback UDP host socket and per-active-audio/video RTCPmux; retain exact packet owner/drop/current-authority/original-expiry oracles. Existing3selectors add inline positive and foreign-port/interface/component/missingMux negatives; no production change or historical media cause claim."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-video-metadata-busy-controls.patch",
+      "sha256": "d462307badb7b774819eec65c5f87ea92b1523cb8434a0758d906091f4787cce",
+      "source": "Causal and security controls for original realtime Video/Screen pre-IO MetadataBusy: identical fragment and original repair expiry, current source/target/audience/generation/cancel/age refusals, entered callback non-replay. Tests-only registration allows original old-source refusal to be observed before adding the repair; no production change or historical matrix cause claim."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-video-metadata-busy-retry.patch",
+      "sha256": "9937e44885ec59927a602ee728c674be0934b26ede98ed625c883b9191c82bd0",
+      "source": "Retry pre-IO MetadataBusy for original realtime Video/Screen as Audio already does. Reuse original <=200ms age and every fresh current source/target/audience/generation guard; Data and entered callback outcomes unchanged. Controls registered immediately before this patch reproduce the old original-fragment drop at its final desired oracle after natural owner cleanup. Actual historical matrix loss attribution remains separate."
     }
   ]
 }

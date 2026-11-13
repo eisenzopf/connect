@@ -74,6 +74,22 @@ def record_native_failure(report, phase, error=None, *, line=None):
     report["passed"] = False
 
 
+
+def merge_native_failures(report, deferred):
+    """Adjudicate already recorded late controls after ordinary media verdicts."""
+    for original in deferred.get("additional_failures", []):
+        row = dict(original)
+        report.setdefault("failure", row)
+        failures = report.setdefault("additional_failures", [])
+        if len(failures) < FAILURE_LIMIT:
+            failures.append(row)
+        else:
+            report["additional_failure_overflow"] = report.get("additional_failure_overflow", 0) + 1
+        report["passed"] = False
+    if deferred.get("additional_failure_overflow", 0):
+        report["additional_failure_overflow"] = report.get("additional_failure_overflow", 0) + deferred["additional_failure_overflow"]
+
+
 def ordinary_native_check(report, phase, condition):
     if condition is not True:
         record_native_failure(report, phase)

@@ -65,10 +65,13 @@ async fn proceed() -> Result<()> {
     Ok(())
 }
 #[tokio::main]
-async fn main() {
-    if let Err(e) = run().await {
-        eprintln!("external public SDK journey failed: {e}");
-        std::process::exit(1);
+async fn main() -> std::process::ExitCode {
+    match run().await {
+        Ok(()) => std::process::ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("external public SDK journey failed: {e}");
+            std::process::ExitCode::FAILURE
+        }
     }
 }
 async fn run() -> Result<()> {

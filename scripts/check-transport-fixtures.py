@@ -27,7 +27,7 @@ from lib.native_matrix_idle import run_native_matrix
 from lib.native_matrix_authority import run_native_authority
 from lib.native_conversation_visibility import owned_conversation_ids
 from lib.native_programme_controls import (LATE_MARKER, ordinary_native_check, record_native_failure,
-    original_native_owners_joined, run_late_native_controls, late_controls_not_run, wait_original_control_child, terminate_original_control_child)
+    original_native_owners_joined, run_late_native_controls, late_controls_not_run, merge_native_failures, CONTROL_ERRORS, wait_original_control_child, terminate_original_control_child)
 from lib.mac_linux_fixture import MacLinuxFixture, rewrite_paths
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -657,8 +657,8 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                             PRIVATE / "conversation-control.log", directory=PRIVATE / "process-profile", server_pid=server_pid,
                             endpoint=f"http://127.0.0.1:{http}/v1/operations", credential=administrative["credential"], capture=capture_config,
                             resource_cycles=resource_cycles, budget=300 * resource_cycles)
-                        for directory in (OUTPUT, *( [PRIVATE / ("native-cycle-" + str(i)) for i in (1, 2, 3)] if resource_cycles == 3 else [PRIVATE / "conversation-control"]), PRIVATE / "av-received"):
-                            remote.collect_directory(directory)
+                        for collected_directory in (OUTPUT, *( [PRIVATE / ("native-cycle-" + str(i)) for i in (1, 2, 3)] if resource_cycles == 3 else [PRIVATE / "conversation-control"]), PRIVATE / "av-received"):
+                            remote.collect_directory(collected_directory)
                         report["remote_client_owner"] = remote.close(release_lease=False)
                         report["server_after_guest"] = remote.server_proof(server_pid, binary, report["binary_sha256"], native)
                         capture_path = PRIVATE / "process-profile/native-capture-observation.json"
@@ -749,6 +749,68 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                     report["movement"] = dict(passed=False, moves=[], failure=observed.get("failure", {}))
                 report.setdefault("current_authority", {})["conflict"] = dict(passed=
                     "membership-update-original-replay-changed-intent-and-stale-revision-guards" in observed.get("checks", []))
+                identity_ok = (observed.get("signing_algorithm") == signing_algorithm
+                    and observed.get("host", {}).get("platform") == ("ubuntu24-arm64" if remote is not None else server_platform)
+                    and observed.get("source_revision") == report["source_revision"]
+                    and observed.get("binary_sha256") == report.get("client_binary_sha256", report["binary_sha256"])
+                    and observed.get("server_binary_sha256") == report["binary_sha256"])
+                late_failures = {}
+                expected_owned = None
+                try:
+                    create_proofs = []
+                    for index, original in enumerate(cycle_observations, 1):
+                        cycle_directory = PRIVATE / ("native-cycle-" + str(index)) if resource_cycles == 3 else PRIVATE
+                        owned_directory = cycle_directory / "conversation-control"
+                        owned_plan = owned_directory / "plan.json"
+                        original_reference = owned_directory / "original-operation.json"
+                        assert not owned_plan.is_symlink() and digest(owned_plan) == original["plan_sha256"]
+                        assert not original_reference.is_symlink()
+                        create_proofs.append(dict(planned_create_operation_id=json.loads(owned_plan.read_text())["create"],
+                            reference=json.loads(original_reference.read_text()), reference_sha256=digest(original_reference)))
+                    expected_owned = owned_conversation_ids(cycle_observations, create_proofs, resource_cycles)
+                    report["native_programme_conversation_ownership"] = dict(
+                        cycles=resource_cycles, exact_owned_conversation_ids=sorted(expected_owned),
+                        original_create_operation_ids=[proof["planned_create_operation_id"] for proof in create_proofs],
+                        before_revocation_exact=False, after_revocation_exact=False)
+                except CONTROL_ERRORS as error:
+                    record_native_failure(late_failures, "original-native-create-lineage", error,
+                        line=traceback.extract_tb(error.__traceback__)[-1].lineno)
+                    report["native_programme_conversation_ownership"] = dict(cycles=resource_cycles,
+                        lineage_confirmed=False, before_revocation_exact=False, after_revocation_exact=False)
+                def revoke_original_primary():
+                    command = ["revoke", "--config", state / "operator.application.toml", "--operation-id", "transport-actor-revoke-primary-1", records["participant-1"]["credential_id"]]
+                    return json.loads(run("revoke-primary-device", command))["result"]["Ok"]["revoked"] is True
+                def original_primary_refused():
+                    refusal = json.loads(run("revoked-primary-native-refusal", ["request", "--config", records["participant-1"]["config"], "--envelope"],
+                        dict(command=dict(type="conversation.list", payload=dict(filter={}, limit=20)), scope={}), success=False))
+                    return refusal["result"]["Err"]["code"] == "unauthorized"
+                try:
+                    report["late_native_controls"] = (late_controls_not_run("original-programme-source-identity-or-create-lineage-unconfirmed")
+                        if not identity_ok or expected_owned is None else run_late_native_controls(late_failures,
+                        owners_joined=original_native_owners_joined(report, media_workload, resource_cycles),
+                        owners=records.keys() - {"participant-1"}, expected=expected_owned,
+                        before_read=lambda name: rooms(name + "-before-revocation", Path(records[name]["config"])),
+                        revoke_primary=revoke_original_primary, primary_refused=original_primary_refused,
+                        after_read=lambda name: rooms(name + "-after-revocation", Path(records[name]["config"])),
+                        configs_unchanged=lambda: files(directory) == installed))
+                except BaseException:
+                    if "late_native_controls" in late_failures:
+                        report["late_native_controls"] = late_failures["late_native_controls"]
+                    raise
+                report["native_programme_conversation_ownership"].update(
+                    before_revocation_exact=report["late_native_controls"].get("all_before_exact") is True,
+                    after_revocation_exact=report["late_native_controls"].get("all_after_same") is True)
+                if remote is not None and media_workload:
+                    phase = "owned-native-final-guest-work"
+                    try:
+                        remote.finish_native_guest_work([OUTPUT,
+                            *([PRIVATE / ("native-cycle-" + str(i)) for i in (1, 2, 3)] if resource_cycles == 3 else [PRIVATE / "conversation-control"]),
+                            PRIVATE / "av-received"])
+                    except Exception as error:
+                        record_native_failure(late_failures, phase, error,
+                            line=traceback.extract_tb(error.__traceback__)[-1].lineno)
+                # No further fixture guest command is needed. The same original
+                # guardian is joined before HOST-only independent decode.
                 # A later control/recovery failure must not discard the already
                 # completed native media observation. Preserve both results.
                 decoded = None
@@ -805,39 +867,7 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
                         report["checks"].append("six-native-opus-vp8-routes-have-independently-decoded-source-identity-and-moving-360p-content")
                 if control_ok:
                     report["checks"].append("public-sdk-membership-audiences-two-session-intents-and-independent-device-original-recovery")
-                create_proofs = []
-                for index, original in enumerate(cycle_observations, 1):
-                    cycle_directory = PRIVATE / ("native-cycle-" + str(index)) if resource_cycles == 3 else PRIVATE
-                    owned_directory = cycle_directory / "conversation-control"
-                    owned_plan = owned_directory / "plan.json"
-                    original_reference = owned_directory / "original-operation.json"
-                    assert not owned_plan.is_symlink() and digest(owned_plan) == original["plan_sha256"]
-                    assert not original_reference.is_symlink()
-                    create_proofs.append(dict(planned_create_operation_id=json.loads(owned_plan.read_text())["create"],
-                        reference=json.loads(original_reference.read_text()), reference_sha256=digest(original_reference)))
-                expected_owned = owned_conversation_ids(cycle_observations, create_proofs, resource_cycles)
-                report["native_programme_conversation_ownership"] = dict(
-                    cycles=resource_cycles, exact_owned_conversation_ids=sorted(expected_owned),
-                    original_create_operation_ids=[proof["planned_create_operation_id"] for proof in create_proofs],
-                    before_revocation_exact=False, after_revocation_exact=False)
-                def revoke_original_primary():
-                    command = ["revoke", "--config", state / "operator.application.toml", "--operation-id", "transport-actor-revoke-primary-1", records["participant-1"]["credential_id"]]
-                    return json.loads(run("revoke-primary-device", command))["result"]["Ok"]["revoked"] is True
-                def original_primary_refused():
-                    refusal = json.loads(run("revoked-primary-native-refusal", ["request", "--config", records["participant-1"]["config"], "--envelope"],
-                        dict(command=dict(type="conversation.list", payload=dict(filter={}, limit=20)), scope={}), success=False))
-                    return refusal["result"]["Err"]["code"] == "unauthorized"
-                report["late_native_controls"] = (late_controls_not_run("original-programme-source-identity-unconfirmed")
-                    if not identity_ok else run_late_native_controls(report,
-                    owners_joined=original_native_owners_joined(report, media_workload, resource_cycles),
-                    owners=records.keys() - {"participant-1"}, expected=expected_owned,
-                    before_read=lambda name: rooms(name + "-before-revocation", Path(records[name]["config"])),
-                    revoke_primary=revoke_original_primary, primary_refused=original_primary_refused,
-                    after_read=lambda name: rooms(name + "-after-revocation", Path(records[name]["config"])),
-                    configs_unchanged=lambda: files(directory) == installed))
-                report["native_programme_conversation_ownership"].update(
-                    before_revocation_exact=report["late_native_controls"].get("all_before_exact") is True,
-                    after_revocation_exact=report["late_native_controls"].get("all_after_same") is True)
+                merge_native_failures(report, late_failures)
                 if report["late_native_controls"]["status"] == "passed":
                     report["checks"].append(LATE_MARKER)
                 elif report["late_native_controls"]["status"] == "not-run":
@@ -881,9 +911,15 @@ def main(actors=False, conversation=False, data_workload=False, signing_algorith
             report["late_native_controls"] = late_controls_not_run("original-programme-control-prerequisites-unavailable")
         if remote is not None:
             try:
-                report["remote_client_owner"] = remote.close()
-                report["remote_binaries_unchanged"] = (None if report["remote_client_owner"].get("preflight_only")
-                    else remote.verify_binaries())
+                # The successful native barrier returns a frozen local binary
+                # proof. On earlier failure, verify while its lease is still held;
+                # always wait the original guardian even if verification raises.
+                try:
+                    owner = remote.close(release_lease=False)
+                    report["remote_binaries_unchanged"] = (None if owner.get("preflight_only")
+                        else remote.verify_binaries())
+                finally:
+                    report["remote_client_owner"] = remote.close()
                 report["passed"] = bool(report["passed"] and report["remote_client_owner"]["passed"] and report["remote_binaries_unchanged"])
             except Exception:
                 report["remote_client_owner"] = dict(passed=False, failure="original-guest-owner-or-binary-unconfirmed")

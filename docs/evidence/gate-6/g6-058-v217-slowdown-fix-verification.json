@@ -1,0 +1,79 @@
+{
+  "format": "connect/g6-058-slowdown-fix-verification/1",
+  "recorded_at": "2026-11-13T08:14:36.599011+00:00",
+  "original_matrix": {
+    "run": "v217",
+    "revision": "fc49c300f7d0c161a836736b1748ccd6fb00ec73",
+    "source_generation": 416,
+    "cells": {
+      "passed": 2,
+      "failed": 30,
+      "blocked": 0,
+      "unrun": 0
+    },
+    "checks": {
+      "passed": 400,
+      "failed": 32,
+      "blocked": 0,
+      "unrun": 0
+    },
+    "independent_adjudication_sha256": "292efa9335b8880dcbc4d32ee3b27a316b0c737b11af9a23b5038b339e9d5de7",
+    "qualified": false,
+    "raw_failed_cells_preserved": true
+  },
+  "current_source": {
+    "dependency_generation": 418,
+    "source_lock_sha256": "64b388666b28ab8cf2a2721adc990c393221c5087f8a8f262758b343ae6cd9a5"
+  },
+  "applied_fixes": [
+    {
+      "id": "v217/S1",
+      "change": "Await original filesystem durability work so the replacement-peer media pump can yield; return ExitCode to let the existing runtime retire naturally.",
+      "verification": "Three actual durable/private/atomic filesystem tests and two existing owner cleanup tests each pass with their original process naturally joined."
+    },
+    {
+      "id": "v217/S2",
+      "change": "Admit all original Session ends on each exact shared SDK before its sibling long waits; keep independent SDK groups independent.",
+      "verification": "Old source reaches its final ordering failure; fixed active-source helper suite passes all 18 tests without changed deadlines or IDs."
+    },
+    {
+      "id": "v217/S5",
+      "change": "Retry pre-IO MetadataBusy for realtime Video and Screen under the same original age and fresh current authority as Audio; never repeat an entered callback.",
+      "verification": "Old Video original is discarded at the intended final oracle after original owners close. Fixed Video and Screen originals deliver and repair at the exact original expiry. All three new controls and 45 retained Core tests pass on generation 418.",
+      "registration": "Separate additive controls and production patches are registered in dependency order as generations 417 and 418."
+    },
+    {
+      "id": "v217/S7",
+      "change": "Retain bounded first/current duplicate-video timestamp evidence across owner retirement.",
+      "verification": "All 31 active-source observer tests pass. Duplicate keys, caps, thresholds and failures are unchanged; this adds evidence and does not cure the original duplicate."
+    },
+    {
+      "id": "v217/S8",
+      "change": "Keep the actor directory distinct from remote capture collection directories.",
+      "verification": "Old source reaches the intended final directory-scope failure. Fixed one/three-cycle cases pass; genuine actor byte/mode mutations still fail. No retrospective historical integrity pass."
+    },
+    {
+      "id": "v217/S9",
+      "change": "Complete all 13 guest calls and original integrity/owner/artifact proofs, then close the original guardian before host-only decoding.",
+      "verification": "Active-source Python cohort passes all 62 tests, including eight new ordering/failure controls and the actor-directory regression. Actual VM queue time improvement awaits a new run; archive custody remains mandatory."
+    }
+  ],
+  "test_counts": {
+    "active_python": 62,
+    "active_node": 49,
+    "affected_Rust_filesystem_and_owner": 5,
+    "new_Core": 3,
+    "retained_Core": 45
+  },
+  "limitations": [
+    "The broader macOS Rust example attempt passed 59 tests and failed six unchanged Linux-only platform assertions before setup; that entire suite is not qualified.",
+    "Fresh all-365 qualification, normal shipping builds and the next full 32-cell matrix remain outstanding.",
+    "WebCodecs four-case and exact public Core Opus history experiments decode cleanly on both histories; they do not reproduce the actual 480-zero frames. The proposed receive-decoder reset remains staged.",
+    "Handoff readiness can discard prepared PCM before ordinary playback is available; a focused adoption-boundary regression and conservative fix design are in progress.",
+    "Existing target-mix PCM diagnostics only cover current-at-capture quanta, not every deferred quantum later encoded.",
+    "G6-058 is not complete; G6-054 remains deferred."
+  ],
+  "normal_preparation": true,
+  "source_format_wrapper_passed": true,
+  "publication_or_GitHub_testing": false
+}

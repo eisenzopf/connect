@@ -171,6 +171,29 @@ function audioProvenance(rows) {
             last_before_end:edge(beforeEnd),first_at_or_after_end:edge(atEnd)})});
 }
 
+// Closed metadata from an already captured row. Only duplicate events call
+// this helper; no extra canvas read, pixel copy, frame credit or network claim.
+function duplicateVideoSnapshot(row,index,presentation=row.presentation){
+    const value={owner:row.owner,row_index:index,original_timestamp_us:row.timestamp,
+        callback_seconds:row.seconds,kind:row.kind,changed:row.changed,dimensions:row.dimensions,
+        native:null,presentation:null};
+    if(row.native){
+        const n=row.native,sequences=n.datagramSequences??[];
+        value.native=Object.freeze({profile:n.profile??null,ssrc:n.ssrc??null,
+            rtp_timestamp:n.rtpTimestamp??null,rtp_sequence:n.rtpSequence??null,
+            datagram_sequences:Object.freeze(sequences.slice(0,32)),
+            omitted_datagram_sequences:Math.max(0,sequences.length-32)});
+    }
+    if(presentation){
+        const fields={};
+        for(const key of ['profile','element_id','callbackTime','mediaTime','presentedFrames',
+            'rtpTimestamp','presentationTime','expectedDisplayTime','captureTime','receiveTime',
+            'processingDuration','width','height'])if(key in presentation)fields[key]=presentation[key];
+        value.presentation=Object.freeze(fields);
+    }
+    return Object.freeze(value);
+}
+
 export class DecodedRoute {
     constructor(index,expected){this.index=index;this.expected=expected;this.audio=[];this.video=[];this.envelope=new AudioEnvelope();
         this.audioBoundaries=[];this.omittedAudioBoundaries=0;this.invalid=[];this.seen=new Set();this.videoHigh=false;this.lastPixels=null;this.videoEdges=[];this.begin=null;this.ownerPixels=new Map();
@@ -184,6 +207,8 @@ export class DecodedRoute {
         this.presentationRefusals = [];
         this.omittedPresentationSamples = 0;
         this.omittedPresentationRefusals = 0;
+        this.videoDuplicateEvents = [];
+        this.omittedVideoDuplicateEvents = 0;
     }
     start(originMs){check(this.begin===null&&Number.isFinite(originMs),'One original measurement clock');this.begin=originMs;}
     audioFrame(owner,timestamp,at,samples,codec=null,native=null,clock=null){
@@ -288,9 +313,23 @@ export class DecodedRoute {
             changed=this.lastPixels!==null&&pixels.some((v,i)=>v!==this.lastPixels[i]);this.lastPixels=pixels.slice();
         }
         if(kind==='pulse'&&!this.videoHigh)this.videoEdges.push(seconds);this.videoHigh=kind==='pulse';
-        this.video.push({owner,seconds,timestamp,kind,duplicate,changed,native,
+        const row={owner,seconds,timestamp,kind,duplicate,changed,native,
             presentation:presentation ? {element_id:presentation.element_id, presentedFrames:presentation.presentedFrames} : null,
-            dimensions:width===640&&height===360});
+            dimensions:width===640&&height===360};
+        if(duplicate){
+            if(this.videoDuplicateEvents.length<16){
+                // At most16 searches of the existing bounded10000-row array.
+                // Reconstruct the SAME original key; no new per-frame map.
+                const first=this.video.findIndex(previous=>(previous.presentation
+                    ?JSON.stringify([previous.owner,'rtc-presentation',previous.presentation.element_id,previous.presentation.presentedFrames])
+                    :previous.owner+':v:'+previous.timestamp)===key);
+                this.videoDuplicateEvents.push(Object.freeze({
+                    first:first<0?null:duplicateVideoSnapshot(this.video[first],first),
+                    current:duplicateVideoSnapshot(row,this.video.length,presentation),
+                    matching_original_row_available:first>=0}));
+            }else this.omittedVideoDuplicateEvents++;
+        }
+        this.video.push(row);
     }
     workingState(){return {audio_rows:this.audio.length,video_rows:this.video.length,
         duplicate_keys:this.seen.size,audio_boundaries:this.audioBoundaries.length,invalid_entries:this.invalid.length,
@@ -301,6 +340,7 @@ export class DecodedRoute {
         audio_provenance_edges:this.audioProvenance?Object.values(this.audioProvenance.window_edges).filter(value=>value!==null&&typeof value==='object').length:0,
         presentation_owners:this.presentationOwners.size, presentation_samples:this.presentationSamples.length,
         presentation_refusals:this.presentationRefusals.length,
+        video_duplicate_events:this.videoDuplicateEvents.length, video_duplicate_events_omitted:this.omittedVideoDuplicateEvents,
         video_edges:this.videoEdges.length,audio_cuts:this.audioCuts.length,video_cuts:this.videoCuts.length,
         last_pixel_bytes:this.lastPixels?.byteLength??0,
         owner_pixel_bytes:[...this.ownerPixels.values()].reduce((sum,pixels)=>sum+pixels.byteLength,0)};}
@@ -319,6 +359,8 @@ export class DecodedRoute {
         this.presentationRefusals = [];
         this.omittedPresentationSamples = 0;
         this.omittedPresentationRefusals = 0;
+        this.videoDuplicateEvents = [];
+        this.omittedVideoDuplicateEvents = 0;
         this.videoHigh=false;this.begin=null;
     }
     report(include=()=>true,renderedRoute=null){
@@ -433,6 +475,14 @@ export class DecodedRoute {
             maximum_decode_callback_gap_ms:Math.max(...callbackTimes.slice(1).map((at,i)=>Math.max(0,at-callbackTimes[i])))*1000,
             decoded_frames:video.length,changing_frames_per_second:perSecond,minimum_fps:Math.min(...perSecond),
             identity,dimension_refusals:video.filter(row=>!row.dimensions).length,original_source_timestamp_overlaps:videoSourceOverlaps,duplicate_frames:video.filter(row=>row.duplicate).length,
+            duplicate_diagnostics:Object.freeze({profile:'connect/decoded-video-duplicate-evidence/1',limit:16,
+                scope:'Repeated original observer identity only; no packet-duplicate cause, pixel equality, additional frame credit or quality exception',
+                source_frame_bits:null,
+                source_frame_bits_unavailable:'Generic decoded routes have no self-identifying source-bit layout; no pixels are reread or reinterpreted',
+                omitted:this.omittedVideoDuplicateEvents,
+                events:Object.freeze(this.videoDuplicateEvents.filter(event=>
+                    originalVideo.includes(this.video[event.current.row_index])
+                    &&(!event.first||originalVideo.includes(this.video[event.first.row_index]))))}),
             transition_coverage:videoCoverage,required_changing_frames_per_second:requiredFrames,
             passed:videoSourceOverlaps===0&&perSecond.every((count,index)=>count>=requiredFrames[index])
                 &&changingVideo.length>=1440&&identity.status==='passed'&&video.every(row=>row.dimensions&&!row.duplicate)

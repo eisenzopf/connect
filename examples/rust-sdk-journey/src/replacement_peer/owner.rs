@@ -56,14 +56,13 @@ pub(super) async fn ready(
 ) -> Result<()> {
     let path = output.with_extension("owner-ready.json");
     let temporary = output.with_extension("owner-ready.tmp");
-    let mut options = std::fs::OpenOptions::new();
+    let mut options = tokio::fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
-    let mut file = tokio::fs::File::from_std(options.open(&temporary)?);
+    let mut file = options.open(&temporary).await?;
     file.write_all(&serde_json::to_vec(&json!({
         "format":"connect/native-replacement-owner-ready/1", "operation_id":original,
         "connection_id":connection, "negotiated_streams":streams, "video_enabled":video,

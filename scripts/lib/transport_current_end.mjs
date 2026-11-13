@@ -55,7 +55,7 @@ export async function endRetainedConnections({ routes, clients, ends, conversati
     }
     current();
     assert.ok(now() >= endAt, "original-media-programme-ended-before-current-end");
-    const submissions = originals.map(async ({ end, route, intent }) => {
+    const admissions = originals.map(async ({ end, route, intent }) => {
         // Cleanup remains owned even if a sibling consumes the original budget.
         // Deadline/cancellation can forbid mutation, never abandon packet joins.
         await route.stopAndJoin();
@@ -68,6 +68,22 @@ export async function endRetainedConnections({ routes, clients, ends, conversati
         assert.deepEqual(JSON.parse(JSON.stringify(reference.scope)), { conversation_id: conversationId,
             session_id: sessions[route.sessionIndex].id, connection_id: route.connection.id });
         await persist(end.index, "reference", reference);
+        return { end, route, operation, reference };
+    });
+    // The same helper serializes control calls. Finish every original End
+    // admission on that exact SDK before any sibling starts a long wait; a
+    // slower packet join must not queue its mutation behind that wait.
+    const admissionGroups = new Map();
+    originals.forEach((original, index) => {
+        const client = clients[original.end.index];
+        if (!admissionGroups.has(client)) admissionGroups.set(client, []);
+        admissionGroups.get(client).push(admissions[index]);
+    });
+    const admitted = new Map([...admissionGroups].map(([client, work]) =>
+        [client, Promise.allSettled(work)]));
+    const submissions = originals.map(async (original, index) => {
+        const { end, route, operation, reference } = await admissions[index];
+        await admitted.get(clients[original.end.index]);
         const completed = await operation.wait({ timeoutMs: remaining() });
         assert.equal(completed.snapshot.state, "completed");
         assert.equal(completed.value.id, route.connection.id);

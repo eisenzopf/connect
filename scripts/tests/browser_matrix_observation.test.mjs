@@ -185,7 +185,7 @@ test('decoded identity refuses silence and another participant rather than trust
     assert.equal(pcmIdentity(tone(440),1).identified,false);
     assert.equal(pcmIdentity(new Float32Array(960),1).identified,false);
 });
-function observed({gap=false,duplicate=false,interruptionMs=0,cutMs=null,videoGap=false,wrongSource=false,rtcPresentation=false,audioArrivalStepMs=0,audioDelayMs=0,quantumAttribution=null}={}){
+function observed({gap=false,duplicate=false,videoDuplicate=false,interruptionMs=0,cutMs=null,videoGap=false,wrongSource=false,rtcPresentation=false,audioArrivalStepMs=0,audioDelayMs=0,quantumAttribution=null}={}){
     const route=new DecodedRoute(0,1);route.start(1000);const pulses=markerFrames().map(frame=>frame/30);
     if(cutMs!==null){const cut={id:'original-validated-target',atMs:cutMs};route.audioCuts.push(cut);route.videoCuts.push(cut);}
     const gapSeconds=(gap?500:interruptionMs)/1000;
@@ -221,6 +221,8 @@ function observed({gap=false,duplicate=false,interruptionMs=0,cutMs=null,videoGa
             element_id:i<450?1:2, presentedFrames:i<450?i+1:i-449, mediaTime:0, rtpTimestamp:i*3000} : null;
         route.videoFrame(i<450?'original':'target',rtcPresentation?0:Math.round(at*1e6),
             1000+at*1000+15,gray,new Uint8Array([i%256]),640,360,null,presentation);
+        if(videoDuplicate&&i===1000)route.videoFrame('target',Math.round(at*1e6),
+            1000+at*1000+15.1,gray,new Uint8Array([i%256]),640,360);
     }
     return route.report();
 }
@@ -748,4 +750,53 @@ test('audio provenance has fixed caps and detached immutable reports survive ret
     assert.ok(Object.values(route.workingState()).every(value=>value===0));
     assert.equal(route.audioProvenance,null);
     assert.equal(JSON.stringify(evidence),saved,'Retirement releases working roots without erasing original reports');
+});
+
+
+test('bounded duplicate-video evidence preserves original identities and failure through retirement without inventing packet causality',()=>{
+    const baseline=observed(),repeated=observed({videoDuplicate:true});
+    assert.equal(baseline.passed,true);
+    assert.equal(repeated.video.passed,false);assert.equal(repeated.video.duplicate_frames,1);
+    assert.deepEqual(repeated.audio,baseline.audio);assert.deepEqual(repeated.sync,baseline.sync);
+    assert.deepEqual(repeated.video.changing_frames_per_second,baseline.video.changing_frames_per_second,
+        'No duplicate output acquires additional changing-frame credit');
+    const pair=repeated.video.duplicate_diagnostics.events[0];
+    assert.equal(pair.first.owner,'target');assert.equal(pair.current.owner,'target');
+    assert.equal(pair.first.row_index,1000);assert.equal(pair.current.row_index,1001);
+    assert.equal(pair.first.original_timestamp_us,Math.round(1000/30*1e6));
+    assert.equal(pair.first.original_timestamp_us,pair.current.original_timestamp_us);
+    assert.ok(pair.current.callback_seconds>pair.first.callback_seconds);
+    assert.equal(pair.first.native,null);assert.equal(pair.current.native,null);
+    assert.equal(pair.first.presentation,null);assert.equal(pair.current.presentation,null);
+
+    const route=new DecodedRoute(0,1);route.start(0);
+    const gray=Array(64).fill(100),pixels=new Uint8Array([1]);
+    const firstNative={profile:'connect/native-decoded-sequence/1',ssrc:7,rtpTimestamp:90,rtpSequence:1,datagramSequences:[101]},
+        currentNative={profile:'connect/native-decoded-sequence/1',ssrc:7,rtpTimestamp:91,rtpSequence:2,datagramSequences:[102]};
+    const add=(owner,stamp,at,native=null)=>route.videoFrame(owner,stamp,at,gray,pixels,640,360,native);
+    add('original',99,2000,firstNative);
+    add('different-owner',99,2010);
+    add('original',200,2020);
+    assert.equal(route.videoDuplicateEvents.length,0,'Neither another owner nor repeated pixels with distinct timestamps collides');
+    add('original',99,2030,currentNative);
+    for(let i=0;i<19;i++)add('original',99,2040+i,currentNative);
+    const report=route.report(),diagnostic=report.video.duplicate_diagnostics,saved=JSON.stringify(diagnostic);
+    assert.equal(report.video.duplicate_frames,20);assert.equal(report.video.passed,false);
+    assert.equal(diagnostic.events.length,16);assert.equal(diagnostic.omitted,4);
+    assert.equal(diagnostic.source_frame_bits,null,'No unverified overlay format becomes source identity');
+    const witness=diagnostic.events[0];
+    assert.equal(witness.first.row_index,0);assert.equal(witness.current.row_index,3);
+    assert.equal(witness.first.native.rtp_timestamp,90);assert.equal(witness.current.native.rtp_timestamp,91,
+        'Original equal decoded timestamps do not manufacture equal RTP timestamps');
+    assert.deepEqual(witness.first.native.datagram_sequences,[101]);assert.deepEqual(witness.current.native.datagram_sequences,[102]);
+    assert.equal(route.report(row=>row.owner!=='original').video.duplicate_diagnostics.events.length,0,
+        'The same original inclusion filter excludes both diagnostic owners');
+    assert.equal(route.report(row=>row.seconds>2.01).video.duplicate_diagnostics.events.length,0,
+        'A filtered-out first observation cannot become diagnostic evidence');
+    firstNative.datagramSequences.push(999);currentNative.rtpTimestamp=999;
+    assert.equal(JSON.stringify(diagnostic),saved,'Captured original headers are detached from caller metadata');
+    assert.ok(Object.isFrozen(diagnostic)&&Object.isFrozen(diagnostic.events)&&Object.isFrozen(witness.first.native));
+    assert.throws(()=>witness.current.native.datagram_sequences.push(999),TypeError);
+    route.retireWorkingState();assert.ok(Object.values(route.workingState()).every(value=>value===0));
+    assert.equal(JSON.stringify(diagnostic),saved,'Retirement releases working roots without erasing original duplicate evidence');
 });
