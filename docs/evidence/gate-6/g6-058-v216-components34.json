@@ -1,0 +1,53 @@
+{
+  "format": "connect/g6-058-complete361/1",
+  "updated": "2026-11-13T03:17:00.786239+00:00",
+  "scope": "Complete component/signed regression; no transport matrix promotion.",
+  "source_revision": "9c02aadb589c5a6ea5812ae2e61e5a2d52f534d3",
+  "normal_generation": 416,
+  "builds_passed": 5,
+  "combined_build_seconds": 1573.6,
+  "completed": 361,
+  "passed": 360,
+  "failed": 1,
+  "aggregate_passed": false,
+  "all361_exactly_once": true,
+  "all11_ignored_explicitly_executed": true,
+  "all_full_data_control_paths_observed": true,
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "binaries_unchanged": true,
+  "inputs_unchanged": true,
+  "original_build_and_runtime_controllers_joined": true,
+  "original_runtime_exit_code": 1,
+  "results_sha256": "7aec6826f633962b4e81da1048e0e4c840e79d66975981bcc55bfec915fc89de",
+  "root_join_sha256": "b7427a788e94cfc24ed730169307f23154b3c38b34c19bb373fb9a7b3c677f80",
+  "full_programmes": {
+    "EdDSA": {
+      "passed": true,
+      "all_original_owners_joined_us": 65918857,
+      "session_ends_completed": 2,
+      "data_gate_first_recordings": 4,
+      "subscription_first_recordings": 8
+    },
+    "ES256": {
+      "passed": true,
+      "all_original_owners_joined_us": 64914006,
+      "session_ends_completed": 2,
+      "data_gate_first_recordings": 4,
+      "subscription_first_recordings": 8
+    }
+  },
+  "unchanged_cleanup_cutoff_us": 67000000,
+  "remaining_failure": {
+    "selector": "peer_authority::tests::four_current_snapshot_transactions_are_independent_and_saturation_preserves_original_wait",
+    "expected_checkpoints": 4,
+    "observed_checkpoints": 3,
+    "individual_worker_error": "Unreported: existing test asserts count before inspecting worker results.",
+    "source_finding": "create_captured publishes cache entry then separately looks it up for its own first page. Concurrent lawful creates under per-identity quota2 can evict it between those steps.",
+    "actual_leaf_attribution": "Not yet proven for the3/4 event; deterministic old-condition test and original worker-error reporting required.",
+    "required_fix": "Render first page from the owned frozen capture while preserving current checks and quota; later evicted continuation pages must still resync."
+  },
+  "next": "Fix and causally test first-page snapshot creation, retain all361 and add deterministic concurrency regression in complete362, then actualsourceprep/shipping/all32.",
+  "matrix_qualified": false,
+  "independent_actual_whole_run_review_sha256": "eacb13e8dc32dd7a43324f51bcd749663ceb7acb69ccbca5bcac71f7bbdd067a"
+}

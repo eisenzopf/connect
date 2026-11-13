@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T02:30:22.704051+00:00",
-  "run_status": "Focused36 passes14/14 plus normal default four-library check. Snapshot/retirement contention and single Start-read fixes are component verified; prior failures preserved. Preparing coherent commit/full361, then normal Mac/nativeARM shipping and all32/all432. Original matrix remains0/32 qualified.",
+  "updated": "2026-11-13T03:26:13.451032+00:00",
+  "run_status": "First-page race causally fixed; focused39 all15 pass plus normaldefault4. Priorcomplete361 stays360/361 withbothfull62quality/cleanupPASS. Preparing coherent commit/current12/complete362, then normalMac/ARMshipping andall32. Matrix0/32 remains.",
   "blockers": [
     {
       "id": "B01",
@@ -1571,10 +1571,10 @@
     {
       "id": "B192",
       "title": "Retained-owner control requests exhaust shared cleanup cutoff",
-      "status": "Component verified: causal old contention fixed; all14snapshot/start controls pass including genuine retirement and current security. Wholeprogramme67s cleanup still pending.",
+      "status": "Combined workload verified: both current full62 programmes pass allcleanup and idle checks under unchanged67s. Actualmatrix resource qualification remains pending.",
       "change": "Remove serialized helper/server latency within the original shared 62\u201367second deadline.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-focused36.json",
-      "next": "Retain all current controls in full361 and prove both full programme cleanup/idle, then all32."
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components34.json",
+      "next": "Retain these controls while fixing B209, complete362 and all32; no current cell promotion."
     },
     {
       "id": "B193",
@@ -1699,10 +1699,18 @@
     {
       "id": "B208",
       "title": "Replacement candidate fails before Core receive attachment",
-      "status": "Single fresh proof/read pair and startup diagnostics implemented; both dormant activation/security controls pass. Actual original startup failure cause and wholeprogramme effect remain pending.",
+      "status": "Both current full62 programmes and all signed replacement controls pass; no startup failure in thiscohort. Prior missing-receiver leaf remains unreported; no fabricated historical attribution.",
       "change": "Resource traces initial replacement activation/admission; Media implements and Fixture reviews snapshot-reader contention controls. Preserve root IDs, no blind effect retry.",
-      "evidence": "docs/evidence/gate-6/g6-058-v216-focused36.json",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-components34.json",
       "next": "Capture exact original start refusal and verify a causal fix alongside snapshot read/write isolation, then complete regression and all32."
+    },
+    {
+      "id": "B209",
+      "title": "Concurrent initial snapshot creation can lose its own cache entry",
+      "status": "Causally reproduced: lawful cache eviction makes initial page resync and originalfour-reader test reports matchingresync. Ownedfirstpagefix passesall15focusedcontrols; whole362/matrixpending.",
+      "change": "Fixture authors same-renderer local captured first-page fix and deterministic lawful eviction control; Media independentlyreviews.",
+      "evidence": "docs/evidence/gate-6/g6-058-v216-firstpage39.json",
+      "next": "Retainquota2/currentchecks; complete362 withdeterministiccounter then actualshipping/all32."
     }
   ],
   "workplan_tasks": [
@@ -17474,6 +17482,18 @@
   },
   "current_component_verification": [
     {
+      "name": "Owned first-page race/current snapshot/start security; normal default features pass",
+      "passed": 15,
+      "planned": 15,
+      "evidence": "g6-058-v216-firstpage39.json"
+    },
+    {
+      "name": "Complete361 on9c/416; both full media programmes pass, one snapshot concurrency failure",
+      "passed": 360,
+      "planned": 361,
+      "evidence": "g6-058-v216-components34.json"
+    },
+    {
       "name": "Current snapshot/start security and contention batch; normal default features pass",
       "passed": 14,
       "planned": 14,
@@ -18127,6 +18147,138 @@
     },
     "compiler_measurement_limit": "Current normal service check2.575s versus previous634.662s is a warm incremental observation. No cold-build benchmark or exact sampled-type attribution.",
     "next": "Clean commit and complete361 regression, matching normal Mac/nativeARM shipping and fresh all32/all432.",
+    "matrix_qualified": false
+  },
+  "complete361_actual": {
+    "format": "connect/g6-058-complete361/1",
+    "updated": "2026-11-13T03:17:00.786239+00:00",
+    "scope": "Complete component/signed regression; no transport matrix promotion.",
+    "source_revision": "9c02aadb589c5a6ea5812ae2e61e5a2d52f534d3",
+    "normal_generation": 416,
+    "builds_passed": 5,
+    "combined_build_seconds": 1573.6,
+    "completed": 361,
+    "passed": 360,
+    "failed": 1,
+    "aggregate_passed": false,
+    "all361_exactly_once": true,
+    "all11_ignored_explicitly_executed": true,
+    "all_full_data_control_paths_observed": true,
+    "all_original_groups_joined": true,
+    "source_unchanged": true,
+    "binaries_unchanged": true,
+    "inputs_unchanged": true,
+    "original_build_and_runtime_controllers_joined": true,
+    "original_runtime_exit_code": 1,
+    "results_sha256": "7aec6826f633962b4e81da1048e0e4c840e79d66975981bcc55bfec915fc89de",
+    "root_join_sha256": "b7427a788e94cfc24ed730169307f23154b3c38b34c19bb373fb9a7b3c677f80",
+    "full_programmes": {
+      "EdDSA": {
+        "passed": true,
+        "all_original_owners_joined_us": 65918857,
+        "session_ends_completed": 2,
+        "data_gate_first_recordings": 4,
+        "subscription_first_recordings": 8
+      },
+      "ES256": {
+        "passed": true,
+        "all_original_owners_joined_us": 64914006,
+        "session_ends_completed": 2,
+        "data_gate_first_recordings": 4,
+        "subscription_first_recordings": 8
+      }
+    },
+    "unchanged_cleanup_cutoff_us": 67000000,
+    "remaining_failure": {
+      "selector": "peer_authority::tests::four_current_snapshot_transactions_are_independent_and_saturation_preserves_original_wait",
+      "expected_checkpoints": 4,
+      "observed_checkpoints": 3,
+      "individual_worker_error": "Unreported: existing test asserts count before inspecting worker results.",
+      "source_finding": "create_captured publishes cache entry then separately looks it up for its own first page. Concurrent lawful creates under per-identity quota2 can evict it between those steps.",
+      "actual_leaf_attribution": "Not yet proven for the3/4 event; deterministic old-condition test and original worker-error reporting required.",
+      "required_fix": "Render first page from the owned frozen capture while preserving current checks and quota; later evicted continuation pages must still resync."
+    },
+    "next": "Fix and causally test first-page snapshot creation, retain all361 and add deterministic concurrency regression in complete362, then actualsourceprep/shipping/all32.",
+    "matrix_qualified": false
+  },
+  "first_page39_fixed": {
+    "format": "connect/g6-058-owned-first-page-fixed39/1",
+    "updated": "2026-11-13T03:26:13.451032+00:00",
+    "scope": "Causal first-page cache race and current snapshot/start/security controls; no complete362/shipping/matrix qualification.",
+    "normal_generation": 416,
+    "old": {
+      "initial_counter_attempt38": "Compile-only failure: missing Duration qualification,0tests. Not a causal result.",
+      "corrected_old38_r2_actual_passed": 0,
+      "corrected_old38_r2_actual_failed": 2,
+      "both_original_tests_exit_code": 101,
+      "deterministic_lawful_eviction": true,
+      "identity_cache_quota": 2,
+      "initial_first_page_error": "resync-required",
+      "four_reader_control_returned_errors": [
+        "resync-required",
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_original_workers_and_controller_joined": true,
+      "independent_review_sha256": "97ccc20710b0be3d39dc797dfce2d07e589950dfd05e10617ca704ed56e7dbd7"
+    },
+    "fixed": {
+      "passed": 15,
+      "planned": 15,
+      "aggregate_passed": true,
+      "normal_default_four_libraries_passed": true,
+      "normal_default_features": [
+        {
+          "package": "connect-service",
+          "features": [
+            []
+          ]
+        },
+        {
+          "package": "connect-client",
+          "features": [
+            []
+          ]
+        },
+        {
+          "package": "rvoip-core",
+          "features": [
+            [
+              "default",
+              "identity",
+              "media",
+              "opus",
+              "rtp",
+              "sip",
+              "uctp",
+              "vcon"
+            ]
+          ]
+        },
+        {
+          "package": "rvoip-uctp",
+          "features": [
+            []
+          ]
+        }
+      ],
+      "initial_first_page_survives_eviction": true,
+      "genuinely_evicted_continuation_still_resyncs": true,
+      "all_four_current_snapshot_workers_ok": true,
+      "all_original_groups_joined": true,
+      "source_unchanged": true,
+      "binaries_unchanged": true,
+      "inputs_unchanged": true,
+      "original_root_controller_joined": true,
+      "original_exit_code": 0,
+      "actual_results_sha256": "f7b2f438a01fac2f8301f5e6523d984325d545953bd96115208a7c757d948152",
+      "root_join_sha256": "d2119ac2a2effa1d5fd73d412c5ad97cc9e91de3d35d12772e1d02c93b6114cf"
+    },
+    "implementation": "Render the initial page from its invocation-owned frozen capture through the same shared renderer; cache publication and later continuation lookup retain original quotas/expiry/visibility/current actor and source checks. No wider cache lock, retained grant or full-payload copy. External continuation tokens still require original runtime authentication and retained cache entry.",
+    "source_review_sha256": "d3ec01425bbf60b045af6c469f14a22c70722e7914d978b143e33a29e64cc5a3",
+    "limits": "Previous complete361 remains360pass1fail, although both full media programmes pass. Focused39 does not promote it or any matrix cell. Optional reader-pool opacity was not applied.",
+    "next": "Commit coherent testedcachefix; freshReady/RTC12 and complete362 with all361+deterministiccachecase, then actual ARMsourceprep/normalshipping/all32.",
     "matrix_qualified": false
   }
 }

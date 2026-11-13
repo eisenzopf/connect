@@ -89,6 +89,10 @@ pub(super) fn create_captured(
         items,
         bytes,
     };
+    // This invocation owns the frozen entry. Its first page must not depend
+    // on a later cache lookup: another lawful capture may already evict it.
+    // The shared renderer retains every current visibility and binding check.
+    let first = render_page(c, actor, cid, epoch, &id, 0, size, store, &cached);
     {
         let mut cache = store
             .events
@@ -125,16 +129,9 @@ pub(super) fn create_captured(
         }
         cache.insert(id.clone(), cached);
     }
-    let token = cursor::seal(
-        c,
-        &PageToken {
-            purpose: "snapshot-page".into(),
-            runtime: store.link_epoch.clone(),
-            id,
-            index: 0,
-        },
-    )?;
-    page(c, actor, cid, epoch, &token, size, store)
+    #[cfg(test)]
+    super::snapshot_test_probe::cache_inserted(&id);
+    first
 }
 pub(super) fn page(
     c: &Connection,
@@ -158,6 +155,33 @@ pub(super) fn page(
         .lock()
         .map_err(|_| Error::storage())?;
     let entry = cache.get(&token.id).ok_or_else(resync)?;
+    render_page(
+        c,
+        actor,
+        cid,
+        epoch,
+        &token.id,
+        token.index,
+        size,
+        store,
+        entry,
+    )
+}
+
+// First pages use a trusted, invocation-owned entry; later pages additionally
+// pass the unchanged authenticated runtime/token/cache lookup above. No current
+// permission, SQL transaction or authority grant is stored in the cache.
+fn render_page(
+    c: &Connection,
+    actor: &Actor,
+    cid: &str,
+    epoch: u64,
+    id: &str,
+    start: usize,
+    size: usize,
+    store: &Store,
+    entry: &Cached,
+) -> Result<SnapshotPage> {
     if entry.identity != actor.identity_id
         || entry.credential != actor.credential_id
         || entry.ceiling != scope(actor)?
@@ -169,12 +193,12 @@ pub(super) fn page(
     if entry.expires_at <= crate::now() {
         return Err(resync());
     }
-    if token.index > entry.items.len() {
+    if start > entry.items.len() {
         return Err(invalid());
     }
     let mut result = SnapshotPage {
         conversation_id: cid.into(),
-        snapshot_id: token.id.clone(),
+        snapshot_id: id.to_owned(),
         revision: entry.revision,
         cursor: entry.cursor.clone(),
         expires_at: entry.expires_at.min(actor.expires_at),
@@ -182,7 +206,7 @@ pub(super) fn page(
         next: None,
         has_more: false,
     };
-    let mut index = token.index;
+    let mut index = start;
     while index < entry.items.len() {
         let item = &entry.items[index];
         if !visible(c, actor, cid, item)? {
@@ -220,7 +244,7 @@ pub(super) fn page(
             &PageToken {
                 purpose: "snapshot-page".into(),
                 runtime: store.link_epoch.clone(),
-                id: token.id,
+                id: id.to_owned(),
                 index,
             },
         )?);

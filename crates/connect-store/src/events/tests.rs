@@ -1712,3 +1712,124 @@ fn idle_expiry_drains_original_read_and_commits_one_closure_without_touching_per
         .unwrap();
     assert!(!persistent_closed);
 }
+
+#[test]
+fn owned_initial_snapshot_page_survives_same_identity_eviction_but_continuation_resyncs() {
+    let f = Fixture::new();
+    let baseline = f.snapshot(0, 1);
+    assert!(baseline.has_more && baseline.next.is_some());
+    let (entered, observed) = std::sync::mpsc::sync_channel(1);
+    let (release, resumed) = std::sync::mpsc::sync_channel(1);
+    let released = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let released_in_worker = released.clone();
+    let (original_id, evicted_while_parked, quota_entries, competitors, original) =
+        std::thread::scope(|workers| {
+            let worker = workers.spawn(|| {
+                super::snapshot_test_probe::with_cache_inserted(
+                    move |id| {
+                        let _ = entered.send(id.to_owned());
+                        let signalled = resumed
+                            .recv_timeout(std::time::Duration::from_secs(5))
+                            .is_ok();
+                        released_in_worker.store(signalled, std::sync::atomic::Ordering::Release);
+                    },
+                    || {
+                        f.store.conversation_snapshot(
+                            &f.keys[0],
+                            &f.cid,
+                            SnapshotQuery {
+                                page: None,
+                                limit: Some(1),
+                            },
+                        )
+                    },
+                )
+            });
+            let original_id = observed
+                .recv_timeout(std::time::Duration::from_secs(1))
+                .ok();
+            let competitors = if original_id.is_some() {
+                (0..2)
+                    .map(|_| {
+                        f.store.conversation_snapshot(
+                            &f.keys[0],
+                            &f.cid,
+                            SnapshotQuery {
+                                page: None,
+                                limit: Some(1),
+                            },
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
+            let (evicted, entries) = {
+                let cache = f.store.events.snapshots.lock().unwrap();
+                (
+                    original_id
+                        .as_ref()
+                        .is_some_and(|id| !cache.contains_key(id)),
+                    cache.len(),
+                )
+            };
+            // Always release and join the SAME original capture before oracles.
+            let _ = release.send(());
+            (
+                original_id,
+                evicted,
+                entries,
+                competitors,
+                worker.join().unwrap(),
+            )
+        });
+    let original_ok = original.is_ok();
+    // Only an actual returned first page can supply a genuine continuation.
+    // On the old condition the first call resyncs; no token is manufactured.
+    let continuation_code = original.as_ref().ok().map(|page| {
+        assert_eq!(Some(&page.snapshot_id), original_id.as_ref());
+        assert_eq!(page.items, baseline.items);
+        f.store
+            .conversation_snapshot(
+                &f.keys[0],
+                &f.cid,
+                SnapshotQuery {
+                    page: Some(page.next.clone().expect("actual first-page continuation")),
+                    limit: Some(1),
+                },
+            )
+            .unwrap_err()
+            .code
+    });
+    assert!(
+        original_id.is_some(),
+        "original cache insertion was not observed"
+    );
+    assert!(
+        released.load(std::sync::atomic::Ordering::Acquire),
+        "original capture did not wait for its actual release"
+    );
+    assert_eq!(competitors.len(), 2);
+    for result in competitors {
+        let page = result.unwrap();
+        assert_ne!(Some(&page.snapshot_id), original_id.as_ref());
+        assert_eq!(page.items, baseline.items);
+    }
+    assert!(
+        evicted_while_parked,
+        "two lawful current captures must evict the paused entry"
+    );
+    assert_eq!(
+        quota_entries, 2,
+        "original identity quota remains exactly two"
+    );
+    if let Some(code) = &continuation_code {
+        assert_eq!(code, "resync-required");
+    }
+    eprintln!("snapshot-first-page causal entered=true original_joined=true released=true evicted=true quota_entries={quota_entries} initial_ok={original_ok} initial_code={} continuation_checked={}",
+        original.as_ref().err().map(|error| error.code.as_str()).unwrap_or("ok"), continuation_code.is_some());
+    assert!(
+        original_ok,
+        "the initial page lost its own captured entry before first lookup"
+    );
+}

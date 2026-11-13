@@ -1633,6 +1633,19 @@ fn four_current_snapshot_transactions_are_independent_and_saturation_preserves_o
                 no_peer_result,
             )
         });
+    // Preserve every returned worker error before the setup-count oracle.
+    // This is numeric/status evidence, not inferred from a missing checkpoint.
+    for (index, result) in results.iter().enumerate() {
+        eprintln!(
+            "snapshot-pool returned index={index} ok={} code={}",
+            result.is_ok(),
+            result
+                .as_ref()
+                .err()
+                .map(|error| error.code.as_str())
+                .unwrap_or("ok")
+        );
+    }
     assert_eq!(
         entered_count, 4,
         "four genuine authorized snapshot transactions must coexist"

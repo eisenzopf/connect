@@ -1,0 +1,80 @@
+{
+  "format": "connect/g6-058-owned-first-page-fixed39/1",
+  "updated": "2026-11-13T03:26:13.451032+00:00",
+  "scope": "Causal first-page cache race and current snapshot/start/security controls; no complete362/shipping/matrix qualification.",
+  "normal_generation": 416,
+  "old": {
+    "initial_counter_attempt38": "Compile-only failure: missing Duration qualification,0tests. Not a causal result.",
+    "corrected_old38_r2_actual_passed": 0,
+    "corrected_old38_r2_actual_failed": 2,
+    "both_original_tests_exit_code": 101,
+    "deterministic_lawful_eviction": true,
+    "identity_cache_quota": 2,
+    "initial_first_page_error": "resync-required",
+    "four_reader_control_returned_errors": [
+      "resync-required",
+      "ok",
+      "ok",
+      "ok"
+    ],
+    "all_original_workers_and_controller_joined": true,
+    "independent_review_sha256": "97ccc20710b0be3d39dc797dfce2d07e589950dfd05e10617ca704ed56e7dbd7"
+  },
+  "fixed": {
+    "passed": 15,
+    "planned": 15,
+    "aggregate_passed": true,
+    "normal_default_four_libraries_passed": true,
+    "normal_default_features": [
+      {
+        "package": "connect-service",
+        "features": [
+          []
+        ]
+      },
+      {
+        "package": "connect-client",
+        "features": [
+          []
+        ]
+      },
+      {
+        "package": "rvoip-core",
+        "features": [
+          [
+            "default",
+            "identity",
+            "media",
+            "opus",
+            "rtp",
+            "sip",
+            "uctp",
+            "vcon"
+          ]
+        ]
+      },
+      {
+        "package": "rvoip-uctp",
+        "features": [
+          []
+        ]
+      }
+    ],
+    "initial_first_page_survives_eviction": true,
+    "genuinely_evicted_continuation_still_resyncs": true,
+    "all_four_current_snapshot_workers_ok": true,
+    "all_original_groups_joined": true,
+    "source_unchanged": true,
+    "binaries_unchanged": true,
+    "inputs_unchanged": true,
+    "original_root_controller_joined": true,
+    "original_exit_code": 0,
+    "actual_results_sha256": "f7b2f438a01fac2f8301f5e6523d984325d545953bd96115208a7c757d948152",
+    "root_join_sha256": "d2119ac2a2effa1d5fd73d412c5ad97cc9e91de3d35d12772e1d02c93b6114cf"
+  },
+  "implementation": "Render the initial page from its invocation-owned frozen capture through the same shared renderer; cache publication and later continuation lookup retain original quotas/expiry/visibility/current actor and source checks. No wider cache lock, retained grant or full-payload copy. External continuation tokens still require original runtime authentication and retained cache entry.",
+  "source_review_sha256": "d3ec01425bbf60b045af6c469f14a22c70722e7914d978b143e33a29e64cc5a3",
+  "limits": "Previous complete361 remains360pass1fail, although both full media programmes pass. Focused39 does not promote it or any matrix cell. Optional reader-pool opacity was not applied.",
+  "next": "Commit coherent testedcachefix; freshReady/RTC12 and complete362 with all361+deterministiccachecase, then actual ARMsourceprep/normalshipping/all32.",
+  "matrix_qualified": false
+}

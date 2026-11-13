@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T02:30:22.704051+00:00",
-  "revision": 62,
+  "updated_at": "2026-11-13T03:26:13.451032+00:00",
+  "revision": 64,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -367,11 +367,12 @@
       "coordinator": "/root",
       "blocker_ids": [
         "B194",
-        "B208"
+        "B208",
+        "B209"
       ],
       "depends_on": [],
-      "status": "in-progress",
-      "implementation_state": "The ordinary initial AV signed regression now passes both actual contention faults, fresh decoded old/target media, exactly linked confirmed native effect, closed original attempt and cleanup. Its former generic observation-column oracle was incorrect. Browser matrix followthrough remains pending.",
+      "status": "component-verified",
+      "implementation_state": "First-page cache race reproduced in actualoldcounter and four-reader test; owned first-page renderer fixes it, focused39 all15 pass with current auth/expiry/quota/evicted continuation protections. Whole362/matrix pending.",
       "proposed_fix": "Retain same prepared subscription across definite complete-scene Busy after all fresh proofs drop; preserve permanent refusals, original deadline and one activation. No initial offer retry or mutation resubmission.",
       "required_evidence": "All three WT missing-programme cases linked to original commands; causal regression for each distinct cause, original-effect recovery and no duplicate media admission.",
       "coordinator_review": {
@@ -409,6 +410,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
           "result": "ES256 wholefull62passes; EdDSA route0 replacementstart0downlink fails beforecleanup; rootcause under investigation.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-firstpage39.json",
+          "result": "Old2tests101 with initialresync/fourreader3of4; fixed15/15 +normaldefaultpass, originaljoins and allguardsverified.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -416,7 +422,7 @@
         "f29ffaea"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-13T01:56:10.532971+00:00",
+      "updated_at": "2026-11-13T03:26:13.451032+00:00",
       "mapped_check_count": 29,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -559,8 +565,8 @@
         "B192"
       ],
       "depends_on": [],
-      "status": "component-verified",
-      "implementation_state": "Focused36 all14 pass, including original contention counters, runtime owner/saturation, current credential/key/source/page regressions and both dormant activation controls. Single Start read and snapshot isolation verified; full programme and matrix effect pending.",
+      "status": "combined-workload-verified",
+      "implementation_state": "Both current full62 signing profiles pass quality/handoffs/Data/Session ends/67scleanup/10sidle. Ownerjoins65.918857/64.914006s. Complete361 remains360/361 because new snapshot concurrency test fails3vs4.",
       "proposed_fix": "Batch both current Session refreshes, then both original End submissions, then both waits. Preserve the same Client, logical IDs, topology CAS, first failure and original 67-second cutoff.",
       "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
@@ -631,6 +637,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-focused36.json",
           "result": "14/14pass plus normal four-library default feature check. All original groups/source/binary/input guards held.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components34.json",
+          "result": "Bothfull62PASS; whole361360pass1snapshotconcurrencyfail. Alloriginalowners/source/binary/inputguardsheld.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -638,7 +649,7 @@
         "e3e0b398"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-13T02:30:22.704051+00:00",
+      "updated_at": "2026-11-13T03:17:00.786239+00:00",
       "mapped_check_count": 16,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -1030,7 +1041,8 @@
       "independent_reviewer": "/root",
       "coordinator": "/root",
       "blocker_ids": [
-        "B196"
+        "B196",
+        "B209"
       ],
       "depends_on": [
         "P3.1",
@@ -1093,7 +1105,7 @@
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T23:56:22.696537+00:00",
+      "updated_at": "2026-11-13T03:17:00.786239+00:00",
       "mapped_check_count": 41,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": []
@@ -1152,7 +1164,7 @@
         "P2.1"
       ],
       "status": "combined-workload-verified",
-      "implementation_state": "Complete329/329 passed on A5/414 with both full programmes last; subsequent matrix remains failed.",
+      "implementation_state": "Both current full62 signing profiles pass quality/handoffs/Data/Session ends/67scleanup/10sidle. Ownerjoins65.918857/64.914006s. Complete361 remains360/361 because new snapshot concurrency test fails3vs4.",
       "proposed_fix": "Complete missing post_commit_data child and exercise actual matrix concurrency: six sources,twoSessions,fourmoves,Data,full programme and retirement.",
       "required_evidence": "Old-condition failures and fixed combined behavior with real SDK/public interfaces, both signing algorithms and affected media transports; all original tasks joined.",
       "coordinator_review": {
@@ -1246,11 +1258,16 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-data-control-focused253.json",
           "result": "ActualStore214+Core39 PASS on identical143/generation414; all original owners/guards; decoded full programme and matrix pending",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components34.json",
+          "result": "Bothfull62PASS; whole361360pass1snapshotconcurrencyfail. Alloriginalowners/source/binary/inputguardsheld.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-12T23:56:22.696537+00:00",
+      "updated_at": "2026-11-13T03:17:00.786239+00:00",
       "mapped_check_count": 3,
       "mapping_scope": "direct or contributing hypothesis; not a proven cure",
       "architecture_invariants": [
@@ -1282,7 +1299,8 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "blocker_ids": [
-        "B198"
+        "B198",
+        "B209"
       ],
       "depends_on": [
         "P1.2",
@@ -1298,7 +1316,7 @@
         "P7.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Coherent snapshot/single-Start-read/compiler-boundary batch passes focused14 and normal four-library default check. Commit/push and complete361 before shipping/all32.",
+      "implementation_state": "Bothfull62 programmes pass in complete361360/361; sole snapshot creation race now causallyfixed and focused15pass. Commit and complete362 retainingall361 plusnewcounter before shipping/all32.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1392,7 +1410,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-13T02:30:22.704051+00:00",
+      "updated_at": "2026-11-13T03:26:13.451032+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -3792,6 +3810,16 @@
       "at": "2026-11-13T02:30:22.704051+00:00",
       "revision": 62,
       "event": "Focused36 passes14/14 and normal default features; original17068exit0joined. Commit batch then full361; failed prior scopes preserved."
+    },
+    {
+      "at": "2026-11-13T03:17:00.786239+00:00",
+      "revision": 63,
+      "event": "Complete361 original40719 joined360pass1fail; bothfull62quality/cleanup pass. B209 tracks snapshot first-page concurrency; all32 stillunqualified."
+    },
+    {
+      "at": "2026-11-13T03:26:13.451032+00:00",
+      "revision": 64,
+      "event": "B209 causal old38-r2 bothresyncfailures reproduced; focused39all15pass afterowned-firstpagefix. Noquota/criteriachange; complete362 next."
     }
   ],
   "tracking_review": {
@@ -5164,11 +5192,13 @@
     "media": "docs/evidence/gate-6/g6-058-v216-media-components.json",
     "public_authority": "docs/evidence/gate-6/g6-058-v216-public-authority.json",
     "harness": "docs/evidence/gate-6/g6-058-v216-harness-batch.json",
-    "next": "Clean commit and complete361 regression, matching normal Mac/nativeARM shipping and fresh all32/all432.",
+    "next": "Commit coherent testedcachefix; freshReady/RTC12 and complete362 with all361+deterministiccachecase, then actual ARMsourceprep/normalshipping/all32.",
     "matrix_qualified": false,
     "complete_regression": "docs/evidence/gate-6/g6-058-v216-components30.json",
     "diagnostics": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
     "snapshot_contention": "docs/evidence/gate-6/g6-058-v216-snapshot-contention.json",
-    "focused36": "docs/evidence/gate-6/g6-058-v216-focused36.json"
+    "focused36": "docs/evidence/gate-6/g6-058-v216-focused36.json",
+    "complete361": "docs/evidence/gate-6/g6-058-v216-components34.json",
+    "first_page39": "docs/evidence/gate-6/g6-058-v216-firstpage39.json"
   }
 }
