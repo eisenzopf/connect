@@ -1,0 +1,50 @@
+{
+  "format": "connect/g6-058-v218-native-startup-opportunity/1",
+  "updated_at": "2026-11-13T15:28:15.422401+00:00",
+  "source_head": "15bb12789dd9acef9020934c21d909e710aae8e0",
+  "normal_generation": 429,
+  "actual_outer_exec_session": 69940,
+  "actual_original_wait_exit_code": 0,
+  "original_results_sha256": "6a0f3eab2013759f75b72c8277a56a7d843925b6d040c830fa2494589b2b4888",
+  "independent_source_review_sha256": "09598ec4c9977654d2dc33cce257242ef24efd92fe40812ab747d1e51cdfeb21",
+  "original_helper_build_passed": true,
+  "same_original_first_key_sha256": "0e5d75ac59f7de8f492ec92397a902f593420220409aeaf86f161ed0983b4d02",
+  "same_key_bytes_across_all12": true,
+  "original_media_capture_age_budget_us": 200000,
+  "arms": {
+    "immediate": {
+      "children": 6,
+      "all_original_children_naturally_joined": true,
+      "first_request_to_complete_us": {
+        "minimum": 296763.541,
+        "maximum": 299857.75,
+        "median": 298292.4375
+      },
+      "key_bytes": [
+        27977
+      ]
+    },
+    "after100ms": {
+      "children": 6,
+      "all_original_children_naturally_joined": true,
+      "first_request_to_complete_us": {
+        "minimum": 4956.125,
+        "maximum": 6593.459,
+        "median": 5154.0205000000005
+      },
+      "key_bytes": [
+        27977
+      ]
+    }
+  },
+  "interpretation": "Native-only cold first request exceeds actual sample budget without SDK/Store/server involvement. The programme sets its anchor before spawning codecs and has no readiness barrier. Prepare the same original codec children and observe explicit initialized readiness before assigning the original capture anchor. Preserve all sample/quality/ownership cutoffs.",
+  "limits": [
+    "Second arm runs after first arm on same newly built executable; executable-wide verification/cache order may contribute.",
+    "Six children share source0 and prehash warms raw input; this does not model all six separate programme sources.",
+    "Opportunity comparison does not isolate C initialization, OS executable startup, raw input, codec work or parent scheduling.",
+    "No READY implementation or direct causal old/fixed media result exists yet; actual401/402 failed cohort and v2172/32 matrix remain unchanged."
+  ],
+  "fix_status": "parallel candidate preparation; independent review and Root execution pending",
+  "media_qualified": false,
+  "independent_actual_review_sha256": "1e661f0cf1bdc903ca6881dfaeab5ad97e9f2790c0cac2746263b34ac3bddaf3"
+}

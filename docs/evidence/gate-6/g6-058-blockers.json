@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T15:20:50.530191+00:00",
-  "run_status": "Latest full matrix remains v217:2/32 cells,400/432 checks. Original e60/429 prerequisites remain401/402 Rust and133/133 scripts. Reviewed first-key timing diagnostics now pass the exact EdDSA full62 workload and its accounting unit: all28/29 first-key fragments admitted, encoding115.9\u2013116.7ms and final local submission117.5\u2013122.5ms inside original200ms. All original owners joined65.378s<67s; no quality/task failures. This is measurement, not a demonstrated cure. Isolating cold initialization versus raw/encode/executor delay; no new matrix launched.",
+  "updated": "2026-11-13T15:52:05.187995+00:00",
+  "run_status": "Latest matrix remains v217:2/32 cells,400/432 checks. Codec readiness batch implemented and independently verified: actualC/Python1,Node4 andRust4 allpass. Both complete62s signing profiles pass quality,4handoffs,4Gate+8Subscribe EACH and all owned cleanup65.955/65.041s<67s. First encode now3.6\u20138.1ms vs prior diagnostic116ms; sample200ms unchanged. Fresh402+138 prerequisites andARM11 are next; no original failed401/402 or matrix result promoted.",
   "blockers": [
     {
       "id": "B01",
@@ -1727,6 +1727,14 @@
       "change": "Record Mac157.0.8103.52 before affectedrun, Google signature/main hash, private immutable fixture, separate actual empty schema, configured/unconfigured CA HTTPS/WSS and wrong-name refusals,16units. Linux156.0.8078.4 and Firefox158.0.1 unchanged.",
       "evidence": "docs/evidence/gate-6/g6-058-v217-shipping-browser.json",
       "next": "Actual fresh12/15 and complete362 finalsource; matching sourceprep/shipping, freshpreflight, all32/432. Preserve prior preflight failure and all media/auth/cleanup limits."
+    },
+    {
+      "id": "v218-startup-first-key",
+      "title": "Original codec readiness before programme capture",
+      "status": "component-verified-awaiting-current-540-ARM11-and-matrix",
+      "change": "Opt-in initialized readiness from the same original native encoders before assigning the programme capture anchor; no sample preencoding/retagging or extra media age. Applied to all original representative/initial-AV and Node consumers.",
+      "evidence": "9/9 targeted components independently accepted51a54e48; g6-058-v218-codec-readiness-progress.json; actual source images and all original waits retained.",
+      "next": "Fresh clean-source402 Rust+138 scripts, then normal ARM SourcePrep, affected ARM11, normal releases and full32/432 matrix."
     }
   ],
   "workplan_tasks": [
@@ -17646,6 +17654,12 @@
       "passed": 2,
       "planned": 2,
       "evidence": "g6-058-v218-first-key-diagnostic.json"
+    },
+    {
+      "name": "Initialized codec readiness: actualC/Python1,Node4,Rustclock/initialAV/bothfull62 four",
+      "passed": 9,
+      "planned": 9,
+      "evidence": "g6-058-v218-codec-readiness-progress.json"
     }
   ],
   "current_production_check": {
@@ -18498,5 +18512,31 @@
     "Rust_required": 2,
     "matrix_qualified": false,
     "independent_runtime_review_sha256": "ba6cbfb1bba43459f46926d74a23d2dcc8235e8e4cd77feee894682865acc317"
+  },
+  "v218_startup_fix": {
+    "id": "v218-startup-first-key",
+    "status": "component-verified-awaiting-current-540-ARM11-and-matrix",
+    "coordinator": "/root",
+    "owners": {
+      "native_helper_readiness_and_tests": "/root/media_blockers",
+      "pre_anchor_owned_preparation_and_tests": "/root/fixture_blockers"
+    },
+    "independent_reviewers": [
+      "/root/v198_resources",
+      "/root/media_blockers",
+      "/root/fixture_blockers"
+    ],
+    "evidence": "docs/evidence/gate-6/g6-058-v218-native-startup.json",
+    "sha256": "ede2d118ae994fd0ed7a69fe3d120e15ab1190178f79146e61ecb57c44f10483",
+    "specific_fix": "Opt-in initialized readiness from the same original native encoders before assigning the programme capture anchor; no sample preencoding/retagging or extra media age.",
+    "scope": "Reproduced cold-helper first-response hazard. Attribution of the original intermittent failed cohort remains bounded; no Store/SDK cause asserted.",
+    "next": "Fresh clean-source402 Rust+138 scripts, then normal ARM SourcePrep, affected ARM11, normal releases and full32/432 matrix.",
+    "criteria_changed": false,
+    "production_authority_or_transport_changed": false,
+    "matrix_qualified": false,
+    "component_evidence": "docs/evidence/gate-6/g6-058-v218-codec-readiness-progress.json",
+    "component_evidence_sha256": "6fffa8c7a76f9d00c3716cad808916a353091a780a08382ad84d803df0e01ae0",
+    "component_passed": 9,
+    "component_required": 9
   }
 }

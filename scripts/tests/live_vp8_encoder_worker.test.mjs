@@ -56,6 +56,7 @@ test("owned encoder keeps one original reply across a raced wait and joins actua
 test("owned encoder rejects partial, foreign and oversized replies and joins cancellation without reissuing", async () => fixture(async (directory, raw) => {
     for (const mode of ["partial", "foreign", "oversize", "cancel"]) {
         const binary = await fake(directory, `
+process.stdout.write('V8R1');
 process.stdin.once('data', request => {
  const header=Buffer.alloc(16); header.write('V8F1'); header.writeUInt32LE(request.readUInt32LE() + ${mode === 'foreign' ? 1 : 0},4);
  header.writeUInt32LE(${mode === 'oversize' ? 262145 : 10},8); header.writeUInt32LE(1,12);

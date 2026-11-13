@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T15:20:50.526798+00:00",
-  "revision": 72,
+  "updated_at": "2026-11-13T15:52:05.184485+00:00",
+  "revision": 74,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,12 +9,12 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 111,
-    "verified_at": "2026-11-13T15:21:13.649Z",
+    "content_revision": 113,
+    "verified_at": "2026-11-13T15:52:51.930Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217.json",
     "readback_evidence_sha256": "f97e298deaa159a290654c41a57289a54247b7f0aea6f3b3a4a26d2b4da0b4b0",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
-    "postrun_readback_sha256": "b2e74398784e6a1ada6cadbd972c896d1c64c21bcb882836f357cb0f57bdd0cb"
+    "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
   "baseline": {
     "run": "v215",
@@ -5336,5 +5336,31 @@
     "Rust_required": 2,
     "matrix_qualified": false,
     "independent_runtime_review_sha256": "ba6cbfb1bba43459f46926d74a23d2dcc8235e8e4cd77feee894682865acc317"
+  },
+  "v218_startup_fix": {
+    "id": "v218-startup-first-key",
+    "status": "component-verified-awaiting-current-540-ARM11-and-matrix",
+    "coordinator": "/root",
+    "owners": {
+      "native_helper_readiness_and_tests": "/root/media_blockers",
+      "pre_anchor_owned_preparation_and_tests": "/root/fixture_blockers"
+    },
+    "independent_reviewers": [
+      "/root/v198_resources",
+      "/root/media_blockers",
+      "/root/fixture_blockers"
+    ],
+    "evidence": "docs/evidence/gate-6/g6-058-v218-native-startup.json",
+    "sha256": "ede2d118ae994fd0ed7a69fe3d120e15ab1190178f79146e61ecb57c44f10483",
+    "specific_fix": "Opt-in initialized readiness from the same original native encoders before assigning the programme capture anchor; no sample preencoding/retagging or extra media age.",
+    "scope": "Reproduced cold-helper first-response hazard. Attribution of the original intermittent failed cohort remains bounded; no Store/SDK cause asserted.",
+    "next": "Fresh clean-source402 Rust+138 scripts, then normal ARM SourcePrep, affected ARM11, normal releases and full32/432 matrix.",
+    "criteria_changed": false,
+    "production_authority_or_transport_changed": false,
+    "matrix_qualified": false,
+    "component_evidence": "docs/evidence/gate-6/g6-058-v218-codec-readiness-progress.json",
+    "component_evidence_sha256": "6fffa8c7a76f9d00c3716cad808916a353091a780a08382ad84d803df0e01ae0",
+    "component_passed": 9,
+    "component_required": 9
   }
 }

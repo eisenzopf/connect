@@ -1,6 +1,8 @@
 /* Bounded synthetic fixture source, not a media authorization boundary.
  * stdin: original frame index u32le, flags u32le (bit 0 requests a keyframe).
  * stdout: "V8F1", index u32le, length u32le, key u32le, encoded bytes.
+ * Optional trailing --ready-v1: flush exactly "V8R1" after initialization,
+ * before reading any request or original frame. Default wire is unchanged.
  * The owning process must bound pipe IO, terminate and join this child.
  */
 #ifdef __APPLE__
@@ -119,7 +121,8 @@ int main(int argc, char **argv) {
   vpx_codec_enc_cfg_t cfg;
   struct stat original, current;
   char *end = NULL;
-  if (argc != 3) goto done;
+  int ready = argc == 4 && strcmp(argv[3], "--ready-v1") == 0;
+  if (argc != 3 && !ready) goto done;
   errno = 0;
   unsigned long count = strtoul(argv[2], &end, 10);
   if (errno || !argv[2][0] || *end || count < 1 || count > MAX_FRAMES)
@@ -151,6 +154,7 @@ int main(int argc, char **argv) {
       vpx_codec_control(&encoder, VP8E_SET_ENABLEAUTOALTREF, 0)) goto done;
   raw = malloc(RAW_BYTES);
   if (!raw) goto done;
+  if (ready && (fwrite("V8R1", 1, 4, stdout) != 4 || fflush(stdout))) goto done;
   uint32_t previous = 0, last_key = 0;
   int first = 1;
   for (;;) {

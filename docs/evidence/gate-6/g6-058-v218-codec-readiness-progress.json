@@ -1,0 +1,422 @@
+{
+  "format": "connect/g6-058-v218-codec-readiness-progress/1",
+  "updated_at": "2026-11-13T15:50:44.093885+00:00",
+  "source_base": "15bb12789dd9acef9020934c21d909e710aae8e0",
+  "normal_generation": 429,
+  "source_lock_sha256": "2f1795ab433e4564ce132021e37740790c6bfd7240150742329631ebf3558ccc",
+  "source_images": {
+    "scripts/video/live_vp8_encoder.c": "e5ae00c965fda201c2fe73ae44884671a18acf2192e114e0a13b15c40207898f",
+    "scripts/tests/test_live_vp8_encoder.py": "b2e76a98383e68c0cb437afad84ffb5e044deec0b5e7206f3bd7638c2862c9ad",
+    "scripts/lib/live_vp8_encoder.mjs": "0d9233fa2b0472cbf84a66433b046d5488365f3f5cd4cd9f74e605eda8534c90",
+    "scripts/tests/live_vp8_encoder_worker.test.mjs": "31d028204f8ed591b2fa1855fdb405c701e8414af056e1660b28ce4735b98776",
+    "scripts/tests/live_vp8_encoder_ready.test.mjs": "26b9c37d67e8ce1056fe0542dfe6fda152a44382f638d65501713abac75c3450",
+    "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/representative/initial_av.rs": "aff2105f926b93c03dc404b89417bcdbc9aad174ef1b98aaeb3f4a002a0a223c",
+    "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/representative.rs": "394c0f1e7b623095f09e78fd2c1509e437da8085eeda86f4515235b514022c74",
+    "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/representative_encoder_ready.rs": "7575ae2a7c48308d44d82fb7dd07aa6fbec7a6b9964523befce01175a96885b6",
+    "crates/connect-server/tests/support/sdk_handles/replacement_video_recovery/representative_programme.rs": "fb76d2af200be609c3a0fd744a568c6e7f472b9735abb77d880f90464f1a5d03"
+  },
+  "implementation": "Same original encoder contexts acknowledge initialization before original programme capture anchor. Rust/initial-AV and Node consumers wait; no frame/input preencoding, retagging or budget increase.",
+  "criteria_unchanged": {
+    "sample_age_ms": 200,
+    "startup_ms": 8000,
+    "programme_ms": 62000,
+    "owner_join_ms": 67000
+  },
+  "components": [
+    {
+      "owner": "native-ready-positive-owner-r1",
+      "passed": 1,
+      "planned": 1,
+      "actual_outer_exit_code": 0,
+      "original_receipt_sha256": "153903e982550bce5cd91c9a40a9aae06161d646f467dfde60c756732548eea7",
+      "original_Root_join_sha256": "53ed30f57ac0df4be7a5dd1469b933dc50a43504a5669f96e921af4d082420a5",
+      "all_original_groups_joined": true,
+      "logs": [
+        {
+          "label": "actual-native-ready-control",
+          "exit_code": 0,
+          "sha256": "747ec232d5d3521c6770e4a6d61188fb2fd1ed0f2a48398cdcd71eca5b6a3f10"
+        }
+      ]
+    },
+    {
+      "owner": "node-ready-owner-r1",
+      "passed": 4,
+      "planned": 4,
+      "actual_outer_exit_code": 0,
+      "original_receipt_sha256": "ff5dfbff914d8648dba693227a292ac42a423f7c11c1ceb1d15f579392948543",
+      "original_Root_join_sha256": "d22da5e5e98f37e583ead284d9447dc5bca7c87e8eb087ef42e8181c1026807e",
+      "all_original_groups_joined": true,
+      "logs": [
+        {
+          "label": "four-readiness-controls",
+          "exit_code": 0,
+          "sha256": "74c83fe1af3cbbbb0d5df7365d9c18d682275439e8d6a1560fed6da0aa87c5d6"
+        }
+      ]
+    },
+    {
+      "owner": "integrated-ready-owner-r1",
+      "passed": 4,
+      "planned": 4,
+      "actual_outer_exit_code": 0,
+      "original_receipt_sha256": "85a35c98353cf4fd82de51e65c6e5a6dc10b216402c904df90b7b6f469fa10e6",
+      "original_Root_join_sha256": "ad46416cf68b4606b535319024970c51fc8c441f26331ac520c11fdd0f945a4f",
+      "all_original_groups_joined": true,
+      "logs": [
+        {
+          "label": "clock-and-ownership",
+          "exit_code": 0,
+          "sha256": "0c15e9d98f87bb8be3333dc66c358d7e1331af88f5f9ee6e267eb08c909a773f"
+        },
+        {
+          "label": "initial-AV",
+          "exit_code": 0,
+          "sha256": "1076aecb3defeef0269805c1eda60ac2d3a341dc412fc6114d77fa080946c797"
+        },
+        {
+          "label": "EdDSA-full62",
+          "exit_code": 0,
+          "sha256": "5cf7f578129ab14eacbc8479fb947d8035e2fca483b8cd901b3b880354644086"
+        },
+        {
+          "label": "ES256-full62",
+          "exit_code": 0,
+          "sha256": "ec1a9b2f594212aadf6e02ec1b5c4c34a0a384167fb3bac9082492947cbed219"
+        }
+      ]
+    }
+  ],
+  "full_programmes": [
+    {
+      "label": "EdDSA-full62",
+      "owner_join_programme_us": 65954629,
+      "quality_failures": [],
+      "task_failures": [],
+      "actual_data_controls": {
+        "expected_first_recordings": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "observed_lines": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "unique_records_by_kind": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "duplicate_lines": 0,
+        "malformed_lines": 0,
+        "bounded_events": [
+          {
+            "line": 717,
+            "kind": "data-gate",
+            "record_fingerprint": "24f8bbd105d6d191bb7e030a523396f73dff97944327631fc75ff5dcc7f4e2a7",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 722,
+            "kind": "data-subscription",
+            "record_fingerprint": "599193f02b706df424c6ff29679530054cebf998ca5b0e0e999d99dc99e65c95",
+            "descriptor": "first"
+          },
+          {
+            "line": 727,
+            "kind": "data-subscription",
+            "record_fingerprint": "69357c4efcde7b10956a3a344229ee6ea6e71a596499e2fdf7cdcb5fbbabb1c7",
+            "descriptor": "stale-invisible"
+          },
+          {
+            "line": 742,
+            "kind": "data-gate",
+            "record_fingerprint": "4e17abf2806b73912a541f7aee6f1c28327e1305c078f7d01a0a3bed4a0ebcbb",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 747,
+            "kind": "data-subscription",
+            "record_fingerprint": "d4ea90c4362b9b241a7b6d3acb8a8ee0a6449031449d23221e8792146633aeaa",
+            "descriptor": "first"
+          },
+          {
+            "line": 752,
+            "kind": "data-subscription",
+            "record_fingerprint": "ed99bb92f6c2cb0aafdca72fe955efb0724b83561a2e43d1b192ce9c6f96cde6",
+            "descriptor": "stale-invisible"
+          },
+          {
+            "line": 914,
+            "kind": "data-gate",
+            "record_fingerprint": "60c330e2600bfc139decfeb338a9b0a2e5e0c6cfe72a242e8b93119fe061d29a",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 919,
+            "kind": "data-subscription",
+            "record_fingerprint": "9affbd00a90ebf8a73303f5be53832be34a14827456fb2a8af497bd85bb199d6",
+            "descriptor": "first"
+          },
+          {
+            "line": 924,
+            "kind": "data-subscription",
+            "record_fingerprint": "a2d7943fc940104f4c4c8e923e5369f00ab2079dd70904a3997b997a3a29899b",
+            "descriptor": "stale-invisible"
+          },
+          {
+            "line": 942,
+            "kind": "data-gate",
+            "record_fingerprint": "7a05f076aa54a848bb425e9a99e77b766cc7183a1fb59cbf8160c9d189c9f048",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 947,
+            "kind": "data-subscription",
+            "record_fingerprint": "0d62f3a9b4c80981813a4c2056ea60bf744ffe372b967cee7b9f1c52fc838628",
+            "descriptor": "first"
+          },
+          {
+            "line": 952,
+            "kind": "data-subscription",
+            "record_fingerprint": "0d2d3bc77733b87a2bfebdbeeb263c14ed02f324159734a031c167bfec88ce3b",
+            "descriptor": "stale-invisible"
+          }
+        ],
+        "overflow_lines": 0,
+        "required_paths_observed": true,
+        "limit": "One Source-reviewed narrow control trace after actual COMMIT only; completed replay/fallback emits no such event. Missing traces stay unreported, not promoted from testpass or commandorder. No packet/payload/raw operation ID retained."
+      },
+      "first_keys": [
+        {
+          "source": 0,
+          "capture_to_encode_us": 3620,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 6249,
+          "last_local_completion_age_us": 6330
+        },
+        {
+          "source": 1,
+          "capture_to_encode_us": 3681,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 6117,
+          "last_local_completion_age_us": 6243
+        },
+        {
+          "source": 2,
+          "capture_to_encode_us": 4464,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 6739,
+          "last_local_completion_age_us": 6788
+        },
+        {
+          "source": 3,
+          "capture_to_encode_us": 3652,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 4982,
+          "last_local_completion_age_us": 5032
+        },
+        {
+          "source": 4,
+          "capture_to_encode_us": 4533,
+          "parts": 29,
+          "admitted": 29,
+          "last_local_entry_age_us": 7080,
+          "last_local_completion_age_us": 7102
+        },
+        {
+          "source": 5,
+          "capture_to_encode_us": 3632,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 6129,
+          "last_local_completion_age_us": 6162
+        }
+      ]
+    },
+    {
+      "label": "ES256-full62",
+      "owner_join_programme_us": 65040521,
+      "quality_failures": [],
+      "task_failures": [],
+      "actual_data_controls": {
+        "expected_first_recordings": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "observed_lines": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "unique_records_by_kind": {
+          "data-gate": 4,
+          "data-subscription": 8
+        },
+        "duplicate_lines": 0,
+        "malformed_lines": 0,
+        "bounded_events": [
+          {
+            "line": 720,
+            "kind": "data-gate",
+            "record_fingerprint": "5a9c63f0ab732453b843c9aca9b06d0eebe729d3ef4a9472c7309cc333a47456",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 725,
+            "kind": "data-subscription",
+            "record_fingerprint": "270277228d39d19d58efa29076564f40b22c9d289bb503cfab3fe0551a1a5b65",
+            "descriptor": "first"
+          },
+          {
+            "line": 730,
+            "kind": "data-subscription",
+            "record_fingerprint": "c67083508b6fd0ad246a21bf342e251d2ea8546a4093fe60c7bb550577220c11",
+            "descriptor": "stale-invisible"
+          },
+          {
+            "line": 746,
+            "kind": "data-gate",
+            "record_fingerprint": "373bf9e8008306178b34a0568c78de52a9dfd6431c0b92efb920d36a9f5a4bfb",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 751,
+            "kind": "data-subscription",
+            "record_fingerprint": "f71c12bd3c2dbd87dfc38bd4a607668f22130f2601e48cac7326574c9a246a28",
+            "descriptor": "first"
+          },
+          {
+            "line": 756,
+            "kind": "data-subscription",
+            "record_fingerprint": "f880c5e86c77fc1fb90017063d4de9e47dbf7006c6d396d07cbe0077b01f5f63",
+            "descriptor": "stale-invisible"
+          },
+          {
+            "line": 914,
+            "kind": "data-gate",
+            "record_fingerprint": "b2bbe46f0462de2706f5b57050db1cb3489f3d6c1b1da474022e45ce3a582f9f",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 919,
+            "kind": "data-subscription",
+            "record_fingerprint": "434206b1896f8231bfa5c9bd42991e9a0851c11152a078dbeb9b0e797c0e6dbc",
+            "descriptor": "first"
+          },
+          {
+            "line": 925,
+            "kind": "data-subscription",
+            "record_fingerprint": "ea3f81e5ebdc753f5257263929422a315ca6fc7aa421908233123adb35f59f22",
+            "descriptor": "stale-invisible"
+          },
+          {
+            "line": 940,
+            "kind": "data-gate",
+            "record_fingerprint": "3e5863cb6ae731413237a1535a98a5b189a6c0f6d68c8dee09c47d8b27c14a60",
+            "descriptor": "unreported"
+          },
+          {
+            "line": 946,
+            "kind": "data-subscription",
+            "record_fingerprint": "6b9c0343bcc30a750a3dc0a9f8e6953774c46e4f64d0ca730c7ae9f7ce34e8ab",
+            "descriptor": "first"
+          },
+          {
+            "line": 951,
+            "kind": "data-subscription",
+            "record_fingerprint": "ca4e80483c457d2ced5da42355f98b8014a6edd8842e87a0ef3188fff1941f7f",
+            "descriptor": "stale-invisible"
+          }
+        ],
+        "overflow_lines": 0,
+        "required_paths_observed": true,
+        "limit": "One Source-reviewed narrow control trace after actual COMMIT only; completed replay/fallback emits no such event. Missing traces stay unreported, not promoted from testpass or commandorder. No packet/payload/raw operation ID retained."
+      },
+      "first_keys": [
+        {
+          "source": 0,
+          "capture_to_encode_us": 6045,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 7779,
+          "last_local_completion_age_us": 7848
+        },
+        {
+          "source": 1,
+          "capture_to_encode_us": 5878,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 11681,
+          "last_local_completion_age_us": 11711
+        },
+        {
+          "source": 2,
+          "capture_to_encode_us": 6122,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 7819,
+          "last_local_completion_age_us": 7898
+        },
+        {
+          "source": 3,
+          "capture_to_encode_us": 6297,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 7981,
+          "last_local_completion_age_us": 8045
+        },
+        {
+          "source": 4,
+          "capture_to_encode_us": 8109,
+          "parts": 29,
+          "admitted": 29,
+          "last_local_entry_age_us": 12170,
+          "last_local_completion_age_us": 12203
+        },
+        {
+          "source": 5,
+          "capture_to_encode_us": 6096,
+          "parts": 28,
+          "admitted": 28,
+          "last_local_entry_age_us": 11806,
+          "last_local_completion_age_us": 11837
+        }
+      ]
+    }
+  ],
+  "old_condition_evidence": "docs/evidence/gate-6/g6-058-v218-native-startup.json",
+  "independent_source_reviews": {
+    "C_and_Python": "5989383443d648a5e5eaf09e4d4db19d2299e11ac68719dc6718868fd3e113dd",
+    "Node": "496263467f75e13144cb2d4a6382af6df3523a3bc9d5dd42087bcc4fb20ef1e5",
+    "Rust_ownership": "d34a87113c8f4c597a165bd7989ec3a4db3f7f667e00dcf5f733191be64b8acc",
+    "Rust_protocol": "57ef042f8621dfaa7af836e6d880c163ea08da5f6417de547944bb79241b42ac"
+  },
+  "independent_runtime_review": "accepted all4 Rust, C/Python1 andNode4 matched actual original receipts/current source images",
+  "qualified": false,
+  "original_failed_prerequisite_cohort_preserved": true,
+  "next_prerequisites": {
+    "Rust": 402,
+    "scripts": 138,
+    "Python": 66,
+    "Node": 72,
+    "total": 540,
+    "ARM_after_sourceprep": 11
+  },
+  "matrix_unchanged": {
+    "run": "v217",
+    "cells_passed": 2,
+    "cells_required": 32,
+    "checks_passed": 400,
+    "checks_required": 432
+  },
+  "limits": [
+    "C/Node focused tests verify their unchanged current source images; Rust four-case batch then verifies all nine integrated images. Full540 remains separate.",
+    "Before/after timing is one prior diagnostic Ed workload versus this integrated Ed/ES workload, not a statistical latency guarantee.",
+    "No precise OS loader versus native codec initialization substage attribution or all32-cell cure is asserted.",
+    "Linux-only helper/worker/nativeAv cases retain their platform rules and await current ARM11 execution after normal SourcePrep."
+  ],
+  "independent_runtime_review_sha256": "51a54e489001e986657f76f0d8ccb8ab67dc1b648de88e70573c9e32604929ce"
+}

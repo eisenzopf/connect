@@ -28,8 +28,7 @@ impl Source {
 // neither a new encoder nor an elapsed-time estimate recreates missing input.
 pub(super) fn source(
     source: usize,
-    binary: &Path,
-    raw: &Path,
+    mut encoder: Encoder,
     progress: SharedProgress,
     stop: CancellationToken,
     began: Instant,
@@ -38,7 +37,6 @@ pub(super) fn source(
     progress.lock().unwrap().video_diagnostics.began = Some(began);
     let (samples, _) = broadcast::channel(16);
     let force_key = Arc::new(AtomicBool::new(false));
-    let mut encoder = encoder(binary, raw);
     let video_samples = samples.clone();
     let video_stop = stop.clone();
     let requested = force_key.clone();
@@ -204,8 +202,9 @@ pub(super) fn quality(originals: &[SharedProgress], candidates: &[SharedProgress
     failures
 }
 
-#[test]
-fn full_programme_clock_and_movements_match_the_declared_matrix_contract() {
+#[tokio::test]
+async fn full_programme_clock_and_movements_match_the_declared_matrix_contract() {
+    encoder_ready::controls().await;
     super::first_key_diagnostic_partial_error_keeps_original_clock_and_unwind();
     let contract: Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),

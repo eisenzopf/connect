@@ -250,6 +250,7 @@ async fn signed_initial_six_source_av_subscription_releases_both_busy_boundaries
     let mut connections: Vec<sdk::Connection> = Vec::new();
     let mut works: Vec<Work> = Vec::new();
     let mut masters: Vec<programme::Source> = Vec::new();
+    let mut prepared_encoders = Vec::with_capacity(6);
     let stop = CancellationToken::new();
     let progress = (0..6)
         .map(|_| Arc::new(Mutex::new(Progress::default())))
@@ -438,9 +439,11 @@ async fn signed_initial_six_source_av_subscription_releases_both_busy_boundaries
     }
 
         let retirements=(0..6).map(|i|Arc::new(RetirementWitness{database:f.config.database.clone(),source:connections[i].id().as_str().into(),original:Mutex::new(None)})).collect::<Vec<_>>();
+        encoder_ready::prepare(&binary,&raw,&mut prepared_encoders,Instant::now()+Duration::from_secs(8)).await.unwrap();
         let began=Instant::now()+Duration::from_millis(100);let source_until=began+Duration::from_secs(62);
         for i in 0..6 {
-            let(master,owners)=programme::source(i,&binary,&raw[i],progress[i].clone(),stop.clone(),began,source_until);
+            let encoder=prepared_encoders.remove(0);
+            let(master,owners)=programme::source(i,encoder,progress[i].clone(),stop.clone(),began,source_until);
             works.extend(owners);works.extend(spawn_publisher(&connections[i],i,&master,progress[i].clone(),stop.clone(),retirements[i].clone(),began,source_until));masters.push(master);
         }
         // Pin the ONE original fault/read/command cap before baseline setup.
@@ -493,6 +496,17 @@ async fn signed_initial_six_source_av_subscription_releases_both_busy_boundaries
     let cleanup = Instant::now();
     stop.cancel();
     let mut failures = Vec::new();
+    for (index, closed) in encoder_ready::close_all(prepared_encoders)
+        .await
+        .into_iter()
+        .enumerate()
+    {
+        if !matches!(closed, Ok(true)) {
+            failures.push(format!(
+                "untransferred original encoder cleanup index={index}: {closed:?}"
+            ));
+        }
+    }
     for owner in works {
         match owner.await {
             Ok(Ok(())) => {}

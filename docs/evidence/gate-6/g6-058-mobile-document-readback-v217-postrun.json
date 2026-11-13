@@ -1,10 +1,10 @@
 {
   "format": "connect/g6-058-mobile-postrun-readback/1",
-  "content_revision": 111,
-  "verified_at": "2026-11-13T15:21:13.649Z",
+  "content_revision": 113,
+  "verified_at": "2026-11-13T15:52:51.930Z",
   "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
   "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
-  "native_revision_id": "AHj4eMQucNnMXZXig3cgBZGZFDDpbrYCmCJ_Oda2NIHJZg8z8qntl_ZP0ulSgyQIs2qrJZ1al4lZxx_Jh2IogezWRbIs24vy6Tslod6ylqE",
+  "native_revision_id": "AHj4eMQVmuHJCdmnsKho5lqBU8N0jNyxOSl-HqQ79FpnKh9Sf7rWzs-wSrbytarRHInNt8HRQEWmlAxKm2oWnOHHIFnihZOwPXN_GJI-Nwo",
   "header_exact": true,
   "s4_exact": true,
   "task_count": 9,
@@ -28,6 +28,28 @@
     "checks": {
       "header": true,
       "s4": true,
+      "all9tasks": true
+    }
+  },
+  "startup_fix_readback": {
+    "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "content_revision": 112,
+    "actual_revision_id": "AHj4eMTW2O9KAHQbyHfbE4xEiwRT5VyGtLgDORLvcmG2ssb0S3drcQH7ScOVakDPZ-DOKpVaYOYdx67q1t_wRdURPcQ_83K390-qIWBYeD4",
+    "checked_at": "2026-11-13T15:30:03.999Z",
+    "checks": {
+      "header": true,
+      "startup": true,
+      "all9tasks": true
+    }
+  },
+  "readiness_batch_readback": {
+    "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "content_revision": 113,
+    "actual_revision_id": "AHj4eMQVmuHJCdmnsKho5lqBU8N0jNyxOSl-HqQ79FpnKh9Sf7rWzs-wSrbytarRHInNt8HRQEWmlAxKm2oWnOHHIFnihZOwPXN_GJI-Nwo",
+    "checked_at": "2026-11-13T15:52:51.930Z",
+    "checks": {
+      "header": true,
+      "startup": true,
       "all9tasks": true
     }
   }

@@ -14,6 +14,8 @@ const SESSION: [usize; 6] = [0, 0, 0, 0, 1, 1];
 const FRAMES: u32 = 62 * 30;
 #[path = "representative_data.rs"]
 mod data;
+#[path = "representative_encoder_ready.rs"]
+mod encoder_ready;
 #[path = "representative_programme.rs"]
 mod programme;
 #[path = "representative_retirement.rs"]
@@ -676,25 +678,6 @@ async fn codec_inputs(directory: &Path) -> (std::path::PathBuf, Vec<std::path::P
     }
     (binary, paths)
 }
-fn encoder(binary: &Path, raw: &Path) -> Encoder {
-    let mut child = tokio::process::Command::new(binary)
-        .arg(raw)
-        .arg(FRAMES.to_string())
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .kill_on_drop(true)
-        .spawn()
-        .unwrap();
-    Encoder {
-        executable: binary.into(),
-        executable_sha256: file_sha256(binary),
-        input: child.stdin.take().unwrap(),
-        output: child.stdout.take().unwrap(),
-        child,
-    }
-}
-
 async fn finish_encoder(encoder: Encoder) -> bool {
     let Encoder {
         mut child,
@@ -2212,6 +2195,78 @@ async fn representative_with_algorithm(
             })
         })
         .collect::<Vec<_>>();
+    // This setup-only cutoff is shared by ALL six original owners. No frame
+    // is requested or capture clock assigned until every exact marker is read.
+    let encoder_setup_began = Instant::now();
+    let encoder_setup_until = encoder_setup_began + Duration::from_secs(8);
+    let mut prepared_encoders = Vec::with_capacity(6);
+    let encoder_setup = AssertUnwindSafe(encoder_ready::prepare(
+        &binary,
+        &raw,
+        &mut prepared_encoders,
+        encoder_setup_until,
+    ))
+    .catch_unwind()
+    .await;
+    if !matches!(encoder_setup, Ok(Ok(()))) {
+        let encoder_closes =
+            futures_util::future::join_all(prepared_encoders.into_iter().map(|owner| async move {
+                AssertUnwindSafe(finish_encoder(owner)).catch_unwind().await
+            }))
+            .await;
+        let session_closes = futures_util::future::join_all(sessions.iter().enumerate().map(
+            |(index, session)| async move {
+                AssertUnwindSafe(async {
+                    let snapshot = session.refresh(options()).await?;
+                    if snapshot.state != "ended" {
+                        session
+                            .end(
+                                0,
+                                "encoder readiness setup cleanup".into(),
+                                snapshot.topology_revision,
+                                mutation(&format!(
+                                    "representative-encoder-setup-session-end-{index}"
+                                )),
+                            )
+                            .await?
+                            .wait(options())
+                            .await?;
+                    }
+                    Ok::<(), sdk::Error>(())
+                })
+                .catch_unwind()
+                .await
+                .map_err(panic_text)
+            },
+        ))
+        .await;
+        let mut closes = Vec::new();
+        for (index, client) in clients.iter().enumerate() {
+            closes.push(shutdown::OriginalClose::new(
+                "sdk-encoder-setup",
+                index,
+                Box::pin(async move {
+                    client
+                        .close(options())
+                        .await
+                        .map_err(|e| format!("original SDK setup shutdown: {e}"))
+                }),
+            ));
+        }
+        let sdk_closes = shutdown::join_originals(closes, encoder_setup_began, None).await;
+        // HTTP controllers have no shutdown/join API or request in flight here.
+        // Release both transport handles before the original server join.
+        drop(controllers);
+        let server_close = AssertUnwindSafe(f.server.shutdown()).catch_unwind().await;
+        eprintln!("representative encoder setup cleanup encoders={encoder_closes:?} sessions={session_closes:?} sdk_failures={:?} server={server_close:?}", sdk_closes.failures);
+        match encoder_setup {
+            Err(panic) => std::panic::resume_unwind(panic),
+            Ok(Err(error)) => {
+                panic!("original encoder readiness failed after owned cleanup: {error}")
+            }
+            Ok(Ok(())) => unreachable!(),
+        }
+    }
     let began = Instant::now() + Duration::from_millis(100);
     let programme_cutoff = began + Duration::from_secs(programme::SECONDS as u64);
     let read_cutoff = programme_cutoff + Duration::from_millis(200);
@@ -2219,11 +2274,19 @@ async fn representative_with_algorithm(
     let mut masters = Vec::new();
     phase_timing("programme-anchor", began, None, None);
     let mut works = Vec::new();
+    let mut targets = Vec::<Candidate>::new();
+    let mut target_progress = Vec::<SharedProgress>::new();
+    let mut quality_failures = Vec::new();
+    let mut task_failures = Vec::new();
+    // Numeric control-only checkpoints: print after all original owners join.
+    let mut cleanup_times = Vec::with_capacity(12);
+    let mut final_quality_pending = false;
+    let work=AssertUnwindSafe(async {
     for index in 0..6 {
+        let encoder = prepared_encoders.remove(0);
         let (master, owners) = programme::source(
             index,
-            &binary,
-            &raw[index],
+            encoder,
             progress[index].clone(),
             stop.clone(),
             began,
@@ -2253,14 +2316,6 @@ async fn representative_with_algorithm(
             read_cutoff,
         ));
     }
-    let mut targets = Vec::<Candidate>::new();
-    let mut target_progress = Vec::<SharedProgress>::new();
-    let mut quality_failures = Vec::new();
-    let mut task_failures = Vec::new();
-    // Numeric control-only checkpoints: print after all original owners join.
-    let mut cleanup_times = Vec::with_capacity(12);
-    let mut final_quality_pending = false;
-    let work=AssertUnwindSafe(async {
         wait_original_playout(&progress,&connections,began+Duration::from_secs(8)).await;
         // Warm up two genuine seconds before measuring the first preparation.
         tokio::time::sleep_until(began+Duration::from_secs(2)).await;
@@ -2554,6 +2609,17 @@ async fn representative_with_algorithm(
     // Preserve original work failure, then join every exact original task and
     // decoder before propagating it. No forced process can qualify this test.
     stop.cancel();
+    for (index, closed) in encoder_ready::close_all(prepared_encoders)
+        .await
+        .into_iter()
+        .enumerate()
+    {
+        if !matches!(closed, Ok(true)) {
+            task_failures.push(format!(
+                "untransferred original encoder cleanup index={index}: {closed:?}"
+            ));
+        }
+    }
     for task in works {
         // All work has its unchanged programme cutoff, and each codec owns a
         // bounded shutdown+wait. Never drop a live JoinHandle on a timeout.

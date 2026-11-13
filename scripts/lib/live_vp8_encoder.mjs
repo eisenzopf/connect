@@ -19,22 +19,39 @@ export class LiveVp8Encoder {
     #count;
     #closing = false;
     #join;
+    #initializing = true;
+    #ready;
+    #readiness;
 
     static async open(executable, raw, count) {
         assert.ok([executable, raw].every(p => typeof p === "string" && isAbsolute(p) && !p.includes("\0")));
         assert.ok(Number.isInteger(count) && count >= 1 && count <= 1860);
+        const setupUntil = performance.now() + 8000;
         const [binary, input] = await Promise.all([lstat(executable), lstat(raw)]);
         assert.ok(binary.isFile() && !binary.isSymbolicLink() && (binary.mode & 0o111));
         assert.ok(input.isFile() && !input.isSymbolicLink() && !(input.mode & 0o077));
         assert.equal(input.size, count * RAW_FRAME);
-        return new LiveVp8Encoder(spawn(executable, [raw, String(count)], {
+        const remaining = setupUntil - performance.now();
+        assert.ok(remaining > 0, "live encoder original setup deadline");
+        const encoder = new LiveVp8Encoder(spawn(executable, [raw, String(count), "--ready-v1"], {
             stdio: ["pipe", "pipe", "ignore"], env: { LANG: "C" },
         }), count);
+        const timer = setTimeout(() => encoder.#fail(Error("live encoder original setup deadline")),
+            Math.max(0, setupUntil - performance.now()));
+        try {
+            await encoder.#ready;
+            if (performance.now() >= setupUntil) encoder.#fail(Error("live encoder original setup deadline"));
+            if (encoder.#failure) throw encoder.#failure;
+            return encoder;
+        }
+        catch (error) { await encoder.stopAndJoin(); throw error; }
+        finally { clearTimeout(timer); }
     }
 
     constructor(child, count) {
         this.#child = child;
         this.#count = count;
+        this.#ready = new Promise((resolve, reject) => { this.#readiness = { resolve, reject }; });
         this.#closed = new Promise(resolve => {
             child.once("close", (code, signal) => {
                 this.#exit = { code, signal };
@@ -46,6 +63,9 @@ export class LiveVp8Encoder {
         child.once("error", () => this.#fail(Error("live encoder process failed")));
         child.stdin.on("error", () => this.#fail(Error("live encoder input failed")));
         child.stdout.on("error", () => this.#fail(Error("live encoder output failed")));
+        child.stdout.once("end", () => {
+            if (this.#initializing) this.#fail(Error("live encoder initialization ended before READY"));
+        });
         child.stdout.on("data", chunk => this.#receive(chunk));
     }
 
@@ -53,6 +73,11 @@ export class LiveVp8Encoder {
 
     #fail(error) {
         this.#failure ??= error;
+        if (this.#readiness) {
+            const readiness = this.#readiness;
+            this.#readiness = undefined;
+            readiness.reject(this.#failure);
+        }
         if (this.#pending) {
             const pending = this.#pending;
             this.#pending = undefined;
@@ -66,6 +91,18 @@ export class LiveVp8Encoder {
     #receive(chunk) {
         if (this.#failure) return;
         try {
+            if (this.#initializing) {
+                assert.ok(this.#buffer.length + chunk.length <= 4, "extra initialization output");
+                this.#buffer = Buffer.concat([this.#buffer, chunk]);
+                if (this.#buffer.length < 4) return;
+                assert.ok(this.#buffer.equals(Buffer.from("V8R1")), "foreign initialization marker");
+                this.#buffer = Buffer.alloc(0);
+                this.#initializing = false;
+                const readiness = this.#readiness;
+                this.#readiness = undefined;
+                readiness.resolve();
+                return;
+            }
             const pending = this.#pending;
             assert.ok(pending, "unsolicited encoder output");
             assert.ok(this.#buffer.length + chunk.length <= HEADER + MAX_FRAME, "encoder output bound");
@@ -102,6 +139,7 @@ export class LiveVp8Encoder {
         assert.ok(Number.isInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 200);
         assert.ok(!this.#pending, "one encoder request at a time");
         if (this.#failure) throw this.#failure;
+        assert.ok(!this.#initializing, "encoder initialization incomplete");
         assert.ok(!this.#closing && !this.#exit, "closed encoder owner");
         if (signal?.aborted) {
             this.#fail(Error("live encoder request cancelled"));
@@ -129,6 +167,7 @@ export class LiveVp8Encoder {
     stopAndJoin() {
         return this.#join ??= (async () => {
             this.#closing = true;
+            if (this.#initializing) this.#fail(Error("live encoder stopped during initialization"));
             if (this.#pending) this.#fail(Error("live encoder stopped with a pending original request"));
             if (!this.#exit) {
                 if (this.#failure) this.#child.kill("SIGKILL");

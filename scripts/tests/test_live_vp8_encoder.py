@@ -1,10 +1,13 @@
 """Actual request-driven encoding and independent decoding; no transport claim."""
 import json
+import os
+import select
 from pathlib import Path
 import struct
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -54,6 +57,92 @@ def independent_decode(directory, name, frames):
 
 
 class LiveVp8Encoder(unittest.TestCase):
+    def test_optin_ready_precedes_original_input_and_preserves_first_frame(self):
+        import platform
+        self.assertIn(sys.platform, ("linux", "darwin"))
+        self.assertIn(platform.machine(), ("aarch64", "arm64"))
+        private = ROOT / ".local/gate-6/live-vp8-ready-source"
+        private.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=private) as temporary:
+            directory = Path(temporary)
+            binary = directory / "encoder"
+            metadata = build(binary)
+            raw = directory / "original.i420"
+            with raw.open("xb") as stream:
+                stream.write(bytes([60]) * (640 * 360))
+                stream.write(bytes([128]) * (640 * 360 // 2))
+            raw.chmod(0o600)
+
+            def ready(requests, source=raw):
+                # Wait for initialization BEFORE writing the original request.
+                # The SAME original process is reaped on every failure path.
+                child = subprocess.Popen(
+                    [str(binary), str(source), "1", "--ready-v1"],
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE, env=fixture_environment())
+                prefix = b""
+                deadline = time.monotonic() + 5
+                try:
+                    while len(prefix) < 4:
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0 or not select.select(
+                                [child.stdout], [], [], max(0, remaining))[0]:
+                            raise subprocess.TimeoutExpired(child.args, 5)
+                        chunk = os.read(child.stdout.fileno(), 4 - len(prefix))
+                        if not chunk:
+                            break
+                        prefix += chunk
+                    output, errors = child.communicate(
+                        input=requests, timeout=max(.001, deadline - time.monotonic()))
+                    return prefix, subprocess.CompletedProcess(
+                        child.args, child.returncode, output, errors)
+                finally:
+                    try:
+                        if child.poll() is None:
+                            child.kill()
+                    finally:
+                        try:
+                            child.wait(timeout=5)
+                        finally:
+                            try:
+                                child.stdin.close()
+                            finally:
+                                try:
+                                    child.stdout.close()
+                                finally:
+                                    child.stderr.close()
+
+            # A default encoder still starts directly with its original V8F1.
+            original = subprocess.run(
+                [str(binary), str(raw), "1"], input=struct.pack("<II", 0, 1),
+                capture_output=True, timeout=5, env=fixture_environment())
+            self.assertEqual(original.returncode, 0, original.stderr)
+            baseline = packets(original.stdout)
+            self.assertEqual([(i, key) for i, key, _ in baseline], [(0, 1)])
+            # EOF after READY yields no media, no request and a natural exit.
+            marker, unused = ready(b"")
+            self.assertEqual((marker, unused.returncode, unused.stdout),
+                             (b"V8R1", 0, b""), unused.stderr)
+            marker, first = ready(struct.pack("<II", 0, 1))
+            self.assertEqual((marker, first.returncode), (b"V8R1", 0), first.stderr)
+            first_frames = packets(first.stdout)
+            self.assertEqual(first_frames, baseline)
+            independent_decode(directory, "ready-original-zero", first_frames)
+            # Both real source checks must refuse BEFORE emitting READY.
+            link = directory / "link.i420"
+            link.symlink_to(raw)
+            marker, refused = ready(b"", link)
+            self.assertEqual((marker, refused.stdout), (b"", b""))
+            self.assertNotEqual(refused.returncode, 0)
+            raw.chmod(0o644)
+            marker, refused = ready(b"")
+            self.assertEqual((marker, refused.stdout), (b"", b""))
+            self.assertNotEqual(refused.returncode, 0)
+            print(json.dumps(dict(build=metadata, ready_without_media=True,
+                                  first_original_index=0, same_first_encoded_bytes=True,
+                                  independently_decoded_frames=1, transport_qualified=False,
+                                  full_media_qualified=False)))
+
     def test_fresh_requested_frame_original_clock_gop_and_closed_input(self):
         self.assertEqual(sys.platform, "linux", "Qualification runs on local ARM Linux")
         import platform
