@@ -170,6 +170,7 @@ fn audio_continuity_snapshot(
 /// Bounded scalar observation. The full media stays with its original reader.
 #[derive(Clone, Debug)]
 struct Progress {
+    first_key_timing: FirstKeyTiming,
     video_diagnostics: video_diagnostics::History,
     encoded_frames: u64,
     encoded_bins: [u16; 62],
@@ -220,6 +221,7 @@ struct Progress {
 impl Default for Progress {
     fn default() -> Self {
         Self {
+            first_key_timing: FirstKeyTiming::default(),
             video_diagnostics: Default::default(),
             encoded_frames: Default::default(),
             encoded_bins: [0; 62],
@@ -917,6 +919,83 @@ fn original_readonly_deadline_requires_exact_confirmed_retirement() {
     }
 }
 
+#[derive(Clone, Default)]
+struct FirstKeyTiming {
+    encode: Option<(Instant, Option<Instant>, usize)>,
+    send: Option<FirstKeySend>,
+}
+impl std::fmt::Debug for FirstKeyTiming {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("first-key timing retained for post-join report")
+    }
+}
+// First original key only: local records survive the ORIGINAL future's unwind.
+// No packet log, payload copy, sleep, grant, or changed clock/deadline.
+#[derive(Clone, Debug)]
+struct FirstKeyFragment {
+    index: usize,
+    sequence: u32,
+    entered: Instant,
+    completed: Option<Instant>,
+    outcome: &'static str,
+    error: Option<(sdk::ErrorKind, sdk::Certainty)>,
+}
+impl FirstKeyFragment {
+    fn finish(&mut self, outcome: &'static str) {
+        self.completed = Some(Instant::now());
+        self.outcome = outcome;
+    }
+}
+#[derive(Clone, Debug)]
+struct FirstKeySend {
+    captured: Instant,
+    until: Instant,
+    expected_parts: usize,
+    fragments: Vec<FirstKeyFragment>,
+}
+struct FirstKeyGuard {
+    progress: SharedProgress,
+    record: Option<FirstKeySend>,
+}
+impl Drop for FirstKeyGuard {
+    fn drop(&mut self) {
+        if let Some(mut record) = self.record.take() {
+            if let Some(last) = record
+                .fragments
+                .last_mut()
+                .filter(|last| last.completed.is_none())
+            {
+                last.finish("original-future-unwound");
+            }
+            // Diagnostics cannot replace an original failure on a poisoned lock.
+            if let Ok(mut measured) = self.progress.lock() {
+                measured.first_key_timing.send = Some(record);
+            }
+        }
+    }
+}
+fn first_key_report(source: usize, measured: &Progress, began: Instant) -> Value {
+    let elapsed = |at: Instant| at.checked_duration_since(began).map(|v| v.as_micros());
+    let encode = measured.first_key_timing.encode.as_ref().map(|(captured,complete,bytes)|json!({
+        "sample_index":0,"captured_programme_us":elapsed(*captured),
+        "encode_complete_programme_us":complete.and_then(elapsed),
+        "capture_to_encode_us":complete.map(|at|at.saturating_duration_since(*captured).as_micros()),"encoded_bytes":bytes}));
+    let send = measured.first_key_timing.send.as_ref().map(|record|json!({
+        "sample_index":0,"captured_programme_us":elapsed(record.captured),
+        "original_cutoff_programme_us":elapsed(record.until),"expected_parts":record.expected_parts,
+        "admitted_parts":record.fragments.iter().filter(|f|f.outcome=="admitted").count(),
+        "fragments":record.fragments.iter().map(|f|json!({"part":f.index,"sequence":f.sequence,
+            "entered_programme_us":elapsed(f.entered),"entered_sample_age_us":f.entered.saturating_duration_since(record.captured).as_micros(),
+            "remaining_original_us":record.until.checked_duration_since(f.entered).map(|v|v.as_micros()),
+            "completed_programme_us":f.completed.and_then(elapsed),
+            "local_wait_us":f.completed.map(|at|at.saturating_duration_since(f.entered).as_micros()),
+            "outcome":f.outcome,"sdk_error_kind":f.error.map(|v|format!("{:?}",v.0)),
+            "sdk_certainty":f.error.map(|v|format!("{:?}",v.1))})).collect::<Vec<_>>() }));
+    json!({"source":source,"sdk_actor":OWNER[source],"session_index":SESSION[source],"first_original_key_index":0,
+        "encode":encode,"send":send,"original_capture_age_limit_us":AGE.as_micros(),
+        "scope":"first original key only; encoder.frame includes process readiness/raw read/encode/pipe; no substep inference"})
+}
+
 fn original_packet(
     result: sdk::Result<sdk::MediaPacket>,
     retirement: &RetirementWitness,
@@ -941,14 +1020,29 @@ async fn send_original(
     packet: sdk::RtpPacket,
     retirement: &RetirementWitness,
     until: Instant,
+    mut first_key_fragment: Option<&mut FirstKeyFragment>,
 ) -> bool {
     match stream.send_rtp(packet, programme::request(until)).await {
-        Ok(_) => true,
+        Ok(_) => {
+            if let Some(fragment) = first_key_fragment.as_mut() {
+                fragment.finish("admitted");
+            }
+            true
+        }
         Err(error) if error.kind == sdk::ErrorKind::Unsupported && retirement.committed() => {
+            if let Some(fragment) = first_key_fragment.as_mut() {
+                fragment.finish("confirmed-retirement");
+            }
             eprintln!("representative original publisher observed exact recorded source retirement source={}",retirement.source);
             false
         }
-        Err(error) => panic!("original live publisher failed: {error:?}"),
+        Err(error) => {
+            if let Some(fragment) = first_key_fragment.as_mut() {
+                fragment.error = Some((error.kind, error.certainty));
+                fragment.finish("sdk-error");
+            }
+            panic!("original live publisher failed: {error:?}")
+        }
     }
 }
 
@@ -1304,11 +1398,23 @@ fn spawn_publisher(
                         assert!(Instant::now() < until, "actual original source sample age");
                         if sample.video {
                             let parts = sample.bytes.chunks(1000).collect::<Vec<_>>();
+                            let mut first_key = (sample.index == 0).then(|| FirstKeyGuard {
+                                progress: progress.clone(),
+                                record: Some(FirstKeySend {captured:sample.captured,until,expected_parts:parts.len(),fragments:Vec::with_capacity(parts.len())}),
+                            });
                             for (part, bytes) in parts.iter().enumerate() {
                                 let mut body = vec![if part == 0 {0x10} else {0}];body.extend_from_slice(bytes);
                                 let packet = programme::video_packet(sequence,sample.index * 3000,
                                     0x74000000 + source as u32,part + 1 == parts.len(),&body);
-                                if !timeout_at(until,send_original(&video,packet,&retirement,until)).await.unwrap() {return;}
+                                let fragment = first_key.as_mut().and_then(|guard|guard.record.as_mut()).map(|record| {
+                                    record.fragments.push(FirstKeyFragment {index:part,sequence,entered:Instant::now(),completed:None,outcome:"entered",error:None});
+                                    record.fragments.last_mut().unwrap()
+                                });
+                                let result = timeout_at(until,send_original(&video,packet,&retirement,until,fragment)).await;
+                                if result.is_err() {
+                                    if let Some(fragment)=first_key.as_mut().and_then(|guard|guard.record.as_mut()).and_then(|record|record.fragments.last_mut()) {fragment.finish("original-outer-deadline");}
+                                }
+                                if !result.unwrap() {return;}
                                 sequence = sequence.checked_add(1).expect("original native video datagram counter");
                                 progress.lock().unwrap().published_video_packets += 1;
                             }
@@ -1319,7 +1425,7 @@ fn spawn_publisher(
                             let sequence = sample.index as u16;
                             let packet = sdk::RtpPacket::new(sample.index,rtp(111,sequence,sample.index*960,
                                 0x61000000+source as u32,false,&sample.bytes)).unwrap();
-                            if !timeout_at(until,send_original(&voice,packet,&retirement,until)).await.unwrap() {return;}
+                            if !timeout_at(until,send_original(&voice,packet,&retirement,until,None)).await.unwrap() {return;}
                             progress.lock().unwrap().published_audio_packets += 1;
                         }
                     }
@@ -2605,6 +2711,12 @@ async fn representative_with_algorithm(
     task_failures.extend(closed.failures);
     let all_original_joined = Instant::now();
     cleanup_times.push(("all-original-owners-joined", all_original_joined));
+    for (source, measured) in clone_progress(&progress).iter().enumerate() {
+        eprintln!(
+            "representative first-key timing {}",
+            first_key_report(source, measured, began)
+        );
+    }
     if full_programme {
         // This proof is AFTER every original Session/runtime/media/codec/raw
         // peer/SDK close. Ten seconds of idle cannot hide late physical joins.
@@ -2855,3 +2967,80 @@ fn representative_recovered_key_keeps_the_next_contiguous_delta() {
 #[cfg(feature = "test-support")]
 #[path = "representative/initial_av.rs"]
 mod initial_av;
+
+#[cfg(test)]
+fn first_key_diagnostic_partial_error_keeps_original_clock_and_unwind() {
+    let captured = Instant::now() - Duration::from_secs(1);
+    let until = captured + AGE;
+    let measured = Arc::new(Mutex::new(Progress::default()));
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe({
+        let measured = measured.clone();
+        move || {
+            let mut guard = FirstKeyGuard {
+                progress: measured,
+                record: Some(FirstKeySend {
+                    captured,
+                    until,
+                    expected_parts: 3,
+                    fragments: vec![],
+                }),
+            };
+            let record = guard.record.as_mut().unwrap();
+            record.fragments.push(FirstKeyFragment {
+                index: 0,
+                sequence: 7,
+                entered: captured,
+                completed: Some(captured),
+                outcome: "admitted",
+                error: None,
+            });
+            record.fragments.push(FirstKeyFragment {
+                index: 1,
+                sequence: 8,
+                entered: captured,
+                completed: Some(captured),
+                outcome: "sdk-error",
+                error: Some((sdk::ErrorKind::Deadline, sdk::Certainty::NotSubmitted)),
+            });
+            std::panic::panic_any(17u32);
+        }
+    }));
+    assert_eq!(result.unwrap_err().downcast_ref::<u32>(), Some(&17));
+    let debug = format!("{:?}", measured.lock().unwrap());
+    assert!(debug.contains("first-key timing retained for post-join report"));
+    assert!(!debug.contains("NotSubmitted") && !debug.contains("sdk-error"));
+    let report = first_key_report(1, &measured.lock().unwrap(), captured);
+    assert_eq!(report["send"]["original_cutoff_programme_us"], 200000);
+    assert_eq!(report["send"]["admitted_parts"], 1);
+    assert_eq!(
+        report["send"]["fragments"][1]["sdk_certainty"],
+        "NotSubmitted"
+    );
+    assert_eq!(report["send"]["fragments"].as_array().unwrap().len(), 2);
+    assert_eq!(report["send"]["expected_parts"], 3);
+    let missing = first_key_report(1, &Progress::default(), captured);
+    assert!(missing["encode"].is_null() && missing["send"].is_null());
+    drop(FirstKeyGuard {
+        progress: measured.clone(),
+        record: Some(FirstKeySend {
+            captured,
+            until,
+            expected_parts: 1,
+            fragments: vec![FirstKeyFragment {
+                index: 0,
+                sequence: 9,
+                entered: captured,
+                completed: None,
+                outcome: "entered",
+                error: None,
+            }],
+        }),
+    });
+    let interrupted = first_key_report(1, &measured.lock().unwrap(), captured);
+    assert_eq!(interrupted["send"]["admitted_parts"], 0);
+    assert_eq!(
+        interrupted["send"]["fragments"][0]["outcome"],
+        "original-future-unwound"
+    );
+    assert!(interrupted["send"]["fragments"][0]["sdk_error_kind"].is_null());
+}

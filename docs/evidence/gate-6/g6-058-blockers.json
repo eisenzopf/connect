@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13",
-  "run_status": "Latest full matrix remainsv217:2/32 cells,400/432 checks. Fresh e60/generation429 prerequisites completed401/402 Rust cases and133/133 scripts, all six build phases passed. One first-key startup failure in EdDSA full62 remains; ES256 full62 passes. All original owners closed; no SourcePrep/shipping/newmatrix launched. Timing diagnostics are being prepared without criterion changes.",
+  "updated": "2026-11-13T15:20:50.530191+00:00",
+  "run_status": "Latest full matrix remains v217:2/32 cells,400/432 checks. Original e60/429 prerequisites remain401/402 Rust and133/133 scripts. Reviewed first-key timing diagnostics now pass the exact EdDSA full62 workload and its accounting unit: all28/29 first-key fragments admitted, encoding115.9\u2013116.7ms and final local submission117.5\u2013122.5ms inside original200ms. All original owners joined65.378s<67s; no quality/task failures. This is measurement, not a demonstrated cure. Isolating cold initialization versus raw/encode/executor delay; no new matrix launched.",
   "blockers": [
     {
       "id": "B01",
@@ -17640,6 +17640,12 @@
       "passed": 133,
       "planned": 133,
       "evidence": "g6-058-v218-prequalification.json"
+    },
+    {
+      "name": "Reviewed first-key timing accounting and exact EdDSA full62 rerun (cause unproven)",
+      "passed": 2,
+      "planned": 2,
+      "evidence": "g6-058-v218-first-key-diagnostic.json"
     }
   ],
   "current_production_check": {
@@ -18483,5 +18489,14 @@
       "failed_log_sha256": "4e1502f6258f0912fa8a0bb90683c70a2ae6d58640608fa7d7ad1ee292646880",
       "source_privacy_authorization_thresholds_changed": false
     }
+  },
+  "v218_first_key_diagnostic": {
+    "evidence": "docs/evidence/gate-6/g6-058-v218-first-key-diagnostic.json",
+    "sha256": "ed232aefdc382bf6851359c38ad28c370dec5a291aac8d2ccaff4a9d2955b623",
+    "status": "actual-unit-and-exact-Ed-full62-passed-cause-still-open",
+    "Rust_passed": 2,
+    "Rust_required": 2,
+    "matrix_qualified": false,
+    "independent_runtime_review_sha256": "ba6cbfb1bba43459f46926d74a23d2dcc8235e8e4cd77feee894682865acc317"
   }
 }

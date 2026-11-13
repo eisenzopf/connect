@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T15:05:44.274564+00:00",
-  "revision": 71,
+  "updated_at": "2026-11-13T15:20:50.526798+00:00",
+  "revision": 72,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,12 +9,12 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 110,
-    "verified_at": "2026-11-13T15:07:01.970Z",
+    "content_revision": 111,
+    "verified_at": "2026-11-13T15:21:13.649Z",
     "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217.json",
     "readback_evidence_sha256": "f97e298deaa159a290654c41a57289a54247b7f0aea6f3b3a4a26d2b4da0b4b0",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
-    "postrun_readback_sha256": "66c3a6b85a9833c13b957fd15f8f45efe70190ea8e97c7071f9c970f181aa56f"
+    "postrun_readback_sha256": "b2e74398784e6a1ada6cadbd972c896d1c64c21bcb882836f357cb0f57bdd0cb"
   },
   "baseline": {
     "run": "v215",
@@ -5327,5 +5327,14 @@
       "failed_log_sha256": "4e1502f6258f0912fa8a0bb90683c70a2ae6d58640608fa7d7ad1ee292646880",
       "source_privacy_authorization_thresholds_changed": false
     }
+  },
+  "v218_first_key_diagnostic": {
+    "evidence": "docs/evidence/gate-6/g6-058-v218-first-key-diagnostic.json",
+    "sha256": "ed232aefdc382bf6851359c38ad28c370dec5a291aac8d2ccaff4a9d2955b623",
+    "status": "actual-unit-and-exact-Ed-full62-passed-cause-still-open",
+    "Rust_passed": 2,
+    "Rust_required": 2,
+    "matrix_qualified": false,
+    "independent_runtime_review_sha256": "ba6cbfb1bba43459f46926d74a23d2dcc8235e8e4cd77feee894682865acc317"
   }
 }

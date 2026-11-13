@@ -1,0 +1,217 @@
+{
+  "format": "connect/g6-058-v218-first-key-diagnostic/1",
+  "updated_at": "2026-11-13T15:19:27.105484+00:00",
+  "source_head": "4eb582a07e159aa360de4e917c33c3cf0087e4ab",
+  "production_source": "e60faf5ceda689900890755ddcf3b74f6c29da69",
+  "normal_generation": 429,
+  "diagnostic_candidate_sha256": "915fc414f7de54910d5f96cae29824234ea175dfed1f725dd0d22c9722525d76",
+  "independent_source_review_sha256": "219628c07325aedd997e7b0495cbda8bef3b00f729e9fe51c5aa121239b5be21",
+  "original_owner_receipt_sha256": "43e007d5f6b4886a5f728c986f83e3d1a53c21232ff37b6e6e3ee2ad0862d3dc",
+  "actual_root_original_join_sha256": "b6741fc3b396f01a0a5d04a03b2257920ed211ff86cd6caeee450c4f5a55d2da",
+  "actual_original_outer_exit_code": 0,
+  "tests": [
+    {
+      "label": "clock-accounting",
+      "passed": true,
+      "exit_code": 0,
+      "joined": true,
+      "remaining_original_groups": [],
+      "log_sha256": "82f4d851664a77befe69bd7c76de2410f3f1bb3155f2dd3a0a0faf2054dfbdb5"
+    },
+    {
+      "label": "EdDSA-full62",
+      "passed": true,
+      "exit_code": 0,
+      "joined": true,
+      "remaining_original_groups": [],
+      "log_sha256": "cde71892431e378fb68392c7ed462f8a2ef5be2a3fb4f4512e29c4e587730e5b"
+    }
+  ],
+  "actual_Data_controls": {
+    "expected_first_recordings": {
+      "data-gate": 4,
+      "data-subscription": 8
+    },
+    "observed_lines": {
+      "data-gate": 4,
+      "data-subscription": 8
+    },
+    "unique_records_by_kind": {
+      "data-gate": 4,
+      "data-subscription": 8
+    },
+    "duplicate_lines": 0,
+    "malformed_lines": 0,
+    "bounded_events": [
+      {
+        "line": 713,
+        "kind": "data-gate",
+        "record_fingerprint": "fdb1dd713f26fd6268f09977aa4dd47727ae05b7f1ffc3bf7a141bebad8e65ec",
+        "descriptor": "unreported"
+      },
+      {
+        "line": 718,
+        "kind": "data-subscription",
+        "record_fingerprint": "2c866a22eb8466cb9c336229a350583cb1cde48a8e27813274e19dc43e578b1c",
+        "descriptor": "first"
+      },
+      {
+        "line": 723,
+        "kind": "data-subscription",
+        "record_fingerprint": "77441185faea922b5227525e4499d0a8427f2ced40f31615b607457f646e3903",
+        "descriptor": "stale-invisible"
+      },
+      {
+        "line": 738,
+        "kind": "data-gate",
+        "record_fingerprint": "ca2034d10f544796d360eeae440be3ed191ba4f3e64f2a2b05e015b67a0c08df",
+        "descriptor": "unreported"
+      },
+      {
+        "line": 743,
+        "kind": "data-subscription",
+        "record_fingerprint": "1a3583ff51f6689bbcf8180fe6a2ddbffb36a594931a12322cbc48b530ccb807",
+        "descriptor": "first"
+      },
+      {
+        "line": 748,
+        "kind": "data-subscription",
+        "record_fingerprint": "cc15ad055ef911a54841d77cb657fb8ffbefb2f853deff279b06c10135168fa8",
+        "descriptor": "stale-invisible"
+      },
+      {
+        "line": 914,
+        "kind": "data-gate",
+        "record_fingerprint": "5d878a3b4e2e91152a28dccf339ee08fa59b0e407bdcd280a7e11679e5e31fee",
+        "descriptor": "unreported"
+      },
+      {
+        "line": 919,
+        "kind": "data-subscription",
+        "record_fingerprint": "29ff53a44b9494d563cf240257654e94b72c081856ab0e39ec8b08977a73828c",
+        "descriptor": "first"
+      },
+      {
+        "line": 924,
+        "kind": "data-subscription",
+        "record_fingerprint": "9a66bf3cb53be6b710e985f1de7c2abb197e828b5ffeafc0029de0762d17c50c",
+        "descriptor": "stale-invisible"
+      },
+      {
+        "line": 939,
+        "kind": "data-gate",
+        "record_fingerprint": "de0f7952a4a32e77e01103a700fc0b61cdb24e49ab2a1b78f8bcb1b265b7a99d",
+        "descriptor": "unreported"
+      },
+      {
+        "line": 944,
+        "kind": "data-subscription",
+        "record_fingerprint": "b3443db6b66146c8ec4d1e3c3ba69e842d30524a53df6abdf598d4e66b3b3373",
+        "descriptor": "first"
+      },
+      {
+        "line": 949,
+        "kind": "data-subscription",
+        "record_fingerprint": "b8ca69c00d7a763cd38805ebcdac90cc80fe5756ef2e99eb1dac7c53d6fc7a53",
+        "descriptor": "stale-invisible"
+      }
+    ],
+    "overflow_lines": 0,
+    "required_paths_observed": true,
+    "limit": "One Source-reviewed narrow control trace after actual COMMIT only; completed replay/fallback emits no such event. Missing traces stay unreported, not promoted from testpass or commandorder. No packet/payload/raw operation ID retained."
+  },
+  "owner_join_programme_seconds": 65.378488,
+  "unchanged_owner_join_bound_seconds": 67,
+  "quality_failures": [],
+  "task_failures": [],
+  "first_keys": [
+    {
+      "source": 0,
+      "captured_programme_us": 1046,
+      "capture_to_encode_us": 116387,
+      "expected_parts": 28,
+      "admitted_parts": 28,
+      "first_send_age_us": 116443,
+      "largest_local_wait_us": 459,
+      "min_remaining_original_us": 80582,
+      "last_send_entry_age_us": 119417,
+      "last_send_completion_age_us": 119435
+    },
+    {
+      "source": 1,
+      "captured_programme_us": 1117,
+      "capture_to_encode_us": 116317,
+      "expected_parts": 28,
+      "admitted_parts": 28,
+      "first_send_age_us": 116373,
+      "largest_local_wait_us": 2513,
+      "min_remaining_original_us": 77555,
+      "last_send_entry_age_us": 122444,
+      "last_send_completion_age_us": 122461
+    },
+    {
+      "source": 2,
+      "captured_programme_us": 964,
+      "capture_to_encode_us": 116647,
+      "expected_parts": 28,
+      "admitted_parts": 28,
+      "first_send_age_us": 116690,
+      "largest_local_wait_us": 123,
+      "min_remaining_original_us": 81976,
+      "last_send_entry_age_us": 118024,
+      "last_send_completion_age_us": 118070
+    },
+    {
+      "source": 3,
+      "captured_programme_us": 1486,
+      "capture_to_encode_us": 116276,
+      "expected_parts": 28,
+      "admitted_parts": 28,
+      "first_send_age_us": 116304,
+      "largest_local_wait_us": 82,
+      "min_remaining_original_us": 82592,
+      "last_send_entry_age_us": 117408,
+      "last_send_completion_age_us": 117454
+    },
+    {
+      "source": 4,
+      "captured_programme_us": 1441,
+      "capture_to_encode_us": 116190,
+      "expected_parts": 29,
+      "admitted_parts": 29,
+      "first_send_age_us": 116215,
+      "largest_local_wait_us": 475,
+      "min_remaining_original_us": 80905,
+      "last_send_entry_age_us": 119094,
+      "last_send_completion_age_us": 119193
+    },
+    {
+      "source": 5,
+      "captured_programme_us": 1538,
+      "capture_to_encode_us": 115903,
+      "expected_parts": 28,
+      "admitted_parts": 28,
+      "first_send_age_us": 115952,
+      "largest_local_wait_us": 2204,
+      "min_remaining_original_us": 78085,
+      "last_send_entry_age_us": 121915,
+      "last_send_completion_age_us": 121932
+    }
+  ],
+  "cause_confirmed": false,
+  "limits": [
+    "First-key timing includes native startup/raw read/encode/pipe and executor polling; no substep attribution yet.",
+    "This source change is measurement only. Passing rerun does not establish a cure for earlier intermittent failure.",
+    "Original cohort401/402 remains failed; no matrix, shipping or qualification credit.",
+    "Old published_video_packets counts8 and11 are incomplete admitted prefixes, not expected fragment totals; old encoded length and precise first-key capture/encode timing were not recorded."
+  ],
+  "latest_matrix": {
+    "run": "v217",
+    "cells_passed": 2,
+    "cells_required": 32,
+    "checks_passed": 400,
+    "checks_required": 432
+  },
+  "independent_runtime_review": "accepted scoped actual unit+full62 evidence; no cause or failed-cohort promotion",
+  "independent_runtime_review_sha256": "ba6cbfb1bba43459f46926d74a23d2dcc8235e8e4cd77feee894682865acc317"
+}

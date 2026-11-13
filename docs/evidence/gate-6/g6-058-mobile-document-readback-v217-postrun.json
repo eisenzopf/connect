@@ -1,10 +1,10 @@
 {
   "format": "connect/g6-058-mobile-postrun-readback/1",
-  "content_revision": 110,
-  "verified_at": "2026-11-13T15:07:01.970Z",
+  "content_revision": 111,
+  "verified_at": "2026-11-13T15:21:13.649Z",
   "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
   "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
-  "native_revision_id": "AHj4eMR1k9q2Xwfb-Nphe4wky99Eiz0cI1tlW6qMx6Y6PH6mTHxmdd7O0ffO8ZVflaKT7_liE2a-pK5433HlyzWBg6qYoe0F1ul3uaBpxec",
+  "native_revision_id": "AHj4eMQucNnMXZXig3cgBZGZFDDpbrYCmCJ_Oda2NIHJZg8z8qntl_ZP0ulSgyQIs2qrJZ1al4lZxx_Jh2IogezWRbIs24vy6Tslod6ylqE",
   "header_exact": true,
   "s4_exact": true,
   "task_count": 9,
@@ -19,5 +19,16 @@
     "V217-S8",
     "V217-S9"
   ],
-  "verified": true
+  "verified": true,
+  "first_key_diagnostic_readback": {
+    "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "content_revision": 111,
+    "actual_revision_id": "AHj4eMQucNnMXZXig3cgBZGZFDDpbrYCmCJ_Oda2NIHJZg8z8qntl_ZP0ulSgyQIs2qrJZ1al4lZxx_Jh2IogezWRbIs24vy6Tslod6ylqE",
+    "checked_at": "2026-11-13T15:21:13.649Z",
+    "checks": {
+      "header": true,
+      "s4": true,
+      "all9tasks": true
+    }
+  }
 }

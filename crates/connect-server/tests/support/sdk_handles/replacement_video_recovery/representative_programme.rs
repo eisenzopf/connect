@@ -50,15 +50,18 @@ pub(super) fn source(
                 tokio::select! { biased; _ = video_stop.cancelled() => break, _ = tick.tick() => {} }
                 if Instant::now() >= until { break; }
                 let captured = Instant::now();
+                if index == 0 { progress.lock().unwrap().first_key_timing.encode = Some((captured,None,0)); }
                 let periodic_key = index % 30 == 0;
                 // Preserve original short circuit: a periodic key never consumes the flag.
                 let requested_key = !periodic_key && requested.swap(false, Ordering::AcqRel);
                 let key = periodic_key || requested_key;
                 let bytes = timeout_at(until.min(captured + AGE), encoder.frame(index, key)).await
                     .expect("original source encoding must retain its 200ms capture age");
+                let first_complete = (index == 0).then(Instant::now);
                 if key { assert!(bytes.len() > 2000, "actual fragmented original VP8 key"); }
                 {
                     let mut measured = progress.lock().unwrap();
+                    if let Some(complete) = first_complete { measured.first_key_timing.encode = Some((captured,Some(complete),bytes.len())); }
                     measured.encoded_frames += 1;
                     if requested_key {
                         measured.video_diagnostics.record("requested-key-encoded",Some((0x74000000+source as u32,index,index*3000)),Some(captured));
@@ -203,6 +206,7 @@ pub(super) fn quality(originals: &[SharedProgress], candidates: &[SharedProgress
 
 #[test]
 fn full_programme_clock_and_movements_match_the_declared_matrix_contract() {
+    super::first_key_diagnostic_partial_error_keeps_original_clock_and_unwind();
     let contract: Value = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../contracts/gate6-transport-matrix.json"
