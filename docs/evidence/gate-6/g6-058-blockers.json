@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T04:48:07.477612+00:00",
-  "run_status": "Complete40 passed all362 on clean1fc/416, including both full62 media/Data/cleanup programmes. Corrected normalMac/ARM shipping passed. Browserautoupdate blocked preflight beforeanycell; Mac52 signed/protected fixture and actualCA/schema calibration plus16units pass. Qualify finalMac52 whole source withfresh42 then all32/432; oldmatrix0/32 unchanged.",
+  "updated": "2026-11-13T08:20:34.134677+00:00",
+  "run_status": "Completed v217:2/32 cells qualified;400/432 requirement rows passed,32 failed,0 blocked. All32 original attempts and owners closed.30 decoded-media requirement failures and2 final actor-config integrity failures remain recorded. Later targeted follow-through164 checks passed; no historical matrix promotion.",
   "blockers": [
     {
       "id": "B01",
@@ -5906,14 +5906,14 @@
     "post_verification_changes": "Progress documentation and its renderer only; library, upstream patch, lock and test bytes unchanged."
   },
   "latest_full_run": {
-    "evidence_key": "completed_v216_actual",
-    "label": "v216 (independently adjudicated)",
-    "status_url": "../evidence/gate-6/transport-matrix-v216.json"
+    "evidence_key": "completed_v217_actual",
+    "label": "v217 (independently adjudicated)",
+    "status_url": "../evidence/gate-6/transport-matrix-v217.json"
   },
   "current_focused_verification": {
-    "passed": 253,
-    "planned": 253,
-    "next": "Coherent focused Store214+Core39 passed. Batch commit and full329 remain required; last complete26 was295/296. No matrix promotion."
+    "passed": 164,
+    "planned": 164,
+    "next": "Separate Python62,JavaScript49,affected example5 andCore48 scopes passed. Full365 and matching shipping/fresh32/432 remain required."
   },
   "current_workplan_tasks": [
     "DC1",
@@ -17908,7 +17908,7 @@
     "source_unchanged": true,
     "matrix_qualified": false
   },
-  "latest_failure_mapping": "g6-058-v216-current-failure-mapping.json",
+  "latest_failure_mapping": "g6-058-v217-current-failure-mapping.json",
   "completed_v216_components30_actual": {
     "format": "connect/g6-058-complete341/1",
     "updated": "2026-11-13T01:43:18.522851+00:00",
@@ -18327,5 +18327,80 @@
     "profile_units_passed": 16,
     "final_mac52_source_qualification_pending": true,
     "matrix_qualified": false
+  },
+  "completed_v217_actual": {
+    "summary": {
+      "cells": {
+        "passed": 2,
+        "failed": 30,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 400,
+        "failed": 32,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "source_revision": "fc49c300f7d0c161a836736b1748ccd6fb00ec73",
+    "normal_generation": 416,
+    "all_original_owners_closed": true,
+    "evidence": "docs/evidence/gate-6/g6-058-v217-final-checkpoint.json",
+    "evidence_sha256": "10db9f301ab7d2d009c4f2dc571611d81aef3d425d8d4fb1bc9d98dee1340f94"
+  },
+  "v217_slowdown_tasks": {
+    "namespace": "v217/S1-S9; distinct from historical S1-S9 entries",
+    "evidence": "docs/evidence/gate-6/g6-058-v217-final-checkpoint.json",
+    "evidence_sha256": "10db9f301ab7d2d009c4f2dc571611d81aef3d425d8d4fb1bc9d98dee1340f94",
+    "tasks": {
+      "S1": {
+        "status": "applied-component-verified",
+        "scope": "Five affected filesystem/durability/original-owner tests passed. Broader Mac example attempt preserved59 passes and6 unchanged Linux-only platform-assert failures; no whole-example qualification."
+      },
+      "S2": {
+        "status": "applied-unit-verified",
+        "scope": "Per-exact-SDK End-admission barrier: old/fix causal unit and18 active JavaScript tests passed. No attribution to the actual Mac cycle3 timeout."
+      },
+      "S3": {
+        "status": "staged-not-integrated",
+        "scope": "Receive-history reset remains staged. Actual four WebCodecs cases and public Core Opus consumer found no ambiguity/clock-regression causal effect; no matrix/WSS cure claim."
+      },
+      "S4": {
+        "status": "rca-in-progress",
+        "scope": "Core/browser audio and server-log RCA remains open. Existing target PCM captures cover a superset of actual encoder inputs at48k/no resample; encoded-payload to browser-PCM join remains missing."
+      },
+      "S5": {
+        "status": "applied-component-verified",
+        "scope": "Registered controls417 reproduced the intended old Video MetadataBusy drop after owner joins. Registered production418 passed all3 causal/security controls including Video/Screen and exact45 retained Core tests. Original expiry/current authorization retained. Historical WSS packet-loss cause remains unproved.",
+        "passed": 48,
+        "planned": 48,
+        "independent_adjudication_sha256": "03c0fcc26d1ff7ecb1e42b9eb7db81a1c0aec1e248fc9406ec9bc66fb8295871"
+      },
+      "S6": {
+        "status": "rca-in-progress",
+        "scope": "Transport/feedback and server-log RCA continues; no blanket NACK/RTX or observed-loss cause claim."
+      },
+      "S7": {
+        "status": "applied-unit-verified",
+        "scope": "Duplicate-event diagnostics passed31 active observer tests; duplicate key, frame credit, quality thresholds and verdict unchanged. Actual duplicate cause remains unresolved."
+      },
+      "S8": {
+        "status": "applied-unit-verified",
+        "scope": "Remote actor-directory variable repair has old/fix source-extracted causal proof and active unit coverage. No promotion of historical missing final-config proof."
+      },
+      "S9": {
+        "status": "applied-unit-verified",
+        "depends_on": [
+          "S8"
+        ],
+        "scope": "Guest late controls/guardian freeze precede host-only decode;62 active Python tests passed. No actual VM runtime-saving or media qualification claim."
+      }
+    }
   }
 }

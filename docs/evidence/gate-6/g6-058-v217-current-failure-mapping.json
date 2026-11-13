@@ -1,0 +1,713 @@
+{
+  "format": "connect/g6-058-current-failure-mapping/1",
+  "run": "v217",
+  "source_revision": "fc49c300f7d0c161a836736b1748ccd6fb00ec73",
+  "normal_generation": 416,
+  "source_evidence": {
+    "path": "docs/evidence/gate-6/transport-matrix-v217.json",
+    "sha256": "c58f07a67c6ffe603c8302ffe5c438f2a3dce6bd9db5210c9010fa0f87e7f816"
+  },
+  "current_mapping_count": 32,
+  "current_failed": 32,
+  "current_blocked": 0,
+  "failure_mapping": [
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "1f31410c602b0170f84da8ed17efe81a7f24c07347ebfda5efa7b9ca91f1cba5",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "75bbcfebc8d0a07f19e20bbf4ccba86b21e2d9308624fb00322f9c03e195ddb1",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "97359e2f308237684c881c27ab2d893f60ef5f719f801eea6c85961ddffa9e17",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "6872bb226cef2afddb2850de57b584bce939c90e0f63e261703388d740b76e6f",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "0e800f4299f74dff02dabeda89a3685dc24478156d31b4a4a871e27a03d58a15",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "3cfe50b760592a6390c129f959247e6ba8a30f7e2c65a5dde64665873ff2659a",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "16dc23ea285513a5c9518a3236b4a5a64c41827e874bc29ba729d4b488b0506d",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "4fe37bebf8350f3554b45c14f40bebb4e4a7c2d2f001bcd39abf99c7faaa2c00",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "4fe37bebf8350f3554b45c14f40bebb4e4a7c2d2f001bcd39abf99c7faaa2c00",
+      "classification_role": "final-config-integrity-verification-failed",
+      "evidence_summary": "The original producer failed its final actor-config integrity guard. The cached EdDSA report and source establish directory-variable shadowing; ES256 same-leaf attribution is coordinator-attested. Historical actor integrity is not restored by the later fix.",
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "bfb8bfff493b76020a235ad65302e25b6863ef5c4775a7162098acf59a43d847",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "current-revocation-expiry-and-conflicting-operation-refusals",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "bfb8bfff493b76020a235ad65302e25b6863ef5c4775a7162098acf59a43d847",
+      "classification_role": "final-config-integrity-verification-failed",
+      "evidence_summary": "The original producer failed its final actor-config integrity guard. The cached EdDSA report and source establish directory-variable shadowing; ES256 same-leaf attribution is coordinator-attested. Historical actor integrity is not restored by the later fix.",
+      "assigned_task_ids": [
+        "P6.1",
+        "P7.3"
+      ],
+      "owner_agents": [
+        "/root",
+        "/root/fixture_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "3d1bae7fb54dc0971381c0a1d06de00365126d42325130a47e554a6c15be4f5f",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "992e4a49acce51b9f70838d6086f4c344dc8b70e03630bcb22038b2a4a47b112",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "098d72ffe15f9fb12ed21a0624b9756091f17e24a4cfa8755cda1918cce202e5",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "792944fcb28627f8d98569c9cf1e6f2a3e7512178ff89c09f5f02ba13551ec34",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "1de986db93879dda3a80d5e7cff715c046f9a70759967fb7349dc3a32a24937c",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/macos-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "96198a6fea2274a46cbc380d6cad20f3e9aec0043ce8cc4a2224dc4b760de4ff",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "646cbd6b0bf7812e1b09851c6e95e6c21740854e536b246a5db7a94b95e443cb",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "9a9c5a34fc34ad291132cce41010104af0b85542536ec047ff9a9463fb76eadd",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "6257472e66391705dd15252fd14964edc0d48d96aa33f29ea406f09fb677f92a",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-webtransport/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "5579be4e9a22d1f20353c1870433832097b94919d9aa321516cf7f31036e3a7c",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "17d7a43f2318bf22ce69935c64b35d18a2665351284bb9fccded1234525a7625",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "4155c245d59da97ecb3f9fe7c41a5d84e307d98c73fc4fcd13d53d8afc774aad",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "cd59557792d1cf32ff7e186d371d2510b6daee5426bd714db8d0fc4609ae04c2",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/local/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "4b5298b1f26ee5ecaa2b5e8d9eab33bf7c17f5fc305c6951dab8d965fb5bf194",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "2f7cd6a27fa7ff5a2417ff44e2b1634f1f9405545f4543fb8a98e0b726be9096",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/native-quic/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "7ccb3400b6115281f2388ec76ecb2c16e81365388da12585892fdf84aae5a803",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P3.1",
+        "P3.2",
+        "P6.1",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers",
+        "/root/v198_resources"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-webtransport/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "8a159642cbb88ac596732f19b0f58c9d64b7105b92d9a6126c6076cf157f07a4",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "5301d489e634f43e7a788639bd59a8c838a0b7ec0266124d2bd627dd0757276f",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/chrome-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "d7171cf02b6a9521c8ea58329365dbac2d80c62bcd6eeb0c3ad78a9e51b6b7f6",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/EdDSA",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "ce78fcb5ffbd997605aa7960e7189de94d559af5734ac5b177beaa2df9b360eb",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    },
+    {
+      "cell_id": "G6-058/ubuntu24-arm64/remote-profile-fixture/firefox-wss-webrtc/ES256",
+      "check_id": "independently-decoded-duplex-media-and-profile-budgets",
+      "status": "failed",
+      "baseline_run": "v217",
+      "report_sha256": "2defd1cabf36380a7cec59158e03bdf99f740f735d960bf14422de1121e8a11c",
+      "classification_role": "quality-requirement-failed-detail-retained",
+      "evidence_summary": "The decoded-media requirement failed. Saved measured quality leaves and missing control/capture prerequisites require separate per-cycle inspection; no shared cause or cure is inferred from this requirement verdict.",
+      "assigned_task_ids": [
+        "P5.1",
+        "P5.2",
+        "P7.1"
+      ],
+      "owner_agents": [
+        "/root/fixture_blockers",
+        "/root/media_blockers"
+      ],
+      "assignment_basis": "Existing requirement responsibility; not a causal attribution for every cell.",
+      "causal_fix_confirmed": false,
+      "post_fix_result": null
+    }
+  ],
+  "historical_preservation": "All145 v215 mappings,15 original task IDs and40 v216 mappings remain unchanged.",
+  "causal_attribution": "No saved v217 failed requirement is promoted by later targeted verification.",
+  "matrix_qualified": false,
+  "whole_gate_qualified": false
+}

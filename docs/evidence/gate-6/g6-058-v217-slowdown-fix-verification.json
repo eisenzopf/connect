@@ -70,10 +70,20 @@
     "Fresh all-365 qualification, normal shipping builds and the next full 32-cell matrix remain outstanding.",
     "WebCodecs four-case and exact public Core Opus history experiments decode cleanly on both histories; they do not reproduce the actual 480-zero frames. The proposed receive-decoder reset remains staged.",
     "Handoff readiness can discard prepared PCM before ordinary playback is available; a focused adoption-boundary regression and conservative fix design are in progress.",
-    "Existing target-mix PCM diagnostics only cover current-at-capture quanta, not every deferred quantum later encoded.",
+    "Correction after complete capture-to-encode branch review: noncurrent captures are discarded; retained samples stay immutable. At the actual equal-48k/no-resampler profile, current-capture target PCM diagnostics cover a superset of actual encoder inputs. Exact emitted-payload to native-browser PCM alignment is still missing.",
     "G6-058 is not complete; G6-054 remains deferred."
   ],
   "normal_preparation": true,
   "source_format_wrapper_passed": true,
-  "publication_or_GitHub_testing": false
+  "publication_or_GitHub_testing": false,
+  "normal_default_check": {
+    "scope": "Current normal service, client, Core and UCTP libraries, each actually rebuilt; no test-support or memory-diagnostics.",
+    "passed": true,
+    "original_pid": 62331,
+    "original_exit_code": 0,
+    "all_original_processes_joined": true,
+    "elapsed_seconds": 274.8437488079071,
+    "changed_RTC_future_boundary": "Two existing boxed worker futures now coerce to the existing Send/lifetime-bound OriginalWorker alias. Same original allocations, tasks, moved inputs, await/result and cleanup; no controlled speedup claim.",
+    "private_original_receipt_sha256": "79d7f76dc6efa2edba428c1f79ec46399801f281debda7f36b6f4f8a7e06ada4"
+  }
 }

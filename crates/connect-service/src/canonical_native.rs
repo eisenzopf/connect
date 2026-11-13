@@ -327,9 +327,13 @@ impl Runtime {
             if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
                 == "connect-replacement-media-v1"
             {
-                return Box::pin(self.webrtc_replacement_worker(a, physical, credential, tx)).await;
+                let original: OriginalWorker<'_, ()> =
+                    Box::pin(self.webrtc_replacement_worker(a, physical, credential, tx));
+                return original.await;
             }
-            return Box::pin(self.webrtc_worker(a, physical, credential, tx)).await;
+            let original: OriginalWorker<'_, ()> =
+                Box::pin(self.webrtc_worker(a, physical, credential, tx));
+            return original.await;
         }
         if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
             == "connect-replacement-media-v1"

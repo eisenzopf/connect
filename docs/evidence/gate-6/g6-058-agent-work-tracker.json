@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T04:48:07.477612+00:00",
-  "revision": 65,
+  "updated_at": "2026-11-13T08:20:34.134677+00:00",
+  "revision": 66,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 53,
-    "verified_at": "2026-11-12T16:30:24.110646+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback.json",
-    "readback_evidence_sha256": "dd93c49a791b3082f0e75e18b9d8dede212964205093fbfacdf495865399c11a"
+    "content_revision": 103,
+    "verified_at": "2026-11-13 08:28:07 UTC",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217.json",
+    "readback_evidence_sha256": "f97e298deaa159a290654c41a57289a54247b7f0aea6f3b3a4a26d2b4da0b4b0"
   },
   "baseline": {
     "run": "v215",
@@ -5213,5 +5213,84 @@
     "setup_evidence": "docs/evidence/gate-6/g6-058-v217-shipping-browser.json",
     "next": "FreshfinalMac52whole-source42; then strict32/432",
     "matrix_qualified": false
+  },
+  "v217_full32_checkpoint": {
+    "summary": {
+      "cells": {
+        "passed": 2,
+        "failed": 30,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0,
+        "incomplete": 0
+      },
+      "required_cells": 32,
+      "required_checks": 432,
+      "checks": {
+        "passed": 400,
+        "failed": 32,
+        "blocked": 0,
+        "not-run": 0,
+        "running": 0
+      }
+    },
+    "source_revision": "fc49c300f7d0c161a836736b1748ccd6fb00ec73",
+    "normal_generation": 416,
+    "all_original_owners_closed": true,
+    "evidence": "docs/evidence/gate-6/g6-058-v217-final-checkpoint.json",
+    "evidence_sha256": "10db9f301ab7d2d009c4f2dc571611d81aef3d425d8d4fb1bc9d98dee1340f94",
+    "matrix_qualified": false
+  },
+  "v217_slowdown_tasks": {
+    "namespace": "v217/S1-S9; preserves original task IDs",
+    "evidence": "docs/evidence/gate-6/g6-058-v217-final-checkpoint.json",
+    "evidence_sha256": "10db9f301ab7d2d009c4f2dc571611d81aef3d425d8d4fb1bc9d98dee1340f94",
+    "tasks": {
+      "S1": {
+        "status": "applied-component-verified",
+        "scope": "Five affected filesystem/durability/original-owner tests passed. Broader Mac example attempt preserved59 passes and6 unchanged Linux-only platform-assert failures; no whole-example qualification."
+      },
+      "S2": {
+        "status": "applied-unit-verified",
+        "scope": "Per-exact-SDK End-admission barrier: old/fix causal unit and18 active JavaScript tests passed. No attribution to the actual Mac cycle3 timeout."
+      },
+      "S3": {
+        "status": "staged-not-integrated",
+        "scope": "Receive-history reset remains staged. Actual four WebCodecs cases and public Core Opus consumer found no ambiguity/clock-regression causal effect; no matrix/WSS cure claim."
+      },
+      "S4": {
+        "status": "rca-in-progress",
+        "scope": "Core/browser audio and server-log RCA remains open. Existing target PCM captures cover a superset of actual encoder inputs at48k/no resample; encoded-payload to browser-PCM join remains missing."
+      },
+      "S5": {
+        "status": "applied-component-verified",
+        "scope": "Registered controls417 reproduced the intended old Video MetadataBusy drop after owner joins. Registered production418 passed all3 causal/security controls including Video/Screen and exact45 retained Core tests. Original expiry/current authorization retained. Historical WSS packet-loss cause remains unproved.",
+        "passed": 48,
+        "planned": 48,
+        "independent_adjudication_sha256": "03c0fcc26d1ff7ecb1e42b9eb7db81a1c0aec1e248fc9406ec9bc66fb8295871"
+      },
+      "S6": {
+        "status": "rca-in-progress",
+        "scope": "Transport/feedback and server-log RCA continues; no blanket NACK/RTX or observed-loss cause claim."
+      },
+      "S7": {
+        "status": "applied-unit-verified",
+        "scope": "Duplicate-event diagnostics passed31 active observer tests; duplicate key, frame credit, quality thresholds and verdict unchanged. Actual duplicate cause remains unresolved."
+      },
+      "S8": {
+        "status": "applied-unit-verified",
+        "scope": "Remote actor-directory variable repair has old/fix source-extracted causal proof and active unit coverage. No promotion of historical missing final-config proof."
+      },
+      "S9": {
+        "status": "applied-unit-verified",
+        "depends_on": [
+          "S8"
+        ],
+        "scope": "Guest late controls/guardian freeze precede host-only decode;62 active Python tests passed. No actual VM runtime-saving or media qualification claim."
+      }
+    },
+    "focused_checks_passed": 164,
+    "mobile_revision_reported": 103,
+    "mobile_readback_claim_added": true
   }
 }

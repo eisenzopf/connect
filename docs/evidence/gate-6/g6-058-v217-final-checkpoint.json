@@ -1,0 +1,107 @@
+{
+  "format": "connect/g6-058-v217-final-checkpoint/1",
+  "updated": "2026-11-13T08:20:34.134677+00:00",
+  "source_revision": "fc49c300f7d0c161a836736b1748ccd6fb00ec73",
+  "normal_generation": 416,
+  "summary": {
+    "cells": {
+      "passed": 2,
+      "failed": 30,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0,
+      "incomplete": 0
+    },
+    "required_cells": 32,
+    "required_checks": 432,
+    "checks": {
+      "passed": 400,
+      "failed": 32,
+      "blocked": 0,
+      "not-run": 0,
+      "running": 0
+    }
+  },
+  "original_execution": {
+    "controller_pid": 47933,
+    "controller_joined": true,
+    "controller_exit_code": 1,
+    "host_worker_exit_codes": {
+      "macos-arm64": 1,
+      "ubuntu24-arm64": 1
+    },
+    "all32_original_attempts_completed": true,
+    "original_supervisor_absent_observed": true,
+    "independent_adjudication_sha256": "292efa9335b8880dcbc4d32ee3b27a316b0c737b11af9a23b5038b339e9d5de7"
+  },
+  "closed_custody": {
+    "arm_archive_custodies": 16,
+    "mac_guest_payload_sets": 8,
+    "original_copy_transports": 72,
+    "copy_failures": 0,
+    "scope": "Original custody receipts, sidecar digests and stable archive metadata; no fresh guest census or archive rescan by independent reviewer."
+  },
+  "current_failed_requirements": {
+    "decoded_media": 30,
+    "final_actor_config_integrity": 2,
+    "exact_mapping_sha256": "19cdbf2eade5e13fbc99bc55d9cf57e9e01e0bfd09c2f01c261ff1060c8bc147"
+  },
+  "post_run_focused_verification": {
+    "python": 62,
+    "javascript": 49,
+    "affected_rust_example": 5,
+    "core": 48,
+    "total": 164,
+    "scope": "Separate targeted scopes; no whole-cohort or matrix qualification transfer.",
+    "independent_116_sha256": "ba17d209c3daaa194fb04e9191e52001fdadf56a645fca53a74e88e3f55b0805",
+    "independent_core48_sha256": "03c0fcc26d1ff7ecb1e42b9eb7db81a1c0aec1e248fc9406ec9bc66fb8295871"
+  },
+  "v217_slowdown_tasks": {
+    "S1": {
+      "status": "applied-component-verified",
+      "scope": "Five affected filesystem/durability/original-owner tests passed. Broader Mac example attempt preserved59 passes and6 unchanged Linux-only platform-assert failures; no whole-example qualification."
+    },
+    "S2": {
+      "status": "applied-unit-verified",
+      "scope": "Per-exact-SDK End-admission barrier: old/fix causal unit and18 active JavaScript tests passed. No attribution to the actual Mac cycle3 timeout."
+    },
+    "S3": {
+      "status": "staged-not-integrated",
+      "scope": "Receive-history reset remains staged. Actual four WebCodecs cases and public Core Opus consumer found no ambiguity/clock-regression causal effect; no matrix/WSS cure claim."
+    },
+    "S4": {
+      "status": "rca-in-progress",
+      "scope": "Core/browser audio and server-log RCA remains open. Existing target PCM captures cover a superset of actual encoder inputs at48k/no resample; encoded-payload to browser-PCM join remains missing."
+    },
+    "S5": {
+      "status": "applied-component-verified",
+      "scope": "Registered controls417 reproduced the intended old Video MetadataBusy drop after owner joins. Registered production418 passed all3 causal/security controls including Video/Screen and exact45 retained Core tests. Original expiry/current authorization retained. Historical WSS packet-loss cause remains unproved.",
+      "passed": 48,
+      "planned": 48,
+      "independent_adjudication_sha256": "03c0fcc26d1ff7ecb1e42b9eb7db81a1c0aec1e248fc9406ec9bc66fb8295871"
+    },
+    "S6": {
+      "status": "rca-in-progress",
+      "scope": "Transport/feedback and server-log RCA continues; no blanket NACK/RTX or observed-loss cause claim."
+    },
+    "S7": {
+      "status": "applied-unit-verified",
+      "scope": "Duplicate-event diagnostics passed31 active observer tests; duplicate key, frame credit, quality thresholds and verdict unchanged. Actual duplicate cause remains unresolved."
+    },
+    "S8": {
+      "status": "applied-unit-verified",
+      "scope": "Remote actor-directory variable repair has old/fix source-extracted causal proof and active unit coverage. No promotion of historical missing final-config proof."
+    },
+    "S9": {
+      "status": "applied-unit-verified",
+      "depends_on": [
+        "S8"
+      ],
+      "scope": "Guest late controls/guardian freeze precede host-only decode;62 active Python tests passed. No actual VM runtime-saving or media qualification claim."
+    }
+  },
+  "next": "Retain all362 cohort selections and add the3 registered Core controls for365. Require matching normal shipping and a fresh all32/432 before matrix promotion. Original quality/current-authority/owner and62/67-second limits remain unchanged.",
+  "matrix_qualified": false,
+  "task_complete": false,
+  "whole_gate_qualified": false
+}
