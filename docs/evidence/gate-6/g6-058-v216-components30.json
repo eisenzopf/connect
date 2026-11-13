@@ -1,0 +1,50 @@
+{
+  "format": "connect/g6-058-complete341/1",
+  "updated": "2026-11-13T01:43:18.522851+00:00",
+  "scope": "Complete component and signed workload regression; not32 transport cells.",
+  "source_revision": "6d0a97d5b062b148aee8ddf764386db6d4c96882",
+  "normal_generation": 416,
+  "build_phases_passed": 5,
+  "summary": {
+    "completed": 341,
+    "passed": 340,
+    "failed": 1
+  },
+  "aggregate_passed": false,
+  "all341_exactly_once": true,
+  "all11_ignored_explicitly_executed": true,
+  "all_original_groups_joined": true,
+  "source_unchanged": true,
+  "binaries_unchanged": true,
+  "inputs_unchanged": true,
+  "original_runtime_exit": 1,
+  "original_controller_joined": true,
+  "result_sha256": "dfd2ed6a01e78d8d5a53779bfd2a35cee9bc8aecd312d107d50ff0237447699d",
+  "root_join_sha256": "91f78f2a858e9a69aa9d8dd0df7feafa11d76dfb05365c08172fb2a9d0b41f0c",
+  "full_programmes": {
+    "EdDSA": {
+      "media_quality_passed": true,
+      "actual_first_data_gate_recordings": 4,
+      "actual_first_subscription_recordings": 8,
+      "cleanup_passed": false,
+      "earliest_measured_blocker": "Six current Connection retirements consumed4.872536 seconds; subsequent Session refreshes began with125.643/125.460ms remaining and both timed out before any Session End submission.",
+      "cleanup_times_us": {
+        "programme_stop": 62000676,
+        "media_codec_joined": 62001770,
+        "connections_retired": 66874306,
+        "sessions_settled": 67003122,
+        "all_original_owners_joined": 67092548
+      },
+      "unchanged_cutoff_us": 67000000,
+      "idle_live_sessions": 2,
+      "lower_level_cause": "Under investigation; shared helper monopolization is not established."
+    },
+    "ES256": {
+      "passed": true,
+      "actual_first_data_gate_recordings": 4,
+      "actual_first_subscription_recordings": 8
+    }
+  },
+  "next": "Diagnose and fix Connection/Session retirement contention, verify causal controls, repeat complete regression before normal shipping and all32.",
+  "matrix_qualified": false
+}

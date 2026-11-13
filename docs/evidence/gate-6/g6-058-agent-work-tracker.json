@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-13T01:05:20.647004+00:00",
-  "revision": 58,
+  "updated_at": "2026-11-13T01:43:18.522851+00:00",
+  "revision": 59,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -1265,7 +1265,7 @@
         "P7.1"
       ],
       "status": "in-progress",
-      "implementation_state": "Reviewed batch implemented and component-verified; original failures preserved. Clean commit/full341 and current normal shipping remain required.",
+      "implementation_state": "Complete341 finished340pass1cleanupfail on clean6d0/416. Both full programmes pass media quality; ES256 passes all, EdDSA Connection retirement starves Session cleanup. Actual original controllers joined; shipping and all32 remain blocked on this regression.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1347,6 +1347,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-data-control-focused253.json",
           "result": "ActualStore214+Core39 PASS on identical143/generation414; all original owners/guards; decoded full programme and matrix pending",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v216-components30.json",
+          "result": "340/341pass; EdDSA cleanup fails; bothfull mediaquality and4+8Data traces pass. All11ignored and source/binary/input/originalowner guards verified.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -1354,7 +1359,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-13T01:05:20.647004+00:00",
+      "updated_at": "2026-11-13T01:43:18.522851+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -3734,6 +3739,11 @@
     {
       "at": "2026-11-13T01:05:20.647004+00:00",
       "action": "Recorded Ready originalPCM/security+214 retained+9 repaired continuation passes,208 harness units, actual RTC3 and original Opus32, actual public15 late authority+3operator denials. Kept original failures and all40 current cell mappings unconfirmed until fresh matrix. Next full341/shipping/all32."
+    },
+    {
+      "at": "2026-11-13T01:43:18.522851+00:00",
+      "revision": 59,
+      "event": "Full341 original runtime joined340pass1cleanupfail; no criteria waived; B192 reopened for Connection retirement contention."
     }
   ],
   "tracking_review": {
@@ -5106,7 +5116,8 @@
     "media": "docs/evidence/gate-6/g6-058-v216-media-components.json",
     "public_authority": "docs/evidence/gate-6/g6-058-v216-public-authority.json",
     "harness": "docs/evidence/gate-6/g6-058-v216-harness-batch.json",
-    "next": "Clean commit, full341, normal Mac/nativeARM shipping, all32/all432",
-    "matrix_qualified": false
+    "next": "Diagnose and fix Connection/Session retirement contention, verify causal controls, repeat complete regression before normal shipping and all32.",
+    "matrix_qualified": false,
+    "complete_regression": "docs/evidence/gate-6/g6-058-v216-components30.json"
   }
 }
