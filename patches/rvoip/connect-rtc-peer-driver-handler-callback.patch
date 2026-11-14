@@ -1,0 +1,13 @@
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs
+@@ -168,8 +168,7 @@
+             // The original repair future and every current reader have dropped.
+             // This reports an unsatisfied request; it neither replays old bytes
+             // nor assumes an entered repair write was definitely unsent.
+-            self.inner
+-                .handler
++            self.handler
+                 .on_unrepaired_video_nack(nack.media_ssrc, &unavailable)
+                 .await;
+         }

@@ -1,0 +1,18 @@
+{
+  "format": "connect/g6-058-witness-log-reader/1",
+  "updated_at": "2026-11-14T22:40:15.149570+00:00",
+  "candidate_manifest_sha256": "5d46dfdaaba401fff6c34bfee58c680023e45d00929f035eaaefb92fa4ae5e57",
+  "actual_tests": 9,
+  "passed": 9,
+  "fixed_chunk_bytes": 65536,
+  "selected_record_max_bytes": 262144,
+  "whole_log_max_bytes": 268435456,
+  "original_FD_and_full_file_hash_checks_retained": true,
+  "cross_chunk_marker_and_selected_ANSI_regressions": true,
+  "actual_closed445_log_regression": "Correctly refuses mapping-missing-or-reexported after consuming unrelated oversized audio-facts records; original log unchanged",
+  "old_result_regraded": false,
+  "unit_result_sha256": "8364daedc7a904c55b4fb0f36c6a98aec434645346b4059285a884e69c767b61",
+  "forensic_result_sha256": "2afb8b93a79f906020d3fcfa5ac21f3c3d131cd059c9bc8045d09870c672a0e6",
+  "independent_actual_review_sha256": "ba13c3ff1c30614e6d9250305fc4007a5db3cec79d90999fefbdab65d75bb7f7",
+  "matrix_qualified": false
+}

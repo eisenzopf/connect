@@ -2404,6 +2404,24 @@
       "path": "patches/rvoip/connect-rtc-source-frame-witness-lifecycle-test.patch",
       "sha256": "2cefceae6eeb240678e379cc821b079959c479b9877c7e0b880ad295b5315193",
       "source": "Tests-only correction to original444 lifecycle-control construction: Rust struct-update syntax created and dropped an unused enabled default History before tested Arc retirement. Reuse existing default history or fill onlyNone. Production behavior, exact zero-export-before-finalArc assertion, disabled-mode and all five selectors unchanged. Original4of5failure preserved; actual445same5 required."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-peer-cache-cycle-counter.patch",
+      "sha256": "2c390159e271f8ed4b2de8a0f00526914ea58aab0acb5195c5c090f5d3e3d5d2",
+      "source": "Tests-only original peer/track/timeline and actual retained DataChannel handler lifetime counters. Actual original driver/socket cleanup before release oracle; cache identity/getters after close and external-view/track lifetimes preserved; five controls plus two strengthened negotiated audio/video receiver cases. Source proof only until actual OLD/fixed runs. No production behavior changes."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-peer-view-ownership.patch",
+      "sha256": "f520b365d19db1ae6f934651cbfc4bc2e00e761c83dc02c7e3b70e083602102f",
+      "source": "Break two confirmed closed-peer Arc cycles by moving the SAME strong cached-transceiver map and callback handler roots from PeerConnectionRef to outer PeerConnectionImpl plus original Driver. Keep shared cache identities and closed getters; external views legitimately retain inner/track until last owner. All original close/driver drain/cancellation/four-second/unknown outcomes and callback order unchanged. No new mutex/task/queue/weakupgrade/perpacket operation. Real OLD446 cache/track/timeline and retained actual DataChannel handler controls fail only final release after original driver/socket cleanup; fixed/runtime proof separate."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-peer-driver-handler-callback.patch",
+      "sha256": "03c0f92ad27c965c63e2ab2edc0aeb381d95b579fc4563ffc023238bc9cc4738",
+      "source": "Complete actual447 compile failure E0609 plumbing in existing child owned_video unrepaired-NACK callback: use SAME original Driver-owned handler instead of removed inner handler field. Original repair future/readers drop before same callback await, arguments/order/IO unchanged. All31Stack Rustfiles multiline scan confirms no stale moved-field references. No new test selector or acceptance change; preserve failed447 and run same lifecycle/close/media plus existing repair controls."
     }
   ]
 }

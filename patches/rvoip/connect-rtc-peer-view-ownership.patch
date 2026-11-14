@@ -1,0 +1,235 @@
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+@@ -475,10 +475,17 @@
+     I: Interceptor,
+ {
+     inner: Arc<PeerConnectionRef<I>>,
++    // The outer peer and original driver own cached views. The inner peer
++    // must not own views that themselves retain it. Keep views after close.
++    rtp_transceivers: Arc<Mutex<TransceiverMap<I>>>,
++    // Handlers may retain media/data views; those views retain only inner.
++    handler: Arc<dyn PeerConnectionEventHandler>,
+     driver_handle: Mutex<Option<JoinHandle>>,
+     relay_close_required: bool,
+     driver_result: Arc<AtomicUsize>,
+ }
++
++pub(crate) type TransceiverMap<I> = HashMap<RTCRtpTransceiverId, Arc<RtpTransceiverImpl<I>>>;
+ 
+ pub(crate) struct PeerConnectionRef<I = NoopInterceptor>
+ where
+@@ -488,10 +495,6 @@
+     pub(crate) core: Mutex<RTCPeerConnection<I>>,
+     /// Runtime for async operations
+     pub(crate) runtime: Arc<dyn Runtime>,
+-    /// Event handler
+-    pub(crate) handler: Arc<dyn PeerConnectionEventHandler>,
+-    /// RTP Transceivers
+-    pub(crate) rtp_transceivers: Mutex<HashMap<RTCRtpTransceiverId, Arc<RtpTransceiverImpl<I>>>>,
+     /// Unified channel for all outgoing driver events
+     pub(crate) driver_event_tx: driver::mailbox::DriverEventSender,
+     /// Channels for incoming data channel events
+@@ -543,10 +546,10 @@
+                 runtime: runtime.clone(),
+                 data_channel_events_tx: Mutex::new(HashMap::new()),
+                 track_remote_events_tx: Mutex::new(HashMap::new()),
+-                rtp_transceivers: Mutex::new(HashMap::new()),
+-                handler,
+                 driver_event_tx,
+             }),
++            rtp_transceivers: Arc::new(Mutex::new(HashMap::new())),
++            handler,
+             driver_handle: Mutex::new(None),
+             relay_close_required,
+             driver_result: driver_result.clone(),
+@@ -564,6 +567,8 @@
+         .await?;
+         let mut driver = PeerConnectionDriver::new(
+             peer_connection.inner.clone(),
++            peer_connection.rtp_transceivers.clone(),
++            peer_connection.handler.clone(),
+             ice_gatherer,
+             async_udp_sockets,
+             advertised_to_socket,
+@@ -612,10 +617,10 @@
+                 runtime: runtime.clone(),
+                 data_channel_events_tx: Mutex::new(HashMap::new()),
+                 track_remote_events_tx: Mutex::new(HashMap::new()),
+-                rtp_transceivers: Mutex::new(HashMap::new()),
+-                handler,
+                 driver_event_tx,
+             }),
++            rtp_transceivers: Arc::new(Mutex::new(HashMap::new())),
++            handler,
+             driver_handle: Mutex::new(None),
+             relay_close_required,
+             driver_result: driver_result.clone(),
+@@ -632,6 +637,8 @@
+         .await?;
+         let mut driver = PeerConnectionDriver::new(
+             peer_connection.inner.clone(),
++            peer_connection.rtp_transceivers.clone(),
++            peer_connection.handler.clone(),
+             ice_gatherer,
+             async_udp_sockets,
+             advertised_to_socket,
+@@ -899,7 +906,7 @@
+             core.get_transceivers().collect::<HashSet<_>>()
+         };
+ 
+-        let mut rtp_transceivers = self.inner.rtp_transceivers.lock().await;
++        let mut rtp_transceivers = self.rtp_transceivers.lock().await;
+         // only keep rtp_transceiver in current_transceiver_ids
+         rtp_transceivers.retain(|id, _| current_transceiver_ids.contains(id));
+         for id in current_transceiver_ids {
+@@ -922,7 +929,7 @@
+             core.add_track(track.track().await)?.into()
+         };
+ 
+-        let mut rtp_transceivers = self.inner.rtp_transceivers.lock().await;
++        let mut rtp_transceivers = self.rtp_transceivers.lock().await;
+         rtp_transceivers
+             .entry(id)
+             .or_insert_with(|| Arc::new(RtpTransceiverImpl::new(id, Arc::clone(&self.inner))));
+@@ -948,7 +955,7 @@
+             core.remove_track(sender.id())?;
+         }
+ 
+-        let rtp_transceivers = self.inner.rtp_transceivers.lock().await;
++        let rtp_transceivers = self.rtp_transceivers.lock().await;
+         let rtp_transceiver = rtp_transceivers
+             .get(&sender.id().into())
+             .ok_or(Error::ErrRTPTransceiverNotExisted)?;
+@@ -968,7 +975,7 @@
+             core.add_transceiver_from_track(track.track().await, init)?
+         };
+ 
+-        let mut rtp_transceivers = self.inner.rtp_transceivers.lock().await;
++        let mut rtp_transceivers = self.rtp_transceivers.lock().await;
+         rtp_transceivers
+             .entry(id)
+             .or_insert_with(|| Arc::new(RtpTransceiverImpl::new(id, Arc::clone(&self.inner))));
+@@ -1003,7 +1010,7 @@
+             )
+         };
+ 
+-        let mut rtp_transceivers = self.inner.rtp_transceivers.lock().await;
++        let mut rtp_transceivers = self.rtp_transceivers.lock().await;
+         rtp_transceivers
+             .entry(id)
+             .or_insert_with(|| Arc::new(RtpTransceiverImpl::new(id, Arc::clone(&self.inner))));
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -12,10 +12,10 @@
+ };
+ use crate::media_stream::track_remote::static_rtp::TrackRemoteStaticRTP;
+ use crate::media_stream::track_remote::{TrackRemote, TrackRemoteEvent};
+-use crate::peer_connection::PeerConnectionRef;
++use crate::peer_connection::{PeerConnectionEventHandler, PeerConnectionRef, TransceiverMap};
+ use crate::rtp_transceiver::rtp_receiver::RtpReceiverImpl;
+ use crate::rtp_transceiver::{RtpReceiver, RtpTransceiverImpl};
+-use crate::runtime::{AsyncUdpSocket, channel};
++use crate::runtime::{AsyncUdpSocket, Mutex, channel};
+ use bytes::BytesMut;
+ use futures::FutureExt; // For .fuse() in futures::select!
+ use futures::stream::{FuturesUnordered, StreamExt};
+@@ -183,6 +183,8 @@
+     I: Interceptor,
+ {
+     inner: Arc<PeerConnectionRef<I>>,
++    rtp_transceivers: Arc<Mutex<TransceiverMap<I>>>,
++    handler: Arc<dyn PeerConnectionEventHandler>,
+     /// ICE gatherer for managing ICE candidate gathering
+     ice_gatherer: RTCIceGatherer,
+     sockets: HashMap<SocketAddr, Arc<dyn AsyncUdpSocket>>,
+@@ -200,6 +202,8 @@
+     /// Create a new driver for the given peer connection
+     pub(crate) async fn new(
+         inner: Arc<PeerConnectionRef<I>>,
++        rtp_transceivers: Arc<Mutex<TransceiverMap<I>>>,
++        handler: Arc<dyn PeerConnectionEventHandler>,
+         ice_gatherer: RTCIceGatherer,
+         sockets: HashMap<SocketAddr, Arc<dyn AsyncUdpSocket>>,
+         advertised_to_socket: HashMap<SocketAddr, SocketAddr>,
+@@ -214,6 +218,8 @@
+             .collect();
+         Ok(Self {
+             inner,
++            rtp_transceivers,
++            handler,
+             ice_gatherer,
+             sockets,
+             advertised_to_socket,
+@@ -795,31 +801,25 @@
+     async fn handle_rtc_event(&mut self, event: RTCPeerConnectionEvent) {
+         match event {
+             RTCPeerConnectionEvent::OnNegotiationNeededEvent => {
+-                self.inner.handler.on_negotiation_needed().await;
++                self.handler.on_negotiation_needed().await;
+             }
+             RTCPeerConnectionEvent::OnIceCandidateEvent(evt) => {
+-                self.inner.handler.on_ice_candidate(evt).await;
++                self.handler.on_ice_candidate(evt).await;
+             }
+             RTCPeerConnectionEvent::OnIceCandidateErrorEvent(evt) => {
+-                self.inner.handler.on_ice_candidate_error(evt).await;
++                self.handler.on_ice_candidate_error(evt).await;
+             }
+             RTCPeerConnectionEvent::OnSignalingStateChangeEvent(state) => {
+-                self.inner.handler.on_signaling_state_change(state).await;
++                self.handler.on_signaling_state_change(state).await;
+             }
+             RTCPeerConnectionEvent::OnIceConnectionStateChangeEvent(state) => {
+-                self.inner
+-                    .handler
+-                    .on_ice_connection_state_change(state)
+-                    .await;
++                self.handler.on_ice_connection_state_change(state).await;
+             }
+             RTCPeerConnectionEvent::OnIceGatheringStateChangeEvent(state) => {
+-                self.inner
+-                    .handler
+-                    .on_ice_gathering_state_change(state)
+-                    .await;
++                self.handler.on_ice_gathering_state_change(state).await;
+             }
+             RTCPeerConnectionEvent::OnConnectionStateChangeEvent(state) => {
+-                self.inner.handler.on_connection_state_change(state).await;
++                self.handler.on_connection_state_change(state).await;
+             }
+             RTCPeerConnectionEvent::OnDataChannel(evt) => {
+                 let channel_id = match evt {
+@@ -849,7 +849,7 @@
+                             }
+                         }
+ 
+-                        self.inner.handler.on_data_channel(data_channel).await;
++                        self.handler.on_data_channel(data_channel).await;
+                     }
+                 }
+ 
+@@ -954,11 +954,11 @@
+                             // Complete application initialization before publishing the
+                             // receiver to concurrent transceiver discovery. No core or
+                             // transceiver lock is held across the callback.
+-                            self.inner.handler.on_track(Arc::clone(&track_remote)).await;
++                            self.handler.on_track(Arc::clone(&track_remote)).await;
+                             opened_now = true;
+ 
+                             {
+-                                let mut rtp_transceivers = self.inner.rtp_transceivers.lock().await;
++                                let mut rtp_transceivers = self.rtp_transceivers.lock().await;
+                                 rtp_transceivers.entry(id).or_insert_with(|| {
+                                     Arc::new(RtpTransceiverImpl::new(id, Arc::clone(&self.inner)))
+                                 });
+@@ -1076,7 +1076,7 @@
+                     if let Some(nack)=packet.as_any().downcast_ref::<rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack>() {
+                         feedback_handled |= self.handle_owned_video_nack(nack).await;
+                     }
+-                    feedback_handled |= self.inner.handler.on_rtcp_packet(packet.as_ref()).await;
++                    feedback_handled |= self.handler.on_rtcp_packet(packet.as_ref()).await;
+                 }
+                 let track_remotes = self.inner.track_remote_events_tx.lock().await;
+                 if let Some(evt_tx) = track_remotes.get(&track_id) {

@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib.rtc_source_frame_witness import (PROFILE, WitnessError, capture_headers, delta,
-    epoch_for_pair, finalize, prepare_pair, prove_headers, read_json, report_bound)
+    epoch_for_pair, finalize, mapping_summaries, prepare_pair, prove_headers, read_json, report_bound)
 
 
 def facts():
@@ -82,7 +82,13 @@ class SourceFrameWitness(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             folder=Path(tmp);(folder/'cycles/cycle-1').mkdir(parents=True)
             raw=json.dumps(cycle).encode();(folder/'cycles/cycle-1/cycle-observation.json').write_bytes(raw)
-            log=folder/'server.log';log.write_text('DEBUG RTC original video mapping witness witness='+json.dumps(maps[0],separators=(',',':'))+'\n')
+            # Normal server tracing is ANSI text, with JSON only in the
+            # witness field. Unrelated actual audio-facts records may be >1MiB.
+            witness=json.dumps(maps[0],separators=(',',':')).encode()
+            logged=(b'Unrelated audio facts '+b'x'*(1400*1024)+b'\n'
+                +b'\x1b[34mDEBUG\x1b[0m rvoip_webrtc::video_mapping: RTC original video mapping witness '
+                +b'\x1b[3mwitness\x1b[0m\x1b[2m=\x1b[0m'+witness+b'\n')
+            log=folder/'server.log';log.write_bytes(logged)
             capture=pcap(folder/'original.pcap',rows)
             browser=dict(source_revision='original-source',transport='firefox-wss-webrtc',source_frame_witness_profile=PROFILE,collection_passed=True,passed=False,
                 resource_cycles=[dict(index=1,workload_id='original',observation_sha256=hashlib.sha256(raw).hexdigest())],
@@ -97,6 +103,7 @@ class SourceFrameWitness(unittest.TestCase):
             self.assertEqual(video['raw_draw_duplicate_frames'],1)
             self.assertEqual(video['changing_frames_per_second'],route['video']['changing_frames_per_second'])
             self.assertEqual(video['decoded_frames_per_second'],route['video']['decoded_frames_per_second'])
+            self.assertEqual(final['original_source_frame_adjudication']['server_log_sha256'],hashlib.sha256(logged).hexdigest())
 
     def test_original_replay_retag_and_changed_footer_do_not_create_a_new_original_frame(self):
         _,_,_,_,sf,tf,e,rows=facts();rows=copy.deepcopy(rows)
@@ -110,6 +117,35 @@ class SourceFrameWitness(unittest.TestCase):
                      [{**m[0],'epochs':[{**m[0]['epochs'][0],'source_generation':0}]}]]:
             with self.assertRaises(WitnessError):prepare_pair(c,r,p,maps)
         self.assertEqual(receiver['epoch']['source_generation'],3)
+        with tempfile.TemporaryDirectory() as tmp:
+            log=Path(tmp)/'server.log'
+            message=b'RTC original video mapping witness'
+            valid=message+b' witness='+json.dumps(m[0],separators=(',',':')).encode()
+            noise=b'unrelated '+b'x'*(1400*1024)+b'\n'
+            # A marker split across the fixed read boundary is still selected;
+            # an unterminated final record is parsed, with the whole file hash.
+            crossing=b'x'*(64*1024-len(message)//2)+valid
+            log.write_bytes(noise+crossing)
+            values,digest=mapping_summaries(log,4242)
+            self.assertEqual(values,m)
+            self.assertEqual(digest,hashlib.sha256(noise+crossing).hexdigest())
+            for raw,reason in [(noise,'mapping-missing-or-reexported'),
+                (b'x'*(300*1024)+valid+b'\n','mapping-line-cap'),
+                (valid+b'x'*(300*1024)+b'\n','mapping-line-cap'),
+                (valid+b'\n'+valid+b'\n','mapping-missing-or-reexported')]:
+                log.write_bytes(raw)
+                with self.assertRaisesRegex(WitnessError,reason):mapping_summaries(log,4242)
+            log.write_bytes(valid+b'\n')
+            with self.assertRaisesRegex(WitnessError,'mapping-original-owner-mismatch'):
+                mapping_summaries(log,9999)
+            log.write_bytes(message+b' witness={not-json}\n')
+            with self.assertRaisesRegex(WitnessError,'mapping-export-format'):
+                mapping_summaries(log,4242)
+            # The original whole-file cap still applies before any read.
+            with log.open('wb') as sparse:sparse.truncate(256*1024**2+1)
+            with self.assertRaisesRegex(WitnessError,'regular-bounded-original-required'):
+                mapping_summaries(log,4242)
+
 
     def test_source_or_current_target_binding_switch_inside_window_refuses(self):
         c,r,p,m,*_=facts()

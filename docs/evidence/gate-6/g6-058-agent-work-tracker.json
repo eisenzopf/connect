@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-14T12:57:45.675122+00:00",
-  "revision": 80,
+  "updated_at": "2026-11-14T22:40:15.149570+00:00",
+  "revision": 81,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 138,
-    "verified_at": "2026-11-14T12:57:45.675122+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-source-frame.json",
-    "readback_evidence_sha256": "5bb6d3d7f540f162ff0698ce7ff70e2308ac22cfc0e7d29e65eff04c1a24570a",
+    "content_revision": 140,
+    "verified_at": "2026-11-14T22:40:15.149570+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-peer-ownership.json",
+    "readback_evidence_sha256": "2d48488477095c40b3a26178fa3f27f513ca711278269c966c989d3f4e64e2c4",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1889,7 +1889,7 @@
         "V219-VIDEO-ADOPTION"
       ],
       "status": "component-verified",
-      "implementation_state": "Applied444 V2 +445test-helper-only correction. All107component checks pass (40Python/62Node/5Rust), including19new. Independent source/actual accepted; no historical or matrix regrade.",
+      "implementation_state": "Raw445focused6audio/6video/6AV andresourcePASS, finalCLI1 due log-reader cap and absent mapping exports. Parser and actual Arc-retention fixes component verified; normal finalwitness proof pending.",
       "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
       "verification_runs": [
         {
@@ -1908,7 +1908,7 @@
         "status": "Accepted for prospective component scope after Fixture source and actual review",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-14T12:57:45.675122+00:00"
+      "updated_at": "2026-11-14T22:40:15.149570+00:00"
     },
     {
       "id": "V219-ICE-CLOSE",
@@ -1944,6 +1944,68 @@
         "actual_matrix_effect_verified": false
       },
       "updated_at": "2026-11-14T12:31:14.467444+00:00"
+    },
+    {
+      "id": "V219-WITNESS-LOG-STREAM",
+      "plan_id": "V219-WITNESS-LOG-STREAM",
+      "title": "Bounded original mapping-log reader",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-WITNESS-LOG-STREAM"
+      ],
+      "depends_on": [
+        "V219-ORIGINAL-FRAME-WITNESS"
+      ],
+      "status": "component-verified",
+      "implementation_state": "Reviewed implementation and actual focused controls pass; fresh normal mapping-export and final witness proof pending.",
+      "required_evidence": "Fresh normal focused media/witness, final current regression/localARM/releases/preflight and full32 later.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-witness-log-reader.json",
+          "passed": 9,
+          "required": 9,
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted for stated component scope after independent source and actual review",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T22:40:15.149570+00:00"
+    },
+    {
+      "id": "V219-RTC-OWNERSHIP",
+      "plan_id": "V219-RTC-OWNERSHIP",
+      "title": "Acyclic cached WebRTC views and callback ownership",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-RTC-OWNERSHIP"
+      ],
+      "depends_on": [
+        "V219-ORIGINAL-FRAME-WITNESS"
+      ],
+      "status": "component-verified",
+      "implementation_state": "Reviewed implementation and actual focused controls pass; fresh normal mapping-export and final witness proof pending.",
+      "required_evidence": "Fresh normal focused media/witness, final current regression/localARM/releases/preflight and full32 later.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-peer-ownership.json",
+          "passed": 20,
+          "required": 20,
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted for stated component scope after independent source and actual review",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T22:40:15.149570+00:00"
     }
   ],
   "failure_mapping": [
@@ -5931,9 +5993,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v219-original-source-frame-witness.json",
-    "sha256": "3a1e942c305ada244570d98e47faefffe0e718ec956e9f7cf1a104ac46a46cf8",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-peer-ownership.json",
+    "sha256": "b70688f848ee3e518b7dde1a0e60e2f3099f8cc652f45d7bc98c510a0cd1453b",
     "ready": false,
-    "next": "Fresh proper combined focusedFirefox runtime proof; resolve anydemonstratedgap then finalcurrent756/localARM/release/preflight. DO NOTlaunch32."
+    "next": "Commit reviewed448/parser batch then fresh normal focusedFirefox with actual mapping export/final witness. Reconcile current regression inventory; no full32."
   }
 }

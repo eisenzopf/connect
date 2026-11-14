@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-14T12:57:45.675122+00:00",
-  "run_status": "Latest fullmatrix remainsv218:1/32cells,399/432checks. Reviewed source-witness444/445 component107/107 pass, deadline4415/5 andICE4435/5 pass; focused-idle approvedpolicy29/29 pass. Fresh focused runtime/nativeStats/closedPCAP proof then final756/localARM/releases/preflight required. No full32started.",
+  "updated": "2026-11-14T22:40:15.149570+00:00",
+  "run_status": "Latestfullmatrixv218 remains1/32cells,399/432checks. Fresh445Firefox RAW6audio/6video/6AV+singlecyclebudgetPASS butoriginalCLI1/finalwitnessfailed. Parser9/9 and448peerownership20/20 reviewedPASS; actualOLD446 two realretention failures afterdriver/socketcleanup. Freshnormalmappingexports/finalwitness, finalcurrentregression/localARM/releases/preflight remain; nofull32started.",
   "blockers": [
     {
       "id": "B01",
@@ -3661,6 +3661,18 @@
       "title": "Close the closed-Core timeout race without hiding cleanup failures \u2014 /root/v198_resources; reviewer /root/fixture_blockers",
       "status": "component-verified",
       "completion": "Actual OLD442 intendedICE976failure with full original Core/Close-envelope cleanup; fixed443 all5pass including retainedencryptedmedia andcancel/unknownclose controls. Combinedmedia/currentwhole/ARM/fullmatrix pending."
+    },
+    {
+      "id": "V219-WITNESS-LOG-STREAM",
+      "title": "Bounded mapping log reader",
+      "status": "component-verified",
+      "completion": "Actual focused controls pass; normal mapping-export/finalwitness and currentwhole/ARM/fullmatrix pending."
+    },
+    {
+      "id": "V219-RTC-OWNERSHIP",
+      "title": "Acyclic peer cache and handler roots",
+      "status": "component-verified",
+      "completion": "Actual focused controls pass; normal mapping-export/finalwitness and currentwhole/ARM/fullmatrix pending."
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -6058,7 +6070,9 @@
     "V219-WSS-INGRESS",
     "V219-REPLAY-SETUP",
     "V219-AUDIO-RECEIPT",
-    "V219-STORAGE-READY"
+    "V219-STORAGE-READY",
+    "V219-WITNESS-LOG-STREAM",
+    "V219-RTC-OWNERSHIP"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -17836,6 +17850,18 @@
       "passed": 107,
       "planned": 107,
       "evidence": "g6-058-v219-original-source-frame-witness.json"
+    },
+    {
+      "name": "Bounded mapping log reader",
+      "passed": 9,
+      "planned": 9,
+      "evidence": "g6-058-v219-witness-log-reader.json"
+    },
+    {
+      "name": "Acyclic peer cache and handler roots",
+      "passed": 20,
+      "planned": 20,
+      "evidence": "g6-058-v219-peer-ownership.json"
     }
   ],
   "current_production_check": {
@@ -18839,5 +18865,15 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-original-source-frame-witness.json",
     "sha256": "3a1e942c305ada244570d98e47faefffe0e718ec956e9f7cf1a104ac46a46cf8",
     "matrix_qualified": false
+  },
+  "v219_peer_ownership": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-peer-ownership.json",
+    "sha256": "b70688f848ee3e518b7dde1a0e60e2f3099f8cc652f45d7bc98c510a0cd1453b",
+    "matrix_qualified": false
+  },
+  "v219_focused445_raw_quality": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-focused445-raw-quality.json",
+    "sha256": "32be46ee8844a78aff7d2bb5a876dafa50a630b6142accaeb59ab650ae6c0820",
+    "final_witness_passed": false
   }
 }

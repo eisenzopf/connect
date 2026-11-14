@@ -1,0 +1,52 @@
+{
+  "format": "connect/g6-058-peer-ownership/1",
+  "updated_at": "2026-11-14T22:40:15.149570+00:00",
+  "generation": 448,
+  "source_lock_sha256": "7924194d855b97128f2bc3a2cb77e7f282b37c9368d525076da2c2fa208c6c51",
+  "identified_cycles": [
+    "PeerConnectionRef to cached transceiver/sender/receiver to the same inner peer",
+    "PeerConnectionRef to callback handler to retained DataChannelImpl to the same inner peer"
+  ],
+  "change": "Move the SAME strong cache and handler roots to outer PeerConnectionImpl and original Driver; inner owns neither. External views legitimately retain original inner/track until their last owner.",
+  "invariants": {
+    "same_closed_getter_and_handle_identity": true,
+    "same_callback_order_and_arguments": true,
+    "original_close_cancellation_four_second_and_unknown_outcomes_unchanged": true,
+    "new_mutex_task_queue_weak_upgrade_or_packet_path_operations": false
+  },
+  "actual_OLD446": {
+    "qualified_expected_failures": 2,
+    "original_child_exits": [
+      101,
+      101
+    ],
+    "both_original_driver_and_socket_cleanup_observed_before_only_final_release_failure": true,
+    "cache_default_constructor_only_before_first_failure": true,
+    "retained_original_binary_sha256": "c591193be2e55f5763906cc0b44bcb7389160492bc48d200e12ecb4ecfc3d373",
+    "result_sha256": "079491d436150538427e6a0f3b2f031432353043bfb3a451f1218a4a7a0491ac",
+    "root_join_sha256": "fc17a6c18058c3575f40aa88cd8f80bdaebb1f6e4191d4df37d5bddee791382a"
+  },
+  "actual_fixed448": {
+    "passed": 20,
+    "required": 20,
+    "new_cases": 5,
+    "retained_cases": 15,
+    "both_default_and_prebound_socket_variants_release": true,
+    "actual_retained_DataChannel_handler_composition": "Not a new network data-channel delivery claim",
+    "forced_internal_outcomes": "Intentional unconfirmed/unknown controls remain unconfirmed; process join does not promote them",
+    "all_original_child_process_groups_joined": true,
+    "source_and_binary_stable": true,
+    "result_sha256": "bb2d1eb6a729ad42ff3f60c5b9768d1da6cb428d6846423e78061583e950f491",
+    "root_join_sha256": "2cb8f9805ab6eb62a45f69308afaff1170a28f37f6f5dd8779830d18f60d79d7",
+    "independent_actual_review_sha256": "9cb0589034077084eb3be98d24bfc83a6e05b9e386095893321936d51b06a283"
+  },
+  "preserved447_failure": {
+    "build_exit": 101,
+    "runtime_cases_executed": 0,
+    "reason": "Missed nested owned_video handler reference; additive448 plumbing uses same Driver-owned handler, no behavior change."
+  },
+  "actual_normal_mapping_export_verified": false,
+  "full_regression_qualified": false,
+  "matrix_qualified": false,
+  "ready_for_full32": false
+}

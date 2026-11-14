@@ -1,0 +1,42 @@
+{
+  "format": "connect/g6-058-focused-raw-quality/1",
+  "updated_at": "2026-11-14T22:40:15.149570+00:00",
+  "source_revision": "e60bcf8edd8deee0d1aaad634b799d8691826fd9",
+  "generation": 445,
+  "original_component_sha256": "7029e71153647ebe6162691780bb00be0ceb30ffce6ca780ae47c7e9cac036a8",
+  "original_root_result_sha256": "f531aedc5291ad60317bdacde93db000ced2162265fa32ec1c5b4fb91bb0d176",
+  "original_component_passed": false,
+  "original_CLI_exit": 1,
+  "browser_collection_passed": true,
+  "browser_raw_quality_passed": true,
+  "quality": {
+    "audio_passed": 6,
+    "video_passed": 6,
+    "AV_passed": 6,
+    "required_each": 6,
+    "whole_routes_passed": 6,
+    "raw_draw_duplicates": 0
+  },
+  "approved_single_cycle_resource_observation_passed": true,
+  "full_three_cycle_capacity_qualified": false,
+  "source_SDK_and_binary_guards": {
+    "source_inputs_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "executable_unchanged": true
+  },
+  "final_source_frame_adjudication": {
+    "profile": "connect/native-rtc-original-source-frame/1",
+    "complete": false,
+    "passed": false,
+    "failure": "WitnessError",
+    "reason": "mapping-line-cap"
+  },
+  "missing_mapping_marker_count": 0,
+  "original_log_sha256": "8e041850d65b1fc43ac6eaa6b5b3d4fa690b37c7372a0ba4c9af8653247740ac",
+  "causal_limits": [
+    "Raw media improvement is scoped to this fresh local Firefox programme, not any new matrix cell.",
+    "Original final witness failed; no historical regrade. Mapping export remains to be verified after actual ownership fix.",
+    "Zero repeated draws did not exercise the new exception branch. Existing quality/transition rules are unchanged."
+  ],
+  "matrix_qualified": false
+}

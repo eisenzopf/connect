@@ -9,6 +9,7 @@ import ipaddress
 import json
 import math
 import os
+import re
 import stat
 import struct
 import time
@@ -68,23 +69,47 @@ def read_json(path, maximum=16 * 1024**2):
 def mapping_summaries(path, original_server_pid):
     result = []
     digest = hashlib.sha256()
+    message = b"RTC original video mapping witness"
+    selected_cap, chunk_cap = 256 * 1024, 64 * 1024
+
+    def accept(raw):
+        # The actual server uses tracing's normal text formatter. Its optional
+        # SGR field styling is presentation only; the JSON witness stays exact.
+        line = re.sub(rb"\x1b\[[0-9;]*m", b"", raw)
+        marker = b'witness={"profile":"connect/rtc-original-video-mapping/1"'
+        at = line.find(marker)
+        need(at >= 0, "mapping-export-format")
+        value, _ = json.JSONDecoder().raw_decode(line[at + len(b"witness="):].decode("utf8"))
+        need(len(result) < 128 and value.get("profile") == MAP_PROFILE, "mapping-summary-cap")
+        need(value.get("process") == original_server_pid and value.get("original_timeline_retired") is True,
+             "mapping-original-owner-mismatch")
+        epochs = value.get("epochs")
+        need(isinstance(epochs, list) and 0 <= len(epochs) <= 32, "mapping-epoch-cap")
+        need([e.get("ordinal") for e in epochs] == list(range(len(epochs))), "mapping-epoch-order")
+        result.append(value)
+
     with regular(path, 256 * 1024**2) as (source, _):
-        while line := source.readline(256 * 1024 + 1):
-            need(len(line) <= 256 * 1024, "mapping-line-cap")
-            digest.update(line)
-            if b"RTC original video mapping witness" not in line:
-                continue
-            marker = b'witness={"profile":"connect/rtc-original-video-mapping/1"'
-            at = line.find(marker)
-            need(at >= 0, "mapping-export-format")
-            value, _ = json.JSONDecoder().raw_decode(line[at + len(b"witness="):].decode("utf8"))
-            need(len(result) < 128 and value.get("profile") == MAP_PROFILE, "mapping-summary-cap")
-            need(value.get("process") == original_server_pid and value.get("original_timeline_retired") is True,
-                 "mapping-original-owner-mismatch")
-            epochs = value.get("epochs")
-            need(isinstance(epochs, list) and 0 <= len(epochs) <= 32, "mapping-epoch-cap")
-            need([e.get("ordinal") for e in epochs] == list(range(len(epochs))), "mapping-epoch-order")
-            result.append(value)
+        line, line_size, selected, tail = bytearray(), 0, False, b""
+        while chunk := source.readline(chunk_cap):
+            digest.update(chunk)
+            line_size += len(chunk)
+            search = tail + chunk
+            selected |= message in search
+            tail = search[-(len(message) - 1):]
+            if line_size <= selected_cap:
+                line.extend(chunk)
+            else:
+                # Unrelated audio-facts records can exceed the selected-witness
+                # cap. Consume/hash them without retaining their payload. A
+                # witness marker anywhere in such a record still fails closed.
+                line.clear()
+            need(not selected or line_size <= selected_cap, "mapping-line-cap")
+            if chunk.endswith(b"\n"):
+                if selected:
+                    accept(bytes(line))
+                line, line_size, selected, tail = bytearray(), 0, False, b""
+        if selected:
+            accept(bytes(line))
     need(result and len({v["timeline"] for v in result}) == len(result), "mapping-missing-or-reexported")
     return result, digest.hexdigest()
 

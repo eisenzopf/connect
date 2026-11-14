@@ -1,0 +1,386 @@
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+@@ -1142,3 +1142,6 @@
+         assert!(error.to_string().contains("address-family-mismatch"));
+     }
+ }
++
++#[cfg(test)]
++mod cache_lifetime_tests;
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/track_ready_tests.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/track_ready_tests.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/track_ready_tests.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/track_ready_tests.rs
+@@ -155,6 +155,8 @@
+     } else {
+         None
+     };
++    let receivers_before_close = b.get_receivers().await;
++    let transceivers_before_close = b.get_transceivers().await;
+     writes.abort();
+     let _ = writes.await;
+     timeout(Duration::from_secs(2), a.close())
+@@ -165,6 +167,24 @@
+         .await
+         .unwrap()
+         .unwrap();
++    let receivers_after_close = b.get_receivers().await;
++    let transceivers_after_close = b.get_transceivers().await;
++    assert_eq!(receivers_before_close.len(), 1);
++    assert_eq!(receivers_after_close.len(), 1);
++    assert!(Arc::ptr_eq(
++        &receivers_before_close[0],
++        &receivers_after_close[0]
++    ));
++    assert_eq!(
++        transceivers_before_close.len(),
++        transceivers_after_close.len()
++    );
++    assert!(transceivers_before_close.iter().all(|before| {
++        transceivers_after_close
++            .iter()
++            .any(|after| Arc::ptr_eq(before, after))
++    }));
++    assert_eq!(receivers_after_close[0].track().ssrcs().await, vec![ssrc]);
+     let (_, ssrcs, got_codec) = observed.unwrap().unwrap();
+     assert_eq!(
+         (
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/cache_lifetime_tests.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/cache_lifetime_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/cache_lifetime_tests.rs
+@@ -0,0 +1,334 @@
++//! Real peer/cache/driver lifetime controls. No fabricated cache or Drop signal.
++use super::*;
++use crate::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
++use futures::FutureExt;
++use rtc::media_stream::MediaStreamTrack;
++use rtc::rtp_transceiver::rtp_sender::{
++    RTCRtpCodec, RTCRtpCodecParameters, RTCRtpCodingParameters, RTCRtpEncodingParameters,
++};
++use std::future::Future;
++use std::panic::AssertUnwindSafe;
++
++struct Handler;
++#[async_trait::async_trait]
++impl PeerConnectionEventHandler for Handler {}
++
++// Same concrete constructors as the public builder; the concrete type exposes
++// Weak<PeerConnectionRef> solely to this private test module.
++async fn peer(ranged: bool, sockets: Arc<AtomicUsize>) -> PeerConnectionImpl {
++    peer_with_handler(ranged, sockets, Arc::new(Handler)).await
++}
++async fn peer_with_handler(
++    ranged: bool,
++    sockets: Arc<AtomicUsize>,
++    handler: Arc<dyn PeerConnectionEventHandler>,
++) -> PeerConnectionImpl {
++    let mut media = MediaEngine::default();
++    media.register_codec(codec(), RtpCodecKind::Video).unwrap();
++    let core = RTCPeerConnectionBuilder::new()
++        .with_media_engine(media)
++        .build()
++        .unwrap();
++    let opts = RTCIceGatherOptions {
++        ice_servers: core.get_configuration().ice_servers().to_vec(),
++        ice_gather_policy: core.get_configuration().ice_transport_policy(),
++    };
++    let options = UdpSocketDriverOptions {
++        advertised_ip: None,
++        allocated_sockets: Some(sockets),
++    };
++    let runtime = default_runtime().expect("Tokio runtime");
++    if ranged {
++        PeerConnectionImpl::new_with_udp_socket(
++            core,
++            runtime,
++            handler,
++            opts,
++            UdpSocket::bind("127.0.0.1:0").unwrap(),
++            Vec::<&str>::new(),
++            options,
++        )
++        .await
++        .unwrap()
++    } else {
++        PeerConnectionImpl::new(
++            core,
++            runtime,
++            handler,
++            opts,
++            vec!["127.0.0.1:0"],
++            Vec::<&str>::new(),
++            options,
++        )
++        .await
++        .unwrap()
++    }
++}
++fn codec() -> RTCRtpCodecParameters {
++    RTCRtpCodecParameters {
++        rtp_codec: RTCRtpCodec {
++            mime_type: "video/VP8".into(),
++            clock_rate: 90_000,
++            ..Default::default()
++        },
++        payload_type: 96,
++    }
++}
++fn track() -> Arc<TrackLocalStaticRTP> {
++    Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
++        "original-stream".into(),
++        "original-track".into(),
++        "original-video".into(),
++        RtpCodecKind::Video,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: RTCRtpCodingParameters {
++                ssrc: Some(12345),
++                ..Default::default()
++            },
++            codec: codec().rtp_codec,
++            ..Default::default()
++        }],
++    )))
++}
++#[derive(Default)]
++struct TimelineDrop(std::sync::Mutex<Option<Arc<AtomicUsize>>>);
++impl Drop for TimelineDrop {
++    fn drop(&mut self) {
++        if let Some(counter) = self.0.get_mut().unwrap().take() {
++            counter.fetch_add(1, Ordering::SeqCst);
++        }
++    }
++}
++
++#[tokio::test]
++async fn cached_video_views_release_original_owner_after_last_handle() {
++    for ranged in [false, true] {
++        let sockets = Arc::new(AtomicUsize::new(0));
++        let peer = peer(ranged, sockets.clone()).await;
++        let weak_inner = Arc::downgrade(&peer.inner);
++        let track = track();
++        let weak_track = Arc::downgrade(&track);
++        let drops = Arc::new(AtomicUsize::new(0));
++        let work = AssertUnwindSafe(async {
++            let timeline = track
++                .owned_rtp_timeline::<TimelineDrop>(12345)
++                .await
++                .unwrap();
++            *timeline.0.lock().unwrap() = Some(drops.clone());
++            let weak_timeline = Arc::downgrade(&timeline);
++            drop(timeline);
++            let sender = peer.add_track(track.clone()).await.unwrap();
++            let views = peer.get_transceivers().await;
++            let senders = peer.get_senders().await;
++            (sender, views, senders, weak_timeline)
++        })
++        .catch_unwind()
++        .await;
++        let closed = peer.close().await;
++        // The original driver is observed before any functional/lifetime oracle.
++        let driver_gone = peer.driver_handle.lock().await.is_none();
++        let returned = peer.driver_result.load(Ordering::Acquire);
++        let sockets_gone = sockets.load(Ordering::Acquire) == 0;
++        let (sender, views, senders, weak_timeline) = work.unwrap();
++        let after_views = peer.get_transceivers().await;
++        let after_senders = peer.get_senders().await;
++        let same_views =
++            views.len() == 1 && after_views.len() == 1 && Arc::ptr_eq(&views[0], &after_views[0]);
++        let same_sender = senders.len() == 1
++            && after_senders.len() == 1
++            && Arc::ptr_eq(&sender, &senders[0])
++            && Arc::ptr_eq(&sender, &after_senders[0]);
++        let closed_again = peer.close().await;
++        drop((track, senders, after_senders, after_views));
++        drop(peer);
++        let external_view_retains = weak_inner.upgrade().is_some()
++            && weak_track.upgrade().is_some()
++            && weak_timeline.upgrade().is_some()
++            && drops.load(Ordering::SeqCst) == 0;
++        drop(sender);
++        // A retained transceiver legitimately owns the sender and original track.
++        let last_view_retains = weak_track.upgrade().is_some();
++        drop(views);
++        let released = weak_inner.upgrade().is_none()
++            && weak_track.upgrade().is_none()
++            && weak_timeline.upgrade().is_none()
++            && drops.load(Ordering::SeqCst) == 1;
++        eprintln!(
++            "CACHE_LIFETIME ranged={ranged} driver_gone={driver_gone} returned={returned} sockets_gone={sockets_gone} same_views={same_views} same_sender={same_sender} external_view_retains={external_view_retains} last_view_retains={last_view_retains} released={released}"
++        );
++        assert!(
++            closed.is_ok() && closed_again.is_ok() && driver_gone && returned == 1 && sockets_gone
++        );
++        assert!(same_views && same_sender && external_view_retains && last_view_retains);
++        assert!(
++            released,
++            "original cached peer/track/timeline must retire after original driver and last external handle"
++        );
++    }
++}
++
++#[tokio::test]
++async fn external_track_clone_retains_only_original_timeline_after_closed_peer() {
++    let sockets = Arc::new(AtomicUsize::new(0));
++    let peer = peer(false, sockets.clone()).await;
++    let weak_inner = Arc::downgrade(&peer.inner);
++    let original = track();
++    let weak_original = Arc::downgrade(&original);
++    let clone = (*original).clone();
++    let drops = Arc::new(AtomicUsize::new(0));
++    let work = AssertUnwindSafe(async {
++        let timeline = original
++            .owned_rtp_timeline::<TimelineDrop>(12345)
++            .await
++            .unwrap();
++        *timeline.0.lock().unwrap() = Some(drops.clone());
++        let weak = Arc::downgrade(&timeline);
++        drop(timeline);
++        peer.add_track(original.clone()).await.unwrap();
++        weak
++    })
++    .catch_unwind()
++    .await;
++    let closed = peer.close().await;
++    let driver_gone = peer.driver_handle.lock().await.is_none();
++    let weak_timeline = work.unwrap();
++    drop((original, peer));
++    let peer_retired = weak_inner.upgrade().is_none() && weak_original.upgrade().is_none();
++    let original_state_retained =
++        weak_timeline.upgrade().is_some() && drops.load(Ordering::SeqCst) == 0;
++    drop(clone);
++    assert!(closed.is_ok() && driver_gone && sockets.load(Ordering::Acquire) == 0);
++    assert!(peer_retired && original_state_retained);
++    assert!(weak_timeline.upgrade().is_none());
++    assert_eq!(drops.load(Ordering::SeqCst), 1);
++}
++
++#[tokio::test]
++async fn cancelled_close_retains_original_driver_and_cached_views() {
++    let sockets = Arc::new(AtomicUsize::new(0));
++    let peer = peer(false, sockets.clone()).await;
++    let weak_inner = Arc::downgrade(&peer.inner);
++    let original = track();
++    let work = AssertUnwindSafe(async {
++        let sender = peer.add_track(original.clone()).await.unwrap();
++        let custody = peer.driver_handle.lock().await;
++        let pending = {
++            let mut first = Box::pin(peer.close());
++            std::future::poll_fn(|cx| std::task::Poll::Ready(first.as_mut().poll(cx)))
++                .await
++                .is_pending()
++        };
++        let retained_handle = custody.is_some();
++        drop(custody);
++        (sender, pending, retained_handle)
++    })
++    .catch_unwind()
++    .await;
++    let closed = peer.close().await;
++    let driver_gone = peer.driver_handle.lock().await.is_none();
++    let (sender, pending, retained_handle) = work.unwrap();
++    let senders = peer.get_senders().await;
++    let same_sender = senders.len() == 1 && Arc::ptr_eq(&sender, &senders[0]);
++    drop((sender, senders, original, peer));
++    assert!(
++        pending
++            && retained_handle
++            && closed.is_ok()
++            && driver_gone
++            && sockets.load(Ordering::Acquire) == 0
++    );
++    assert!(same_sender && weak_inner.upgrade().is_none());
++}
++
++#[tokio::test]
++async fn unconfirmed_original_driver_remains_error_after_cache_retirement() {
++    let sockets = Arc::new(AtomicUsize::new(0));
++    let peer = peer(false, sockets.clone()).await;
++    let weak_inner = Arc::downgrade(&peer.inner);
++    let original = track();
++    let work = AssertUnwindSafe(async {
++        let sender = peer.add_track(original.clone()).await.unwrap();
++        let custody = peer.driver_handle.lock().await;
++        custody.as_ref().unwrap().abort_and_wait().await;
++        drop(custody);
++        sender
++    })
++    .catch_unwind()
++    .await;
++    let closed = peer.close().await;
++    let driver_gone = peer.driver_handle.lock().await.is_none();
++    let sender = work.unwrap();
++    let after = peer.get_senders().await;
++    let same_sender = after.len() == 1 && Arc::ptr_eq(&sender, &after[0]);
++    let error = closed.err().map(|error| error.to_string());
++    drop((sender, after, original, peer));
++    assert!(driver_gone && sockets.load(Ordering::Acquire) == 0 && same_sender);
++    assert!(
++        error
++            .as_deref()
++            .is_some_and(|error| error.contains("Original peer driver cleanup unconfirmed"))
++    );
++    assert!(weak_inner.upgrade().is_none());
++}
++
++#[derive(Default)]
++struct RetainingHandler {
++    seen: std::sync::Mutex<Vec<Arc<dyn DataChannel>>>,
++}
++#[async_trait::async_trait]
++impl PeerConnectionEventHandler for RetainingHandler {
++    async fn on_data_channel(&self, channel: Arc<dyn DataChannel>) {
++        // Same retained-view edge as canonical ConnectionHandler's bounded
++        // data_channels_seen; this control deliberately uses just one view.
++        self.seen.lock().unwrap().push(channel);
++    }
++}
++#[tokio::test]
++async fn data_channel_retaining_handler_releases_original_inner_after_last_owner() {
++    let sockets = Arc::new(AtomicUsize::new(0));
++    let handler = Arc::new(RetainingHandler::default());
++    let weak_handler = Arc::downgrade(&handler);
++    let peer = peer_with_handler(false, sockets.clone(), handler.clone()).await;
++    let weak_inner = Arc::downgrade(&peer.inner);
++    let work = AssertUnwindSafe(async {
++        let channel = peer
++            .create_data_channel("original-channel", None)
++            .await
++            .unwrap();
++        let weak_channel = Arc::downgrade(&channel);
++        // Exercise the actual DataChannelImpl's strong inner root and an
++        // application-retained callback view. No handshake/delivery claim.
++        handler.on_data_channel(channel).await;
++        weak_channel
++    })
++    .catch_unwind()
++    .await;
++    let closed = peer.close().await;
++    let driver_gone = peer.driver_handle.lock().await.is_none();
++    let returned = peer.driver_result.load(Ordering::Acquire);
++    let weak_channel = work.unwrap();
++    let retained_identity = {
++        let views = handler.seen.lock().unwrap();
++        views.len() == 1
++            && weak_channel
++                .upgrade()
++                .is_some_and(|channel| Arc::ptr_eq(&channel, &views[0]))
++    };
++    drop(peer);
++    let external_handler_retains =
++        weak_inner.upgrade().is_some() && weak_channel.upgrade().is_some();
++    drop(handler);
++    let released = weak_inner.upgrade().is_none()
++        && weak_channel.upgrade().is_none()
++        && weak_handler.upgrade().is_none();
++    eprintln!(
++        "HANDLER_LIFETIME driver_gone={driver_gone} returned={returned} sockets={} retained_identity={retained_identity} external_handler_retains={external_handler_retains} released={released}",
++        sockets.load(Ordering::Acquire)
++    );
++    assert!(closed.is_ok() && driver_gone && returned == 1 && sockets.load(Ordering::Acquire) == 0);
++    assert!(retained_identity && external_handler_retains);
++    assert!(
++        released,
++        "original handler/data-channel/inner must retire after original driver and last external handler"
++    );
++}
