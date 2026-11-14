@@ -29,7 +29,7 @@ function fixture({loseReady=false,terminal='completed',changeResult,beforeReady,
   // The real service deliberately strips results from every ready acknowledgement.
   return [record('target',terminal,{receipt:false})];
  }};
- return {client,requests,owner:new BrowserWebRtcReplacement(client,root),get attempts(){return attempts;},get commits(){return commits;}};
+ return {client,requests,owner:new BrowserWebRtcReplacement(client,root),get attempts(){return attempts;},get commits(){return commits;},setTerminal(value){terminal=value;}};
 }
 const readyRequests=f=>f.requests.filter(v=>v.type==='connection.offer'&&v.body.replacement_preparation.profile==='connect-replacement-ready-v1');
 const transient=(category,reason)=>new ConnectError('refused','temporary pre-capture failure',{code:503,category,reason});
@@ -94,4 +94,33 @@ test('RTC readiness retry shares the original deadline and stops immediately on 
 });
 test('RTC repeated temporary refusal has a finite eight-attempt recovery window',async()=>{
  const f=fixture({beforeReady:()=>transient('storage','storage_unavailable')});await prepared(f);const started=performance.now();await assert.rejects(f.owner.complete(evidence(),{timeoutMs:4200}),{code:'timeout'});assert.equal(f.attempts,8);assert.equal(f.commits,0);assert.ok(performance.now()-started<4700);assert.equal(f.owner.mayHaveCommitted,true);
+});
+
+
+test('RTC uncertain completed wait can recover the same original receipt with reads only',async()=>{
+ const f=fixture({terminal:'preparing'});await prepared(f);
+ let original;try{await f.owner.complete(evidence(),{timeoutMs:25});assert.fail('Expected original uncertainty');}catch(error){original=error;assert.equal(error.code,'timeout');}
+ const frozen=f.owner.savedReadiness,offers=f.requests.filter(v=>v.type==='connection.offer').length;
+ f.setTerminal('completed');const receipt=await f.owner.recoverCompletion(original,{timeoutMs:200});
+ assert.deepEqual(receipt,{recordId:'record',generation:2,streamRevision:6});
+ assert.deepEqual(f.owner.savedReadiness,frozen);assert.equal(f.requests.filter(v=>v.type==='connection.offer').length,offers);
+ assert.equal(f.requests.at(-1).type,'operation.get');assert.deepEqual(f.requests.at(-1).scope,{cid:'room',sid:'session',connid:'source'});
+});
+
+test('RTC status-only recovery keeps foreign generation and stream refusal and cannot reuse definitive errors',async()=>{
+ for(const alter of [r=>({...r,generation:3}),r=>({...r,readiness:{...r.readiness,streams:['audio','send','foreign']},physical_readiness:{...r.readiness,streams:['audio','send','foreign']}})]){
+  const f=fixture({terminal:'preparing',changeResult:alter});await prepared(f);
+  await assert.rejects(f.owner.complete(evidence(),{timeoutMs:25}),{code:'timeout'});f.setTerminal('completed');
+  await assert.rejects(f.owner.recoverCompletion(new ConnectError('timeout','original uncertain'),{timeoutMs:200}),{code:'protocol'});
+  const count=f.requests.length,original=new ConnectError('protocol','original malformed receipt');
+  await assert.rejects(f.owner.recoverCompletion(original,{timeoutMs:200}),error=>error===original);assert.equal(f.requests.length,count);
+ }
+});
+
+test('RTC read-only recovery cannot promote pending or cancelled originals and preserves current cancellation',async()=>{
+ const f=fixture({terminal:'preparing'});await prepared(f);await assert.rejects(f.owner.complete(evidence(),{timeoutMs:25}),{code:'timeout'});
+ const uncertain=new ConnectError('timeout','original uncertain');assert.equal(await f.owner.recoverCompletion(uncertain,{timeoutMs:200}),undefined);
+ const abort=new AbortController();abort.abort();const count=f.requests.length;
+ await assert.rejects(f.owner.recoverCompletion(uncertain,{timeoutMs:200,signal:abort.signal}),{code:'cancelled'});assert.equal(f.requests.length,count);
+ f.setTerminal('cancelled');await assert.rejects(f.owner.recoverCompletion(uncertain,{timeoutMs:200}),{code:'refused'});assert.equal(f.owner.mayHaveCommitted,false);
 });

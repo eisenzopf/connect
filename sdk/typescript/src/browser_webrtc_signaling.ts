@@ -543,6 +543,11 @@ export class CanonicalWebRtcSignaling {
             );
         return this.tasks.track(this.replacement.complete(evidence, options));
     }
+    recoverReplacementCompletion(error: unknown, options: RequestOptions) {
+        this.check();
+        if (!this.replacement || !this.remoteApplied) throw error;
+        return this.tasks.track(this.replacement.recoverCompletion(error, options));
+    }
     private gatheringCleanup?: () => void;
     private gather(): Promise<void> {
         if (this.peer.iceGatheringState === "complete")

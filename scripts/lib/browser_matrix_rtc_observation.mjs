@@ -44,18 +44,46 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
     const decoded=videoObserver===RTC_DECODED_VIDEO_PROFILE?decodedVideoOwnerFactory({observe:decodedVideo,invalid}):null;
     // Root may opt into bounded private PCM evidence before this original
     // observer starts. The SDK/browser media profile and graph stay unchanged.
-    const audioBoundaries=rtcAudioBoundaryDiagnostics({retainSuspectPcm:globalThis.connectRtcAudioFacts===true});
+    const audioBoundaries=rtcAudioBoundaryDiagnostics({retainSuspectPcm:globalThis.connectRtcAudioFacts===true,
+        contextCloseProbeAvailable:typeof AudioContext==='function'&&typeof AudioContext.prototype?.close==='function'});
     const render=Rtc.prototype.render,capture=Rtc.prototype.capture;
     const sourcePrototype=MediaStreamAudioSourceNode.prototype;
     const sourceConnect=sourcePrototype.connect;
     const sourceConnectDescriptor=Object.getOwnPropertyDescriptor(sourcePrototype,'connect');
+    const sourceDisconnect=sourcePrototype.disconnect;
+    const sourceDisconnectDescriptor=Object.getOwnPropertyDescriptor(sourcePrototype,'disconnect');
+    const contextPrototype=typeof AudioContext==='function'?AudioContext.prototype:null,contextClose=contextPrototype?.close;
+    const contextCloseDescriptor=contextPrototype?Object.getOwnPropertyDescriptor(contextPrototype,'close'):undefined;
     const draw=CanvasRenderingContext2D.prototype.drawImage,frame=HTMLVideoElement.prototype.requestVideoFrameCallback;
     const canvases=new Map(),metadata=new WeakMap(),pending=new Set(),taps=new Set(),modules=new WeakMap(),observed=new WeakSet();
     const presentations = new WeakMap();
     let nextPresentationElement = 0;
     let nextAudioClock = 0;
-    let rendering=null,closed=false;
+    let rendering=null,closed=false,lifetimeFailures=0;
     const worklet=URL.createObjectURL(new Blob([rtcDecodedAudioWorklet],{type:'text/javascript'}));
+    const lifetime=(owned,kind,fields={})=>{
+        if(closed||!taps.has(owned))return;
+        try{audioBoundaries.lifecycle({owner:owned.clock.owner,clock:owned.clock,kind,
+            at:performance.now(),context:owned.context,fields});}catch{lifetimeFailures++;}
+    };
+    const settlement=(epoch,kind)=>{
+        for(const owned of taps)if(owned.clock.epoch_id===epoch)lifetime(owned,kind);
+    };
+    // These passive continuations never close, await, or own the original work.
+    const observeSettlement=(original,epoch,resolved,rejected)=>{
+        void Promise.resolve(original).then(()=>settlement(epoch,resolved),()=>settlement(epoch,rejected));
+    };
+    const observeRender=(result,epochs)=>{
+        void Promise.resolve(result).then(owner=>{
+            if(closed)return;
+            for(const owned of taps)if(epochs.includes(owned.clock.epoch_id)){
+                if(owner?.finished&&typeof owner.finished.then==='function'){
+                    lifetime(owned,'render-finished-observed');
+                    observeSettlement(owner.finished,owned.clock.epoch_id,'render-finished-resolved','render-finished-rejected');
+                }
+            }
+        },()=>{});
+    };
     function tap(context,source,connectionId) {
         if (nextAudioClock >= 10) {
             invalid(connectionId, 'Bounded original RTC decoded PCM clocks');
@@ -63,7 +91,12 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
         }
         const clock = Object.freeze({profile:'connect/rtc-decoded-pcm-clock/1',
             owner:connectionId, epoch_id:++nextAudioClock});
-        const owned={context,source,node:null,gain:null,clock};taps.add(owned);
+        const owned={context,source,node:null,gain:null,clock,onState:null};taps.add(owned);
+        if(typeof context.addEventListener==='function'&&typeof context.removeEventListener==='function'){
+            const onState=()=>lifetime(owned,'context-statechange');
+            try{context.addEventListener('statechange',onState);owned.onState=onState;}catch{lifetimeFailures++;}
+        }
+        lifetime(owned,'tap-tracked',{state_listener_installed:owned.onState!==null});
         let loaded=modules.get(context);
         if(!loaded){loaded=context.audioWorklet.addModule(worklet);modules.set(context,loaded);}
         const ready=loaded.then(()=>{
@@ -93,7 +126,7 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
         }).catch(error=>{if(!closed&&context.state!=='closed')invalid(connectionId,String(error.message));});
         pending.add(ready);void ready.finally(()=>pending.delete(ready));
     }
-    MediaStreamAudioSourceNode.prototype.connect=function(...args){
+    const observedConnect=function(...args){
         const result=sourceConnect.apply(this,args);
         if(rendering&&!closed&&!observed.has(this)){
             observed.add(this);
@@ -101,7 +134,29 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
         }
         return result;
     };
-    Rtc.prototype.render=function(input,...args){
+    const observedDisconnect=function(...args){
+        const owned=[...taps].filter(tap=>tap.source===this);
+        for(const tap of owned)lifetime(tap,'source-disconnect-request',{target:args.length===0?'all-outputs':
+            typeof args[0]==='number'?'output-index':args[0]===tap.node?'tap-target':'other-target',
+            output_index:typeof args[0]==='number'?args[0]:null});
+        try{return sourceDisconnect.apply(this,args);}
+        catch(error){for(const tap of owned)lifetime(tap,'source-disconnect-threw');throw error;}
+    };
+    const observedContextClose=function(...args){
+        const owned=[...taps].filter(tap=>tap.context===this);
+        for(const tap of owned)lifetime(tap,'context-close-request');
+        let original;try{original=contextClose.apply(this,args);}
+        catch(error){for(const tap of owned)lifetime(tap,'context-close-threw');throw error;}
+        for(const tap of owned){
+            if(original&&typeof original.then==='function')observeSettlement(original,tap.clock.epoch_id,'context-close-resolved','context-close-rejected');
+            else lifetime(tap,'context-close-promise-unavailable');
+        }
+        return original;
+    };
+    sourcePrototype.connect=observedConnect;
+    if(typeof sourceDisconnect==='function')sourcePrototype.disconnect=observedDisconnect;
+    if(contextPrototype&&typeof contextClose==='function')contextPrototype.close=observedContextClose;
+    const observedRender=function(input,...args){
         const previous=rendering;rendering=this.input.connectionId;
         // Label the exact existing native peer; never infer owners from creation order.
         globalThis.connectPeerTag?.(this.peer,this.input.connectionId);
@@ -113,25 +168,30 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
                     throw Error('Exact original matrix RTC render surface required');
                 entry=decoded.begin(this,input);
             }
+            const firstEpoch=nextAudioClock;
             const result=render.call(this,input,...args);
+            observeRender(result,[...taps].filter(tap=>tap.clock.epoch_id>firstEpoch).map(tap=>tap.clock.epoch_id));
             if(entry)decoded.bind(entry,result);
             return result;
         }catch(error){if(entry)void decoded.abandon(entry);throw error;}
         finally{rendering=previous;}
     };
-    if(capture)Rtc.prototype.capture=function(...args){
+    Rtc.prototype.render=observedRender;
+    const observedCapture=function(...args){
         // Private preparation still owns real capture and decoder readiness.
         // Its diagnostic identity does not require starting public playback.
         globalThis.connectPeerTag?.(this.peer,this.input.connectionId);
         return capture.apply(this,args);
     };
-    HTMLVideoElement.prototype.requestVideoFrameCallback=function(callback){
+    if(capture)Rtc.prototype.capture=observedCapture;
+    const observedFrame=function(callback){
         return frame.call(this,(now,detail)=>{
             metadata.set(this,{now,detail});
             try{return callback(now,detail);}finally{metadata.delete(this);}
         });
     };
-    CanvasRenderingContext2D.prototype.drawImage=function(source,...args){
+    HTMLVideoElement.prototype.requestVideoFrameCallback=observedFrame;
+    const observedDraw=function(source,...args){
         const result=draw.call(this,source,...args),connectionId=canvases.get(this.canvas),current=metadata.get(source);
         if(!closed&&connectionId&&current){
             let identity = presentations.get(source);
@@ -169,6 +229,7 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
         }
         return result;
     };
+    CanvasRenderingContext2D.prototype.drawImage=observedDraw;
     return {
         report(){return audioBoundaries.report();},
         decodedVideoReport(){return decoded?.report()??null;},
@@ -179,11 +240,27 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
         },
         async close(){
             if(closed)return;closed=true;audioBoundaries.close();
-            Rtc.prototype.render=render;
-            if(sourceConnectDescriptor)Object.defineProperty(sourcePrototype,'connect',sourceConnectDescriptor);
-            else delete sourcePrototype.connect;
-            if(capture)Rtc.prototype.capture=capture;
-            CanvasRenderingContext2D.prototype.drawImage=draw;HTMLVideoElement.prototype.requestVideoFrameCallback=frame;
+            if(Rtc.prototype.render===observedRender)Rtc.prototype.render=render;
+            if(sourcePrototype.connect===observedConnect){
+                if(sourceConnectDescriptor)Object.defineProperty(sourcePrototype,'connect',sourceConnectDescriptor);
+                else delete sourcePrototype.connect;
+            }
+            if(sourcePrototype.disconnect===observedDisconnect){
+                if(sourceDisconnectDescriptor)Object.defineProperty(sourcePrototype,'disconnect',sourceDisconnectDescriptor);
+                else delete sourcePrototype.disconnect;
+            }
+            if(contextPrototype?.close===observedContextClose){
+                if(contextCloseDescriptor)Object.defineProperty(contextPrototype,'close',contextCloseDescriptor);
+                else delete contextPrototype.close;
+            }
+            if(capture&&Rtc.prototype.capture===observedCapture)Rtc.prototype.capture=capture;
+            if(CanvasRenderingContext2D.prototype.drawImage===observedDraw)CanvasRenderingContext2D.prototype.drawImage=draw;
+            if(HTMLVideoElement.prototype.requestVideoFrameCallback===observedFrame)HTMLVideoElement.prototype.requestVideoFrameCallback=frame;
+            let stateListenersUnconfirmed=0;
+            for(const tap of taps)if(tap.onState){
+                try{tap.context.removeEventListener('statechange',tap.onState);}catch{stateListenersUnconfirmed++;}
+                tap.onState=null;
+            }
             await Promise.all([...pending]);
             for(const tap of taps){
                 if(tap.node){
@@ -196,7 +273,16 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
             }
             const decodedVideo=await decoded?.close();
             URL.revokeObjectURL(worklet);canvases.clear();taps.clear();
-            return {decoded_video:decodedVideo??null};
+            return {decoded_video:decodedVideo??null,audio_lifetime:{retained_taps:taps.size,
+                state_listeners_unconfirmed:stateListenersUnconfirmed,observation_failures:lifetimeFailures,
+                render_finished_promises_joined:false,
+                hook_values_restored:Object.freeze({rtc_render:Rtc.prototype.render===render,
+                    rtc_capture:capture?Rtc.prototype.capture===capture:null,
+                    source_connect:sourcePrototype.connect===sourceConnect,
+                    source_disconnect:typeof sourceDisconnect==='function'?sourcePrototype.disconnect===sourceDisconnect:null,
+                    context_close:typeof contextClose==='function'?contextPrototype?.close===contextClose:null,
+                    canvas_draw:CanvasRenderingContext2D.prototype.drawImage===draw,
+                    video_frame_callback:HTMLVideoElement.prototype.requestVideoFrameCallback===frame})}};
         },
     };
 }

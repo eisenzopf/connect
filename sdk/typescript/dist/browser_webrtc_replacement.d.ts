@@ -42,5 +42,8 @@ export declare class BrowserWebRtcReplacement {
     allocate(payload: JsonObject, scope: Scope, options: RequestOptions, attempted?: () => void): Promise<void>;
     mediaOffer(payload: JsonObject): JsonObject;
     answer(payload: JsonObject): void;
+    private completedReceipt;
+    /** Internal read-only recovery: never repeat decoded readiness or mutation. */
+    recoverCompletion(error: unknown, options: RequestOptions): Promise<BrowserReplacementReceipt | undefined>;
     complete(evidence: WebRtcDecodedReadiness, options: RequestOptions): Promise<BrowserReplacementReceipt>;
 }

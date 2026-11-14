@@ -7,7 +7,13 @@ export interface WebRtcPreparedAudio {
     readonly mutedGain: GainNode;
     readonly playout: HTMLAudioElement;
 }
+export interface WebRtcPreparedVideo {
+    readonly element: HTMLVideoElement;
+    readonly presentedFloor: number;
+}
 export interface WebRtcPreparedDecoder {
+    canTakeVideo(track: MediaStreamTrack): boolean;
+    takeVideo(track: MediaStreamTrack): WebRtcPreparedVideo | undefined;
     takeAudio(track: MediaStreamTrack): WebRtcPreparedAudio | undefined;
     release(): Promise<void>;
 }

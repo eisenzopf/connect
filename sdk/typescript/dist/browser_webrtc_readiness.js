@@ -9,7 +9,7 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
         audio.track.kind !== "audio" ||
         (video && video.track.kind !== "video"))
         throw unsupported();
-    let context, source, worklet, gain, playout, picture, frameCallback, stopped = false, decoderSinksStopped = false, decoderSinksRetained = false, audioAdopted = false, sampleCount = 0, frameCount = 0, presented = 0, failed;
+    let context, source, worklet, gain, playout, picture, frameCallback, stopped = false, decoderSinksStopped = false, decoderSinksRetained = false, audioAdopted = false, videoAdopted = false, sampleCount = 0, frameCount = 0, presented = 0, failed;
     const run = (work) => budget.run(() => trackTask(work()), signal);
     const check = () => {
         if (failed)
@@ -82,9 +82,13 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
         if (stopped)
             return;
         stopped = true;
-        if (picture && frameCallback !== undefined)
-            picture.cancelVideoFrameCallback(frameCallback);
-        frameCallback = undefined;
+        // A retained picture keeps its original presentation high-water current
+        // until public ownership takes it. Only decoded-readiness counting stops.
+        if (!decoderSinksRetained) {
+            if (picture && frameCallback !== undefined)
+                picture.cancelVideoFrameCallback(frameCallback);
+            frameCallback = undefined;
+        }
         if (worklet) {
             worklet.port.onmessage = null;
             worklet.port.postMessage({ type: "stop" });
@@ -95,7 +99,29 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
             source?.disconnect(worklet);
         worklet = undefined;
     };
+    const canTakeVideo = (track) => !videoAdopted && !decoderSinksStopped && !signal.aborted && !failed &&
+        !!video && track === video.track && track.readyState === "live" &&
+        !["closed", "failed"].includes(peer.connectionState) &&
+        !!picture && Number.isSafeInteger(presented) && presented > 0;
     const decoder = Object.freeze({
+        canTakeVideo,
+        takeVideo(track) {
+            if (!canTakeVideo(track))
+                return undefined;
+            // Same element and its CURRENT presentation floor transfer once.
+            // A queued private callback observes videoAdopted before rearming.
+            const element = picture;
+            // If native callback cancellation throws, this lease still owns
+            // the element and its release path must detach it before failing.
+            if (frameCallback !== undefined)
+                element.cancelVideoFrameCallback(frameCallback);
+            frameCallback = undefined;
+            videoAdopted = true;
+            picture = undefined;
+            if (audioAdopted)
+                signal.removeEventListener("abort", cancelDecoderSinks);
+            return Object.freeze({ element, presentedFloor: presented });
+        },
         takeAudio(track) {
             if (audioAdopted ||
                 decoderSinksStopped ||
@@ -110,7 +136,8 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
                 return undefined;
             // No await can interleave cancellation between transfer and the
             // renderer's local assignment. The old signal no longer owns it.
-            signal.removeEventListener("abort", cancelDecoderSinks);
+            if (!video || videoAdopted)
+                signal.removeEventListener("abort", cancelDecoderSinks);
             const output = Object.freeze({
                 context,
                 source,
@@ -188,20 +215,27 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
             picture.muted = true;
             picture.playsInline = true;
             picture.srcObject = new MediaStream([video.track]);
+            const originalPicture = picture;
             const decoded = (_now, metadata) => {
-                if (stopped)
+                if (decoderSinksStopped || videoAdopted || picture !== originalPicture)
                     return;
-                if (metadata.width > 0 &&
-                    metadata.height > 0 &&
+                if (metadata.width > 0 && metadata.height > 0 &&
                     Number.isFinite(metadata.mediaTime) &&
                     Number.isSafeInteger(metadata.presentedFrames) &&
                     metadata.presentedFrames > presented) {
-                    frameCount++;
+                    if (!stopped)
+                        frameCount++;
                     presented = metadata.presentedFrames;
                 }
-                frameCallback = picture.requestVideoFrameCallback(decoded);
+                else if (stopped) {
+                    // An unknown private presentation cannot supply a current
+                    // floor later. Never substitute readiness's older counter.
+                    failed = unsupported();
+                    return;
+                }
+                frameCallback = originalPicture.requestVideoFrameCallback(decoded);
             };
-            frameCallback = picture.requestVideoFrameCallback(decoded);
+            frameCallback = originalPicture.requestVideoFrameCallback(decoded);
             await run(() => picture.play());
         }
         for (;;) {

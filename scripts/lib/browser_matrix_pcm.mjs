@@ -12,5 +12,9 @@ export function pcmIdentity(samples,expected) {
         return (a*a+b*b-coefficient*a*b)/120**2;
     });
     const rms=Math.sqrt(energy/samples.length),wrong=Math.max(...powers.filter((_,i)=>i!==expected));
-    return {rms,powers,identified:energy/samples.length>1e-6&&powers[expected]>8*Math.max(wrong,1e-12)};
+    // Source recognition and usable-volume availability are independent.
+    // Keep the original dominance/floor exactly; literal zero and unrecognized
+    // PCM cannot identify a source. Quiet recognition earns no usable time.
+    const source_identified=powers[expected]>8*Math.max(wrong,1e-12);
+    return {rms,powers,source_identified,identified:energy/samples.length>1e-6&&source_identified};
 }

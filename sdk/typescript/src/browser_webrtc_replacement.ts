@@ -220,6 +220,48 @@ export class BrowserWebRtcReplacement {
             stream_revision: challenge.stream_revision,
         });
     }
+    private completedReceipt(value: JsonObject): BrowserReplacementReceipt {
+        const root = this.root, challenge = this.challenge;
+        const streams = this.original?.streams_offered;
+        if (!Array.isArray(streams)) throw protocol("Replacement has no frozen stream offer");
+        const receipt = replacementReceipt(root, value);
+        const result = value.result as JsonObject;
+        const actual = (result.readiness as JsonObject)
+            .streams as string[];
+        const offered = new Set(
+            streams.filter(jsonObject).map((s) => String(s.id)),
+        );
+        if (
+            receipt.generation !== challenge.target_generation ||
+            receipt.streamRevision <= challenge.stream_revision ||
+            actual.length !== offered.size ||
+            new Set(actual).size !== actual.length ||
+            actual.some((id) => !offered.has(id))
+        )
+            throw protocol(
+                "Replacement receipt changed the prepared generation or streams",
+            );
+        return receipt;
+    }
+    /** Internal read-only recovery: never repeat decoded readiness or mutation. */
+    async recoverCompletion(error: unknown, options: RequestOptions): Promise<BrowserReplacementReceipt | undefined> {
+        if (
+            !this.mayHaveCommitted || !this.original || !this.selected ||
+            !(recoverableReadinessFailure(error) ||
+                (error instanceof ConnectError && error.code === "cancelled"))
+        ) throw error;
+        if (options.signal?.aborted) throw new ConnectError("cancelled", "Original replacement read cancelled");
+        const value = await this.status(options);
+        if (["failed", "cancelled"].includes(String(value.state))) {
+            this.refused = true;
+            throw new ConnectError("refused", "Original WebRTC replacement did not complete");
+        }
+        // Pending/unknown is NOT permission to render. The original target
+        // keeps its private decoder for another read; no mutation is renewed.
+        if (["accepted", "preparing", "ready", "committing", "unknown", "interrupted"].includes(String(value.state))) return undefined;
+        if (value.state !== "completed") throw protocol("Invalid original WebRTC replacement state");
+        return this.completedReceipt(value);
+    }
     async complete(
         evidence: WebRtcDecodedReadiness,
         options: RequestOptions,
@@ -353,24 +395,7 @@ export class BrowserWebRtcReplacement {
                 continue;
             }
             if (value.state === "completed") {
-                const receipt = replacementReceipt(root, value);
-                const result = value.result as JsonObject;
-                const actual = (result.readiness as JsonObject)
-                    .streams as string[];
-                const offered = new Set(
-                    streams.filter(jsonObject).map((s) => String(s.id)),
-                );
-                if (
-                    receipt.generation !== challenge.target_generation ||
-                    receipt.streamRevision <= challenge.stream_revision ||
-                    actual.length !== offered.size ||
-                    new Set(actual).size !== actual.length ||
-                    actual.some((id) => !offered.has(id))
-                )
-                    throw protocol(
-                        "Replacement receipt changed the prepared generation or streams",
-                    );
-                return receipt;
+                return this.completedReceipt(value);
             }
             if (["failed", "cancelled"].includes(String(value.state))) {
                 this.refused = true;

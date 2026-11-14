@@ -364,6 +364,12 @@ export class CanonicalWebRtcSignaling {
             throw new ConnectError("conflict", "Replacement media answer is not applied");
         return this.tasks.track(this.replacement.complete(evidence, options));
     }
+    recoverReplacementCompletion(error, options) {
+        this.check();
+        if (!this.replacement || !this.remoteApplied)
+            throw error;
+        return this.tasks.track(this.replacement.recoverCompletion(error, options));
+    }
     gatheringCleanup;
     gather() {
         if (this.peer.iceGatheringState === "complete")

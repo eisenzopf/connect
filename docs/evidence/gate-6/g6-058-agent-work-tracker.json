@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-14T08:12:11.860131+00:00",
-  "revision": 76,
+  "updated_at": "2026-11-14T10:14:11.740582+00:00",
+  "revision": 77,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 133,
-    "verified_at": "2026-11-13T23:52:43.989392+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-preparation.json",
-    "readback_evidence_sha256": "740fbe0215c571d41efc9cf7bc4bbaece5f6fca34bce8737f35148329a6262b4",
+    "content_revision": 134,
+    "verified_at": "2026-11-14T10:14:11.740582+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-integrated.json",
+    "readback_evidence_sha256": "1de70393dbd75991530b10a6de29335b8b797b921bf7165a3e589f7f8ef0e517",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1686,7 +1686,7 @@
         "V219-WSS-INGRESS"
       ],
       "status": "component-verified",
-      "implementation_state": "Nine mechanical controls pass; actual signed0/250ms counters unrun; no historical cause or production fix claimed.",
+      "implementation_state": "Both actual signed0/250ms programmes completed all4moves with ownersclosed; setup qualified, bothqualityfailed. New bounded lifecycle/driver diagnostics implemented; exactsilencecause unproved.",
       "required_evidence": "Fresh current625, actual audio counter, local ARM/normal release checks and final preflight before reporting ready; no new full32 until owner readiness review.",
       "verification_runs": [
         {
@@ -1699,7 +1699,7 @@
         "status": "Root original results accepted for stated component scope; whole-source/matrix pending",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-14T08:12:11.860131+00:00"
+      "updated_at": "2026-11-14T10:14:11.740582+00:00"
     },
     {
       "id": "V219-STORAGE-READY",
@@ -1715,8 +1715,8 @@
         "V219-WSS-INGRESS"
       ],
       "status": "component-verified",
-      "implementation_state": "Two independently reviewed exact old-object subsets reclaimed60.03physicalGiB with current11 binaries unchanged; no source/log/library/archive deletion.",
-      "required_evidence": "Fresh current625, actual audio counter, local ARM/normal release checks and final preflight before reporting ready; no new full32 until owner readiness review.",
+      "implementation_state": "Three reviewed oldobject subsets recovered88.51physicalGiB; current/retained/source/evidence preserved.",
+      "required_evidence": "Fresh701 combinedchecks, focusedmedia, localARM/releases andfinalpreflight.",
       "verification_runs": [
         {
           "evidence": "docs/evidence/gate-6/g6-058-v219-pre-matrix-preparation.json",
@@ -1728,7 +1728,94 @@
         "status": "Root original results accepted for stated component scope; whole-source/matrix pending",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-14T08:12:11.860131+00:00"
+      "updated_at": "2026-11-14T10:14:11.740582+00:00"
+    },
+    {
+      "id": "V219-VIDEO-ADOPTION",
+      "plan_id": "V219-VIDEO-ADOPTION",
+      "title": "Adopt same prepared HTML video element with advancing current presentation counter after validated original Root completion; preserve cancellation, deadlines, retry state and cleanup.",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-VIDEO-ADOPTION"
+      ],
+      "depends_on": [
+        "V219-AUDIO-RECEIPT"
+      ],
+      "status": "component-verified",
+      "implementation_state": "Adopt same prepared HTML video element with advancing current presentation counter after validated original Root completion; preserve cancellation, deadlines, retry state and cleanup.",
+      "required_evidence": "Combined current workload, local ARM/release checks and fresh full32 qualification; component passes do not close saved failures.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-integrated-handoff-batch.json",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted for stated component scope",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T10:14:11.740582+00:00"
+    },
+    {
+      "id": "V219-OBSERVATION",
+      "plan_id": "V219-OBSERVATION",
+      "title": "Separate unchanged spectral tone recognition from energy availability; preserve all coverage/gap/onset/AV rules and strict unknown/wrong/silent failures. Retain actual presentation metadata and bounded original audio lifetime events.",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root/media_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-OBSERVATION"
+      ],
+      "depends_on": [
+        "V219-AUDIO-RECEIPT"
+      ],
+      "status": "component-verified",
+      "implementation_state": "Separate unchanged spectral tone recognition from energy availability; preserve all coverage/gap/onset/AV rules and strict unknown/wrong/silent failures. Retain actual presentation metadata and bounded original audio lifetime events.",
+      "required_evidence": "Combined current workload, local ARM/release checks and fresh full32 qualification; component passes do not close saved failures.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-integrated-handoff-batch.json",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted for stated component scope",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T10:14:11.740582+00:00"
+    },
+    {
+      "id": "V219-REFUSAL-TRACE",
+      "plan_id": "V219-REFUSAL-TRACE",
+      "title": "Bounded failure-only typed Core/driver refusal diagnostics; global128rowcap, same original request correlation; no healthy packet logging, auth/SQL/retry/deadline or outcome changes.",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-REFUSAL-TRACE"
+      ],
+      "depends_on": [
+        "V219-AUDIO-RECEIPT"
+      ],
+      "status": "component-verified",
+      "implementation_state": "Bounded failure-only typed Core/driver refusal diagnostics; global128rowcap, same original request correlation; no healthy packet logging, auth/SQL/retry/deadline or outcome changes.",
+      "required_evidence": "Combined current workload, local ARM/release checks and fresh full32 qualification; component passes do not close saved failures.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-integrated-handoff-batch.json",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted for stated component scope",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T10:14:11.740582+00:00"
     }
   ],
   "failure_mapping": [
@@ -5714,5 +5801,11 @@
     "sha256": "f7dc3a0c8fb462c8f3db5145017d890a4b2217589b3d25002e1fc47901f8ae51",
     "status": "fixture-retry-component-verified-audio-causal-test-and-combined-625-pending",
     "matrix_qualified": false
+  },
+  "current_preparation_checkpoint": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-integrated-handoff-batch.json",
+    "sha256": "5ba2a7ba9e22a05715526f191a87689d1767cb9d7ff40b5e6c4d9f84935e0cee",
+    "ready": false,
+    "next": "Focused combined-fix media then final701/localARM/release/preflight"
   }
 }

@@ -2350,6 +2350,12 @@
       "path": "patches/rvoip/connect-rtc-video-burst-isolated-input.patch",
       "sha256": "b84e438fd73bbe86cdae06d458dfe8b7451597bda03a9c56604643b20f0fb866",
       "source": "Fix actual435 canonical RTC burst counter:65 ordered originals delivered10 and self-refused55. Bound video input to140 queued plus one in-flight original141, covering at most65 reordered inputs times2 normalized RTP fragments plus old10queued/onecurrent; <=166380 resident serialized wire bytes plus bounded metadata/current marshal/Core queues. Same private channel constructor serves production and tests. Synchronous per-target try_send preserves independent target/later-source progress; no publisher capacity await, new task, queue or semaphore. Freeze original video clock at TrackRemote observation through reorder/input/current Core ingress, without later CNAME/SR recapture; preserve original UDP receipt/per-original200ms, gate/scene/current-policy boundaries. Four real Core controls cover65loss,130normalization/backlog,65inorder,full-target primitive isolation/laterprogress and age/stop/withdrawal/clock/gate/mixed-expiry negatives. V2sharedwait and V3globalmin rejected unapplied; no historical39-bin cause/quality waiver."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-owned-rtp-bounded-refusal-diagnostics.patch",
+      "sha256": "1ce6e5b075cb8b1dc62e2573764d34a3e73d7f4d13bda84dde70a8f0c09ea957",
+      "source": "Boundedfailure-only originalRTC RTP diagnostics: typedCoreprepare/final error beforeRefused,21guardeddriverleaves andinitialclaim, SAMEoriginalcontrol correlation, singleprocessfirst32/power2/hard128 acrossdrivers+repairs; fixedenum/numeric/UUIDonly, unknowncoordinates remainunknown, no payload/rawErrorDebug/retry/authority/deadline/queue/task/history change. Five focused regression controls; runtime qualification recorded separately. Diagnosticcoordinate domains areexplicitcandidateargument/egressbinding/cachedprimary, neverclaimedRTXwire."
     }
   ]
 }

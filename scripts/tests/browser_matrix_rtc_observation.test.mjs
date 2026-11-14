@@ -304,6 +304,9 @@ test('RTC presentation identity uses each real element counter and refuses repea
         paint(first, firstCanvas, 1);
         paint(first, firstCanvas, 3);
         paint(second, secondCanvas, 1);
+        assert.equal(typeof globalThis.AudioContext,'undefined','Video-only observation does not acquire an audio dependency');
+        assert.equal(observer.report().lifetime.context_close_probe_available,false,'Missing close probe is explicitly unavailable, not a fabricated close state');
+        assert.deepEqual(observer.report().lifetime.events,[],'No audio graph means no invented lifetime events');
         assert.equal(received.length, 3, 'A skipped presented counter adds no synthetic callback');
         assert.deepEqual(received.map(row => row[1]), [0, 0, 0], 'Original media time stays unchanged');
         assert.deepEqual(received.map(row => row[6].presentedFrames), [1, 3, 1]);
@@ -438,3 +441,72 @@ test('optional PCM evidence refuses unknown owners, bounds output and never fabr
     diagnostics.close();const stopped=JSON.stringify(diagnostics.report());diagnostics.observe(input);
     assert.equal(JSON.stringify(diagnostics.report()),stopped);
 });
+
+
+async function audioLifetimeFixture(run){
+ const names=['AudioContext','MediaStreamAudioSourceNode','AudioWorkletNode','CanvasRenderingContext2D','HTMLVideoElement','connectRtcAudioFacts'];
+ const saved=names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]),nodes=[],audio=[];
+ const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});void promise.catch(()=>{});return{promise,resolve,reject};};
+ class Source{constructor(context){this.context=context;this.connections=[];}connect(target){this.connections.push(target);return target;}disconnect(...args){this.lastDisconnect=args;if(this.disconnectError)throw this.disconnectError;this.connections=args.length?this.connections.filter(node=>node!==args[0]):[];return 'original-disconnect';}}
+ class Context{state='running';currentTime=2;sampleRate=48000;destination={};listeners=new Set();audioWorklet={async addModule(){}};closes=0;closing=deferred();
+  createGain(){return{gain:{value:0},connect(){},disconnect(){}};}addEventListener(type,fn){assert.equal(type,'statechange');this.listeners.add(fn);}removeEventListener(type,fn){assert.equal(type,'statechange');this.listeners.delete(fn);}changed(state){this.state=state;for(const fn of this.listeners)fn();}
+  close(){this.closes++;if(this.closeError)throw this.closeError;return this.closing.promise;}}
+ class Worklet{port={postMessage(){},close(){this.closed=true;}};constructor(){nodes.push(this);}connect(){}disconnect(){this.disconnected=true;}}
+ class Canvas{drawImage(){}}class Picture{requestVideoFrameCallback(){}}
+ const context=new Context(),source=new Source(context),finished=deferred(),owner={finished:finished.promise};
+ class Rtc{input={connectionId:'original-lifetime'};render(){source.connect(context.destination);return Promise.resolve(owner);}}
+ Object.assign(globalThis,{AudioContext:Context,MediaStreamAudioSourceNode:Source,AudioWorkletNode:Worklet,CanvasRenderingContext2D:Canvas,HTMLVideoElement:Picture,connectRtcAudioFacts:true});
+ const originals={disconnect:Source.prototype.disconnect,close:Context.prototype.close,render:Rtc.prototype.render};
+ const observer=browserMatrixRtcObservation(Rtc,{audio:(...args)=>audio.push(args),video(){},invalid(){assert.fail('unexpected observer refusal');},measurementOrigin:()=>performance.now()-1000});
+ try{await run({context,source,finished,owner,observer,nodes,audio,Source,Context,Rtc,originals});}
+ finally{await observer.close();finished.resolve();context.closing.resolve();await Promise.resolve();for(const[name,descriptor]of saved)if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}
+}
+
+test('audio lifetime witness preserves queued prestop PCM after graph close and observes original finished without awaiting it',()=>audioLifetimeFixture(async f=>{
+ await new f.Rtc().render();await Promise.resolve();assert.equal(f.nodes.length,1);
+ const samples=new Float32Array(960).fill(.125),queued={data:{type:'pcm',samples,timestamp:1000000}};
+ assert.equal(f.source.disconnect(),'original-disconnect');
+ assert.equal(f.context.close(),f.context.closing.promise,'Same original close Promise and invocation');
+ f.context.changed('closed');f.context.closing.resolve();await Promise.resolve();
+ f.nodes[0].port.onmessage(queued);f.nodes[0].port.onmessage({data:{type:'pcm',samples:new Float32Array(960),timestamp:1020000}});
+ f.nodes[0].port.onmessage({data:{type:'pcm',samples:new Float32Array(960).fill(.125),timestamp:1040000}});
+ assert.equal(f.audio.length,3);assert.equal(f.audio[0][3],samples,'No late delivery filter or payload replacement');
+ const report=f.observer.report(),zero=report.events[0];assert.equal(zero.exact_zero_run_samples,960);assert.equal(zero.context.state,'closed');
+ const retained=report.suspect_pcm.events[0];assert.equal(retained.before.original_worklet_timestamp_us,1000000);
+ assert.equal(retained.before.original_worklet_end_timestamp_us,1020000);assert.equal(retained.before.context_state_at_delivery,'closed');
+ assert.deepEqual(retained.before.samples,Array.from(samples));assert.equal(retained.current.context_state_at_delivery,'closed');
+ const kinds=report.lifetime.events.map(row=>row.kind);assert.ok(kinds.includes('context-close-request'));assert.ok(kinds.includes('context-close-resolved'));
+ assert.ok(!kinds.includes('render-finished-resolved'));f.finished.resolve();await Promise.resolve();
+ assert.ok(f.observer.report().lifetime.events.some(row=>row.kind==='render-finished-resolved'));
+ const result=await f.observer.close();assert.equal(result.audio_lifetime.retained_taps,0);assert.equal(result.audio_lifetime.state_listeners_unconfirmed,0);
+ assert.equal(result.audio_lifetime.render_finished_promises_joined,false);assert.equal(f.context.listeners.size,0);
+ assert.ok(Object.values(result.audio_lifetime.hook_values_restored).every(value=>value===true||value===null));
+ assert.equal(f.context.closes,1,'Diagnostic never closes the original graph');
+ assert.equal(f.Source.prototype.disconnect,f.originals.disconnect);assert.equal(f.Context.prototype.close,f.originals.close);
+ const after=JSON.stringify(f.observer.report());f.context.changed('running');assert.equal(JSON.stringify(f.observer.report()),after);
+}));
+
+test('audio lifetime witness scopes disconnect targets and contexts while preserving original throws and outcomes',()=>audioLifetimeFixture(async f=>{
+ await new f.Rtc().render();await Promise.resolve();const before=f.observer.report().lifetime.events.length;
+ const unrelated=new f.Source(f.context);unrelated.disconnect();const otherContext=new f.Context();const otherClose=otherContext.close();otherContext.closing.resolve();await otherClose;
+ assert.equal(f.observer.report().lifetime.events.length,before,'Same-context unrelated source and untracked context do not invent tap events');
+ f.source.disconnect({});f.source.disconnect(f.nodes[0]);f.source.disconnect(0);f.source.disconnect();
+ const requests=f.observer.report().lifetime.events.filter(row=>row.kind==='source-disconnect-request');
+ assert.deepEqual(requests.map(row=>row.target),['other-target','tap-target','output-index','all-outputs']);
+ const original=Error('same original failure');f.source.disconnectError=original;assert.throws(()=>f.source.disconnect(),error=>error===original);delete f.source.disconnectError;
+ f.context.closeError=original;assert.throws(()=>f.context.close(),error=>error===original);delete f.context.closeError;
+ const kinds=f.observer.report().lifetime.events.map(row=>row.kind);assert.ok(kinds.includes('source-disconnect-threw'));assert.ok(kinds.includes('context-close-threw'));
+ assert.equal(f.audio.length,0);assert.equal(f.nodes.length,1);
+}));
+
+test('audio lifetime witness caps state metadata and restores only its own prototype hooks without requiring original finished',()=>audioLifetimeFixture(async f=>{
+ await new f.Rtc().render();await Promise.resolve();for(let i=0;i<150;i++)f.context.changed(i%2?'running':'suspended');
+ const report=f.observer.report();assert.equal(report.lifetime.events.length,128);assert.ok(report.lifetime.omitted>0);
+ assert.equal(f.audio.length,0);assert.equal(report.events.length,0);assert.equal(f.context.closes,0);
+ const later=function(){return 'later wrapper';};f.Source.prototype.disconnect=later;
+ const closed=await f.observer.close();assert.equal(closed.audio_lifetime.retained_taps,0);assert.equal(f.Source.prototype.disconnect,later);
+ assert.equal(closed.audio_lifetime.hook_values_restored.source_disconnect,false,'A later independent hook is preserved and never claimed restored');
+ assert.equal(closed.audio_lifetime.hook_values_restored.context_close,true);
+ assert.equal(f.context.listeners.size,0);assert.equal(f.context.closes,0);assert.equal(f.Context.prototype.close,f.originals.close);
+ assert.ok(f.nodes.every(node=>node.port.closed&&node.disconnected));f.Source.prototype.disconnect=f.originals.disconnect;
+}));

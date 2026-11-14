@@ -24,6 +24,9 @@ export declare class BrowserRtcConnection {
     private captureOwner?;
     private renderOwner?;
     private preparedDecoder?;
+    private replacementCompletion?;
+    private replacementVideoSource?;
+    private replacementVideoPresented;
     private readonly peer;
     private constructor();
     static begin(client: BrowserClient, input: BrowserConnectionOptions, participantId: string, configuration: BrowserRtcConfiguration, options: RequestOptions): {

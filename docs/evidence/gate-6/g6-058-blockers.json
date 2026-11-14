@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-14T08:12:11.860131+00:00",
-  "run_status": "Latest complete matrix: v218, 1/32 cells and399/432 checks passed. Preparation: all7 normalbuilds and175scripts pass; combinedRust439/440, with bothfull62 programmes passed. The sole setup replay failure is corrected and passes its original signed revocation test plus a new deadline control. Nine completion-counter controls and3 logging controls pass; actual signed audio diagnostic and fresh625/localARM/release/preflight remain. Owner requested preparation until ready; no new32-cell run started.",
+  "updated": "2026-11-14T10:14:11.740582+00:00",
+  "run_status": "Latest fullmatrix remainsv218:1/32cells,399/432checks. Integrated437 handoff/observation batch:255/255scripts plus5/5 newRustcontrols, SDKbuild andformat pass. Bothactualcompletion diagnostics completed butqualityfailed; focused combined-fix media andfresh701/localARM/releases/preflight remain. No new32run.",
   "blockers": [
     {
       "id": "B01",
@@ -3619,6 +3619,24 @@
       "title": "Local storage \u2014 v198_resources; reviewer fixture_blockers",
       "status": "60.03physicalGiBrecovered",
       "completion": "Two independentlyreviewed old-object subsets removed;11currentbinaryhashes unchanged. Confirmheadroom in finalpreflight."
+    },
+    {
+      "id": "V219-VIDEO-ADOPTION",
+      "title": "V219-VIDEO-ADOPTION \u2014 /root/media_blockers; reviewer /root/fixture_blockers",
+      "status": "component-verified",
+      "completion": "Active255scripts+5Rust+SDKbuild+format pass; focusedmedia/currentcombined/localARM/fullmatrix pending."
+    },
+    {
+      "id": "V219-OBSERVATION",
+      "title": "V219-OBSERVATION \u2014 /root/fixture_blockers; reviewer /root/media_blockers",
+      "status": "component-verified",
+      "completion": "Active255scripts+5Rust+SDKbuild+format pass; focusedmedia/currentcombined/localARM/fullmatrix pending."
+    },
+    {
+      "id": "V219-REFUSAL-TRACE",
+      "title": "V219-REFUSAL-TRACE \u2014 /root/v198_resources; reviewer /root/fixture_blockers",
+      "status": "component-verified",
+      "completion": "Active255scripts+5Rust+SDKbuild+format pass; focusedmedia/currentcombined/localARM/fullmatrix pending."
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -17764,6 +17782,12 @@
       "passed": 3,
       "planned": 3,
       "evidence": "g6-058-v219-pre-matrix-preparation.json"
+    },
+    {
+      "passed": 260,
+      "evidence": "g6-058-v219-integrated-handoff-batch.json",
+      "name": "Integrated437 handoff/observer scripts and new bounded-refusal Rust controls; SDKbuild/format pass",
+      "planned": 260
     }
   ],
   "current_production_check": {
@@ -18741,6 +18765,11 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-pre-matrix-preparation.json",
     "sha256": "f7dc3a0c8fb462c8f3db5145017d890a4b2217589b3d25002e1fc47901f8ae51",
     "status": "fixture-retry-component-verified-audio-causal-test-and-combined-625-pending",
+    "matrix_qualified": false
+  },
+  "v219_integrated_handoff_batch": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-integrated-handoff-batch.json",
+    "sha256": "5ba2a7ba9e22a05715526f191a87689d1767cb9d7ff40b5e6c4d9f84935e0cee",
     "matrix_qualified": false
   }
 }

@@ -67,6 +67,9 @@ class RtcAudioFactsFixture(unittest.TestCase):
                    and isinstance(t.value, ast.Name) and t.value.id == 'env' and isinstance(t.slice, ast.Constant)
                    and t.slice.value == 'RUST_LOG' for t in n.targets))
         enabled = next(n for n in main.body if isinstance(n, ast.If) and isinstance(n.test, ast.Name) and n.test.id == 'rtc_audio_facts')
+        counter_log = next(n for n in main.body if isinstance(n, ast.If)
+                           and 'original_completion_deferral_ms' in ast.unparse(n.test)
+                           and 'RUST_LOG' in ast.unparse(n))
         keyword = next(n for n in ast.walk(main) if isinstance(n, ast.keyword) and n.arg == 'rtcAudioFacts')
         self.assertIsInstance(keyword.value, ast.Name)
         self.assertEqual(keyword.value.id, 'rtc_audio_facts')
@@ -87,6 +90,19 @@ class RtcAudioFactsFixture(unittest.TestCase):
                 self.assertEqual(env['RUST_LOG'], base_log + (',' + ','.join(private_targets) if expected else ''))
                 self.assertNotIn('trace', env['RUST_LOG'])
                 self.assertEqual(env['PATH'], 'unchanged')
+                for hold in (None, 0, 250, -1, 500):
+                    for stage, cycles, network in [('quality', 1, 'local'), ('admission', 1, 'local'),
+                                                   ('quality', 3, 'local'), ('quality', 1, 'remote-profile-fixture')]:
+                        counter_env = {'PATH': 'unchanged', 'RUST_LOG': 'trace,foreign_target=trace'}
+                        counter_args = SimpleNamespace(rtc_audio_facts=requested, transport=transport,
+                            original_completion_deferral_ms=hold, stage=stage, resource_cycles=cycles, network=network)
+                        execute([option, log, enabled, counter_log], dict(args=counter_args, env=counter_env))
+                        counter = hold in (0, 250) and stage == 'quality' and cycles == 1 and network == 'local' and transport.endswith('wss-webrtc')
+                        wanted = base_log + (',' + ','.join(private_targets) if expected else '')
+                        wanted += ',rvoip_webrtc_stack::owned_rtp_refusal=debug' if counter else ''
+                        self.assertEqual(counter_env['RUST_LOG'], wanted)
+                        self.assertNotIn('trace', counter_env['RUST_LOG'])
+                        self.assertEqual(counter_env['PATH'], 'unchanged')
         node = (ROOT / 'scripts/video/browser_matrix_admission.mjs').read_text()
         self.assertIn('page.addInitScript(installPeerDiagnostics,{peerBound:16,rtcAudioFacts})', node)
         self.assertLess(node.index('page.addInitScript(installPeerDiagnostics'), node.index('await page.goto(spec.origin'))

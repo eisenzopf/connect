@@ -71,6 +71,9 @@ export class BrowserRtcConnection {
     private captureOwner?: BrowserCaptureHandle;
     private renderOwner?: BrowserRenderHandle;
     private preparedDecoder?: WebRtcPreparedDecoder;
+    private replacementCompletion?: Promise<unknown>;
+    private replacementVideoSource?: MediaStreamTrack;
+    private replacementVideoPresented = false;
     private readonly peer: RTCPeerConnection;
     private constructor(
         private readonly client: BrowserClient,
@@ -417,6 +420,9 @@ export class BrowserRtcConnection {
                     throw error;
                 }),
         );
+        // This resolves only after completeReplacement validated the original
+        // completed/ready Root and its exact target/generation/stream binding.
+        owner.replacementCompletion = completed;
         void prepared.catch(() => {});
         void completed.catch(() => {});
         return {
@@ -863,6 +869,8 @@ export class BrowserRtcConnection {
                 ...(options.signal ? [options.signal] : []),
             ]);
         let stopped = false,
+            terminalFailure: Error | undefined,
+            retainPendingDecoder = false,
             paused = false,
             count = 0,
             context: AudioContext | undefined,
@@ -873,6 +881,7 @@ export class BrowserRtcConnection {
         const outputs: {
             element: HTMLVideoElement;
             callback?: number;
+            rejectFirst?: (error: Error) => void;
             canvas: CanvasRenderingContext2D;
         }[] = [];
         let finish!: () => void, fail!: (error: Error) => void;
@@ -892,8 +901,14 @@ export class BrowserRtcConnection {
         void finished.catch(() => {});
         const close = (error?: Error) => {
             if (stopped) return;
+            // Preserve the FIRST causal terminal error before internal cleanup
+            // aborts the same startup budget. Caller abort still supplies its
+            // original cancelled error; a deadline still supplies timeout.
+            terminalFailure ??= error;
             stopped = true;
-            this.retireMutedDecoderSinks();
+            // A valid pending original-root read creates NO public output.
+            // Its original target still owns the unadopted private decoder.
+            if (!retainPendingDecoder) this.retireMutedDecoderSinks();
             detach();
             stop.abort();
             document.removeEventListener("visibilitychange", visibility);
@@ -902,6 +917,8 @@ export class BrowserRtcConnection {
                 playout.srcObject = null;
             }
             for (const output of outputs) {
+                output.rejectFirst?.(error ?? closed());
+                output.rejectFirst = undefined;
                 if (output.callback !== undefined)
                     output.element.cancelVideoFrameCallback(output.callback);
                 output.element.pause();
@@ -1023,7 +1040,7 @@ export class BrowserRtcConnection {
                 if (!track || track.readyState !== "live") throw unsupported();
                 const prepared = this.preparedDecoder;
                 const adopted = prepared?.takeAudio(track);
-                if (prepared && !adopted) this.retireMutedDecoderSinks();
+                if (prepared && !adopted && !Object.keys(video).length) this.retireMutedDecoderSinks();
                 if (adopted) {
                     // Transfer synchronously before an await: after take(),
                     // only this existing render owner may close the graph.
@@ -1055,6 +1072,35 @@ export class BrowserRtcConnection {
                 await playAudio(budget);
                 gain.gain.value = volume;
             }
+            // Preserve the original synchronous audio source.connect discovery
+            // hook. Only VIDEO ownership/draw is gated here; audio behavior and
+            // the observer's synchronous graph scope remain unchanged.
+            if (Object.keys(video).length && this.replacementCompletion) {
+                await budget.run(async () => {
+                    try {
+                        await this.replacementCompletion!;
+                    } catch (error) {
+                        if (!this.signaling) throw error;
+                        // Read the SAME original Root after uncertainty. This
+                        // cannot resubmit readiness or adopt a foreign result.
+                        const receipt = await this.tasks.track(
+                            this.signaling.recoverReplacementCompletion(error, {
+                                timeoutMs: budget.remaining(), signal,
+                            }),
+                        );
+                        if (!receipt) {
+                            retainPendingDecoder = !signal.aborted && !this.stopped;
+                            throw new ConnectError("conflict", "Original WebRTC replacement is not completed");
+                        }
+                        // A late read may settle after CONNECTION retirement;
+                        // it must not repopulate that owner's cleared roots.
+                        this.check();
+                        this.replacementCompletion = Promise.resolve(receipt);
+                    }
+                }, signal);
+                this.check();
+                if (stopped) throw closed();
+            }
             for (const [id, canvas] of Object.entries(video)) {
                 if (
                     id !==
@@ -1072,22 +1118,70 @@ export class BrowserRtcConnection {
                 canvas.height = 360;
                 const out = canvas.getContext("2d");
                 if (!out) throw unsupported();
-                const element = document.createElement("video");
-                element.muted = true;
-                element.autoplay = true;
-                element.playsInline = true;
-                element.srcObject = new MediaStream([track]);
+                const adopted = this.preparedDecoder?.takeVideo(track);
+                const replacement = !!this.replacementCompletion;
+                if (replacement && !adopted && this.replacementVideoSource !== track) throw unsupported();
+                // Consuming a valid lease establishes only exact-track retry
+                // eligibility, NEVER successful first public presentation.
+                if (adopted) this.replacementVideoSource = track;
+                const requirePresentationFloor = !!adopted ||
+                    (replacement && !this.replacementVideoPresented);
+                const element = adopted?.element ?? document.createElement("video");
+                if (!adopted) {
+                    element.muted = true;
+                    element.autoplay = true;
+                    element.playsInline = true;
+                    element.srcObject = new MediaStream([track]);
+                }
+                let firstResolve: (() => void) | undefined;
+                let firstReject: ((error: Error) => void) | undefined;
+                const first = requirePresentationFloor ? new Promise<void>((resolve, reject) => {
+                    firstResolve = resolve;
+                    firstReject = reject;
+                }) : undefined;
+                void first?.catch(() => {});
                 const output = {
                     element,
                     canvas: out,
                     callback: undefined as number | undefined,
+                    rejectFirst: firstReject,
                 };
                 outputs.push(output);
-                const paint = () => {
+                let presented = adopted?.presentedFloor;
+                let firstPainted = false;
+                const paint: VideoFrameRequestCallback = (_now, metadata) => {
                     if (stopped) return;
+                    if (requirePresentationFloor) {
+                        if (!Number.isSafeInteger(metadata.presentedFrames) || metadata.presentedFrames <= 0) {
+                            close(new ConnectError("media", "Original video presentation counter unavailable"));
+                            return;
+                        }
+                        if (presented === undefined) {
+                            // Retried consumed lease or deliberately retired
+                            // audio-only picture: this NEW same-track element's
+                            // first callback is a baseline only, never a draw.
+                            presented = metadata.presentedFrames;
+                            output.callback = element.requestVideoFrameCallback(paint);
+                            return;
+                        }
+                        if (metadata.presentedFrames <= presented) {
+                            if (firstPainted) {
+                                close(new ConnectError("media", "Original video presentation counter did not advance"));
+                                return;
+                            }
+                            output.callback = element.requestVideoFrameCallback(paint);
+                            return;
+                        }
+                        presented = metadata.presentedFrames;
+                    }
                     if (!paused && element.readyState >= 2) {
                         out.drawImage(element, 0, 0, 640, 360);
                         count++;
+                        firstPainted = true;
+                        if (replacement) this.replacementVideoPresented = true;
+                        firstResolve?.();
+                        firstResolve = undefined;
+                        output.rejectFirst = undefined;
                     }
                     output.callback = element.requestVideoFrameCallback(paint);
                 };
@@ -1097,35 +1191,44 @@ export class BrowserRtcConnection {
                         if (!stopped) this.retireMutedDecoderSinks();
                     },
                     () => {
-                        if (!stopped)
-                            close(
-                                new ConnectError(
-                                    "media",
-                                    "Video playback failed",
-                                ),
-                            );
+                        if (!stopped) close(new ConnectError("media", "Video playback failed"));
                     },
                 );
+                // Only the replacement path waits for its first advancing
+                // presentation, under the SAME original render budget.
+                if (first) await budget.run(() => first, signal);
             }
             this.check();
             if (stopped) throw closed();
             document.addEventListener("visibilitychange", visibility);
             visibility();
-            if (!outputs.length) this.retireMutedDecoderSinks();
+            if (!outputs.length) {
+                // Deliberate audio-only retirement may permit a later video
+                // retry on this EXACT valid prepared track, but it has not
+                // established ANY successful public video presentation.
+                const id = this.input.receiveVideo ?? this.input.video ?? this.input.screen;
+                const track = id ? this.remote.get(id) : undefined;
+                if (this.replacementCompletion && track && this.preparedDecoder?.canTakeVideo(track))
+                    this.replacementVideoSource = track;
+                this.retireMutedDecoderSinks();
+            }
             return handle;
         } catch (error) {
-            const failure =
+            const failure = terminalFailure ?? (
                 error instanceof Error
                     ? error
-                    : new ConnectError("media", "Playback startup failed");
+                    : new ConnectError("media", "Playback startup failed"));
             close(failure);
-            this.retireMutedDecoderSinks();
+            if (!retainPendingDecoder) this.retireMutedDecoderSinks();
             throw failure;
         }
     }
     close(error?: Error): void {
         if (this.stopped) return;
         this.stopped = true;
+        this.replacementVideoSource = undefined;
+        this.replacementVideoPresented = false;
+        this.replacementCompletion = undefined;
         this.retireMutedDecoderSinks();
         this.stopControl?.();
         this.stopEvents?.();

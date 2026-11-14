@@ -185,14 +185,16 @@ test('decoded identity refuses silence and another participant rather than trust
     assert.equal(pcmIdentity(tone(440),1).identified,false);
     assert.equal(pcmIdentity(new Float32Array(960),1).identified,false);
 });
-function observed({gap=false,duplicate=false,videoDuplicate=false,interruptionMs=0,cutMs=null,videoGap=false,wrongSource=false,rtcPresentation=false,audioArrivalStepMs=0,audioDelayMs=0,quantumAttribution=null}={}){
+function observed({gap=false,duplicate=false,videoDuplicate=false,interruptionMs=0,cutMs=null,videoGap=false,wrongSource=false,rtcPresentation=false,audioArrivalStepMs=0,audioDelayMs=0,quantumAttribution=null,audioSamples=null,omitAudioIndices=[]}={}){
     const route=new DecodedRoute(0,1);route.start(1000);const pulses=markerFrames().map(frame=>frame/30);
     if(cutMs!==null){const cut={id:'original-validated-target',atMs:cutMs};route.audioCuts.push(cut);route.videoCuts.push(cut);}
     const gapSeconds=(gap?500:interruptionMs)/1000;
     const high=at=>pulses.some(start=>at>=start&&at<start+.1);
     for(let i=0;i<3100;i++){
         const at=i*.02;if(at>=15&&at<15+gapSeconds)continue;
-        const pcm=tone(wrongSource&&i===1000?440:660,high(at)?.7:.05,i*960),time=1000+at*1000+10;
+        if(omitAudioIndices.includes(i))continue;
+        const originalPcm=tone(wrongSource&&i===1000?440:660,high(at)?.7:.05,i*960),time=1000+at*1000+10;
+        const pcm=audioSamples?audioSamples(i,at,originalPcm):originalPcm;
         const arrival = audioArrivalStepMs ? 1000 + Math.floor((time - 1000) / audioArrivalStepMs) * audioArrivalStepMs : time;
         let native = null;
         if (quantumAttribution) {
@@ -463,6 +465,12 @@ test('joined observer retirement releases measurement working buffers without ch
         // snapshot must not hide callbacks after that original intermediate proof.
         const closed=await f.observer.close(),working=closed.measurement_working_state;
         assert.equal(closed.joined,true);assert.ok(working,'Original joined observer must report actual working-state retirement');
+        assert.equal(closed.audio_lifetime_observer.retained_taps,0,'Export actual original tap retirement, not infer it from renderer.joined');
+        assert.equal(closed.audio_lifetime_observer.state_listeners_unconfirmed,0);
+        assert.equal(closed.audio_lifetime_observer.observation_failures,0);
+        assert.equal(closed.audio_lifetime_observer.render_finished_promises_joined,false,'Diagnostic does not invent another finished join');
+        assert.deepEqual(closed.audio_lifetime_observer.hook_values_restored,{rtc_render:true,rtc_capture:true,
+            source_connect:true,source_disconnect:true,context_close:null,canvas_draw:true,video_frame_callback:true});
         assert.equal(working.retired,true);
         assert.equal(working.before.audio_rows,extraCallbacks?3:2);assert.equal(working.before.video_rows,extraCallbacks?2:1);
         assert.equal(working.before.duplicate_keys,extraCallbacks?5:3);assert.ok(working.before.last_pixel_bytes>0);
@@ -472,7 +480,27 @@ test('joined observer retirement releases measurement working buffers without ch
         assert.equal(final.routes[0].audio.decoded_seconds,extraCallbacks?.06:.04);
         assert.equal(final.routes[0].video.decoded_frames,extraCallbacks?2:1);
         assert.equal(final.routes[0].invalid.length,extraCallbacks?2:1);
-        if(!extraCallbacks)assert.deepEqual(final,captured,'Final captured quality proof is preserved when no extra outputs arrive');
+        const finalLifetime=final.rtc_audio_boundary_diagnostics.lifetime;
+        const capturedLifetime=captured.rtc_audio_boundary_diagnostics.lifetime;
+        const {events:finalEvents,...finalLifetimeFields}=finalLifetime;
+        const {events:capturedEvents,...capturedLifetimeFields}=capturedLifetime;
+        assert.deepEqual(finalLifetimeFields,capturedLifetimeFields,'Lifecycle profile/bounds/capabilities remain exact');
+        assert.deepEqual(finalEvents.slice(0,capturedEvents.length),capturedEvents,'Original lifecycle snapshot is not rewritten');
+        const added=finalEvents.slice(capturedEvents.length);
+        assert.equal(added.length,1,'Only the observed original finished settlement is added during this close');
+        assert.deepEqual(added.map(({kind,owner,clock_epoch_id,context_state,context_time_seconds})=>
+            ({kind,owner,clock_epoch_id,context_state,context_time_seconds})),
+            [{kind:'render-finished-resolved',owner:'old',clock_epoch_id:1,context_state:'running',context_time_seconds:null}]);
+        assert.ok(Number.isFinite(added[0].callback_performance_ms));
+        assert.ok(added[0].callback_performance_ms>=capturedEvents.at(-1).callback_performance_ms);
+        const withoutNewLifetime=value=>{
+            const copy=structuredClone(value);
+            delete copy.rtc_audio_boundary_diagnostics.lifetime;
+            return copy;
+        };
+        if(!extraCallbacks)assert.deepEqual(withoutNewLifetime(final),withoutNewLifetime(captured),
+            'Every original quality and raw failure field remains bit-identical; only new lifecycle evidence may append');
+        assert.deepEqual(report,captured,'The previously returned full report including lifecycle remains immutable after close');
         assert.deepEqual(f.closedOwners,['old']);
     });
 });
@@ -799,4 +827,83 @@ test('bounded duplicate-video evidence preserves original identities and failure
     assert.throws(()=>witness.current.native.datagram_sequences.push(999),TypeError);
     route.retireWorkingState();assert.ok(Object.values(route.workingState()).every(value=>value===0));
     assert.equal(JSON.stringify(diagnostic),saved,'Retirement releases working roots without erasing original duplicate evidence');
+});
+
+
+test('source recognition distinguishes all six logical route tones from unchanged usable energy',()=>{
+    const frequencies=[440,660,880,1100],sources=[0,1,2,3,0,1];
+    for(const source of sources)for(const amplitude of [.00005,.0005,.001,.002,.05])for(const phase of [0,.17,.41,.83]){
+        const samples=Float32Array.from({length:960},(_,i)=>amplitude*Math.sin(2*Math.PI*(frequencies[source]*i/48000+phase)));
+        const identity=pcmIdentity(samples,source);
+        assert.equal(identity.source_identified,true,JSON.stringify({source,amplitude,phase}));
+        assert.equal(identity.identified,identity.rms**2>1e-6,'Quiet recognition must not earn usable volume credit');
+        if(amplitude<=.001)assert.equal(identity.identified,false);
+    }
+});
+test('source recognition still refuses literal zero, quiet foreign tones and unrecognized quiet mixtures',()=>{
+    const frequencies=[440,660,880,1100];
+    for(const source of [0,1,2,3,0,1]){
+        assert.equal(pcmIdentity(new Float32Array(960),source).source_identified,false);
+        for(const foreign of [0,1,2,3].filter(value=>value!==source)){
+            const samples=tone(frequencies[foreign],.0005,37);
+            assert.equal(pcmIdentity(samples,source).source_identified,false,'A quiet other participant is still wrong');
+            assert.equal(pcmIdentity(samples,foreign).source_identified,true);
+            assert.equal(pcmIdentity(samples,foreign).identified,false);
+        }
+        const mixture=Float32Array.from({length:960},(_,i)=>frequencies.reduce((sum,hz)=>sum+.00005*Math.sin(2*Math.PI*hz*i/48000),0));
+        const tinyNoise=Float32Array.from({length:960},(_,i)=>(((i*73)%127)-63)*1e-9);
+        for(const samples of [mixture,tinyNoise]){
+            const identity=pcmIdentity(samples,source);
+            assert.equal(identity.source_identified,false,'No expected-source guess for unrecognized quiet PCM');
+            assert.equal(identity.identified,false);
+        }
+    }
+    assert.throws(()=>pcmIdentity(new Float32Array(959),0));
+    const invalid=new Float32Array(960);invalid[479]=NaN;assert.throws(()=>pcmIdentity(invalid,0));
+});
+test('recognized quiet PCM retains exact original availability and AV timing while true zero fails identity',()=>{
+    const selected=new Set();
+    const quiet=observed({audioSamples:(index,at,original)=>{
+        if(index>=500&&selected.size<4&&Math.max(...original.map(Math.abs))<.1)selected.add(index);
+        return selected.has(index)?tone(660,.0005,index*960):original;
+    }});
+    assert.equal(selected.size,4);
+    const zero=observed({audioSamples:(index,at,original)=>selected.has(index)?new Float32Array(960):original});
+    const missing=observed({omitAudioIndices:[...selected]});
+    for(const key of ['identified_seconds','maximum_gap_ms','maximum_pcm_sample_gap_ms','transition_coverage'])
+        assert.deepEqual(quiet.audio[key],zero.audio[key],key);
+    for(const key of ['identified_seconds','maximum_gap_ms','transition_coverage'])
+        assert.deepEqual(quiet.audio[key],missing.audio[key],key);
+    assert.deepEqual(quiet.sync.audio_envelope.accepted_onset_rows,zero.sync.audio_envelope.accepted_onset_rows);
+    for(const key of ['median_abs_skew_ms','p95_abs_skew_ms','paired'])assert.equal(quiet.sync[key],zero.sync[key]);
+    assert.equal(quiet.audio.identified_seconds,59.92);
+    assert.equal(quiet.audio.decoded_seconds,60);
+    assert.equal(quiet.audio.bad_identity_frames,0);
+    assert.equal(quiet.audio.unusable_or_unidentified_frames,4);
+    assert.equal(quiet.audio.recognized_below_energy_floor_frames,4);
+    assert.equal(quiet.audio.passed,true);
+    assert.equal(zero.audio.bad_identity_frames,4);
+    assert.equal(zero.audio.passed,false);
+});
+test('recognized quiet PCM cannot spend more than the original usable coverage budget',()=>{
+    const report=observed({audioSamples:(index,at,original)=>index>=500&&index<506?tone(660,.0005,index*960):original});
+    assert.equal(report.audio.bad_identity_frames,0);
+    assert.equal(report.audio.recognized_below_energy_floor_frames,6);
+    assert.equal(report.audio.identified_seconds,59.88);
+    assert.equal(report.audio.passed,false,'Six quiet20ms frames exceed unchanged100ms usable loss budget');
+});
+test('one quiet foreign source remains a hard failure despite otherwise sufficient coverage',()=>{
+    const report=observed({audioSamples:(index,at,original)=>index===1000?tone(440,.0005,index*960):original});
+    assert.equal(report.audio.identified_seconds,2999*.02);
+    assert.equal(report.audio.bad_identity_frames,1);
+    assert.equal(report.audio.recognized_below_energy_floor_frames,0);
+    assert.equal(report.audio.passed,false);
+});
+test('recognized quiet duplicates remain hard failures and cannot create usable frame credit',()=>{
+    const report=observed({duplicate:true,audioSamples:(index,at,original)=>index===1000?tone(660,.0005,index*960):original});
+    assert.equal(report.audio.bad_identity_frames,0);
+    assert.equal(report.audio.recognized_below_energy_floor_frames,2);
+    assert.equal(report.audio.duplicate_frames,1);
+    assert.equal(report.audio.identified_seconds,2999*.02);
+    assert.equal(report.audio.passed,false);
 });

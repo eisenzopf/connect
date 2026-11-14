@@ -155,6 +155,12 @@ def main():
     env["RUST_LOG"] = "warn,connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug,connect_service::packet_refusal=debug,connect_service::runtime_retention=debug" + ",quinn_proto::datagram_queue=debug"
     if rtc_audio_facts:
         env["RUST_LOG"] += ",rvoip_webrtc_stack::audio_facts=debug,rvoip_webrtc::audio_facts=debug,rvoip_webrtc::canonical::media=debug"
+    # Bounded failure-only library target, exclusively for this explicit counter.
+    # Normal full32/rtc-audio-facts profiles do not enable it.
+    if (args.original_completion_deferral_ms in (0, 250) and args.stage == "quality"
+            and args.resource_cycles == 1 and args.network == "local"
+            and args.transport.endswith("wss-webrtc")):
+        env["RUST_LOG"] += ",rvoip_webrtc_stack::owned_rtp_refusal=debug"
     sources = runpy.run_path(str(ROOT / "scripts/check-gate6-linux-hosting.py"))["sources"]
     bounded = runpy.run_path(str(ROOT / "scripts/check-linux-package-build.py"))["run_bounded"]
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()

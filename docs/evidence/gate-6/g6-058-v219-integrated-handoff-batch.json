@@ -1,0 +1,103 @@
+{
+  "format": "connect/g6-058-integrated-handoff-batch/1",
+  "updated_at": "2026-11-14T10:14:11.740582+00:00",
+  "base_revision": "5c38dd6d323dc6bdff2597c404fef7874287a97a",
+  "generation": 437,
+  "source_lock_sha256": "024f0277dd25a019e0551943e72286fd972911cbea5e1754e67811098e38dce8",
+  "actual_active_source": {
+    "script_checks": 255,
+    "Python": 70,
+    "Node": 185,
+    "Rust_new_diagnostic_controls": 5,
+    "sdk_build": true,
+    "format_check": true,
+    "all_original_children_joined": true,
+    "source_stable": true,
+    "script_result_sha256": "786a6cdf488f9bdaeb0e6aacdb5c58f19bac053cf7783f39ba0129e081940e1a",
+    "Rust_result_sha256": "3f2aa251b30fce620f13d5a94db17a3e314f256ad20b164ce508e45536c69a53"
+  },
+  "isolated_prior_checks": {
+    "SDK_V6_TypeScript_build": true,
+    "SDK_V6_cases": 61,
+    "observer_composition_V2_cases": 61,
+    "observer_outer_tool_receipt_unavailable": true,
+    "original_child_wait_and_closure_verified": true
+  },
+  "changes": [
+    {
+      "id": "V219-VIDEO-ADOPTION",
+      "owner": "/root/media_blockers",
+      "reviewers": [
+        "/root/fixture_blockers",
+        "/root/v198_resources"
+      ],
+      "implemented": "Adopt same prepared HTML video element with advancing current presentation counter after validated original Root completion; preserve cancellation, deadlines, retry state and cleanup.",
+      "causal_scope": "Targets new-renderer first-picture replays; not proof of capture-after-cut or all RTP duplicates."
+    },
+    {
+      "id": "V219-OBSERVATION",
+      "owner": "/root/fixture_blockers",
+      "reviewers": [
+        "/root/media_blockers",
+        "/root"
+      ],
+      "implemented": "Separate unchanged spectral tone recognition from energy availability; preserve all coverage/gap/onset/AV rules and strict unknown/wrong/silent failures. Retain actual presentation metadata and bounded original audio lifetime events.",
+      "criteria_decision": "Prospective detector measurement repair; no historical regrading or literal-silence waiver."
+    },
+    {
+      "id": "V219-REFUSAL-TRACE",
+      "owner": "/root/v198_resources",
+      "reviewers": [
+        "/root/fixture_blockers"
+      ],
+      "implemented": "Bounded failure-only typed Core/driver refusal diagnostics; global128rowcap, same original request correlation; no healthy packet logging, auth/SQL/retry/deadline or outcome changes.",
+      "causal_scope": "Diagnosis; does not itself fix the unproved refusal cause."
+    }
+  ],
+  "actual_completion_diagnostics": {
+    "completed": 2,
+    "holds_ms": [
+      0,
+      250
+    ],
+    "all_four_moves_each": true,
+    "quality_passed": false,
+    "setup_and_original_closure_qualified": true,
+    "baseline_audio_unidentified_blocks": 7,
+    "literal_silence_remains_failure": true,
+    "historical_cause_proved": false
+  },
+  "cleanup": {
+    "physical_GiB_recovered": 88.50804138183594,
+    "task_owned_unused_objects_only": true,
+    "source_logs_libraries_archives_current_and_retained_binaries_preserved": true
+  },
+  "latest_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "changed": false
+  },
+  "remaining": [
+    "Focused combined-fix media programme and fix any remaining demonstrated cause",
+    "Fresh combined446Rust+255scripts qualification",
+    "Local ARM source preparation and normal release qualification",
+    "Final preflight"
+  ],
+  "new_full_matrix_started": false,
+  "ready_for_full_matrix": false,
+  "G6_054": "deferred",
+  "parent_lifecycle_export": {
+    "candidate_manifest_sha256": "673b2148cf64eaa0b120bc9522c040a6ceac7a917a291379d85688b576c7b256",
+    "independent_review_sha256": "e2e403426f7ba82a9e5b222c71e82a666dc7e529cfc55613b1a6df50f79945ee",
+    "post_apply_affected_Node_cases": 61,
+    "passed": 61,
+    "completion_session": 40097,
+    "completion_chunk_id": "926a79",
+    "quality_or_selector_changes": false,
+    "log_sha256": "9e698fcad4d636b8581d9263cda196bd2e6e3a4328e3e8bf008530afc1baaefd",
+    "scope": "Expose actual original tap/listener and hook-value restoration; earlier255 is predecessor source, fresh final255 remains required."
+  }
+}

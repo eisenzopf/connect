@@ -74,3 +74,28 @@ test('reserved preprogramme sentinel inside the actual qualification window fail
  assert.equal(v.source_frame_identity.status,'failed');assert.equal(v.source_frame_identity.unavailable_frames,1);
  assert.equal(v.source_frame_identity.identified_frames,0);assert.equal(v.passed,false);
 });
+
+
+test('report-derived duplicate snapshots retain original presentation scalars beyond sample cap and after retirement',()=>{
+ const r=route(),add=(owner,ordinal,at,p)=>r.videoFrame(owner,0,at,gray(0),footer(pixels(),ordinal),640,360,null,p);
+ const base=(element_id,presentedFrames)=>({profile:'connect/rtc-video-presentation/1',element_id,presentedFrames});
+ for(let i=0;i<16;i++)add('old',0,500+i,base(1,i+1));
+ const first={...base(1,17),callbackTime:100,rtpTimestamp:0,mediaTime:0,captureTime:0,receiveTime:1.25};
+ const second={...base(2,1),callbackTime:133,rtpTimestamp:3000,mediaTime:0,captureTime:10,receiveTime:11};
+ add('old',1,1500,first);add('new',1,1533,second);
+ add('new',2,1566,{...base(2,2),mediaTime:0,rtpTimestamp:null});
+ add('new',2,1599,base(2,3));
+ first.rtpTimestamp=999;second.receiveTime=999;
+ const report=r.report(),v=report.video,events=v.duplicate_diagnostics.events;
+ assert.equal(v.duplicate_frames,2);assert.equal(v.passed,false);
+ assert.deepEqual(events[0].first.presentation,{profile:'connect/rtc-video-presentation/1',element_id:1,
+  callbackTime:100,mediaTime:0,presentedFrames:17,rtpTimestamp:0,captureTime:0,receiveTime:1.25});
+ assert.equal(events[0].current.presentation.rtpTimestamp,3000);assert.equal(events[0].current.presentation.receiveTime,11);
+ assert.equal(events[0].first.native,null);assert.equal('ssrc' in events[0].first.presentation,false);
+ assert.equal(events[1].first.presentation.mediaTime,0);assert.equal(events[1].first.presentation.rtpTimestamp,null);
+ for(const key of ['callbackTime','mediaTime','rtpTimestamp','captureTime','receiveTime'])assert.equal(events[1].current.presentation[key],null);
+ assert.equal(r.report(row=>row.owner!=='old').video.duplicate_frames,1);
+ assert.ok(Object.isFrozen(events[0].first.presentation));
+ const saved=JSON.stringify(events);r.retireWorkingState();
+ assert.equal(r.workingState().video_rows,0);assert.equal(JSON.stringify(events),saved);
+});

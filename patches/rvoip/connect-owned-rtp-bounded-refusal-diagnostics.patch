@@ -1,0 +1,1271 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -19,6 +19,9 @@
+     time::Instant,
+ };
+ use tokio::sync::{OwnedMutexGuard, mpsc};
++use webrtc::media_stream::track_local::owned_rtp::diagnostics::{
++    self, RefusalCause, RefusalContext, RefusalMedium, RefusalStage,
++};
+ use webrtc::media_stream::{
+     Track,
+     track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+@@ -169,25 +172,69 @@
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .take()
+-            .ok_or(OwnedRtpError::Refused)?;
++            .ok_or_else(|| {
++                diagnostics::record_refusal(
++                    &control,
++                    RefusalStage::AudioPacketUnavailable,
++                    RefusalCause::OriginalMissing,
++                    RefusalContext {
++                        medium: RefusalMedium::Audio,
++                        egress_ssrc: Some(self.writer.ssrc()),
++                        ..Default::default()
++                    },
++                );
++                OwnedRtpError::Refused
++            })?;
+         // Sender sequence custody is metadata only. Core drops every current
+         // policy/generation reader before yielding or returning this hint.
+         let queued = queued
+             .prepare_delivery(control.deadline())
+             .await
+-            .map_err(|_| OwnedRtpError::Refused)?;
++            .map_err(|error| {
++                super::core_refusal::record(
++                    &control,
++                    RefusalStage::AudioPrepare,
++                    &error,
++                    RefusalContext {
++                        medium: RefusalMedium::Audio,
++                        egress_ssrc: Some(self.writer.ssrc()),
++                        ..Default::default()
++                    },
++                );
++                OwnedRtpError::Refused
++            })?;
+         *self.packet.lock().unwrap_or_else(|p| p.into_inner()) = Some(Packet { queued, state });
+         Ok(())
+     }
+     async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
+         let packet = self.packet.lock().unwrap_or_else(|p| p.into_inner()).take();
+         let Some(Packet { queued, state }) = packet else {
++            diagnostics::record_refusal(
++                &io.submission_control(),
++                RefusalStage::AudioPacketUnavailable,
++                RefusalCause::OriginalMissing,
++                RefusalContext {
++                    medium: RefusalMedium::Audio,
++                    egress_ssrc: Some(self.writer.ssrc()),
++                    ..Default::default()
++                },
++            );
+             return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
+         };
+         let control = io.submission_control();
+         let audio_stamp = match queued.audio_egress_stamp() {
+             Ok(stamp) => stamp,
+-            Err(_) => {
++            Err(error) => {
++                super::core_refusal::record(
++                    &control,
++                    RefusalStage::AudioStamp,
++                    &error,
++                    RefusalContext {
++                        medium: RefusalMedium::Audio,
++                        egress_ssrc: Some(self.writer.ssrc()),
++                        ..Default::default()
++                    },
++                );
+                 control.freeze_producer();
+                 return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
+             }
+@@ -197,11 +244,13 @@
+         // may defer with the same original before callback entry. Constructing
+         // CoreAudioState earlier would freeze its one-use control on deferral.
+         let result = queued
+-            .deliver_ready_with_origin(|frame, _| {
++            .deliver_ready_with_origin(|frame, origin| {
+                 let state = original_state.take().expect("one original Core callback");
++                let io = &mut *io;
+                 async move {
+                     let mut state = CoreAudioState::new(state, io.submission_control());
+-                    write_frame(
++                    let (source_timestamp, captured) = (frame.timestamp_rtp, frame.captured_at);
++                    let result = write_frame(
+                         &mut state,
+                         self.writer.as_ref(),
+                         self.payload_type,
+@@ -209,7 +258,25 @@
+                         frame,
+                         io,
+                     )
+-                    .await
++                    .await;
++                    if let Err(error) = &result {
++                        let mut context = super::core_refusal::frame_context(
++                            origin.as_ref(),
++                            RefusalMedium::Audio,
++                            self.writer.ssrc(),
++                            source_timestamp,
++                            captured,
++                        );
++                        context.attempted = Some(io.attempted());
++                        context.written = Some(io.written());
++                        super::core_refusal::record(
++                            &state.control,
++                            RefusalStage::AudioFrame,
++                            error,
++                            context,
++                        );
++                    }
++                    result
+                 }
+             })
+             .await;
+@@ -224,7 +291,21 @@
+                 if original_state.is_some() {
+                     control.freeze_producer();
+                 }
+-                OwnedRtpAttempt::Complete(result.map_err(|_| OwnedRtpError::Refused))
++                OwnedRtpAttempt::Complete(result.map_err(|error| {
++                    super::core_refusal::record(
++                        &control,
++                        RefusalStage::AudioFinal,
++                        &error,
++                        RefusalContext {
++                            medium: RefusalMedium::Audio,
++                            egress_ssrc: Some(self.writer.ssrc()),
++                            attempted: Some(io.attempted()),
++                            written: Some(io.written()),
++                            ..Default::default()
++                        },
++                    );
++                    OwnedRtpError::Refused
++                }))
+             }
+         }
+     }
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_refusal.rs b/crates/webrtc/rvoip-webrtc/src/media/core_refusal.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_refusal.rs
+@@ -0,0 +1,73 @@
++//! Exact typed Core error classification before the legacy Refused collapse.
++use rvoip_core::staged_streams::{MediaDeliveryOrigin, StreamControlError};
++use webrtc::media_stream::track_local::owned_rtp::{
++    OwnedRtpControl,
++    diagnostics::{self, RefusalCause, RefusalContext, RefusalMedium, RefusalStage},
++};
++
++pub(super) fn cause(error: &StreamControlError) -> RefusalCause {
++    match error {
++        StreamControlError::Model(_) => RefusalCause::Model,
++        StreamControlError::Unsupported => RefusalCause::Unsupported,
++        StreamControlError::Authority => RefusalCause::Authority,
++        StreamControlError::NotRecipient => RefusalCause::NotRecipient,
++        StreamControlError::Cancelled => RefusalCause::Cancelled,
++        StreamControlError::Deadline => RefusalCause::Deadline,
++        StreamControlError::NotReady => RefusalCause::NotReady,
++        StreamControlError::MetadataBusy => RefusalCause::MetadataBusy,
++        StreamControlError::Backpressure => RefusalCause::Backpressure,
++        StreamControlError::CleanupUnconfirmed => RefusalCause::CleanupUnconfirmed,
++    }
++}
++pub(super) fn record(
++    control: &OwnedRtpControl,
++    stage: RefusalStage,
++    error: &StreamControlError,
++    context: RefusalContext<'_>,
++) {
++    diagnostics::record_refusal(control, stage, cause(error), context);
++}
++pub(super) fn frame_context<'a>(
++    origin: Option<&'a MediaDeliveryOrigin>,
++    medium: RefusalMedium,
++    egress_ssrc: u32,
++    source_timestamp: u32,
++    captured: chrono::DateTime<chrono::Utc>,
++) -> RefusalContext<'a> {
++    RefusalContext {
++        medium,
++        egress_ssrc: Some(egress_ssrc),
++        source_timestamp: Some(source_timestamp),
++        source_connection: origin.map(|o| o.connection.as_str()),
++        source_logical: origin.map(|o| o.logical.as_str()),
++        source_transport: origin.map(|o| o.transport.as_str()),
++        source_generation: origin.map(|o| o.generation),
++        captured_age_us: chrono::Utc::now()
++            .signed_duration_since(captured)
++            .num_microseconds(),
++        ..Default::default()
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn typed_core_failures_remain_distinct_without_raw_model_or_error_text() {
++        for (error, expected) in [
++            (StreamControlError::Unsupported, RefusalCause::Unsupported),
++            (StreamControlError::Authority, RefusalCause::Authority),
++            (StreamControlError::NotRecipient, RefusalCause::NotRecipient),
++            (StreamControlError::Cancelled, RefusalCause::Cancelled),
++            (StreamControlError::Deadline, RefusalCause::Deadline),
++            (StreamControlError::NotReady, RefusalCause::NotReady),
++            (StreamControlError::MetadataBusy, RefusalCause::MetadataBusy),
++            (StreamControlError::Backpressure, RefusalCause::Backpressure),
++            (
++                StreamControlError::CleanupUnconfirmed,
++                RefusalCause::CleanupUnconfirmed,
++            ),
++        ] {
++            assert_eq!(cause(&error), expected);
++        }
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -22,6 +22,9 @@
+     time::Instant,
+ };
+ use tokio::sync::{Mutex as AsyncMutex, OwnedMutexGuard, mpsc};
++use webrtc::media_stream::track_local::owned_rtp::diagnostics::{
++    self, RefusalCause, RefusalContext, RefusalMedium, RefusalStage,
++};
+ use webrtc::media_stream::{
+     Track,
+     track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+@@ -428,11 +431,35 @@
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .take()
+-            .ok_or(OwnedRtpError::Refused)?;
++            .ok_or_else(|| {
++                diagnostics::record_refusal(
++                    &control,
++                    RefusalStage::VideoPacketUnavailable,
++                    RefusalCause::OriginalMissing,
++                    RefusalContext {
++                        medium: RefusalMedium::Video,
++                        egress_ssrc: Some(self.ssrc),
++                        ..Default::default()
++                    },
++                );
++                OwnedRtpError::Refused
++            })?;
+         let queued = queued
+             .prepare_delivery(control.deadline())
+             .await
+-            .map_err(|_| OwnedRtpError::Refused)?;
++            .map_err(|error| {
++                super::core_refusal::record(
++                    &control,
++                    RefusalStage::VideoPrepare,
++                    &error,
++                    RefusalContext {
++                        medium: RefusalMedium::Video,
++                        egress_ssrc: Some(self.ssrc),
++                        ..Default::default()
++                    },
++                );
++                OwnedRtpError::Refused
++            })?;
+         *self.original.lock().unwrap_or_else(|p| p.into_inner()) = Some((queued, timeline));
+         Ok(())
+     }
+@@ -443,33 +470,129 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .take();
+         let Some((queued, timeline)) = original else {
++            diagnostics::record_refusal(
++                &io.submission_control(),
++                RefusalStage::VideoPacketUnavailable,
++                RefusalCause::OriginalMissing,
++                RefusalContext {
++                    medium: RefusalMedium::Video,
++                    egress_ssrc: Some(self.ssrc),
++                    ..Default::default()
++                },
++            );
+             return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
+         };
+         let control = io.submission_control();
+         let mut original_timeline = Some(timeline);
+         let mut metadata = None;
+         let saved = &mut metadata;
++        let diagnostic_control = &control;
+         let attempt = queued
+             .deliver_ready_video_with_repair_and_feedback(|frame, origin| {
+                 let mut timeline = original_timeline
+                     .take()
+                     .expect("one original video callback");
++                let io = &mut *io;
+                 async move {
+-                    let origin = origin.ok_or(StreamControlError::Unsupported)?;
+-                    let mut packet = self.packet(&frame)?;
++                    let origin =
++                        origin
++                            .ok_or(StreamControlError::Unsupported)
++                            .inspect_err(|error| {
++                                super::core_refusal::record(
++                                    diagnostic_control,
++                                    RefusalStage::VideoOrigin,
++                                    error,
++                                    super::core_refusal::frame_context(
++                                        None,
++                                        RefusalMedium::Video,
++                                        self.ssrc,
++                                        frame.timestamp_rtp,
++                                        frame.captured_at,
++                                    ),
++                                );
++                            })?;
++                    let mut packet = self.packet(&frame).inspect_err(|error| {
++                        super::core_refusal::record(
++                            diagnostic_control,
++                            RefusalStage::VideoPacket,
++                            error,
++                            super::core_refusal::frame_context(
++                                Some(&origin),
++                                RefusalMedium::Video,
++                                self.ssrc,
++                                frame.timestamp_rtp,
++                                frame.captured_at,
++                            ),
++                        );
++                    })?;
+                     // Read the original source SSRC before hop normalization rewrites it.
+                     let source_packet = rtp::Packet::unmarshal(&mut frame.payload.as_ref())
+-                        .map_err(|_| StreamControlError::Unsupported)?;
++                        .map_err(|_| StreamControlError::Unsupported)
++                        .inspect_err(|error| {
++                            super::core_refusal::record(
++                                diagnostic_control,
++                                RefusalStage::VideoPacket,
++                                error,
++                                super::core_refusal::frame_context(
++                                    Some(&origin),
++                                    RefusalMedium::Video,
++                                    self.ssrc,
++                                    frame.timestamp_rtp,
++                                    frame.captured_at,
++                                ),
++                            );
++                        })?;
+                     let source = Source {
+                         origin,
+                         ssrc: source_packet.header.ssrc,
+                     };
+-                    let mapping = timeline.allocate(source.clone(), &source_packet)?;
++                    let mapping = timeline
++                        .allocate(source.clone(), &source_packet)
++                        .inspect_err(|error| {
++                            let mut context = super::core_refusal::frame_context(
++                                Some(&source.origin),
++                                RefusalMedium::Video,
++                                self.ssrc,
++                                frame.timestamp_rtp,
++                                frame.captured_at,
++                            );
++                            context.source_ssrc = Some(source_packet.header.ssrc);
++                            context.source_sequence = Some(source_packet.header.sequence_number);
++                            super::core_refusal::record(
++                                diagnostic_control,
++                                RefusalStage::VideoTimeline,
++                                error,
++                                context,
++                            );
++                        })?;
+                     packet.header.sequence_number = mapping.sequence;
+                     packet.header.timestamp = mapping.timestamp;
+                     io.write_with_clock(packet, self.clock.clone(), timing(&frame, mapping.offset))
+                         .await
+-                        .map_err(|_| StreamControlError::NotReady)?;
++                        .map_err(|_| StreamControlError::NotReady)
++                        .inspect_err(|error| {
++                            let mut context = super::core_refusal::frame_context(
++                                Some(&source.origin),
++                                RefusalMedium::Video,
++                                self.ssrc,
++                                source_packet.header.timestamp,
++                                frame.captured_at,
++                            );
++                            context.source_ssrc = Some(source_packet.header.ssrc);
++                            context.source_sequence = Some(source_packet.header.sequence_number);
++                            context.argument_ssrc = Some(self.ssrc);
++                            context.argument_payload_type = Some(self.payload_type);
++                            context.argument_sequence = Some(mapping.sequence);
++                            context.argument_timestamp = Some(mapping.timestamp);
++                            context.attempted = Some(io.attempted());
++                            context.written = Some(io.written());
++                            super::core_refusal::record(
++                                diagnostic_control,
++                                RefusalStage::VideoIo,
++                                error,
++                                context,
++                            );
++                        })?;
+                     *saved = Some((source, mapping));
+                     Ok(())
+                 }
+@@ -482,12 +605,36 @@
+                 return OwnedRtpAttempt::DeferredNoIo;
+             }
+             ReadyMediaDelivery::Complete(Ok(value)) => value,
+-            ReadyMediaDelivery::Complete(Err(_)) => {
++            ReadyMediaDelivery::Complete(Err(error)) => {
++                super::core_refusal::record(
++                    &control,
++                    RefusalStage::VideoFinal,
++                    &error,
++                    RefusalContext {
++                        medium: RefusalMedium::Video,
++                        egress_ssrc: Some(self.ssrc),
++                        attempted: Some(io.attempted()),
++                        written: Some(io.written()),
++                        ..Default::default()
++                    },
++                );
+                 control.freeze_producer();
+                 return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
+             }
+         };
+         let Some((source, mapping)) = metadata else {
++            diagnostics::record_refusal(
++                &control,
++                RefusalStage::VideoMetadataMissing,
++                RefusalCause::OriginalMissing,
++                RefusalContext {
++                    medium: RefusalMedium::Video,
++                    egress_ssrc: Some(self.ssrc),
++                    attempted: Some(io.attempted()),
++                    written: Some(io.written()),
++                    ..Default::default()
++                },
++            );
+             control.freeze_producer();
+             return OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused));
+         };
+@@ -509,31 +656,68 @@
+             .map(|r| r.core.expires_at())
+     }
+     async fn repair(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
+-        let (core, source, mapping) = {
++        let control = io.submission_control();
++        let original = {
+             let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
+-            let r = retained.as_ref().ok_or(OwnedRtpError::Refused)?;
+-            (r.core.clone(), r.source.clone(), r.mapping)
+-        };
+-        core.repair(|frame, origin| async move {
+-            if origin.as_ref() != Some(&source.origin) {
+-                return Err(StreamControlError::Authority);
++            retained
++                .as_ref()
++                .map(|r| (r.core.clone(), r.source.clone(), r.mapping))
++        };
++        let Some((core, source, mapping)) = original else {
++            diagnostics::record_refusal(
++                &control,
++                RefusalStage::VideoRepair,
++                RefusalCause::OriginalMissing,
++                RefusalContext {
++                    medium: RefusalMedium::Video,
++                    egress_ssrc: Some(self.ssrc),
++                    ..Default::default()
++                },
++            );
++            return Err(OwnedRtpError::Refused);
++        };
++        let source_ssrc = source.ssrc;
++        core.repair(|frame, origin| {
++            let io = &mut *io;
++            async move {
++                if origin.as_ref() != Some(&source.origin) {
++                    return Err(StreamControlError::Authority);
++                }
++                let input = rtp::Packet::unmarshal(&mut frame.payload.as_ref())
++                    .map_err(|_| StreamControlError::Unsupported)?;
++                if input.header.ssrc != source.ssrc {
++                    return Err(StreamControlError::Authority);
++                }
++                let mut packet = self.packet(&frame)?;
++                packet.header.sequence_number = mapping.sequence;
++                packet.header.timestamp = mapping.timestamp;
++                // Reuse the original wire mapping. A repair must not advance the
++                // primary timeline or restore an older source's report selection.
++                io.write_with_clock(packet, self.clock.clone(), timing(&frame, mapping.offset))
++                    .await
++                    .map_err(|_| StreamControlError::NotReady)
+             }
+-            let input = rtp::Packet::unmarshal(&mut frame.payload.as_ref())
+-                .map_err(|_| StreamControlError::Unsupported)?;
+-            if input.header.ssrc != source.ssrc {
+-                return Err(StreamControlError::Authority);
+-            }
+-            let mut packet = self.packet(&frame)?;
+-            packet.header.sequence_number = mapping.sequence;
+-            packet.header.timestamp = mapping.timestamp;
+-            // Reuse the original wire mapping. A repair must not advance the
+-            // primary timeline or restore an older source's report selection.
+-            io.write_with_clock(packet, self.clock.clone(), timing(&frame, mapping.offset))
+-                .await
+-                .map_err(|_| StreamControlError::NotReady)
+         })
+         .await
+-        .map_err(|_| OwnedRtpError::Refused)
++        .map_err(|error| {
++            super::core_refusal::record(
++                &control,
++                RefusalStage::VideoRepair,
++                &error,
++                RefusalContext {
++                    medium: RefusalMedium::Video,
++                    egress_ssrc: Some(self.ssrc),
++                    cached_primary_ssrc: Some(self.ssrc),
++                    cached_primary_sequence: Some(mapping.sequence),
++                    cached_primary_timestamp: Some(mapping.timestamp),
++                    source_ssrc: Some(source_ssrc),
++                    attempted: Some(io.attempted()),
++                    written: Some(io.written()),
++                    ..Default::default()
++                },
++            );
++            OwnedRtpError::Refused
++        })
+     }
+ }
+ 
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/mod.rs b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/mod.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+@@ -37,3 +37,6 @@
+ 
+ /// Actual one-primary VP8 offer/answer binding.
+ pub mod core_video_profile;
++
++// Fixed, failure-only diagnostic translation; never an authority or IO path.
++pub(crate) mod core_refusal;
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
+@@ -4,7 +4,7 @@
+ use std::{
+     sync::{
+         Arc,
+-        atomic::{AtomicBool, AtomicU8, Ordering},
++        atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering},
+     },
+     time::{Duration, Instant},
+ };
+@@ -39,6 +39,8 @@
+     live: AtomicBool,
+     phase: AtomicU8,
+     claimed: AtomicBool,
++    // Failure-only correlation on the SAME existing state; never authority.
++    failure_diagnostic_id: AtomicU64,
+     deadline: Instant,
+     cancelled: tokio::sync::Notify,
+ }
+@@ -57,6 +59,7 @@
+             live: AtomicBool::new(true),
+             phase: AtomicU8::new(PENDING),
+             claimed: AtomicBool::new(false),
++            failure_diagnostic_id: AtomicU64::new(0),
+             deadline: Instant::now() + OWNED_DTMF_WRITE_LIMIT,
+             cancelled: tokio::sync::Notify::new(),
+         }))
+@@ -125,6 +128,18 @@
+             .phase
+             .compare_exchange(PENDING, STARTED, Ordering::AcqRel, Ordering::Acquire)
+             .is_ok()
++    }
++    pub(crate) fn failure_diagnostic_id(&self, proposed: u64) -> u64 {
++        // Called only after a failure row won the process-wide hard budget.
++        match self.0.failure_diagnostic_id.compare_exchange(
++            0,
++            proposed,
++            Ordering::Relaxed,
++            Ordering::Relaxed,
++        ) {
++            Ok(_) => proposed,
++            Err(original) => original,
++        }
+     }
+     pub(crate) fn pending(&self) -> bool {
+         self.0.phase.load(Ordering::Acquire) == PENDING
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp/diagnostics.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp/diagnostics.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp/diagnostics.rs
+@@ -0,0 +1,382 @@
++//! Bounded failure metadata only. No grants, payloads, raw Error Debug or retry.
++use super::OwnedRtpControl;
++use std::sync::atomic::{AtomicU64, Ordering};
++
++pub const TARGET: &str = "rvoip_webrtc_stack::owned_rtp_refusal";
++pub const MAX_PROCESS_ROWS: u64 = 128;
++const FIRST_FAILURES: u64 = 32;
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum RefusalStage {
++    OriginalClaim,
++    InvalidDeferral,
++    EmptySuccess,
++    AudioPacketUnavailable,
++    AudioPrepare,
++    AudioStamp,
++    AudioFinal,
++    AudioFrame,
++    VideoPacketUnavailable,
++    VideoPrepare,
++    VideoFinal,
++    VideoOrigin,
++    VideoPacket,
++    VideoTimeline,
++    VideoIo,
++    VideoMetadataMissing,
++    VideoRepair,
++    ReusedIo,
++    ClockBeforeCore,
++    CurrentOrCoreReady,
++    ClockCustody,
++    PriorOutput,
++    SenderLookup,
++    RepairPrimary,
++    SenderPrepare,
++    PacketSize,
++    BeginIo,
++    RepairPipeline,
++    SenderPipeline,
++    OutputCount,
++    OutputEmpty,
++    WireFactOrCurrent,
++    RelayEncapsulation,
++    SocketLookup,
++    ClockBeforeSocket,
++    SocketSend,
++    ShortSocketWrite,
++    ClockAfterWrite,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum RefusalCause {
++    ClaimUnavailable,
++    OriginalMissing,
++    InvalidDeferral,
++    EmptySuccess,
++    Model,
++    Unsupported,
++    Authority,
++    NotRecipient,
++    Cancelled,
++    Deadline,
++    NotReady,
++    MetadataBusy,
++    Backpressure,
++    CleanupUnconfirmed,
++    ConnectionClosed,
++    CodecUnsupported,
++    SenderMissingSsrc,
++    SenderMissingEncoding,
++    OtherDriverError,
++}
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
++pub enum RefusalMedium {
++    #[default]
++    Unknown,
++    Audio,
++    Video,
++}
++#[derive(Clone, Copy, Debug, Default)]
++pub struct RefusalContext<'a> {
++    pub medium: RefusalMedium,
++    pub sender: Option<u64>,
++    /// Producer writer binding, not proof of a submitted or socket packet.
++    pub egress_ssrc: Option<u32>,
++    /// Actual RtpIo::submit ARGUMENT header. Repair input is primary, NOT RTX wire.
++    pub argument_ssrc: Option<u32>,
++    pub argument_sequence: Option<u16>,
++    pub argument_timestamp: Option<u32>,
++    pub argument_payload_type: Option<u8>,
++    pub cached_primary_ssrc: Option<u32>,
++    pub cached_primary_sequence: Option<u16>,
++    pub cached_primary_timestamp: Option<u32>,
++    pub source_ssrc: Option<u32>,
++    pub source_sequence: Option<u16>,
++    pub source_timestamp: Option<u32>,
++    pub source_connection: Option<&'a str>,
++    pub source_logical: Option<&'a str>,
++    pub source_transport: Option<&'a str>,
++    pub source_generation: Option<u64>,
++    pub captured_age_us: Option<i64>,
++    pub attempted: Option<bool>,
++    pub written: Option<bool>,
++}
++// One shared budget for all drivers, producers and repairs in THIS process.
++// Failure-only globals avoid a new per-driver owner, allocation or hot lock.
++struct Budget {
++    seen: AtomicU64,
++    emitted: AtomicU64,
++    limit: u64,
++}
++impl Budget {
++    const fn new(limit: u64) -> Self {
++        Self {
++            seen: AtomicU64::new(0),
++            emitted: AtomicU64::new(0),
++            limit,
++        }
++    }
++    fn reserve(&self) -> Option<(u64, u64)> {
++        // Saturating counts never wrap into another first32 window.
++        let old = self
++            .seen
++            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
++                Some(n.saturating_add(1))
++            })
++            .ok()?;
++        if old == u64::MAX {
++            return None;
++        }
++        let count = old + 1;
++        if count > FIRST_FAILURES && !count.is_power_of_two() {
++            return None;
++        }
++        let row = self
++            .emitted
++            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
++                (n < self.limit).then_some(n + 1)
++            })
++            .ok()?
++            + 1;
++        Some((count, row))
++    }
++}
++static BUDGET: Budget = Budget::new(MAX_PROCESS_ROWS);
++fn safe_id(value: Option<&str>) -> Option<&str> {
++    value.filter(|s| {
++        let Some((prefix, uuid)) = s.split_once('_') else {
++            return false;
++        };
++        matches!(prefix, "conn" | "strm")
++            && uuid.len() == 36
++            && uuid.bytes().enumerate().all(|(i, c)| {
++                if matches!(i, 8 | 13 | 18 | 23) {
++                    c == b'-'
++                } else {
++                    c.is_ascii_hexdigit()
++                }
++            })
++    })
++}
++struct Record<'a> {
++    count: u64,
++    row: u64,
++    request: u64,
++    started: bool,
++    pending: bool,
++    remaining_us: u64,
++    context: RefusalContext<'a>,
++}
++fn record<'a>(
++    budget: &Budget,
++    control: &OwnedRtpControl,
++    mut context: RefusalContext<'a>,
++) -> Option<Record<'a>> {
++    let (count, row) = budget.reserve()?;
++    context.source_connection = safe_id(context.source_connection);
++    context.source_logical = safe_id(context.source_logical);
++    context.source_transport = safe_id(context.source_transport);
++    context.captured_age_us = context
++        .captured_age_us
++        .filter(|n| (-300_000_000..=300_000_000).contains(n));
++    Some(Record {
++        count,
++        row,
++        request: control.inner.failure_diagnostic_id(row),
++        started: control.inner.started(),
++        pending: control.inner.pending(),
++        remaining_us: control
++            .deadline()
++            .saturating_duration_since(std::time::Instant::now())
++            .as_micros()
++            .min(1_000_000) as u64,
++        context,
++    })
++}
++/// Call ONLY on an already-established failure. No formatting/clock/atomic on
++/// the successful path. Missing coordinates stay None, never parsed or guessed.
++pub fn record_refusal(
++    control: &OwnedRtpControl,
++    stage: RefusalStage,
++    cause: RefusalCause,
++    context: RefusalContext<'_>,
++) {
++    if !log::log_enabled!(target: TARGET, log::Level::Debug) {
++        return;
++    }
++    let Some(r) = record(&BUDGET, control, context) else {
++        return;
++    };
++    log::debug!(target: TARGET,
++        "Original RTP refusal row={} failure_count={} process={} request={} stage={:?} cause={:?} started={} pending={} remaining_us={} medium={:?} sender={:?} egress_ssrc={:?} argument_ssrc={:?} argument_seq={:?} argument_ts={:?} argument_pt={:?} cached_primary_ssrc={:?} cached_primary_seq={:?} cached_primary_ts={:?} source_ssrc={:?} source_seq={:?} source_ts={:?} source_connection={:?} source_logical={:?} source_transport={:?} source_generation={:?} captured_age_us={:?} attempted={:?} written={:?}",
++        r.row, r.count, std::process::id(), r.request, stage, cause, r.started, r.pending, r.remaining_us,
++        r.context.medium, r.context.sender, r.context.egress_ssrc, r.context.argument_ssrc, r.context.argument_sequence,
++        r.context.argument_timestamp, r.context.argument_payload_type, r.context.cached_primary_ssrc,
++        r.context.cached_primary_sequence, r.context.cached_primary_timestamp, r.context.source_ssrc,
++        r.context.source_sequence, r.context.source_timestamp, r.context.source_connection,
++        r.context.source_logical, r.context.source_transport, r.context.source_generation,
++        r.context.captured_age_us, r.context.attempted, r.context.written);
++}
++pub fn claim_cause(control: &OwnedRtpControl) -> RefusalCause {
++    if std::time::Instant::now() >= control.deadline() {
++        RefusalCause::Deadline
++    } else if !control.current() {
++        RefusalCause::Cancelled
++    } else {
++        RefusalCause::ClaimUnavailable
++    }
++}
++pub fn driver_cause(error: &rtc::shared::error::Error) -> RefusalCause {
++    use rtc::shared::error::Error;
++    match error {
++        Error::ErrConnectionClosed => RefusalCause::ConnectionClosed,
++        Error::ErrRTPTransceiverCodecUnsupported => RefusalCause::CodecUnsupported,
++        Error::ErrSenderWithNoSSRCs => RefusalCause::SenderMissingSsrc,
++        Error::ErrRTPSenderNoBaseEncoding => RefusalCause::SenderMissingEncoding,
++        _ => RefusalCause::OtherDriverError,
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::super::*;
++    use super::*;
++    use std::sync::Arc;
++    use std::time::{Duration, Instant};
++    #[test]
++    fn sampler_uses_first32_and_power_two_without_wrapping() {
++        let b = Budget::new(MAX_PROCESS_ROWS);
++        let got = (1..=130)
++            .filter_map(|_| b.reserve().map(|r| r.0))
++            .collect::<Vec<_>>();
++        assert_eq!(got, (1..=32).chain([64, 128]).collect::<Vec<_>>());
++        b.seen.store(u64::MAX, Ordering::Relaxed);
++        assert!(b.reserve().is_none());
++        assert!(b.reserve().is_none());
++    }
++    #[test]
++    fn shared_failure_budget_has_atomic_hard_cap_across_concurrent_owners() {
++        let b = Arc::new(Budget::new(8));
++        let owners = (0..16)
++            .map(|_| {
++                let b = b.clone();
++                std::thread::spawn(move || {
++                    (0..2048).filter_map(|_| b.reserve()).collect::<Vec<_>>()
++                })
++            })
++            .collect::<Vec<_>>();
++        let joined = owners.into_iter().map(|h| h.join()).collect::<Vec<_>>();
++        let all_joined = joined.iter().all(|r| r.is_ok());
++        let mut rows = joined
++            .into_iter()
++            .filter_map(|r| r.ok())
++            .flatten()
++            .map(|r| r.1)
++            .collect::<Vec<_>>();
++        rows.sort_unstable();
++        assert!(all_joined);
++        assert_eq!(rows, (1..=8).collect::<Vec<_>>());
++        assert_eq!(b.emitted.load(Ordering::Relaxed), 8);
++    }
++    #[test]
++    fn same_original_control_keeps_failure_id_and_drops_untrusted_or_unknown_coordinates() {
++        let b = Budget::new(8);
++        let c = OwnedRtpControl::new(Instant::now() + Duration::from_millis(200));
++        let first = record(
++            &b,
++            &c,
++            RefusalContext {
++                source_connection: Some("conn_00000000-0000-0000-0000-000000000007"),
++                source_logical: Some("payload\nnot-an-id"),
++                source_transport: Some(""),
++                captured_age_us: Some(i64::MIN),
++                argument_ssrc: Some(17),
++                argument_sequence: Some(0),
++                argument_timestamp: Some(0),
++                cached_primary_ssrc: Some(23),
++                cached_primary_sequence: Some(7),
++                cached_primary_timestamp: Some(960),
++                ..Default::default()
++            },
++        )
++        .unwrap();
++        let again = record(&b, &c.clone(), Default::default()).unwrap();
++        assert_eq!(first.request, again.request);
++        assert_eq!(
++            first.context.source_connection,
++            Some("conn_00000000-0000-0000-0000-000000000007")
++        );
++        assert!(first.context.source_logical.is_none() && first.context.source_transport.is_none());
++        assert!(first.context.captured_age_us.is_none() && first.context.egress_ssrc.is_none());
++        assert_eq!(first.context.argument_ssrc, Some(17));
++        assert_eq!(first.context.argument_sequence, Some(0));
++        assert_eq!(first.context.argument_timestamp, Some(0));
++        assert_eq!(first.context.cached_primary_ssrc, Some(23));
++        assert_eq!(first.context.cached_primary_sequence, Some(7));
++        assert_eq!(first.context.cached_primary_timestamp, Some(960));
++        assert!(c.claim());
++        assert!(c.begin());
++        assert!(record(&b, &c, Default::default()).unwrap().started);
++        assert!(c.cancel());
++    }
++    struct Io(OwnedRtpControl);
++    #[async_trait::async_trait]
++    impl OwnedRtpIo for Io {
++        async fn write(&mut self, _: rtc::rtp::Packet) -> rtc::shared::error::Result<()> {
++            panic!("no IO permitted")
++        }
++        fn written(&self) -> bool {
++            false
++        }
++        fn attempted(&self) -> bool {
++            false
++        }
++        fn submission_control(&self) -> OwnedRtpControl {
++            self.0.clone()
++        }
++    }
++    struct Refused;
++    #[async_trait::async_trait]
++    impl OwnedRtpProducer for Refused {
++        async fn prepare(&self, _: OwnedRtpControl) -> OwnedRtpResult {
++            Ok(())
++        }
++        async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpAttempt {
++            let c = io.submission_control();
++            let b = Budget::new(1);
++            assert!(record(&b, &c, Default::default()).is_some());
++            c.freeze_producer();
++            OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused))
++        }
++    }
++    #[tokio::test]
++    async fn diagnostic_observation_never_claims_io_or_overrides_original_refusal_or_expiry() {
++        let c = OwnedRtpControl::new(Instant::now() + Duration::from_millis(200));
++        assert!(c.claim());
++        let mut io = Io(c.clone());
++        assert_eq!(
++            complete(&Refused, &mut io, &c).await,
++            OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused))
++        );
++        assert!(!c.begin());
++        assert!(!c.cancel());
++        let expired = OwnedRtpControl::new(Instant::now());
++        let b = Budget::new(1);
++        assert_eq!(
++            record(&b, &expired, Default::default())
++                .unwrap()
++                .remaining_us,
++            0
++        );
++        assert!(!expired.claim());
++        assert_eq!(claim_cause(&expired), RefusalCause::Deadline);
++        assert_eq!(
++            super::super::stopped(&expired),
++            OwnedRtpError::DeadlineBeforeWrite
++        );
++        let cancelled = OwnedRtpControl::new(Instant::now() + Duration::from_millis(200));
++        assert!(!cancelled.cancel());
++        assert!(!cancelled.claim());
++        assert_eq!(claim_cause(&cancelled), RefusalCause::Cancelled);
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
+@@ -187,6 +187,9 @@
+         f.write_str("OwnedRtpRequest(redacted)")
+     }
+ }
++#[doc(hidden)]
++pub mod diagnostics;
++
+ /// Shared custody seam for actual driver IO and forced-pending-IO tests.
+ pub(crate) async fn complete(
+     producer: &dyn OwnedRtpProducer,
+@@ -212,6 +215,16 @@
+             OwnedRtpAttempt::DeferredNoIo
+         }
+         OwnedRtpAttempt::DeferredNoIo => {
++            diagnostics::record_refusal(
++                control,
++                diagnostics::RefusalStage::InvalidDeferral,
++                diagnostics::RefusalCause::InvalidDeferral,
++                diagnostics::RefusalContext {
++                    attempted: Some(io.attempted()),
++                    written: Some(io.written()),
++                    ..Default::default()
++                },
++            );
+             OwnedRtpAttempt::Complete(Err(if control.inner.started() {
+                 OwnedRtpError::OutcomeUnknown
+             } else {
+@@ -220,7 +233,19 @@
+             }))
+         }
+         OwnedRtpAttempt::Complete(Ok(())) if io.written() => OwnedRtpAttempt::Complete(Ok(())),
+-        OwnedRtpAttempt::Complete(Ok(())) => OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused)),
++        OwnedRtpAttempt::Complete(Ok(())) => {
++            diagnostics::record_refusal(
++                control,
++                diagnostics::RefusalStage::EmptySuccess,
++                diagnostics::RefusalCause::EmptySuccess,
++                diagnostics::RefusalContext {
++                    attempted: Some(io.attempted()),
++                    written: Some(io.written()),
++                    ..Default::default()
++                },
++            );
++            OwnedRtpAttempt::Complete(Err(OwnedRtpError::Refused))
++        }
+         OwnedRtpAttempt::Complete(Err(_)) if control.inner.started() => {
+             OwnedRtpAttempt::Complete(Err(OwnedRtpError::OutcomeUnknown))
+         }
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs
+@@ -137,6 +137,12 @@
+         let track = self.clone();
+         let task = tokio::spawn(async move {
+             if !lifetime.claim() {
++                diagnostics::record_refusal(
++                    &lifetime,
++                    diagnostics::RefusalStage::OriginalClaim,
++                    diagnostics::claim_cause(&lifetime),
++                    Default::default(),
++                );
+                 return Receipt::not_submitted(OwnedRtpError::Refused);
+             }
+             let deadline = tokio::time::Instant::from_std(lifetime.deadline());
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -1202,13 +1202,41 @@
+             Option<rtc::interceptor::SenderClockUpdate>,
+         )>,
+     ) -> Result<()> {
+-        let refused = |stage: &'static str, error: Error| {
+-            log::trace!(target: "rvoip_webrtc_stack::owned_rtp",
+-                "Original guarded RTC RTP write refused stage={} error={:?}", stage, error);
++        use crate::media_stream::track_local::owned_rtp::diagnostics::{
++            self, RefusalContext, RefusalStage,
++        };
++        let control = self.control;
++        let sender: usize = self.sender.into();
++        let (ssrc, sequence, timestamp, payload_type) = (
++            packet.header.ssrc,
++            packet.header.sequence_number,
++            packet.header.timestamp,
++            packet.header.payload_type,
++        );
++        let refused = |stage: RefusalStage, error: Error| {
++            diagnostics::record_refusal(
++                control,
++                stage,
++                diagnostics::driver_cause(&error),
++                RefusalContext {
++                    sender: Some(sender as u64),
++                    argument_ssrc: Some(ssrc),
++                    argument_sequence: Some(sequence),
++                    argument_timestamp: Some(timestamp),
++                    argument_payload_type: Some(payload_type),
++                    attempted: Some(true),
++                    written: if stage == RefusalStage::ReusedIo {
++                        None
++                    } else {
++                        Some(stage == RefusalStage::ClockAfterWrite)
++                    },
++                    ..Default::default()
++                },
++            );
+             error
+         };
+         if self.attempted {
+-            return Err(refused("reused-io", Error::ErrConnectionClosed));
++            return Err(refused(RefusalStage::ReusedIo, Error::ErrConnectionClosed));
+         }
+         self.attempted = true;
+         let primary_ssrc = packet.header.ssrc;
+@@ -1217,7 +1245,7 @@
+             .is_some_and(|(clock, update)| !clock.permits(primary_ssrc, update.as_ref()))
+         {
+             return Err(refused(
+-                "clock-before-core",
++                RefusalStage::ClockBeforeCore,
+                 Error::ErrRTPTransceiverCodecUnsupported,
+             ));
+         }
+@@ -1225,57 +1253,63 @@
+         let (fact, output, audio_track) = {
+             let mut core = inner.core.lock().await;
+             if !self.control.current() || !core.owned_dtmf_io_ready() {
+-                return Err(refused("current-or-core-ready", Error::ErrConnectionClosed));
++                return Err(refused(
++                    RefusalStage::CurrentOrCoreReady,
++                    Error::ErrConnectionClosed,
++                ));
+             }
+             if timing
+                 .as_ref()
+                 .is_some_and(|(clock, _)| !core.owns_sender_clock(clock))
+             {
+                 return Err(refused(
+-                    "clock-custody",
++                    RefusalStage::ClockCustody,
+                     Error::ErrRTPTransceiverCodecUnsupported,
+                 ));
+             }
+             if let Some(prior) = core.poll_write() {
+                 self.driver.deferred_transmits.push_back(prior);
+-                return Err(refused("prior-output", Error::ErrConnectionClosed));
++                return Err(refused(
++                    RefusalStage::PriorOutput,
++                    Error::ErrConnectionClosed,
++                ));
+             }
+             let mut sender = core
+                 .rtp_sender(self.sender)
+-                .ok_or_else(|| refused("sender-lookup", Error::ErrConnectionClosed))?;
++                .ok_or_else(|| refused(RefusalStage::SenderLookup, Error::ErrConnectionClosed))?;
+             if let Some((expected, track)) = &self.expected {
+                 if sender.track().track_id() != track
+                     || !owned_video::same_primary(&packet, expected)
+                 {
+                     return Err(refused(
+-                        "repair-primary",
++                        RefusalStage::RepairPrimary,
+                         Error::ErrRTPTransceiverCodecUnsupported,
+                     ));
+                 }
+             }
+             let (packet, clock) = sender
+                 .prepare_owned_rtp(packet)
+-                .map_err(|error| refused("sender-prepare", error))?;
++                .map_err(|error| refused(RefusalStage::SenderPrepare, error))?;
+             let original = packet.clone();
+             let track = sender.track().track_id().to_string();
+             if clock == 90000 && rtc::shared::marshal::MarshalSize::marshal_size(&packet) > 1600 {
+                 return Err(refused(
+-                    "packet-size",
++                    RefusalStage::PacketSize,
+                     Error::ErrRTPTransceiverCodecUnsupported,
+                 ));
+             }
+             if !self.control.begin() {
+-                return Err(refused("begin-io", Error::ErrConnectionClosed));
++                return Err(refused(RefusalStage::BeginIo, Error::ErrConnectionClosed));
+             }
+             let fact = if self.expected.is_some() {
+                 sender
+                     .write_owned_video_repair(packet)
+-                    .map_err(|error| refused("repair-pipeline", error))?
++                    .map_err(|error| refused(RefusalStage::RepairPipeline, error))?
+             } else {
+                 let fact = packet.clone();
+                 sender
+                     .write_rtp(packet)
+-                    .map_err(|error| refused("sender-pipeline", error))?;
++                    .map_err(|error| refused(RefusalStage::SenderPipeline, error))?;
+                 fact
+             };
+             let audio_track = if clock == 90000 {
+@@ -1293,12 +1327,15 @@
+             (fact, output, audio_track)
+         };
+         if output.len() != 1 {
+-            return Err(refused("output-count", Error::ErrConnectionClosed));
++            return Err(refused(
++                RefusalStage::OutputCount,
++                Error::ErrConnectionClosed,
++            ));
+         }
+         let message = output
+             .into_iter()
+             .next()
+-            .ok_or_else(|| refused("output-empty", Error::ErrConnectionClosed))?;
++            .ok_or_else(|| refused(RefusalStage::OutputEmpty, Error::ErrConnectionClosed))?;
+         let bytes = &message.message;
+         if bytes.len() < 12
+             || bytes[0] >> 6 != 2
+@@ -1309,13 +1346,16 @@
+             || u32::from_be_bytes(bytes[8..12].try_into().unwrap()) != fact.header.ssrc
+             || !self.control.current()
+         {
+-            return Err(refused("wire-fact-or-current", Error::ErrConnectionClosed));
++            return Err(refused(
++                RefusalStage::WireFactOrCurrent,
++                Error::ErrConnectionClosed,
++            ));
+         }
+         let message = self
+             .driver
+             .ice_gatherer
+             .relay_output(&message)
+-            .map_err(|error| refused("relay-encapsulation", error))?
++            .map_err(|error| refused(RefusalStage::RelayEncapsulation, error))?
+             .unwrap_or(message);
+         let address = self
+             .driver
+@@ -1327,12 +1367,15 @@
+             .driver
+             .sockets
+             .get(&address)
+-            .ok_or_else(|| refused("socket-lookup", Error::ErrConnectionClosed))?;
++            .ok_or_else(|| refused(RefusalStage::SocketLookup, Error::ErrConnectionClosed))?;
+         if timing
+             .as_ref()
+             .is_some_and(|(clock, update)| !clock.permits(primary_ssrc, update.as_ref()))
+         {
+-            return Err(refused("clock-before-socket", Error::ErrConnectionClosed));
++            return Err(refused(
++                RefusalStage::ClockBeforeSocket,
++                Error::ErrConnectionClosed,
++            ));
+         }
+         // Reuse the existing plaintext fact; diagnostics retain no authority.
+         let fact_slot = match audio_track {
+@@ -1349,9 +1392,13 @@
+         self.driver
+             .audio_facts
+             .socket_result(fact_slot, sent.as_ref().ok().copied());
+-        let written = sent.map_err(|_| refused("socket-send", Error::ErrConnectionClosed))?;
++        let written =
++            sent.map_err(|_| refused(RefusalStage::SocketSend, Error::ErrConnectionClosed))?;
+         if written != message.message.len() {
+-            return Err(refused("short-socket-write", Error::ErrConnectionClosed));
++            return Err(refused(
++                RefusalStage::ShortSocketWrite,
++                Error::ErrConnectionClosed,
++            ));
+         }
+         self.written = true;
+         let mut clock_applied = None;
+@@ -1359,7 +1406,10 @@
+             if let Some((clock, update)) = timing {
+                 if !clock.apply_after_rtp(primary_ssrc, update) {
+                     self.driver.audio_facts.clock_result(fact_slot, Some(false));
+-                    return Err(refused("clock-after-write", Error::ErrConnectionClosed));
++                    return Err(refused(
++                        RefusalStage::ClockAfterWrite,
++                        Error::ErrConnectionClosed,
++                    ));
+                 }
+                 clock_applied = Some(true);
+             }

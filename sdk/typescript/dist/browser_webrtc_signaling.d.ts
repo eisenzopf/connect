@@ -77,6 +77,7 @@ export declare class CanonicalWebRtcSignaling {
     get replacementMayHaveCommitted(): boolean;
     get replacementChallenge(): import("./browser_webrtc_replacement.js").WebRtcReplacementChallenge | undefined;
     completeReplacement(evidence: WebRtcDecodedReadiness, options: RequestOptions): Promise<import("./browser_replacement.js").BrowserReplacementReceipt>;
+    recoverReplacementCompletion(error: unknown, options: RequestOptions): Promise<import("./browser_replacement.js").BrowserReplacementReceipt | undefined>;
     private gatheringCleanup?;
     private gather;
     private die;

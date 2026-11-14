@@ -358,7 +358,10 @@ export class DecodedRoute {
         }
         if(kind==='pulse'&&!this.videoHigh)this.videoEdges.push(seconds);this.videoHigh=kind==='pulse';
         const row={owner,seconds,timestamp,kind,duplicate,changed,native,row_index:this.video.length,sourceFrameIdentity:identity,sourceFrameKey,
-            presentation:presentation ? {element_id:presentation.element_id, presentedFrames:presentation.presentedFrames} : null,
+            presentation:presentation ? {profile:presentation.profile, element_id:presentation.element_id,
+                presentedFrames:presentation.presentedFrames, callbackTime:presentation.callbackTime ?? null,
+                rtpTimestamp:presentation.rtpTimestamp ?? null, mediaTime:presentation.mediaTime ?? null,
+                captureTime:presentation.captureTime ?? null, receiveTime:presentation.receiveTime ?? null} : null,
             dimensions:width===640&&height===360};
         if(duplicate){
             if(this.videoDuplicateEvents.length<16){
@@ -504,12 +507,17 @@ export class DecodedRoute {
                 scope:'Estimated source quanta provide clock attribution. Decoded quality uses the declared measurable scope'},
             decoded_seconds:audio.length*.02,identified_seconds:identified.length*.02,
             maximum_gap_ms:maximumGap*1000,maximum_pcm_sample_gap_ms:envelope.maximum_sample_gap_seconds*1000,
-            bad_identity_frames:audio.filter(row=>!row.identified).length,
+            source_identity_profile:'connect/decoded-tone-recognition/1',
+            bad_identity_frames:audio.filter(row=>!row.source_identified).length,
+            // Retain the original coupled count as an explicit raw diagnostic.
+            // identified_seconds/gaps/onsets still use ONLY original usable rows.
+            unusable_or_unidentified_frames:audio.filter(row=>!row.identified).length,
+            recognized_below_energy_floor_frames:audio.filter(row=>row.source_identified&&!row.identified).length,
             duplicate_frames:audio.filter(row=>row.duplicate).length,original_source_quantum_overlaps:sourceOverlaps,source_quantum_identity_available:sourceIdentified,source_quantum_identity_unbound_or_ambiguous:sourceUnbound,
             transition_coverage:audioCoverage,
             passed:identified.length*.02>=59.9-audioCoverage.transition_missing_ms/1000
                 &&audioCoverage.maximum_clean_gap_ms<=220&&envelope.maximum_sample_gap_seconds<=.22&&identified.length>0&&identified[0].seconds-start<=.2
-                &&audio.every(row=>row.identified&&!row.duplicate)};
+                &&audio.every(row=>row.source_identified&&!row.duplicate)};
         const decodedPerSecond=Array(60).fill(0);for(const row of video)decodedPerSecond[Math.floor(row.seconds-start)]++;
         const callbackTimes=[start,...video.map(row=>row.seconds),end];
         const renderedCounts={};if(renderedRoute)for(const row of markerVideo.filter(inWindow))renderedCounts[row.kind]=(renderedCounts[row.kind]??0)+1;
@@ -834,6 +842,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
             }
             owners.length=0;bindings.clear();initialRenders.clear();
             return {owners:count,statistics,webtransport_statistics:webTransportStatisticsClosure,native_decoded_observer:rtcClosure?.decoded_video??null,joined,playback_passed:playbackPassed,
+                audio_lifetime_observer:rtcClosure?.audio_lifetime??null,
                 measurement_working_state:{retired:joined,before,retained:workingState(),
                     scope:'Decoded-route working histories only. Captured report evidence remains unchanged. No garbage collection or RSS return claim.'},
                 owner_outcomes:ownerOutcomes,retirement_outcomes:retirementOutcomes,retained_surfaces:surfaces.size};
