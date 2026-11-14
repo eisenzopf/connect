@@ -2380,6 +2380,18 @@
       "path": "patches/rvoip/connect-rtc-egress-idle-work-budget.patch",
       "sha256": "c3dfc0310c5578715ba27830ccf2dc151163b87649ac7d49a46cdcf32fb552eb",
       "source": "Fix actual canonical late-idle poll counter. Canonical alone separates idle waiting from existing100ms packet work: choose once after exact original receive and before state/timeline waits, min original monotonic ingress/admission200ms and retained source cutoff; same cutoff through worker/mailbox/prepare/current-auth/IO. Public absolute caller deadline remains strict. Numeric Core getter grants no permission/payload; no retag, renewal, retry, queue/task/lock or media-age increase. OLD438Video and440Audio intended failures independently observed after full original cleanup; strict fixed controls and media verification separate."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-closed-core-timeout-counter.patch",
+      "sha256": "2762b2657795e4ef5da46f1b5fcf20933e8673a60361f9f3250da6995ae17136",
+      "source": "Tests-only actual closed-Core timeout counter using real sansIO SDP/ICE/DTLS endpoints and exact unchanged Stacktimer dispatcher. Keep genuine Close envelope unconsumed to expose postCoreClose timer; cleanup both originalCoreowners and original257-budget admission before finalOLDoracle. Connecting positive retains originalSTUNtimers. No claimed asyncdriver join/actualhistoricalpanicentry or productionguard change."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-closed-core-timeout-guard.patch",
+      "sha256": "7f11a3f971a77b7ef4b230e99ac1dd1c062cf63d362ad9d05da5af43425398ff",
+      "source": "Prevent a previously selected driver timer from contacting retired ICE candidate indices after synchronous Core.close but before queued DriverClose consumption. Inspect exact Closed state under the existing Core mutex; retain all original close admission, drain, outcomes, deadlines and connecting timers. Actual OLD counter reproduces ICE976 panic with both original Cores and Close envelope cleaned up."
     }
   ]
 }

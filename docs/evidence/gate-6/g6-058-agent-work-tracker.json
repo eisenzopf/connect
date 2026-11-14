@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-14T12:17:53.135191+00:00",
-  "revision": 78,
+  "updated_at": "2026-11-14T12:31:14.467444+00:00",
+  "revision": 79,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 136,
-    "verified_at": "2026-11-14T12:17:53.135191+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-poll-work.json",
-    "readback_evidence_sha256": "c689a8d393653457cea6806d32252b27d7bc45377570ad15ec511b8fb936dbbb",
+    "content_revision": 137,
+    "verified_at": "2026-11-14T12:31:14.467444+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-closed-core.json",
+    "readback_evidence_sha256": "479d9177ff30e2bf464aef0f28dbc3d6a1705f3f8375eeec43e69b8db42c49b6",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1917,21 +1917,27 @@
       "depends_on": [
         "V219-VIDEO-ADOPTION"
       ],
-      "status": "diagnosing",
-      "implementation_state": "CountercleanupPanic preserved. SourceclosedCore mayreceivelatetimer beforequeuedDriverClose; read-onlygetter andexisting-lockguard+realCorecounter beingprepared.",
+      "status": "component-verified",
+      "implementation_state": "Registered443 exact Closed timer guard. Actual442 OLD reproduces ICE976 with original Core/Close-envelope cleanup before intended failure; all5fixedtimer/encryptedmedia/cancel/unknown controls pass.",
       "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
       "verification_runs": [
         {
           "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-closed-core-timer.json",
+          "passed": 5,
+          "required": 5,
+          "matrix_result": false
         }
       ],
       "matrix_result_refs": [],
       "coordinator_review": {
-        "status": "Accepted stated component evidence; remainingworkexplicit",
+        "status": "Accepted for exact source and actual component scope after independent Fixture review",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-14T12:17:53.135191+00:00"
+      "updated_at": "2026-11-14T12:31:14.467444+00:00"
     }
   ],
   "failure_mapping": [
@@ -5919,9 +5925,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
-    "sha256": "2a117e0f983c86b788a8228a6d085605d72c78c775389b3c0ac893da85d9291a",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-closed-core-timer.json",
+    "sha256": "453e290cc1a0a42d335feca0d6beb259e55a1073778c340eab2606b297f9503f",
     "ready": false,
-    "next": "Finishoriginalframewitness/ICEcontrols; thenfreshfocused,currentcombined/localARM/release/preflight"
+    "next": "Complete frame-witness batch and controls; fresh focused workload then current full regression/localARM/release/preflight"
   }
 }

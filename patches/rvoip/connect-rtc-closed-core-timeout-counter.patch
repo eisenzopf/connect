@@ -1,0 +1,308 @@
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -50,6 +50,15 @@
+ 
+ const DEFAULT_TIMEOUT_DURATION: Duration = Duration::from_secs(86400); // 1 day duration
+ 
++// Keep timer dispatch under the caller's existing Core mutex. The CLOSED state
++// check is separate from driver Close-event consumption/relay retirement.
++fn dispatch_core_timeout<I: Interceptor>(
++    core: &mut rtc::peer_connection::RTCPeerConnection<I>,
++    now: Instant,
++) -> Result<()> {
++    core.handle_timeout(now)
++}
++
+ /// Unified inner message type for the peer connection driver
+ #[derive(Debug)]
+ pub(crate) enum PeerConnectionDriverEvent {
+@@ -404,7 +413,8 @@
+                     let now = Instant::now();
+                     self.ice_gatherer.handle_timeout(now)?;
+                     if close_deadline.is_none() {
+-                        self.inner.core.lock().await.handle_timeout(now)?;
++                        let mut core = self.inner.core.lock().await;
++                        dispatch_core_timeout(&mut core, now)?;
+                     }
+                 }
+                 Wake::Control(Some(envelope)) => {
+@@ -1428,3 +1438,6 @@
+ 
+ #[cfg(test)]
+ mod cooperative_tests;
++
++#[cfg(test)]
++mod closed_core_timeout_tests;
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/closed_core_timeout_tests.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/closed_core_timeout_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/closed_core_timeout_tests.rs
+@@ -0,0 +1,267 @@
++//! Real sans-IO SDP/ICE/DTLS peers and the ORIGINAL Stack timer dispatcher.
++//! There is no driver task or socket here; queued Close is deliberately not
++//! consumed until after the exact synchronous caller-close/timer interleaving.
++use super::*;
++use rtc::peer_connection::configuration::setting_engine::SettingEngine;
++use rtc::peer_connection::state::RTCPeerConnectionState;
++use rtc::peer_connection::transport::{
++    CandidateConfig, CandidateHostConfig, RTCDtlsRole, RTCIceCandidate, RTCIceCandidateInit,
++};
++use rtc::peer_connection::{RTCPeerConnection, RTCPeerConnectionBuilder};
++use std::ops::{Deref, DerefMut};
++
++struct OriginalCore(RTCPeerConnection);
++impl Deref for OriginalCore {
++    type Target = RTCPeerConnection;
++    fn deref(&self) -> &Self::Target {
++        &self.0
++    }
++}
++impl DerefMut for OriginalCore {
++    fn deref_mut(&mut self) -> &mut Self::Target {
++        &mut self.0
++    }
++}
++impl Drop for OriginalCore {
++    fn drop(&mut self) {
++        let _ = self.0.close();
++    }
++}
++fn peer(address: SocketAddr, role: RTCDtlsRole) -> OriginalCore {
++    let mut settings = SettingEngine::default();
++    settings.set_answering_dtls_role(role).unwrap();
++    let mut owner = OriginalCore(
++        RTCPeerConnectionBuilder::new()
++            .with_setting_engine(settings)
++            .build()
++            .unwrap(),
++    );
++    let candidate = CandidateHostConfig {
++        base_config: CandidateConfig {
++            network: "udp".into(),
++            address: address.ip().to_string(),
++            port: address.port(),
++            component: 1,
++            ..Default::default()
++        },
++        ..Default::default()
++    }
++    .new_candidate_host()
++    .unwrap();
++    owner
++        .add_local_candidate(RTCIceCandidate::from(&candidate).to_json().unwrap())
++        .unwrap();
++    owner
++}
++struct Pair {
++    a: OriginalCore,
++    b: OriginalCore,
++    addresses: [SocketAddr; 2],
++}
++fn pump(
++    source: &mut RTCPeerConnection,
++    target: &mut RTCPeerConnection,
++    local: SocketAddr,
++    remote: SocketAddr,
++) {
++    let mut packets = 0;
++    while let Some(write) = source.poll_write() {
++        packets += 1;
++        assert!(packets <= 512, "original handshake packet bound");
++        target
++            .handle_read(TaggedBytesMut {
++                now: Instant::now(),
++                transport: TransportContext {
++                    local_addr: local,
++                    peer_addr: remote,
++                    ecn: None,
++                    transport_protocol: TransportProtocol::UDP,
++                },
++                message: write.message,
++            })
++            .unwrap();
++    }
++}
++fn connected(peer: &mut RTCPeerConnection) -> bool {
++    let mut observed = false;
++    while let Some(event) = peer.poll_event() {
++        observed |= matches!(
++            event,
++            RTCPeerConnectionEvent::OnConnectionStateChangeEvent(RTCPeerConnectionState::Connected)
++        );
++    }
++    observed
++}
++impl Pair {
++    fn allocated(base: u16) -> Self {
++        let addresses = [
++            SocketAddr::from(([127, 0, 0, 1], base)),
++            SocketAddr::from(([127, 0, 0, 1], base + 1)),
++        ];
++        // Core is sans-IO: these are authenticated candidate addresses only,
++        // never bound sockets or a manufactured transport-ready state.
++        Self {
++            a: peer(addresses[0], RTCDtlsRole::Server),
++            b: peer(addresses[1], RTCDtlsRole::Client),
++            addresses,
++        }
++    }
++    fn negotiate(&mut self) {
++        self.a
++            .create_data_channel("original-closed-timer", None)
++            .unwrap();
++        let offer = self.a.create_offer(None).unwrap();
++        self.a.set_local_description(offer.clone()).unwrap();
++        self.b.set_remote_description(offer).unwrap();
++        let answer = self.b.create_answer(None).unwrap();
++        self.b.set_local_description(answer.clone()).unwrap();
++        self.a.set_remote_description(answer).unwrap();
++        for (owner, remote) in [
++            (&mut self.a, self.addresses[1]),
++            (&mut self.b, self.addresses[0]),
++        ] {
++            owner
++                .add_remote_candidate(RTCIceCandidateInit {
++                    candidate: format!(
++                        "candidate:1 1 udp 2130706431 {} {} typ host",
++                        remote.ip(),
++                        remote.port()
++                    ),
++                    ..Default::default()
++                })
++                .unwrap();
++        }
++    }
++    fn handshake(&mut self) {
++        self.negotiate();
++        let (mut a_connected, mut b_connected) = (false, false);
++        let cutoff = Instant::now() + Duration::from_secs(3);
++        loop {
++            assert!(
++                Instant::now() < cutoff,
++                "original SDP/ICE/DTLS setup cutoff"
++            );
++            let now = Instant::now();
++            self.a.handle_timeout(now).unwrap();
++            self.b.handle_timeout(now).unwrap();
++            pump(
++                &mut self.a,
++                &mut self.b,
++                self.addresses[1],
++                self.addresses[0],
++            );
++            pump(
++                &mut self.b,
++                &mut self.a,
++                self.addresses[0],
++                self.addresses[1],
++            );
++            a_connected |= connected(&mut self.a);
++            b_connected |= connected(&mut self.b);
++            if a_connected && b_connected {
++                return;
++            }
++            std::thread::sleep(Duration::from_millis(1));
++        }
++    }
++    fn close_originals(&mut self) -> bool {
++        let a = self.a.close();
++        let b = self.b.close();
++        a.is_ok() && b.is_ok()
++    }
++}
++fn drain_close(rx: &mut DriverEventReceivers) -> bool {
++    let mut exact = false;
++    while let Some(DriverEnvelope { event, admission }) = rx.drain_one() {
++        exact |= matches!(event, PeerConnectionDriverEvent::Close);
++        drop(admission);
++    }
++    exact
++}
++#[test]
++fn caller_closed_core_due_timer_before_driver_close_consumption_does_not_contact_retired_ice() {
++    let mut pair = Pair::allocated(19500);
++    let (tx, mut rx) = mailbox::driver_channel();
++    let mut caller_closed = false;
++    let mut close_queued = false;
++    let mut due_captured = false;
++    let work = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++        pair.handshake();
++        let due = pair
++            .a
++            .poll_timeout()
++            .expect("actual connected Core has an ICE/transport timer");
++        due_captured = true;
++        // Exact ordering from PeerConnectionImpl::close: original core.close
++        // then original Close envelope. No driver dispatch consumed it yet.
++        pair.a.close().unwrap();
++        caller_closed = true;
++        tx.try_send(PeerConnectionDriverEvent::Close).unwrap();
++        close_queued = true;
++        // This is the ORIGINAL synchronous Core timer call reached from
++        // Wake::Timer under the existing mutex. No fabricated ICE internals.
++        dispatch_core_timeout(&mut pair.a, due + Duration::from_secs(1)).unwrap();
++    }));
++    // Catch ONLY to attempt both ORIGINAL closures and release the actual
++    // original mailbox admission before the unchanged final success oracle.
++    // OLD ICE panic is printed by the panic hook and remains a failing result.
++    let cores_closed = pair.close_originals();
++    rx.close();
++    let exact_close_drained = drain_close(&mut rx);
++    drop(tx);
++    drop(rx);
++    println!(
++        "CLOSED_CORE_TIMER_COUNTER handshake_and_due={} caller_closed={} close_queued={} exact_close_drained={} original_cores_closed={} timer_panicked={}",
++        due_captured,
++        caller_closed,
++        close_queued,
++        exact_close_drained,
++        cores_closed,
++        work.is_err()
++    );
++    assert!(
++        caller_closed && due_captured && close_queued && exact_close_drained && cores_closed,
++        "original Core/Close-envelope cleanup or actual setup incomplete"
++    );
++    assert!(
++        work.is_ok(),
++        "caller-closed Core timer must not contact retired ICE candidates before DriverClose"
++    );
++}
++#[test]
++fn connecting_core_timer_still_generates_original_stun_checks() {
++    let mut pair = Pair::allocated(19600);
++    let mut observed = false;
++    let work = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++        pair.negotiate();
++        // Discard only this test's original already-pending setup transmissions;
++        // the next observation must come from the real future timer dispatch.
++        let mut initial = 0;
++        while pair.a.poll_write().is_some() {
++            initial += 1;
++            assert!(initial <= 512);
++        }
++        let due = pair.a.poll_timeout().expect("actual connecting ICE timer");
++        dispatch_core_timeout(&mut pair.a, due + Duration::from_secs(1)).unwrap();
++        let mut count = 0;
++        while let Some(write) = pair.a.poll_write() {
++            count += 1;
++            assert!(count <= 512);
++            observed |= write.message.len() >= 20
++                && write.message[0] & 0xc0 == 0
++                && write.message[4..8] == [0x21, 0x12, 0xa4, 0x42];
++        }
++    }));
++    let cores_closed = pair.close_originals();
++    assert!(
++        cores_closed,
++        "both original Core owners must close before timer oracle"
++    );
++    if let Err(error) = work {
++        std::panic::resume_unwind(error);
++    }
++    assert!(
++        observed,
++        "connecting Core lost its original ICE connectivity-check timer"
++    );
++}

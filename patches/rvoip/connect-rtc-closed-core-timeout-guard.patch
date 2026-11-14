@@ -1,0 +1,109 @@
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
+@@ -242,11 +242,11 @@
+ pub mod event;
+ pub(crate) mod handler;
+ mod internal;
+-mod transport_restart;
+ pub mod message;
+ pub mod sdp;
+ pub mod state;
+ pub mod transport;
++mod transport_restart;
+ 
+ use crate::data_channel::init::RTCDataChannelInit;
+ use crate::data_channel::parameters::DataChannelParameters;
+@@ -681,6 +681,13 @@
+ where
+     I: Interceptor,
+ {
++    /// Exact terminal protocol state; metadata only, never media authority.
++    /// An asynchronous owner must inspect this while holding its existing Core
++    /// mutex when deciding whether a previously-selected timer can still run.
++    pub fn is_closed(&self) -> bool {
++        self.peer_connection_state == RTCPeerConnectionState::Closed
++    }
++
+     /// Delivery support of the installed pipeline, independent of permission.
+     pub fn supports_owned_dtmf_io(&self) -> bool {
+         self.interceptor.supports_owned_dtmf_io()
+@@ -732,16 +739,34 @@
+     /// together. A matching password/fragment alone cannot substitute another
+     /// SDP identity or a stale gathered answer. No mutation or authority grant.
+     pub fn ice_descriptions_ready(&self, local_sdp: &str, remote_sdp: &str) -> bool {
+-        let Some(local) = self.local_description() else { return false; };
+-        let Some(remote) = self.current_remote_description() else { return false; };
++        let Some(local) = self.local_description() else {
++            return false;
++        };
++        let Some(remote) = self.current_remote_description() else {
++            return false;
++        };
+         if local.sdp != local_sdp || remote.sdp != remote_sdp {
+             return false;
+         }
+-        let (Some(local), Some(remote)) = (local.parsed.as_ref(), remote.parsed.as_ref()) else { return false; };
+-        let (Ok((lu, lp, _)), Ok((ru, rp, _))) = (extract_ice_details(local), extract_ice_details(remote)) else { return false; };
++        let (Some(local), Some(remote)) = (local.parsed.as_ref(), remote.parsed.as_ref()) else {
++            return false;
++        };
++        let (Ok((lu, lp, _)), Ok((ru, rp, _))) =
++            (extract_ice_details(local), extract_ice_details(remote))
++        else {
++            return false;
++        };
+         self.ice_generation_ready(
+-            &RTCIceParameters { username_fragment: lu, password: lp, ..Default::default() },
+-            &RTCIceParameters { username_fragment: ru, password: rp, ..Default::default() },
++            &RTCIceParameters {
++                username_fragment: lu,
++                password: lp,
++                ..Default::default()
++            },
++            &RTCIceParameters {
++                username_fragment: ru,
++                password: rp,
++                ..Default::default()
++            },
+         )
+     }
+ 
+@@ -751,7 +776,9 @@
+         if self.signaling_state != RTCSignalingState::Stable {
+             return Err(Error::ErrIncorrectSignalingState);
+         }
+-        let previous = self.current_local_description().ok_or(Error::ErrIncorrectSignalingState)?;
++        let previous = self
++            .current_local_description()
++            .ok_or(Error::ErrIncorrectSignalingState)?;
+         let generated = self.create_offer(Some(RTCOfferOptions { ice_restart: true }))?;
+         let offer = transport_restart::preserve(&previous, generated)?;
+         self.last_offer.clone_from(&offer.sdp);
+@@ -761,7 +788,9 @@
+     /// Answer an already validated transport-only remote restart while retaining
+     /// the original local media contract. This does not authorize a request.
+     pub fn create_transport_restart_answer(&mut self) -> Result<RTCSessionDescription> {
+-        let previous = self.current_local_description().ok_or(Error::ErrIncorrectSignalingState)?;
++        let previous = self
++            .current_local_description()
++            .ok_or(Error::ErrIncorrectSignalingState)?;
+         let generated = self.create_answer(None)?;
+         let answer = transport_restart::preserve(&previous, generated)?;
+         self.last_answer.clone_from(&answer.sdp);
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -56,6 +56,12 @@
+     core: &mut rtc::peer_connection::RTCPeerConnection<I>,
+     now: Instant,
+ ) -> Result<()> {
++    // PeerConnectionImpl::close may already have synchronously closed Core
++    // before this driver consumes its queued Close. A previously-selected timer
++    // must not contact the retired ICE candidate indices in that interval.
++    if core.is_closed() {
++        return Ok(());
++    }
+     core.handle_timeout(now)
+ }
+ 

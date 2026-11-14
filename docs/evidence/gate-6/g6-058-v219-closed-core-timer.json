@@ -1,0 +1,40 @@
+{
+  "format": "connect/g6-058-closed-core-timeout/1",
+  "updated_at": "2026-11-14T12:31:14.467444+00:00",
+  "generation": 443,
+  "source_lock_sha256": "d3a39657634490c980d4607d846a270c67d8f231bfae8ac2305aaa22ee17308d",
+  "cause": "Core.close retires ICE candidates before queued DriverClose is consumed. A previously selected timer can still dispatch into the closed Core.",
+  "fix": "Check exact terminal Core state under its existing mutex before dispatching the selected timer. Retain original connecting timers, Close admission, drain, deadlines and unknown outcomes.",
+  "old": {
+    "actual_expected_exit": 101,
+    "qualified": true,
+    "backtrace_reaches_ICE976": true,
+    "both_original_cores_and_close_envelope_cleaned_before_final_oracle": true,
+    "result_sha256": "d11ddc3f54f4d003865ae36804727d320e81baa19c75bb359583290dae6f6b39",
+    "log_sha256": "22f910c11f280ec254a3ff719263aca0743539a1be7071bdc7b5f806b2bcad54",
+    "outer_tool_receipt_unavailable": true,
+    "original_child_waits_and_group_absence_verified": true
+  },
+  "fixed": {
+    "passed": 5,
+    "required": 5,
+    "selectors": [
+      "peer_connection::driver::closed_core_timeout_tests::caller_closed_core_due_timer_before_driver_close_consumption_does_not_contact_retired_ice",
+      "peer_connection::driver::closed_core_timeout_tests::connecting_core_timer_still_generates_original_stun_checks",
+      "peer_connection::driver::cooperative_tests::original_metadata_prepare_does_not_stop_same_peer_encrypted_rtp_and_rtcp",
+      "peer_connection::driver::cooperative_tests::cancelled_close_observation_keeps_original_driver_and_refusal_receipt",
+      "peer_connection::driver::cooperative_tests::stuck_driver_fallback_preserves_unknown_original_request_cleanup"
+    ],
+    "source_and_binary_stable": true,
+    "all_original_children_joined": true,
+    "result_sha256": "f4d5168bde3428f73d261cb46b372ce5a33fbee84762a664163827c3472507d4",
+    "root_outer_join_sha256": "a4c27c659bc5f16e03cf3f6cd0abab985df4e52c189637db3362c7fd0d48c172",
+    "independent_review_sha256": "dcbf23b65e4ef5b0bdd9ba2a0a463fc2dfd808a4bf08a76fc474db9d6161570c"
+  },
+  "actual_historical_Audio440_timer_entry_proved": false,
+  "actual_combined_media_verification_pending": true,
+  "new_locks_tasks_queues_flags_or_authority_grants": false,
+  "full_regression_qualified": false,
+  "matrix_qualified": false,
+  "ready_for_full32": false
+}

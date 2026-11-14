@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-14T12:17:53.135191+00:00",
-  "run_status": "Latest matrix v218:1/32cells,399/432checks. Closedfocused437:6/6audio,6/6AV,4/6video; alloriginalownersclosed but2video and4sampledresourcefailures retained. Egress441fix5/5 andfocusedapprovedresourcepolicy29/29 controls pass. Frame-sourcewitness andICEclosefixinprogress; manualcapturecandidateunsupportedinFirefox/unapplied. Freshcombined/ARM/releases/preflightpending. No new32run.",
+  "updated": "2026-11-14T12:31:14.467444+00:00",
+  "run_status": "Latest fullmatrix remainsv218:1/32cells,399/432checks. Deadline441 actual5/5 and ICE443 actual5/5 pass; focused-idle approvedpolicy29/29 pass. Original-frame witness beingcompleted. Fresh focusedmedia, finalwhole currentregression/localARM/releases/preflight required before READY; no full32started.",
   "blockers": [
     {
       "id": "B01",
@@ -3659,8 +3659,8 @@
     {
       "id": "V219-ICE-CLOSE",
       "title": "Close the closed-Core timeout race without hiding cleanup failures \u2014 /root/v198_resources; reviewer /root/fixture_blockers",
-      "status": "diagnosing",
-      "completion": "CountercleanupPanic preserved. SourceclosedCore mayreceivelatetimer beforequeuedDriverClose; read-onlygetter andexisting-lockguard+realCorecounter beingprepared."
+      "status": "component-verified",
+      "completion": "Actual OLD442 intendedICE976failure with full original Core/Close-envelope cleanup; fixed443 all5pass including retainedencryptedmedia andcancel/unknownclose controls. Combinedmedia/currentwhole/ARM/fullmatrix pending."
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -17824,6 +17824,12 @@
       "passed": 29,
       "planned": 29,
       "evidence": "g6-058-v219-egress-poll-work-budget.json"
+    },
+    {
+      "name": "Closed-Core timer guard, connecting timer and retained actual Stack media/close controls",
+      "passed": 5,
+      "planned": 5,
+      "evidence": "g6-058-v219-closed-core-timer.json"
     }
   ],
   "current_production_check": {
@@ -18816,6 +18822,11 @@
   "v219_egress_poll_work": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
     "sha256": "2a117e0f983c86b788a8228a6d085605d72c78c775389b3c0ac893da85d9291a",
+    "matrix_qualified": false
+  },
+  "v219_closed_core_timer": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-closed-core-timer.json",
+    "sha256": "453e290cc1a0a42d335feca0d6beb259e55a1073778c340eab2606b297f9503f",
     "matrix_qualified": false
   }
 }
