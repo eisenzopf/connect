@@ -1,0 +1,63 @@
+{
+  "format": "connect/g6-058-focused449-original-result/1",
+  "updated_at": "2026-11-14T23:40:48.313848+00:00",
+  "source_revision": "4e90b0af66bda262dd1f2248c664d9548504b23a",
+  "generation": 449,
+  "original_component_sha256": "905574df08f1ab26d051649fefb5aa6739d9a5942cad9fe145a0b4fc8a6103b3",
+  "original_root_result_sha256": "83392b9432419834871d0c405731cb006031baf3936e908018e93105ec3bc4ca",
+  "original_component_passed": false,
+  "original_CLI_exit": 1,
+  "source_SDK_binary_guards": {
+    "source_inputs_unchanged": true,
+    "sdk_dist_inputs_unchanged": true,
+    "executable_unchanged": true
+  },
+  "original_owner_wrapper_qualified": true,
+  "raw_quality": {
+    "audio_passed": 6,
+    "video_passed": 0,
+    "AV_passed": 6,
+    "required_each": 6,
+    "draw_aliases_by_route": [
+      3,
+      3,
+      3,
+      5,
+      3,
+      5
+    ],
+    "non_duplicate_video_predicates_passed": 6,
+    "repeated_receiver_rtp_frames": 0
+  },
+  "approved_single_cycle_resource_observation_passed": true,
+  "final_source_frame_adjudication": {
+    "profile": "connect/native-rtc-original-source-frame/1",
+    "complete": false,
+    "passed": false,
+    "failure": "WitnessError",
+    "reason": "original-browser-collection-not-joined0"
+  },
+  "closed_log_diagnostic": {
+    "format": "connect/closed-log-parser-diagnostic/1",
+    "mapping_summaries": 10,
+    "all_complete": true,
+    "total_epochs": 14,
+    "minimum_generations": {
+      "source_generation": 1,
+      "target_generation": 1,
+      "target_connection_generation": 1
+    },
+    "original_log_sha256": "ea0ea4fbc9e39ccd9046dc17c8f54cd9732e81f0bbcfe3e754dff27882de4d90",
+    "original_log_unchanged": true,
+    "original_component_remains_failed": true,
+    "no_frame_or_cell_regrade": true
+  },
+  "causal_limits": [
+    "Complete real mapping exports verify final-owner cycle release in this focused process, not a matrix cell.",
+    "Original collection and component remain failed. Same authored marker with advancing receiver RTP still requires exact original-source, Core epoch and closed-wire proof.",
+    "Initial-only witness eligibility, pair capacity and hidden numeric candidate addresses are fixture gaps to fix prospectively; no historical regrade."
+  ],
+  "matrix_qualified": false,
+  "ready_for_full32": false,
+  "independent_original_result_review_sha256": "2bb36fc79df555d3d38ffc11f2b7ec3ca0593414ea8390f50dfaa813c1621023"
+}

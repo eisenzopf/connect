@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-14T22:49:13.529384+00:00",
-  "run_status": "Latestv218matrix1/32cells399/432checks unchanged. Raw445Firefox6A6V6AV+resourcePASS butfinalCLI1 remainsfailed. Parser9/9, peerownership44820/20 andstrongeractualEnvFilter/default4495/5 pass withindependentreview. Freshnormalmappingexport/finalwitness pending, thenfinalcurrentregression/localARM/releases/preflight; nofull32.",
+  "updated": "2026-11-14T23:42:16.948920+00:00",
+  "run_status": "Latest full v218 remains1/32cells399/432checks. Focused449 CLOSED/failed:audio6/AV6/resourcePASS,rawvideo0/6 due22 unresolved drawaliases;10complete mappingexports/14epochs verifyownershipfix. Numericprivateprofile6/6 plusnativepreferenceeffectPASS. Completepublic-epoch/Core/wire proof inprogress; thenfreshfocused/currentregression/localARM/releases/preflight. No full32.",
   "blockers": [
     {
       "id": "B01",
@@ -18881,5 +18881,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-focused445-raw-quality.json",
     "sha256": "32be46ee8844a78aff7d2bb5a876dafa50a630b6142accaeb59ab650ae6c0820",
     "final_witness_passed": false
-  }
+  },
+  "v219_focused449_original_result": "docs/evidence/gate-6/g6-058-v219-focused449-original-result.json",
+  "v219_numeric_ice_profile": "docs/evidence/gate-6/g6-058-v219-firefox-numeric-ice.json"
 }

@@ -45,8 +45,10 @@
     "runtime_cases_executed": 0,
     "reason": "Missed nested owned_video handler reference; additive448 plumbing uses same Driver-owned handler, no behavior change."
   },
-  "actual_normal_mapping_export_verified": false,
+  "actual_normal_mapping_export_verified": true,
   "full_regression_qualified": false,
   "matrix_qualified": false,
-  "ready_for_full32": false
+  "ready_for_full32": false,
+  "actual_normal_mapping_export_evidence": "docs/evidence/gate-6/g6-058-v219-focused449-original-result.json",
+  "actual_normal_mapping_export_scope": "10 complete exports/14 epochs on original closed focused449; final component remains failed"
 }

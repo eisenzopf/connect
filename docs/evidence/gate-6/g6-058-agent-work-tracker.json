@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-14T22:49:13.529384+00:00",
-  "revision": 82,
+  "updated_at": "2026-11-14T23:42:16.948920+00:00",
+  "revision": 83,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 141,
-    "verified_at": "2026-11-14T22:49:13.529384+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-profile-control.json",
-    "readback_evidence_sha256": "0be0257cae8e645fbd83de1a94a5729d40a748361d2ce37be5026474693c3271",
+    "content_revision": 142,
+    "verified_at": "2026-11-14T23:42:16.948920+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-public-epoch.json",
+    "readback_evidence_sha256": "bf871430aa9759bfd0158d8853fd497c06a86e2e48d345fa13d983e1350f0a7d",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1889,7 +1889,7 @@
         "V219-VIDEO-ADOPTION"
       ],
       "status": "component-verified",
-      "implementation_state": "Raw445focused6audio/6video/6AV andresourcePASS, finalCLI1 due log-reader cap and absent mapping exports. Parser and actual Arc-retention fixes component verified; normal finalwitness proof pending.",
+      "implementation_state": "Normal449 exports verified. Raw audio6/AV6/resource pass; video0/6 due22 unresolved draw aliases. Public-epoch coverage, pair capacity and exact native tuple proof being completed prospectively; no regrade.",
       "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
       "verification_runs": [
         {
@@ -1915,7 +1915,7 @@
         "status": "Accepted for prospective component scope after Fixture source and actual review",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-14T22:40:15.149570+00:00"
+      "updated_at": "2026-11-14T23:42:16.948920+00:00"
     },
     {
       "id": "V219-ICE-CLOSE",
@@ -1997,7 +1997,7 @@
         "V219-ORIGINAL-FRAME-WITNESS"
       ],
       "status": "component-verified",
-      "implementation_state": "Reviewed implementation and actual focused controls pass; fresh normal mapping-export and final witness proof pending.",
+      "implementation_state": "Actual lifecycle20/20 and normal focused449 mapping exports10/10 complete (14epochs); final component still failed on unresolved source-frame witness.",
       "required_evidence": "Fresh normal focused media/witness, final current regression/localARM/releases/preflight and full32 later.",
       "verification_runs": [
         {
@@ -2012,7 +2012,65 @@
         "status": "Accepted for stated component scope after independent source and actual review",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-14T22:40:15.149570+00:00"
+      "updated_at": "2026-11-14T23:42:16.948920+00:00"
+    },
+    {
+      "id": "V219-NUMERIC-ICE",
+      "plan_id": "V219-NUMERIC-ICE",
+      "title": "Exact numeric ICE facts in private Firefox witness profile",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-ORIGINAL-FRAME-WITNESS"
+      ],
+      "depends_on": [
+        "V219-RTC-OWNERSHIP"
+      ],
+      "status": "component-verified",
+      "implementation_state": "Six unit checks plus native preference effect accepted; exact Connect stats/Core/wire proof remains pending.",
+      "required_evidence": "Independent code review, original joined focused/unit results, exact closed-wire proof and final current preparation checks; no original quality waivers.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-firefox-numeric-ice.json",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted only for recorded scope",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T23:42:16.948920+00:00"
+    },
+    {
+      "id": "V219-PUBLIC-EPOCH-WITNESS",
+      "plan_id": "V219-PUBLIC-EPOCH-WITNESS",
+      "title": "Complete original-source identity proof across public handoff epochs",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-ORIGINAL-FRAME-WITNESS"
+      ],
+      "depends_on": [
+        "V219-RTC-OWNERSHIP"
+      ],
+      "status": "assigned",
+      "implementation_state": "Independently reviewed design accepted; bounded compact implementation and exact source/receiver epoch-window proof in progress.",
+      "required_evidence": "Independent code review, original joined focused/unit results, exact closed-wire proof and final current preparation checks; no original quality waivers.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-focused449-original-result.json",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted only for recorded scope",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T23:42:16.948920+00:00"
     }
   ],
   "failure_mapping": [
@@ -6000,9 +6058,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v219-mapping-profile-control.json",
-    "sha256": "5b18b964364350541bbf9757eae8c53a2a59dab52b27da845516ae4d7e9ee986",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-focused449-original-result.json",
+    "sha256": "9a8c0d04a4e52bb389e016d29a9f7f2e1d1efd8132423d42ca7e4f90ff5a6f0a",
     "ready": false,
-    "next": "Fresh normalFirefox on committed449 source, require actual mapping export/finalwitness and originalowner closure; then currentregression/ARM/releases/preflight; nofull32."
+    "next": "Complete reviewed public-epoch/source-wire witness and focused controls; fresh normal exact native proof, then current regression/localARM/releases/preflight. No full32 in this preparation phase."
   }
 }

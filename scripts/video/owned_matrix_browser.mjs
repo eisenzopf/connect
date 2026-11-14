@@ -8,6 +8,9 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {launchOwnedChromium} from './owned_chromium.mjs';
 
 export async function launchMatrixBrowser(spec,profile,initializeProfile){
+    const witness=spec.rtcSourceFrameWitness??false;
+    if(typeof witness!=='boolean')throw TypeError('Explicit source-frame witness boolean required');
+    const firefoxPreferences=spec.browserName==='firefox'||witness?matrixFirefoxUserPreferences(spec):null;
     if(spec.browserName==='chrome'){
         const {chromium}=await import(pathToFileURL(spec.playwrightModule).href);
         return launchOwnedChromium(chromium,spec.browserBinary,profile,process.env,initializeProfile);
@@ -15,20 +18,7 @@ export async function launchMatrixBrowser(spec,profile,initializeProfile){
     if(spec.browserName!=='firefox')throw Error('Unknown matrix browser');
     const {default:puppeteer}=await import(pathToFileURL(spec.puppeteerModule).href);
     if(initializeProfile)await initializeProfile(profile);else await fs.mkdir(profile,{mode:0o700});
-    await fs.writeFile(path.join(profile,'user.js'),[
-        // Firefox excludes loopback ICE candidates and loopback STUN by
-        // default. Enable its documented offline-test mode only in this
-        // disposable, explicitly owned all-loopback matrix profile.
-        ...(new URL(spec.origin).hostname==='127.0.0.1' &&
-            Array.isArray(spec.fixtureAddresses) && spec.fixtureAddresses.length===1 &&
-            spec.fixtureAddresses[0]==='127.0.0.1'
-            ? ['user_pref("media.peerconnection.ice.loopback", true);'] : []),
-        'user_pref("media.autoplay.default", 0);',
-        'user_pref("media.autoplay.blocking_policy", 0);',
-        'user_pref("browser.shell.checkDefaultBrowser", false);',
-        'user_pref("datareporting.policy.dataSubmissionEnabled", false);',
-        'user_pref("toolkit.telemetry.enabled", false);',
-    ].join('\n')+'\n',{mode:0o600});
+    await fs.writeFile(path.join(profile,'user.js'),firefoxPreferences,{mode:0o600});
     const reservation=net.createServer();
     await new Promise((yes,no)=>{reservation.once('error',no);reservation.listen(0,'127.0.0.1',yes);});
     const port=reservation.address().port;
@@ -62,6 +52,42 @@ export async function launchMatrixBrowser(spec,profile,initializeProfile){
         }};
         return {browser:facade,close,port};
     }catch(error){await close();throw error;}
+}
+
+// Only the explicitly requested private witness profile exposes original
+// numeric host candidates. Browser/SDK defaults and other profiles stay intact.
+export function matrixFirefoxUserPreferences(spec){
+    const witness=spec.rtcSourceFrameWitness??false;
+    if(typeof witness!=='boolean')throw TypeError('Explicit source-frame witness boolean required');
+    if(witness){
+        const origin=new URL(spec.origin),addresses=spec.fixtureAddresses;
+        const privateAddress=address=>{
+            if(typeof address!=='string'||net.isIP(address)!==4)return false;
+            const octets=address.split('.').map(Number);
+            return address==='127.0.0.1'||octets[0]===10||octets[0]===192&&octets[1]===168
+                ||octets[0]===172&&octets[1]>=16&&octets[1]<=31;
+        };
+        if(spec.browserName!=='firefox'||spec.transport!=='firefox-wss-webrtc'||spec.stage!=='quality'
+            ||origin.protocol!=='https:'||!origin.port||origin.username||origin.password||origin.search||origin.hash
+            ||!Array.isArray(addresses)||addresses.length<1||addresses.length>2
+            ||!addresses.every(privateAddress)||!addresses.includes(origin.hostname))
+            throw Error('Numeric ICE requires explicit Firefox quality witness and validated private fixture addresses');
+    }
+    return [
+        // Firefox excludes loopback ICE candidates and loopback STUN by
+        // default. Enable its documented offline-test mode only in this
+        // disposable, explicitly owned all-loopback matrix profile.
+        ...(new URL(spec.origin).hostname==='127.0.0.1' &&
+            Array.isArray(spec.fixtureAddresses) && spec.fixtureAddresses.length===1 &&
+            spec.fixtureAddresses[0]==='127.0.0.1'
+            ? ['user_pref("media.peerconnection.ice.loopback", true);'] : []),
+        ...(witness?['user_pref("media.peerconnection.ice.obfuscate_host_addresses", false);']:[]),
+        'user_pref("media.autoplay.default", 0);',
+        'user_pref("media.autoplay.blocking_policy", 0);',
+        'user_pref("browser.shell.checkDefaultBrowser", false);',
+        'user_pref("datareporting.policy.dataSubmissionEnabled", false);',
+        'user_pref("toolkit.telemetry.enabled", false);',
+    ].join('\n')+'\n';
 }
 
 export function matrixFirefoxPage(page){

@@ -1,0 +1,34 @@
+{
+  "format": "connect/g6-058-firefox-numeric-ice-profile/1",
+  "updated_at": "2026-11-14T23:42:16.948920+00:00",
+  "scope": "Explicit disposable Firefox quality witness only; default browser and SDK behavior unchanged",
+  "source_candidate_manifest_sha256": "20cf668f367c1f2d4683195a48ae79a4f5045690daea6792548090bb98c49359",
+  "actual_unit_checks": {
+    "passed": 6,
+    "required": 6,
+    "original_result_sha256": "51d26309375ef7ff451f0d265ad945bd5768e89a529b160372c647db10b6761f",
+    "root_original_join_sha256": "bb5f4ead2aa6e710e2bfefb58c65fa12ece67e1c8756956425414d31091282e8",
+    "independent_review_sha256": "44fbdb91cff89c281203205ed7eacfeef8c67d910ed5df624b74fd74a729f45f"
+  },
+  "native_capability": {
+    "passed": true,
+    "pinned_firefox": "158.0.1",
+    "default_selected_local_candidate_address": "mDNS",
+    "witness_selected_local_candidate_address": "numeric IPv6",
+    "real_native_encrypted_canvas_packets": true,
+    "both_original_engines_natural_exit0": true,
+    "original_Node_natural_exit0_and_group_absent": true,
+    "source_unchanged": true,
+    "original_result_sha256": "2af83af82fa8b29e658455028d1f0bfbd5d9e14ea9bbd6203aa80fa1597b45d1",
+    "original_capability_sha256": "5f3da39e31bf2cade5b645e2184f2317faafde29b1b7a55e3694722a79e5e256",
+    "root_original_join_sha256": "40c229c83333be99d66729b0bb0b17c63d350367ea1f1e474e06b8f03dd92e65",
+    "independent_review_sha256": "fff00c5270cd2f7c49f1fcf1aad0e7be9cad981166f1ecb206a985a372d72dc3"
+  },
+  "limits": [
+    "Two local browser peers establish profile preference effect only; exact Connect server stats/Core epoch/closed packet matching remains unverified.",
+    "Separate browser executable before/after content hash was not recorded; this probe is not shipping artifact qualification.",
+    "No original matrix result or quality limit changes."
+  ],
+  "matrix_qualified": false,
+  "ready_for_full32": false
+}
