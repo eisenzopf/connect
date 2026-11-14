@@ -28,6 +28,14 @@ assert.ok(['chrome-webtransport','chrome-wss-webrtc','firefox-wss-webrtc'].inclu
 assert.ok(['EdDSA','ES256'].includes(spec.signingAlgorithm));
 const rtcAudioFacts=spec.rtcAudioFacts??false;
 assert.equal(typeof rtcAudioFacts,'boolean');
+const completionDeferral=spec.originalCompletionDeferral??null;
+if(completionDeferral!==null){
+    assert.ok(['chrome-wss-webrtc','firefox-wss-webrtc'].includes(spec.transport));
+    assert.equal(spec.stage,'quality');assert.equal(spec.resourceCycles??1,1);
+    assert.deepEqual(Object.keys(completionDeferral).sort(),['holdMs','ordinal','source']);
+    assert.equal(completionDeferral.source,0);assert.equal(completionDeferral.ordinal,0);
+    assert.ok(Number.isInteger(completionDeferral.holdMs)&&completionDeferral.holdMs>=0&&completionDeferral.holdMs<=500);
+}
 const cycleCount=spec.resourceCycles??1;
 assert.ok([1,3].includes(cycleCount)&& (cycleCount===1||spec.stage==='quality'));
 assert.equal(spec.cycleWorkloads.length,cycleCount);
@@ -107,6 +115,7 @@ try{
             else if(url.pathname==='/_matrix/browser_matrix_rtc_observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_observation.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_rtc_audio_diagnostics.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_audio_diagnostics.mjs');
             else if(url.pathname==='/_matrix/media_transition_coverage.mjs')file=path.join(root,'scripts/lib/media_transition_coverage.mjs');
+            else if(url.pathname==='/_matrix/completion-gate.mjs')file=path.join(root,'scripts/lib/browser_matrix_completion_gate.mjs');
             else if(url.pathname==='/_matrix/observation.mjs')file=path.join(root,'scripts/lib/browser_matrix_observation.mjs');
             else if(url.pathname==='/video/audio_envelope.mjs')file=path.join(root,'scripts/video/audio_envelope.mjs');
             else if(url.pathname==='/_matrix/retired-references.mjs')file=path.join(root,'scripts/lib/browser_matrix_retired_references.mjs');
@@ -212,6 +221,9 @@ try{
         const {browserMatrixRetirementHooks,finishBrowserMatrixRetirement}=await import('/_matrix/retirement-hooks.mjs');
         const {browserMatrixPlan,browserMatrixAdmission,retireBrowserMatrixAdmission,browserMatrixCycleSummary,browserMatrixCycleOutcome}=await import('/_matrix/admission.mjs');
         const {browserMatrixSources}=await import('/_matrix/sources.mjs');
+        const {installOriginalCompletionGate}=spec.originalCompletionDeferral
+            ?await import('/_matrix/completion-gate.mjs'):{};
+        const completionGate=spec.originalCompletionDeferral?installOriginalCompletionGate(spec.originalCompletionDeferral):null;
         const {browserMatrixProgramme,browserMatrixKeepalive,retireBrowserMatrixProgramme,closeBrowserMatrixProgramme,browserMatrixCleanupMoves}=await import('/_matrix/programme.mjs');
         const pin=Uint8Array.from(spec.tls.leafSha256.match(/../g),value=>parseInt(value,16));
         let pinRefusal;
@@ -233,7 +245,7 @@ try{
         }
         const parameters=name=>name==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
         const cycles=[];
-        for(const cycle of spec.cycleWorkloads){
+        try{for(const cycle of spec.cycleWorkloads){
         const cycleStarted=performance.now(),cycleDeadline=cycleStarted+210000;
         await window.matrixCycleStart(cycle);
         let value=await (async()=>{
@@ -306,6 +318,7 @@ try{
                 await browserMatrixProgramme({state,actors,plan,sources,journal:event=>journal(event),
                     keepalive,report:programmeReport,observer,selectedTransport:selected,cleanupMoves});
             }
+            completionGate?.close();
             const retirement=await retireBrowserMatrixProgramme({keepalive,report:programmeReport,retire:async()=>{
                 window.matrixPhase='original-retirement';
                 if(spec.stage==='quality'){
@@ -354,9 +367,11 @@ try{
                 ...(programmeReport.keepalive_failure?{failure:{stage:'original-keepalive',...programmeReport.keepalive_failure}}:{}),
                 actual_connections:retiredReferences.counts().actual_connections,source_startup:sourceStartup,retirement,idle_resources:idleResources,selection,current_authority:currentAuthority,
                 ...(spec.stage!=='admission'?{programme:programmeReport,keepalive:keepalive.observation()}:{}),
+                ...(completionGate?{original_completion_counter:completionGate.report(),counter_only:true}:{}),
                 ...(spec.stage!=='admission'?{scope:'Actual admission and four-move programme; decoded quality and idle resources are explicit when requested. Capture/expiry/fallback require separate evidence.'}:{})};
         }catch(error){
             failureHandled=true;
+            completionGate?.close();
             console.error('Matrix failure',String(error.stack??error),JSON.stringify({kind:error.kind,certainty:error.certainty,problem:error.problem}));
             const cleanupErrors=[];
             if(spec.stage==='quality'&&resourceClock&&!resourceTerminalRequested){
@@ -402,6 +417,7 @@ try{
                 name:error.name,kind:error.kind??null,certainty:error.certainty??null,
                 problem:typeof error.problem?.reason==='string'&&/^[a-zA-Z0-9_-]{1,128}$/.test(error.problem.reason)
                     ?{code:error.problem.code,reason:error.problem.reason}:null},source_startup:sources?.observation(),
+                ...(completionGate?{original_completion_counter:completionGate.report(),counter_only:true}:{}),
                 programme:programmeReport,...(programmeReport.decoded_media?{decoded_media:programmeReport.decoded_media}:{}),
                 keepalive:keepalive?.observation(),selection,current_authority:currentAuthority,
                 idle_resources:failedIdle,original_cleanup_errors:cleanupErrors,original_client_closes:closes.map(value=>value.status)};
@@ -432,6 +448,7 @@ try{
         return {...first,passed:cycleCount===1&&first.passed,cycles,
             unstarted_cycles:spec.cycleWorkloads.slice(cycles.length),
             ...(cycleCount===1&&first.passed||first.failure?{}:{failure:{stage:'original-cycle-joins',name:'OriginalCycleIncomplete'}})};
+        }finally{completionGate?.close();}
         })().then(value=>{original.value=value;original.state='fulfilled';},error=>{
             original.error={name:error.name,message:String(error.message??error),stack:String(error.stack??error)};
             original.state='rejected';

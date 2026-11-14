@@ -1,0 +1,84 @@
+{
+  "format": "connect/g6-058-pre-matrix-preparation/1",
+  "updated_at": "2026-11-14T08:12:11.860131+00:00",
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "old_complete_cohort": {
+    "source_revision": "10210c87475be30233c07593fa50c5a9002fb31c",
+    "generation": 436,
+    "Rust": {
+      "completed": 440,
+      "passed": 439,
+      "failed": 1
+    },
+    "scripts_passed": 175,
+    "build_phases_passed": 7,
+    "whole_passed": false,
+    "all_originals_joined": true,
+    "source_unchanged": true,
+    "binaries_unchanged": true,
+    "runtime_receipt_sha256": "2a5abe6919d6f4f62257379c6334f8d79f091aacec6000ba23dcaad1b081b4ec",
+    "runtime_original_join_sha256": "0735cb479954bdf2aecd4457886eacd2d1f3c03ae44c0ad2769fec149f806c42",
+    "both_full_62_second_programmes_passed": true,
+    "failure": {
+      "selector": "canonical_native_connections::consultation::groups::replacement::activation::continuation::production_paused_replacement_projection_target_revocation_refuses_without_old_revival",
+      "phase": "already-confirmed Start replay before pause/revocation assertions",
+      "public_problem": "storage-unavailable",
+      "diagnostic_leaf": "primary-sql-mutex",
+      "exact_mutex_holder_proved": false
+    }
+  },
+  "fixture_retry": {
+    "production_library_changed": false,
+    "same_logical_operation_and_payload": true,
+    "same_original_deadline": true,
+    "only_explicit_storage_unavailable_retried": true,
+    "late_ACK_refused": true,
+    "candidate_manifest_sha256": "24967568af0b9a27a6c2b3496c4ef629adb49c0afbf3494a343ecd04cd745617",
+    "independent_source_review_sha256": "795d617954a9785b654c8d2f2070de2562900a6dc6adf4f06500afbc3ef9296f",
+    "actual_focused_passed": 2,
+    "actual_runtime_receipt_sha256": "75a0443c6b62988ae5b24beafeacea08bf417febe085952c4370d7cd0ed408ad",
+    "actual_original_join_sha256": "89e3b7187ea6f15ccfe74acf369863ff27e7f2ef7913001ec9815919d197dd64",
+    "focused_source_workspace_sha256": "ae68e9d986fb473da4bc3980cb64938a93e3a902c379f29d4bf4fabd94a8a663",
+    "source_unchanged": true,
+    "binary_unchanged": true,
+    "all_original_groups_joined": true
+  },
+  "audio_completion_counter": {
+    "owner": "/root/fixture_blockers",
+    "independent_reviewer": "/root/v198_resources",
+    "coordinator": "/root",
+    "candidate_manifest_sha256": "4731d701b20a9f06296bfad8d71f9c97bf62886b476bb4194af8fc730e81f29c",
+    "mechanical_Node_controls_passed": 9,
+    "actual_signed_0_250ms_counters_executed": 0,
+    "criteria_changed": false,
+    "historical_audio_cause_proved": false,
+    "source_audio_graph_adoption_already_exists": true,
+    "next": "Actual same-signed-reply baseline and250ms local Firefox WSS counters; unchanged both-original-receipt validation before public render."
+  },
+  "diagnostic_logging": {
+    "existing_Python_controls_passed": 3,
+    "existing_rate_limited_RTC_refusal_target_enabled_only_with_explicit_WSS_audio_facts": true
+  },
+  "cleanup": {
+    "physical_GiB_recovered": 60.030517578125,
+    "free_GiB_observed": 60.57465362548828,
+    "old_compiler_object_files_removed": 42086,
+    "source_logs_libraries_archives_current_and_retained_binaries_preserved": true,
+    "current11_hashes_match_before_and_after_each_cleanup": true
+  },
+  "next_combined_expected": {
+    "Rust": 441,
+    "scripts": 184,
+    "total": 625,
+    "qualified": false
+  },
+  "new_matrix_started": false,
+  "owner_requested_stop_at_ready_for_32": true,
+  "G6_054": "deferred"
+}

@@ -283,6 +283,9 @@ export class DecodedRoute {
         this.audio.push({owner,seconds,timestamp,duplicate,native,clock:originalClock,clock_key:clockKey,
             pcm_position:pcmPosition, pcm_clock_rate:pcmRate, row_index:this.audio.length,...identity});
         this.envelope.sample(seconds, identity.rms);
+        // Optional private counter sees only the same already accepted public
+        // row and existing identity scalars. It changes no measurement result.
+        globalThis.connectOriginalCompletionGate?.audio({owner,timestamp,at,index:this.index,identity});
         if(!identity.identified||identity.rms<.03){if(this.audioBoundaries.length<32)this.audioBoundaries.push({owner,original_timestamp_us:timestamp,
             callback_seconds:seconds,identity,boundary:pcmBoundary(samples),codec});else this.omittedAudioBoundaries++;}
     }

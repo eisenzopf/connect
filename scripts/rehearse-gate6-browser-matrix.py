@@ -115,7 +115,13 @@ def main():
     parser.add_argument("--firefox", type=Path)
     parser.add_argument("--rtc-audio-facts", action="store_true",
                         help="Opt in to bounded private WSS audio diagnostics; default is off")
+    parser.add_argument("--original-completion-deferral-ms", type=int, choices=(0, 250),
+                        help="Diagnostic-only first actual WSS completion delivery barrier; default off")
     args = parser.parse_args()
+    if args.original_completion_deferral_ms is not None and not (
+            args.stage == "quality" and args.resource_cycles == 1 and args.network == "local"
+            and args.transport.endswith("wss-webrtc")):
+        parser.error("Original completion counter requires one local WSS quality programme")
     rtc_audio_facts = args.rtc_audio_facts and args.transport.endswith("wss-webrtc")
     if args.resource_cycles == 3 and args.stage != "quality":
         parser.error("Three resource cycles require the full quality workload")
@@ -148,14 +154,16 @@ def main():
     # without adding per-packet logging to the measured programme.
     env["RUST_LOG"] = "warn,connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug,connect_service::packet_refusal=debug,connect_service::runtime_retention=debug" + ",quinn_proto::datagram_queue=debug"
     if rtc_audio_facts:
-        env["RUST_LOG"] += ",rvoip_webrtc_stack::audio_facts=debug,rvoip_webrtc::audio_facts=debug"
+        env["RUST_LOG"] += ",rvoip_webrtc_stack::audio_facts=debug,rvoip_webrtc::audio_facts=debug,rvoip_webrtc::canonical::media=debug"
     sources = runpy.run_path(str(ROOT / "scripts/check-gate6-linux-hosting.py"))["sources"]
     bounded = runpy.run_path(str(ROOT / "scripts/check-linux-package-build.py"))["run_bounded"]
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     cell_id = "/".join(("G6-058", server_platform, args.network, args.transport, args.signing))
     report = dict(format="connect/browser-matrix-component/1", stage=args.stage, cell_id=cell_id,
         source_revision=revision, server_platform=server_platform, client_platform="ubuntu24-arm64" if args.network != "local" else server_platform,
-        network_profile=args.network, diagnostic_options=dict(rtc_audio_facts_enabled=rtc_audio_facts),
+        network_profile=args.network, diagnostic_options=dict(rtc_audio_facts_enabled=rtc_audio_facts,
+            original_completion_deferral_ms=args.original_completion_deferral_ms),
+        diagnostic_counter_only=args.original_completion_deferral_ms is not None,
         signing_algorithm=args.signing, transport=args.transport, browser_image_id=args.image,
         passed=False, cell_qualified=False, task_complete=False, whole_gate_qualified=False,
         full_media_programme_executed=False, commands=[], servers=[], browser_owner_started=False,
@@ -384,6 +392,8 @@ def main():
                 client_runtime[name] = client_runtime[name].replace(str(ROOT), "/workspace")
         publish(browser_input, (json.dumps(dict(format="connect/browser-matrix-admission-input/1", sourceRevision=revision,
             transport=args.transport, signingAlgorithm=args.signing, origin=origin, stage=args.stage, resourceCycles=cycle_count, cycleWorkloads=cycle_workloads,
+            originalCompletionDeferral=(dict(holdMs=args.original_completion_deferral_ms, source=0, ordinal=0)
+                if args.original_completion_deferral_ms is not None else None),
             rtcAudioFacts=rtc_audio_facts, fixtureAddresses=sorted({server_ip, client_ip}),
             endpoints={"webtransport": f"https://{server_ip}:{native}/connect", "wss-webrtc": f"wss://{server_ip}:{wss}/connect"},
             actors=exported, output=str(browser_output),

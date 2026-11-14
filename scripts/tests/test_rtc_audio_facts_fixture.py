@@ -70,14 +70,22 @@ class RtcAudioFactsFixture(unittest.TestCase):
         keyword = next(n for n in ast.walk(main) if isinstance(n, ast.keyword) and n.arg == 'rtcAudioFacts')
         self.assertIsInstance(keyword.value, ast.Name)
         self.assertEqual(keyword.value.id, 'rtc_audio_facts')
+        base_log = ('warn,connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,'
+                    'rvoip_core::audio_summary=debug,connect_service::packet_refusal=debug,'
+                    'connect_service::runtime_retention=debug,quinn_proto::datagram_queue=debug')
+        private_targets = ('rvoip_webrtc_stack::audio_facts=debug', 'rvoip_webrtc::audio_facts=debug',
+                           'rvoip_webrtc::canonical::media=debug')
         for requested in (False, True):
             for transport in ('chrome-webtransport', 'chrome-wss-webrtc', 'firefox-wss-webrtc'):
-                env = {'PATH': 'unchanged'}
+                env = {'PATH': 'unchanged', 'RUST_LOG': 'trace,foreign_target=trace'}
                 values = execute([option, log, enabled], dict(args=SimpleNamespace(rtc_audio_facts=requested, transport=transport), env=env))
                 expected = requested and transport.endswith('wss-webrtc')
                 self.assertEqual(values['rtc_audio_facts'], expected)
                 self.assertEqual(env['RUST_LOG'].count('rvoip_webrtc_stack::audio_facts=debug'), int(expected))
                 self.assertEqual(env['RUST_LOG'].count('rvoip_webrtc::audio_facts=debug'), int(expected))
+                self.assertEqual(env['RUST_LOG'].count('rvoip_webrtc::canonical::media=debug'), int(expected))
+                self.assertEqual(env['RUST_LOG'], base_log + (',' + ','.join(private_targets) if expected else ''))
+                self.assertNotIn('trace', env['RUST_LOG'])
                 self.assertEqual(env['PATH'], 'unchanged')
         node = (ROOT / 'scripts/video/browser_matrix_admission.mjs').read_text()
         self.assertIn('page.addInitScript(installPeerDiagnostics,{peerBound:16,rtcAudioFacts})', node)

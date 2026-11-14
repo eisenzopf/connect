@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-13T23:52:43.989392+00:00",
-  "run_status": "Latest full matrix v218 remains1/32 cells and399/432 checks passed. RTC scheduling fixes pass50/50. New actualOLD library burst counter delivered10 of65 and refused55; the nonwaiting bounded436 fix now passes65/65 focused checks (fournew+61retained), including130normalization/old11backlog,65inorder,independentpublisher/laterprogress,clock/gate/age/cleanup. Suites overlap and are not summed. Earlier4e0 source stage passed175scripts+7builds;436Rust runtime explicitlydeferred for this newly found defect. Next: final combined440Rust+175scripts, ARM/normalrelease/full32. No matrix cure or historical39-bin/audio-zero cause claimed;G6-054deferred.",
+  "updated": "2026-11-14T08:12:11.860131+00:00",
+  "run_status": "Latest complete matrix: v218, 1/32 cells and399/432 checks passed. Preparation: all7 normalbuilds and175scripts pass; combinedRust439/440, with bothfull62 programmes passed. The sole setup replay failure is corrected and passes its original signed revocation test plus a new deadline control. Nine completion-counter controls and3 logging controls pass; actual signed audio diagnostic and fresh625/localARM/release/preflight remain. Owner requested preparation until ready; no new32-cell run started.",
   "blockers": [
     {
       "id": "B01",
@@ -3601,6 +3601,24 @@
       "owner_agent": "/root/media_blockers",
       "reviewer": "/root/fixture_blockers",
       "coordinator": "/root"
+    },
+    {
+      "id": "V219-REPLAY-SETUP",
+      "title": "Confirmed replay recovery \u2014 media_blockers; reviewer fixture_blockers",
+      "status": "component-verified2/2",
+      "completion": "Same originaldeadline andlogicaloperation; originalsignedrevocation asserts pass. Fresh625/localARM andmatrix remain."
+    },
+    {
+      "id": "V219-AUDIO-RECEIPT",
+      "title": "Signed completion/audio boundary \u2014 fixture_blockers; reviewer v198_resources",
+      "status": "mechanical-controls9/9;actualaudio-pending",
+      "completion": "Actual localFirefoxWSS0/250ms signedcounter; no privatePCMpromotion/no qualitythresholdchange; then demonstratefix ifcausal."
+    },
+    {
+      "id": "V219-STORAGE-READY",
+      "title": "Local storage \u2014 v198_resources; reviewer fixture_blockers",
+      "status": "60.03physicalGiBrecovered",
+      "completion": "Two independentlyreviewed old-object subsets removed;11currentbinaryhashes unchanged. Confirmheadroom in finalpreflight."
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -5995,7 +6013,10 @@
     "V219-RTC-REPAIR",
     "V219-RTC-DRIVER",
     "V219-RTC-FENCE",
-    "V219-WSS-INGRESS"
+    "V219-WSS-INGRESS",
+    "V219-REPLAY-SETUP",
+    "V219-AUDIO-RECEIPT",
+    "V219-STORAGE-READY"
   ],
   "v208_counterexamples": {
     "rust_closure_sha256": "b954f9d6c443428d4ca7c58fb6792a220d861f8053f3826b2d2463e2a318d846",
@@ -17725,6 +17746,24 @@
       "passed": 9,
       "planned": 9,
       "evidence": "g6-058-v218-codec-readiness-progress.json"
+    },
+    {
+      "name": "Confirmed replay deadline and actual signed revocation",
+      "passed": 2,
+      "planned": 2,
+      "evidence": "g6-058-v219-pre-matrix-preparation.json"
+    },
+    {
+      "name": "Completion delivery mechanical controls",
+      "passed": 9,
+      "planned": 9,
+      "evidence": "g6-058-v219-pre-matrix-preparation.json"
+    },
+    {
+      "name": "Existing explicit WSS logging controls",
+      "passed": 3,
+      "planned": 3,
+      "evidence": "g6-058-v219-pre-matrix-preparation.json"
     }
   ],
   "current_production_check": {
@@ -18697,5 +18736,11 @@
     "fixed_evidence_sha256": "f3b72ecfbf3374a51e35b630a360e20e077719eb22fbfe2394687253b58bae1e",
     "actual_matrix_cause_or_cure_proven": false,
     "next": "Fresh440Rust+175script/normalbuilds/full62LAST thenARM/release/full32."
+  },
+  "v219_pre_matrix_preparation": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-pre-matrix-preparation.json",
+    "sha256": "f7dc3a0c8fb462c8f3db5145017d890a4b2217589b3d25002e1fc47901f8ae51",
+    "status": "fixture-retry-component-verified-audio-causal-test-and-combined-625-pending",
+    "matrix_qualified": false
   }
 }

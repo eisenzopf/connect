@@ -6,6 +6,8 @@ mod activation;
 mod av;
 #[path = "replacement/decoded_readiness.rs"]
 pub(super) mod decoded_readiness;
+#[path = "replacement/start_replay.rs"]
+mod start_replay;
 async fn wait_prepared(f: &Fixture, key: &str, operation: &str) -> OperationRecord {
     let until = tokio::time::Instant::now() + Duration::from_secs(10);
     loop {
@@ -924,12 +926,14 @@ async fn exercise_replacement_with_av_transfer(
                     replay["replacement_preparation"]["profile"] =
                         json!("connect-replacement-media-v1");
                     drop(c);
-                    client
-                        .request_value("connection.offer", replay, scope)
-                        .await
-                        .unwrap()
-                        .ack()
-                        .unwrap();
+                    start_replay::acknowledge_confirmed_start(
+                        &mut client,
+                        replay,
+                        scope,
+                        original_cutoff,
+                    )
+                    .await
+                    .unwrap();
                     assert_eq!(
                         status(&f, &key.id, &command.operation_id).await.effects,
                         started.effects

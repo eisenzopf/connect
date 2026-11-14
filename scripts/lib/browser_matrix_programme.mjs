@@ -215,6 +215,10 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
         let phase = 'source-session-refresh';
         try{
             const sid=plan.sessions[route.session].id,cid=state.conversation.id;
+            const completionGate=globalThis.connectOriginalCompletionGate;
+            if(completionGate&&intent.source===0&&intent.ordinal===0)completionGate.arm({intent,cid,sid,
+                old:before.connection.id,retained:current[plan.routes.filter(other=>other.session===route.session)
+                    .find(other=>other.index!==route.index).index].connection.id,until:cutoff});
             const sourceSession=actors[before.role].client.conversations.byId(cid).sessions.byId(sid);
             const targetSession=target.client.conversations.byId(cid).sessions.byId(sid);
             const peers=plan.routes.filter(other=>other.session===route.session),retained=peers.find(other=>other.index!==route.index);
@@ -237,6 +241,7 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             targetOwner=await targetSession.connections.prepareReplacement({operation:operation.reference,audio:intent.audio,
                 video:{send:intent.video,receive:intent.receiveVideo}},options());
             if(cleanupEntry)cleanupMoves.prepared(cleanupEntry,targetOwner.connection);
+            if(intent.source===0&&intent.ordinal===0)completionGate?.target(targetOwner.connection.id);
             await journal({kind:'move-target-prepared',operationId:intent.operation,connectionId:targetOwner.connection.id});
             phase = 'target-capture';
             await sources.start({route,connection:targetOwner.connection,options:options()});
@@ -269,7 +274,12 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
             // now; an additional verification read must not manufacture a gap.
             // Prepared outputs remain excluded and are never replayed.
             phase = 'public-observer-activation';
+            if(intent.source===0&&intent.ordinal===0){
+                completionGate?.validated({operationId:intent.operation,old:before.connection.id,target:targetOwner.connection.id});
+                completionGate?.render('public-render-begins',targetOwner.connection.id);
+            }
             await observer?.activate(route.index,targetOwner.connection.id,options());
+            if(intent.source===0&&intent.ordinal===0)completionGate?.render('public-render-resolved',targetOwner.connection.id);
             phase = 'retired-source-refresh';
             const old=await before.connection.refresh(options());check(old.state==='retired','Original source must be durably retired');
             sources.retireConnection(before.connection.id);
