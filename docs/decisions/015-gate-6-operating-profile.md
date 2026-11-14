@@ -495,3 +495,31 @@ evidence must remain bound. Any capacity breach or Session cleanup failure
 remains a failure regardless of the RSS trend. The soak must publish its actual
 completed-cycle scope and unresolved attribution, and it remains unexecuted
 until its own required work is performed.
+
+
+### Prospective native RTC original-source frame witness
+
+The opt-in `connect/native-rtc-original-source-frame/1` fixture profile implements
+the existing zero-duplicate **original source timestamp** requirement for Firefox
+render-callback observations. A canvas footer identifies an authored draw, not a
+native capture event. Repeated draw pixels alone cannot establish whether two
+original source RTP frames were duplicated. The raw footer rule and historical
+verdicts remain recorded; no prior failed cell is regraded.
+
+A repeated draw can resolve only for the same initial ordinary receiver, track
+and presentation element, after a complete source/target port-generation and
+SSRC/offset mapping plus uniquely associated original closed capture proves two
+distinct original input frame timestamps. Mapping selection is not delivery;
+actual original source/target wire packets are independently required. Missing,
+omitted, ambiguous, private, cross-owner or changed-source/target evidence fails.
+Repeated original timestamps remain a hard failure even if a later PTS, footer or
+receiver timestamp differs. A native decoded frame without an exact RTP link
+retains the existing strict duplicate rule.
+
+The immutable browser collection may remain pending this external witness; it
+is never itself a quality pass. Only the original outer owner, after original
+browser/capture/server joins and source/binary guards, can write a distinct final
+adjudication bound to the original report and capture hashes. Raw rows, draw
+repeat counts, changed-frame/FPS counts, coverage, gaps, AV skew, wrong-source and
+all ownership checks stay unchanged. No repeated draw gains extra changing-frame
+credit. The mapping is diagnostic metadata, never a grant or cached authority.

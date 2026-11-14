@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-14T12:31:14.467444+00:00",
-  "revision": 79,
+  "updated_at": "2026-11-14T12:57:45.675122+00:00",
+  "revision": 80,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 137,
-    "verified_at": "2026-11-14T12:31:14.467444+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-closed-core.json",
-    "readback_evidence_sha256": "479d9177ff30e2bf464aef0f28dbc3d6a1705f3f8375eeec43e69b8db42c49b6",
+    "content_revision": 138,
+    "verified_at": "2026-11-14T12:57:45.675122+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-source-frame.json",
+    "readback_evidence_sha256": "5bb6d3d7f540f162ff0698ce7ff70e2308ac22cfc0e7d29e65eff04c1a24570a",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1888,21 +1888,27 @@
       "depends_on": [
         "V219-VIDEO-ADOPTION"
       ],
-      "status": "diagnosing",
-      "implementation_state": "ExactCore source/target/epoch mapping andclosedpacket witness beingimplemented; unknown/private/crossowner/repeatedOriginaltimestamp remainhardfail. Manualcandidateunapplied afterFirefoxcapabilityfailure.",
+      "status": "component-verified",
+      "implementation_state": "Applied444 V2 +445test-helper-only correction. All107component checks pass (40Python/62Node/5Rust), including19new. Independent source/actual accepted; no historical or matrix regrade.",
       "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
       "verification_runs": [
         {
           "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-original-source-frame-witness.json",
+          "passed": 107,
+          "required": 107,
+          "matrix_result": false
         }
       ],
       "matrix_result_refs": [],
       "coordinator_review": {
-        "status": "Accepted stated component evidence; remainingworkexplicit",
+        "status": "Accepted for prospective component scope after Fixture source and actual review",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-14T12:17:53.135191+00:00"
+      "updated_at": "2026-11-14T12:57:45.675122+00:00"
     },
     {
       "id": "V219-ICE-CLOSE",
@@ -5925,9 +5931,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v219-closed-core-timer.json",
-    "sha256": "453e290cc1a0a42d335feca0d6beb259e55a1073778c340eab2606b297f9503f",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-original-source-frame-witness.json",
+    "sha256": "3a1e942c305ada244570d98e47faefffe0e718ec956e9f7cf1a104ac46a46cf8",
     "ready": false,
-    "next": "Complete frame-witness batch and controls; fresh focused workload then current full regression/localARM/release/preflight"
+    "next": "Fresh proper combined focusedFirefox runtime proof; resolve anydemonstratedgap then finalcurrent756/localARM/release/preflight. DO NOTlaunch32."
   }
 }

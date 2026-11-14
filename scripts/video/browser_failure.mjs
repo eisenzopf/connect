@@ -1,5 +1,8 @@
-/** Bounded public peer state diagnostics. Never retain SDP, addresses or credentials. */
-export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false}={}) {
+/** Bounded peer metadata. Default retains no addresses; explicit source-frame
+ * witness copies only selected private fixture UDP endpoint/track facts. Never
+ * retain raw SDP, credentials, keys, payloads or live track objects. */
+export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourceFrameWitness=false}={}) {
+    if(typeof rtcSourceFrameWitness!=='boolean')throw TypeError('Explicit source-frame witness boolean required');
     if(typeof rtcAudioFacts!=="boolean")throw TypeError("Explicit RTC audio diagnostic option must be boolean");
     // Runs in the existing original page init, before any observer/peer starts.
     Object.defineProperty(globalThis,"connectRtcAudioFacts",{value:rtcAudioFacts,configurable:true});
@@ -70,6 +73,38 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false}={}) {
             entry.connection_id!==null&&entry.connection_id!==connectionId)return false;
         entry.connection_id=connectionId;return true;
     };
+    // Opt-in private endpoint/track metadata from the SAME original peer.
+    if(rtcSourceFrameWitness){globalThis.connectPeerStreamTag=(peer,connectionId,stream,direction,track)=>{
+        if(!rtcSourceFrameWitness)return false;
+        const entry=entries.find(value=>value.peer===peer);
+        if(!entry||entry.connection_id!==connectionId||!['send','receive'].includes(direction)
+            ||typeof stream!=='string'||stream.length<1||stream.length>256)return false;
+        const key='video_'+direction;let descriptor;
+        if(direction==='send'){
+            const index=peer.getTransceivers().indexOf(track);
+            if(index<0)return false;descriptor={connection_id:connectionId,stream_id:stream,transceiver_index:index};
+        }else{
+            if(!track||track.kind!=='video'||typeof track.id!=='string'||track.id.length<1||track.id.length>256
+                ||!peer.getReceivers().some(value=>value.track===track))return false;
+            descriptor={connection_id:connectionId,stream_id:stream,track_id:track.id};
+        }
+        if(entry[key]&&JSON.stringify(entry[key])!==JSON.stringify(descriptor))return false;
+        entry[key]=descriptor;return true;
+    };
+    globalThis.connectPeerStreamDescriptor=(connectionId,direction)=>{
+        if(!rtcSourceFrameWitness)return null;
+        const found=entries.filter(value=>value.peer&&value.connection_id===connectionId);
+        if(found.length!==1)return null;const entry=found[0],peer=entry.peer,descriptor=entry['video_'+direction];
+        if(!descriptor)return null;
+        const tracks=direction==='send'?[peer.getTransceivers()[descriptor.transceiver_index]?.sender?.track]:
+            peer.getReceivers().map(value=>value.track).filter(value=>value?.id===descriptor.track_id);
+        if(tracks.length!==1||tracks[0]?.kind!=='video'||typeof tracks[0].id!=='string')return null;
+        const id=tracks[0].id;
+        if(direction==='send'&&entry.original_video_send_track!==undefined&&entry.original_video_send_track!==id)return null;
+        if(direction==='send')entry.original_video_send_track=id;
+        return {connection_id:connectionId,stream_id:descriptor.stream_id,track_id:id};
+    };
+    }
     globalThis.connectPeerDiagnostics = () => ({
         peer_bound: peerBound, event_bound_per_peer: 128, omitted_peers: omittedPeers,
         peers: entries.map(entry => {
@@ -105,6 +140,19 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false}={}) {
                 stats_timestamp_ms:Number.isFinite(stat.timestamp)?stat.timestamp:null};
             if(['none','cpu','bandwidth','other'].includes(stat.qualityLimitationReason))row.qualityLimitationReason=stat.qualityLimitationReason;
             for(const field of fields)if(Number.isFinite(stat[field])&&(stat[field]>=0||field==='packetsLost'))row[field]=stat[field];
+            if(rtcSourceFrameWitness&&stat.kind==='video'&&['outbound-rtp','inbound-rtp'].includes(stat.type)){
+                const direction=stat.type==='outbound-rtp'?'send':'receive';
+                row.original_track=globalThis.connectPeerStreamDescriptor(entry.connection_id,direction);
+                const codec=report.get(stat.codecId),transport=report.get(stat.transportId),pair=report.get(transport?.selectedCandidatePairId),
+                    local=report.get(pair?.localCandidateId),remote=report.get(pair?.remoteCandidateId);
+                row.codec={mime_type:typeof codec?.mimeType==='string'?codec.mimeType:null,
+                    payload_type:Number.isInteger(codec?.payloadType)?codec.payloadType:null,
+                    clock_rate:Number.isInteger(codec?.clockRate)?codec.clockRate:null};
+                const endpoint=value=>value&&typeof value.address==='string'&&value.address.length<=128
+                    &&Number.isInteger(value.port)&&value.port>0&&value.port<=65535?{address:value.address,port:value.port,protocol:value.protocol}:null;
+                row.selected_path={nominated:pair?.nominated===true,succeeded:pair?.state==='succeeded',
+                    local:endpoint(local),remote:endpoint(remote),srtp_cipher:typeof transport?.srtpCipher==='string'?transport.srtpCipher:null};
+            }
             if(stat.type==='inbound-rtp'&&stat.kind==='audio'){
                 // Same original poll, owner and native report identity. Missing
                 // or invalid data stays unavailable; never manufacture zero.

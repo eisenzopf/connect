@@ -1,0 +1,9 @@
+{
+  "format": "connect/mobile-scoped-readback/1",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "logical_revision": 138,
+  "native_revision": "AHj4eMRe71DRez2qglnOkGpxLPdm37xq1QTJlvtuTjSSMrSi6HJjDOmeZr6X0tgjcHvtRwTPhZJyLENjO5Fv7obloJwfOj17N6GiYbAVEZE",
+  "exact_expected_header_present": true,
+  "scoped_revision_guard_used": true,
+  "verified_at": "2026-11-14T12:57:45.675122+00:00"
+}

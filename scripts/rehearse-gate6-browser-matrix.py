@@ -29,6 +29,7 @@ from lib.transport_fixture import materialize, publish, toml_bytes
 from lib.transport_matrix import digest
 from lib.transport_matrix_execution import browser_cycle_session_owners_verified
 from lib.matrix_browser_capture import BrowserCapture
+from lib.rtc_source_frame_witness import PROFILE as RTC_SOURCE_FRAME_PROFILE, finalize as finalize_source_frames
 from lib.matrix_idle import MatrixIdle
 from lib.matrix_storage import MetadataReserve, GUARD_RESERVE_BYTES, write_component, atomic_json
 from lib.matrix_plateau import POLICY as PLATEAU_POLICY, evaluate as evaluate_plateau, runtime_capacity_configuration
@@ -113,6 +114,8 @@ def main():
     parser.add_argument("--network", choices=("local", "remote-profile-fixture"), default="local")
     parser.add_argument("--chrome", type=Path)
     parser.add_argument("--firefox", type=Path)
+    parser.add_argument("--rtc-source-frame-witness", action="store_true",
+                        help="Prospective Firefox original-source-frame witness; all unknowns fail")
     parser.add_argument("--rtc-audio-facts", action="store_true",
                         help="Opt in to bounded private WSS audio diagnostics; default is off")
     parser.add_argument("--original-completion-deferral-ms", type=int, choices=(0, 250),
@@ -122,6 +125,8 @@ def main():
             args.stage == "quality" and args.resource_cycles == 1 and args.network == "local"
             and args.transport.endswith("wss-webrtc")):
         parser.error("Original completion counter requires one local WSS quality programme")
+    if args.rtc_source_frame_witness and not (args.stage == "quality" and args.transport == "firefox-wss-webrtc"):
+        parser.error("Original-source-frame witness requires Firefox quality profile")
     rtc_audio_facts = args.rtc_audio_facts and args.transport.endswith("wss-webrtc")
     if args.resource_cycles == 3 and args.stage != "quality":
         parser.error("Three resource cycles require the full quality workload")
@@ -153,6 +158,8 @@ def main():
     # only when each owned audio member retires. Preserve loss attribution
     # without adding per-packet logging to the measured programme.
     env["RUST_LOG"] = "warn,connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug,connect_service::packet_refusal=debug,connect_service::runtime_retention=debug" + ",quinn_proto::datagram_queue=debug"
+    if args.rtc_source_frame_witness:
+        env["RUST_LOG"] += ",rvoip_webrtc::video_mapping=debug"
     if rtc_audio_facts:
         env["RUST_LOG"] += ",rvoip_webrtc_stack::audio_facts=debug,rvoip_webrtc::audio_facts=debug,rvoip_webrtc::canonical::media=debug"
     # Bounded failure-only library target, exclusively for this explicit counter.
@@ -167,7 +174,7 @@ def main():
     cell_id = "/".join(("G6-058", server_platform, args.network, args.transport, args.signing))
     report = dict(format="connect/browser-matrix-component/1", stage=args.stage, cell_id=cell_id,
         source_revision=revision, server_platform=server_platform, client_platform="ubuntu24-arm64" if args.network != "local" else server_platform,
-        network_profile=args.network, diagnostic_options=dict(rtc_audio_facts_enabled=rtc_audio_facts,
+        network_profile=args.network, diagnostic_options=dict(rtc_source_frame_witness=args.rtc_source_frame_witness, rtc_audio_facts_enabled=rtc_audio_facts,
             original_completion_deferral_ms=args.original_completion_deferral_ms),
         diagnostic_counter_only=args.original_completion_deferral_ms is not None,
         signing_algorithm=args.signing, transport=args.transport, browser_image_id=args.image,
@@ -400,7 +407,7 @@ def main():
             transport=args.transport, signingAlgorithm=args.signing, origin=origin, stage=args.stage, resourceCycles=cycle_count, cycleWorkloads=cycle_workloads,
             originalCompletionDeferral=(dict(holdMs=args.original_completion_deferral_ms, source=0, ordinal=0)
                 if args.original_completion_deferral_ms is not None else None),
-            rtcAudioFacts=rtc_audio_facts, fixtureAddresses=sorted({server_ip, client_ip}),
+            rtcSourceFrameWitness=args.rtc_source_frame_witness, rtcAudioFacts=rtc_audio_facts, fixtureAddresses=sorted({server_ip, client_ip}),
             endpoints={"webtransport": f"https://{server_ip}:{native}/connect", "wss-webrtc": f"wss://{server_ip}:{wss}/connect"},
             actors=exported, output=str(browser_output),
             **client_runtime,
@@ -511,7 +518,7 @@ def main():
         report["runtime_versions"]["passed"] &= report["runtime_versions"]["client_platform"] == report["client_platform"]
         report["owned_audio"] = json.loads((browser_output / "audio/summary.json").read_text()) if linux or remote is not None else dict(
             passed=True, scope="Native macOS AudioContext owned by the browser renderers; no PulseAudio process", original_process_joined=True)
-        report["passed"] = report["browser_exit_code"] == 0 and report["browser_observation"]["passed"] and report["owned_audio"]["passed"] and report["browser_owner_joined"]
+        report["passed"] = report["browser_exit_code"] == 0 and (report["browser_observation"]["passed"] or (args.rtc_source_frame_witness and report["browser_observation"].get("collection_passed") is True)) and report["owned_audio"]["passed"] and report["browser_owner_joined"]
         if not report["passed"] and report["browser_observation"].get("failure"):
             report["failure"] = dict(phase=phase, browser=report["browser_observation"]["failure"])
     except BaseException as error:
@@ -605,7 +612,7 @@ def main():
             if "browser_output" in locals():
                 publish(browser_output / "resource-plateau.json", (json.dumps(plateau, indent=2) + "\n").encode())
             report["passed"] &= plateau["passed"]
-            report["passed"] &= len(report["cycle_observations"]) == 3 and all(c.get("passed") is True for c in report["cycle_observations"])
+            report["passed"] &= len(report["cycle_observations"]) == 3 and all(c.get("passed") is True or (args.rtc_source_frame_witness and c.get("collection_passed") is True) for c in report["cycle_observations"])
         elif args.stage == "quality":
             if idle is not None:
                 idle_results.append(idle.finish())
@@ -640,6 +647,27 @@ def main():
         except Exception:
             report["executable_unchanged"] = False
         report["passed"] &= report["source_inputs_unchanged"] and report["sdk_dist_inputs_unchanged"] and report["executable_unchanged"]
+        if args.rtc_source_frame_witness:
+            # All original traffic/capture/server owners are closed above. The
+            # raw browser/cycle files and their hashes remain immutable.
+            try:
+                final, final_cycles = finalize_source_frames(report, browser_output,
+                    private / "materialized-server.log", private / "packet-capture/browser.pcap"
+                    if remote is None else browser_output / "browser.pcap")
+                raw_sha = report["browser_observation_sha256"]
+                final_path = browser_output / "browser-source-frame-final.json"
+                publish(final_path, (json.dumps(final, indent=2) + "\n").encode())
+                report["raw_browser_observation_sha256"] = raw_sha
+                report["browser_observation_sha256"] = digest(final_path)
+                report["browser_observation"] = final
+                report["source_frame_adjudication"] = final["original_source_frame_adjudication"]
+                if args.resource_cycles == 3:
+                    report["cycle_observations"] = final_cycles
+                report["passed"] &= final["passed"] is True
+            except Exception as error:
+                report["passed"] = False
+                report["source_frame_adjudication"] = dict(profile=RTC_SOURCE_FRAME_PROFILE,
+                    complete=False, passed=False, failure=type(error).__name__, reason=str(error)[:256])
         write_component(output / "component.json", report, reserve=component_reserve)
         state.update(stage="complete", source_guard_active=False, component_passed=report["passed"])
         save()

@@ -1,3 +1,4 @@
+import {rtcSourceFrameCandidates} from './browser_matrix_source_frame_witness.mjs';
 import {matrixFrameIdentity,MATRIX_FRAME_ID_PROFILE} from './browser_matrix_frame_identity.mjs';
 import {rtcDecodedVideoOwners} from './browser_matrix_rtc_decoded.mjs';
 import {nativeMembership} from "../../sdk/typescript/dist/browser_native_activation.js";
@@ -189,7 +190,7 @@ function duplicateVideoSnapshot(row,index,presentation=row.presentation){
         const fields={};
         for(const key of ['profile','element_id','callbackTime','mediaTime','presentedFrames',
             'rtpTimestamp','presentationTime','expectedDisplayTime','captureTime','receiveTime',
-            'processingDuration','width','height'])if(key in presentation)fields[key]=presentation[key];
+            'processingDuration','width','height','connection_id','stream_id','track_id'])if(key in presentation)fields[key]=presentation[key];
         value.presentation=Object.freeze(fields);
     }
     return Object.freeze(value);
@@ -225,7 +226,7 @@ function includedSourceVideo(rows,start,end){
 }
 
 export class DecodedRoute {
-    constructor(index,expected,{sourceFrameIdentity=false}={}){this.sourceFrameIdentity=sourceFrameIdentity;this.index=index;this.expected=expected;this.audio=[];this.video=[];this.envelope=new AudioEnvelope();
+    constructor(index,expected,{sourceFrameIdentity=false,rtcSourceFrameWitness=false,initialOrdinaryReceiver=false}={}){this.initialOrdinaryReceiver=initialOrdinaryReceiver;this.rtcSourceFrameWitness=rtcSourceFrameWitness;this.sourceFrameIdentity=sourceFrameIdentity;this.index=index;this.expected=expected;this.audio=[];this.video=[];this.envelope=new AudioEnvelope();
         this.audioBoundaries=[];this.omittedAudioBoundaries=0;this.invalid=[];this.seen=new Set();this.videoHigh=false;this.lastPixels=null;this.videoEdges=[];this.begin=null;this.ownerPixels=new Map();
         this.audioCuts=[];this.videoCuts=[];
         this.audioClocks = new Map();
@@ -361,7 +362,10 @@ export class DecodedRoute {
             presentation:presentation ? {profile:presentation.profile, element_id:presentation.element_id,
                 presentedFrames:presentation.presentedFrames, callbackTime:presentation.callbackTime ?? null,
                 rtpTimestamp:presentation.rtpTimestamp ?? null, mediaTime:presentation.mediaTime ?? null,
-                captureTime:presentation.captureTime ?? null, receiveTime:presentation.receiveTime ?? null} : null,
+                captureTime:presentation.captureTime ?? null, receiveTime:presentation.receiveTime ?? null,
+                ...(Object.hasOwn(presentation,'connection_id')?{connection_id:typeof presentation.connection_id==='string'?presentation.connection_id:null}:{}),
+                ...(Object.hasOwn(presentation,'stream_id')?{stream_id:typeof presentation.stream_id==='string'?presentation.stream_id:null}:{}),
+                ...(Object.hasOwn(presentation,'track_id')?{track_id:typeof presentation.track_id==='string'?presentation.track_id:null}:{})} : null,
             dimensions:width===640&&height===360};
         if(duplicate){
             if(this.videoDuplicateEvents.length<16){
@@ -557,7 +561,18 @@ export class DecodedRoute {
             passed:video.every(validFrameId)&&videoSourceOverlaps===0&&perSecond.every((count,index)=>count>=requiredFrames[index])
                 &&changingVideo.length>=1440&&identity.status==='passed'&&video.every(row=>row.dimensions&&!row.duplicate)
                 &&(!renderedRoute||(renderedIdentity.status==='passed'&&!renderedRoute.invalid.length&&markerVideo.filter(inWindow).every(row=>row.dimensions&&!row.duplicate)))};
+        if(this.rtcSourceFrameWitness){
+            const nonDuplicatePassed=video.every(validFrameId)&&videoSourceOverlaps===0
+                &&perSecond.every((count,index)=>count>=requiredFrames[index])&&changingVideo.length>=1440
+                &&identity.status==='passed'&&video.every(row=>row.dimensions)&&!renderedRoute;
+            // Original row.duplicate still excludes changing/FPS credit above.
+            // Only the hard source-frame predicate can await external proof.
+            videoResult.original_source_frame_witness=rtcSourceFrameCandidates(video,duplicateEvents,
+                sourceVideo?.omittedDuplicates??0,nonDuplicatePassed,this.initialOrdinaryReceiver);
+        }
         return {route:this.index,expected_source_id:this.expected,window_start_ms:1000,window_end_ms:61000,
+            ...(this.rtcSourceFrameWitness?{collection_passed:!this.invalid.length&&audioResult.passed
+                &&videoResult.original_source_frame_witness.collection_passed&&sync.status==='passed'}:{}),
             audio:audioResult,video:videoResult,sync,invalid:this.invalid,
             audio_provenance_diagnostics:this.audioProvenance,
             audio_boundary_diagnostics:{scope:'Actual low-RMS or unidentified PCM; diagnostic only, no quality exception',limit:32,
@@ -569,13 +584,14 @@ export class DecodedRoute {
 /** Fixture-owned observer of actual borrowed decoder outputs. The public render
  * owner still receives every frame normally. Copies contain only this run's
  * synthetic media; no borrowed frame is retained or closed by the observer. */
-export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportStatistics=null,rtcVideoObserver='render-callback/1'}={}) {
+export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportStatistics=null,rtcVideoObserver='render-callback/1',rtcSourceFrameWitness=false}={}) {
     check(!Rtc||['native-decoded-frames/1','render-callback/1'].includes(rtcVideoObserver),'Declared RTC decoded video observer required');
     const nativeRtcVideo=Boolean(Rtc&&rtcVideoObserver==='native-decoded-frames/1');
+    check(typeof rtcSourceFrameWitness==='boolean'&&(!rtcSourceFrameWitness||(Rtc&&!nativeRtcVideo)),'Source-frame witness requires original RTC render callbacks');
     const routes=plan.routes.map(route=>{
         const peers=plan.routes.filter(other=>other.session===route.session),at=peers.indexOf(route);
         const selected=peers[(at+peers.length-1)%peers.length];
-        return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1,{sourceFrameIdentity:true}),
+        return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1,{sourceFrameIdentity:true,rtcSourceFrameWitness,initialOrdinaryReceiver:!plan.moves.some(move=>move.source===route.index)}),
             rendered:nativeRtcVideo?new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1,{sourceFrameIdentity:true}):null,selected,active:null};
     });
     const bindings=new Map(),owners=[],surfaces=new Set(),pendingRenders=new Set(),initialRenders=new Map(),originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
@@ -773,8 +789,9 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
             window_ms:60000,source_counters_used:false,rtc_media_pipeline:rtcStages?.report()??null,
             webtransport_statistics:webTransportStatistics?.report()??null,
             rtc_audio_boundary_diagnostics:rtc?.report()??null,
+            ...(rtcSourceFrameWitness?{collection_passed:decodedVideoComplete&&measured.every(route=>route.collection_passed)}:{}),
             pipeline:pipeline?.report(routes.map((route,index)=>({index,source:route.selected.index,
-                audio:route.measure.envelope.edges,audioEnvelope:route.measure.envelope.report(1),video:route.measure.videoEdges}))),passed:decodedVideoComplete&&measured.every(route=>route.passed),routes:measured});},
+                audio:route.measure.envelope.edges,audioEnvelope:route.measure.envelope.report(1),video:route.measure.videoEdges}))),passed:decodedVideoComplete&&measured.every(route=>route.passed),routes:rtcSourceFrameWitness?measured.map((value,index)=>({...value,source_route_index:routes[index].selected.index})):measured});},
         // Stop and join the original diagnostic read while its peer is still
         // live. The same bounded receipt is reused by close; pending work never
         // becomes a synthetic join after peer retirement.

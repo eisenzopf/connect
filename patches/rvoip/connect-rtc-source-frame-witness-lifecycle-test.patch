@@ -1,0 +1,19 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs
+@@ -183,10 +183,11 @@
+         p
+     }
+     fn timeline() -> Timeline {
+-        Timeline {
+-            mapping_history: Some(Box::new(History::new())),
+-            ..Default::default()
+-        }
++        let mut timeline = Timeline::default();
++        if timeline.mapping_history.is_none() {
++            timeline.mapping_history = Some(Box::new(History::new()));
++        }
++        timeline
+     }
+     #[test]
+     fn shared_timeline_records_current_target_rebind_and_source_port_generation() {

@@ -48,7 +48,15 @@
       "literal_original_source_sample_coverage_proved": false
     },
     "owner_amendment": "On November 8, 2026, the owner approved measurable decoded quality checks and retention of audio source-quantum diagnostics for future runs. Historical artifacts retain their recorded criteria and verdicts.",
-    "audio_identity_scope": "Decoded tone/source identity, actual packet/frame duplication, valid RTP histories, decoded coverage/gaps, FPS, AV skew, public handoff cuts and ownership/cleanup are mandatory. Estimated audio source quanta from normalized SR/RTP clocks provide diagnostic attribution. Exact original sample provenance requires a capture-to-receiver coordinate bridge. Video original source timestamp duplication remains a hard failure."
+    "audio_identity_scope": "Decoded tone/source identity, actual packet/frame duplication, valid RTP histories, decoded coverage/gaps, FPS, AV skew, public handoff cuts and ownership/cleanup are mandatory. Estimated audio source quanta from normalized SR/RTP clocks provide diagnostic attribution. Exact original sample provenance requires a capture-to-receiver coordinate bridge. Video original source timestamp duplication remains a hard failure.",
+    "native_rtc_original_source_frame_witness": {
+      "profile": "connect/native-rtc-original-source-frame/1",
+      "activation": "Explicit prospective Firefox RTC render-callback profile only. Historical reports retain their original recorded profile/verdict.",
+      "original_identity": "Zero repeated original source video timestamps remains mandatory. Authored canvas footer is a content coordinate; only a complete exact Core source-origin/port-generation/SSRC mapping plus authenticated peer/track/closed-PCAP association may establish distinct original input frames with the same draw.",
+      "strict_scope": "Only an unchanged initial ordinary receiver/track/element and fixed source/target mapping epoch can resolve a repeated draw. Private, cross-owner, source/target changes, missing/incomplete/ambiguous witness, and repeated original source timestamp fail. Native primary decoded rows without an exact RTP link retain their original strict rule.",
+      "unchanged_metrics": "Raw rows/footer-repeat counts and changing-frame/FPS/coverage/gap/AV/identity/ownership metrics remain unchanged. Positively distinct original captures of one draw receive no additional changing-frame credit.",
+      "lifecycle": "Collection is not a quality pass. Final source-frame adjudication requires original browser, capture and server closure, immutable raw report/capture/source/binary binding, zero capture drops and complete bounded mapping export. No permission or payload is transferred."
+    }
   },
   "signing_profile": "Each cohort uses its named algorithm for client and server signing. Record every actual peer/key algorithm; do not infer one from a TLS certificate.",
   "expected_browsers_by_client_platform": {

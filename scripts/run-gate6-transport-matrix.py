@@ -264,6 +264,8 @@ def main():
     parser.add_argument("--stage", choices=("full", "media", "admission", "programme", "quality", "non-av"), default="full",
                         help="Runs require full; partial stages are read-only probe views")
     parser.add_argument("--browser-image", help="Exact already installed ARM image for browser admission")
+    parser.add_argument("--rtc-source-frame-witness", action="store_true",
+                        help="Recorded full-run Firefox source-frame profile; every Firefox quality cell uses it")
     parser.add_argument("--rtc-audio-facts", action="store_true",
                         help="Opt in to bounded private WSS audio diagnostics; quality criteria are unchanged")
     parser.add_argument("--expected-revision", help="Coordinator binding for an internal full-host worker")
@@ -333,6 +335,10 @@ def main():
                 original_argv = sys.argv
                 sys.argv = [str(module.__file__), "--stage", cell["execution"]["stage"], "--transport", cell["transport"],
                             "--signing", cell["signing"], "--network", cell["network"], "--output", str(directory)]
+                # This prospective profile is explicit in BOTH host workers,
+                # and cannot accidentally disappear at the direct cell entry.
+                if cell["transport"] == "firefox-wss-webrtc" and cell["execution"]["stage"] == "quality":
+                    sys.argv += ["--rtc-source-frame-witness"]
                 if args.rtc_audio_facts and cell["transport"].endswith("wss-webrtc"):
                     sys.argv += ["--rtc-audio-facts"]
                 if args.stage == "full":

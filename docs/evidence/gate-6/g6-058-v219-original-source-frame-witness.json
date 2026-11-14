@@ -1,0 +1,64 @@
+{
+  "format": "connect/g6-058-original-source-frame-witness/1",
+  "updated_at": "2026-11-14T12:57:45.675122+00:00",
+  "generation": 445,
+  "source_lock_sha256": "6e7e08d69248dd57563b5a543effd532865cb2018867aaa937f58873fc803d14",
+  "profile": "connect/native-rtc-original-source-frame/1",
+  "scope": "Prospective Firefox quality measurement of original source video timestamp identity; unchanged quality and ownership requirements. Historical verdicts remain recorded.",
+  "implementation": {
+    "Core": "Optional32-state history on existing shared Video Timeline; exact source origin and CURRENT target binding/SSRC/offset. State-change snapshots and final shared-owner retirement export; no new lock/task/queue/grant. Mapping allocation is not delivery.",
+    "browser": "Retain exact original peer/stream/track/element/RTP fields; initial ordinary unchanged receivers only. Preserve raw rows, authored-draw repeats and changing/FPS/gap/AV measurements. Missing/private/cross-owner/ambiguous/repeated-original-timestamp facts fail.",
+    "outer": "Only after original browser/capture/server joins, require fixed Core epoch and unique exact source/target wire packet association before writing distinct hash-bound final sidecar. Pending collection is not quality pass.",
+    "full_matrix_wiring": "Both original host workers and direct executor explicitly select this profile for Firefox quality cells; all32cells/432checks remain scheduled."
+  },
+  "source_review": {
+    "V2_candidate_manifest_sha256": "52050e510b8013200b35020e9df5bf4f2d4113cf5e128e322cdcc0a2aa8ccc05",
+    "independent_source_receipt_sha256": "40b1f3446f8ccd864ecbc9610e30f4c370f0d9c3279cac6e6db2b727f4b35dd7",
+    "coordinator_accepted": true,
+    "V1_blocked_before_apply": "Observer dropped3scalar IDs; fixed actual observer-to-report seam in V2."
+  },
+  "actual_component": {
+    "passed": 107,
+    "required": 107,
+    "Python": 40,
+    "Node": 62,
+    "Rust": 5,
+    "new_controls": 19,
+    "retained_controls": 88,
+    "script_generation": 444,
+    "Rust_generation": 445,
+    "all_original_child_process_groups_joined": true,
+    "script_source_stable": true,
+    "Rust_source_and_binary_stable": true,
+    "source_445_result_sha256": "6ac2483b723a97d3b0023c76d389e1018abc58fe5e18879e4010eef15a955d73",
+    "original_script_logs_sha256": {
+      "Python": "a55d79884dc2c9941bf3174d7f4aba38701b86495a751acdcf1f08343e88b683",
+      "Node": "ae4224e91564c8dfe3715c7509ec739d6f24ccf66b5a051dc14c62e2cb2d8656"
+    },
+    "Root_original445_join_sha256": "7c4f55c1a61d6cb6fcb9c986fe9c3e7583754697d6d9aeaf2d7d540d275160ed",
+    "independent_actual_receipt_sha256": "c2d5b113736790464c9c8d965b40d01f4c5e60a433a45a4683c4e56fae56ec66"
+  },
+  "preserved_failures": {
+    "original_collector_96407_exit": 1,
+    "reason": "Collector expected TAP while original Node spec reporter said62pass/0fail; original raw aggregate retained. Counts derived from same exact closed original log, no script rerun.",
+    "original_1318_exit": 1,
+    "Rust_passed": 4,
+    "Rust_required": 5,
+    "cause": "Test helper struct-update constructed/dropped an unused enabled default History before actual final Arc.",
+    "correction": "445 test helper reuses enabled default History or fills onlyNone. Production and all5 original test assertions byte-identical. Same5 nowPASS.",
+    "original_results_regraded": false
+  },
+  "original_R1_cause_scope": {
+    "header_evidence_two_distinct_original_source_timestamps": true,
+    "exact_new_runtime_mapping_proved": false
+  },
+  "runtime_remaining": [
+    "Actual native statistics and exact source/target UDP tuple availability",
+    "Original final Timeline export under normal server lifecycle",
+    "Fresh signed focused workload with closed PCAP and all original owners",
+    "Complete current756 regression, localARM, normalreleases andpreflight"
+  ],
+  "full_regression_qualified": false,
+  "matrix_qualified": false,
+  "ready_for_full32": false
+}

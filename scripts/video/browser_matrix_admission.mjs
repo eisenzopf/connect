@@ -26,6 +26,9 @@ assert.equal(spec.format,'connect/browser-matrix-admission-input/1');
 assert.ok(['admission','programme','quality'].includes(spec.stage));
 assert.ok(['chrome-webtransport','chrome-wss-webrtc','firefox-wss-webrtc'].includes(spec.transport));
 assert.ok(['EdDSA','ES256'].includes(spec.signingAlgorithm));
+const rtcSourceFrameWitness=spec.rtcSourceFrameWitness??false;
+assert.equal(typeof rtcSourceFrameWitness,'boolean');
+assert.ok(!rtcSourceFrameWitness||(spec.transport==='firefox-wss-webrtc'&&spec.stage==='quality'));
 const rtcAudioFacts=spec.rtcAudioFacts??false;
 assert.equal(typeof rtcAudioFacts,'boolean');
 const completionDeferral=spec.originalCompletionDeferral??null;
@@ -109,6 +112,7 @@ try{
             else if(url.pathname==='/_matrix/browser_matrix_pipeline.mjs')file=path.join(root,'scripts/lib/browser_matrix_pipeline.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_stages.mjs')file=path.join(root,'scripts/lib/browser_matrix_stages.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_webtransport_statistics.mjs')file=path.join(root,'scripts/lib/browser_matrix_webtransport_statistics.mjs');
+            else if(url.pathname==='/_matrix/browser_matrix_source_frame_witness.mjs')file=path.join(root,'scripts/lib/browser_matrix_source_frame_witness.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_frame_identity.mjs')file=path.join(root,'scripts/lib/browser_matrix_frame_identity.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_pcm.mjs')file=path.join(root,'scripts/lib/browser_matrix_pcm.mjs');
             else if(url.pathname==='/_matrix/browser_matrix_audio_input.mjs')file=path.join(root,'scripts/lib/browser_matrix_audio_input.mjs');
@@ -157,7 +161,7 @@ try{
     stun=await openLoopbackStun(new URL(spec.origin).hostname,fixtureAddresses);spec.rtcConfiguration={iceServers:[{urls:stun.url}]};
     unavailable=await matrixUnavailableTransports({cycles:cycleCount});spec.unavailableEndpoints=unavailable.endpoints;
     page=await owner.browser.newPage();
-    await page.addInitScript(installPeerDiagnostics,{peerBound:16,rtcAudioFacts});
+    await page.addInitScript(installPeerDiagnostics,{peerBound:16,rtcAudioFacts,rtcSourceFrameWitness});
     page.on('console',message=>diagnostic(message.text()));
     page.on('pageerror',error=>diagnostic(error.stack??error));
     await page.goto(spec.origin,{timeout:5000});
@@ -291,7 +295,7 @@ try{
                 const {BrowserMediaRenderer}=await import('/sdk/browser_media_renderer.js');
                 observer=browserMatrixObservation(BrowserMediaRenderer,plan,selected==='webtransport'?BrowserMediaPeer:null,
                     selected==='wss-webrtc'?BrowserRtcConnection:null,{webTransportStatistics,
-                        rtcVideoObserver:spec.browserName==='chrome'?'native-decoded-frames/1':'render-callback/1'});
+                        rtcSourceFrameWitness:spec.rtcSourceFrameWitness===true,rtcVideoObserver:spec.browserName==='chrome'?'native-decoded-frames/1':'render-callback/1'});
             }
             state=await browserMatrixAdmission({actors,plan,state,selectedTransport:selected,journal:event=>journal(event),
                 startMedia:input=>sources.start(input),
@@ -359,7 +363,13 @@ try{
                         {rtc_owners:rtc,media_peers:rtc.length,active_bindings:rtc.filter(p=>!p.closed).length,
                             queue_observation:'RTC has no SDK datagram queues; original RTCPeerConnections must be closed and shutdown joined'})};
             }
-            return {workload_started:Boolean(programmeReport.source_programme),
+            const sourceFrameCollection=spec.rtcSourceFrameWitness===true
+                &&retirement.passed&&selection.passed&&currentAuthority.passed&&programmeReport.passed
+                &&programmeReport.decoded_media.collection_passed===true
+                &&idleResources?.renderer.playback_passed===true&&idleResources.passed;
+            return {...(spec.rtcSourceFrameWitness===true?{collection_passed:sourceFrameCollection,
+                source_frame_witness_profile:'connect/native-rtc-original-source-frame/1'}:{}),
+                workload_started:Boolean(programmeReport.source_programme),
                 workload_complete:programmeReport.source_programme?.durationMs===62000
                     &&programmeReport.finished_ms>=62000&&programmeReport.finished_ms<67000,cycle:{...cycle},passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||(programmeReport.decoded_media.passed&&idleResources?.renderer.playback_passed===true))&&(!idleResources||idleResources.passed),
                 ...(observer?{decoded_media:programmeReport.decoded_media,
@@ -429,14 +439,18 @@ try{
         })();
         value.original_cycle_budget={started_ms:cycleStarted,deadline_ms:cycleDeadline,finished_ms:performance.now(),budget_ms:210000};
         value.passed&&=value.original_cycle_budget.finished_ms<cycleDeadline;
+        if(spec.rtcSourceFrameWitness===true)value.collection_passed&&=value.original_cycle_budget.finished_ms<cycleDeadline;
         const closedOwners=value.idle_resources?.localOwnersJoined===true
             ||value.idle_resources?.originalCleanupOwnersJoined===true;
         value.diagnostic_cycle_retirement=cycleCount===1?{released:true,scope:'single-cycle-no-diagnostic-reset'}:
             closedOwners?globalThis.connectPeerRetireCycle?.()??{released:false}:
                 {released:false,reason:'original-render-source-client-joins-unproven'};
         value.passed&&=value.diagnostic_cycle_retirement.released===true;
+        if(spec.rtcSourceFrameWitness===true)value.collection_passed&&=value.diagnostic_cycle_retirement.released===true;
         const evidence=await window.matrixCycleArchive(cycle,JSON.stringify(value));
-        cycles.push(browserMatrixCycleSummary(cycle,value,evidence));
+        const summary=browserMatrixCycleSummary(cycle,value,evidence);
+        if(spec.rtcSourceFrameWitness===true)summary.collection_passed=value.collection_passed===true;
+        cycles.push(summary);
         // Full AV, diagnostics and closure graphs are held only by the host
         // archive after this point. Keep no previous workload owner in JS.
         const joined=value.diagnostic_cycle_retirement.released===true;
@@ -459,23 +473,32 @@ try{
     const primaryIndex=result.first_failed_cycle??1;
     const primary=JSON.parse(await fs.readFile(path.join(output,'cycles',`cycle-${primaryIndex}`,'cycle-observation.json'),'utf8'));
     Object.assign(report,primary,result);report.resource_cycles=cycleArchives;
+    if(rtcSourceFrameWitness){
+        report.source_frame_witness_profile='connect/native-rtc-original-source-frame/1';
+        report.collection_passed=result.cycles?.length===cycleCount&&result.cycles.every(cycle=>cycle.collection_passed===true);
+        report.quality_pending_original_source_witness=report.collection_passed&&!report.passed;
+    }
     report.rtc_diagnostics=await page.evaluate(()=>globalThis.connectPeerDiagnostics?.()??{unavailable:true});
     stage='browser-retirement';
     report.trusted_browser=await owner.close();owner=undefined;
     report.passed=Boolean(report.passed&&report.trusted_browser.original_process_joined&&!report.trusted_browser.forced_kill);
+    if(rtcSourceFrameWitness)report.collection_passed=Boolean(report.collection_passed&&report.trusted_browser.original_process_joined&&!report.trusted_browser.forced_kill&&report.trusted_browser.exit?.code===0);
 }catch(error){
-    report.passed=false;report.failure??={stage:error.matrixPhase??stage,name:error.name};
+    report.passed=false;if(rtcSourceFrameWitness)report.collection_passed=false;report.failure??={stage:error.matrixPhase??stage,name:error.name};
     await fs.writeFile(path.join(output,'failure-private.log'),String(error.stack??error),{mode:0o600});
 }finally{
     if(owner)report.failure_browser=await owner.close();
     if(stun)report.owned_stun=await stun.close();
     if(unavailable){report.unavailable_transports=await unavailable.close();
         const sockets=report.unavailable_transports;
-        report.passed&&=sockets.original_sockets_joined&&sockets.udp_datagrams>0&&sockets.tcp_connections>0&&!sockets.errors&&!sockets.overflow;}
+        report.passed&&=sockets.original_sockets_joined&&sockets.udp_datagrams>0&&sockets.tcp_connections>0&&!sockets.errors&&!sockets.overflow;
+        if(rtcSourceFrameWitness)report.collection_passed&&=sockets.original_sockets_joined&&sockets.udp_datagrams>0&&sockets.tcp_connections>0&&!sockets.errors&&!sockets.overflow;}
     await serial.catch(()=>{});await journal?.close();await diagnostics;
     if(server)await new Promise(resolve=>server.close(resolve));
     report.journal_events=events;
     await fs.writeFile(path.join(output,'browser-observation.json'),JSON.stringify(report,null,2)+'\n',{mode:0o600});
 }
 process.stdout.write(JSON.stringify({browser_admission_passed:report.passed,cell_qualified:false})+'\n');
-if(!report.passed)process.exitCode=1;
+// Exit0 in this explicit profile can mean complete COLLECTION only. The
+// outer owner MUST close capture/server and adjudicate before any quality pass.
+if(!report.passed&&!(rtcSourceFrameWitness&&report.collection_passed===true))process.exitCode=1;

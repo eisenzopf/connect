@@ -162,6 +162,8 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
         globalThis.connectPeerTag?.(this.peer,this.input.connectionId);
         let entry;
         try{
+            const streams=Object.keys(input?.video??{});
+            if(streams.length===1)globalThis.connectPeerStreamTag?.(this.peer,this.input.connectionId,streams[0],'receive',this.remote?.get(streams[0]));
             if(decoded&&[...canvases.values()].includes(this.input.connectionId)){
                 if(Object.values(input?.video??{}).length!==1
                     ||!Object.values(input.video).every(canvas=>canvases.get(canvas)===this.input.connectionId))
@@ -181,6 +183,8 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
         // Private preparation still owns real capture and decoder readiness.
         // Its diagnostic identity does not require starting public playback.
         globalThis.connectPeerTag?.(this.peer,this.input.connectionId);
+        const stream=this.input.video??this.input.screen;
+        if(stream)globalThis.connectPeerStreamTag?.(this.peer,this.input.connectionId,stream,'send',this.senders?.get(stream));
         return capture.apply(this,args);
     };
     if(capture)Rtc.prototype.capture=observedCapture;
@@ -205,6 +209,8 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
             }
             const presentation = {profile:'connect/rtc-video-presentation/1',
                 element_id:identity.element_id, callbackTime:current.now};
+            const descriptor=globalThis.connectPeerStreamDescriptor?.(connectionId,'receive');
+            if(descriptor)Object.assign(presentation,descriptor);
             for (const key of ['mediaTime', 'presentedFrames', 'rtpTimestamp', 'presentationTime',
                 'expectedDisplayTime', 'captureTime', 'receiveTime', 'processingDuration', 'width', 'height']) {
                 if (key in current.detail) presentation[key] = current.detail[key];

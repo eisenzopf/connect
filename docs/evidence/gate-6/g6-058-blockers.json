@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-14T12:31:14.467444+00:00",
-  "run_status": "Latest fullmatrix remainsv218:1/32cells,399/432checks. Deadline441 actual5/5 and ICE443 actual5/5 pass; focused-idle approvedpolicy29/29 pass. Original-frame witness beingcompleted. Fresh focusedmedia, finalwhole currentregression/localARM/releases/preflight required before READY; no full32started.",
+  "updated": "2026-11-14T12:57:45.675122+00:00",
+  "run_status": "Latest fullmatrix remainsv218:1/32cells,399/432checks. Reviewed source-witness444/445 component107/107 pass, deadline4415/5 andICE4435/5 pass; focused-idle approvedpolicy29/29 pass. Fresh focused runtime/nativeStats/closedPCAP proof then final756/localARM/releases/preflight required. No full32started.",
   "blockers": [
     {
       "id": "B01",
@@ -3653,8 +3653,8 @@
     {
       "id": "V219-ORIGINAL-FRAME-WITNESS",
       "title": "Verify original-source native frame identity beyond authored-draw proxy \u2014 /root/media_blockers; reviewer /root/fixture_blockers",
-      "status": "diagnosing",
-      "completion": "ExactCore source/target/epoch mapping andclosedpacket witness beingimplemented; unknown/private/crossowner/repeatedOriginaltimestamp remainhardfail. Manualcandidateunapplied afterFirefoxcapabilityfailure."
+      "status": "component-verified",
+      "completion": "Prospective Firefox source/current-target mapping and closed-wire finalizer wired in bothmatrixhosts/directcell. All107component checks pass; actualnativeStats/export/PCAP/media proof pending; no historicregrade."
     },
     {
       "id": "V219-ICE-CLOSE",
@@ -17830,6 +17830,12 @@
       "passed": 5,
       "planned": 5,
       "evidence": "g6-058-v219-closed-core-timer.json"
+    },
+    {
+      "name": "Original-source frame witness, observer-to-report seam, strict unknown/replay guards and matrix wiring",
+      "passed": 107,
+      "planned": 107,
+      "evidence": "g6-058-v219-original-source-frame-witness.json"
     }
   ],
   "current_production_check": {
@@ -18827,6 +18833,11 @@
   "v219_closed_core_timer": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-closed-core-timer.json",
     "sha256": "453e290cc1a0a42d335feca0d6beb259e55a1073778c340eab2606b297f9503f",
+    "matrix_qualified": false
+  },
+  "v219_original_source_frame_witness": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-original-source-frame-witness.json",
+    "sha256": "3a1e942c305ada244570d98e47faefffe0e718ec956e9f7cf1a104ac46a46cf8",
     "matrix_qualified": false
   }
 }

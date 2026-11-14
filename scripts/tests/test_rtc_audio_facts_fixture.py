@@ -104,7 +104,7 @@ class RtcAudioFactsFixture(unittest.TestCase):
                         self.assertNotIn('trace', counter_env['RUST_LOG'])
                         self.assertEqual(counter_env['PATH'], 'unchanged')
         node = (ROOT / 'scripts/video/browser_matrix_admission.mjs').read_text()
-        self.assertIn('page.addInitScript(installPeerDiagnostics,{peerBound:16,rtcAudioFacts})', node)
+        self.assertIn('page.addInitScript(installPeerDiagnostics,{peerBound:16,rtcAudioFacts,rtcSourceFrameWitness})', node)
         self.assertLess(node.index('page.addInitScript(installPeerDiagnostics'), node.index('await page.goto(spec.origin'))
         self.assertIn("assert.equal(typeof rtcAudioFacts,'boolean')", node)
 

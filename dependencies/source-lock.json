@@ -2392,6 +2392,18 @@
       "path": "patches/rvoip/connect-rtc-closed-core-timeout-guard.patch",
       "sha256": "7f11a3f971a77b7ef4b230e99ac1dd1c062cf63d362ad9d05da5af43425398ff",
       "source": "Prevent a previously selected driver timer from contacting retired ICE candidate indices after synchronous Core.close but before queued DriverClose consumption. Inspect exact Closed state under the existing Core mutex; retain all original close admission, drain, outcomes, deadlines and connecting timers. Actual OLD counter reproduces ICE976 panic with both original Cores and Close envelope cleaned up."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-original-source-frame-witness.patch",
+      "sha256": "e107d5f90cbe825705deaddaa470d257fae5d1fb98ff650a8304202237deba04",
+      "source": "Opt-in bounded shared Video Timeline original-source/current-target mapping metadata,32transition cap and once-at-final-retirement private export. Same-state packets allocate/log nothing new; disabled has no history/target allocation. Preserves all mapping/packet/current authority/cutoffs/locks/tasks/queues. Mapping allocation is not delivery: prospective Firefox fixture requires exact original closed PCAP and same original owner epoch proof; all unknown/replay/private/cross-owner/quality failures remain strict. Registered metadata only; actual unit/runtime evidence separate."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-source-frame-witness-lifecycle-test.patch",
+      "sha256": "2cefceae6eeb240678e379cc821b079959c479b9877c7e0b880ad295b5315193",
+      "source": "Tests-only correction to original444 lifecycle-control construction: Rust struct-update syntax created and dropped an unused enabled default History before tested Arc retirement. Reuse existing default history or fill onlyNone. Production behavior, exact zero-export-before-finalArc assertion, disabled-mode and all five selectors unchanged. Original4of5failure preserved; actual445same5 required."
     }
   ]
 }

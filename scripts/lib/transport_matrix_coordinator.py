@@ -123,6 +123,8 @@ def run(root, args):
     write(output / "state.json", state)
     workers, logs, reports = {}, [], {}
     worker = ["--phase", "worker", "--stage", "full", "--expected-revision", revision]
+    # Both original hosts explicitly use the prospective Firefox profile.
+    worker += ["--rtc-source-frame-witness"]
     if getattr(args, "rtc_audio_facts", False):
         worker += ["--rtc-audio-facts"]
     mac_command = [sys.executable, str(root / "scripts/run-gate6-transport-matrix.py"), *worker, "--output", str(output / "macos-arm64")]

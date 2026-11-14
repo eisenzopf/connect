@@ -1,0 +1,422 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs
+@@ -0,0 +1,300 @@
++//! Opt-in, original shared-Timeline metadata. Never a media/authority grant.
++use super::{Mapping, Source};
++use rvoip_core::stream_lifecycle::ReadyMediaBinding;
++use std::{
++    fmt::Write,
++    sync::{
++        atomic::{AtomicU64, Ordering},
++        Arc,
++    },
++};
++pub(super) const TARGET: &str = "rvoip_webrtc::video_mapping";
++const LIMIT: usize = 32;
++static NEXT: AtomicU64 = AtomicU64::new(1);
++pub(super) fn enabled() -> bool {
++    tracing::enabled!(target: TARGET, tracing::Level::DEBUG)
++}
++#[derive(Clone, PartialEq, Eq)]
++pub(super) struct Target {
++    logical: String,
++    transport: String,
++    generation: u64,
++    connection_generation: u64,
++    ssrc: u32,
++    payload_type: u8,
++}
++impl Target {
++    pub(super) fn from_binding(binding: &ReadyMediaBinding, ssrc: u32, payload_type: u8) -> Self {
++        Self {
++            logical: binding.negotiated.requested.logical_id.to_string(),
++            transport: binding.transport_id.to_string(),
++            generation: binding.generation,
++            connection_generation: binding.connection_generation,
++            ssrc,
++            payload_type,
++        }
++    }
++}
++struct Epoch {
++    source: Source,
++    target: Arc<Target>,
++    input_sequence: u16,
++    input_timestamp: u32,
++    mapping: Mapping,
++}
++pub(super) struct History {
++    id: u64,
++    epochs: Vec<Epoch>,
++    current: Option<(Source, Arc<Target>)>,
++    omitted: u64,
++    invalid: u64,
++    current_offsets: Option<(u16, u32)>,
++}
++impl History {
++    fn new() -> Self {
++        Self {
++            id: NEXT.fetch_add(1, Ordering::Relaxed),
++            epochs: Vec::with_capacity(LIMIT),
++            current: None,
++            omitted: 0,
++            invalid: 0,
++            current_offsets: None,
++        }
++    }
++    pub(super) fn enabled() -> Option<Box<Self>> {
++        enabled().then(|| Box::new(Self::new()))
++    }
++    pub(super) fn observe(
++        &mut self,
++        source: &Source,
++        target: &Arc<Target>,
++        packet: &rtc::rtp::Packet,
++        mapping: Mapping,
++    ) {
++        let offsets = (
++            mapping.sequence.wrapping_sub(packet.header.sequence_number),
++            mapping.offset,
++        );
++        let changed = self.current.as_ref().is_none_or(|(old, old_target)| {
++            old != source || old_target.as_ref() != target.as_ref()
++        });
++        if !changed {
++            if self.current_offsets != Some(offsets) {
++                self.invalid = self.invalid.saturating_add(1);
++            }
++            return;
++        }
++        // Clone immutable IDs ONLY on a source OR target-binding transition.
++        // Last-current state is bounded even after the retained32 epochs fill.
++        self.current = Some((source.clone(), target.clone()));
++        self.current_offsets = Some(offsets);
++        if self.epochs.len() == LIMIT {
++            self.omitted = self.omitted.saturating_add(1);
++            return;
++        }
++        self.epochs.push(Epoch {
++            source: source.clone(),
++            target: target.clone(),
++            input_sequence: packet.header.sequence_number,
++            input_timestamp: packet.header.timestamp,
++            mapping,
++        });
++    }
++    fn summary(&self) -> String {
++        // Typed IDs are correlation metadata, not arbitrary Debug/error text.
++        // Unknown or noncanonical values make this witness incomplete.
++        fn valid(value: &str) -> bool {
++            !value.is_empty()
++                && value.len() <= 256
++                && value
++                    .bytes()
++                    .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
++        }
++        let ids_valid = self.epochs.iter().all(|e| {
++            [
++                e.source.origin.connection.as_str(),
++                e.source.origin.logical.as_str(),
++                e.source.origin.transport.as_str(),
++                e.target.logical.as_str(),
++                e.target.transport.as_str(),
++            ]
++            .into_iter()
++            .all(valid)
++        });
++        let complete = self.id != 0
++            && self.omitted == 0
++            && self.invalid == 0
++            && ids_valid
++            && !self.epochs.is_empty();
++        let mut out=format!("{{\"profile\":\"connect/rtc-original-video-mapping/1\",\"process\":{},\"timeline\":{},\"original_timeline_retired\":true,\"complete\":{},\"limit\":{},\"omitted\":{},\"invalid\":{},\"epochs\":[",std::process::id(),self.id,complete,LIMIT,self.omitted,self.invalid);
++        if ids_valid {
++            for (i, e) in self.epochs.iter().enumerate() {
++                if i > 0 {
++                    out.push(',');
++                }
++                let t = &e.target;
++                write!(&mut out,"{{\"ordinal\":{},\"source_connection\":\"{}\",\"source_logical\":\"{}\",\"source_transport\":\"{}\",\"source_generation\":{},\"source_ssrc\":{},\"target_logical\":\"{}\",\"target_transport\":\"{}\",\"target_generation\":{},\"target_connection_generation\":{},\"target_ssrc\":{},\"target_pt\":{},\"input_sequence\":{},\"input_timestamp\":{},\"output_sequence\":{},\"output_timestamp\":{},\"sequence_offset\":{},\"timestamp_offset\":{}}}",i,e.source.origin.connection,e.source.origin.logical,e.source.origin.transport,e.source.origin.generation,e.source.ssrc,t.logical,t.transport,t.generation,t.connection_generation,t.ssrc,t.payload_type,e.input_sequence,e.input_timestamp,e.mapping.sequence,e.mapping.timestamp,e.mapping.sequence.wrapping_sub(e.input_sequence),e.mapping.offset).expect("String formatting");
++            }
++        }
++        out.push_str("]}");
++        out
++    }
++}
++impl Drop for History {
++    fn drop(&mut self) {
++        // EXACTLY one export when the shared Timeline's FINAL Arc retires.
++        // This does NOT claim the original RTC task/process has joined.
++        tracing::debug!(target:TARGET,witness=%self.summary(),"RTC original video mapping witness");
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::media::core_video::Timeline;
++    use rvoip_core::{
++        ids::{ConnectionId, StreamId},
++        staged_streams::MediaDeliveryOrigin,
++    };
++    fn source(generation: u64, ssrc: u32) -> Source {
++        Source {
++            origin: MediaDeliveryOrigin {
++                connection: ConnectionId::from_string("conn_11111111111111111111111111111111"),
++                logical: StreamId::from_string("strm_22222222222222222222222222222222"),
++                transport: StreamId::from_string("strm_33333333333333333333333333333333"),
++                generation,
++            },
++            ssrc,
++        }
++    }
++    fn target(generation: u64) -> Arc<Target> {
++        Arc::new(Target {
++            logical: "strm_44444444444444444444444444444444".into(),
++            transport: format!("strm_{generation:032x}"),
++            generation,
++            connection_generation: generation,
++            ssrc: 22,
++            payload_type: 120,
++        })
++    }
++    fn packet(sequence: u16, timestamp: u32) -> rtc::rtp::Packet {
++        let mut p = rtc::rtp::Packet::default();
++        p.header.sequence_number = sequence;
++        p.header.timestamp = timestamp;
++        p
++    }
++    fn timeline() -> Timeline {
++        Timeline {
++            mapping_history: Some(Box::new(History::new())),
++            ..Default::default()
++        }
++    }
++    #[test]
++    fn shared_timeline_records_current_target_rebind_and_source_port_generation() {
++        let mut t = timeline();
++        t.allocate_for_target(source(1, 9), &packet(1, 100), Some(&target(1)))
++            .unwrap();
++        t.allocate_for_target(source(1, 9), &packet(2, 200), Some(&target(2)))
++            .unwrap();
++        t.allocate_for_target(source(2, 9), &packet(3, 300), Some(&target(2)))
++            .unwrap();
++        let h = t.mapping_history.as_ref().unwrap();
++        assert_eq!(h.epochs.len(), 3);
++        assert_eq!(h.epochs[0].target.generation, 1);
++        assert_eq!(h.epochs[1].target.generation, 2);
++        assert_eq!(h.epochs[2].source.origin.generation, 2);
++        let value: serde_json::Value = serde_json::from_str(&h.summary()).unwrap();
++        assert_eq!(value["complete"], true);
++    }
++    #[test]
++    fn state_history_is_bounded_and_overflow_never_becomes_complete() {
++        let mut t = timeline();
++        for i in 1..=40 {
++            t.allocate_for_target(source(i, 9), &packet(i as u16, i as u32), Some(&target(1)))
++                .unwrap();
++        }
++        for i in 41..=50 {
++            t.allocate_for_target(source(40, 9), &packet(i, i as u32), Some(&target(1)))
++                .unwrap();
++        }
++        let h = t.mapping_history.as_ref().unwrap();
++        assert_eq!(h.epochs.len(), 32);
++        assert_eq!(h.omitted, 8);
++        let value: serde_json::Value = serde_json::from_str(&h.summary()).unwrap();
++        assert_eq!(value["complete"], false);
++    }
++    #[test]
++    fn same_source_offset_repair_and_sender_clock_metadata_do_not_create_new_source_epochs() {
++        let mut t = timeline();
++        for i in 1..=20 {
++            t.allocate_for_target(source(1, 9), &packet(i, 100 + i as u32), Some(&target(1)))
++                .unwrap();
++        }
++        assert_eq!(t.mapping_history.as_ref().unwrap().epochs.len(), 1);
++        // Repeated/backward original sequence is refused by existing Timeline.
++        assert!(t
++            .allocate_for_target(source(1, 9), &packet(20, 120), Some(&target(1)))
++            .is_err());
++        assert_eq!(t.mapping_history.as_ref().unwrap().epochs.len(), 1);
++    }
++    #[test]
++    fn diagnostic_target_metadata_does_not_change_primary_mapping_or_permission() {
++        let mut ordinary = Timeline::default();
++        ordinary.mapping_history = None;
++        let mut observed = timeline();
++        for i in 1..=20 {
++            let p = packet(i, 100 + i as u32);
++            let a = ordinary.allocate(source(1, 9), &p).unwrap();
++            let b = observed
++                .allocate_for_target(source(1, 9), &p, Some(&target(1)))
++                .unwrap();
++            assert_eq!(
++                (a.sequence, a.timestamp, a.offset),
++                (b.sequence, b.timestamp, b.offset)
++            );
++        }
++        assert!(ordinary.mapping_history.is_none());
++    }
++    #[test]
++    fn shared_timeline_exports_only_after_last_original_arc_retires() {
++        use std::io::Write as IoWrite;
++        #[derive(Clone)]
++        struct Writer(Arc<std::sync::Mutex<Vec<u8>>>);
++        impl IoWrite for Writer {
++            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
++                self.0.lock().unwrap().extend_from_slice(bytes);
++                Ok(bytes.len())
++            }
++            fn flush(&mut self) -> std::io::Result<()> {
++                Ok(())
++            }
++        }
++        let bytes = Arc::new(std::sync::Mutex::new(Vec::new()));
++        let output = bytes.clone();
++        let subscriber = tracing_subscriber::fmt()
++            .without_time()
++            .with_ansi(false)
++            .with_max_level(tracing::Level::DEBUG)
++            .with_writer(move || Writer(output.clone()))
++            .finish();
++        tracing::subscriber::with_default(subscriber, || {
++            let mut t = timeline();
++            t.allocate_for_target(source(1, 9), &packet(1, 100), Some(&target(1)))
++                .unwrap();
++            let first = Arc::new(t);
++            let last = first.clone();
++            drop(first);
++            assert!(bytes.lock().unwrap().is_empty());
++            drop(last);
++        });
++        let output = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
++        assert_eq!(
++            output.matches("RTC original video mapping witness").count(),
++            1
++        );
++        assert!(output.contains("original_timeline_retired"));
++        assert!(!output.contains("original_task_joined"));
++        tracing::subscriber::with_default(tracing::subscriber::NoSubscriber::default(), || {
++            assert!(History::enabled().is_none())
++        });
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -1,6 +1,9 @@
+ //! Exact Core VP8 delivery and explicit repair through the owned RTC driver.
+ //! This consumes one real Core port queue. It does not assert readiness or own
+ //! peer/port cleanup; the staged adapter must retain and drain original writes.
++mod mapping_witness;
++use mapping_witness::{History, Target};
++
+ use rtc::{
+     interceptor::{SenderClockHandle, SenderClockUpdate},
+     rtp,
+@@ -40,6 +43,7 @@
+     mid: Option<(u8, String)>,
+     physical_peer: Option<Arc<crate::peer::RvoipPeerConnection>>,
+     pictures: PictureRequests,
++    mapping_target: Option<Arc<Target>>,
+ }
+ impl CoreVideoEgress {
+     /// Check the exact format and physical track before taking the port queue.
+@@ -82,6 +86,8 @@
+         .await
+         .map_err(|_| StreamControlError::Deadline)?
+         .map_err(|_| StreamControlError::Unsupported)?;
++        let mapping_target = mapping_witness::enabled()
++            .then(|| Arc::new(Target::from_binding(binding, ssrc, payload_type)));
+         let output = port.take_egress()?;
+         Ok(Self {
+             output,
+@@ -93,6 +99,7 @@
+             mid: None,
+             physical_peer: None,
+             pictures: PictureRequests::default(),
++            mapping_target,
+         })
+     }
+     pub(crate) fn bind_peer(
+@@ -147,6 +154,7 @@
+             clock: self.clock.clone(),
+             mid: self.mid.clone(),
+             pictures: self.pictures.clone(),
++            mapping_target: self.mapping_target.clone(),
+         };
+         Ok(Some(self.track.owned_rtp(Arc::new(producer), deadline)))
+     }
+@@ -156,7 +164,6 @@
+     origin: MediaDeliveryOrigin,
+     ssrc: u32,
+ }
+-#[derive(Default)]
+ struct Timeline {
+     source: Option<Source>,
+     last_input: Option<u16>,
+@@ -164,6 +171,20 @@
+     last_input_timestamp: Option<u32>,
+     last_output_timestamp: Option<u32>,
+     offset: u32,
++    mapping_history: Option<Box<History>>,
++}
++impl Default for Timeline {
++    fn default() -> Self {
++        Self {
++            source: None,
++            last_input: None,
++            next_output: 0,
++            last_input_timestamp: None,
++            last_output_timestamp: None,
++            offset: 0,
++            mapping_history: History::enabled(),
++        }
++    }
+ }
+ #[derive(Clone, Copy)]
+ struct Mapping {
+@@ -172,6 +193,20 @@
+     offset: u32,
+ }
+ impl Timeline {
++    fn allocate_for_target(
++        &mut self,
++        source: Source,
++        packet: &rtp::Packet,
++        target: Option<&Arc<Target>>,
++    ) -> ControlResult<Mapping> {
++        let mapping = self.allocate(source, packet)?;
++        if let (Some(history), Some(target), Some(source)) =
++            (&mut self.mapping_history, target, &self.source)
++        {
++            history.observe(source, target, packet, mapping);
++        }
++        Ok(mapping)
++    }
+     fn allocate(&mut self, source: Source, packet: &rtp::Packet) -> ControlResult<Mapping> {
+         let sequence = packet.header.sequence_number;
+         let timestamp = packet.header.timestamp;
+@@ -430,6 +465,7 @@
+     clock: SenderClockHandle,
+     mid: Option<(u8, String)>,
+     pictures: PictureRequests,
++    mapping_target: Option<Arc<Target>>,
+ }
+ impl Producer {
+     fn packet(&self, frame: &MediaFrame) -> ControlResult<rtp::Packet> {
+@@ -567,7 +603,11 @@
+                         ssrc: source_packet.header.ssrc,
+                     };
+                     let mapping = timeline
+-                        .allocate(source.clone(), &source_packet)
++                        .allocate_for_target(
++                            source.clone(),
++                            &source_packet,
++                            self.mapping_target.as_ref(),
++                        )
+                         .inspect_err(|error| {
+                             let mut context = super::core_refusal::frame_context(
+                                 Some(&source.origin),
