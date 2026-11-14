@@ -1,0 +1,30 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/mapping_witness.rs
+@@ -274,11 +274,15 @@
+         let subscriber = tracing_subscriber::fmt()
+             .without_time()
+             .with_ansi(false)
+-            .with_max_level(tracing::Level::DEBUG)
++            .with_env_filter(tracing_subscriber::EnvFilter::new(
++                "warn,rvoip_webrtc::video_mapping=debug",
++            ))
+             .with_writer(move || Writer(output.clone()))
+             .finish();
+         tracing::subscriber::with_default(subscriber, || {
+-            let mut t = timeline();
++            assert!(enabled());
++            let mut t = Timeline::default();
++            assert!(t.mapping_history.is_some());
+             t.allocate_for_target(source(1, 9), &packet(1, 100), Some(&target(1)))
+                 .unwrap();
+             let first = Arc::new(t);
+@@ -295,6 +299,8 @@
+         assert!(output.contains("original_timeline_retired"));
+         assert!(!output.contains("original_task_joined"));
+         tracing::subscriber::with_default(tracing::subscriber::NoSubscriber::default(), || {
++            assert!(!enabled());
++            assert!(Timeline::default().mapping_history.is_none());
+             assert!(History::enabled().is_none())
+         });
+     }

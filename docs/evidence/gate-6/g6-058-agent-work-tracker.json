@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-14T22:40:15.149570+00:00",
-  "revision": 81,
+  "updated_at": "2026-11-14T22:49:13.529384+00:00",
+  "revision": 82,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 140,
-    "verified_at": "2026-11-14T22:40:15.149570+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-peer-ownership.json",
-    "readback_evidence_sha256": "2d48488477095c40b3a26178fa3f27f513ca711278269c966c989d3f4e64e2c4",
+    "content_revision": 141,
+    "verified_at": "2026-11-14T22:49:13.529384+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-profile-control.json",
+    "readback_evidence_sha256": "0be0257cae8e645fbd83de1a94a5729d40a748361d2ce37be5026474693c3271",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1900,6 +1900,13 @@
           "evidence": "docs/evidence/gate-6/g6-058-v219-original-source-frame-witness.json",
           "passed": 107,
           "required": 107,
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-mapping-profile-control.json",
+          "passed": 5,
+          "required": 5,
+          "scope": "Stronger existing optin/default control; not an additional five-selector inventory or matrix pass",
           "matrix_result": false
         }
       ],
@@ -5993,9 +6000,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v219-peer-ownership.json",
-    "sha256": "b70688f848ee3e518b7dde1a0e60e2f3099f8cc652f45d7bc98c510a0cd1453b",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-mapping-profile-control.json",
+    "sha256": "5b18b964364350541bbf9757eae8c53a2a59dab52b27da845516ae4d7e9ee986",
     "ready": false,
-    "next": "Commit reviewed448/parser batch then fresh normal focusedFirefox with actual mapping export/final witness. Reconcile current regression inventory; no full32."
+    "next": "Fresh normalFirefox on committed449 source, require actual mapping export/finalwitness and originalowner closure; then currentregression/ARM/releases/preflight; nofull32."
   }
 }

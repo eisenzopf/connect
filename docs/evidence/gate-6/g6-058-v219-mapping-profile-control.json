@@ -1,0 +1,20 @@
+{
+  "format": "connect/g6-058-mapping-profile-control/1",
+  "updated_at": "2026-11-14T22:49:13.529384+00:00",
+  "generation": 449,
+  "source_lock_sha256": "e5a4b2111a6dce5a7d02b245888262848ff70ab0b48edc766ed3e036fe8c57bc",
+  "test_only": true,
+  "production_code_changed": false,
+  "selectors_added": 0,
+  "scope": "Existing last-Arc test uses actual server-style EnvFilter and unforced Timeline.default, proving enabled history creation and NoSubscriber/default-disabled behavior; original first/final-Arc/export/retirement-not-taskjoin assertions retained.",
+  "actual_cases": 5,
+  "passed": 5,
+  "source_and_binary_stable": true,
+  "all_original_child_process_groups_joined": true,
+  "result_sha256": "629fed5234e315fd5efa2e2b3f04ea0664867f6f1464ec3b64dd57e242395fd1",
+  "root_join_sha256": "e597c24b034bec2b9ffe5785d1d4754aa674e61ec9395a96d91837d0ef3efd1a",
+  "independent_actual_receipt_sha256": "95688ef1a0469835651578554e4c92cd03b9db5ef76a7104705c27e064f5859d",
+  "actual_normal_server_export_proved": false,
+  "fresh_browser_qualified": false,
+  "matrix_qualified": false
+}

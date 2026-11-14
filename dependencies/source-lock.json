@@ -2422,6 +2422,12 @@
       "path": "patches/rvoip/connect-rtc-peer-driver-handler-callback.patch",
       "sha256": "03c0f92ad27c965c63e2ab2edc0aeb381d95b579fc4563ffc023238bc9cc4738",
       "source": "Complete actual447 compile failure E0609 plumbing in existing child owned_video unrepaired-NACK callback: use SAME original Driver-owned handler instead of removed inner handler field. Original repair future/readers drop before same callback await, arguments/order/IO unchanged. All31Stack Rustfiles multiline scan confirms no stale moved-field references. No new test selector or acceptance change; preserve failed447 and run same lifecycle/close/media plus existing repair controls."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-video-mapping-profile-control.patch",
+      "sha256": "47f7885d9b14099f140cffa63b9a019f5ee10fb75385ebda743824b095308b67",
+      "source": "Tests-only strengthen existing final-Arc mapping lifecycle control using actual server-style EnvFilter and UNFORCED Timeline.default. Require enabled positive/default history Some, disabled NoSubscriber/default None, unchanged firstArc noexport/finalArc exactlyone/retirement nottaskjoin assertions. Production code and all5 selectors unchanged; actual Root proof required."
     }
   ]
 }

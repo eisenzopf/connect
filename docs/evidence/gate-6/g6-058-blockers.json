@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-14T22:40:15.149570+00:00",
-  "run_status": "Latestfullmatrixv218 remains1/32cells,399/432checks. Fresh445Firefox RAW6audio/6video/6AV+singlecyclebudgetPASS butoriginalCLI1/finalwitnessfailed. Parser9/9 and448peerownership20/20 reviewedPASS; actualOLD446 two realretention failures afterdriver/socketcleanup. Freshnormalmappingexports/finalwitness, finalcurrentregression/localARM/releases/preflight remain; nofull32started.",
+  "updated": "2026-11-14T22:49:13.529384+00:00",
+  "run_status": "Latestv218matrix1/32cells399/432checks unchanged. Raw445Firefox6A6V6AV+resourcePASS butfinalCLI1 remainsfailed. Parser9/9, peerownership44820/20 andstrongeractualEnvFilter/default4495/5 pass withindependentreview. Freshnormalmappingexport/finalwitness pending, thenfinalcurrentregression/localARM/releases/preflight; nofull32.",
   "blockers": [
     {
       "id": "B01",
@@ -17862,6 +17862,12 @@
       "passed": 20,
       "planned": 20,
       "evidence": "g6-058-v219-peer-ownership.json"
+    },
+    {
+      "name": "Existing mapping controls strengthened with real server EnvFilter and unforced default constructor",
+      "passed": 5,
+      "planned": 5,
+      "evidence": "g6-058-v219-mapping-profile-control.json"
     }
   ],
   "current_production_check": {
