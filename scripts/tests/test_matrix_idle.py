@@ -57,6 +57,66 @@ class MatrixIdleTests(unittest.TestCase):
         value=result();value["policy"]=copy.deepcopy(POLICY);value["policy"]["rss_retention_bytes"]=1024
         self.assertFalse(idle_verdict(value))
 
+        # Prospective single-cycle diagnostics use exactly the owner-approved
+        # capacity bars, without claiming a completed three-cycle qualification.
+        from lib.matrix_plateau import (CYCLE_POLICY, FOCUSED_PROFILE, SERVER_SOURCE_INPUTS,
+            runtime_capacity_configuration, focused_capacity_evaluation)
+        focused = result(); focused["policy"] = copy.deepcopy(CYCLE_POLICY)
+        focused["focused_capacity_profile"] = FOCUSED_PROFILE
+        focused["persistent_owners"] = dict(server=dict(pid=101, start_identity=1001),
+                                           browser=dict(pid=202, start_identity=2002))
+        focused["server_runtime_capacity"] = runtime_capacity_configuration(
+            focused["persistent_owners"]["server"], SERVER_SOURCE_INPUTS)
+        focused["samples"].insert(2, sample(19, "workload"))
+        for observed in [focused["baseline"], *focused["samples"]]:
+            observed["usage"]["owned_tasks"] = 0
+            if observed["stage"] == "workload":
+                for group in observed["groups"].values():
+                    group.update(live_processes=2, sampled_threads=20, sampled_open_descriptors=40)
+            if observed["stage"] in {"idle", "idle-final"}:
+                for group in observed["groups"].values():
+                    group.update(sampled_threads=10, sampled_open_descriptors=20,
+                                 sampled_rss_bytes=100*1024*1024)
+        evaluate = lambda value: focused_capacity_evaluation(value, SERVER_SOURCE_INPUTS)
+        positive = evaluate(focused)
+        self.assertTrue(positive["passed"], positive)
+        self.assertFalse(positive["full_three_cycle_capacity_qualified"])
+        self.assertFalse(positive["separate_soak"]["qualified"])
+        self.assertFalse(restoration(focused["baseline"], focused["baseline"]))
+        self.assertTrue(restoration(focused["baseline"], focused["samples"][-1]),
+                        "Legacy cold policy remains distinct; no historical regrade")
+        for role, field, value in (("browser", "sampled_rss_bytes", 4*1024**3+1),
+                                   ("server", "sampled_rss_bytes", 1024**3+1),
+                                   ("browser", "sampled_open_descriptors", 41),
+                                   ("server", "sampled_threads", 515)):
+            bad = copy.deepcopy(focused); bad["samples"][-1]["groups"][role][field] = value
+            self.assertFalse(evaluate(bad)["passed"], (role, field))
+        bad = copy.deepcopy(focused); bad["samples"][-1]["usage"]["owned_tasks"] = 1
+        self.assertFalse(evaluate(bad)["passed"])
+        bad = copy.deepcopy(focused); bad["samples"][-1]["usage"]["pool:webtransport"] = 1
+        self.assertFalse(evaluate(bad)["passed"])
+        bad = copy.deepcopy(focused); bad["server_runtime_capacity"]["max_blocking_threads"] = 513
+        self.assertFalse(evaluate(bad)["passed"])
+        bad = copy.deepcopy(focused); bad["samples"] = [s for s in bad["samples"] if s["stage"] != "workload"]
+        self.assertFalse(evaluate(bad)["passed"])
+        bad = copy.deepcopy(focused); bad["samples"][-1]["monotonic_seconds"] = 29.9
+        self.assertFalse(evaluate(bad)["passed"])
+        bad = copy.deepcopy(focused); bad["samples"][-1]["groups"]["browser"]["root_state"] = "retired"
+        self.assertFalse(evaluate(bad)["passed"])
+        # Stable unknown owners must not disappear from budgets merely because
+        # original workload samples contain only the two declared roles.
+        bad = copy.deepcopy(focused)
+        for observed in [bad["baseline"], *bad["samples"]]:
+            if observed["stage"] != "workload":
+                observed["groups"]["helper"] = copy.deepcopy(observed["groups"]["browser"])
+        self.assertFalse(evaluate(bad)["passed"])
+        bad = copy.deepcopy(focused); bad["samples"][-1]["groups"]["browser"]["live_processes"] = 3
+        self.assertFalse(evaluate(bad)["passed"])
+        # A known partial RSS breach is never discarded as unavailable counts.
+        bad = copy.deepcopy(focused); bad["samples"].insert(3, dict(stage="workload", monotonic_seconds=19.5,
+            groups={"server": {"sampled_rss_bytes": 1024**3+1}}))
+        self.assertFalse(evaluate(bad)["passed"])
+
     def test_idle_check_is_independent_of_failed_media_but_requires_all_original_joins(self):
         from lib.transport_matrix import inventory
         from lib.transport_matrix_execution import configure_execution, record_browser_result
@@ -103,30 +163,40 @@ class MatrixCycleIdleTests(unittest.TestCase):
                 return {"groups": value}
             def summary(self): return {}
         original = sample(10, "baseline"); original["usage"]["owned_tasks"] = 0
-        with tempfile.TemporaryDirectory() as folder:
-            clock = [100.0]
-            def request(phase, at):
-                Path(folder, "resources-" + phase + ".json").write_text(json.dumps(dict(phase=phase, monotonic_seconds=at)))
-            with patch("lib.matrix_idle.time.monotonic", side_effect=lambda: clock[0]), \
-                 patch("lib.matrix_idle.owned_usage", return_value=original["usage"]), \
-                 patch("lib.matrix_idle.urllib.request.build_opener") as opener, \
-                 patch("lib.matrix_idle.idle_owner_diagnostics", return_value={"diagnostic": True}):
-                opener.return_value.open.return_value.__enter__.return_value.read.return_value = b'{"result":{"Ok":{"kind":"health","data":{}}}}'
-                idle = MatrixIdle(folder, 101, 202, "http://fixture", "credential", sampler=Sampler(),
-                                  cycle_mode=True, original_baseline=original)
-                request("baseline", 100); idle.poll(); clock[0] = 101; idle.poll()
-                self.assertEqual(idle.baseline["monotonic_seconds"], 101)
-                self.assertEqual(idle.reference_baseline["monotonic_seconds"], 10)
-                request("terminal", 120); request("retired", 120.1)
-                for at in [121, 127, 128, 130.01]: clock[0] = at; idle.poll()
-                observed = idle.finish()
-            self.assertTrue(observed["passed"])
-            self.assertEqual(observed["policy"], CYCLE_POLICY)
-            self.assertEqual(observed["baseline"]["monotonic_seconds"], 101)
-            self.assertEqual(observed["persistent_owners"]["server"]["pid"], 101)
-            self.assertEqual(observed["persistent_owners"]["browser"]["start_identity"], 2002)
-            current = sample(131, "idle"); current["usage"]["owned_tasks"] = 1
-            self.assertIn("owned_tasks", idle.restore(original, current))
+        for focused in (False, True):
+            with tempfile.TemporaryDirectory() as folder:
+                clock = [100.0]
+                def request(phase, at):
+                    Path(folder, "resources-" + phase + ".json").write_text(json.dumps(dict(phase=phase, monotonic_seconds=at)))
+                with patch("lib.matrix_idle.time.monotonic", side_effect=lambda: clock[0]), \
+                     patch("lib.matrix_idle.owned_usage", return_value=original["usage"]), \
+                     patch("lib.matrix_idle.urllib.request.build_opener") as opener, \
+                     patch("lib.matrix_idle.idle_owner_diagnostics", return_value={"diagnostic": True}):
+                    opener.return_value.open.return_value.__enter__.return_value.read.return_value = b'{"result":{"Ok":{"kind":"health","data":{}}}}'
+                    idle = MatrixIdle(folder, 101, 202, "http://fixture", "credential", sampler=Sampler(),
+                        **(dict(focused_capacity=True) if focused else dict(cycle_mode=True, original_baseline=original)))
+                    request("baseline", 100); idle.poll(); clock[0] = 101; idle.poll()
+                    self.assertEqual(idle.baseline["monotonic_seconds"], 101)
+                    if focused:
+                        self.assertIsNone(idle.reference_baseline)
+                    else:
+                        self.assertEqual(idle.reference_baseline["monotonic_seconds"], 10)
+                    clock[0] = 119; idle.poll()  # The same original workload, before its terminal.
+                    request("terminal", 120); request("retired", 120.1)
+                    for at in [121, 127, 128, 130.01]: clock[0] = at; idle.poll()
+                    observed = idle.finish()
+                self.assertTrue(observed["passed"])
+                self.assertEqual(observed["policy"], CYCLE_POLICY)
+                self.assertEqual(observed["baseline"]["monotonic_seconds"], 101)
+                self.assertEqual(observed["persistent_owners"]["server"]["pid"], 101)
+                self.assertEqual(observed["persistent_owners"]["browser"]["start_identity"], 2002)
+                if focused:
+                    self.assertTrue(observed["focused_capacity"]["passed"])
+                    self.assertFalse(observed["full_three_cycle_capacity_qualified"])
+                    self.assertFalse(observed["focused_capacity"]["separate_soak"]["qualified"])
+                current = sample(131, "idle"); current["usage"]["owned_tasks"] = 1
+                self.assertIn("owned_tasks", idle.restore(original, current))
+
 
 
 if __name__ == "__main__": unittest.main()

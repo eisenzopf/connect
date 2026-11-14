@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-14T10:14:11.740582+00:00",
-  "run_status": "Latest fullmatrix remainsv218:1/32cells,399/432checks. Integrated437 handoff/observation batch:255/255scripts plus5/5 newRustcontrols, SDKbuild andformat pass. Bothactualcompletion diagnostics completed butqualityfailed; focused combined-fix media andfresh701/localARM/releases/preflight remain. No new32run.",
+  "updated": "2026-11-14T12:17:53.135191+00:00",
+  "run_status": "Latest matrix v218:1/32cells,399/432checks. Closedfocused437:6/6audio,6/6AV,4/6video; alloriginalownersclosed but2video and4sampledresourcefailures retained. Egress441fix5/5 andfocusedapprovedresourcepolicy29/29 controls pass. Frame-sourcewitness andICEclosefixinprogress; manualcapturecandidateunsupportedinFirefox/unapplied. Freshcombined/ARM/releases/preflightpending. No new32run.",
   "blockers": [
     {
       "id": "B01",
@@ -3637,6 +3637,30 @@
       "title": "V219-REFUSAL-TRACE \u2014 /root/v198_resources; reviewer /root/fixture_blockers",
       "status": "component-verified",
       "completion": "Active255scripts+5Rust+SDKbuild+format pass; focusedmedia/currentcombined/localARM/fullmatrix pending."
+    },
+    {
+      "id": "V219-EGRESS-POLL-WORK",
+      "title": "Separate canonical idle polling from original packet work \u2014 /root/v198_resources; reviewer /root/fixture_blockers",
+      "status": "component-verified",
+      "completion": "Old real audio/video counters reproduce; fixed5/5 pass. Preserveall originalcutoffs/currentauthority; freshmedia andcombinedqualificationpending."
+    },
+    {
+      "id": "V219-IDLE-POLICY-ALIGN",
+      "title": "Apply approved ownership and memory budgets to focused counter \u2014 /root/fixture_blockers; reviewer /root/v198_resources",
+      "status": "component-verified",
+      "completion": "29/29 idle/plateau controls pass. Full3-cyclecapacity andsoak remain separate; no historicalregrade."
+    },
+    {
+      "id": "V219-ORIGINAL-FRAME-WITNESS",
+      "title": "Verify original-source native frame identity beyond authored-draw proxy \u2014 /root/media_blockers; reviewer /root/fixture_blockers",
+      "status": "diagnosing",
+      "completion": "ExactCore source/target/epoch mapping andclosedpacket witness beingimplemented; unknown/private/crossowner/repeatedOriginaltimestamp remainhardfail. Manualcandidateunapplied afterFirefoxcapabilityfailure."
+    },
+    {
+      "id": "V219-ICE-CLOSE",
+      "title": "Close the closed-Core timeout race without hiding cleanup failures \u2014 /root/v198_resources; reviewer /root/fixture_blockers",
+      "status": "diagnosing",
+      "completion": "CountercleanupPanic preserved. SourceclosedCore mayreceivelatetimer beforequeuedDriverClose; read-onlygetter andexisting-lockguard+realCorecounter beingprepared."
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -17788,6 +17812,18 @@
       "evidence": "g6-058-v219-integrated-handoff-batch.json",
       "name": "Integrated437 handoff/observer scripts and new bounded-refusal Rust controls; SDKbuild/format pass",
       "planned": 260
+    },
+    {
+      "name": "Real egress poll/work boundary fix with strict original cutoff/authority controls",
+      "passed": 5,
+      "planned": 5,
+      "evidence": "g6-058-v219-egress-poll-work-budget.json"
+    },
+    {
+      "name": "Approved scoped idle/budget policy with unchanged complete capacity negatives",
+      "passed": 29,
+      "planned": 29,
+      "evidence": "g6-058-v219-egress-poll-work-budget.json"
     }
   ],
   "current_production_check": {
@@ -18770,6 +18806,16 @@
   "v219_integrated_handoff_batch": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-integrated-handoff-batch.json",
     "sha256": "5ba2a7ba9e22a05715526f191a87689d1767cb9d7ff40b5e6c4d9f84935e0cee",
+    "matrix_qualified": false
+  },
+  "v219_focused_combined_actual": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-focused-combined-media.json",
+    "sha256": "5c017cdda9f444b2ef082236f63b3854c39fafe4384d0c35365a354b534c5507",
+    "matrix_qualified": false
+  },
+  "v219_egress_poll_work": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
+    "sha256": "2a117e0f983c86b788a8228a6d085605d72c78c775389b3c0ac893da85d9291a",
     "matrix_qualified": false
   }
 }

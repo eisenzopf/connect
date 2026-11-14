@@ -1,0 +1,8 @@
+{
+  "format": "connect/mobile-document-readback/1",
+  "logical_revision": 136,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "verified_at": "2026-11-14T12:17:53.135191+00:00",
+  "verified": true,
+  "scope": "Exact revision-guarded scoped header replacement followed by fresh tool readback matched full expected checkpoint; no matrix credit."
+}

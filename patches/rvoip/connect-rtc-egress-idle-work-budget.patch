@@ -1,0 +1,252 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -16,12 +16,12 @@
+     collections::{BTreeMap, BTreeSet},
+     future::Future,
+     sync::{
++        atomic::{AtomicU32, Ordering},
+         Arc, Mutex, Weak,
+-        atomic::{AtomicU32, Ordering},
+     },
+     time::{Duration, Instant},
+ };
+-use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
++use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
+ use tokio_util::sync::CancellationToken;
+ 
+ #[derive(Debug, thiserror::Error)]
+@@ -1400,6 +1400,23 @@
+ pub mod audio_egress_clock;
+ 
+ impl QueuedMedia {
++    /// Original monotonic ingress/admission age cutoff, plus any shorter numeric
++    /// source cutoff already retained by this SAME queued copy. Metadata only:
++    /// no authority/currentness read, payload access, lock, or renewed lifetime.
++    /// This is NOT the caller's UTC frame.captured_at or camera-capture proof.
++    /// Actual delivery must still freshly admit every original source/target.
++    pub fn original_realtime_deadline(&self) -> ControlResult<Instant> {
++        if self.frame.kind == StreamKind::Data || self.data.is_some() {
++            return Err(StreamControlError::Unsupported);
++        }
++        Ok(self
++            .sources
++            .iter()
++            .filter_map(|source| source.admission_deadline)
++            .map(tokio::time::Instant::into_std)
++            .fold(self.admitted_at + Duration::from_millis(200), Instant::min))
++    }
++
+     fn require_authorization_epochs(&self) -> ControlResult<()> {
+         if self
+             .authorization_epochs
+@@ -4929,7 +4946,7 @@
+ pub use video_feedback::VideoFeedbackRoute;
+ 
+ mod video_repair;
+-pub use video_repair::{MAX_VIDEO_REPAIRS, VideoRepair};
++pub use video_repair::{VideoRepair, MAX_VIDEO_REPAIRS};
+ 
+ mod transport_update;
+ pub use transport_update::TransportUpdateSlot;
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -1366,8 +1366,8 @@
+         deadline: Instant,
+     ) -> ControlResult<Option<webrtc::media_stream::track_local::owned_rtp::OwnedRtpWrite>> {
+         match self {
+-            Self::Audio(e) => e.submit_next(deadline).await,
+-            Self::Video(e) => e.submit_next(deadline).await,
++            Self::Audio(e) => e.submit_next_polled(deadline).await,
++            Self::Video(e) => e.submit_next_polled(deadline).await,
+         }
+     }
+ }
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -13,18 +13,18 @@
+ };
+ use std::{
+     sync::{
++        atomic::{AtomicU64, Ordering},
+         Arc, Mutex,
+-        atomic::{AtomicU64, Ordering},
+     },
+     time::Instant,
+ };
+-use tokio::sync::{OwnedMutexGuard, mpsc};
++use tokio::sync::{mpsc, OwnedMutexGuard};
+ use webrtc::media_stream::track_local::owned_rtp::diagnostics::{
+     self, RefusalCause, RefusalContext, RefusalMedium, RefusalStage,
+ };
+ use webrtc::media_stream::{
++    track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+     Track,
+-    track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+ };
+ 
+ static AUDIO_WRITE_TIMING: AtomicU64 = AtomicU64::new(0);
+@@ -128,6 +128,25 @@
+     /// sequence ownership. Once returned, retain this exact write until drained.
+     /// Dropping this wait before submission produces no IO. No write is retried.
+     pub async fn submit_next(&mut self, deadline: Instant) -> ControlResult<Option<OwnedRtpWrite>> {
++        self.submit_next_budget(super::egress_deadline::EgressDeadline::Absolute(deadline))
++            .await
++    }
++    /// Canonical's idle poll is not an external absolute packet deadline.
++    /// Choose the SAME packet's work cutoff once, before sequence ownership.
++    pub(crate) async fn submit_next_polled(
++        &mut self,
++        poll_until: Instant,
++    ) -> ControlResult<Option<OwnedRtpWrite>> {
++        self.submit_next_budget(super::egress_deadline::EgressDeadline::PollUntil(
++            poll_until,
++        ))
++        .await
++    }
++    async fn submit_next_budget(
++        &mut self,
++        budget: super::egress_deadline::EgressDeadline,
++    ) -> ControlResult<Option<OwnedRtpWrite>> {
++        let deadline = budget.poll_until();
+         let queued =
+             tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), self.output.recv())
+                 .await
+@@ -135,6 +154,7 @@
+         let Some(queued) = queued else {
+             return Ok(None);
+         };
++        let deadline = budget.for_packet(&queued)?;
+         self.writer
+             .queue_core_audio(queued, self.payload_type, deadline)
+             .await
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -16,18 +16,18 @@
+ };
+ use std::{
+     sync::{
++        atomic::{AtomicBool, Ordering},
+         Arc, Mutex,
+-        atomic::{AtomicBool, Ordering},
+     },
+     time::Instant,
+ };
+-use tokio::sync::{Mutex as AsyncMutex, OwnedMutexGuard, mpsc};
++use tokio::sync::{mpsc, Mutex as AsyncMutex, OwnedMutexGuard};
+ use webrtc::media_stream::track_local::owned_rtp::diagnostics::{
+     self, RefusalCause, RefusalContext, RefusalMedium, RefusalStage,
+ };
+ use webrtc::media_stream::{
++    track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+     Track,
+-    track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+ };
+ 
+ pub struct CoreVideoEgress {
+@@ -110,12 +110,32 @@
+     /// Waiting and sequence ownership hold no Core permission reader. Retain
+     /// the returned original owner until its actual driver receipt is drained.
+     pub async fn submit_next(&mut self, deadline: Instant) -> ControlResult<Option<OwnedRtpWrite>> {
++        self.submit_next_budget(super::egress_deadline::EgressDeadline::Absolute(deadline))
++            .await
++    }
++    /// Canonical's idle poll is not an external absolute packet deadline.
++    /// Choose the SAME packet's work cutoff once, before sequence ownership.
++    pub(crate) async fn submit_next_polled(
++        &mut self,
++        poll_until: Instant,
++    ) -> ControlResult<Option<OwnedRtpWrite>> {
++        self.submit_next_budget(super::egress_deadline::EgressDeadline::PollUntil(
++            poll_until,
++        ))
++        .await
++    }
++    async fn submit_next_budget(
++        &mut self,
++        budget: super::egress_deadline::EgressDeadline,
++    ) -> ControlResult<Option<OwnedRtpWrite>> {
++        let deadline = budget.poll_until();
+         let queued = tokio::time::timeout_at(deadline.into(), self.output.recv())
+             .await
+             .map_err(|_| StreamControlError::Deadline)?;
+         let Some(queued) = queued else {
+             return Ok(None);
+         };
++        let deadline = budget.for_packet(&queued)?;
+         let timeline = tokio::time::timeout_at(deadline.into(), self.timeline.clone().lock_owned())
+             .await
+             .map_err(|_| StreamControlError::Deadline)?;
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/egress_deadline.rs b/crates/webrtc/rvoip-webrtc/src/media/egress_deadline.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/egress_deadline.rs
+@@ -0,0 +1,33 @@
++//! Separate an adapter's idle poll from one original packet's work budget.
++//! Nothing here admits media or renews an already-created submission control.
++use rvoip_core::staged_streams::{ControlResult, QueuedMedia, StreamControlError};
++use std::time::{Duration, Instant};
++
++#[derive(Clone, Copy)]
++pub(super) enum EgressDeadline {
++    /// The public caller supplied an absolute cutoff: it remains strict.
++    Absolute(Instant),
++    /// Only canonical's bounded idle poll may start the existing work cap once
++    /// an actual queued original exists. Its original receipt cutoff still wins.
++    PollUntil(Instant),
++}
++impl EgressDeadline {
++    pub(super) fn poll_until(self) -> Instant {
++        match self {
++            Self::Absolute(until) | Self::PollUntil(until) => until,
++        }
++    }
++    pub(super) fn for_packet(self, queued: &QueuedMedia) -> ControlResult<Instant> {
++        let now = Instant::now();
++        let work_until = match self {
++            Self::Absolute(until) => until,
++            Self::PollUntil(_) => now + Duration::from_millis(100),
++        };
++        let until = work_until.min(queued.original_realtime_deadline()?);
++        if now >= until {
++            Err(StreamControlError::Deadline)
++        } else {
++            Ok(until)
++        }
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/mod.rs b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/mod.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+@@ -12,16 +12,16 @@
+ pub(crate) mod video_reorder;
+ 
+ pub use fixtures::{
+-    OPUS_FIXTURE_PAYLOAD, VP8_KEYFRAME_FIXTURE_PAYLOAD, opus_rtp_packet_for_ssrc,
+-    send_fixture_media_burst, vp8_rtp_packet_for_ssrc,
++    opus_rtp_packet_for_ssrc, send_fixture_media_burst, vp8_rtp_packet_for_ssrc,
++    OPUS_FIXTURE_PAYLOAD, VP8_KEYFRAME_FIXTURE_PAYLOAD,
+ };
+ pub use pump::{
+-    CandidatePairStats, FRAME_CHANNEL_CAP, InboundStats, OutboundStats, WebRtcStatsSnapshot,
+     silent_opus_payload, silent_rtp_packet, silent_rtp_payload, silent_rtp_payload_for_ssrc,
++    CandidatePairStats, InboundStats, OutboundStats, WebRtcStatsSnapshot, FRAME_CHANNEL_CAP,
+ };
+ pub use stream::{
+-    WebRtcMediaStream, from_tracks, from_tracks_with_audio_queue_capacity,
+-    from_tracks_with_dtmf_codecs, from_tracks_with_dtmf_events,
++    from_tracks, from_tracks_with_audio_queue_capacity, from_tracks_with_dtmf_codecs,
++    from_tracks_with_dtmf_events, WebRtcMediaStream,
+ };
+ 
+ pub(crate) mod clock;
+@@ -40,3 +40,6 @@
+ 
+ // Fixed, failure-only diagnostic translation; never an authority or IO path.
+ pub(crate) mod core_refusal;
++
++// Canonical idle polling is separate from one original packet's work cutoff.
++pub(crate) mod egress_deadline;

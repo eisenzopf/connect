@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-14T10:14:11.740582+00:00",
-  "revision": 77,
+  "updated_at": "2026-11-14T12:17:53.135191+00:00",
+  "revision": 78,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 134,
-    "verified_at": "2026-11-14T10:14:11.740582+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-integrated.json",
-    "readback_evidence_sha256": "1de70393dbd75991530b10a6de29335b8b797b921bf7165a3e589f7f8ef0e517",
+    "content_revision": 136,
+    "verified_at": "2026-11-14T12:17:53.135191+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-poll-work.json",
+    "readback_evidence_sha256": "c689a8d393653457cea6806d32252b27d7bc45377570ad15ec511b8fb936dbbb",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1816,6 +1816,122 @@
         "actual_matrix_effect_verified": false
       },
       "updated_at": "2026-11-14T10:14:11.740582+00:00"
+    },
+    {
+      "id": "V219-EGRESS-POLL-WORK",
+      "plan_id": "V219-EGRESS-POLL-WORK",
+      "title": "Separate canonical idle polling from original packet work",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-EGRESS-POLL-WORK"
+      ],
+      "depends_on": [
+        "V219-VIDEO-ADOPTION"
+      ],
+      "status": "component-verified",
+      "implementation_state": "Old real audio/video counters reproduce; fixed5/5 pass. Preserveall originalcutoffs/currentauthority; freshmedia andcombinedqualificationpending.",
+      "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted stated component evidence; remainingworkexplicit",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T12:17:53.135191+00:00"
+    },
+    {
+      "id": "V219-IDLE-POLICY-ALIGN",
+      "plan_id": "V219-IDLE-POLICY-ALIGN",
+      "title": "Apply approved ownership and memory budgets to focused counter",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-IDLE-POLICY-ALIGN"
+      ],
+      "depends_on": [
+        "V219-VIDEO-ADOPTION"
+      ],
+      "status": "component-verified",
+      "implementation_state": "29/29 idle/plateau controls pass. Full3-cyclecapacity andsoak remain separate; no historicalregrade.",
+      "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted stated component evidence; remainingworkexplicit",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T12:17:53.135191+00:00"
+    },
+    {
+      "id": "V219-ORIGINAL-FRAME-WITNESS",
+      "plan_id": "V219-ORIGINAL-FRAME-WITNESS",
+      "title": "Verify original-source native frame identity beyond authored-draw proxy",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-ORIGINAL-FRAME-WITNESS"
+      ],
+      "depends_on": [
+        "V219-VIDEO-ADOPTION"
+      ],
+      "status": "diagnosing",
+      "implementation_state": "ExactCore source/target/epoch mapping andclosedpacket witness beingimplemented; unknown/private/crossowner/repeatedOriginaltimestamp remainhardfail. Manualcandidateunapplied afterFirefoxcapabilityfailure.",
+      "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted stated component evidence; remainingworkexplicit",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T12:17:53.135191+00:00"
+    },
+    {
+      "id": "V219-ICE-CLOSE",
+      "plan_id": "V219-ICE-CLOSE",
+      "title": "Close the closed-Core timeout race without hiding cleanup failures",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-ICE-CLOSE"
+      ],
+      "depends_on": [
+        "V219-VIDEO-ADOPTION"
+      ],
+      "status": "diagnosing",
+      "implementation_state": "CountercleanupPanic preserved. SourceclosedCore mayreceivelatetimer beforequeuedDriverClose; read-onlygetter andexisting-lockguard+realCorecounter beingprepared.",
+      "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted stated component evidence; remainingworkexplicit",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-14T12:17:53.135191+00:00"
     }
   ],
   "failure_mapping": [
@@ -5803,9 +5919,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v219-integrated-handoff-batch.json",
-    "sha256": "5ba2a7ba9e22a05715526f191a87689d1767cb9d7ff40b5e6c4d9f84935e0cee",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-egress-poll-work-budget.json",
+    "sha256": "2a117e0f983c86b788a8228a6d085605d72c78c775389b3c0ac893da85d9291a",
     "ready": false,
-    "next": "Focused combined-fix media then final701/localARM/release/preflight"
+    "next": "Finishoriginalframewitness/ICEcontrols; thenfreshfocused,currentcombined/localARM/release/preflight"
   }
 }

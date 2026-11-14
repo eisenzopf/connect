@@ -478,7 +478,11 @@ def main():
                             if remote is not None else MatrixIdle(idle_folder, server.pid, browser_pid,
                                 f"http://127.0.0.1:{http}/v1/operations", credential,
                                 cycle_mode=cycle_count == 3, original_baseline=original_baseline,
-                                sampler=shared_sampler, resource_cycles=cycle_count))
+                                sampler=shared_sampler, resource_cycles=cycle_count,
+                                # Explicit local one-cycle completion diagnostics use
+                                # approved ownership/budget bars, not historical cold
+                                # equality. Full three-cycle qualification is separate.
+                                focused_capacity=args.original_completion_deferral_ms is not None))
                     idle_observers.append(idle)
                 if idle is not None:
                     idle.poll()

@@ -1,0 +1,105 @@
+{
+  "format": "connect/g6-058-egress-poll-work-budget/1",
+  "updated_at": "2026-11-14T12:17:53.135191+00:00",
+  "normal_generation": 441,
+  "source_lock_sha256": "e8d12e661b8e503f7ebf8ae6077359a73b58c61d7b7a434c63cdb0b402a0288b",
+  "patches": [
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-egress-idle-work-budget-counter.patch",
+      "sha256": "b811ebfee6051e5f20bdadf480d0b9a77f5609d2f2cb2f16a5ec69436d7b2d2a",
+      "source": "Tests-only real canonical egress poll/work counter. Audio and Video use original Core controllers, physical SRTP peers and original driver receipts; wall-time first-poll barrier exposes old pre-receive100ms consumption. Five strict original-age/authority/cancellation/caller/work/timeline controls; all original owners drain before oracle. Production behavior unchanged; Root actual OLD/fixed results required."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-egress-idle-work-audio-counter-fixture.patch",
+      "sha256": "a3e052879a69d5987c136f17ae00e45682d0a347dd6f204dd41c7bacbe5efc7e",
+      "source": "Tests-only correction to actual438 Audio OLD setup failure: Core intentionally refuses direct Audio subscriptions. This unmanaged endpoint fixture uses its existing ordinary audio forward with exact fresh source/target/current gates; Video direct setup, Opus/PT111, all production behavior, counter oracles and original-owner cleanup unchanged. Actual439 Audio OLD proof required;438 setup remains failed."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-egress-idle-work-audio-counter-negotiation-fixture.patch",
+      "sha256": "3fcb44bd38621bfaec5dc537d89c6bc3bdcc5d0e8c096ff880121d1bf526db36",
+      "source": "Tests-only correction to actual439 Audio OLD binding setup failure: explicitly advertise one existing Opus capability for Audio, derive exact format from the original real offer and answer through the same canonical profile selector and assert actual PT111. Public CoreAudio binding still independently validates actual negotiation; Video setup, production, counter oracles and original cleanup unchanged. Actual440 Audio OLD proof required; prior setup failures preserved."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-egress-idle-work-budget.patch",
+      "sha256": "c3dfc0310c5578715ba27830ccf2dc151163b87649ac7d49a46cdcf32fb552eb",
+      "source": "Fix actual canonical late-idle poll counter. Canonical alone separates idle waiting from existing100ms packet work: choose once after exact original receive and before state/timeline waits, min original monotonic ingress/admission200ms and retained source cutoff; same cutoff through worker/mailbox/prepare/current-auth/IO. Public absolute caller deadline remains strict. Numeric Core getter grants no permission/payload; no retag, renewal, retry, queue/task/lock or media-age increase. OLD438Video and440Audio intended failures independently observed after full original cleanup; strict fixed controls and media verification separate."
+    }
+  ],
+  "old_video": {
+    "generation": 438,
+    "individual_expected_failure_qualified": true,
+    "parent_aggregate_passed": false,
+    "parent_original_exit": 1,
+    "result_sha256": "aadccd480bff11ab47f7c9582a03d6d114c44af653da1ef2766eca70d6170c4a",
+    "log_sha256": "35e5d11f1cfc00106d3a59600ede41cb2a2fac5c753b0a6ab62cdee9f55c61f1"
+  },
+  "old_audio": {
+    "generation": 440,
+    "fresh_retry_expected_failure_qualified": true,
+    "result_sha256": "d198d460953ad0424ab63cff86c6abfa8e1da336f5ad3385d2ac5474534cacf6",
+    "log_sha256": "e48a92d94dc730df4d6d9eacbb14f60aeb97a5b15841eedf5090da5dc57dae7c",
+    "prior_unqualified": [
+      "438 unsupported direct-Audio fixture",
+      "439 unsupported multi-primary Audio negotiation fixture",
+      "440 first attempt ICE shutdown panic; cleanup failed"
+    ]
+  },
+  "fixed": {
+    "actual_tests": 5,
+    "passed": 5,
+    "source_unchanged": true,
+    "binary_unchanged": true,
+    "all_originals_joined": true,
+    "result_sha256": "2a5cefdbc9058bdcb6f8bbabc220471299752a0ff1a5aa97250e40a9040e7df8",
+    "Root_original_join_sha256": "d51973cc9ea05991396ef406da8009cccfa9e2691e0d5b07cd728e5e94bf0c2f",
+    "independent_actual_review_sha256": "64bf32b459a707a9058143314fc31f1ac577e170ac75e16c5d6685354d6f80fa"
+  },
+  "behavior": "Canonical idle wait and packet work have separate boundaries. Choose existing100ms work cutoff once after receiving exact original, before sequence/timeline waits, min original200ms monotonic ingress/admission and retained source cutoff. Explicit caller cutoff/current authorization remain strict; no retry/retag/age renewal/newlock/task/queue.",
+  "R2_evidence": {
+    "source_packet_present_target_absent": 12261,
+    "wire_gap_ms": 100.541,
+    "decoded_gap_ms": 699,
+    "exact_typed_request_tuple_link_proved": false,
+    "header_assessment_sha256": "0f1cfa38312d97c4caa46e6ffebf53146bebcdc43497f098be9f48bdff0d7738"
+  },
+  "focused_idle_policy": {
+    "candidate_manifest_sha256": "ce4b5624d63c0060e473473a774dddd92c4aa75f005f3d74ad7480510f46c440",
+    "actual_tests": 29,
+    "passed": 29,
+    "result_sha256": "b84edec987bb983ef9128a816915eb5bb2cb7e7ec532925a3641a56c7effcd81",
+    "independent_actual_review_sha256": "24082a3c793c1822d29ae039554ac53fd13e0b4f586b0f2c00caf115be21efab",
+    "scope": "Explicit one-cycle local counter ownership/budget observation only; all original3 workloads remain required for fullcapacity, separate soakpending.",
+    "historical_regrade": false
+  },
+  "video_identity": {
+    "original_source_pair_distinct": true,
+    "original_source_timestamps": [
+      3878192005,
+      3878193535
+    ],
+    "source_neighbor_packets": 126,
+    "target_neighbor_packets": 126,
+    "header_association_sha256": "7e6677c43faa826ebe96ec7901dc82c0511882bd9a7b281e81eca5259660dc2b",
+    "guarded_source_target_epoch_witness": "implementationpending",
+    "legacy_R1_failed_result_preserved": true,
+    "criteria_weakened": false
+  },
+  "manual_capture_candidate": {
+    "isolated_tests_passed": 20,
+    "applied": false,
+    "actual_Firefox_supported": false,
+    "reason": "Actual native track lacks requestFrame and frameRate metadata; applyConstraints rejects. No fallback."
+  },
+  "ICE_close_timer_race": {
+    "actual_counter_cleanup_panic_preserved": true,
+    "source_RCA_in_progress": true,
+    "fix_applied": false
+  },
+  "full_regression_qualified": false,
+  "matrix_qualified": false,
+  "ready_for_full32": false
+}

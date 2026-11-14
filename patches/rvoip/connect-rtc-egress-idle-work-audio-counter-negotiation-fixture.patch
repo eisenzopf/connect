@@ -1,0 +1,60 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+@@ -1515,13 +1515,19 @@
+             std::thread::sleep(remaining);
+         }
+     }
+-    async fn owned_room(medium: Medium, owners: &mut Vec<Arc<StreamController>>) -> Fixture {
+-        let audio_format = MediaFormat::Encoded {
++    async fn owned_room(
++        medium: Medium,
++        owners: &mut Vec<Arc<StreamController>>,
++        actual_audio_format: Option<MediaFormat>,
++    ) -> Fixture {
++        // Audio comes from THIS original peer's completed offer/answer. Video
++        // retains the existing fixture metadata, which is not selected as Audio.
++        let audio_format = actual_audio_format.unwrap_or_else(|| MediaFormat::Encoded {
+             name: "opus".into(),
+             clock_rate_hz: 48000,
+             channels: 1,
+             fmtp: None,
+-        };
++        });
+         let mut alice = owner("alice");
+         let mut bob = owner("bob");
+         for owner in [&mut alice, &mut bob] {
+@@ -1667,6 +1673,13 @@
+         let work = std::panic::AssertUnwindSafe(async {
+             let mut config = WebRtcConfig::loopback();
+             config.require_vp8_audio_video_profile = true;
++            if medium == Medium::Audio {
++                // CoreAudioEgress deliberately requires ONE negotiated primary,
++                // not the default Opus+PCMU+PCMA capability set. Use the existing
++                // registered Opus capability; never rewrite the resulting SDP.
++                config.capabilities.audio_codecs.retain(|codec| codec.name.eq_ignore_ascii_case("opus"));
++                assert_eq!(config.capabilities.audio_codecs.len(), 1);
++            }
+             let publisher = RvoipPeerConnection::new_canonical(&config, PeerRole::Offerer)
+                 .await
+                 .unwrap();
+@@ -1693,7 +1706,18 @@
+             )
+             .await;
+             assert!(audio.is_some() && video.is_some());
+-            room = Some(owned_room(medium, &mut core_owners).await);
++            let actual_audio_format = if medium == Medium::Audio {
++                // SAME strict descriptor derivation later repeated by the public
++                // peer.core_audio_egress binding. Retain no SDP/ICE/credentials.
++                let (mapping, codec) = crate::media::core_audio_profile::negotiated_profile(&offer, &answer)
++                    .expect("Actual one-primary audio answer must satisfy canonical Core profile");
++                assert_eq!(mapping.payload_type, 111, "Fixture adapter/frame PT must match the actual negotiated mapping");
++                println!("POLL_WORK_AUDIO_NEGOTIATED sole_primary=true name={} rate={} channels={} fmtp_present={} payload_type={}",
++                    codec.name, codec.clock_rate_hz, codec.channels, codec.fmtp.is_some(), mapping.payload_type);
++                Some(MediaFormat::Encoded { name: codec.name, clock_rate_hz: codec.clock_rate_hz,
++                    channels: codec.channels, fmtp: codec.fmtp })
++            } else { None };
++            room = Some(owned_room(medium, &mut core_owners, actual_audio_format).await);
+             let room = room.as_mut().unwrap();
+             // The real fixture adapter publishes exact mono-Opus/PT111 metadata.
+             // Other retained fixtures remain byte-for-byte unchanged.

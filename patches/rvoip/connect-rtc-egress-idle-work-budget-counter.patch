@@ -1,0 +1,2019 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -849,3 +849,6 @@
+ 
+ #[cfg(test)]
+ mod cleanup_tests;
++
++#[cfg(test)]
++pub(crate) use media::{canonical_poll_submission_for_test, PollEgressForTest};
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -211,7 +211,11 @@
+                         clean = false;
+                     }
+                 }
+-                if clean { Ok(()) } else { Err(()) }
++                if clean {
++                    Ok(())
++                } else {
++                    Err(())
++                }
+             });
+             async move { task.await.unwrap_or(Err(())) }
+                 .boxed()
+@@ -1581,44 +1585,34 @@
+         let logical = Medium::Screen;
+         assert_eq!(rtp_medium(logical).unwrap(), Medium::Video);
+         assert_eq!(logical, Medium::Screen);
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, StreamDirection::Both),
+-                (logical, StreamDirection::Both)
+-            ])
+-            .is_ok()
+-        );
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, StreamDirection::Both),
+-                (Medium::Video, StreamDirection::Both)
+-            ])
+-            .is_ok()
+-        );
++        assert!(validate_rtp_slots([
++            (Medium::Audio, StreamDirection::Both),
++            (logical, StreamDirection::Both)
++        ])
++        .is_ok());
++        assert!(validate_rtp_slots([
++            (Medium::Audio, StreamDirection::Both),
++            (Medium::Video, StreamDirection::Both)
++        ])
++        .is_ok());
+     }
+     #[test]
+     fn a_single_video_rtp_slot_cannot_admit_camera_and_screen_or_data() {
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Video, StreamDirection::Both),
+-                (Medium::Screen, StreamDirection::Both)
+-            ])
+-            .is_err()
+-        );
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Screen, StreamDirection::Both),
+-                (Medium::Screen, StreamDirection::Both)
+-            ])
+-            .is_err()
+-        );
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, StreamDirection::Both),
+-                (Medium::Data, StreamDirection::Both)
+-            ])
+-            .is_err()
+-        );
++        assert!(validate_rtp_slots([
++            (Medium::Video, StreamDirection::Both),
++            (Medium::Screen, StreamDirection::Both)
++        ])
++        .is_err());
++        assert!(validate_rtp_slots([
++            (Medium::Screen, StreamDirection::Both),
++            (Medium::Screen, StreamDirection::Both)
++        ])
++        .is_err());
++        assert!(validate_rtp_slots([
++            (Medium::Audio, StreamDirection::Both),
++            (Medium::Data, StreamDirection::Both)
++        ])
++        .is_err());
+         assert!(rtp_medium(Medium::Data).is_err());
+     }
+ 
+@@ -1626,14 +1620,12 @@
+     fn replacement_video_halves_share_one_physical_slot_without_duplicate_direction() {
+         use StreamDirection::{Both, Receive, Send};
+         for (first, second) in [(Receive, Send), (Send, Receive)] {
+-            assert!(
+-                validate_rtp_slots([
+-                    (Medium::Audio, Both),
+-                    (Medium::Video, first),
+-                    (Medium::Video, second),
+-                ])
+-                .is_ok()
+-            );
++            assert!(validate_rtp_slots([
++                (Medium::Audio, Both),
++                (Medium::Video, first),
++                (Medium::Video, second),
++            ])
++            .is_ok());
+         }
+         for first in [Receive, Send, Both] {
+             for second in [Receive, Send, Both] {
+@@ -1651,32 +1643,26 @@
+     #[test]
+     fn directional_profile_does_not_alias_camera_screen_or_split_audio() {
+         use StreamDirection::{Both, Receive, Send};
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, Both),
+-                (Medium::Video, Receive),
+-                (Medium::Screen, Send),
+-            ])
+-            .is_err()
+-        );
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, Both),
+-                (Medium::Screen, Receive),
+-                (Medium::Video, Send),
+-            ])
+-            .is_err()
+-        );
++        assert!(validate_rtp_slots([
++            (Medium::Audio, Both),
++            (Medium::Video, Receive),
++            (Medium::Screen, Send),
++        ])
++        .is_err());
++        assert!(validate_rtp_slots([
++            (Medium::Audio, Both),
++            (Medium::Screen, Receive),
++            (Medium::Video, Send),
++        ])
++        .is_err());
+         assert!(validate_rtp_slots([(Medium::Audio, Receive), (Medium::Audio, Send),]).is_err());
+-        assert!(
+-            validate_rtp_slots([
+-                (Medium::Audio, Both),
+-                (Medium::Video, Receive),
+-                (Medium::Video, Send),
+-                (Medium::Video, Send),
+-            ])
+-            .is_err()
+-        );
++        assert!(validate_rtp_slots([
++            (Medium::Audio, Both),
++            (Medium::Video, Receive),
++            (Medium::Video, Send),
++            (Medium::Video, Send),
++        ])
++        .is_err());
+     }
+ 
+     #[test]
+@@ -1746,3 +1732,30 @@
+ 
+ #[cfg(test)]
+ mod picture_feedback_causal_tests;
++
++#[cfg(test)]
++pub(crate) enum PollEgressForTest {
++    Audio(crate::media::core_audio::CoreAudioEgress),
++    Video(crate::media::core_video::CoreVideoEgress),
++}
++#[cfg(test)]
++pub(crate) async fn canonical_poll_submission_for_test(
++    output: PollEgressForTest,
++    poll_until: Instant,
++    explicit_caller_cutoff: bool,
++) -> ControlResult<Option<webrtc::media_stream::track_local::owned_rtp::OwnedRtpWrite>> {
++    let mut egress = match output {
++        PollEgressForTest::Audio(output) => Egress::Audio(output),
++        PollEgressForTest::Video(output) => Egress::Video(output),
++    };
++    // This calls the ORIGINAL canonical dispatcher on OLD and fixed alike.
++    // No receipt, frame, clock, authorization or timeout is synthesized here.
++    if explicit_caller_cutoff {
++        match &mut egress {
++            Egress::Audio(output) => output.submit_next(poll_until).await,
++            Egress::Video(output) => output.submit_next(poll_until).await,
++        }
++    } else {
++        egress.submit_next(poll_until).await
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+@@ -2,8 +2,11 @@
+ //! The policy/adapter setup mirrors the existing canonical original-ingress
+ //! fixture. This does not manufacture a full installed canonical Route/backend.
+ use super::*;
+-use webrtc::media_stream::track_local::TrackLocal;
+-use crate::{config::WebRtcConfig, peer::{PeerRole, RvoipPeerConnection}};
++use crate::{
++    config::WebRtcConfig,
++    peer::{PeerRole, RvoipPeerConnection},
++};
++use chrono::Utc;
+ use rtc::shared::marshal::Marshal;
+ use rvoip_core::{
+     capability::DataProtocol,
+@@ -11,14 +14,20 @@
+     identity::{AuthenticatedPrincipal, AuthenticationMethod, IdentityAssurance},
+     ids::*,
+     participant::{ParticipantKind, ParticipantRole},
+-    relationships::{ConnectionBinding, EndpointBinding, IdentityBinding, Membership, SessionAppearance},
+-    staged_streams::{*, direct_subscriptions::*},
++    relationships::{
++        ConnectionBinding, EndpointBinding, IdentityBinding, Membership, SessionAppearance,
++    },
++    staged_streams::{direct_subscriptions::*, *},
+     stream_lifecycle::*,
+ };
+-use std::{collections::{BTreeMap, BTreeSet, HashMap}, sync::atomic::AtomicUsize, time::Duration};
++use std::{
++    collections::{BTreeMap, BTreeSet, HashMap},
++    sync::atomic::AtomicUsize,
++    time::Duration,
++};
+ use tokio::sync::{OwnedRwLockReadGuard, RwLock};
+ use tokio_util::sync::CancellationToken;
+-use chrono::Utc;
++use webrtc::media_stream::track_local::TrackLocal;
+ 
+ fn principal(name: &str) -> AuthenticatedPrincipal {
+     AuthenticatedPrincipal {
+@@ -240,7 +249,12 @@
+             if preparation.is_new {
+                 port.install_cleanup(Arc::new(Cleanup))?;
+                 let pt = if port.binding().negotiated.requested.medium == Medium::Audio {
+-                    0
++                    match &port.binding().negotiated.format {
++                        MediaFormat::Encoded { name, .. } if name.eq_ignore_ascii_case("opus") => {
++                            111
++                        }
++                        _ => 0,
++                    }
+                 } else {
+                     96
+                 };
+@@ -271,7 +285,11 @@
+ impl Fixture {
+     async fn new(medium: Medium) -> Self {
+         let policy = Arc::new(Policy {
+-            owners: [("alice".into(), owner("alice")), ("bob".into(), owner("bob"))].into(),
++            owners: [
++                ("alice".into(), owner("alice")),
++                ("bob".into(), owner("bob")),
++            ]
++            .into(),
+             guard: Arc::new(RwLock::new(())),
+             mode: AtomicUsize::new(0),
+             attempts: AtomicUsize::new(0),
+@@ -283,57 +301,124 @@
+         let handles = Arc::new(StreamHandleAllocator::default());
+         let controller = |name: &str, adapter: Arc<Adapter>| {
+             StreamController::new(
+-                ConversationId::from_string("conversation"), SessionId::from_string("session"),
+-                ConnectionId::from_string(name), principal(name), policy.clone(), adapter,
+-                handles.clone(), 8,
+-            ).unwrap()
++                ConversationId::from_string("conversation"),
++                SessionId::from_string("session"),
++                ConnectionId::from_string(name),
++                principal(name),
++                policy.clone(),
++                adapter,
++                handles.clone(),
++                8,
++            )
++            .unwrap()
+         };
+         let a = controller("alice", aa.clone());
+         let b = controller("bob", ba.clone());
+         for controller in [&a, &b] {
+-            controller.change(controller.revision(), &[desired(medium)], &BTreeSet::new(),
+-                deadline(), CancellationToken::new()).await.unwrap();
+-        }
+-        b.change_direct_subscriptions(b.revision(),
++            controller
++                .change(
++                    controller.revision(),
++                    &[desired(medium)],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++        }
++        b.change_direct_subscriptions(
++            b.revision(),
+             DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
+-                &a, desired(medium).logical_id.clone(), desired(medium).logical_id,
+-            )]), deadline(), CancellationToken::new(), None).await.unwrap();
++                &a,
++                desired(medium).logical_id.clone(),
++                desired(medium).logical_id,
++            )]),
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
+         let input = a.take_ingress(&desired(medium).logical_id).unwrap();
+-        Self { policy, a, b, source: aa.port(medium), target: ba.port(medium), input, medium,
+-            source_adapter: aa }
++        Self {
++            policy,
++            a,
++            b,
++            source: aa.port(medium),
++            target: ba.port(medium),
++            input,
++            medium,
++            source_adapter: aa,
++        }
+     }
+     async fn enqueue(&mut self, ssrc: u32, sequence: u16) {
+         self.enqueue_frame(ssrc, sequence, false).await;
+     }
+     async fn enqueue_frame(&mut self, ssrc: u32, sequence: u16, delta: bool) {
+         let packet = rtp::Packet {
+-            header: rtp::Header { version: 2, payload_type: 96, ssrc,
+-                sequence_number: sequence, timestamp: sequence as u32 * 3000,
+-                marker: true, ..Default::default() },
++            header: rtp::Header {
++                version: 2,
++                payload_type: 96,
++                ssrc,
++                sequence_number: sequence,
++                timestamp: sequence as u32 * 3000,
++                marker: true,
++                ..Default::default()
++            },
+             payload: vec![0x10, u8::from(delta), 1, 2].into(),
+         };
+-        self.source.try_publish(&MediaFrame {
+-            stream_id: self.source.binding().transport_id.clone(), kind: StreamKind::Video,
+-            payload: packet.marshal().unwrap().freeze(), timestamp_rtp: packet.header.timestamp,
+-            captured_at: Utc::now(), payload_type: Some(96), source_clock: None,
+-        }).unwrap();
+-        tokio::time::timeout_at(deadline(), self.input.recv()).await.unwrap().unwrap()
+-            .try_forward_to(&self.b, &desired(self.medium).logical_id).unwrap();
++        self.source
++            .try_publish(&MediaFrame {
++                stream_id: self.source.binding().transport_id.clone(),
++                kind: StreamKind::Video,
++                payload: packet.marshal().unwrap().freeze(),
++                timestamp_rtp: packet.header.timestamp,
++                captured_at: Utc::now(),
++                payload_type: Some(96),
++                source_clock: None,
++            })
++            .unwrap();
++        tokio::time::timeout_at(deadline(), self.input.recv())
++            .await
++            .unwrap()
++            .unwrap()
++            .try_forward_to(&self.b, &desired(self.medium).logical_id)
++            .unwrap();
+     }
+     async fn replace_source_generation(&mut self) {
+         let logical = desired(self.medium).logical_id;
+-        self.a.change(self.a.revision(), &[desired(self.medium)],
+-            &[logical.clone()].into_iter().collect(), deadline(), CancellationToken::new()).await.unwrap();
++        self.a
++            .change(
++                self.a.revision(),
++                &[desired(self.medium)],
++                &[logical.clone()].into_iter().collect(),
++                deadline(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
+         self.source = self.source_adapter.port(self.medium);
+         self.input = self.a.take_ingress(&logical).unwrap();
+         // This preserves the actual existing receiver port/physical SSRC while
+         // updating its public Core selection to the new source generation.
+-        for change in [DirectSubscriptionChange::Clear,
++        for change in [
++            DirectSubscriptionChange::Clear,
+             DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
+-                &self.a, logical.clone(), logical.clone(),
+-            )])] {
+-            self.b.change_direct_subscriptions(self.b.revision(), change,
+-                deadline(), CancellationToken::new(), None).await.unwrap();
++                &self.a,
++                logical.clone(),
++                logical.clone(),
++            )]),
++        ] {
++            self.b
++                .change_direct_subscriptions(
++                    self.b.revision(),
++                    change,
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
+         }
+     }
+     async fn close(self) -> bool {
+@@ -353,37 +438,63 @@
+     async fn new_inner(prime: bool) -> Self {
+         let mut config = WebRtcConfig::loopback();
+         config.require_vp8_audio_video_profile = true;
+-        let publisher = RvoipPeerConnection::new_canonical(&config, PeerRole::Offerer).await.unwrap();
+-        let receiver = RvoipPeerConnection::new(&config, PeerRole::Answerer).await.unwrap();
++        let publisher = RvoipPeerConnection::new_canonical(&config, PeerRole::Offerer)
++            .await
++            .unwrap();
++        let receiver = RvoipPeerConnection::new(&config, PeerRole::Answerer)
++            .await
++            .unwrap();
+         publisher.add_local_audio_track().await.unwrap();
+         publisher.add_local_video_track().await.unwrap();
+         let offer = publisher.create_offer_and_gather().await.unwrap();
+         let answer = receiver.accept_offer_and_gather(&offer).await.unwrap();
+         publisher.set_remote_answer(&answer).await.unwrap();
+-        tokio::try_join!(publisher.wait_connected(Duration::from_secs(3)),
+-            receiver.wait_connected(Duration::from_secs(3))).unwrap();
++        tokio::try_join!(
++            publisher.wait_connected(Duration::from_secs(3)),
++            receiver.wait_connected(Duration::from_secs(3))
++        )
++        .unwrap();
+         if prime {
+             let (audio, video) = RvoipPeerConnection::prime_remote_media(
+-                &publisher, &receiver, true, Duration::from_secs(3),
+-            ).await;
+-            assert!(audio.is_some() && video.is_some(), "actual RTP establishes the feedback source SSRC");
+-        }
+-        Self { publisher, receiver }
++                &publisher,
++                &receiver,
++                true,
++                Duration::from_secs(3),
++            )
++            .await;
++            assert!(
++                audio.is_some() && video.is_some(),
++                "actual RTP establishes the feedback source SSRC"
++            );
++        }
++        Self {
++            publisher,
++            receiver,
++        }
+     }
+     async fn primary(&self, f: &mut Fixture, sequence: u16) -> (CoreVideoEgress, bool) {
+         let ssrc = self.publisher.local_video_ssrc().unwrap();
+-        let mut output = self.publisher.core_video_egress(
+-            &f.target, deadline().into_std(),
+-        ).await.unwrap();
++        let mut output = self
++            .publisher
++            .core_video_egress(&f.target, deadline().into_std())
++            .await
++            .unwrap();
+         f.enqueue(ssrc, sequence).await;
+-        let write = output.submit_next(deadline().into_std()).await.unwrap().unwrap();
++        let write = output
++            .submit_next(deadline().into_std())
++            .await
++            .unwrap()
++            .unwrap();
+         let result = write.result().await;
+         let joined = write.cancel_and_drain().await;
+         // Consume any negotiation/initial-source request before observing this
+         // test's fresh hint. No notification is counted as new media credit.
+         let requests = self.publisher.video_keyframe_requests();
+         for _ in 0..8 {
+-            if tokio::time::timeout(Duration::from_millis(1), requests.notified()).await.is_err() {
++            if tokio::time::timeout(Duration::from_millis(1), requests.notified())
++                .await
++                .is_err()
++            {
+                 break;
+             }
+         }
+@@ -392,17 +503,30 @@
+     async fn hint(&self, pictures: &PictureRequests) -> (bool, bool) {
+         self.hint_for(pictures, None).await
+     }
+-    async fn hint_for(&self, pictures: &PictureRequests, request: Option<&PictureRequest>) -> (bool, bool) {
++    async fn hint_for(
++        &self,
++        pictures: &PictureRequests,
++        request: Option<&PictureRequest>,
++    ) -> (bool, bool) {
+         let requests = self.publisher.video_keyframe_requests();
+         let notice = requests.notified();
+         tokio::pin!(notice);
+         notice.as_mut().enable();
+         let peer = self.receiver.clone();
+-        let attempt = pictures.forward_for_request(tokio::time::Instant::now() + Duration::from_millis(100), request,
+-            move |_, ssrc| async move {
+-                peer.request_picture_for_source(ssrc).await.map_err(|_| StreamControlError::NotReady)
+-            }).await;
+-        let observed = tokio::time::timeout(Duration::from_millis(100), notice).await.is_ok();
++        let attempt = pictures
++            .forward_for_request(
++                tokio::time::Instant::now() + Duration::from_millis(100),
++                request,
++                move |_, ssrc| async move {
++                    peer.request_picture_for_source(ssrc)
++                        .await
++                        .map_err(|_| StreamControlError::NotReady)
++                },
++            )
++            .await;
++        let observed = tokio::time::timeout(Duration::from_millis(100), notice)
++            .await
++            .is_ok();
+         (matches!(attempt, PictureAttempt::Invoked), observed)
+     }
+     async fn close(self) -> bool {
+@@ -422,8 +546,15 @@
+     let mut refused = 0;
+     let entered = AtomicUsize::new(0);
+     for _ in 0..4 {
+-        let attempt = pictures.forward(tokio::time::Instant::now() + Duration::from_millis(100),
+-            |_, _| async { entered.fetch_add(1, Ordering::SeqCst); Ok(()) }).await;
++        let attempt = pictures
++            .forward(
++                tokio::time::Instant::now() + Duration::from_millis(100),
++                |_, _| async {
++                    entered.fetch_add(1, Ordering::SeqCst);
++                    Ok(())
++                },
++            )
++            .await;
+         if matches!(attempt, PictureAttempt::MetadataRefused) {
+             refused += 1;
+         }
+@@ -437,7 +568,10 @@
+     println!("rtc_picture_busy primary={primary} refused={refused} policy_attempts={attempts} invoked={invoked} source_srtcp_pli={pli} core_joined={core_joined} peers_joined={peers_joined}");
+     assert!(core_joined && peers_joined);
+     assert!(primary && refused == 4 && attempts == 4 && entered.load(Ordering::SeqCst) == 0);
+-    assert!(invoked && pli, "four refused metadata polls exhausted fresh PLI through packet repair");
++    assert!(
++        invoked && pli,
++        "four refused metadata polls exhausted fresh PLI through packet repair"
++    );
+ }
+ 
+ #[tokio::test]
+@@ -458,8 +592,15 @@
+     let peers_joined = peers.close().await;
+     println!("rtc_picture_expired observations={observations:?} peers_joined={peers_joined}");
+     assert!(peers_joined && observations.iter().all(|(_, _, _, _, _, joined)| *joined));
+-    assert!(observations.iter().all(|(_, primary, invoked, pli, no_input, _)|
+-        *primary && *invoked && *pli && *no_input), "expired media prevented fresh authorized PLI");
++    assert!(
++        observations
++            .iter()
++            .all(|(_, primary, invoked, pli, no_input, _)| *primary
++                && *invoked
++                && *pli
++                && *no_input),
++        "expired media prevented fresh authorized PLI"
++    );
+ }
+ 
+ #[tokio::test]
+@@ -473,16 +614,38 @@
+         match action {
+             0 => f.policy.mode.store(3, Ordering::SeqCst),
+             1 => {
+-                pictures.state.lock().unwrap().latest.as_mut().unwrap().1.origin.generation += 1;
+-            },
++                pictures
++                    .state
++                    .lock()
++                    .unwrap()
++                    .latest
++                    .as_mut()
++                    .unwrap()
++                    .1
++                    .origin
++                    .generation += 1;
++            }
+             2 => {
+-                f.a.set_paused(&desired(Medium::Video).logical_id, f.a.revision(), true,
+-                    deadline()).await.unwrap();
+-            },
++                f.a.set_paused(
++                    &desired(Medium::Video).logical_id,
++                    f.a.revision(),
++                    true,
++                    deadline(),
++                )
++                .await
++                .unwrap();
++            }
+             3 => {
+-                f.b.change_direct_subscriptions(f.b.revision(), DirectSubscriptionChange::Clear,
+-                    deadline(), CancellationToken::new(), None).await.unwrap();
+-            },
++                f.b.change_direct_subscriptions(
++                    f.b.revision(),
++                    DirectSubscriptionChange::Clear,
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++            }
+             _ => unreachable!(),
+         }
+         let (invoked, pli) = peers.hint(&pictures).await;
+@@ -494,7 +657,9 @@
+     let peers_joined = peers.close().await;
+     println!("rtc_picture_negative observations={observations:?} peers_joined={peers_joined}");
+     assert!(peers_joined && observations.iter().all(|(_, _, _, _, joined)| *joined));
+-    assert!(observations.iter().all(|(_, primary, invoked, pli, _)| *primary && !*invoked && !*pli));
++    assert!(observations
++        .iter()
++        .all(|(_, primary, invoked, pli, _)| *primary && !*invoked && !*pli));
+ }
+ 
+ #[tokio::test]
+@@ -506,28 +671,43 @@
+     impl Drop for PendingIo {
+         fn drop(&mut self) {
+             self.dropped_under_readers.store(
+-                self.policy.guard.clone().try_write_owned().is_err(), Ordering::SeqCst,
++                self.policy.guard.clone().try_write_owned().is_err(),
++                Ordering::SeqCst,
+             );
+         }
+     }
+     let peers = Peers::new().await;
+     let mut f = Fixture::new(Medium::Video).await;
+     let (output, primary) = peers.primary(&mut f, 1300).await;
+-    let route = output.picture_requests().state.lock().unwrap().latest.as_ref().unwrap().0.clone();
++    let route = output
++        .picture_requests()
++        .state
++        .lock()
++        .unwrap()
++        .latest
++        .as_ref()
++        .unwrap()
++        .0
++        .clone();
+     *f.policy.grant_until.lock().unwrap() = Some(Utc::now() + chrono::Duration::milliseconds(10));
+     let completed = Arc::new(AtomicBool::new(false));
+     let done = completed.clone();
+     let dropped = Arc::new(AtomicBool::new(false));
+-    let pending = PendingIo { policy: f.policy.clone(), dropped_under_readers: dropped.clone() };
+-    let result = route.dispatch_current(
+-        tokio::time::Instant::now() + Duration::from_millis(100),
+-        move |_, _| async move {
+-            let _pending = pending;
+-            tokio::time::sleep(Duration::from_millis(50)).await;
+-            done.store(true, Ordering::SeqCst);
+-            Ok(())
+-        },
+-    ).await;
++    let pending = PendingIo {
++        policy: f.policy.clone(),
++        dropped_under_readers: dropped.clone(),
++    };
++    let result = route
++        .dispatch_current(
++            tokio::time::Instant::now() + Duration::from_millis(100),
++            move |_, _| async move {
++                let _pending = pending;
++                tokio::time::sleep(Duration::from_millis(50)).await;
++                done.store(true, Ordering::SeqCst);
++                Ok(())
++            },
++        )
++        .await;
+     let no_reader = f.policy.guard.clone().try_write_owned().is_ok();
+     *f.policy.grant_until.lock().unwrap() = None;
+     drop(output);
+@@ -536,9 +716,11 @@
+     assert!(core_joined && peers_joined);
+     assert!(primary && matches!(result, Err(StreamControlError::Deadline)));
+     assert!(dropped.load(Ordering::SeqCst) && no_reader);
+-    assert!(!completed.load(Ordering::SeqCst), "original shorter grant did not bound actual IO");
+-}
+-
++    assert!(
++        !completed.load(Ordering::SeqCst),
++        "original shorter grant did not bound actual IO"
++    );
++}
+ 
+ // Continue after actual negotiation priming, rather than creating thousands
+ // of unrelated missing sequence slots that could fill the bounded hint owner.
+@@ -548,14 +730,18 @@
+     let mut last = None;
+     loop {
+         match tokio::time::timeout_at(until, track.poll()).await {
+-            Ok(Some(webrtc::media_stream::track_remote::TrackRemoteEvent::OnRtpPacket(packet, _))) => {
++            Ok(Some(webrtc::media_stream::track_remote::TrackRemoteEvent::OnRtpPacket(
++                packet,
++                _,
++            ))) => {
+                 last = Some(packet.header.sequence_number);
+-            },
++            }
+             Ok(None) | Err(_) => break,
+-            _ => {},
+-        }
+-    }
+-    last.expect("real negotiation priming produced no received video packet").wrapping_add(1)
++            _ => {}
++        }
++    }
++    last.expect("real negotiation priming produced no received video packet")
++        .wrapping_add(1)
+ }
+ 
+ /// Send actual authenticated SRTCP NACK, then consume only the driver's actual
+@@ -564,18 +750,27 @@
+     let requests = peers.publisher.video_repair_requests();
+     requests.take();
+     let track = peers.receiver.discover_remote_video_track().await.unwrap();
+-    track.write_rtcp(vec![Box::new(
+-        rtc::rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack {
+-            sender_ssrc: peers.receiver.local_video_ssrc().unwrap_or(0),
+-            media_ssrc: ssrc,
+-            nacks: vec![rtc::rtcp::transport_feedbacks::transport_layer_nack::NackPair {
+-                packet_id: sequence, lost_packets: 0,
+-            }],
+-        },
+-    )]).await.unwrap();
++    track
++        .write_rtcp(vec![Box::new(
++            rtc::rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack {
++                sender_ssrc: peers.receiver.local_video_ssrc().unwrap_or(0),
++                media_ssrc: ssrc,
++                nacks: vec![
++                    rtc::rtcp::transport_feedbacks::transport_layer_nack::NackPair {
++                        packet_id: sequence,
++                        lost_packets: 0,
++                    },
++                ],
++            },
++        )])
++        .await
++        .unwrap();
+     let until = tokio::time::Instant::now() + Duration::from_millis(150);
+     loop {
+-        if tokio::time::timeout_at(until, requests.changed()).await.is_err() {
++        if tokio::time::timeout_at(until, requests.changed())
++            .await
++            .is_err()
++        {
+             return Vec::new();
+         }
+         let hints = requests.take();
+@@ -587,19 +782,25 @@
+     }
+ }
+ async fn matching_packets(
+-    peers: &Peers, ssrc: u32, sequence: u16, until: tokio::time::Instant,
++    peers: &Peers,
++    ssrc: u32,
++    sequence: u16,
++    until: tokio::time::Instant,
+ ) -> usize {
+     let track = peers.receiver.discover_remote_video_track().await.unwrap();
+     let mut count = 0;
+     loop {
+         match tokio::time::timeout_at(until, track.poll()).await {
+-            Ok(Some(webrtc::media_stream::track_remote::TrackRemoteEvent::OnRtpPacket(packet, _))) => {
++            Ok(Some(webrtc::media_stream::track_remote::TrackRemoteEvent::OnRtpPacket(
++                packet,
++                _,
++            ))) => {
+                 if packet.header.ssrc == ssrc && packet.header.sequence_number == sequence {
+                     count += 1;
+                 }
+-            },
++            }
+             Ok(None) | Err(_) => break,
+-            _ => {},
++            _ => {}
+         }
+     }
+     count
+@@ -610,47 +811,85 @@
+     let peers = Peers::new().await;
+     let mut f = Fixture::new(Medium::Video).await;
+     let ssrc = peers.publisher.local_video_ssrc().unwrap();
+-    let mut output = peers.publisher.core_video_egress(&f.target, deadline().into_std()).await.unwrap();
++    let mut output = peers
++        .publisher
++        .core_video_egress(&f.target, deadline().into_std())
++        .await
++        .unwrap();
+     let sequence = next_primary_sequence(&peers).await;
+     f.enqueue(ssrc, sequence).await;
+     let original_until = tokio::time::Instant::now() + Duration::from_millis(100);
+-    let write = output.submit_next(original_until.into_std()).await.unwrap().unwrap();
++    let write = output
++        .submit_next(original_until.into_std())
++        .await
++        .unwrap()
++        .unwrap();
+     let primary = write.result().await.is_ok();
+     let original_joined = write.cancel_and_drain().await.is_ok();
+     let pictures = output.picture_requests();
+     let wire_sequence = pictures.state.lock().unwrap().sent.back().unwrap().1;
+-    let before = matching_packets(&peers, ssrc, wire_sequence,
+-        original_until + Duration::from_millis(20)).await;
++    let before = matching_packets(
++        &peers,
++        ssrc,
++        wire_sequence,
++        original_until + Duration::from_millis(20),
++    )
++    .await;
+     let hints = nack_hint(&peers, ssrc, wire_sequence).await;
+     let missing = !hints.is_empty();
+     let request = pictures.request_for_nack(&hints);
+     let source_pli = peers.publisher.video_keyframe_requests();
+     // Drain negotiation PLI/FIR before observing the exact new fresh hint.
+     for _ in 0..8 {
+-        if tokio::time::timeout(Duration::from_millis(1), source_pli.notified()).await.is_err() { break; }
++        if tokio::time::timeout(Duration::from_millis(1), source_pli.notified())
++            .await
++            .is_err()
++        {
++            break;
++        }
+     }
+     let peer = peers.receiver.clone();
+     let attempt = if let Some(request) = request.as_ref() {
+-        pictures.forward_for_request(
+-            tokio::time::Instant::now() + Duration::from_millis(100), Some(request),
+-            move |_, source_ssrc| async move {
+-                peer.request_picture_for_source(source_ssrc).await
+-                    .map_err(|_| StreamControlError::NotReady)
+-            },
+-        ).await
++        pictures
++            .forward_for_request(
++                tokio::time::Instant::now() + Duration::from_millis(100),
++                Some(request),
++                move |_, source_ssrc| async move {
++                    peer.request_picture_for_source(source_ssrc)
++                        .await
++                        .map_err(|_| StreamControlError::NotReady)
++                },
++            )
++            .await
+     } else {
+         PictureAttempt::MetadataRefused
+     };
+-    let pli = tokio::time::timeout(Duration::from_millis(100), source_pli.notified()).await.is_ok();
+-    let resent = matching_packets(&peers, ssrc, wire_sequence,
+-        tokio::time::Instant::now() + Duration::from_millis(50)).await;
++    let pli = tokio::time::timeout(Duration::from_millis(100), source_pli.notified())
++        .await
++        .is_ok();
++    let resent = matching_packets(
++        &peers,
++        ssrc,
++        wire_sequence,
++        tokio::time::Instant::now() + Duration::from_millis(50),
++    )
++    .await;
+     drop(output);
+     let core_joined = f.close().await;
+     let peers_joined = peers.close().await;
+     assert!(primary && original_joined && core_joined && peers_joined);
+-    assert_eq!(before, 1, "original actual packet was not delivered exactly once");
+-    assert!(missing && request.is_some(), "expired repair produced no current-source recovery request");
+-    assert!(matches!(attempt, PictureAttempt::Invoked) && pli, "actual fresh source SRTCP PLI was absent");
++    assert_eq!(
++        before, 1,
++        "original actual packet was not delivered exactly once"
++    );
++    assert!(
++        missing && request.is_some(),
++        "expired repair produced no current-source recovery request"
++    );
++    assert!(
++        matches!(attempt, PictureAttempt::Invoked) && pli,
++        "actual fresh source SRTCP PLI was absent"
++    );
+     assert_eq!(resent, 0, "expired original RTP bytes were replayed");
+ }
+ 
+@@ -659,22 +898,46 @@
+     let peers = Peers::new().await;
+     let mut f = Fixture::new(Medium::Video).await;
+     let ssrc = peers.publisher.local_video_ssrc().unwrap();
+-    let mut output = peers.publisher.core_video_egress(&f.target, deadline().into_std()).await.unwrap();
++    let mut output = peers
++        .publisher
++        .core_video_egress(&f.target, deadline().into_std())
++        .await
++        .unwrap();
+     let sequence = next_primary_sequence(&peers).await;
+     f.enqueue(ssrc, sequence).await;
+-    let write = output.submit_next((tokio::time::Instant::now() + Duration::from_millis(100)).into_std()).await.unwrap().unwrap();
++    let write = output
++        .submit_next((tokio::time::Instant::now() + Duration::from_millis(100)).into_std())
++        .await
++        .unwrap()
++        .unwrap();
+     let primary = write.result().await.is_ok();
+     let original_joined = write.cancel_and_drain().await.is_ok();
+-    let sequence = output.picture_requests().state.lock().unwrap().sent.back().unwrap().1;
++    let sequence = output
++        .picture_requests()
++        .state
++        .lock()
++        .unwrap()
++        .sent
++        .back()
++        .unwrap()
++        .1;
+     let missing = !nack_hint(&peers, ssrc, sequence).await.is_empty();
+-    let packets = matching_packets(&peers, ssrc, sequence,
+-        tokio::time::Instant::now() + Duration::from_millis(50)).await;
++    let packets = matching_packets(
++        &peers,
++        ssrc,
++        sequence,
++        tokio::time::Instant::now() + Duration::from_millis(50),
++    )
++    .await;
+     drop(output);
+     let core_joined = f.close().await;
+     let peers_joined = peers.close().await;
+     assert!(primary && original_joined && core_joined && peers_joined);
+     assert!(!missing, "a successful cached repair requested a keyframe");
+-    assert_eq!(packets, 2, "current original and exact repair must reach the real peer");
++    assert_eq!(
++        packets, 2,
++        "current original and exact repair must reach the real peer"
++    );
+ }
+ 
+ #[tokio::test]
+@@ -685,16 +948,33 @@
+     let (output, primary) = peers.primary(&mut f, sequence).await;
+     let pictures = output.picture_requests();
+     let (ssrc, sequence) = *pictures.state.lock().unwrap().sent.back().unwrap();
+-    let old_source = pictures.state.lock().unwrap().latest.as_ref().unwrap().1.clone();
++    let old_source = pictures
++        .state
++        .lock()
++        .unwrap()
++        .latest
++        .as_ref()
++        .unwrap()
++        .1
++        .clone();
+     let foreign = pictures.request_for_nack(&[(ssrc ^ 1, sequence)]).is_none();
+-    let unsent = pictures.request_for_nack(&[(ssrc, sequence.wrapping_add(7))]).is_none();
++    let unsent = pictures
++        .request_for_nack(&[(ssrc, sequence.wrapping_add(7))])
++        .is_none();
+     let original_request = pictures.request_for_nack(&[(ssrc, sequence)]).unwrap();
+     f.policy.mode.store(3, Ordering::SeqCst);
+     let invoked = Arc::new(AtomicBool::new(false));
+     let did = invoked.clone();
+-    let refused = pictures.forward_for_request(deadline(), Some(&original_request), move |_, _| async move {
+-        did.store(true, Ordering::SeqCst); Ok(())
+-    }).await;
++    let refused = pictures
++        .forward_for_request(
++            deadline(),
++            Some(&original_request),
++            move |_, _| async move {
++                did.store(true, Ordering::SeqCst);
++                Ok(())
++            },
++        )
++        .await;
+     f.policy.mode.store(0, Ordering::SeqCst);
+     let (route, _) = pictures.state.lock().unwrap().latest.clone().unwrap();
+     let mut successor = old_source.clone();
+@@ -703,17 +983,32 @@
+     // identity history while ordinary PLI retains its original latest metadata.
+     pictures.record(None, successor.clone(), ssrc, sequence.wrapping_add(1));
+     let no_feedback_stale = pictures.request_for_nack(&[(ssrc, sequence)]).is_none();
+-    let ordinary_unchanged = pictures.state.lock().unwrap().latest.as_ref().unwrap().1 == old_source;
++    let ordinary_unchanged =
++        pictures.state.lock().unwrap().latest.as_ref().unwrap().1 == old_source;
+     let did = invoked.clone();
+-    let no_feedback_old_request = pictures.forward_for_request(deadline(), Some(&original_request), move |_, _| async move {
+-        did.store(true, Ordering::SeqCst); Ok(())
+-    }).await;
++    let no_feedback_old_request = pictures
++        .forward_for_request(
++            deadline(),
++            Some(&original_request),
++            move |_, _| async move {
++                did.store(true, Ordering::SeqCst);
++                Ok(())
++            },
++        )
++        .await;
+     pictures.record(Some(route), successor, ssrc, sequence.wrapping_add(1));
+     let stale = pictures.request_for_nack(&[(ssrc, sequence)]).is_none();
+     let did = invoked.clone();
+-    let old_after_change = pictures.forward_for_request(deadline(), Some(&original_request), move |_, _| async move {
+-        did.store(true, Ordering::SeqCst); Ok(())
+-    }).await;
++    let old_after_change = pictures
++        .forward_for_request(
++            deadline(),
++            Some(&original_request),
++            move |_, _| async move {
++                did.store(true, Ordering::SeqCst);
++                Ok(())
++            },
++        )
++        .await;
+     let bound = pictures.state.lock().unwrap().sent.len();
+     drop(output);
+     let core_joined = f.close().await;
+@@ -722,18 +1017,26 @@
+     assert!(foreign && unsent && no_feedback_stale && ordinary_unchanged && stale && bound == 1);
+     assert!(!invoked.load(Ordering::SeqCst));
+     assert!(matches!(refused, PictureAttempt::MetadataRefused));
+-    assert!(matches!(no_feedback_old_request, PictureAttempt::MetadataRefused));
++    assert!(matches!(
++        no_feedback_old_request,
++        PictureAttempt::MetadataRefused
++    ));
+     assert!(matches!(old_after_change, PictureAttempt::MetadataRefused));
+ }
+-
+ 
+ async fn replace_and_deliver_delta(
+-    peers: &Peers, f: &mut Fixture, output: &mut CoreVideoEgress,
++    peers: &Peers,
++    f: &mut Fixture,
++    output: &mut CoreVideoEgress,
+ ) -> bool {
+     f.replace_source_generation().await;
+     let ssrc = peers.publisher.local_video_ssrc().unwrap();
+     f.enqueue_frame(ssrc, 0, true).await;
+-    let write = output.submit_next((tokio::time::Instant::now() + Duration::from_millis(100)).into_std()).await.unwrap().unwrap();
++    let write = output
++        .submit_next((tokio::time::Instant::now() + Duration::from_millis(100)).into_std())
++        .await
++        .unwrap()
++        .unwrap();
+     let sent = write.result().await.is_ok();
+     let joined = write.cancel_and_drain().await.is_ok();
+     sent && joined
+@@ -752,90 +1055,182 @@
+     async fn new() -> Self {
+         let names = ["alice", "alice-next", "bob"];
+         let policy = Arc::new(Policy {
+-            owners: names.iter().map(|name| (name.to_string(), owner(name))).collect(),
+-            guard: Arc::new(RwLock::new(())), mode: AtomicUsize::new(0),
+-            attempts: AtomicUsize::new(0), original_attempts: AtomicUsize::new(0),
++            owners: names
++                .iter()
++                .map(|name| (name.to_string(), owner(name)))
++                .collect(),
++            guard: Arc::new(RwLock::new(())),
++            mode: AtomicUsize::new(0),
++            attempts: AtomicUsize::new(0),
++            original_attempts: AtomicUsize::new(0),
+             grant_until: Mutex::new(None),
+         });
+         let handles = Arc::new(StreamHandleAllocator::default());
+-        let adapters = names.iter().map(|_| Arc::new(Adapter::default())).collect::<Vec<_>>();
+-        let controllers = names.iter().zip(&adapters).map(|(name, adapter)| {
+-            StreamController::new(ConversationId::from_string("conversation"),
+-                SessionId::from_string("session"), ConnectionId::from_string(*name),
+-                principal(name), policy.clone(), adapter.clone(), handles.clone(), 8).unwrap()
+-        }).collect::<Vec<_>>();
++        let adapters = names
++            .iter()
++            .map(|_| Arc::new(Adapter::default()))
++            .collect::<Vec<_>>();
++        let controllers = names
++            .iter()
++            .zip(&adapters)
++            .map(|(name, adapter)| {
++                StreamController::new(
++                    ConversationId::from_string("conversation"),
++                    SessionId::from_string("session"),
++                    ConnectionId::from_string(*name),
++                    principal(name),
++                    policy.clone(),
++                    adapter.clone(),
++                    handles.clone(),
++                    8,
++                )
++                .unwrap()
++            })
++            .collect::<Vec<_>>();
+         for controller in &controllers {
+-            controller.change(controller.revision(), &[desired(Medium::Video)],
+-                &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
++            controller
++                .change(
++                    controller.revision(),
++                    &[desired(Medium::Video)],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
+         }
+         let logical = desired(Medium::Video).logical_id;
+-        let inputs = controllers[..2].iter().map(|c| c.take_ingress(&logical).unwrap()).collect();
+-        let room = Self { policy, controllers, adapters, inputs };
++        let inputs = controllers[..2]
++            .iter()
++            .map(|c| c.take_ingress(&logical).unwrap())
++            .collect();
++        let room = Self {
++            policy,
++            controllers,
++            adapters,
++            inputs,
++        };
+         room.select(0).await;
+         room
+     }
+     async fn select(&self, source: usize) {
+         let target = &self.controllers[2];
+         let logical = desired(Medium::Video).logical_id;
+-        for change in [DirectSubscriptionChange::Clear,
++        for change in [
++            DirectSubscriptionChange::Clear,
+             DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
+-                &self.controllers[source], logical.clone(), logical.clone(),
+-            )])] {
+-            target.change_direct_subscriptions(target.revision(), change,
+-                deadline(), CancellationToken::new(), None).await.unwrap();
++                &self.controllers[source],
++                logical.clone(),
++                logical.clone(),
++            )]),
++        ] {
++            target
++                .change_direct_subscriptions(
++                    target.revision(),
++                    change,
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
+         }
+     }
+     async fn forward(&mut self, index: usize, packet: rtp::Packet, at: Instant) {
+         let source = self.adapters[index].port(Medium::Video);
+-        source.try_publish(&MediaFrame {
+-            stream_id: source.binding().transport_id.clone(), kind: StreamKind::Video,
+-            timestamp_rtp: packet.header.timestamp, payload_type: Some(packet.header.payload_type),
+-            payload: packet.marshal().unwrap().freeze(), source_clock: None,
+-            captured_at: Utc::now() - chrono::Duration::from_std(at.elapsed()).unwrap(),
+-        }).unwrap();
+-        tokio::time::timeout_at(deadline(), self.inputs[index].recv()).await.unwrap().unwrap()
+-            .try_forward_to(&self.controllers[2], &desired(Medium::Video).logical_id).unwrap();
++        source
++            .try_publish(&MediaFrame {
++                stream_id: source.binding().transport_id.clone(),
++                kind: StreamKind::Video,
++                timestamp_rtp: packet.header.timestamp,
++                payload_type: Some(packet.header.payload_type),
++                payload: packet.marshal().unwrap().freeze(),
++                source_clock: None,
++                captured_at: Utc::now() - chrono::Duration::from_std(at.elapsed()).unwrap(),
++            })
++            .unwrap();
++        tokio::time::timeout_at(deadline(), self.inputs[index].recv())
++            .await
++            .unwrap()
++            .unwrap()
++            .try_forward_to(&self.controllers[2], &desired(Medium::Video).logical_id)
++            .unwrap();
+     }
+     async fn close(self) -> bool {
+         let mut joined = true;
+-        for controller in self.controllers { joined &= controller.shutdown(deadline()).await == 0; }
++        for controller in self.controllers {
++            joined &= controller.shutdown(deadline()).await == 0;
++        }
+         joined && self.policy.guard.clone().try_write_owned().is_ok()
+     }
+ }
+-async fn actual_remote_video(peers: &Peers) -> Arc<dyn webrtc::media_stream::track_remote::TrackRemote> {
++async fn actual_remote_video(
++    peers: &Peers,
++) -> Arc<dyn webrtc::media_stream::track_remote::TrackRemote> {
+     tokio::time::timeout_at(deadline(), async {
+         loop {
+-            if let Some(track) = peers.receiver.discover_remote_video_track().await { break track; }
++            if let Some(track) = peers.receiver.discover_remote_video_track().await {
++                break track;
++            }
+             tokio::time::sleep(Duration::from_millis(1)).await;
+         }
+-    }).await.unwrap()
++    })
++    .await
++    .unwrap()
+ }
+ async fn actual_packet(peers: &Peers, ssrc: u32, sequence: u16) -> (rtp::Packet, Instant) {
+     let track = actual_remote_video(peers).await;
+     tokio::time::timeout_at(deadline(), async {
+         loop {
+             match track.poll().await {
+-                Some(webrtc::media_stream::track_remote::TrackRemoteEvent::OnRtpPacket(packet, at))
+-                    if packet.header.ssrc == ssrc && packet.header.sequence_number == sequence => break (packet, at),
++                Some(webrtc::media_stream::track_remote::TrackRemoteEvent::OnRtpPacket(
++                    packet,
++                    at,
++                )) if packet.header.ssrc == ssrc && packet.header.sequence_number == sequence => {
++                    break (packet, at)
++                }
+                 None => panic!("original RTC peer ended before actual RTP"),
+-                _ => {},
+-            }
+-        }
+-    }).await.unwrap()
++                _ => {}
++            }
++        }
++    })
++    .await
++    .unwrap()
+ }
+ async fn actual_source_packet(peers: &Peers, sequence: u16, delta: bool) -> (rtp::Packet, Instant) {
+     let ssrc = peers.publisher.local_video_ssrc().unwrap();
+-    peers.publisher.local_video_track().unwrap().write_rtp(rtp::Packet {
+-        header: rtp::Header { version: 2, payload_type: 96, ssrc, sequence_number: sequence,
+-            timestamp: u32::from(sequence) * 3000, marker: true, ..Default::default() },
+-        // Framing only. No decoder or keyframe readiness credit is inferred.
+-        payload: vec![0x10, u8::from(delta), 1, 2].into(),
+-    }).await.unwrap();
++    peers
++        .publisher
++        .local_video_track()
++        .unwrap()
++        .write_rtp(rtp::Packet {
++            header: rtp::Header {
++                version: 2,
++                payload_type: 96,
++                ssrc,
++                sequence_number: sequence,
++                timestamp: u32::from(sequence) * 3000,
++                marker: true,
++                ..Default::default()
++            },
++            // Framing only. No decoder or keyframe readiness credit is inferred.
++            payload: vec![0x10, u8::from(delta), 1, 2].into(),
++        })
++        .await
++        .unwrap();
+     actual_packet(peers, ssrc, sequence).await
+ }
+ async fn drain_picture_notices(peer: &Peers) {
+     for _ in 0..8 {
+-        if tokio::time::timeout(Duration::from_millis(1), peer.publisher.video_keyframe_requests().notified()).await.is_err() { break; }
++        if tokio::time::timeout(
++            Duration::from_millis(1),
++            peer.publisher.video_keyframe_requests().notified(),
++        )
++        .await
++        .is_err()
++        {
++            break;
++        }
+     }
+ }
+ 
+@@ -845,12 +1240,19 @@
+     let new_source = Peers::new().await;
+     let target = Peers::new_inner(false).await;
+     let mut room = SourceSwitchRoom::new().await;
+-    let mut output = target.publisher.core_video_egress(
+-        &room.adapters[2].port(Medium::Video), deadline().into_std()).await.unwrap();
++    let mut output = target
++        .publisher
++        .core_video_egress(&room.adapters[2].port(Medium::Video), deadline().into_std())
++        .await
++        .unwrap();
+     let old_sequence = next_primary_sequence(&old_source).await;
+     let (packet, at) = actual_source_packet(&old_source, old_sequence, false).await;
+     room.forward(0, packet, at).await;
+-    let write = output.submit_next(deadline().into_std()).await.unwrap().unwrap();
++    let write = output
++        .submit_next(deadline().into_std())
++        .await
++        .unwrap()
++        .unwrap();
+     let primary = write.result().await.is_ok();
+     let primary_joined = write.cancel_and_drain().await.is_ok();
+     let pictures = output.picture_requests();
+@@ -864,7 +1266,11 @@
+     let no_metadata_only = pictures.take_source_change().is_none();
+     let (packet, at) = actual_source_packet(&new_source, new_sequence, true).await;
+     room.forward(1, packet, at).await;
+-    let write = output.submit_next(deadline().into_std()).await.unwrap().unwrap();
++    let write = output
++        .submit_next(deadline().into_std())
++        .await
++        .unwrap()
++        .unwrap();
+     let delta = write.result().await.is_ok();
+     let delta_joined = write.cancel_and_drain().await.is_ok();
+     let new_wire = *pictures.state.lock().unwrap().sent.back().unwrap();
+@@ -873,42 +1279,97 @@
+     drain_picture_notices(&new_source).await;
+     // No incoming PLI or NACK is submitted by the target. Production source
+     // publication itself must wake this branch and identify the new owner.
+-    let notice = tokio::time::timeout(Duration::from_millis(100), pictures.source_changed()).await.is_ok();
++    let notice = tokio::time::timeout(Duration::from_millis(100), pictures.source_changed())
++        .await
++        .is_ok();
+     let request = pictures.take_source_change();
+     let expected_connection = ConnectionId::from_string("alice-next");
+     let expected_ssrc = new_source.publisher.local_video_ssrc().unwrap();
+     let source_peer = new_source.receiver.clone();
+     let attempt = if let Some(request) = request.as_ref() {
+-        pictures.forward_for_request(tokio::time::Instant::now() + Duration::from_millis(100), Some(request),
+-            move |origin, ssrc| async move {
+-                if origin.connection != expected_connection || ssrc != expected_ssrc {
+-                    return Err(StreamControlError::Authority);
+-                }
+-                source_peer.request_picture_for_source(ssrc).await.map_err(|_| StreamControlError::NotReady)
+-            }).await
+-    } else { PictureAttempt::MetadataRefused };
+-    let new_pli = tokio::time::timeout(Duration::from_millis(100), new_source.publisher.video_keyframe_requests().notified()).await.is_ok();
+-    let old_pli = tokio::time::timeout(Duration::from_millis(1), old_source.publisher.video_keyframe_requests().notified()).await.is_ok();
++        pictures
++            .forward_for_request(
++                tokio::time::Instant::now() + Duration::from_millis(100),
++                Some(request),
++                move |origin, ssrc| async move {
++                    if origin.connection != expected_connection || ssrc != expected_ssrc {
++                        return Err(StreamControlError::Authority);
++                    }
++                    source_peer
++                        .request_picture_for_source(ssrc)
++                        .await
++                        .map_err(|_| StreamControlError::NotReady)
++                },
++            )
++            .await
++    } else {
++        PictureAttempt::MetadataRefused
++    };
++    let new_pli = tokio::time::timeout(
++        Duration::from_millis(100),
++        new_source.publisher.video_keyframe_requests().notified(),
++    )
++    .await
++    .is_ok();
++    let old_pli = tokio::time::timeout(
++        Duration::from_millis(1),
++        old_source.publisher.video_keyframe_requests().notified(),
++    )
++    .await
++    .is_ok();
+     let (packet, at) = actual_source_packet(&new_source, new_sequence.wrapping_add(1), true).await;
+     room.forward(1, packet, at).await;
+-    let write = output.submit_next(deadline().into_std()).await.unwrap().unwrap();
++    let write = output
++        .submit_next(deadline().into_std())
++        .await
++        .unwrap()
++        .unwrap();
+     let repeated = write.result().await.is_ok();
+     let repeated_joined = write.cancel_and_drain().await.is_ok();
+     let no_repeat = pictures.take_source_change().is_none();
+     drop(output);
+     let core_joined = room.close().await;
+-    let (old_joined, new_joined, target_joined) = tokio::join!(old_source.close(), new_source.close(), target.close());
+-    assert!(primary && primary_joined && delta && delta_joined && repeated && repeated_joined
+-        && core_joined && old_joined && new_joined && target_joined);
+-    assert!(initial_unchanged && no_metadata_only, "initial source or metadata-only selection gained an unsolicited source-switch hint");
++    let (old_joined, new_joined, target_joined) =
++        tokio::join!(old_source.close(), new_source.close(), target.close());
++    assert!(
++        primary
++            && primary_joined
++            && delta
++            && delta_joined
++            && repeated
++            && repeated_joined
++            && core_joined
++            && old_joined
++            && new_joined
++            && target_joined
++    );
++    assert!(
++        initial_unchanged && no_metadata_only,
++        "initial source or metadata-only selection gained an unsolicited source-switch hint"
++    );
+     assert_eq!(new_wire, (old_wire.0, old_wire.1.wrapping_add(1)));
+     assert_eq!(second_target.header.ssrc, first_target.header.ssrc);
+-    assert_eq!(second_target.header.sequence_number, first_target.header.sequence_number.wrapping_add(1));
+-    assert_eq!(second_target.payload.as_ref(), &[0x10, 1, 1, 2], "actual new-source delta framing was changed");
+-    assert!(notice && request.is_some(), "source switch emitted no current keyframe request");
+-    assert!(matches!(attempt, PictureAttempt::Invoked) && new_pli && !old_pli,
+-        "source switch did not send fresh SRTCP PLI to only the actual new physical source");
+-    assert!(no_repeat, "unchanged source media repeated the keyframe request");
++    assert_eq!(
++        second_target.header.sequence_number,
++        first_target.header.sequence_number.wrapping_add(1)
++    );
++    assert_eq!(
++        second_target.payload.as_ref(),
++        &[0x10, 1, 1, 2],
++        "actual new-source delta framing was changed"
++    );
++    assert!(
++        notice && request.is_some(),
++        "source switch emitted no current keyframe request"
++    );
++    assert!(
++        matches!(attempt, PictureAttempt::Invoked) && new_pli && !old_pli,
++        "source switch did not send fresh SRTCP PLI to only the actual new physical source"
++    );
++    assert!(
++        no_repeat,
++        "unchanged source media repeated the keyframe request"
++    );
+ }
+ 
+ #[tokio::test]
+@@ -929,7 +1390,12 @@
+     let no_old_nack = pictures.request_for_nack(&[wire]).is_none();
+     pictures.record(None, successor.clone(), wire.0, wire.1.wrapping_add(2));
+     let still_waiting = pictures.take_source_change().is_none();
+-    pictures.record(Some(route.clone()), successor.clone(), wire.0, wire.1.wrapping_add(3));
++    pictures.record(
++        Some(route.clone()),
++        successor.clone(),
++        wire.0,
++        wire.1.wrapping_add(3),
++    );
+     let request = pictures.take_source_change();
+     let current = request.as_ref().is_some_and(|r| r.source == successor);
+     pictures.record(Some(route), successor, wire.0, wire.1.wrapping_add(4));
+@@ -938,7 +1404,9 @@
+     let core_joined = f.close().await;
+     let peers_joined = peers.close().await;
+     assert!(primary && core_joined && peers_joined);
+-    assert!(initial && waiting && ordinary_unchanged && no_old_nack && still_waiting && current && once);
++    assert!(
++        initial && waiting && ordinary_unchanged && no_old_nack && still_waiting && current && once
++    );
+ }
+ 
+ #[tokio::test]
+@@ -951,7 +1419,9 @@
+         let (mut output, primary) = peers.primary(&mut f, next).await;
+         let changed = replace_and_deliver_delta(&peers, &mut f, &mut output).await;
+         let pictures = output.picture_requests();
+-        let request = pictures.take_source_change().expect("actual source transition absent");
++        let request = pictures
++            .take_source_change()
++            .expect("actual source transition absent");
+         let mut successor_sent = true;
+         match action {
+             0 => {
+@@ -959,24 +1429,513 @@
+                 // The old request remains pinned even after the original shared
+                 // debounce interval; it cannot refresh itself to the successor.
+                 tokio::time::sleep(Duration::from_millis(260)).await;
+-            },
++            }
+             1 => f.policy.mode.store(3, Ordering::SeqCst),
+-            2 => { let _ = f.a.shutdown(deadline()).await; },
++            2 => {
++                let _ = f.a.shutdown(deadline()).await;
++            }
+             _ => unreachable!(),
+         }
+         let invoked = Arc::new(AtomicBool::new(false));
+         let did = invoked.clone();
+-        let result = pictures.forward_for_request(
+-            tokio::time::Instant::now() + Duration::from_millis(100), Some(&request),
+-            move |_, _| async move { did.store(true, Ordering::SeqCst); Ok(()) },
+-        ).await;
++        let result = pictures
++            .forward_for_request(
++                tokio::time::Instant::now() + Duration::from_millis(100),
++                Some(&request),
++                move |_, _| async move {
++                    did.store(true, Ordering::SeqCst);
++                    Ok(())
++                },
++            )
++            .await;
+         f.policy.mode.store(0, Ordering::SeqCst);
+         drop(output);
+         let core_joined = f.close().await;
+         let peers_joined = peers.close().await;
+-        observations.push((primary, changed, successor_sent, invoked.load(Ordering::SeqCst),
+-            matches!(result, PictureAttempt::MetadataRefused), core_joined, peers_joined));
+-    }
+-    assert!(observations.iter().all(|(primary, changed, successor, invoked, refused, joined, peers_joined)|
+-        *primary && *changed && *successor && !*invoked && *refused && *joined && *peers_joined));
+-}
++        observations.push((
++            primary,
++            changed,
++            successor_sent,
++            invoked.load(Ordering::SeqCst),
++            matches!(result, PictureAttempt::MetadataRefused),
++            core_joined,
++            peers_joined,
++        ));
++    }
++    assert!(observations.iter().all(
++        |(primary, changed, successor, invoked, refused, joined, peers_joined)| *primary
++            && *changed
++            && *successor
++            && !*invoked
++            && *refused
++            && *joined
++            && *peers_joined
++    ));
++}
++
++// OLD-compatible tests call the unchanged canonical dispatcher; the production
++// delta changes only which budget its two real egress implementations receive.
++mod poll_work_budget {
++    use super::*;
++    use crate::canonical::{canonical_poll_submission_for_test, PollEgressForTest};
++    use futures::FutureExt;
++    use std::{future::Future, pin::Pin, task::Poll};
++    use webrtc::media_stream::track_remote::TrackRemoteEvent;
++
++    #[derive(Clone, Copy, Debug)]
++    enum Case {
++        LatePoll,
++        Absolute,
++        WorkExpired,
++        OriginalAge,
++        Revoked,
++        GrantExpired,
++        Cancelled,
++        TimelineBusy,
++    }
++    #[derive(Default, Debug)]
++    struct Observed {
++        poll_pending: bool,
++        idle_ms: u128,
++        age_ms: u128,
++        submitted: bool,
++        old_poll_expired_before_worker: bool,
++        delivery: Option<OwnedRtpResult>,
++        submit_problem: Option<StreamControlError>,
++        received_exact: bool,
++        write_joined: bool,
++        core_joined: bool,
++        peers_joined: bool,
++    }
++    type Submit = Pin<Box<dyn Future<Output = ControlResult<Option<OwnedRtpWrite>>>>>;
++    fn hold_until(until: Instant) {
++        if let Some(remaining) = until.checked_duration_since(Instant::now()) {
++            // Deliberate current-thread barrier: the ORIGINAL spawned receipt
++            // worker cannot first-poll until this returns. No new clock is used.
++            std::thread::sleep(remaining);
++        }
++    }
++    async fn owned_room(medium: Medium, owners: &mut Vec<Arc<StreamController>>) -> Fixture {
++        let audio_format = MediaFormat::Encoded {
++            name: "opus".into(),
++            clock_rate_hz: 48000,
++            channels: 1,
++            fmtp: None,
++        };
++        let mut alice = owner("alice");
++        let mut bob = owner("bob");
++        for owner in [&mut alice, &mut bob] {
++            for profile in [&mut owner.local, &mut owner.remote] {
++                for capability in profile.send.iter_mut().chain(profile.receive.iter_mut()) {
++                    if capability.medium == Medium::Audio {
++                        capability.formats = vec![audio_format.clone()];
++                    }
++                }
++            }
++        }
++        let policy = Arc::new(Policy {
++            owners: [("alice".into(), alice), ("bob".into(), bob)].into(),
++            guard: Arc::new(RwLock::new(())),
++            mode: AtomicUsize::new(0),
++            attempts: AtomicUsize::new(0),
++            original_attempts: AtomicUsize::new(0),
++            grant_until: Mutex::new(None),
++        });
++        let aa = Arc::new(Adapter::default());
++        let ba = Arc::new(Adapter::default());
++        let handles = Arc::new(StreamHandleAllocator::default());
++        for (name, adapter) in [("alice", aa.clone()), ("bob", ba.clone())] {
++            let controller = StreamController::new(
++                ConversationId::from_string("conversation"),
++                SessionId::from_string("session"),
++                ConnectionId::from_string(name),
++                principal(name),
++                policy.clone(),
++                adapter,
++                handles.clone(),
++                8,
++            )
++            .unwrap();
++            owners.push(controller); // BEFORE the first fallible await/change.
++        }
++        let a = owners[0].clone();
++        let b = owners[1].clone();
++        for controller in [&a, &b] {
++            controller
++                .change(
++                    controller.revision(),
++                    &[desired(medium)],
++                    &BTreeSet::new(),
++                    deadline(),
++                    CancellationToken::new(),
++                )
++                .await
++                .unwrap();
++        }
++        b.change_direct_subscriptions(
++            b.revision(),
++            DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                &a,
++                desired(medium).logical_id.clone(),
++                desired(medium).logical_id,
++            )]),
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++        let input = a.take_ingress(&desired(medium).logical_id).unwrap();
++        Fixture {
++            policy,
++            a,
++            b,
++            source: aa.port(medium),
++            target: ba.port(medium),
++            input,
++            medium,
++            source_adapter: aa,
++        }
++    }
++    async fn enqueue(room: &mut Fixture, medium: Medium, ssrc: u32) -> Vec<u8> {
++        let (kind, pt, timestamp, payload) = if medium == Medium::Audio {
++            (
++                StreamKind::Audio,
++                111,
++                960,
++                vec![0xF8, 0xFF, 0xFE, 0x39, 0x71, 0x22, 0x05, 0x04],
++            )
++        } else {
++            let packet = rtp::Packet {
++                header: rtp::Header {
++                    version: 2,
++                    payload_type: 96,
++                    ssrc,
++                    sequence_number: 25000,
++                    timestamp: 75000000,
++                    marker: true,
++                    ..Default::default()
++                },
++                payload: vec![0x10, 0, 1, 2].into(),
++            };
++            (
++                StreamKind::Video,
++                96,
++                packet.header.timestamp,
++                packet.marshal().unwrap().to_vec(),
++            )
++        };
++        room.source
++            .try_publish(&MediaFrame {
++                stream_id: room.source.binding().transport_id.clone(),
++                kind,
++                payload: payload.clone().into(),
++                timestamp_rtp: timestamp,
++                captured_at: Utc::now(),
++                payload_type: Some(pt),
++                source_clock: None,
++            })
++            .unwrap();
++        tokio::time::timeout_at(deadline(), room.input.recv())
++            .await
++            .unwrap()
++            .unwrap()
++            .try_forward_to(&room.b, &desired(medium).logical_id)
++            .unwrap();
++        if medium == Medium::Audio {
++            payload
++        } else {
++            vec![0x10, 0, 1, 2]
++        }
++    }
++    async fn exercise(medium: Medium, case: Case) -> Observed {
++        let mut peer_owners = Vec::<Arc<RvoipPeerConnection>>::new();
++        let mut core_owners = Vec::<Arc<StreamController>>::new();
++        let mut room = None;
++        let mut submitting: Option<Submit> = None;
++        let mut write: Option<OwnedRtpWrite> = None;
++        let mut obs = Observed::default();
++        let mut held_timeline = None;
++        let work = std::panic::AssertUnwindSafe(async {
++            let mut config = WebRtcConfig::loopback();
++            config.require_vp8_audio_video_profile = true;
++            let publisher = RvoipPeerConnection::new_canonical(&config, PeerRole::Offerer)
++                .await
++                .unwrap();
++            peer_owners.push(publisher.clone());
++            let receiver = RvoipPeerConnection::new(&config, PeerRole::Answerer)
++                .await
++                .unwrap();
++            peer_owners.push(receiver.clone());
++            publisher.add_local_audio_track().await.unwrap();
++            publisher.add_local_video_track().await.unwrap();
++            let offer = publisher.create_offer_and_gather().await.unwrap();
++            let answer = receiver.accept_offer_and_gather(&offer).await.unwrap();
++            publisher.set_remote_answer(&answer).await.unwrap();
++            tokio::try_join!(
++                publisher.wait_connected(Duration::from_secs(3)),
++                receiver.wait_connected(Duration::from_secs(3))
++            )
++            .unwrap();
++            let (audio, video) = RvoipPeerConnection::prime_remote_media(
++                &publisher,
++                &receiver,
++                true,
++                Duration::from_secs(3),
++            )
++            .await;
++            assert!(audio.is_some() && video.is_some());
++            room = Some(owned_room(medium, &mut core_owners).await);
++            let room = room.as_mut().unwrap();
++            // The real fixture adapter publishes exact mono-Opus/PT111 metadata.
++            // Other retained fixtures remain byte-for-byte unchanged.
++            let output = if medium == Medium::Audio {
++                PollEgressForTest::Audio(
++                    publisher
++                        .core_audio_egress(&room.target, deadline().into_std())
++                        .await
++                        .unwrap(),
++                )
++            } else {
++                let output = publisher
++                    .core_video_egress(&room.target, deadline().into_std())
++                    .await
++                    .unwrap();
++                if matches!(case, Case::TimelineBusy) {
++                    held_timeline = Some(output.timeline.clone().lock_owned().await);
++                }
++                PollEgressForTest::Video(output)
++            };
++            let poll_began = Instant::now();
++            let poll_until = poll_began
++                + Duration::from_millis(if matches!(case, Case::Absolute) {
++                    10
++                } else {
++                    100
++                });
++            submitting = Some(Box::pin(canonical_poll_submission_for_test(
++                output,
++                poll_until,
++                matches!(case, Case::Absolute),
++            )));
++            std::future::poll_fn(|cx| {
++                obs.poll_pending = matches!(
++                    submitting.as_mut().unwrap().as_mut().poll(cx),
++                    Poll::Pending
++                );
++                Poll::Ready(())
++            })
++            .await;
++            assert!(
++                obs.poll_pending,
++                "actual original output recv was not pending before publication"
++            );
++            if matches!(case, Case::LatePoll | Case::WorkExpired) {
++                tokio::time::sleep_until((poll_until - Duration::from_millis(20)).into()).await;
++            }
++            obs.idle_ms = poll_began.elapsed().as_millis();
++            let queued_at = Instant::now();
++            let ssrc = if medium == Medium::Audio {
++                publisher.local_audio_ssrc().unwrap()
++            } else {
++                publisher.local_video_ssrc().unwrap()
++            };
++            let expected = enqueue(room, medium, ssrc).await;
++            if matches!(case, Case::OriginalAge) {
++                hold_until(queued_at + Duration::from_millis(210));
++            }
++            if matches!(case, Case::TimelineBusy) {
++                // Poll once through actual queue acquisition into the SAME held
++                // timeline wait, then pass its one packet-work cap without IO.
++                std::future::poll_fn(|cx| {
++                    assert!(submitting.as_mut().unwrap().as_mut().poll(cx).is_pending());
++                    Poll::Ready(())
++                })
++                .await;
++                hold_until(queued_at + Duration::from_millis(110));
++                held_timeline.take();
++            }
++            match submitting.take().unwrap().await {
++                Ok(Some(original)) => {
++                    obs.submitted = true;
++                    write = Some(original);
++                }
++                Ok(None) => panic!("actual original queue closed unexpectedly"),
++                Err(error) => {
++                    obs.submit_problem = Some(error);
++                }
++            }
++            if let Some(original) = &write {
++                match case {
++                    Case::LatePoll | Case::Absolute => {
++                        hold_until(poll_until + Duration::from_millis(5))
++                    }
++                    Case::WorkExpired => hold_until(queued_at + Duration::from_millis(110)),
++                    Case::Revoked => {
++                        room.policy.mode.store(3, Ordering::SeqCst);
++                    }
++                    Case::GrantExpired => {
++                        *room.policy.grant_until.lock().unwrap() =
++                            Some(Utc::now() - chrono::Duration::milliseconds(1));
++                    }
++                    Case::Cancelled => {
++                        original.cancel();
++                    }
++                    _ => {}
++                }
++                obs.old_poll_expired_before_worker = Instant::now() >= poll_until;
++                obs.age_ms = queued_at.elapsed().as_millis();
++                obs.delivery = Some(original.result().await);
++            }
++            {
++                let track = if medium == Medium::Audio {
++                    audio.unwrap()
++                } else {
++                    video.unwrap()
++                };
++                let receive_bound = if obs.delivery == Some(Ok(())) {
++                    Duration::from_millis(500)
++                } else {
++                    Duration::from_millis(50)
++                };
++                obs.received_exact = tokio::time::timeout(receive_bound, async {
++                    loop {
++                        match track.poll().await {
++                            Some(TrackRemoteEvent::OnRtpPacket(packet, _))
++                                if packet.header.ssrc == ssrc
++                                    && packet.payload.as_ref() == expected.as_slice() =>
++                            {
++                                break true
++                            }
++                            None | Some(TrackRemoteEvent::OnEnded | TrackRemoteEvent::OnError) => {
++                                break false
++                            }
++                            _ => {}
++                        }
++                    }
++                })
++                .await
++                .unwrap_or(false);
++            }
++        })
++        .catch_unwind()
++        .await;
++        // Every original owner is attempted even if work failed or panicked.
++        drop(submitting.take());
++        drop(held_timeline.take());
++        obs.write_joined = match write.take() {
++            Some(original) => original.cancel_and_drain().await.is_ok(),
++            None => true,
++        };
++        drop(room.take());
++        obs.core_joined = true;
++        for owner in core_owners {
++            obs.core_joined &= owner.shutdown(deadline()).await == 0;
++        }
++        obs.peers_joined = true;
++        for peer in peer_owners {
++            obs.peers_joined &= peer.close().await.is_ok();
++        }
++        println!(
++            "POLL_WORK_BOUNDARY medium={medium:?} case={case:?} observed={obs:?} work_completed={}",
++            work.is_ok()
++        );
++        assert!(
++            obs.write_joined && obs.core_joined && obs.peers_joined,
++            "original cleanup incomplete"
++        );
++        if let Err(panic) = work {
++            std::panic::resume_unwind(panic);
++        }
++        obs
++    }
++    #[tokio::test(flavor = "current_thread")]
++    async fn canonical_video_idle_poll_does_not_spend_fresh_original_write_budget() {
++        let obs = exercise(Medium::Video, Case::LatePoll).await;
++        assert!(
++            obs.poll_pending
++                && obs.idle_ms >= 70
++                && obs.age_ms < 100
++                && obs.submitted
++                && obs.old_poll_expired_before_worker
++        );
++        assert!(obs.delivery == Some(Ok(())) && obs.received_exact,
++            "fresh video original lost its work budget to idle polling before its original worker could claim");
++    }
++    #[tokio::test(flavor = "current_thread")]
++    async fn canonical_audio_idle_poll_does_not_spend_fresh_original_write_budget() {
++        let obs = exercise(Medium::Audio, Case::LatePoll).await;
++        assert!(
++            obs.poll_pending
++                && obs.idle_ms >= 70
++                && obs.age_ms < 100
++                && obs.submitted
++                && obs.old_poll_expired_before_worker
++        );
++        assert!(obs.delivery == Some(Ok(())) && obs.received_exact,
++            "fresh audio original lost its work budget to idle polling before its original worker could claim");
++    }
++    #[tokio::test(flavor = "current_thread")]
++    async fn canonical_poll_keeps_explicit_caller_cutoff_and_never_renews_chosen_work_cutoff() {
++        for medium in [Medium::Audio, Medium::Video] {
++            for case in [Case::Absolute, Case::WorkExpired] {
++                let obs = exercise(medium, case).await;
++                assert!(obs.submitted && obs.old_poll_expired_before_worker,
++                    "original expiry control was not created before the controlled first-poll barrier");
++                assert!(
++                    matches!(
++                        obs.delivery,
++                        Some(Err(
++                            OwnedRtpError::Refused | OwnedRtpError::DeadlineBeforeWrite
++                        ))
++                    ) && !obs.received_exact,
++                    "expired original control was renewed or actual IO became uncertain"
++                );
++            }
++        }
++    }
++    #[tokio::test(flavor = "current_thread")]
++    async fn canonical_poll_keeps_original_age_and_fresh_revocation_or_cancellation_refusals() {
++        for medium in [Medium::Audio, Medium::Video] {
++            for case in [
++                Case::OriginalAge,
++                Case::Revoked,
++                Case::GrantExpired,
++                Case::Cancelled,
++            ] {
++                let obs = exercise(medium, case).await;
++                if !matches!(case, Case::OriginalAge) {
++                    assert!(
++                        obs.submitted,
++                        "original authority/cancellation control was not created"
++                    );
++                }
++                assert!(
++                    (matches!(
++                        obs.delivery,
++                        Some(Err(
++                            OwnedRtpError::Refused | OwnedRtpError::DeadlineBeforeWrite
++                        ))
++                    ) || matches!(obs.submit_problem, Some(StreamControlError::Deadline)))
++                        && !obs.received_exact,
++                    "stale or refused original entered media IO or became uncertain"
++                );
++            }
++        }
++    }
++    #[tokio::test(flavor = "current_thread")]
++    async fn canonical_video_sequence_owner_wait_spends_the_same_once_chosen_packet_budget() {
++        let obs = exercise(Medium::Video, Case::TimelineBusy).await;
++        assert!(
++            (matches!(obs.submit_problem, Some(StreamControlError::Deadline))
++                || matches!(
++                    obs.delivery,
++                    Some(Err(
++                        OwnedRtpError::Refused | OwnedRtpError::DeadlineBeforeWrite
++                    ))
++                ))
++                && !obs.received_exact,
++            "sequence ownership renewed the original packet budget"
++        );
++    }
++}

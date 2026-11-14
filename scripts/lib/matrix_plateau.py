@@ -317,3 +317,59 @@ def evaluate(report, source_inputs=None):
 
 def plateau_verdict(report, source_inputs=None):
     return evaluate(report, source_inputs)['passed']
+
+
+FOCUSED_PROFILE = "connect/matrix-focused-capacity-observation/1"
+
+
+def focused_capacity_evaluation(report, source_inputs=None):
+    """One original diagnostic workload: ownership and existing capacity bars.
+
+    This cannot qualify the three-cycle profile or its separate pending soak.
+    Count capacity is frozen from this original workload, never idle/global peaks.
+    """
+    result = dict(profile=FOCUSED_PROFILE, passed=False, failures=[], comparisons=[],
+        full_three_cycle_capacity_qualified=False,
+        separate_soak=dict(task='G6-098', status='pending', qualified=False))
+    try:
+        if report.get('focused_capacity_profile') != FOCUSED_PROFILE:
+            raise ValueError('focused-capacity-profile')
+        owners, baseline = report['persistent_owners'], report['baseline']
+        if (set(owners) != {'server', 'browser'} or set(owners) != set(baseline['groups'])
+                or not all(_valid_owner(v) for v in owners.values())):
+            raise ValueError('original-persistent-owner-identities')
+        window = _idle_window(report)
+        observations = _workload_samples(report, set(owners))
+        workload = observations['valid']
+        result['workload_capacity_samples'] = dict(valid=len(workload), skipped=observations['skipped'])
+        server_threads = _server_thread_ceiling(report, owners, source_inputs)
+        # All retained numeric observations contribute to RSS, even a partial
+        # process observation which cannot establish a count-capacity reference.
+        samples = [baseline, *report.get('baseline_samples', []), *report['samples']]
+        for role in sorted(owners):
+            for field in COUNTS:
+                capacity = (server_threads if role == 'server' and field == 'sampled_threads'
+                    else max(s['groups'][role][field] for s in workload))
+                values = [s['groups'][role][field] for s in window]
+                result['comparisons'].append(dict(role=role, metric=field, values=values, capacity=capacity,
+                    capacity_source=('original-baseline-total-plus-source-bound-blocking-capacity'
+                        if role == 'server' and field == 'sampled_threads' else 'original-workload')))
+                if any(value > capacity for value in values):
+                    result['failures'].append(role + ':' + field + ':operating-capacity-exceeded')
+            maximum = max(value for s in samples if (value := _known_rss(s, role)) is not None)
+            budget = POLICY['role_rss_budget_bytes'][role]
+            result['comparisons'].append(dict(role=role, metric='sampled_rss_bytes',
+                observed_maximum_bytes=maximum, declared_operating_budget_bytes=budget))
+            if maximum > budget:
+                result['failures'].append(role + ':sampled_rss_bytes:operating-budget-exceeded')
+        aggregate = max(sum(value for role in owners
+            if (value := _known_rss(s, role)) is not None) for s in samples)
+        result['comparisons'].append(dict(metric='aggregate_sampled_rss_bytes', observed_maximum_bytes=aggregate,
+            declared_operating_budget_bytes=POLICY['aggregate_rss_budget_bytes']))
+        if aggregate > POLICY['aggregate_rss_budget_bytes']:
+            result['failures'].append('aggregate:sampled_rss_bytes:operating-budget-exceeded')
+        result['passed'] = not result['failures']
+    except (KeyError, TypeError, ValueError, IndexError, OverflowError) as error:
+        result['failures'].append(str(error) if isinstance(error, ValueError)
+            else 'incomplete-focused-capacity-evidence:' + type(error).__name__)
+    return result

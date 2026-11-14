@@ -1,0 +1,44 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+@@ -1572,19 +1572,27 @@
+                 .await
+                 .unwrap();
+         }
+-        b.change_direct_subscriptions(
+-            b.revision(),
+-            DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
+-                &a,
+-                desired(medium).logical_id.clone(),
+-                desired(medium).logical_id,
+-            )]),
+-            deadline(),
+-            CancellationToken::new(),
+-            None,
+-        )
+-        .await
+-        .unwrap();
++        // Direct subscriptions are the encoded visual route contract and
++        // intentionally reject ALL Audio. This unmanaged endpoint fixture has
++        // no scene/audio-consumer owner: ordinary Audio MediaPacket forwarding
++        // already performs real source+target admission without a direct stamp.
++        // Codec/permission/currentness/driver IO are unchanged; do not pretend
++        // this endpoint fixture qualifies managed-scene mixer routing.
++        if medium != Medium::Audio {
++            b.change_direct_subscriptions(
++                b.revision(),
++                DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                    &a,
++                    desired(medium).logical_id.clone(),
++                    desired(medium).logical_id,
++                )]),
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await
++            .unwrap();
++        }
+         let input = a.take_ingress(&desired(medium).logical_id).unwrap();
+         Fixture {
+             policy,

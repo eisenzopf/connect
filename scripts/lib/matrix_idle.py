@@ -13,7 +13,8 @@ from pathlib import Path
 from .operational_process_resources import ProcessResources
 from .matrix_macos_resources import MacProcessResources
 from .matrix_owner_diagnostics import idle_owner_diagnostics
-from .matrix_plateau import CYCLE_POLICY, cycle_restoration, cycle_idle_verdict
+from .matrix_plateau import (CYCLE_POLICY, cycle_restoration, cycle_idle_verdict,
+    FOCUSED_PROFILE, focused_capacity_evaluation, runtime_capacity_configuration)
 
 
 POLICY = dict(profile="connect/matrix-idle/1", idle_seconds=10, sample_seconds=1,
@@ -63,6 +64,8 @@ def restoration(baseline, sample):
 
 def idle_verdict(report):
     """Recompute restoration from retained samples, not a producer's green flag."""
+    if "focused_capacity_profile" in report:
+        return focused_capacity_evaluation(report)["passed"]
     if report.get("policy") == CYCLE_POLICY:
         return cycle_idle_verdict(report)
     try:
@@ -86,11 +89,14 @@ def idle_verdict(report):
 
 
 class MatrixIdle:
-    def __init__(self, directory, server_pid, browser_pid, endpoint, credential, *, sampler=None, cycle_mode=False, original_baseline=None, resource_cycles=1):
+    def __init__(self, directory, server_pid, browser_pid, endpoint, credential, *, sampler=None, cycle_mode=False, original_baseline=None, resource_cycles=1, focused_capacity=False):
         self.directory = Path(directory)
         if type(resource_cycles) is not int or resource_cycles not in (1, 3):
             raise ValueError("One or three original resource cycles required")
-        self.policy = CYCLE_POLICY if cycle_mode else POLICY
+        if focused_capacity and (cycle_mode or resource_cycles != 1 or original_baseline is not None):
+            raise ValueError("Focused capacity requires one original diagnostic workload")
+        self.focused_capacity = focused_capacity
+        self.policy = CYCLE_POLICY if cycle_mode or focused_capacity else POLICY
         self.reference_baseline = original_baseline
         if original_baseline is not None and not cycle_mode:
             raise ValueError("Original baseline is only shared by declared workload cycles")
@@ -224,6 +230,11 @@ class MatrixIdle:
                 **(dict(persistent_owners=self.persistent_owners()) if self.policy == CYCLE_POLICY else {}),
                 scope="Same live server and original container browser tree (Chrome, Node driver and owned PulseAudio fixture); numeric RSS/CPU/descriptors/threads and public live owner/pool counts. No process restart or forced GC. CPU is descriptive; no capacity claim. Browser sources/renderers/client joins are separate required evidence.",
                 cell_qualified=False)
+            if self.focused_capacity:
+                self.result.update(focused_capacity_profile=FOCUSED_PROFILE,
+                    server_runtime_capacity=runtime_capacity_configuration(self.persistent_owners()["server"]),
+                    full_three_cycle_capacity_qualified=False)
+                self.result["focused_capacity"] = focused_capacity_evaluation(self.result)
             self.result["passed"] = passed and idle_verdict(self.result)
             self.respond("retired", dict(passed=self.result["passed"]))
             self.done = True

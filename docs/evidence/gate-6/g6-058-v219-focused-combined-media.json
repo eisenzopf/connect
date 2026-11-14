@@ -1,0 +1,419 @@
+{
+  "format": "connect/g6-058-focused-combined-media/1",
+  "updated_at": "2026-11-14T11:13:50.706294+00:00",
+  "source_revision": "219e45e7d70f6c454a66034d5e9d5dd2e2f13809",
+  "normal_generation": 437,
+  "source_lock_sha256": "024f0277dd25a019e0551943e72286fd972911cbea5e1754e67811098e38dce8",
+  "original_root_join_sha256": "e49c4584f33a3c009106ea99f1fea303b4c0218e5835ccb490c01c22c28bec4b",
+  "original_result_sha256": "c6293afc08c2948bb7ed0b21ef96f98781f2234dfeb53416fd7f42bab89f49d7",
+  "original_adjudication_sha256": "db7068d077971ed1d66e1beb62d5b3cb9996c3786ce3d5e63637576d15ed6aca",
+  "original_component_sha256": "4ae6bfea18fe0b20bd92b5af4ca5ad654f47ee94a739a3631fa6e223e919a237",
+  "original_cycle_sha256": "aece184400a4f1357f912e1aa4d63ea3c2b0af7adb9708473c352e61ee8bc0cc",
+  "original_wrapper_exit": 0,
+  "original_CLI_exit": 1,
+  "quality_passed": false,
+  "all15_setup_and_original_owner_gates_passed": true,
+  "all_four_original_moves_completed": true,
+  "source_unchanged": true,
+  "summary": {
+    "audio_passed": 6,
+    "audio_required": 6,
+    "video_passed": 4,
+    "video_required": 6,
+    "AV_passed": 6,
+    "AV_required": 6,
+    "whole_routes_passed": 4,
+    "whole_routes_required": 6
+  },
+  "routes": [
+    {
+      "route": 0,
+      "audio": {
+        "passed": true,
+        "decoded_seconds": 59.94,
+        "identified_seconds": 59.94,
+        "bad_identity_frames": 0,
+        "unusable_or_unidentified_frames": 0,
+        "recognized_below_energy_floor_frames": 0,
+        "maximum_pcm_sample_gap_ms": 20
+      },
+      "video": {
+        "passed": true,
+        "decoded_frames": 1772,
+        "minimum_fps": 6,
+        "maximum_decode_callback_gap_ms": 865.9999999999997,
+        "duplicate_frames": 0,
+        "bins_below_unprorated24fps": [
+          {
+            "start_seconds": 16,
+            "frames": 6
+          }
+        ],
+        "transition_coverage": {
+          "profile": "connect/media-transition-coverage/1",
+          "maximum_interruption_ms": 1000,
+          "transition_missing_ms": 898.3333333333285,
+          "maximum_clean_gap_ms": 53
+        }
+      },
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 21.49999999999963,
+        "p95_abs_skew_ms": 30.000000000001137
+      },
+      "whole_route_passed": true
+    },
+    {
+      "route": 1,
+      "audio": {
+        "passed": true,
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "bad_identity_frames": 0,
+        "unusable_or_unidentified_frames": 0,
+        "recognized_below_energy_floor_frames": 0,
+        "maximum_pcm_sample_gap_ms": 20
+      },
+      "video": {
+        "passed": false,
+        "decoded_frames": 1797,
+        "minimum_fps": 28,
+        "maximum_decode_callback_gap_ms": 82.00000000000074,
+        "duplicate_frames": 1,
+        "bins_below_unprorated24fps": [],
+        "transition_coverage": {
+          "profile": "connect/media-transition-coverage/1",
+          "maximum_interruption_ms": 1000,
+          "transition_missing_ms": 0,
+          "maximum_clean_gap_ms": 82
+        }
+      },
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 24.00000000000091,
+        "p95_abs_skew_ms": 89.00000000000219
+      },
+      "whole_route_passed": false
+    },
+    {
+      "route": 2,
+      "audio": {
+        "passed": true,
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "bad_identity_frames": 0,
+        "unusable_or_unidentified_frames": 0,
+        "recognized_below_energy_floor_frames": 0,
+        "maximum_pcm_sample_gap_ms": 20
+      },
+      "video": {
+        "passed": false,
+        "decoded_frames": 1780,
+        "minimum_fps": 20,
+        "maximum_decode_callback_gap_ms": 698.9999999999981,
+        "duplicate_frames": 0,
+        "bins_below_unprorated24fps": [
+          {
+            "start_seconds": 39,
+            "frames": 20
+          },
+          {
+            "start_seconds": 40,
+            "frames": 20
+          }
+        ],
+        "transition_coverage": {
+          "profile": "connect/media-transition-coverage/1",
+          "maximum_interruption_ms": 1000,
+          "transition_missing_ms": 0,
+          "maximum_clean_gap_ms": 699
+        }
+      },
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 5.000000000002558,
+        "p95_abs_skew_ms": 24.99999999999858
+      },
+      "whole_route_passed": false
+    },
+    {
+      "route": 3,
+      "audio": {
+        "passed": true,
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "bad_identity_frames": 0,
+        "unusable_or_unidentified_frames": 0,
+        "recognized_below_energy_floor_frames": 0,
+        "maximum_pcm_sample_gap_ms": 20
+      },
+      "video": {
+        "passed": true,
+        "decoded_frames": 1800,
+        "minimum_fps": 30,
+        "maximum_decode_callback_gap_ms": 52.000000000003155,
+        "duplicate_frames": 0,
+        "bins_below_unprorated24fps": [],
+        "transition_coverage": {
+          "profile": "connect/media-transition-coverage/1",
+          "maximum_interruption_ms": 1000,
+          "transition_missing_ms": 0,
+          "maximum_clean_gap_ms": 52
+        }
+      },
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 39.99999999999915,
+        "p95_abs_skew_ms": 42.00000000000159
+      },
+      "whole_route_passed": true
+    },
+    {
+      "route": 4,
+      "audio": {
+        "passed": true,
+        "decoded_seconds": 59.96,
+        "identified_seconds": 59.94,
+        "bad_identity_frames": 0,
+        "unusable_or_unidentified_frames": 1,
+        "recognized_below_energy_floor_frames": 1,
+        "maximum_pcm_sample_gap_ms": 20
+      },
+      "video": {
+        "passed": true,
+        "decoded_frames": 1753,
+        "minimum_fps": 9,
+        "maximum_decode_callback_gap_ms": 849.0000000000002,
+        "duplicate_frames": 0,
+        "bins_below_unprorated24fps": [
+          {
+            "start_seconds": 16,
+            "frames": 9
+          },
+          {
+            "start_seconds": 41,
+            "frames": 13
+          }
+        ],
+        "transition_coverage": {
+          "profile": "connect/media-transition-coverage/1",
+          "maximum_interruption_ms": 1000,
+          "transition_missing_ms": 1550.3333333333285,
+          "maximum_clean_gap_ms": 65
+        }
+      },
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 7.0000000000014495,
+        "p95_abs_skew_ms": 23.999999999999133
+      },
+      "whole_route_passed": true
+    },
+    {
+      "route": 5,
+      "audio": {
+        "passed": true,
+        "decoded_seconds": 60,
+        "identified_seconds": 60,
+        "bad_identity_frames": 0,
+        "unusable_or_unidentified_frames": 0,
+        "recognized_below_energy_floor_frames": 0,
+        "maximum_pcm_sample_gap_ms": 20
+      },
+      "video": {
+        "passed": true,
+        "decoded_frames": 1790,
+        "minimum_fps": 28,
+        "maximum_decode_callback_gap_ms": 101.0000000000062,
+        "duplicate_frames": 0,
+        "bins_below_unprorated24fps": [],
+        "transition_coverage": {
+          "profile": "connect/media-transition-coverage/1",
+          "maximum_interruption_ms": 1000,
+          "transition_missing_ms": 0,
+          "maximum_clean_gap_ms": 101
+        }
+      },
+      "sync": {
+        "status": "passed",
+        "median_abs_skew_ms": 19.000000000000128,
+        "p95_abs_skew_ms": 70.00000000000028
+      },
+      "whole_route_passed": true
+    }
+  ],
+  "same_owner_duplicate": {
+    "profile": "connect/decoded-video-duplicate-evidence/1",
+    "limit": 16,
+    "scope": "Repeated decoded source ordinal among exact included public quality-window rows; no inferred transport cause",
+    "source_frame_bits": "connect/matrix-decoded-source-frame-id/1",
+    "source_frame_bits_unavailable": null,
+    "omitted": 0,
+    "events": [
+      {
+        "first": {
+          "owner": "matrix_browser-cycle-9e2c9397f15b41669763800257ddb695_connection_cf02517b-7707-45b4-be09-a72d7b992f53",
+          "row_index": 1368,
+          "original_timestamp_us": 0,
+          "callback_seconds": 45.776,
+          "kind": "0",
+          "changed": true,
+          "dimensions": true,
+          "native": null,
+          "presentation": {
+            "profile": "connect/rtc-video-presentation/1",
+            "element_id": 2,
+            "callbackTime": 71813.98,
+            "mediaTime": 0,
+            "presentedFrames": 1381,
+            "rtpTimestamp": 327003387,
+            "captureTime": 71726,
+            "receiveTime": 71748
+          },
+          "source_frame_identity": {
+            "profile": "connect/matrix-decoded-source-frame-id/1",
+            "status": "identified",
+            "ordinal": 1371,
+            "observed_source_id": 0,
+            "pulse_exception": false,
+            "associated_source_id": 0
+          }
+        },
+        "current": {
+          "owner": "matrix_browser-cycle-9e2c9397f15b41669763800257ddb695_connection_cf02517b-7707-45b4-be09-a72d7b992f53",
+          "row_index": 1369,
+          "original_timestamp_us": 0,
+          "callback_seconds": 45.792,
+          "kind": "0",
+          "changed": false,
+          "dimensions": true,
+          "native": null,
+          "presentation": {
+            "profile": "connect/rtc-video-presentation/1",
+            "element_id": 2,
+            "callbackTime": 71829.54,
+            "mediaTime": 0,
+            "presentedFrames": 1382,
+            "rtpTimestamp": 327004917,
+            "captureTime": 71743,
+            "receiveTime": 71768
+          },
+          "source_frame_identity": {
+            "profile": "connect/matrix-decoded-source-frame-id/1",
+            "status": "identified",
+            "ordinal": 1371,
+            "observed_source_id": 0,
+            "pulse_exception": false,
+            "associated_source_id": 0
+          }
+        },
+        "matching_original_row_available": true
+      }
+    ]
+  },
+  "audio_lifetime_cleanup": {
+    "retained_taps": 0,
+    "state_listeners_unconfirmed": 0,
+    "observation_failures": 0,
+    "render_finished_promises_joined": false,
+    "hook_values_restored": {
+      "rtc_render": true,
+      "rtc_capture": true,
+      "source_connect": true,
+      "source_disconnect": true,
+      "context_close": true,
+      "canvas_draw": true,
+      "video_frame_callback": true
+    }
+  },
+  "sampled_resource_result": {
+    "passed": false,
+    "policy": {
+      "profile": "connect/matrix-idle/1",
+      "idle_seconds": 10,
+      "sample_seconds": 1,
+      "rss_retention_bytes": 0,
+      "extra_descriptors": 0,
+      "extra_threads": 0,
+      "scope": "No retained-resource allowance. CPU is measured, not a capacity limit."
+    },
+    "final_failures": [
+      "server:sampled_threads",
+      "server:sampled_open_descriptors",
+      "server:sampled_rss_bytes",
+      "browser:sampled_rss_bytes"
+    ],
+    "baseline_groups": {
+      "server": {
+        "live_processes": 1,
+        "unavailable_processes": 0,
+        "retired_processes": 0,
+        "sampled_rss_bytes": 74039296,
+        "observed_cpu_seconds": 0.008222406,
+        "root_state": "available",
+        "open_resource_unavailable_processes": 0,
+        "sampled_open_descriptors": 29,
+        "sampled_threads": 21
+      },
+      "browser": {
+        "live_processes": 10,
+        "unavailable_processes": 0,
+        "retired_processes": 0,
+        "sampled_rss_bytes": 2096037888,
+        "observed_cpu_seconds": 0.078237405,
+        "root_state": "available",
+        "open_resource_unavailable_processes": 0,
+        "sampled_open_descriptors": 208,
+        "sampled_threads": 312
+      }
+    },
+    "final_groups": {
+      "server": {
+        "live_processes": 1,
+        "unavailable_processes": 0,
+        "retired_processes": 0,
+        "sampled_rss_bytes": 235208704,
+        "observed_cpu_seconds": 0.888305777,
+        "root_state": "available",
+        "open_resource_unavailable_processes": 0,
+        "sampled_open_descriptors": 33,
+        "sampled_threads": 24
+      },
+      "browser": {
+        "live_processes": 10,
+        "unavailable_processes": 0,
+        "retired_processes": 1,
+        "sampled_rss_bytes": 2171813888,
+        "observed_cpu_seconds": 1.246436772,
+        "root_state": "available",
+        "open_resource_unavailable_processes": 0,
+        "sampled_open_descriptors": 201,
+        "sampled_threads": 281
+      }
+    },
+    "scope": "Original zero-growth sampled policy verdict preserved separately from exact original owner closure. Compare to previously approved budgets prospectively; no retrospective pass."
+  },
+  "causal_limits": [
+    "One scoped run does not prove broad or durable matrix improvement.",
+    "R1 has advancing native RTP/presentation coordinates of one authored footer; no exact paint-time join or uniquely automatic-capture cause.",
+    "R2 static loss/stall and original pre-driver deadline are separately observed; exact packet binding not established.",
+    "All6 audio and AV pass on this run; prior bad PCM remains failed evidence.",
+    "No matrix or whole-cohort qualification."
+  ],
+  "latest_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "unchanged": true
+  },
+  "ready_for_full32": false,
+  "next": [
+    "Unit-test and independently review explicit owned canvas capture candidate",
+    "Reproduce and fix pre-receive deadline budget consumption without extending original media age",
+    "Audit standalone sampled-resource grading against approved budgets and strict ownership; retain original failed raw result and separate three-cycle capacity qualification.",
+    "Fresh focused validation, full combined regression, local ARM/release and final preflight"
+  ],
+  "independent_closed_run_review_sha256": "e4177d877c92562e4d81edacdbc431542401a8b55ce2210eab334f5fdac2bcfc"
+}

@@ -2356,6 +2356,30 @@
       "path": "patches/rvoip/connect-owned-rtp-bounded-refusal-diagnostics.patch",
       "sha256": "1ce6e5b075cb8b1dc62e2573764d34a3e73d7f4d13bda84dde70a8f0c09ea957",
       "source": "Boundedfailure-only originalRTC RTP diagnostics: typedCoreprepare/final error beforeRefused,21guardeddriverleaves andinitialclaim, SAMEoriginalcontrol correlation, singleprocessfirst32/power2/hard128 acrossdrivers+repairs; fixedenum/numeric/UUIDonly, unknowncoordinates remainunknown, no payload/rawErrorDebug/retry/authority/deadline/queue/task/history change. Five focused regression controls; runtime qualification recorded separately. Diagnosticcoordinate domains areexplicitcandidateargument/egressbinding/cachedprimary, neverclaimedRTXwire."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-egress-idle-work-budget-counter.patch",
+      "sha256": "b811ebfee6051e5f20bdadf480d0b9a77f5609d2f2cb2f16a5ec69436d7b2d2a",
+      "source": "Tests-only real canonical egress poll/work counter. Audio and Video use original Core controllers, physical SRTP peers and original driver receipts; wall-time first-poll barrier exposes old pre-receive100ms consumption. Five strict original-age/authority/cancellation/caller/work/timeline controls; all original owners drain before oracle. Production behavior unchanged; Root actual OLD/fixed results required."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-egress-idle-work-audio-counter-fixture.patch",
+      "sha256": "a3e052879a69d5987c136f17ae00e45682d0a347dd6f204dd41c7bacbe5efc7e",
+      "source": "Tests-only correction to actual438 Audio OLD setup failure: Core intentionally refuses direct Audio subscriptions. This unmanaged endpoint fixture uses its existing ordinary audio forward with exact fresh source/target/current gates; Video direct setup, Opus/PT111, all production behavior, counter oracles and original-owner cleanup unchanged. Actual439 Audio OLD proof required;438 setup remains failed."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-egress-idle-work-audio-counter-negotiation-fixture.patch",
+      "sha256": "3fcb44bd38621bfaec5dc537d89c6bc3bdcc5d0e8c096ff880121d1bf526db36",
+      "source": "Tests-only correction to actual439 Audio OLD binding setup failure: explicitly advertise one existing Opus capability for Audio, derive exact format from the original real offer and answer through the same canonical profile selector and assert actual PT111. Public CoreAudio binding still independently validates actual negotiation; Video setup, production, counter oracles and original cleanup unchanged. Actual440 Audio OLD proof required; prior setup failures preserved."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-egress-idle-work-budget.patch",
+      "sha256": "c3dfc0310c5578715ba27830ccf2dc151163b87649ac7d49a46cdcf32fb552eb",
+      "source": "Fix actual canonical late-idle poll counter. Canonical alone separates idle waiting from existing100ms packet work: choose once after exact original receive and before state/timeline waits, min original monotonic ingress/admission200ms and retained source cutoff; same cutoff through worker/mailbox/prepare/current-auth/IO. Public absolute caller deadline remains strict. Numeric Core getter grants no permission/payload; no retag, renewal, retry, queue/task/lock or media-age increase. OLD438Video and440Audio intended failures independently observed after full original cleanup; strict fixed controls and media verification separate."
     }
   ]
 }
