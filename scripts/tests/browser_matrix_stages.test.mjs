@@ -200,16 +200,19 @@ test('opted native binding export copies exact public and terminal records witho
  const names=['connectPeerDiagnostics','setInterval','clearInterval'];const saved=names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]);
  const publicBinding={profile:'connect/rtc-native-public-binding/1',connection_id:'original',complete:true,captured_at_ms:10};
  const terminal={profile:'connect/rtc-native-terminal-binding/1',connection_id:'original',complete:true,captured_at_ms:20};
+ const receiverStatistics={profile:'connect/rtc-receiver-retirement-statistics/1',state:'fulfilled',complete:true,rows:[{stats_timestamp_ms:123}]};
  let reads=0;Object.assign(globalThis,{setInterval:()=>1,clearInterval:()=>{},connectPeerDiagnostics:()=>({omitted_peers:0,
-  peers:[{peer_index:0,connection_id:'original',public_binding:publicBinding,terminal_binding:terminal}]})});
+  peers:[{peer_index:0,connection_id:'original',public_binding:publicBinding,terminal_binding:terminal,receiver_retirement_statistics:receiverStatistics}]})});
  const sampler=browserMatrixRtcStages(()=>{reads++;return [];},{bindingBoundaries:true});
  const normal=browserMatrixRtcStages(()=>[]);
  try{sampler.start(1);await Promise.resolve();await Promise.resolve();await Promise.resolve();
   const report=sampler.report(),count=reads;assert.equal(report.binding_boundaries.profile,'connect/rtc-native-binding-boundaries/1');
   assert.deepEqual(report.binding_boundaries.peers[0].public_binding,publicBinding);
   assert.deepEqual(report.binding_boundaries.peers[0].terminal_binding,terminal);
+  assert.deepEqual(report.binding_boundaries.peers[0].receiver_retirement_statistics,receiverStatistics);
   assert.equal(sampler.report().binding_boundaries.complete,true);assert.equal(reads,count);
   publicBinding.captured_at_ms=999;assert.equal(report.binding_boundaries.peers[0].public_binding.captured_at_ms,10);
+  receiverStatistics.rows[0].stats_timestamp_ms=999;assert.equal(report.binding_boundaries.peers[0].receiver_retirement_statistics.rows[0].stats_timestamp_ms,123);
   assert.equal('binding_boundaries' in normal.report(),false);
   globalThis.connectPeerDiagnostics=()=>({omitted_peers:1,peers:[]});assert.equal(sampler.report().binding_boundaries.complete,false);
  }finally{await sampler.close();await normal.close();for(const [name,value]of saved)if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}

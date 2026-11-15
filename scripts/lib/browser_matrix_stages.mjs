@@ -102,8 +102,8 @@ export function browserMatrixRtcStages(read=()=>globalThis.connectPeerMediaDiagn
                 let terminal={profile:'connect/rtc-native-binding-boundaries/1',origin_ms:origin,complete:false,peers:[]};
                 try{const actual=globalThis.connectPeerDiagnostics?.();
                     if(!actual||actual.omitted_peers!==0||!Array.isArray(actual.peers)||actual.peers.length>16)throw Error('Bounded original peers required');
-                    terminal={...terminal,complete:true,peers:structuredClone(actual.peers.map(({peer_index,connection_id,terminal_binding,public_binding})=>({peer_index,connection_id,
-                            ...(terminal_binding?{terminal_binding}:{}),...(public_binding?{public_binding}:{})})))};
+                    terminal={...terminal,complete:true,peers:structuredClone(actual.peers.map(({peer_index,connection_id,terminal_binding,public_binding,receiver_retirement_statistics})=>({peer_index,connection_id,
+                            ...(terminal_binding?{terminal_binding}:{}),...(public_binding?{public_binding}:{}),...(receiver_retirement_statistics?{receiver_retirement_statistics}:{})})))};
                 }catch{terminal.reason='original-native-binding-export-unavailable';}
                 value.binding_boundaries=terminal;
             }

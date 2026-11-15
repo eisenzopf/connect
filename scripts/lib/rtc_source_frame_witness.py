@@ -212,7 +212,9 @@ class StatsIndex:
         return bool(rows) and (len(rows)!=1 or rows[0].get('original_track') is not None)
 
     def snapshot(self, number, owner, direction, stream, track, ssrc, allow_unbound=False):
-        rows=self.rows(number,owner,direction)
+        return self.snapshot_rows(self.rows(number,owner,direction), owner, direction, stream, track, ssrc, allow_unbound)
+
+    def snapshot_rows(self,rows,owner,direction,stream,track,ssrc,allow_unbound=False):
         need(len(rows)==1,'owner-statistics-ambiguous')
         row=rows[0];original=row.get('original_track')
         unbound=allow_unbound and original is None
@@ -239,13 +241,61 @@ class StatsIndex:
               ('transport_epoch','selected_candidate_pair_changes')}
         return dict(track=original,path=path,ssrc=row['ssrc'],codec=codec,peer_index=row.get('peer_index'))
 
+    def retirement_high(self,owner,direction,first,last,stream,track,ssrc,lo,hi):
+        if direction!='inbound-rtp' or self.boundaries is None:return None
+        peers=self.boundaries.get('peers',[])
+        selected=[peer for peer in peers if peer.get('connection_id')==owner and peer.get('receiver_retirement_statistics') is not None]
+        if not selected:return None
+        need(len(selected)==1 and len(peers)<=16 and self.boundaries.get('profile')=='connect/rtc-native-binding-boundaries/1'
+             and self.boundaries.get('complete') is True,'retirement-statistics-owner-ambiguous')
+        record=selected[0]['receiver_retirement_statistics']
+        need(isinstance(record,dict) and record.get('profile')=='connect/rtc-receiver-retirement-statistics/1'
+             and record.get('connection_id')==owner and record.get('peer_index')==selected[0].get('peer_index'), 'retirement-statistics-original-owner')
+        # No data from a pending/rejected/unsupported query can become an endpoint.
+        # The unchanged typed native fallback may still provide its own proof.
+        if record.get('state')!='fulfilled':return None
+        need(len(json.dumps(record,separators=(',',':')).encode())<=8192,'retirement-statistics-byte-bound')
+        need(record.get('complete') is True and record.get('native_close_returned') is True and record.get('native_closed') is True,
+             'retirement-statistics-incomplete')
+        origin=self.boundaries.get('origin_ms');time_origin=record.get('time_origin_ms')
+        requested=record.get('requested_at_ms');completed=record.get('completed_at_ms');closed=record.get('native_closed_at_ms')
+        need(all(isinstance(v,(int,float)) and not isinstance(v,bool) and math.isfinite(v) and v>=0 for v in (origin,time_origin,requested,completed,closed))
+             and requested<=closed<=completed,'retirement-statistics-clock')
+        requested_seconds=(requested-origin)/1000
+        if requested_seconds<last:return None # Never a public-head or earlier sample.
+        need(requested_seconds-last<=2,'owner-statistics-too-distant')
+        lows=[i for i in range(max(0,lo+1)) if self.endpoint(i,owner,direction)]
+        if not lows:return None # A real opposite low endpoint is still mandatory.
+        actual=lows[-1];need(first-self.completed[actual]<=2,'owner-statistics-too-distant')
+        rows=record.get('rows');need(isinstance(rows,list) and len(rows)==1,'retirement-statistics-ambiguous')
+        raw=rows[0];need(raw.get('connection_id')==owner and raw.get('peer_index')==record.get('peer_index')
+            and raw.get('type')==direction and raw.get('kind')=='video','retirement-statistics-original-owner')
+        value=self.snapshot_rows(rows,owner,direction,stream,track,ssrc)
+        tag=value['track'];need(raw.get('native_track_identifier')==tag['track_id'] and raw.get('native_mid')==tag.get('mid'),
+                              'retirement-statistics-native-track-contradiction')
+        sampled=raw.get('stats_timestamp_ms')
+        need(isinstance(sampled,(int,float)) and not isinstance(sampled,bool) and math.isfinite(sampled)
+             and time_origin+origin+last*1000<=sampled<=time_origin+completed,'retirement-statistics-native-time-does-not-cover-pair')
+        # Preserve EVERY available regular row and every unexplained earlier
+        # disappearance in the original missing bracket; no sparse global poll.
+        for i in range(actual,max(actual,min(len(self.samples)-1,hi))+1):
+            if self.rows(i,owner,direction):
+                need(self.snapshot(i,owner,direction,stream,track,ssrc)==value,'contradictory-regular-statistics')
+            else:need(self.completed[i]>=requested_seconds,'retirement-cannot-explain-earlier-missing-statistics')
+        proof=dict(profile=record['profile'],peer_index=record['peer_index'],connection_id=owner,direction=direction,
+            requested_at_ms=requested,completed_at_ms=completed,native_closed_at_ms=closed,time_origin_ms=time_origin,
+            stats_timestamp_ms=sampled,origin_ms=origin,actual_rtp_snapshot=actual,
+            record_sha256=hashlib.sha256(json.dumps(record,separators=(',',':'),sort_keys=True).encode()).hexdigest())
+        return {**value,'native_retirement_statistics':proof}
+
     def get(self,owner,direction,first,last,*,stream=None,track=None,ssrc=None,coordinates=None):
         need(time.monotonic()<self.deadline,'closed-metadata-time-bound')
         lo,hi=bisect_right(self.completed,first)-1,bisect_left(self.requested,last)
         key=(owner,direction,lo,hi,stream,track,ssrc)
         if key in self.cache:
             value=self.cache[key]
-            if 'native_binding_boundary' not in value:
+            retirement=value.get('native_retirement_statistics') or {}
+            if 'native_binding_boundary' not in value and retirement.get('profile')!='connect/rtc-receiver-retirement-statistics/1':
                 need(first-self.completed[lo]<=2 and self.requested[hi]-last<=2,'owner-statistics-too-distant')
             self.coordinate_bound(value,first,last,coordinates);return value
         need(len(self.cache)<16384,'original-statistics-cache-bound')
@@ -255,6 +305,11 @@ class StatsIndex:
             values=[self.snapshot(i,owner,direction,stream,track,ssrc) for i in range(lo,hi+1)]
             need(all(v==values[0] for v in values),'source-or-receiver-state-changed')
             self.cache[key]=values[0];return values[0]
+        if direction=='inbound-rtp':
+            highs=[i for i in range(hi,len(self.samples)) if self.endpoint(i,owner,direction)]
+            if not highs:
+                retirement=self.retirement_high(owner,direction,first,last,stream,track,ssrc,lo,hi)
+                if retirement is not None:self.cache[key]=retirement;return retirement
         need(self.boundaries is not None,'owner-statistics-ambiguous' if 0<=lo<=hi<len(self.samples) else 'owner-statistics-do-not-bracket-pair')
         # A boundary NEVER manufactures both endpoints. One original, complete,
         # actual RTP snapshot must remain on the opposite side of the pair.
@@ -293,6 +348,13 @@ class StatsIndex:
         self.cache[key]=result;return result
 
     def coordinate_bound(self,value,first,last,coordinates):
+        retirement=value.get('native_retirement_statistics')
+        if retirement is not None:
+            requested=(retirement['requested_at_ms']-retirement['origin_ms'])/1000
+            need(last<=requested and requested-last<=2 and first-self.completed[retirement['actual_rtp_snapshot']]<=2,
+                 'owner-statistics-too-distant')
+            need(retirement['time_origin_ms']+retirement['origin_ms']+last*1000<=retirement['stats_timestamp_ms']<=retirement['time_origin_ms']+retirement['completed_at_ms'],
+                 'retirement-statistics-native-time-does-not-cover-pair')
         proof=value.get('native_binding_boundary')
         if proof is None:return
         public=proof['profile']=='connect/rtc-native-public-binding/1'
@@ -957,7 +1019,8 @@ def prepare_pair(cycle, route, pair, summaries, stats=None):
     return dict(timeline=timeline, epoch=epoch, source_flow=packet_flow(source, True), target_flow=packet_flow(receiver, False),
                 input_ts=[(value - epoch['timestamp_offset']) % 2**32 for value in output_ts], output_ts=output_ts,
                 source_publication_binding=publication,
-                native_binding_boundaries=[value['native_binding_boundary'] for value in (source,receiver) if 'native_binding_boundary' in value])
+                native_binding_boundaries=[value['native_binding_boundary'] for value in (source,receiver) if 'native_binding_boundary' in value],
+                native_retirement_statistics=[value['native_retirement_statistics'] for value in (source,receiver) if 'native_retirement_statistics' in value])
 
 
 def prepare_association_control(cycle, summaries, censuses=None, stats=None):
@@ -995,6 +1058,7 @@ def finalize(report, browser_folder, server_log, pcap_path):
     statistics = []
     census_bytes = {}
     boundary_used = {}
+    retirement_statistics_used = {}
     publication_used = {}
     def request(prepared, cycle_index, route_index, reference, control=False):
         publication=prepared['source_publication_binding']
@@ -1002,6 +1066,8 @@ def finalize(report, browser_folder, server_log, pcap_path):
         for binding in prepared.get('native_binding_boundaries', []):
             key=(cycle_index,binding['profile'],binding['peer_index'],binding['direction'])
             boundary_used[key]=dict(cycle=cycle_index,**binding)
+        for value in prepared.get('native_retirement_statistics',[]):
+            retirement_statistics_used[(cycle_index,value['peer_index'],value['direction'])]=dict(cycle=cycle_index,**value)
         key = (prepared['timeline'], prepared['epoch']['ordinal'], prepared['source_flow'], prepared['target_flow'])
         context = context_ids.get(key)
         if context is None:
@@ -1038,7 +1104,7 @@ def finalize(report, browser_folder, server_log, pcap_path):
     grouped = [[] for _ in contexts]
     for number, value in enumerate(requests): grouped[value[0]].append(number)
     auxiliary = metadata_size(requests, grouped, contexts, context_ids, windows, [value.cache for value in statistics],
-                              [value.requested for value in statistics], [value.completed for value in statistics], [value.receiver_owners for value in statistics], [value.boundaries for value in statistics], boundary_used, summaries.source_bindings, [value.publications for value in statistics], publication_used, deadline=deadline)
+                              [value.requested for value in statistics], [value.completed for value in statistics], [value.receiver_owners for value in statistics], [value.boundaries for value in statistics], boundary_used, retirement_statistics_used, summaries.source_bindings, [value.publications for value in statistics], publication_used, deadline=deadline)
     headers = capture_headers(pcap_path, report['packet_capture'], windows, cycles=len(cycles), deadline=deadline, auxiliary_bytes=auxiliary)
     compact, control_facts = [], []
     for context_id, numbers in enumerate(grouped):
@@ -1073,6 +1139,7 @@ def finalize(report, browser_folder, server_log, pcap_path):
         encoded = json.dumps(dict(proofs=selected, epochs=[dict(timeline=contexts[i]['timeline'], epoch=contexts[i]['epoch']) for i in used],
             controls=[control for control in control_facts if control['cycle'] == cycle_index],
             native_binding_boundaries=[value for value in boundary_used.values() if value['cycle']==cycle_index],
+            native_retirement_statistics=[value for value in retirement_statistics_used.values() if value['cycle']==cycle_index],
             source_publication_bindings=[value for value in publication_used.values() if value['cycle']==cycle_index]), separators=(',', ':')).encode()
         need(len(used) <= 10 * 32 and size + len(encoded) <= WITNESS_CYCLE_BYTES, 'final-cycle-witness-byte-bound')
         need(time.monotonic() < deadline, 'closed-metadata-time-bound')
@@ -1103,6 +1170,7 @@ def finalize(report, browser_folder, server_log, pcap_path):
         epochs=[dict(timeline=value['timeline'], epoch=value['epoch']) for value in contexts],
         source_publication_bindings_used=list(publication_used.values()),
         native_binding_boundaries_used=list(boundary_used.values()),
+        native_retirement_statistics_used=list(retirement_statistics_used.values()),
         header_index_accounted_bytes=index_accounted, header_index_peak_scratch_bytes=index_scratch,
         scope='Prospective exact public-owner/source-origin predicate only; all original quality rows and historical results unchanged')
     need(len(json.dumps(final, separators=(',', ':')).encode()) <= CYCLES_JSON_BYTES, 'final-private-browser-byte-bound')

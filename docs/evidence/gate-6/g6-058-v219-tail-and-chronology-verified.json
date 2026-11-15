@@ -1,0 +1,111 @@
+{
+  "format": "connect/g6-058-tail-and-chronology/1",
+  "recorded_at": "2026-11-15T07:29:45.892486+00:00",
+  "scope": "Separate source-bound component qualifications; not one combined cohort",
+  "receiver_tail": {
+    "source_generation": 452,
+    "passed": 73,
+    "node": 40,
+    "python": 30,
+    "wiring": 3,
+    "root_session": 6766,
+    "completion_chunk": "0ae39b",
+    "code": "One opt-in original receiver query at first native close; owner-local actual receive high sample; immediate close, actual sample bounds, all current identity/Core/wire/fallback rules retained.",
+    "limits": [
+      "Fresh Connect BUNDLE/prflx retirement not yet run.",
+      "Native capability failed strict IPv4-only helper results remain failed.",
+      "Initial integration wrapper parser failure remains failed."
+    ]
+  },
+  "source_chronology": {
+    "source_generation": 453,
+    "source_lock_sha256": "7df6964dfd479fb8f9e9269986bb6ec8e14ac0f2aa0b69114423e8b9029276b0",
+    "patch": "patches/rvoip/connect-original-video-frame-chronology.patch",
+    "patch_sha256": "f801ed090a31856edd917ff79f2c4dc2a8092e766c736d781655c9701d7b4116",
+    "core_passed": 45,
+    "webrtc_passed": 42,
+    "new_cases_passed": 7,
+    "normal_service_client_check": "passed",
+    "root_session": 71339,
+    "completion_chunk": "494826",
+    "source_and_binaries_unchanged": true,
+    "normal_preparation": "passed; 4190 unchanged mtimes, nine changed files, one new module; complete old452 preserved",
+    "limits": [
+      "Accepted original RTP timestamp groups and immutable custody only.",
+      "No session realm, fresh-generation exclusion, delivery/authorization/readiness grant, camera-content uniqueness or completed strict handoff fix."
+    ]
+  },
+  "remaining_diagnosis": {
+    "directional_ticket": "Source-reviewed actual-public-Core-controller counter staged, UNRUN. Sink-only hold preserves camera permission but rotates shared ticket before current ingress admission. Proposed independent ingress/egress lineages use one immutable ArcSwap pair; writer commits serialize against terminal retirement.",
+    "audio_scope": "Conservative AUDIO OriginalStamp revision fence remains unchanged; no general retained-audio continuity claim.",
+    "strict_handoff": "One active video slot and one prepared readiness lease require explicit fresh B generation/SDP/writer/readiness/custody work if current global exact-once rule remains.",
+    "boundary_facts": "Closed old/new epochs algebraically map to same source identity and input RTP timestamp; full historical frame association remains unqualified because native-tail guard fails. No regrade."
+  },
+  "matrix": {
+    "last_complete": "v218",
+    "cells_passed": 1,
+    "total_cells": 32,
+    "checks_passed": 399,
+    "total_checks": 432,
+    "new_full_run_started": false,
+    "ready": false
+  },
+  "references": {
+    "tail_source_review": {
+      "path": ".local/gate-6/rtc-receiver-tail-statistics-independent-v198-review/receipt.json",
+      "sha256": "80441e0168a245b4c5964fa1a48e2cb378712f8189df5a3526b47c9da0ca3f02"
+    },
+    "tail_unit_qa": {
+      "path": ".local/gate-6/rtc-receiver-tail-statistics-root-unit-qa/receipt.json",
+      "sha256": "8f673b13f1769046cb11d8e9d42de6e69d42560ac1744f1235912756b32aed62"
+    },
+    "tail_unit_result": {
+      "path": ".local/gate-6/v219-receiver-tail-integration-root-r2/result.json",
+      "sha256": "665576aac5e0cb56005c7ac696d5662a546f77dcf1677108209cec20d8df3635"
+    },
+    "tail_original_join": {
+      "path": ".local/gate-6/v219-receiver-tail-integration-root-r2/root-original-join.json",
+      "sha256": "22bc1fa8269d4cca5a0b9773a35fc4bce2d4759e8ed3655bd30f1b0872fb529d"
+    },
+    "chronology_source": {
+      "path": ".local/gate-6/v219-original-video-chronology-formatted-root-v3/manifest.json",
+      "sha256": "ae9616c982967260647f7609ebeb011a5fc94ae34af21211b6e53f551352fc9a"
+    },
+    "chronology_preparation_qa": {
+      "path": ".local/gate-6/original-video-chronology-slice1-independent-v198-review/actual-normal453-preparation.json",
+      "sha256": "836973395e221c7a3007138b47862f39e9ad1429fb09a3ce304deb3660531f9b"
+    },
+    "chronology_actual_qa": {
+      "path": ".local/gate-6/original-video-chronology-slice1-independent-v198-review/actual-g453-focused87-default-check.json",
+      "sha256": "d258e386184e2213cdfe98dbe311cec155ee3b5bcf760b475c9e663180fad62d"
+    },
+    "chronology_unit_result": {
+      "path": ".local/gate-6/v219-original-video-chronology-units-root/result.json",
+      "sha256": "dabe59eadceb8ef5fda3face4dcfa0fba9b284e74cad97450060ca5f22adbe18"
+    },
+    "chronology_original_join": {
+      "path": ".local/gate-6/v219-original-video-chronology-units-root/root-original-join.json",
+      "sha256": "8ada555fc091304df559c98581ac319acfa52e29f19b2c194f7c5141e9ac9641"
+    },
+    "session_realm_design": {
+      "path": ".local/gate-6/session-frame-realm-phase2-v219-proposal/manifest.json",
+      "sha256": "2cc9f77240ced60c1a2ec5f849f0bce082c0df2ed3ffc3cd8b3452f16d85bfd3"
+    },
+    "directional_ticket_plan": {
+      "path": ".local/gate-6/directional-port-ticket-v219-proposal/manifest.json",
+      "sha256": "1550016917c003110afeac07d6ba847f369c977d782b46d580f7fa1f4c462291"
+    },
+    "directional_old_counter": {
+      "path": ".local/gate-6/directional-old-sink-camera-custody-v219-counter-candidate/manifest.json",
+      "sha256": "84cfc5d84fcac200efe4d3224bb7470175daef6251dc4f40e5d1ef623fab707b"
+    },
+    "directional_counter_review": {
+      "path": ".local/gate-6/directional-old-sink-camera-custody-independent-v198-review/receipt.json",
+      "sha256": "0e04dd02e07d6871ef51a983989ef15035de54b21ab65eed449edc9881eb5e89"
+    },
+    "closed_boundary_coordinate_facts": {
+      "path": ".local/gate-6/v219-r2-c2r4-source-coordinate-independent-review/receipt.json",
+      "sha256": "bc593550e5e45dd4f4d648a5d757998c79793a5cdf95e88112768ea8aa31964b"
+    }
+  }
+}

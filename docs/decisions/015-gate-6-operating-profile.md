@@ -658,3 +658,10 @@ ambiguous, foreign-session, changed-port and old-target bindings remain unknown.
 The closed historical Store copy is RCA evidence only, never a qualifier input or
 a fabricated historical Service event. All prior failed results remain failed;
 no original frame, identity, coverage, FPS, AV, packet or ownership rule changes.
+
+
+### Original receiver retirement statistics
+
+With the explicit Firefox source-frame witness enabled, first native peer close may issue one original `RTCRtpReceiver.getStats()` request before the unchanged immediate `RTCPeerConnection.close()`. It observes a final real receive binding sample; it does not delay close, change SDK behavior, introduce polling or a timer, refresh authorization, or infer a frame high-watermark. The query retains detached primitive original receiver/track/MID context, exact request/close/settlement clocks, and an actual bounded complete selected-transport report. IPv4/IPv6 literals remain original numeric values. Native selection epochs are neither refreshed nor copied onto a late report.
+
+Only a missing receive-side high statistics endpoint may use this owner-local sample, with a real regular low endpoint, the same existing path/track/SSRC/codec equality and distance checks, an actual native sample covering the callback, and every available original row/contradiction retained. It never becomes a sparse global poll, an outbound/source endpoint or a public-head substitute. The original synchronization-source coordinate fallback and all public, Service/Core, wire, current-owner, frame-identity, quality and closure rules remain unchanged. A rejected/pending query grants no evidence; an incomplete fulfilled report cannot supply the endpoint. Pending original requests prevent diagnostic-cycle retirement. No historical report is upgraded.

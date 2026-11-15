@@ -506,3 +506,79 @@ test('capture phase epoch handler precedes reentrant ordinary callbacks and defa
  }finally{f.peer.ice.removeEventListener('selectedcandidatepairchange',ordinary);f.cleanup();}
  const disabled=terminalFixture({enabled:false});let resolve;const promise=new Promise(ok=>{resolve=ok;});try{const native=Object.getPrototypeOf(Object.getPrototypeOf(disabled.peer));native.setLocalDescription=()=>promise;assert.equal(disabled.peer.setLocalDescription(),promise);resolve();await promise;assert.equal('transport_epoch'in globalThis.connectPeerDiagnostics().peers[0],false);disabled.peer.close();}finally{disabled.restore();}
 });
+
+
+function retirementReceiverReport(peer,stamp){
+ const transport='original-transport',pair='original-pair';
+ return new Map([
+  ['rtp',{id:'rtp',type:'inbound-rtp',kind:'video',trackIdentifier:peer.receiveTrack.id,mid:'1',ssrc:22,timestamp:stamp,packetsReceived:4,framesDecoded:2,codecId:'codec',transportId:transport}],
+  ['codec',{id:'codec',type:'codec',payloadType:120,mimeType:'video/VP8',clockRate:90000}],
+  [transport,{id:transport,type:'transport',selectedCandidatePairId:pair}],
+  [pair,{id:pair,type:'candidate-pair',transportId:transport,nominated:true,state:'succeeded',localCandidateId:'local',remoteCandidateId:'remote'}],
+  ['local',{id:'local',type:'local-candidate',transportId:transport,address:'::1',port:50000,protocol:'udp'}],
+  ['remote',{id:'remote',type:'remote-candidate',transportId:transport,address:'::1',port:40000,protocol:'udp'}]]);
+}
+const finishReceiverObservation=async()=>{await Promise.resolve();await Promise.resolve();await Promise.resolve();};
+
+test('one original receiver statistics request survives tracked peer removal without delaying or changing native close',async()=>{
+ const f=terminalFixture({serialized:true});let release,calls=0;const original=new Promise(resolve=>{release=resolve;});
+ try{
+  f.tag();f.peer.txs[1].receiver.getStats=()=>{calls++;assert.equal(f.peer.signalingState,'stable');return original;};
+  assert.equal(f.peer.close(),'original-native-close-return');assert.equal(calls,1);assert.equal(f.counts.close,1);
+  const pending=f.report().receiver_retirement_statistics;assert.equal(pending.state,'pending');assert.equal(f.report().live_owner_retained,false);
+  assert.equal(globalThis.connectPeerStreamDescriptor('original-connection','receive'),null,'The closed original native owner has been removed');
+  assert.equal(globalThis.connectPeerRetireCycle().released,false,'An unsettled original query is not a joined owner');
+  const stamp=performance.timeOrigin+pending.requested_at_ms,report=retirementReceiverReport(f.peer,stamp);
+  delete report.get('original-transport').id;delete report.get('original-pair').id;delete report.get('original-pair').transportId;delete report.get('local').transportId;delete report.get('remote').transportId;
+  release(report);await original;await finishReceiverObservation();
+  const actual=f.report().receiver_retirement_statistics;assert.equal(actual.state,'fulfilled');assert.equal(actual.complete,true);
+  assert.equal(actual.rows[0].stats_timestamp_ms,stamp);assert.equal(actual.rows[0].selected_path.local.address,'::1');assert.equal(actual.rows[0].selected_path.remote.address,'::1');
+  assert.equal(actual.rows[0].native_track_identifier,f.peer.receiveTrack.id);assert.equal(actual.rows[0].native_mid,'1');assert(Object.values(actual.rows[0].native_statistics_reference_fields).every(field=>field.present===false&&field.value===null),'Optional native reference fields remain actually absent; graph linkage uses the original report references');
+  assert.equal('transport_epoch'in actual.rows[0].selected_path,false,'No freshly closed or inherited selection epoch is stamped on an async report');
+  assert(actual.requested_at_ms<=actual.native_closed_at_ms&&actual.native_closed_at_ms<=actual.completed_at_ms);
+  assert.equal(actual.native_close_returned,true);assert.equal(actual.native_closed,true);
+  assert.equal(pending.state,'pending','An earlier exported snapshot cannot mutate after settlement');
+  report.get('rtp').ssrc=999;assert.equal(f.report().receiver_retirement_statistics.rows[0].ssrc,22);
+  f.peer.close();assert.equal(calls,1);assert.deepEqual(f.report().receiver_retirement_statistics,actual,'A later close cannot replace the original close observation');
+  assert.equal(globalThis.connectPeerRetireCycle().released,true);
+ }finally{release?.(new Map());await finishReceiverObservation();f.restore();}
+});
+
+test('rejected partial competing and changed native receiver requests remain explicit failures with original cleanup',async()=>{
+ for(const mode of ['reject','partial','competing','foreign-track','changed-during-request','contradictory-reference']){
+  const f=terminalFixture();let calls=0;
+  try{
+   f.tag();f.peer.txs[1].receiver.getStats=()=>{calls++;if(mode==='reject')return Promise.reject(Error('PRIVATE-QUERY-ERROR'));
+    const report=retirementReceiverReport(f.peer,performance.timeOrigin+performance.now());
+    if(mode==='partial')report.delete('codec');if(mode==='competing')report.set('other',{...report.get('rtp'),ssrc:44});
+    if(mode==='foreign-track')report.get('rtp').trackIdentifier='foreign';if(mode==='contradictory-reference')report.get('local').transportId='foreign-transport';
+    if(mode==='changed-during-request')f.peer.txs[1].receiver.track={...f.peer.receiveTrack};return Promise.resolve(report);};
+   assert.equal(f.peer.close(),'original-native-close-return');await finishReceiverObservation();
+   const actual=f.report().receiver_retirement_statistics;assert.equal(calls,1);assert.equal(actual.complete,false);assert(actual.reason);
+   assert.equal(actual.state,mode==='reject'?'rejected':'fulfilled');assert.equal(JSON.stringify(actual).includes('PRIVATE-QUERY-ERROR'),false);
+   assert.equal(actual.native_close_returned,true);assert.equal(actual.native_closed,true);assert.equal(globalThis.connectPeerRetireCycle().released,true);
+  }finally{f.restore();}
+ }
+});
+
+test('default and untagged diagnostics do not create a receiver request and pending retirement remains uncertain',async()=>{
+ for(const enabled of [false,true]){const f=terminalFixture({enabled});let calls=0;
+  try{f.peer.txs[1].receiver.getStats=()=>{calls++;return new Promise(()=>{});};f.peer.close();assert.equal(calls,0);
+   if(!enabled)assert.equal('receiver_retirement_statistics'in f.report(),false);else assert.equal(f.report().receiver_retirement_statistics.state,'not-requested');
+  }finally{f.restore();}}
+ const f=terminalFixture();let release;
+ try{f.tag();f.peer.txs[1].receiver.getStats=()=>new Promise(resolve=>{release=resolve;});f.peer.close();
+  assert.equal(f.report().receiver_retirement_statistics.state,'pending');assert.equal(globalThis.connectPeerRetireCycle().released,false);
+  release(retirementReceiverReport(f.peer,performance.timeOrigin+performance.now()));await finishReceiverObservation();assert.equal(globalThis.connectPeerRetireCycle().released,true);
+ }finally{release?.(new Map());await finishReceiverObservation();f.restore();}
+});
+
+test('a failed original native close is not upgraded by a later close or successful receiver statistics result',async()=>{
+ const f=terminalFixture();let calls=0;
+ try{f.tag();f.peer.txs[1].receiver.getStats=()=>{calls++;return Promise.resolve(retirementReceiverReport(f.peer,performance.timeOrigin+performance.now()));};
+  const original=Error('original-native-close');f.peer.closeError=original;assert.throws(()=>f.peer.close(),error=>error===original);
+  delete f.peer.closeError;f.peer.close();await finishReceiverObservation();const actual=f.report().receiver_retirement_statistics;
+  assert.equal(calls,1);assert.equal(actual.native_close_returned,false);assert.equal(actual.native_closed,false);
+  assert.equal(globalThis.connectPeerRetireCycle().released,true,'All original work settled, but this measurement cannot claim a confirmed close');
+ }finally{delete f.peer.closeError;f.peer.close();await finishReceiverObservation();f.restore();}
+});

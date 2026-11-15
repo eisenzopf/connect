@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T06:38:34.697589+00:00",
-  "revision": 95,
+  "updated_at": "2026-11-15T07:29:45.892486+00:00",
+  "revision": 96,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 157,
-    "verified_at": "2026-11-15T06:38:34.697589+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-native-receiver-stats.json",
-    "readback_evidence_sha256": "7bd99519e1fd6021897f6e26b1cb768094f394fad2d0f3e908f9d0534d9eda82",
+    "content_revision": 160,
+    "verified_at": "2026-11-15T07:29:45.892486+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-tail-and-chronology.json",
+    "readback_evidence_sha256": "7146ddbf028b19be98bd67ff7752486dd17457a8e77768e91884d2d8380b26d8",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2169,10 +2169,10 @@
       "owner_agent": "/root/fixture_blockers",
       "independent_reviewer": "/root/v198_resources",
       "coordinator": "/root",
-      "status": "assigned",
-      "implementation_state": "One opt-in original receiver stats request at close, detached bounded result, unchanged synchronous close; owner-local receive-only high bracket with actual native sample coverage, no global poll insertion, fallback/criteria unchanged. Candidate authoring; not integrated or tested.",
+      "status": "component-verified",
+      "implementation_state": "Actual separate scope: receiver-tail73 on recordedg452; chronologyCore45+WebRTC42 inclnew7+normalservice/clientcheck on g453. Independent actual source/binary/original joins accepted. No combined/media/matrix promotion.",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-native-receiver-stats.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-tail-and-chronology-verified.json",
       "matrix_verified": false
     },
     {
@@ -2181,11 +2181,26 @@
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root/v198_resources",
       "coordinator": "/root",
-      "status": "assigned",
-      "implementation_state": "Stable source-worker frame chronology before canonical fanout; exact duplicate mappings/fragments/PortIo/OriginalIngress/retries/repair retain same point. No per-Core-port mint, extra SQL/global mutex or arbitrary call cap. Unavailable metadata leaves ordinary IO unchanged. Candidate authoring; not integrated or tested.",
+      "status": "component-verified",
+      "implementation_state": "Actual separate scope: receiver-tail73 on recordedg452; chronologyCore45+WebRTC42 inclnew7+normalservice/clientcheck on g453. Independent actual source/binary/original joins accepted. No combined/media/matrix promotion.",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-native-receiver-stats.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-tail-and-chronology-verified.json",
       "matrix_verified": false
+    },
+    {
+      "id": "V219-DIRECTIONAL-PORT-TICKETS",
+      "title": "Preserve unaffected media direction across gate changes",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "status": "cause-confirmed",
+      "implementation_state": "Source coupling confirmed; actual public-Core-controller OLD counter source-reviewed but UNRUN. ArcSwap independent ingress/egress lineages plan reviewed; production afterimages authoring. Current audio revision fence retained. No runtime media cure yet.",
+      "depends_on": [],
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-tail-and-chronology-verified.json",
+      "matrix_verified": false,
+      "contributing_agents": [
+        "/root/fixture_blockers"
+      ]
     }
   ],
   "failure_mapping": [
@@ -4634,6 +4649,15 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-native-receiver-stats.json",
         "sha256": "cd0541540b38f637fc0f3f7c1e090772e7b4ae0d3400a7ed84413061ba219a67"
       }
+    },
+    {
+      "at": "2026-11-15T07:29:45.892486+00:00",
+      "revision": 96,
+      "checkpoint": {
+        "status": "Receiver-tail73 and separate g453Core45/WebRTC42/defaultcheck verified. Shared duplex ticket camera coupling now targeted; counter staged/unrun, production candidate authoring. Not ready full32.",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-tail-and-chronology-verified.json",
+        "sha256": "8851f92712504aaa503fd03c1c054f679d2e2d7a3a52c80d7859d498fb669894"
+      }
     }
   ],
   "tracking_review": {
@@ -6263,8 +6287,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Receiver-level native statistics capability and numeric IPv6 facts verified; both strict capability failures preserved. Owner-local receive-tail integration and source-owned pre-fanout chronology assigned; not ready full32.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-native-receiver-stats.json",
-    "sha256": "cd0541540b38f637fc0f3f7c1e090772e7b4ae0d3400a7ed84413061ba219a67"
+    "status": "Receiver-tail73 and separate g453Core45/WebRTC42/defaultcheck verified. Shared duplex ticket camera coupling now targeted; counter staged/unrun, production candidate authoring. Not ready full32.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-tail-and-chronology-verified.json",
+    "sha256": "8851f92712504aaa503fd03c1c054f679d2e2d7a3a52c80d7859d498fb669894"
   }
 }

@@ -10,6 +10,8 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
     const NativePeer = globalThis.RTCPeerConnection;
     const entries = [];
     let omittedPeers = 0;
+    const receiverStatisticsPending=new Set();
+    let captureReceiverStatistics;
     let terminalCapture,terminalFinish,describeTagged,armSelectionEpoch,selectionSnapshot,selectionStatsEpoch,detachSelectionEpoch;
     const state = (value, allowed) => allowed.includes(value) ? value : "other";
     const sample = (peer) => ({
@@ -69,15 +71,17 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
         close(){
             const entry=entries.find(value=>value.peer===this);
             if(entry)try{entry.codecs=codecSnapshot(this);}catch{entry.codecs={unavailable:true};}
-            let terminal,returned=false;
+            let terminal,retirementRecord,returned=false;
             if(rtcSourceFrameWitness&&entry&&!entry.terminal_binding_started){
                 entry.terminal_binding_started=true;
+                try{captureReceiverStatistics?.(this,entry);retirementRecord=entry.receiver_retirement_statistics;}catch{}
                 try{terminal=terminalCapture(this,entry);}catch{terminal={profile:'connect/rtc-native-terminal-binding/1',peer_index:entry.peer_index,connection_id:entry.connection_id,captured_at_ms:null,captured_done_at_ms:null,native_close_observed:false,native_closed_at_ms:null,complete:false,reason:'native-terminal-unavailable',bindings:{}};}
             }
             try{const value=super.close();returned=true;return value;}
             finally{
                 const closed=!!entry&&(this.connectionState==='closed'||this.signalingState==='closed');
                 if(terminal)entry.terminal_binding=terminalFinish(terminal,closed,returned);
+                if(retirementRecord){const record=retirementRecord;record.native_close_returned=returned;record.native_closed=closed;try{record.native_closed_at_ms=closed?performance.now():null;}catch{record.native_closed_at_ms=null;}}
                 if(entry&&closed){
                     try{entry.current=sample(this);}catch{entry.current={unavailable:true};}
                     if(rtcSourceFrameWitness)try{detachSelectionEpoch?.(entry);}catch{}
@@ -144,7 +148,7 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
         peers: entries.map(entry => {
             let current;
             try { current = entry.peer?sample(entry.peer):entry.current; } catch { current = {unavailable: true}; }
-            return {peer_index:entry.peer_index,connection_id:entry.connection_id,live_owner_retained:entry.peer!==null,current, events: entry.events, omitted_events: entry.omitted_events, snapshot_errors: entry.snapshot_errors,omitted_media_rows:entry.omitted_media_rows,omitted_listeners:entry.omitted_listeners,...(rtcSourceFrameWitness?{terminal_binding:entry.terminal_binding??null,public_binding:entry.public_binding??null}:{})};
+            return {peer_index:entry.peer_index,connection_id:entry.connection_id,live_owner_retained:entry.peer!==null,current, events: entry.events, omitted_events: entry.omitted_events, snapshot_errors: entry.snapshot_errors,omitted_media_rows:entry.omitted_media_rows,omitted_listeners:entry.omitted_listeners,...(rtcSourceFrameWitness?{terminal_binding:entry.terminal_binding??null,public_binding:entry.public_binding??null,receiver_retirement_statistics:entry.receiver_retirement_statistics?structuredClone(entry.receiver_retirement_statistics):null}:{})};
         }),
     });
     globalThis.connectPeerMediaDiagnostics = async () => Promise.all(entries.map(async(entry)=>{
@@ -550,6 +554,67 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
             catch{value={...value,complete:false,reason:'native-binding-unavailable',bindings:{}};}
             return freeze(value);
         };
+        const receiverStatisticsFields=(report,context)=>{
+            if(context.binding_current_at_return!==true)fail('original-receiver-changed-during-request');
+            if(!report||!Number.isInteger(report.size)||report.size<1||report.size>256||typeof report.values!=='function'||typeof report.get!=='function')fail('bounded-receiver-statistics-unavailable');
+            const rows=[...report.values()].filter(row=>row.type==='inbound-rtp'&&row.kind==='video');
+            if(rows.length!==1)fail('receiver-statistics-ambiguous');
+            const actual=rows[0],codec=report.get(actual.codecId),transport=report.get(actual.transportId),pair=report.get(transport?.selectedCandidatePairId);
+            const local=report.get(pair?.localCandidateId),remote=report.get(pair?.remoteCandidateId);
+            if(actual.trackIdentifier!==context.track_id||actual.mid!==context.mid||!u32(actual.ssrc))fail('receiver-statistics-binding-contradiction');
+            if(!Number.isFinite(actual.timestamp)||actual.timestamp<0)fail('receiver-statistics-clock-unavailable');
+            if(codec?.type!=='codec'||!Number.isInteger(codec.payloadType)||codec.payloadType<0||codec.payloadType>127||typeof codec.mimeType!=='string'||codec.mimeType.toLowerCase()!=='video/vp8'||codec.clockRate!==90000)fail('receiver-statistics-codec-unavailable');
+            // Copy actual numeric IPv4/IPv6 literals exactly. Never normalize,
+            // infer a hidden endpoint, or borrow another report's tuple.
+            const numeric=value=>{if(typeof value!=='string'||value.length<1||value.length>128)return false;if(!value.includes(':'))return numericAddress(value);if(!/^[0-9a-fA-F:.]+$/.test(value))return false;try{new URL('http://['+value+']/');return true;}catch{return false;}};
+            const endpoint=(value,type)=>{if(value?.type!==type||('transportId' in value&&value.transportId!==actual.transportId)||!numeric(value.address)||!Number.isInteger(value.port)||value.port<1||value.port>65535||value.protocol!=='udp')fail('receiver-statistics-udp-unavailable');return {address:value.address,port:value.port,protocol:value.protocol};};
+            if(transport?.type!=='transport'||('id' in transport&&transport.id!==actual.transportId)||pair?.type!=='candidate-pair'||('id' in pair&&pair.id!==transport.selectedCandidatePairId)||('transportId' in pair&&pair.transportId!==actual.transportId)||pair.nominated!==true||pair.state!=='succeeded')fail('receiver-statistics-transport-unavailable');
+            const optionalReference=(value,key)=>({present:!!value&&key in value,value:boundedId(value?.[key])?value[key]:null});
+            const row={peer_index:context.peer_index,connection_id:context.connection_id,type:'inbound-rtp',kind:'video',ssrc:actual.ssrc,
+                native_statistics_reference_fields:{transport_id:optionalReference(transport,'id'),pair_id:optionalReference(pair,'id'),
+                    pair_transport_id:optionalReference(pair,'transportId'),local_transport_id:optionalReference(local,'transportId'),remote_transport_id:optionalReference(remote,'transportId')},
+                stats_timestamp_ms:actual.timestamp,native_track_identifier:actual.trackIdentifier,native_mid:actual.mid,
+                original_track:{connection_id:context.connection_id,stream_id:context.stream_id,track_id:context.track_id,transceiver_index:context.transceiver_index,mid:context.mid},
+                codec:{mime_type:codec.mimeType,payload_type:codec.payloadType,clock_rate:codec.clockRate},
+                selected_path:{nominated:pair.nominated===true,succeeded:pair.state==='succeeded',local:endpoint(local,'local-candidate'),remote:endpoint(remote,'remote-candidate'),srtp_cipher:typeof transport.srtpCipher==='string'&&transport.srtpCipher.length<=64?transport.srtpCipher:null}};
+            for(const key of ['packetsReceived','framesDecoded','framesReceived','bytesReceived','lastPacketReceivedTimestamp'])if(Number.isFinite(actual[key])&&actual[key]>=0)row[key]=actual[key];
+            return row;
+        };
+        const observeReceiverStatistics=(original,record,context)=>{
+            // This helper's continuations do not capture the close() frame,
+            // entry, peer, receiver, track, transceiver or transport objects.
+            let pending;
+            pending=Promise.resolve(original).then(report=>{
+                record.state='fulfilled';
+                try{record.completed_at_ms=performance.now();record.rows=[receiverStatisticsFields(report,context)];record.complete=true;record.reason=null;}
+                catch(error){record.complete=false;record.reason=reason(error,'receiver-statistics-unavailable');}
+                try{if(new TextEncoder().encode(JSON.stringify(record)).byteLength>8192){record.complete=false;record.reason='receiver-statistics-byte-bound';record.rows=[];}}catch{record.complete=false;record.reason='receiver-statistics-unavailable';record.rows=[];}
+            },()=>{record.state='rejected';record.complete=false;record.reason='original-receiver-statistics-rejected';try{record.completed_at_ms=performance.now();}catch{}}).finally(()=>receiverStatisticsPending.delete(pending));
+            receiverStatisticsPending.add(pending);
+        };
+        captureReceiverStatistics=(peer,entry)=>{
+            if(entry.receiver_retirement_statistics)return;
+            const record={profile:'connect/rtc-receiver-retirement-statistics/1',peer_index:entry.peer_index,connection_id:entry.connection_id,
+                state:'not-requested',complete:false,reason:'original-receiver-unavailable',requested_at_ms:null,completed_at_ms:null,time_origin_ms:null,
+                native_close_returned:false,native_closed:false,native_closed_at_ms:null,rows:[]};
+            entry.receiver_retirement_statistics=record;
+            try{
+                const original=describeTagged(entry,'receive');if(!original||entry.peer!==peer)fail('original-receiver-unavailable');
+                const tx=peer.getTransceivers()[original.transceiver_index],receiver=tx?.receiver;
+                if(!receiver||receiver.track?.id!==original.track_id||tx.mid!==original.mid||!receiver.transport?.iceTransport||typeof receiver.getStats!=='function')fail('original-receiver-unavailable');
+                if(receiverStatisticsPending.size>=16)fail('receiver-statistics-request-bound');
+                const at=performance.now(),origin=performance.timeOrigin;if(!Number.isFinite(at)||at<0||!Number.isFinite(origin)||origin<0)fail('receiver-statistics-clock-unavailable');
+                const transport=receiver.transport,ice=transport.iceTransport,method=receiver.getStats;
+                record.requested_at_ms=at;record.time_origin_ms=origin;
+                const pending=method.call(receiver); // ONE ORIGINAL receiver request, before immediate close.
+                record.state='pending';record.reason='original-receiver-statistics-pending';
+                const context={...original,peer_index:entry.peer_index,binding_current_at_return:false};
+                // Own the ORIGINAL query before any later diagnostic getter can fail.
+                observeReceiverStatistics(pending,record,context);
+                try{const current=describeTagged(entry,'receive');context.binding_current_at_return=JSON.stringify(current)===JSON.stringify(original)&&peer.getTransceivers()[original.transceiver_index]?.receiver===receiver&&receiver.transport===transport&&transport.iceTransport===ice;}catch{}
+                Object.freeze(context);
+            }catch(error){record.state='not-requested';record.reason=reason(error,'original-receiver-statistics-request-failed');}
+        };
         terminalCapture=(peer,entry)=>bindingCapture(peer,entry,'connect/rtc-native-terminal-binding/1');
         terminalFinish=(value,closed,returned)=>{
             let at=null;try{const now=performance.now();if(Number.isFinite(now)&&now>=value.captured_done_at_ms)at=now;}catch{}
@@ -572,6 +637,7 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
 
     globalThis.connectPeerRetireCycle=()=>{
         const snapshot=globalThis.connectPeerDiagnostics();
+        if(receiverStatisticsPending.size!==0)return {released:false,reason:'original-receiver-statistics-pending',pending_original_receiver_statistics:receiverStatisticsPending.size,snapshot};
         if(entries.some(entry=>entry.peer!==null||entry.detach!==null))
             return {released:false,reason:'original-peer-still-live',snapshot};
         entries.length=0;omittedPeers=0;

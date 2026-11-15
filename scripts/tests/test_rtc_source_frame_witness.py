@@ -626,4 +626,111 @@ class NativeSelectionEpochControls(unittest.TestCase):
         self.assertNotIn('native_path_kind',result['native_binding_boundaries'][0])
         self.assertEqual(result['target_flow'],values[5])
 
+def retirement_statistics_facts():
+    values,anchor,binding=boundary_facts()
+    cycle,route,pair=values[:3];pipeline=cycle['decoded_media']['rtc_media_pipeline']
+    # Existing conservative native tail fails, so this positive cannot quietly
+    # succeed through the old fallback. Its coordinate guard is not changed.
+    binding['sync_source']['rtpTimestamp']=(pair['current']['presentation']['rtpTimestamp']-9000)%2**32
+    actual=copy.deepcopy(pipeline['samples'][0]['peers'][0][1])
+    at=1000+pair['current']['callback_seconds']*1000+20
+    time_origin=1794700000000
+    actual.update(native_track_identifier=actual['original_track']['track_id'],native_mid=actual['original_track']['mid'],
+                  stats_timestamp_ms=time_origin+at+.2)
+    record=dict(profile='connect/rtc-receiver-retirement-statistics/1',connection_id='receiver',peer_index=1,
+                state='fulfilled',complete=True,reason=None,requested_at_ms=at,completed_at_ms=at+.5,time_origin_ms=time_origin,
+                native_close_returned=True,native_closed=True,native_closed_at_ms=at+.1,rows=[actual])
+    pipeline['binding_boundaries']['peers'][0]['receiver_retirement_statistics']=record
+    return values,record
+
+
+class ReceiverRetirementStatisticsControls(unittest.TestCase):
+    def test_real_receiver_local_high_replaces_no_global_poll_and_keeps_other_owner_brackets(self):
+        values,record=retirement_statistics_facts();cycle,route,pair,summaries=values[:4]
+        before=copy.deepcopy(cycle['decoded_media']['rtc_media_pipeline']['samples'])
+        result=prepare_pair(cycle,route,pair,summaries)
+        self.assertEqual(result['native_binding_boundaries'],[])
+        self.assertEqual(len(result['native_retirement_statistics']),1)
+        proof=result['native_retirement_statistics'][0]
+        self.assertEqual(proof['profile'],'connect/rtc-receiver-retirement-statistics/1')
+        self.assertEqual(proof['stats_timestamp_ms'],record['rows'][0]['stats_timestamp_ms'])
+        self.assertEqual(proof['direction'],'inbound-rtp');self.assertEqual(result['target_flow'],values[5])
+        self.assertEqual(before,cycle['decoded_media']['rtc_media_pipeline']['samples'])
+        source=StatsIndex(cycle).get('source','outbound-rtp',pair['first']['callback_seconds'],pair['current']['callback_seconds'],stream='source_video')
+        self.assertNotIn('native_retirement_statistics',source)
+        # Actual numeric IPv6 is copied exactly and validated by the same parser.
+        for row in [cycle['decoded_media']['rtc_media_pipeline']['samples'][0]['peers'][0][1],record['rows'][0]]:
+            row['selected_path']['local']['address']='::1';row['selected_path']['remote']['address']='::1'
+        result=prepare_pair(cycle,route,pair,summaries);self.assertEqual(result['target_flow'][0],'::1')
+        self.assertEqual(result['target_flow'][2],'::1')
+
+    def test_receiver_high_does_not_benefit_public_head_outward_or_unsettled_and_partial_queries(self):
+        for state in ['pending','rejected','not-requested']:
+            values,record=retirement_statistics_facts();record['state']=state;record['complete']=False
+            with self.assertRaises(WitnessError):prepare_pair(*values[:4])
+        for change in ['partial','not-closed','not-returned','foreign-owner','ambiguous-record','missing-real-low']:
+            values,record=retirement_statistics_facts();pipeline=values[0]['decoded_media']['rtc_media_pipeline']
+            if change=='partial':record['complete']=False
+            elif change=='not-closed':record['native_closed']=False
+            elif change=='not-returned':record['native_close_returned']=False
+            elif change=='foreign-owner':record['connection_id']='foreign'
+            elif change=='ambiguous-record':pipeline['binding_boundaries']['peers']*=2
+            elif change=='missing-real-low':pipeline['samples'][0]['peers'][0].pop(1)
+            with self.assertRaises(WitnessError):prepare_pair(*values[:4])
+        values,record=retirement_statistics_facts();pipeline=values[0]['decoded_media']['rtc_media_pipeline']
+        # Remove the real source high. A receiver-only report cannot replace it.
+        pipeline['samples'][1]['peers'][0].pop(0)
+        with self.assertRaises(WitnessError):prepare_pair(*values[:4])
+        values,anchor,binding=boundary_facts(public=True);cycle,route,pair=values[:3]
+        _,record=retirement_statistics_facts()
+        cycle['decoded_media']['rtc_media_pipeline']['binding_boundaries']['peers'][0]['receiver_retirement_statistics']=record
+        result=prepare_pair(*values[:4]);self.assertEqual(result['native_retirement_statistics'],[])
+        self.assertEqual(result['native_binding_boundaries'][0]['profile'],'connect/rtc-native-public-binding/1')
+
+    def test_every_original_row_and_actual_native_report_contradiction_remains_fatal(self):
+        for change in ['ssrc','codec','path','track','native-track','native-mid','competing','interior','early-missing']:
+            values,record=retirement_statistics_facts();cycle,route,pair=values[:3];pipeline=cycle['decoded_media']['rtc_media_pipeline']
+            low=pipeline['samples'][0]['peers'][0][1]
+            if change=='ssrc':low['ssrc']+=1
+            elif change=='codec':low['codec']['payload_type']+=1
+            elif change=='path':low['selected_path']['remote']['port']+=1
+            elif change=='track':low['original_track']['mid']='other-mid'
+            elif change=='native-track':record['rows'][0]['native_track_identifier']='other'
+            elif change=='native-mid':record['rows'][0]['native_mid']='other'
+            elif change=='competing':record['rows']*=2
+            elif change=='interior':
+                sample=copy.deepcopy(pipeline['samples'][0]);sample.update(requested_seconds=2.205,completed_seconds=2.210)
+                sample['peers'][0][1]['codec']['payload_type']+=1;pipeline['samples'].insert(1,sample)
+            elif change=='early-missing':
+                sample=copy.deepcopy(pipeline['samples'][0]);sample.update(requested_seconds=2.1,completed_seconds=2.11)
+                sample['peers'][0].pop(1);pipeline['samples'].insert(1,sample)
+            with self.assertRaises(WitnessError):prepare_pair(*values[:4])
+
+    def test_native_time_not_request_or_late_settlement_must_cover_each_cached_pair(self):
+        for change in ['old-sample','future-sample','wrong-clock','close-before-request','early-request']:
+            values,record=retirement_statistics_facts();last=values[2]['current']['callback_seconds'];origin=1000
+            if change=='old-sample':record['rows'][0]['stats_timestamp_ms']=record['time_origin_ms']+origin+last*1000-.1
+            elif change=='future-sample':record['rows'][0]['stats_timestamp_ms']=record['time_origin_ms']+record['completed_at_ms']+.1
+            elif change=='wrong-clock':record['time_origin_ms']+=100000
+            elif change=='close-before-request':record['native_closed_at_ms']=record['requested_at_ms']-.1
+            elif change=='early-request':record['requested_at_ms']=origin+last*1000-.1
+            with self.assertRaises(WitnessError):prepare_pair(*values[:4])
+        values,record=retirement_statistics_facts();cycle,route,pair,summaries=values[:4]
+        first,last=pair['first']['callback_seconds'],pair['current']['callback_seconds']
+        record['rows'][0]['stats_timestamp_ms']=record['time_origin_ms']+1000+last*1000
+        index=StatsIndex(cycle);index.get('receiver','inbound-rtp',first,last,stream='sink_video',track='target-track',coordinates=[200000,201530])
+        with self.assertRaisesRegex(WitnessError,'native-time-does-not-cover-pair'):
+            index.get('receiver','inbound-rtp',first,last+.01,stream='sink_video',track='target-track',coordinates=[200000,201530])
+        # The real owner-local high may be the ONLY endpoint after all regular
+        # polling stops. Its cache window then has hi==len(original samples).
+        pipeline=cycle['decoded_media']['rtc_media_pipeline'];pipeline['samples']=pipeline['samples'][:1]
+        index=StatsIndex(cycle);first_value=index.get('receiver','inbound-rtp',first,last,stream='sink_video',track='target-track',coordinates=[200000,201530])
+        cached=index.get('receiver','inbound-rtp',first+.001,last,stream='sink_video',track='target-track',coordinates=[200000,201530])
+        self.assertEqual(first_value,cached)
+        with self.assertRaisesRegex(WitnessError,'native-time-does-not-cover-pair'):
+            index.get('receiver','inbound-rtp',first,last+.01,stream='sink_video',track='target-track',coordinates=[200000,201530])
+        with self.assertRaisesRegex(WitnessError,'owner-statistics-too-distant'):
+            index.get('receiver','inbound-rtp',first,last+.03,stream='sink_video',track='target-track',coordinates=[200000,201530])
+
+
 if __name__=='__main__':unittest.main()

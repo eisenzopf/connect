@@ -2446,6 +2446,11 @@
       "path": "patches/rvoip/connect-retained-video-public-gate-aba-control.patch",
       "sha256": "1ea7099c11d3e24d71e1064bd74531d6cfc8d6283098e51c515106245ffdeadb",
       "source": "Tests-only repair stale model-only ABA negative: exercise actual public pause/resume while original policy callback is active, require old route ticket permanently superseded and no IO. Keep same four other negatives/current fresh recovery; zero new selectors or production changes. Original451 44/45 failure remains preserved."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-original-video-frame-chronology.patch",
+      "sha256": "f801ed090a31856edd917ff79f2c4dc2a8092e766c736d781655c9701d7b4116"
     }
   ]
 }
