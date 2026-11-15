@@ -1,0 +1,93 @@
+{
+  "format": "connect/g6-058-v219-normal3-r2-failures/1",
+  "updated_at": "2026-11-15T04:06:01.542250+00:00",
+  "matrix_credit": false,
+  "source_revision": "bc9bef61a8f97bca54459f0411b5774fcd54a7eb",
+  "dependency_generation": 449,
+  "original_Root_join": "79674/5f3336",
+  "original_CLI_exit": 1,
+  "browser_exit": 1,
+  "component_passed": false,
+  "owner_result_sha256": "04cae5c43ec3bd0eb7dffd4a8f61b1e8d1ad39ceeb908fa86cf787fe52988b54",
+  "component_sha256": "4fa89f9ee2d164b2cc9c39de76b6e31116b0456d9b2ee87e41bc3a5d17972fd9",
+  "custody": {
+    "all_original_owners_joined": true,
+    "source_sdk_binary_unchanged": true,
+    "capture_hash_size_and_zero_drop_verified": true,
+    "independent_review": ".local/gate-6/v219-native-epoch-firefox3-independent-v198-review/closed-r2-failed-quality-resources.json",
+    "independent_review_sha256": "a3cc9818378ab6d491e09011c22fbb6da7185d0f16782856b865f2f3d267777d"
+  },
+  "observations": {
+    "audio_routes_passed": 18,
+    "audio_routes_total": 18,
+    "AV_routes_passed": 18,
+    "AV_routes_total": 18,
+    "nonduplicate_video_routes_passed": 17,
+    "nonduplicate_video_routes_total": 18,
+    "resource_cycles_passed": 3,
+    "raw_aliases_per_cycle": [
+      35,
+      7,
+      0
+    ],
+    "real_Service_publications": 30,
+    "retired_Core_summaries": 30,
+    "Core_epochs": 42,
+    "typed_native_prflx_roles_matching_real_Stats": 82,
+    "initial_public_RX_sync_ambiguities_still_refused": 2
+  },
+  "failures": [
+    {
+      "id": "V219-RETURN-VIDEO-LOSS",
+      "cycle": 1,
+      "route": 1,
+      "classification": "Measured decoded media failure; precise loss/dependency location unresolved",
+      "decoded_fps_bins_41_42": [
+        9,
+        23
+      ],
+      "required_bins_41_42": [
+        23,
+        24
+      ],
+      "maximum_callback_gap_ms": 950,
+      "last_before_gap_seconds": 41.301,
+      "next_seconds": 42.251,
+      "same_public_owner_element_and_track": true,
+      "receiver_RTP_delta": 85500,
+      "authored_ordinal_delta": 29,
+      "source8_encoded_and_sent_continuously": true,
+      "receiver_NACK_and_discarded_frames_increased": true,
+      "next": "Independently reviewed bounded closed RTP-header input/output/sequence diagnostic; no VP8 payload claims from SRTP"
+    },
+    {
+      "id": "V219-PUBLIC-FRAME-REPLAY",
+      "cycle": 2,
+      "route": 4,
+      "classification": "Strict cross-owner source frame replay refusal; actual successful public canvas draws",
+      "old_callback_seconds": 41.503,
+      "new_callback_seconds": 41.52,
+      "local_public_cut_seconds": 41.515,
+      "same_RTP_timestamp": 1526991762,
+      "same_source_footer_ordinal": 1242,
+      "individual_rows_exactly_public": 1752,
+      "missing_or_omitted_rows": 0,
+      "native_presentationTime_retained": false,
+      "native_expectedDisplayTime_retained": false,
+      "exact_findings_sha256": "b14367bd952046e7b405ee25aa215398408fa2298bd664d06ec698bfa2d892b7",
+      "next": "Retain original native presentation times diagnostically and verify controlled SDK handoff freshness counter; no row filtering or fence waiver"
+    }
+  ],
+  "acceptance_changed": false,
+  "latest_complete_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "next_full32_started": false,
+  "G6_054": "parked",
+  "ready_for_full32": false,
+  "next": "Verify and fix both actual failures, pass fresh normal3, then final current regression/localARM/releases/preflight."
+}

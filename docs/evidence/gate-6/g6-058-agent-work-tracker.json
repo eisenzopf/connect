@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T03:45:28.073763+00:00",
-  "revision": 90,
+  "updated_at": "2026-11-15T04:06:01.542250+00:00",
+  "revision": 91,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 150,
-    "verified_at": "2026-11-15T03:45:28.073763+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-core-direction.json",
-    "readback_evidence_sha256": "4c36f6aa0f80faad766d29f700f951343c0ce68af92792fa315cf2b54fae8eef",
+    "content_revision": 151,
+    "verified_at": "2026-11-15T04:06:01.542250+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-normal3-r2.json",
+    "readback_evidence_sha256": "b6b2f17c57d319dc040a590331c34bb4b719963c42a638ef74e0df11b0133af4",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2115,7 +2115,7 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "status": "component-verified",
-      "implementation_state": "Real30publications/42epochs verified; consumer CoreReceive/clientSEND convention corrected and200controls pass; fresh combined acceptance pending",
+      "implementation_state": "Actual30Service publications/42Core epochs now convention-correct in fresh normal3; overall run failed media quality. No combined/matrix acceptance.",
       "depends_on": [],
       "verification_evidence": "docs/evidence/gate-6/g6-058-v219-core-direction-correction.json",
       "matrix_verified": false
@@ -2128,12 +2128,36 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "status": "component-verified",
-      "implementation_state": "200 targeted controls+format and real serialized native API pass; actual Connect prflx/fullStats association and combined proof pending",
+      "implementation_state": "Actual82 typed privacy-redacted native roles match original real Stats;2initial ambiguous synchronization roles still refuse. Overall normal3 failed media quality; no matrix acceptance.",
       "depends_on": [
         "V219-SOURCE-NAMESPACE"
       ],
       "matrix_verified": false,
       "verification_evidence": "docs/evidence/gate-6/g6-058-v219-native-selection-epoch.json"
+    },
+    {
+      "id": "V219-RETURN-VIDEO-LOSS",
+      "title": "Locate and fix return-handoff video stall",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "status": "diagnosing",
+      "implementation_state": "Exact source/target RTP sequence, timestamp, marker and frame dependency diagnosis; no threshold waiver",
+      "depends_on": [],
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-normal3-r2-failures.json",
+      "matrix_verified": false
+    },
+    {
+      "id": "V219-PUBLIC-FRAME-REPLAY",
+      "title": "Prevent repeated public video frame across replacement",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root/media_blockers",
+      "coordinator": "/root",
+      "status": "diagnosing",
+      "implementation_state": "Diagnose actual new public draw against native presentation/cut timing, then prove a strict SDK freshness fix",
+      "depends_on": [],
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-normal3-r2-failures.json",
+      "matrix_verified": false
     }
   ],
   "failure_mapping": [
@@ -4537,6 +4561,15 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-core-direction-correction.json",
         "sha256": "7f249ed1c78be8186084ea6bf5cefa41766e16a560a9add124264626b392ce38"
       }
+    },
+    {
+      "at": "2026-11-15T04:06:01.542250+00:00",
+      "revision": 91,
+      "checkpoint": {
+        "status": "Normal3 r2 FAILED:18/18audio,18/18AV,17/18nonduplicatevideo,3/3resources pass; C1return-video950ms stall and C2cross-owner sameframe remain under parallel diagnosis. Final877/ARM/releases/preflight held; full32 unstarted.",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-r2-failures.json",
+        "sha256": "583dd964d56bcac8382b8b69e7fada3ab2432cd75dc3d587cb6506e9408d4875"
+      }
     }
   ],
   "tracking_review": {
@@ -6166,8 +6199,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Core direction convention corrected and200controls pass; closed14 diagnosticallbijections; fresh normal3 required before final877/ARM/releases/preflight; not readyfull32",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-core-direction-correction.json",
-    "sha256": "7f249ed1c78be8186084ea6bf5cefa41766e16a560a9add124264626b392ce38"
+    "status": "Normal3 r2 FAILED:18/18audio,18/18AV,17/18nonduplicatevideo,3/3resources pass; C1return-video950ms stall and C2cross-owner sameframe remain under parallel diagnosis. Final877/ARM/releases/preflight held; full32 unstarted.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-r2-failures.json",
+    "sha256": "583dd964d56bcac8382b8b69e7fada3ab2432cd75dc3d587cb6506e9408d4875"
   }
 }
