@@ -645,7 +645,12 @@ its existing controller metadata once, after activation and only when opted in.
 The outer proof uses the public ID for original capture membership, immutable
 public-handle conversation/session, send interval and native sender statistics;
 it separately requires the exact exported runtime ID for the Core source epoch.
-Logical stream, actual transport and Core stream generation must match. Public
+Logical stream, actual transport and Core stream generation must match. Exported
+`direction` retains the Core port perspective: `receive` is endpoint-to-Core
+publication, `send` is Core-to-endpoint sink, and `both` supplies both. A browser
+source therefore requires Core `receive` or `both` and `source_ready: true`;
+a split replacement publication may correctly have `sink_ready: false`. This
+does not reverse the public capture `send` interval or native outbound statistics. Public
 connection generation and Core stream generation retain different semantic
 names; one is never substituted for the other. Initial/replacement operation
 identities must match their original validated receipt chain. Missing, duplicate,

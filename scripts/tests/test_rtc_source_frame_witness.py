@@ -167,10 +167,20 @@ class SourceFrameWitness(unittest.TestCase):
         maps[0]['epochs'][0]['source_connection']='replacement-runtime-source'
         maps.source_bindings[0].update(runtime_connection_id='replacement-runtime-source',phase='replacement-published',
             publication_operation_id='source-move',public_connection_generation=8)
+        # Actual split replacement publication is Core Receive (browser SEND),
+        # with a ready source and no Core sink on this logical stream.
+        maps.source_bindings[0]['streams'][0].update(direction='receive',source_ready=True,sink_ready=False)
         replacement=prepare_pair(cycle,route,pair,maps)
         self.assertEqual(replacement['source_publication_binding']['phase'],'replacement-published')
         self.assertEqual(replacement['source_publication_binding']['public_connection_generation'],8)
         self.assertEqual(replacement['input_ts'],proof['input_ts'])
+        self.assertEqual(replacement['source_publication_binding']['stream'],maps.source_bindings[0]['streams'][0])
+        self.assertEqual(replacement['source_publication_binding']['stream']['direction'],'receive')
+        self.assertIs(replacement['source_publication_binding']['stream']['source_ready'],True)
+        self.assertIs(replacement['source_publication_binding']['stream']['sink_ready'],False)
+        for change in [dict(direction='send'),dict(source_ready=False)]:
+            with self.subTest(replacement_core_port=change),self.assertRaisesRegex(WitnessError,'publication-core-source-port-changed'):
+                bad=copy.deepcopy(maps);bad.source_bindings[0]['streams'][0].update(change);prepare_pair(cycle,route,pair,bad)
         for change in [dict(phase='initial-ready'),dict(publication_operation_id='foreign-move'),dict(runtime_connection_id='old-runtime')]:
             with self.subTest(replacement_change=change),self.assertRaises(WitnessError):
                 bad=copy.deepcopy(maps);bad.source_bindings[0].update(change);prepare_pair(cycle,route,pair,bad)
@@ -198,7 +208,7 @@ class SourceFrameWitness(unittest.TestCase):
             with self.subTest(change=change),self.assertRaises(WitnessError):
                 bad=copy.deepcopy(maps);bad.source_bindings[0].update(change);prepare_pair(cycle,route,pair,bad)
         for key,value in [('logical_id','foreign-logical'),('transport_id','old-transport'),
-                ('core_stream_generation',4),('medium','audio'),('direction','receive'),('source_ready',False)]:
+                ('core_stream_generation',4),('medium','audio'),('direction','send'),('source_ready',False)]:
             with self.subTest(stream_field=key),self.assertRaises(WitnessError):
                 bad=copy.deepcopy(maps);bad.source_bindings[0]['streams'][0][key]=value;prepare_pair(cycle,route,pair,bad)
 

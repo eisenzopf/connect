@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T03:24:43.825791+00:00",
-  "revision": 89,
+  "updated_at": "2026-11-15T03:45:28.073763+00:00",
+  "revision": 90,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 149,
-    "verified_at": "2026-11-15T03:24:43.825791+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-native-selection-epoch.json",
-    "readback_evidence_sha256": "0cbc45496041106811706fe7a61ef596b7479022e152f357847cc6f7ecb86655",
+    "content_revision": 150,
+    "verified_at": "2026-11-15T03:45:28.073763+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-core-direction.json",
+    "readback_evidence_sha256": "4c36f6aa0f80faad766d29f700f951343c0ce68af92792fa315cf2b54fae8eef",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2115,9 +2115,9 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "status": "component-verified",
-      "implementation_state": "191 targeted checks plus normal shipping compilation verified; fresh actual publication export and combined media proof pending",
+      "implementation_state": "Real30publications/42epochs verified; consumer CoreReceive/clientSEND convention corrected and200controls pass; fresh combined acceptance pending",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-authoritative-source-namespace.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-core-direction-correction.json",
       "matrix_verified": false
     },
     {
@@ -4528,6 +4528,15 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-native-selection-epoch.json",
         "sha256": "7ca5a69a04e826bafe2d0f4c0ad2e77d9360ab0e1cacb8ba2729c3e842b5a4f7"
       }
+    },
+    {
+      "at": "2026-11-15T03:45:28.073763+00:00",
+      "revision": 90,
+      "checkpoint": {
+        "status": "Core direction convention corrected and200controls pass; closed14 diagnosticallbijections; fresh normal3 required before final877/ARM/releases/preflight; not readyfull32",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-core-direction-correction.json",
+        "sha256": "7f249ed1c78be8186084ea6bf5cefa41766e16a560a9add124264626b392ce38"
+      }
     }
   ],
   "tracking_review": {
@@ -6157,8 +6166,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "native epoch200controls+serializedAPI verified; fresh normal3 Connect proof next; finalregression/ARM/releases/preflight pending; not ready for full32",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-native-selection-epoch.json",
-    "sha256": "7ca5a69a04e826bafe2d0f4c0ad2e77d9360ab0e1cacb8ba2729c3e842b5a4f7"
+    "status": "Core direction convention corrected and200controls pass; closed14 diagnosticallbijections; fresh normal3 required before final877/ARM/releases/preflight; not readyfull32",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-core-direction-correction.json",
+    "sha256": "7f249ed1c78be8186084ea6bf5cefa41766e16a560a9add124264626b392ce38"
   }
 }

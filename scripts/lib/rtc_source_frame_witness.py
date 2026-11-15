@@ -924,7 +924,9 @@ def publication_source(cycle,route,epoch,summaries,receiver_owner,first,last,sta
     streams=[stream for stream in record['streams'] if stream['logical_id']==epoch['source_logical']]
     need(len(streams)==1,'publication-original-send-stream-unproved')
     stream=streams[0]
-    need(stream['medium']=='video' and stream['direction'] in ('send','both') and stream['source_ready'] is True
+    # ReadyMediaBinding directions are Core-facing: Receive is browser -> Core.
+    # The independently validated public capture interval remains client SEND.
+    need(stream['medium']=='video' and stream['direction'] in ('receive','both') and stream['source_ready'] is True
          and stream['transport_id']==epoch['source_transport']
          and stream['core_stream_generation']==epoch['source_generation'], 'publication-core-source-port-changed')
     # Public connection generation and Core stream generation are deliberately

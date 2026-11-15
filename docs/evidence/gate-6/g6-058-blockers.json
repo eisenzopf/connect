@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-15T03:24:43.825791+00:00",
-  "run_status": "Latest full v218 remains1/32 cells,399/432 checks. Both source bridge and native privacy epoch fixes implemented:200/200 targeted controls+format PASS, serialized realFirefox epoch API PASS, sourceBridge shippingcompile PASS. Closed diagnosticall5aliases+3passive wirebijections verified, originalfailedgradesretained. Fresh proper3-cycle actualService/prflx/fullStats/quality/resource verification next; final877regression/localARM/releases/preflight stillrequired. No full32 started.",
+  "updated": "2026-11-15T03:45:28.073763+00:00",
+  "run_status": "Latest full v218 remains1/32 cells,399/432 checks. Normal3 source2351 collected18audio+18AV+18nonduplicatevideo andpassed3cyclecapacity/cleanup; hostfinalizerFAILED on reversedCore direction assumption. CoreReceive/clientSEND correction200/200controlsPASS; corrected-analyzer diagnostic11aliases+3passive all14wirebijections, originalfailedrunpreserved. Freshproper3 next, then877/localARM/releases/preflight. No full32 started.",
   "blockers": [
     {
       "id": "B01",
@@ -19131,5 +19131,73 @@
       "prior_incomplete_BiDi_artifact_preserved": true
     },
     "next": "Normal3 local Firefox, audio debugOFF/completioncounterOFF/sourcewitnessON, then final877-case inventory/localARM/releases/preflight. Full32 unstarted; G6054 parked."
+  },
+  "v219_core_direction_correction": {
+    "format": "connect/g6-058-v219-core-direction-correction/1",
+    "updated_at": "2026-11-15T03:45:28.073763+00:00",
+    "matrix_credit": false,
+    "source_review": "de6796e8872c7d0ff04581dfb30b66dbe493cccca404e5fb2c14778831870a83",
+    "cause": "Harness interpreted Core direction as client direction. Core Receive is endpoint-to-Core, matching a public client SEND stream.",
+    "primary_local_sources": [
+      ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams.rs:770",
+      ".deps/rvoip/crates/foundation/rvoip-core/src/stream_lifecycle.rs:675",
+      "crates/connect-service/src/canonical_media.rs:483"
+    ],
+    "correction": {
+      "allowed_Core_source_directions": [
+        "receive",
+        "both"
+      ],
+      "source_ready_required": true,
+      "public_client_SEND_interval_required": true,
+      "old_wrong_CoreSend_negative_corrected": true,
+      "actual_split_replacement_receive_sourceReadyTrue_sinkFalse_positive": true,
+      "no_Rust_emitter_or_upstream_change": true,
+      "all_other_native_public_Core_wire_quality_and_resource_fences_unchanged": true
+    },
+    "targeted_controls": {
+      "original_Root_join": "72405/405404",
+      "python_passed": 63,
+      "node_passed": 137,
+      "failed": 0,
+      "format_exit": 0,
+      "source_unchanged": true,
+      "result_sha256": "5d3226b589a8a5454acecf09dea87815dd1f298dc963f85137caacd9f18610b6"
+    },
+    "preserved_original_normal3": {
+      "source": "2351e0fd",
+      "original_Root_join": "21885/9f7897",
+      "component_passed": false,
+      "component_CLI_exit": 1,
+      "browser_exit": 0,
+      "finalizer_reason": "publication-core-source-port-changed",
+      "audio_routes_passed": 18,
+      "AV_routes_passed": 18,
+      "nonduplicate_video_routes_passed": 18,
+      "raw_aliases_per_cycle": [
+        4,
+        7,
+        0
+      ],
+      "three_cycle_capacity_and_cleanup_passed": true,
+      "real_Service_publications": 30,
+      "retired_Core_summaries": 30,
+      "Core_mapping_epochs": 42,
+      "replacement_CoreReceive_source_epochs": 12,
+      "independent_actual_review": "a4ebd780fb43ec4eadf416806a7285c1d97609eabac09a4e6841c30fa389f197"
+    },
+    "corrected_analyzer_closed_diagnostic": {
+      "original_Root_join": "21792/47628f",
+      "diagnostic_sha256": "0a05b0e074aff708de4e95e299f08204bdda6f2a3297fd0e0a0b7a46223a4f7e",
+      "aliases": 11,
+      "passive_controls": 3,
+      "observed_bijections": 14,
+      "unknown": 0,
+      "all17_original_input_hash_pairs_equal": true,
+      "native_boundary_uses": 0,
+      "original_failed_flags_preserved": true,
+      "scope": "Diagnostic all regular RTP brackets only. Original normal3 remains failed; no fresh qualification or historical regrade."
+    },
+    "next": "Fresh committed proper normal3, then current877 regression/localARM/releases/preflight. Full32 unstarted; G6054 parked."
   }
 }
