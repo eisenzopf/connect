@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T07:29:45.892486+00:00",
-  "revision": 96,
+  "updated_at": "2026-11-15T09:04:22.575065+00:00",
+  "revision": 97,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 160,
-    "verified_at": "2026-11-15T07:29:45.892486+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-tail-and-chronology.json",
-    "readback_evidence_sha256": "7146ddbf028b19be98bd67ff7752486dd17457a8e77768e91884d2d8380b26d8",
+    "content_revision": 162,
+    "verified_at": "2026-11-15T09:04:22.575065+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-directional-tickets.json",
+    "readback_evidence_sha256": "5186e4dc095c28d867475482e9e039601a644f241388c3160f35c7afce9ca81c",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2193,13 +2193,30 @@
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root/v198_resources",
       "coordinator": "/root",
-      "status": "cause-confirmed",
-      "implementation_state": "Source coupling confirmed; actual public-Core-controller OLD counter source-reviewed but UNRUN. ArcSwap independent ingress/egress lineages plan reviewed; production afterimages authoring. Current audio revision fence retained. No runtime media cure yet.",
+      "status": "component-verified",
+      "implementation_state": "Generation458: Core640/WebRTC42 pass, zero failed/ignored; normal service/client check passes. OLD455 camera failure reproduced and fixed; all12 prior failed selectors retained and pass. Independent source/binary/original-owner audit accepted. No fresh media, ARM, release or matrix qualification.",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-tail-and-chronology-verified.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-directional-tickets-verified.json",
       "matrix_verified": false,
       "contributing_agents": [
         "/root/fixture_blockers"
+      ],
+      "updated_at": "2026-11-15T09:04:22.575065+00:00",
+      "coordinator_review": {
+        "status": "Accepted independent actual682/defaultcheck audit",
+        "root_cause_confirmed": true,
+        "counterexample_verified": true,
+        "regression_verified": true,
+        "actual_matrix_effect_verified": false
+      },
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-directional-tickets-verified.json",
+          "passed": 682,
+          "required": 682,
+          "matrix_result": false,
+          "scope": "Core640/WebRTC42 plus normal service/client compile; original failures preserved"
+        }
       ]
     }
   ],
@@ -4658,6 +4675,12 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-tail-and-chronology-verified.json",
         "sha256": "8851f92712504aaa503fd03c1c054f679d2e2d7a3a52c80d7859d498fb669894"
       }
+    },
+    {
+      "revision": 97,
+      "updated_at": "2026-11-15T09:04:22.575065+00:00",
+      "summary": "Generation458: Core640/WebRTC42 pass, zero failed/ignored; normal service/client check passes. OLD455 camera failure reproduced and fixed; all12 prior failed selectors retained and pass. Independent source/binary/original-owner audit accepted. No fresh media, ARM, release or matrix qualification.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-directional-tickets-verified.json"
     }
   ],
   "tracking_review": {
@@ -6287,8 +6310,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Receiver-tail73 and separate g453Core45/WebRTC42/defaultcheck verified. Shared duplex ticket camera coupling now targeted; counter staged/unrun, production candidate authoring. Not ready full32.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-tail-and-chronology-verified.json",
-    "sha256": "8851f92712504aaa503fd03c1c054f679d2e2d7a3a52c80d7859d498fb669894"
+    "status": "Generation458: Core640/WebRTC42 pass, zero failed/ignored; normal service/client check passes. OLD455 camera failure reproduced and fixed; all12 prior failed selectors retained and pass. Independent source/binary/original-owner audit accepted. No fresh media, ARM, release or matrix qualification. Not ready full32; fresh normal3, complete current regression, local ARM, releases and preflight remain. Strict B-generation library work pending.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-directional-tickets-verified.json",
+    "sha256": "19f82bbd380953115d3cd33a0a3b6bea5bc2d9e49fa9d206f5fecb21ea37e63e"
   }
 }

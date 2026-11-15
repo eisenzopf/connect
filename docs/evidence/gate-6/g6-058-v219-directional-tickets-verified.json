@@ -1,0 +1,120 @@
+{
+  "format": "connect/g6-058-directional-ticket-checkpoint/1",
+  "qualified": true,
+  "source_generation": 458,
+  "source_lock_sha256": "c5b5b2a9a204c2208a7d4376d5f87f2d2c285e713a70c7ee47eac083091266c6",
+  "patches": {
+    "connect-directional-cached-audio-egress.patch": "cd8629812bc82c9a178bfbd510c666f488d8bb3edb9187338ee0478c67ce29af",
+    "connect-directional-camera-counter-original-age-order.patch": "12655f890f45a66a0e37f015613d8e53d296cbaa706394388792b4730dafe404",
+    "connect-directional-media-port-tickets.patch": "484b4e76360ecf7a448b5476ca020cdc1a93fe0d54faeba6839386c9db34b4d9",
+    "connect-directional-old-sink-camera-counter.patch": "9245b9023aaa1028d7dcfff6f88e6052d0361e463d2382e63e0365f628ddc80e",
+    "connect-directional-source-barrier-and-visual-race-stimuli.patch": "0b2053cae7cbe828c796bba26859aec28a866f5562f4eb9ed1331f01216fca88"
+  },
+  "references": {
+    "old_unqualified_result": {
+      "path": ".local/gate-6/v219-directional-camera-old-counter-root/result.json",
+      "sha256": "ab18dccae332e05d6764521c448eab58ab4541f070393362cca9d53ea82c465f"
+    },
+    "old_qualified_result": {
+      "path": ".local/gate-6/v219-directional-camera-old-counter-root-r2/result.json",
+      "sha256": "69266750fe9f3f24857935dbe96bab23981a8e2978d60152c8952ec5e84bc77d"
+    },
+    "compile_failure_result": {
+      "path": ".local/gate-6/v219-directional-port-ticket-fixed-root/result.json",
+      "sha256": "d040e10c793c7a71f400b7739a532961480086ec1e64c6c933e9dcc5e1251a7e"
+    },
+    "first_broad_failure_result": {
+      "path": ".local/gate-6/v219-directional-port-ticket-fixed-root-r2/result.json",
+      "sha256": "95ba739c33b911ec22b8bda72ea7edcd8fe7d9932f3ca60834f9f1e283f67bf6"
+    },
+    "first_broad_failure_qa": {
+      "path": ".local/gate-6/directional-port-ticket-independent-v198-review/actual-g457-core640-failure-rca.json",
+      "sha256": "84e0b699e4de53c554223107ed02e9d1d26b7b2580332b442ebf3c0e06e1325e"
+    },
+    "normal458_preparation_qa": {
+      "path": ".local/gate-6/directional-port-ticket-independent-v198-review/actual-normal458-composition-preparation.json",
+      "sha256": "ebe1a6be2d9eb06daa559489c92cd6268644b79d33a91abd8baf72bb74fc257b"
+    },
+    "old_qualified_qa": {
+      "path": ".local/gate-6/directional-old-sink-camera-custody-independent-v198-review/actual-old455-qualified.json",
+      "sha256": "0e922bec723bb70c99624d126329c171b94ec014fa0f72fd67cba0fb903241fa"
+    },
+    "fixed_result": {
+      "path": ".local/gate-6/v219-directional-port-ticket-fixed-root-r3/result.json",
+      "sha256": "adf9ec4ae33cc407646a26ec18b7304207fc8aef38e1254ccbb4aa4e16858118"
+    },
+    "fixed_root_original_join": {
+      "path": ".local/gate-6/v219-directional-port-ticket-fixed-root-r3/root-original-join.json",
+      "sha256": "05c69cff77a771f024667ad99453df7ce47387ce2d70d4b5c40deeca84783f6b"
+    },
+    "fixed_selected_core": {
+      "path": ".local/gate-6/v219-directional-port-ticket-fixed-root-r3/rvoip-core-selected.json",
+      "sha256": "ca19391bd576a1280734c221def5426600c9284212078ed2b70925f5e1c3f3df"
+    },
+    "fixed_selected_webrtc": {
+      "path": ".local/gate-6/v219-directional-port-ticket-fixed-root-r3/rvoip-webrtc-selected.json",
+      "sha256": "9e77f8d68d922bd491db64bb322073def5a79096d9c35ed6295e171c6f104c86"
+    },
+    "fixed_independent_qa": {
+      "path": ".local/gate-6/directional-port-ticket-independent-v198-review/actual-g458-682-default-check.json",
+      "sha256": "bf3730c3b6263540baf6c794f7a40eed38542e8c8fa7ff4dd8d9e18cef9865d1"
+    }
+  },
+  "observed": {
+    "core_passed": 640,
+    "webrtc_passed": 42,
+    "failed": 0,
+    "ignored": 0,
+    "default_service_client_check": "passed",
+    "prepare": "passed",
+    "format": "passed",
+    "all_nine_phases_naturally_joined": true,
+    "source_and_upstream_unchanged": true,
+    "root_session": 65742,
+    "completion_chunk": "37cae6",
+    "scope": "Native macOS component regression; no fresh decoded-media/ARM/shipping/full32 qualification"
+  },
+  "diagnosis": {
+    "old": "Public receive-only video hold invalidated the shared duplex ticket and rejected the original camera within485us despite unchanged input permission; cleanup completed before intended failing assertion.",
+    "fix": "Independent ingress/egress lineages in immutable ArcSwap pair; same original input ticket retained on output-only hold; conservative input no-op mute/unmute barrier and both-direction retirement retained.",
+    "followthrough": "One missed cached-audio target caller corrected to original cached egress ticket; one no-op input barrier regression fixed; eleven old tests now create an actual audio-selection state change instead of assuming no-op private preparation changes revision. Original200ms deadlines and refusal assertions retained."
+  },
+  "limits": [
+    "Core public-controller cause only, no signed Service/browser/media/matrix cure claim.",
+    "Conservative AUDIO OriginalStamp revision fence retained.",
+    "Global cross-device duplicate rule unchanged; fresh B generation unsupported.",
+    "Prior failures retained; earlier73 and87 not aggregated."
+  ],
+  "matrix": {
+    "cells_passed": 1,
+    "required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "new_run_started": false,
+    "ready": false
+  },
+  "recorded_at": "2026-11-15T09:04:22.575065+00:00",
+  "preserved_attempts": [
+    {
+      "generation": 454,
+      "outcome": "Counter UNQUALIFIED: original200ms age expired during stale sink delivery before camera oracle; both owners cleaned up."
+    },
+    {
+      "generation": 455,
+      "outcome": "Qualified expected OLD failure: original camera NotReady at485us after output-only hold, unchanged input permitted; cleanup before failing oracle."
+    },
+    {
+      "generation": 456,
+      "outcome": "Compile failure, no runtime: cached audio child caller still used duplex pair."
+    },
+    {
+      "generation": 457,
+      "outcome": "628/640 Core pass;12failed. One real no-opUnmute input barrier regression; eleven stale race stimuli assumed equivalent keep-muted preparation advanced revision. WebRTC/defaultcheck unrun."
+    },
+    {
+      "generation": 458,
+      "outcome": "All640 Core and42WebRTC pass; all12previousfailed selectors retained. Normal service/client check0; source/executables unchanged; alloriginalowners joined."
+    }
+  ],
+  "qualification_scope": "682 native macOS component cases and normal service/client compile check only"
+}

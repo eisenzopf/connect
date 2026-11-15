@@ -1,0 +1,12 @@
+{
+  "format": "connect/g6-058-mobile-document-readback/1",
+  "content_revision": 162,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMQOfLLasurWbXk34WiFTNBw_9FvQvDTZzuVGcP2N3q0I4xoTj1S3vLL1oz1u7Eg2NrtgQ6Sr4wlXTnaHQxFSt4mXkv2y4yhQWO_nlo",
+  "verified": true,
+  "paragraphs": [
+    "Revision 162 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.",
+    "Current batch verified — Generation458 passes all 640 Core and 42 WebRTC tests, with zero failures or ignored tests. The normal service/client compile check also passes. Independent audit confirms unchanged source and executable hashes and all original process joins. The old camera counter fails within 485 microseconds on generation455 despite unchanged input permission; it passes with the fix. All 12 failures from the first broad fixed run remain in the inventory and now pass. This is 682 component tests, not a media, ARM, release or matrix result. Earlier receiver-tail73 and chronology87 retain separate source-bound evidence.",
+    "Next validation — Commit and push the reviewed batch, then validate a fresh normal three-cycle local Firefox/WSS programme with real retiring-receiver statistics and all existing quality, resource, ownership and wire checks. The previous 877-check regression is stale; its replacement inventory is being independently reviewed. In parallel, Media is implementing optional session-owned original-frame chronology; Resource audits physical writer exposure, and Fixture traces fresh B video readiness in the SDK. These staged changes are not applied or verified. The strict cross-device image rule remains unchanged; the HANDOFF HOLD proposal remains unapproved. Complete regression, local ARM, normal releases and preflight still precede any full32 launch."
+  ]
+}

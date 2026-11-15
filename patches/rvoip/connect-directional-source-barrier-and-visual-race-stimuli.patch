@@ -1,0 +1,192 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
+@@ -465,7 +465,7 @@
+ 
+ #[tokio::test]
+ async fn directional_pause_mute_end_replace_and_close_keep_permanent_scope() {
+-    for action in 0..6 {
++    for action in 0..7 {
+         let f=Fixture::new(8);
+         directional_checked(&f,async {
+             f.start(&[Medium::Video]).await;
+@@ -478,7 +478,7 @@
+                 2=>{f.a.end_stream(&id,f.a.revision(),deadline()).await.unwrap();},
+                 3=>{let mut receive=desired(Medium::Video);receive.direction=StreamDirection::Receive;f.a.change(f.a.revision(),&[receive],&BTreeSet::new(),deadline(),CancellationToken::new()).await.unwrap();},
+                 4=>{assert_eq!(f.a.shutdown(deadline()).await,0);},
+-                _=>{
++                5=>{
+                     f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Mute,deadline()).await.unwrap();
+                     let muted=port.0.ticket_snapshot();
+                     f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Pause,deadline()).await.unwrap();
+@@ -488,12 +488,33 @@
+                     assert!(!paused.ticket(TicketSide::Ingress).is_current()&&!paused.ticket(TicketSide::Egress).is_current());
+                     f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Unmute,deadline()).await.unwrap();
+                 },
++                _=>{
++                    use crate::staged_streams::direct_subscriptions::*;
++                    f.a.change_direct_subscriptions(f.a.revision(),DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&f.b,id.clone(),id.clone())]),deadline(),CancellationToken::new(),None).await.unwrap();
++                    let mut remote=f.b.take_ingress(&id).unwrap();let mut sink=port.take_egress().unwrap();
++                    let original_sink=directional_sink(&f,&mut remote,&mut sink,9000).await;
++                    // Already unmuted: this explicit operation is STILL a new
++                    // source epoch, not permission to reuse old input/readiness.
++                    f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Unmute,deadline()).await.unwrap();
++                    assert!(!before.ticket(TicketSide::Ingress).is_current());
++                    assert!(before.ticket(TicketSide::Egress).same_generation(&port.0.ticket(TicketSide::Egress)));
++                    assert!(matches!(original.try_publish_clocked(|_|None),Err(StreamControlError::NotReady)));
++                    original_sink.deliver(|_|async{Ok(())}).await.unwrap();
++                    f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Mute,deadline()).await.unwrap();
++                    let muted=port.0.ticket_snapshot();
++                    // Already muted: private input/readiness from the prior
++                    // source epoch cannot survive another explicit Mute either.
++                    f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Mute,deadline()).await.unwrap();
++                    assert!(!muted.ticket(TicketSide::Ingress).is_current());
++                    assert!(muted.ticket(TicketSide::Egress).same_generation(&port.0.ticket(TicketSide::Egress)));
++                    f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Unmute,deadline()).await.unwrap();
++                },
+             }
+             assert!(!before.ticket(TicketSide::Ingress).is_current());
+-            if action!=1 {assert!(!before.ticket(TicketSide::Egress).is_current());}
++            if action!=1 && action!=6 {assert!(!before.ticket(TicketSide::Egress).is_current());}
+             else {assert!(before.ticket(TicketSide::Egress).is_current());}
+             assert!(original.try_publish_clocked(|_|None).is_err());
+-            if action<=1 || action==5 {port.try_publish(&frame(&port,21000)).unwrap();}
++            if action<=1 || action==5 || action==6 {port.try_publish(&frame(&port,21000)).unwrap();}
+             if action==3 {assert_ne!(f.aa.port(Medium::Video).binding().transport_id,port.binding().transport_id);}
+         }).await;
+     }
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle.rs b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -350,6 +350,10 @@
+         }
+     }
+     pub(crate) fn gate_changes(&self, action:StreamGateAction) -> [bool;2] {
++        // Explicit source-publication operations advance that epoch even if
++        // the mute bit already has its requested value. Old I/O/readiness must
++        // not be borrowed by a new plan; the unrelated sink remains untouched.
++        if matches!(action,StreamGateAction::Mute|StreamGateAction::Unmute) {return [true,false];}
+         // Pause is a whole-port epoch fence even when a side was already
+         // denied. Resume of that paused scope is likewise whole-port; clearing
+         // an ACTIVE one-way hold preserves the continuously allowed side.
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
+@@ -114,6 +114,7 @@
+         let domain = self.room.domain.clone();
+         let scene = self.room.scene.clone();
+         let runtime = tokio::runtime::Handle::current();
++        let original_cutoff = tokio::time::Instant::from_std(self.received + Duration::from_millis(200));
+         let callback: OriginalVisualPolicyAction = Box::new(move |lease: Box<dyn MediaAuthorityLease>| -> ControlResult<Box<dyn MediaAuthorityLease>> {
+             // This is the actual fresh policy lease, captured BEFORE planning
+             // the concurrent control. No Core or SQL mutex is held here.
+@@ -162,6 +163,20 @@
+                         .apply_audio_audience(plan, deadline(), CancellationToken::new(), &grant)
+                         .await?;
+                     assert!(!handle.endpoint_preparation);
++                    assert_eq!(source.revision(), before, "equivalent muted preparation changed outside source model");
++                    // Equivalent muted preparation deliberately preserves outside
++                    // routing. Exercise a REAL independent audio programme change
++                    // so this policy-race control cannot pass on mere activation.
++                    // Room initially selects Bob on Alice; Clear narrows only
++                    // audio and preserves the original visual Port/scene/ticket.
++                    scene.change_subscriptions(
++                        &source.connection,
++                        source.revision(),
++                        AudioSubscriptionChange::Clear,
++                        original_cutoff,
++                        CancellationToken::new(),
++                        None,
++                    ).await?;
+                     assert!(
+                         source.revision() > before,
+                         "audio plan did not cross the active policy call"
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/queued_visual_policy_retry.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/queued_visual_policy_retry.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/queued_visual_policy_retry.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/queued_visual_policy_retry.rs
+@@ -207,6 +207,25 @@
+                         .apply_audio_audience(plan, deadline(), CancellationToken::new(), &grant)
+                         .await?;
+                     assert!(!handle.endpoint_preparation);
++                    assert_eq!((source.revision(), target.revision()), before, "equivalent muted preparation changed outside models");
++                    // Equivalent muted preparation preserves outside routing.
++                    // Actual audio-only selection changes create the intended
++                    // revision race on BOTH original endpoints. Room initially
++                    // selects nonempty programmes on Alice and Bob; Clear only
++                    // narrows audio, preserving the exact queued visual custody.
++                    let original_cutoff = tokio::time::Instant::from_std(
++                        original_admitted + Duration::from_millis(200),
++                    );
++                    for controller in [&source, &target] {
++                        scene.change_subscriptions(
++                            &controller.connection,
++                            controller.revision(),
++                            AudioSubscriptionChange::Clear,
++                            original_cutoff,
++                            CancellationToken::new(),
++                            None,
++                        ).await?;
++                    }
+                     assert!(source.revision() > before.0 && target.revision() > before.1);
+                     let changed = if side == Side::Source {
+                         &source
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
+@@ -11,6 +11,7 @@
+     audio_original: OriginalIngress,
+     output: mpsc::Receiver<QueuedMedia>,
+     revision: u64,
++    received: Instant,
+ }
+ impl PendingVisual {
+     async fn new(medium: Medium) -> Self {
+@@ -60,8 +61,9 @@
+             port.try_publish(&frame(&port, sequence)).unwrap();
+         }
+         let revision = source.state.try_lock().unwrap().model.revision();
++        let received = Instant::now();
+         let mut original = port
+-            .retain_original_ingress(frame(&port, 90000), Instant::now())
++            .retain_original_ingress(frame(&port, 90000), received)
+             .unwrap()
+             .unwrap();
+         assert_eq!(
+@@ -90,6 +92,7 @@
+             audio_original,
+             output,
+             revision,
++            received,
+         }
+     }
+     async fn activate_muted(&self) {
+@@ -108,9 +111,28 @@
+         plan.keep_endpoint_muted(&id).unwrap();
+         let (_, context) = self.room.apply(plan).await.unwrap();
+         assert!(!context.endpoint_preparation);
++        // Equivalent muted singleton preparation must preserve outside media.
++        // Prove that isolation, then cross the original visual callback with an
++        // actual public audio programme change, never direct model mutation.
++        assert_eq!(
++            self.source.revision(), self.revision,
++            "equivalent muted preparation changed the outside source model"
++        );
++        // Room starts Alice receiving Bob. Clearing that real programme is a
++        // meaningful audio-only model revision; visual tickets/ports stay exact.
++        self.room.scene.change_subscriptions(
++            &self.source.connection,
++            self.source.revision(),
++            AudioSubscriptionChange::Clear,
++            deadline().min(tokio::time::Instant::from_std(
++                self.received + Duration::from_millis(200),
++            )),
++            CancellationToken::new(),
++            None,
++        ).await.unwrap();
+         assert!(
+             self.source.revision() > self.revision,
+-            "actual preparing activation must advance the unrelated audio routing model"
++            "actual audio programme clear must advance the unrelated audio routing model"
+         );
+         assert!(
+             self.room.nodes["fresh"]

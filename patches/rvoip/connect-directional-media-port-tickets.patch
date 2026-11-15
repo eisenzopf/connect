@@ -1,0 +1,1291 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -561,6 +561,8 @@
+     messages_only: bool,
+ }
+ mod diagnostics;
++mod directional_ticket;
++use directional_ticket::{PortTicketChange, TicketSide};
+ mod native_activation;
+ pub use native_activation::{
+     NativeEgressIdentity, NativeEgressWriter, NativeFeedbackReservation, NativeSequenceCut,
+@@ -570,8 +572,8 @@
+ struct Port {
+     owner: Weak<StreamController>,
+     binding: ReadyMediaBinding,
+-    baseline: PeerRouteTicket,
+-    ticket: Mutex<PeerRouteTicket>,
++    baseline: directional_ticket::PortTickets,
++    tickets: arc_swap::ArcSwap<directional_ticket::PortTickets>,
+     state: Mutex<PortState>,
+     diagnostics: std::sync::OnceLock<diagnostics::PortDiagnostics>,
+     #[cfg(feature = "test-support")]
+@@ -597,9 +599,11 @@
+         ) {
+             return;
+         }
+-        let ticket = self.ticket.lock().unwrap_or_else(|p| p.into_inner());
+-        if !ticket.retire_if_current() {
+-            self.baseline.retire_if_current();
++        let tickets = self.tickets.load();
++        for side in [TicketSide::Ingress, TicketSide::Egress] {
++            if !tickets.ticket(side).retire_if_current() {
++                self.baseline.ticket(side).retire_if_current();
++            }
+         }
+         state.status = PortStatus::Retired;
+     }
+@@ -662,11 +666,15 @@
+         }
+         Ok(())
+     }
+-    fn ticket(&self) -> PeerRouteTicket {
+-        self.ticket
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .clone()
++    fn ticket(&self, side: TicketSide) -> PeerRouteTicket {
++        self.tickets.load().ticket(side)
++    }
++    fn ticket_snapshot(&self) -> Arc<directional_ticket::PortTickets> {
++        self.tickets.load_full()
++    }
++    fn require_ticket(&self, side:TicketSide, original:&PeerRouteTicket) -> ControlResult<()> {
++        if original.same_generation(&self.ticket(side)) {Ok(())}
++        else {Err(if original.is_current() {StreamControlError::Authority}else{StreamControlError::NotReady})}
+     }
+ }
+ #[derive(Clone)]
+@@ -790,7 +798,7 @@
+             .owner
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+-        let ticket = self.0.ticket();
++        let ticket = self.0.ticket(TicketSide::Ingress);
+         let (_lease, admission, deadline) = owner.admit_with_data(
+             &self.0,
+             &ticket,
+@@ -932,7 +940,7 @@
+                 return result;
+             }
+         }
+-        let ticket = self.0.ticket();
++        let ticket = self.0.ticket(TicketSide::Ingress);
+         let (_lease, admission, deadline) = owner.admit_with_data(
+             &self.0,
+             &ticket,
+@@ -1229,7 +1237,7 @@
+             };
+             let ticket = pending
+                 .as_ref()
+-                .map_or_else(|| target.ticket(), |(_, ticket, _)| (*ticket).clone());
++                .map_or_else(|| target.ticket(TicketSide::Egress), |(_, ticket, _)| (*ticket).clone());
+             if let Some(counters) = &delivery {
+                 counters.record::<()>(VideoPhase::ForwardTargetAdmission, self.admitted_at, None);
+             }
+@@ -3456,6 +3464,7 @@
+         if self.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
++        port.require_ticket(if sending {TicketSide::Egress}else{TicketSide::Ingress},ticket)?;
+         let guard = ticket
+             .try_begin_delivery()
+             .ok_or(StreamControlError::NotReady)?;
+@@ -3950,8 +3959,8 @@
+                 .map_err(|_| MediaTransitionError::Capacity)?;
+             let allocation = self.handles.allocate()?;
+             let handle = allocation.local_id();
+-            let baseline = PeerRouteTicket::initial();
+-            let ticket = baseline.stage().ok_or(MediaTransitionError::Capacity)?;
++            let baseline = directional_ticket::PortTickets::initial();
++            let tickets = baseline.stage([true, true])?;
+             let capacity = if plan.requested.medium == Medium::Audio {
+                 10
+             } else {
+@@ -3976,7 +3985,7 @@
+                 owner: Arc::downgrade(self),
+                 binding,
+                 baseline,
+-                ticket: Mutex::new(ticket),
++                tickets: arc_swap::ArcSwap::from_pointee(tickets),
+                 state: Mutex::new(PortState {
+                     status: PortStatus::Prepared,
+                     ready: false,
+@@ -4137,9 +4146,10 @@
+         };
+         let mut quiesced = Vec::new();
+         for old in &removed {
+-            let ticket = old.ticket();
+-            let guard = tokio::select! {biased;_=cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
+-            quiesced.push(guard);
++            for ticket in old.ticket_snapshot().all() {
++                let guard = tokio::select! {biased;_=cancellation.cancelled()=>return Err(StreamControlError::Cancelled),_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++                quiesced.push(guard);
++            }
+         }
+         // The endpoint has already confirmed this exact prepared candidate.
+         // Retry only effect-free routing metadata validation, never adapter IO,
+@@ -4267,6 +4277,13 @@
+                             && routes.as_ref().zip(route_commit.as_ref()).is_some_and(
+                                 |(routes, commit)| commit.av_unchanged(routes, &state, &bindings),
+                             );
++                        let mut activating=candidate.ports.iter().map(|port|port.state.lock().unwrap_or_else(|p|p.into_inner())).collect::<Vec<_>>();
++                        if candidate.ports.iter().zip(&activating).any(|(port,status)| {
++                            !status.ready || status.status!=PortStatus::Prepared ||
++                            [TicketSide::Ingress,TicketSide::Egress].into_iter().any(|side| !port.baseline.ticket(side).is_current())
++                        }) {return Err(StreamControlError::NotReady.into());}
++                        if cancellation.is_cancelled()||control_cancel.is_cancelled()||self.shutdown.is_cancelled() {return Err(StreamControlError::Cancelled.into());}
++                        if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline.into());}
+                         if initial_muted {
+                             state.model.commit_initial_muted(
+                                 &auth.current(),
+@@ -4282,15 +4299,15 @@
+                                 Instant::now(),
+                             )?;
+                         }
+-                        for port in &candidate.ports {
+-                            let mut status = port.state.lock().unwrap_or_else(|p| p.into_inner());
+-                            let ticket = port.ticket();
+-                            assert!(
+-                                ticket.commit_from(&port.baseline),
+-                                "private staged port generation changed outside controller"
+-                            );
++                        for (port,status) in candidate.ports.iter().zip(activating.iter_mut()) {
++                            let tickets = port.ticket_snapshot();
++                            for side in [TicketSide::Ingress, TicketSide::Egress] {
++                                assert!(tickets.ticket(side).commit_from(&port.baseline.ticket(side)),
++                                    "private staged port generation changed outside controller");
++                            }
+                             status.status = PortStatus::Active;
+                         }
++                        drop(activating);
+                         for old in &removed {
+                             old.retire();
+                         }
+@@ -4470,20 +4487,17 @@
+                 .validate_gate(&auth.current(), expected, ids, action)?;
+             ids.iter()
+                 .map(|id| {
+-                    state
+-                        .active
+-                        .get(id)
+-                        .cloned()
+-                        .ok_or(StreamControlError::NotReady)
++                    let port=state.active.get(id).cloned().ok_or(StreamControlError::NotReady)?;
++                    PortTicketChange::stage(port,state.model.streams()[id].gate_changes(action))
+                 })
+                 .collect::<ControlResult<Vec<_>>>()?
+         };
+-        let mut quiesced = Vec::with_capacity(ports.len());
+-        for port in &ports {
+-            let old = port.ticket();
+-            let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
+-            let drained = tokio::select! {biased;_=cancelled.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),r=tokio::time::timeout_at(deadline,old.quiesce())=>r.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
+-            quiesced.push((old, next, drained));
++        let mut quiesced = Vec::with_capacity(ports.len()*2);
++        for change in &ports {
++            for old in change.old_tickets() {
++                let drained = tokio::select! {biased;_=cancelled.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),r=tokio::time::timeout_at(deadline,old.quiesce())=>r.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++                quiesced.push(drained);
++            }
+         }
+         let outcome = {
+             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+@@ -4497,26 +4511,17 @@
+             if tokio::time::Instant::now() >= deadline {
+                 return Err(StreamControlError::Deadline);
+             }
+-            let changed = state
+-                .model
+-                .set_gates(&auth.current(), expected, ids, action)?;
+-            for (port, (old, next, _)) in ports.iter().zip(&quiesced) {
+-                assert!(
+-                    next.commit_from(old),
+-                    "private gate generation changed outside controller"
+-                );
+-                *port.ticket.lock().unwrap_or_else(|p| p.into_inner()) = next.clone();
+-                let logical = state
+-                    .model
+-                    .streams()
+-                    .get(&port.binding.negotiated.requested.logical_id)
+-                    .expect("active gated stream");
+-                port.state.lock().unwrap_or_else(|p| p.into_inner()).status =
+-                    if logical.state == LogicalStreamState::Paused {
+-                        PortStatus::Paused
+-                    } else {
+-                        PortStatus::Active
+-                    };
++            // Exclude terminal retirement through final validation, model effect
++            // and the ONE immutable pair publication. No lock crosses drain.
++            let mut port_states=ports.iter().map(|change|change.port.state.lock().unwrap_or_else(|p|p.into_inner())).collect::<Vec<_>>();
++            for (change,port_state) in ports.iter().zip(&port_states) {change.validate(port_state)?;}
++            if cancelled.is_cancelled()||self.shutdown.is_cancelled() {return Err(StreamControlError::Cancelled);}
++            if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++            let changed = state.model.set_gates(&auth.current(), expected, ids, action)?;
++            for (change,port_state) in ports.iter().zip(port_states.iter_mut()) {
++                change.commit(port_state);
++                let logical=&state.model.streams()[&change.port.binding.negotiated.requested.logical_id];
++                port_state.status=if logical.state==LogicalStreamState::Paused {PortStatus::Paused}else{PortStatus::Active};
+             }
+             (state.model.revision(), changed)
+         };
+@@ -4609,9 +4614,11 @@
+                 .cloned()
+                 .ok_or(StreamControlError::NotReady)?
+         };
+-        let old = port.ticket();
+-        let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
+-        let drained = tokio::select! {biased;_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,old.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++        let change=PortTicketChange::stage(port.clone(),[true,true])?;
++        let mut drained=Vec::new();
++        for old in change.old_tickets() {
++            drained.push(tokio::select! {biased;_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,old.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?});
++        }
+         {
+             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             let scope = self.scope(&credential.principal, MediaPurpose::Control);
+@@ -4624,19 +4631,13 @@
+             if tokio::time::Instant::now() >= deadline {
+                 return Err(StreamControlError::Deadline);
+             }
+-            state
+-                .model
+-                .set_paused(&auth.current(), expected, logical, paused)?;
+-            assert!(
+-                next.commit_from(&old),
+-                "private paused delivery generation changed outside controller"
+-            );
+-            *port.ticket.lock().unwrap_or_else(|p| p.into_inner()) = next;
+-            port.state.lock().unwrap_or_else(|p| p.into_inner()).status = if paused {
+-                PortStatus::Paused
+-            } else {
+-                PortStatus::Active
+-            };
++            let mut port_state=port.state.lock().unwrap_or_else(|p|p.into_inner());
++            change.validate(&port_state)?;
++            if control_cancel.is_cancelled()||self.shutdown.is_cancelled() {return Err(StreamControlError::Cancelled);}
++            if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++            state.model.set_paused(&auth.current(), expected, logical, paused)?;
++            change.commit(&mut port_state);
++            port_state.status=if paused {PortStatus::Paused}else{PortStatus::Active};
+         }
+         drop(drained);
+         Ok(())
+@@ -4713,7 +4714,7 @@
+                 .cloned()
+                 .ok_or(StreamControlError::NotReady)?
+         };
+-        let ticket = port.ticket();
++        let tickets = port.ticket_snapshot();
+         let selected_audio = self
+             .audio_consumer
+             .lock()
+@@ -4732,7 +4733,10 @@
+         } else {
+             None
+         };
+-        let drained = tokio::select! {biased;_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?};
++        let mut drained=Vec::new();
++        for ticket in tickets.all() {
++            drained.push(tokio::select! {biased;_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?});
++        }
+         {
+             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             let scope = self.scope(&credential.principal, MediaPurpose::Control);
+@@ -4815,10 +4819,10 @@
+                         .as_ref()
+                         .and_then(|a| a.unprepared_cleanup.clone())
+                 });
+-            let drained = matches!(
+-                tokio::time::timeout_at(deadline, port.ticket().wait_retired_drained()).await,
+-                Ok(true)
+-            );
++            let mut drained=true;
++            for ticket in port.ticket_snapshot().all() {
++                drained &= matches!(tokio::time::timeout_at(deadline,ticket.wait_retired_drained()).await,Ok(true));
++            }
+             let confirmed = if let Some(cleanup) = cleanup {
+                 drained
+                     && matches!(
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -698,7 +698,7 @@
+             let ports = state
+                 .active
+                 .values()
+-                .map(|p| (p.clone(), p.ticket()))
++                .map(|p| (p.clone(), p.ticket_snapshot()))
+                 .collect::<Vec<_>>();
+             let original_probe = controller
+                 .audio_preparation
+@@ -814,7 +814,7 @@
+                 &port,
+                 true,
+                 audio_consumer::ConsumerCheck::FrozenLocal(Some(&consumer_stamp)),
+-                port.ticket()
++                port.ticket(TicketSide::Egress)
+                     .try_begin_delivery()
+                     .ok_or(StreamControlError::NotReady)?,
+             )?;
+@@ -1126,7 +1126,7 @@
+     credential: CredentialSnapshot,
+     control: MediaControl,
+     audio: AudioPlan,
+-    ports: Vec<(Arc<Port>, PeerRouteTicket, PeerRouteTicket)>,
++    ports: Vec<PortTicketChange>,
+     gate: Option<StreamGateAction>,
+     inherited_gates: Vec<(StreamId, LogicalStream)>,
+     direct: Option<DirectPlan>,
+@@ -1514,9 +1514,7 @@
+                         .validate_gate(&owner.current(), plan.expected[id], &ids, action)?;
+                     for id in ids {
+                         let port = state.active[&id].clone();
+-                        let old = port.ticket();
+-                        let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
+-                        ports.push((port, old, next));
++                        ports.push(PortTicketChange::stage(port,[true,true])?);
+                     }
+                 }
+                 let mut inherited_gates = Vec::new();
+@@ -1545,9 +1543,9 @@
+                             &p.binding.negotiated.requested.logical_id == logical
+                         })
+                     }) {
+-                        let old = port.ticket();
+-                        let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
+-                        ports.push((port.clone(), old, next));
++                        if !ports.iter().any(|change|Arc::ptr_eq(&change.port,port)) {
++                            ports.push(PortTicketChange::stage(port.clone(),[true,true])?);
++                        }
+                     }
+                 }
+                 drop(state);
+@@ -1622,7 +1620,7 @@
+             if let Some(direct) = &target.direct {
+                 tickets.extend(direct.tickets());
+             }
+-            tickets.extend(target.ports.iter().map(|(_, old, _)| old.clone()));
++            tickets.extend(target.ports.iter().flat_map(PortTicketChange::old_tickets));
+         }
+         let requested_roles = targets
+             .iter()
+@@ -1758,7 +1756,7 @@
+                     let ids = target
+                         .ports
+                         .iter()
+-                        .map(|(p, _, _)| p.binding.negotiated.requested.logical_id.clone())
++                        .map(|change| change.port.binding.negotiated.requested.logical_id.clone())
+                         .collect();
+                     next.set_gates(&owner.current(), plan.expected[id], &ids, action)?;
+                 } else {
+@@ -1832,19 +1830,25 @@
+             } else {
+                 None
+             };
++            // Pin only final PortState publication boundaries, AFTER fallible
++            // cursor/adoption capture (which may itself inspect PortState).
++            // All ticket validation completes before ANY model/programme effect.
++            let mut port_states=targets.iter().map(|target|target.ports.iter()
++                .map(|change|change.port.state.lock().unwrap_or_else(|p|p.into_inner())).collect::<Vec<_>>()).collect::<Vec<_>>();
++            for (target,guards) in targets.iter().zip(&port_states) {
++                for (change,guard) in target.ports.iter().zip(guards) {change.validate(guard)?;}
++            }
++            if tokens.iter().any(CancellationToken::is_cancelled) {return Err(StreamControlError::Cancelled);}
++            if tokio::time::Instant::now()>=deadline || targets.iter().any(|target|tokio::time::Instant::now()>=target.control.deadline) {return Err(StreamControlError::Deadline);}
++            for (((target,state),model),guards) in targets.iter().zip(states.iter_mut()).zip(models).zip(port_states.iter_mut()) {
++                state.model=model;
++                for (change,guard) in target.ports.iter().zip(guards.iter_mut()) {change.commit(guard);}
++            }
++            // Subsequent programme commits may inspect ports. Model State and
++            // original quiescence still fence publication, not these mutexes.
++            drop(port_states);
+             // No fallible work after the first model or programme is published.
+-            for ((((target, state), model), commit), direct_commit) in targets
+-                .iter()
+-                .zip(states.iter_mut())
+-                .zip(models)
+-                .zip(commits.iter_mut())
+-                .zip(direct_commits.iter_mut())
+-            {
+-                state.model = model;
+-                for (port, old, next) in &target.ports {
+-                    assert!(next.commit_from(old));
+-                    *port.ticket.lock().unwrap_or_else(|p| p.into_inner()) = next.clone();
+-                }
++            for ((target,commit),direct_commit) in targets.iter().zip(commits.iter_mut()).zip(direct_commits.iter_mut()) {
+                 commit.commit(&target.audio);
+                 if let Some(commit) = direct_commit.as_mut() {
+                     commit.commit(target.direct.as_ref().expect("staged direct replacement"));
+@@ -1958,8 +1962,8 @@
+                                                 .any(|(changed, _)| *id == changed)
+                                         } else {
+                                             target.gate.is_some()
+-                                                && target.ports.iter().any(|(port, _, _)| {
+-                                                    &port.binding.negotiated.requested.logical_id
++                                                && target.ports.iter().any(|change| {
++                                                    &change.port.binding.negotiated.requested.logical_id
+                                                         == *id
+                                                 })
+                                         }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs
+@@ -299,7 +299,7 @@
+                 descriptor,
+                 owner: Arc::downgrade(&member.controller),
+                 port: Arc::downgrade(source_port),
+-                ticket: source_port.ticket(),
++                ticket: source_port.ticket(TicketSide::Ingress),
+             });
+         }
+         let binding = Arc::new(AudioPrerollBinding {
+@@ -309,7 +309,7 @@
+             delivered: std::sync::atomic::AtomicBool::new(false),
+             target: Arc::downgrade(target),
+             target_port: Arc::downgrade(&target_port),
+-            target_ticket: target_port.ticket(),
++            target_ticket: target_port.ticket(TicketSide::Egress),
+             target_subscription,
+             sources,
+             started: Instant::now(),
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/credential_rebind.rs b/crates/foundation/rvoip-core/src/staged_streams/credential_rebind.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/credential_rebind.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/credential_rebind.rs
+@@ -107,7 +107,7 @@
+         // while that original send is still live either.
+         for port in retained {
+             self.rebind_current(&control, &cancellation, deadline)?;
+-            let ticket = port.ticket();
++            for ticket in port.ticket_snapshot().all() {
+             let drained = tokio::select! {
+                 biased;
+                 _ = cancellation.cancelled() => return Err(StreamControlError::Cancelled),
+@@ -119,13 +119,14 @@
+                 return Err(StreamControlError::NotReady);
+             }
+             self.rebind_current(&control, &cancellation, deadline)?;
++            }
+         }
+         let mut changes = Vec::new();
+         let mut drained = Vec::new();
+         for port in &ports {
+             self.rebind_current(&control, &cancellation, deadline)?;
+-            let old = port.ticket();
+-            let next = old.stage().ok_or(MediaTransitionError::Capacity)?;
++            let change=PortTicketChange::stage(port.clone(),[true,true])?;
++            for old in change.old_tickets() {
+             let guard = tokio::select! {
+                 biased;
+                 _ = cancellation.cancelled() => return Err(StreamControlError::Cancelled),
+@@ -133,8 +134,9 @@
+                 _ = self.shutdown.cancelled() => return Err(StreamControlError::Cancelled),
+                 result = tokio::time::timeout_at(deadline, old.quiesce()) => result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?,
+             };
+-            changes.push((port.clone(), old, next));
+             drained.push(guard);
++            }
++            changes.push(change);
+         }
+         {
+             let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+@@ -151,25 +153,20 @@
+             if state.model.revision() != expected_stream_revision {
+                 return Err(MediaTransitionError::Conflict.into());
+             }
+-            if changes.iter().any(|(port, old, _)| {
+-                !old.is_current()
+-                    || !state
+-                        .active
+-                        .get(&port.binding.negotiated.requested.logical_id)
+-                        .is_some_and(|active| Arc::ptr_eq(active, port))
++            if changes.iter().any(|change| {
++                !change.is_current() || !state.active.get(&change.port.binding.negotiated.requested.logical_id)
++                    .is_some_and(|active|Arc::ptr_eq(active,&change.port))
+             }) {
+                 return Err(StreamControlError::NotReady);
+             }
+             self.rebind_current(&control, &cancellation, deadline)?;
+-            // All fallible checks precede this commit under the same model and
+-            // policy fences. Terminal callbacks also serialize on model state.
+-            for (port, old, next) in changes {
+-                assert!(
+-                    next.commit_from(&old),
+-                    "private credential delivery generation changed outside controller"
+-                );
+-                *port.ticket.lock().unwrap_or_else(|p| p.into_inner()) = next;
+-            }
++            let mut port_states=changes.iter().map(|change|change.port.state.lock().unwrap_or_else(|p|p.into_inner())).collect::<Vec<_>>();
++            for (change,port_state) in changes.iter().zip(&port_states) {change.validate(port_state)?;}
++            if cancellation.is_cancelled()||control_cancel.is_cancelled()||self.shutdown.is_cancelled() {return Err(StreamControlError::Cancelled);}
++            if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++            // All validation precedes credential effect; PortState excludes
++            // retirement until BOTH immutable directional generations publish.
++            for (change,port_state) in changes.iter().zip(port_states.iter_mut()) {change.commit(port_state);}
+             *self.credential.lock().unwrap_or_else(|p| p.into_inner()) = CredentialSnapshot {
+                 principal: Arc::new(principal.clone()),
+                 revision: previous.revision + 1,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/credential_rebind_tests.rs b/crates/foundation/rvoip-core/src/staged_streams/credential_rebind_tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/credential_rebind_tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/credential_rebind_tests.rs
+@@ -286,7 +286,7 @@
+ }
+ async fn waiting(port: &AdapterMediaPort) {
+     tokio::time::timeout(Duration::from_secs(1), async {
+-        while port.0.ticket().is_active() {
++        while port.0.ticket(TicketSide::Ingress).is_active() {
+             tokio::task::yield_now().await;
+         }
+     })
+@@ -398,7 +398,7 @@
+         assert_eq!(f.a.credential_revision(), 1);
+         assert_eq!(f.a.revision(), revision);
+         assert_eq!(f.a.stream_open_budget(), budget);
+-        assert!(f.aa.port(Medium::Audio).0.ticket().is_active());
++        assert!(f.aa.port(Medium::Audio).0.ticket(TicketSide::Ingress).is_active());
+     }
+     assert!(matches!(
+         f.a.rebind_credential_with_held(
+@@ -484,7 +484,7 @@
+         let (f, policy) = setup(principal("alice"));
+         f.start(&[Medium::Audio]).await;
+         let source = f.aa.port(Medium::Audio);
+-        let delivery = source.0.ticket().try_begin_delivery().unwrap();
++        let delivery = source.0.ticket(TicketSide::Ingress).try_begin_delivery().unwrap();
+         let mut held = proof(&f, &policy, principal("alice")).await;
+         if mode == 1 {
+             held.deadline = tokio::time::Instant::now() + Duration::from_millis(70);
+@@ -511,7 +511,7 @@
+         }
+         drop(delivery);
+         assert_eq!(f.a.credential_revision(), 1);
+-        assert!(source.0.ticket().is_active());
++        assert!(source.0.ticket(TicketSide::Ingress).is_active());
+         source.try_publish(&frame(&source, 160)).unwrap();
+     }
+ }
+@@ -520,6 +520,7 @@
+     let (f, policy) = setup(principal("alice"));
+     f.start(&[Medium::Audio]).await;
+     let source = f.aa.port(Medium::Audio);
++    let old_directions=source.0.ticket_snapshot();
+     let mut input =
+         f.a.take_ingress(&desired(Medium::Audio).logical_id)
+             .unwrap();
+@@ -553,7 +554,10 @@
+     release.notify_one();
+     sending.await.unwrap().unwrap();
+     assert_eq!(work.await.unwrap().unwrap(), 2);
+-    assert!(source.0.ticket().is_active());
++    assert!(source.0.ticket(TicketSide::Ingress).is_active());
++    assert!(!old_directions.ticket(TicketSide::Ingress).is_current());
++    assert!(!old_directions.ticket(TicketSide::Egress).is_current());
++    assert!(source.0.ticket_snapshot().is_current());
+ }
+ #[tokio::test]
+ async fn credential_rebind_final_current_facts_and_callback_cancellation_precede_commit() {
+@@ -561,7 +565,7 @@
+         let (f, policy) = setup(principal("alice"));
+         f.start(&[Medium::Audio]).await;
+         let source = f.aa.port(Medium::Audio);
+-        let delivery = source.0.ticket().try_begin_delivery().unwrap();
++        let delivery = source.0.ticket(TicketSide::Ingress).try_begin_delivery().unwrap();
+         let held = proof(&f, &policy, principal("alice")).await;
+         let a = f.a.clone();
+         let work = tokio::spawn(async move { apply(&a, &held).await });
+@@ -570,7 +574,7 @@
+         drop(delivery);
+         assert!(work.await.unwrap().is_err());
+         assert_eq!(f.a.credential_revision(), 1);
+-        assert!(source.0.ticket().is_active());
++        assert!(source.0.ticket(TicketSide::Ingress).is_active());
+     }
+ }
+ #[tokio::test]
+@@ -578,7 +582,7 @@
+     let (f, policy) = setup(principal("alice"));
+     f.start(&[Medium::Audio]).await;
+     let source = f.aa.port(Medium::Audio);
+-    let delivery = source.0.ticket().try_begin_delivery().unwrap();
++    let delivery = source.0.ticket(TicketSide::Ingress).try_begin_delivery().unwrap();
+     let mut next = principal("alice");
+     next.assurance = IdentityAssurance::TaskScoped {
+         identity: IdentityId::from_string("alice"),
+@@ -595,7 +599,7 @@
+     ));
+     assert_eq!(f.a.credential_revision(), 1);
+     drop(delivery);
+-    assert!(source.0.ticket().is_active());
++    assert!(source.0.ticket(TicketSide::Ingress).is_active());
+ }
+ #[tokio::test]
+ async fn credential_rebind_terminal_route_or_shutdown_cannot_be_resurrected() {
+@@ -603,7 +607,7 @@
+         let (f, policy) = setup(principal("alice"));
+         f.start(&[Medium::Audio]).await;
+         let source = f.aa.port(Medium::Audio);
+-        let delivery = source.0.ticket().try_begin_delivery().unwrap();
++        let delivery = source.0.ticket(TicketSide::Ingress).try_begin_delivery().unwrap();
+         let held = proof(&f, &policy, principal("alice")).await;
+         let a = f.a.clone();
+         let work = tokio::spawn(async move { apply(&a, &held).await });
+@@ -616,7 +620,7 @@
+         drop(delivery);
+         assert!(work.await.unwrap().is_err());
+         assert_eq!(f.a.credential_revision(), 1);
+-        assert!(!source.0.ticket().is_active());
++        assert!(!source.0.ticket(TicketSide::Ingress).is_active());
+     }
+ }
+ #[tokio::test]
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
+@@ -299,10 +299,10 @@
+                 stream_generation: binding.generation,
+             });
+             let source_port = Arc::downgrade(source);
+-            let source_ticket = source.ticket();
++            let source_ticket = source.ticket(TicketSide::Ingress);
+             let target_port = Self::direct_port(&state, &selection.receiver)?;
+             let target = Arc::downgrade(target_port);
+-            let target_ticket = target_port.ticket();
++            let target_ticket = target_port.ticket(TicketSide::Egress);
+             drop(source_state);
+             routes.insert(
+                 selection.receiver.clone(),
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/directional_ticket.rs b/crates/foundation/rvoip-core/src/staged_streams/directional_ticket.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/directional_ticket.rs
+@@ -0,0 +1,54 @@
++//! Independent port directions; readers only snapshot immutable metadata.
++use super::*;
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(super) enum TicketSide { Ingress, Egress }
++#[derive(Clone)]
++pub(super) struct PortTickets { ingress: PeerRouteTicket, egress: PeerRouteTicket }
++impl PortTickets {
++    pub(super) fn initial() -> Self { Self { ingress:PeerRouteTicket::initial(), egress:PeerRouteTicket::initial() } }
++    pub(super) fn ticket(&self, side:TicketSide) -> PeerRouteTicket {
++        match side { TicketSide::Ingress=>self.ingress.clone(),TicketSide::Egress=>self.egress.clone() }
++    }
++    pub(super) fn all(&self) -> [PeerRouteTicket;2] { [self.ingress.clone(),self.egress.clone()] }
++    pub(super) fn is_current(&self) -> bool { self.ingress.is_current()&&self.egress.is_current() }
++    pub(super) fn committed_at(&self) -> Option<Instant> { Some(self.ingress.committed_at()?.max(self.egress.committed_at()?)) }
++    pub(super) fn stage(&self, changed:[bool;2]) -> ControlResult<Self> {
++        Ok(Self {
++            ingress:if changed[0] {self.ingress.stage().ok_or(MediaTransitionError::Capacity)?}else{self.ingress.clone()},
++            egress:if changed[1] {self.egress.stage().ok_or(MediaTransitionError::Capacity)?}else{self.egress.clone()},
++        })
++    }
++}
++pub(super) struct PortTicketChange {
++    pub(super) port:Arc<Port>,
++    before:Arc<PortTickets>,
++    after:Arc<PortTickets>,
++    changed:[bool;2],
++}
++impl PortTicketChange {
++    pub(super) fn stage(port:Arc<Port>, changed:[bool;2]) -> ControlResult<Self> {
++        let before=port.ticket_snapshot();let after=Arc::new(before.stage(changed)?);
++        Ok(Self {port,before,after,changed})
++    }
++    pub(super) fn old_tickets(&self) -> Vec<PeerRouteTicket> {
++        [TicketSide::Ingress,TicketSide::Egress].into_iter().zip(self.changed)
++            .filter_map(|(side,changed)|changed.then(||self.before.ticket(side))).collect()
++    }
++    pub(super) fn is_current(&self) -> bool {
++        Arc::ptr_eq(&self.before,&self.port.ticket_snapshot())&&self.before.is_current()
++    }
++    /// Caller holds this exact PortState through final validation/model effect,
++    /// directional commits and store. retire() uses the SAME mutex.
++    pub(super) fn validate(&self,state:&PortState) -> ControlResult<()> {
++        if !matches!(state.status,PortStatus::Active|PortStatus::Paused)||!self.is_current() {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(())
++    }
++    pub(super) fn commit(&self,_state:&mut PortState) {
++        for (side,changed) in [TicketSide::Ingress,TicketSide::Egress].into_iter().zip(self.changed) {
++            if changed {assert!(self.after.ticket(side).commit_from(&self.before.ticket(side)),"quiesced directional generation changed");}
++        }
++        self.port.tickets.store(self.after.clone());
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/endpoint_preparation.rs
+@@ -202,16 +202,12 @@
+             .map_err(|_| MediaTransitionError::Conflict)?;
+         validate(&state)?;
+         let revision = state.model.revision();
+-        let ticket = port.ticket();
++        let ticket = port.ticket(TicketSide::Ingress);
+         let auxiliary_tickets = self
+             .auxiliary_ports
+             .iter()
+-            .map(|weak| {
+-                weak.upgrade()
+-                    .map(|port| port.ticket())
+-                    .ok_or(StreamControlError::NotReady)
+-            })
+-            .collect::<ControlResult<Vec<_>>>()?;
++            .map(|weak| weak.upgrade().map(|port|port.ticket_snapshot().all()).ok_or(StreamControlError::NotReady))
++            .collect::<ControlResult<Vec<_>>>()?.into_iter().flatten().collect::<Vec<_>>();
+         let stamp = self.consumer.stamp();
+         let frozen_scene = controller.current_scene_stamp()?;
+         let credential = controller.credential_snapshot();
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -698,7 +698,7 @@
+     previous_subscription: Option<super::audio_subscriptions::SubscriptionStamp>,
+     consumer: Arc<AudioConsumer>,
+     port: Arc<Port>,
+-    ticket: PeerRouteTicket,
++    ticket: Arc<directional_ticket::PortTickets>,
+     stamp: ConsumerStamp,
+     input: mpsc::Receiver<MediaPacket>,
+     waiting: Option<MediaPacket>,
+@@ -774,7 +774,7 @@
+                     .ok_or(MediaTransitionError::Conflict)?;
+             }
+             self.port = port;
+-            self.ticket = self.port.ticket();
++            self.ticket = self.port.ticket_snapshot();
+             self.stamp = stamp;
+             self.codecs = codecs;
+             self.pending.clear();
+@@ -1223,7 +1223,7 @@
+             previous_subscription: None,
+             consumer,
+             port: port.clone(),
+-            ticket: port.ticket(),
++            ticket: port.ticket_snapshot(),
+             target_started: stamp.started,
+             stamp,
+             input,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/local_audio.rs
+@@ -127,6 +127,7 @@
+         {
+             return Err(StreamControlError::Authority);
+         }
++        port.require_ticket(TicketSide::Egress,ticket)?;
+         let guard = ticket
+             .try_begin_delivery()
+             .ok_or(StreamControlError::NotReady)?;
+@@ -219,7 +220,7 @@
+                 .ok_or(StreamControlError::NotReady)?
+         };
+         port.validate(&frame)?;
+-        let ticket = port.ticket();
++        let ticket = port.ticket(TicketSide::Egress);
+         let credential = self.credential_snapshot();
+         let admitted_at = Instant::now();
+         let (_lease, admission, deadline, preparation) = self.admit_local_audio(
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -108,7 +108,7 @@
+                             let port = state.active.get(&logical)?;
+                             Some(RealtimeDestination {
+                                 port: Arc::downgrade(port),
+-                                ticket: port.ticket(),
++                                ticket: port.ticket(TicketSide::Egress),
+                                 deadline: tokio::time::Instant::from_std(packet.admitted_at)
+                                     + Duration::from_millis(200),
+                             })
+@@ -445,13 +445,14 @@
+             .unwrap_or_default();
+         let mut guards = Vec::new();
+         for port in &self.ports {
+-            let ticket = port.ticket();
++            for ticket in port.ticket_snapshot().all() {
+             guards.push(tokio::select! {biased;
+             _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
+             _=private_cancel.cancelled()=>return Err(StreamControlError::Cancelled),
+             _=self.controller.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),
+             result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(MediaTransitionError::Conflict)?,
+         });
++            }
+         }
+         self.prepared = Some(guards);
+         Ok(())
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -141,7 +141,7 @@
+         {
+             return Err(StreamControlError::NotReady);
+         }
+-        let ticket = self.0.ticket();
++        let ticket = self.0.ticket(TicketSide::Ingress);
+         if !ticket.is_current() || ticket.committed_at().is_none_or(|at| at > received_at) {
+             return Err(StreamControlError::NotReady);
+         }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2419,11 +2419,13 @@
+         .collect::<BTreeSet<_>>();
+     let ap = f.aa.port(Medium::Audio);
+     let bp = f.ba.port(Medium::Audio);
+-    let mut ai = f.a.take_ingress(&id).unwrap();
+-    let mut bo = bp.take_egress().unwrap();
+-    ap.try_publish(&frame(&ap, 160)).unwrap();
+-    receive(&mut ai).await.try_forward_to(&f.b, &id).unwrap();
+-    let queued = outgoing(&mut bo).await;
++    // Mute(B) closes endpoint B publication, so hold an actual B ingress
++    // guard through B-source -> A-sink IO, not unrelated B egress.
++    let mut bi = f.b.take_ingress(&id).unwrap();
++    let mut ao = ap.take_egress().unwrap();
++    bp.try_publish(&frame(&bp, 160)).unwrap();
++    receive(&mut bi).await.try_forward_to(&f.a, &id).unwrap();
++    let queued = outgoing(&mut ao).await;
+     let entered = Arc::new(Notify::new());
+     let release = Arc::new(Notify::new());
+     let signal = entered.clone();
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
+@@ -295,3 +295,206 @@
+     eprintln!("DIRECTIONAL_HOLD_COUNTER sink_refused=true sink_io=0 current_audio_io=1 fresh_camera_passed=true camera_attempt_before_unrelated_waits=true original_camera={camera_result:?} camera_age_us={} preheld_audio={preheld_audio_result:?} preheld_audio_io={} sink_wait_us={} preheld_audio_wait_us={}", camera_age.as_micros(), preheld_audio_io.load(Ordering::Acquire), sink_elapsed.as_micros(), preheld_audio_elapsed.as_micros());
+     assert!(camera_result.is_ok(),"directional sink-only hold discarded SAME original camera ingress while current camera authority remains allowed: {camera_result:?}");
+ }
++
++// Every new directional control closes original resources before returning its
++// oracle, including unwinding assertions; no detached collector or retry owner.
++async fn directional_checked<T>(f:&Fixture, work:impl std::future::Future<Output=T>) -> T {
++    let mut work=Box::pin(work);
++    let result=std::future::poll_fn(|cx|match std::panic::catch_unwind(std::panic::AssertUnwindSafe(||work.as_mut().poll(cx))) {
++        Ok(std::task::Poll::Pending)=>std::task::Poll::Pending,
++        Ok(std::task::Poll::Ready(value))=>std::task::Poll::Ready(Ok(value)),
++        Err(error)=>std::task::Poll::Ready(Err(error)),
++    }).await;
++    drop(work);
++    let remaining_a=f.a.shutdown(deadline()).await;
++    let remaining_b=f.b.shutdown(deadline()).await;
++    assert_eq!(remaining_a,0);
++    assert_eq!(remaining_b,0);
++    assert_eq!(f.aa.outstanding.load(Ordering::Acquire),0);
++    assert_eq!(f.ba.outstanding.load(Ordering::Acquire),0);
++    match result {Ok(value)=>value,Err(error)=>std::panic::resume_unwind(error)}
++}
++async fn directional_reverse(f:&Fixture) {
++    use crate::staged_streams::direct_subscriptions::*;
++    f.start(&[Medium::Video]).await;
++    let id=desired(Medium::Video).logical_id;
++    f.a.change_direct_subscriptions(f.a.revision(),DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&f.b,id.clone(),id)]),deadline(),CancellationToken::new(),None).await.unwrap();
++}
++async fn directional_sink(f:&Fixture,input:&mut mpsc::Receiver<MediaPacket>,output:&mut mpsc::Receiver<QueuedMedia>,timestamp:u32) -> QueuedMedia {
++    let source=f.ba.port(Medium::Video);
++    source.try_publish(&frame(&source,timestamp)).unwrap();
++    receive(input).await.try_forward_to(&f.a,&desired(Medium::Video).logical_id).unwrap();
++    outgoing(output).await
++}
++
++#[tokio::test]
++async fn directional_receive_hold_resume_preserves_original_ingress_but_not_sink_repair() {
++    let f=Fixture::new(8);
++    directional_checked(&f,async {
++        directional_reverse(&f).await;
++        let id=desired(Medium::Video).logical_id;let ids=[id.clone()].into_iter().collect();
++        let port=f.aa.port(Medium::Video);
++        let before=port.0.ticket_snapshot();
++        let credential=f.a.credential_snapshot();
++        let mut camera=port.retain_original_ingress(frame(&port,18000),Instant::now()).unwrap().unwrap();
++        let mut cameras=f.a.take_ingress(&id).unwrap();
++        let mut remote=f.b.take_ingress(&id).unwrap();let mut sink=port.take_egress().unwrap();
++        let repair=directional_sink(&f,&mut remote,&mut sink,9000).await.deliver_video_with_repair(|_,_|async{Ok(())}).await.unwrap();
++        let stale_sink=directional_sink(&f,&mut remote,&mut sink,12000).await;
++        f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Hold{direction:StreamDirection::Receive},deadline()).await.unwrap();
++        assert!(before.ticket(TicketSide::Ingress).same_generation(&port.0.ticket(TicketSide::Ingress)));
++        assert!(!before.ticket(TicketSide::Egress).is_current());
++        f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Resume,deadline()).await.unwrap();
++        assert!(before.ticket(TicketSide::Ingress).is_current());
++        f.a.check_credential_snapshot(&credential).unwrap();
++        camera.try_publish_clocked(|_|None).unwrap();
++        assert_eq!(receive(&mut cameras).await.frame.timestamp_rtp,18000);
++        let calls=AtomicUsize::new(0);
++        assert!(Instant::now()<repair.expires_at(),"repair negative must remain inside original age");
++        assert!(repair.repair(|_,_|async{calls.fetch_add(1,Ordering::SeqCst);Ok(())}).await.is_err());
++        assert!(matches!(stale_sink.deliver_ready_with_origin(|_,_|async{calls.fetch_add(1,Ordering::SeqCst);Ok(())}).await,ReadyMediaDelivery::Complete(Err(_))));
++        assert_eq!(calls.load(Ordering::SeqCst),0);
++        directional_sink(&f,&mut remote,&mut sink,15000).await.deliver(|_|async{Ok(())}).await.unwrap();
++    }).await;
++}
++
++#[tokio::test]
++async fn directional_send_hold_preserves_sink_and_permanently_revokes_original_ingress() {
++    let f=Fixture::new(8);
++    directional_checked(&f,async {
++        directional_reverse(&f).await;
++        let id=desired(Medium::Video).logical_id;let ids=[id.clone()].into_iter().collect();
++        let port=f.aa.port(Medium::Video);let before=port.0.ticket_snapshot();
++        let mut original=port.retain_original_ingress(frame(&port,18000),Instant::now()).unwrap().unwrap();
++        let mut remote=f.b.take_ingress(&id).unwrap();let mut sink=port.take_egress().unwrap();
++        let queued=directional_sink(&f,&mut remote,&mut sink,9000).await;
++        f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Hold{direction:StreamDirection::Send},deadline()).await.unwrap();
++        assert!(!before.ticket(TicketSide::Ingress).is_current());
++        assert!(before.ticket(TicketSide::Egress).same_generation(&port.0.ticket(TicketSide::Egress)));
++        queued.deliver(|_|async{Ok(())}).await.unwrap();
++        f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Resume,deadline()).await.unwrap();
++        assert!(!before.ticket(TicketSide::Ingress).is_current());
++        assert!(original.try_publish_clocked(|_|None).is_err());
++        port.try_publish(&frame(&port,21000)).unwrap();
++    }).await;
++}
++
++#[tokio::test]
++async fn directional_sink_drain_keeps_camera_progress_and_cancel_restores_original_pair() {
++    for expired in [false,true] {
++        let f=Fixture::new(8);
++        directional_checked(&f,async {
++            directional_reverse(&f).await;
++            let id=desired(Medium::Video).logical_id;let ids=[id.clone()].into_iter().collect();
++            let port=f.aa.port(Medium::Video);let before=port.0.ticket_snapshot();
++            let mut cameras=f.a.take_ingress(&id).unwrap();
++            let mut remote=f.b.take_ingress(&id).unwrap();let mut sink=port.take_egress().unwrap();
++            let queued=directional_sink(&f,&mut remote,&mut sink,9000).await;
++            let (release,released)=tokio::sync::oneshot::channel();let entered=AtomicBool::new(false);
++            let mut writing=Box::pin(queued.deliver(|_|async {entered.store(true,Ordering::SeqCst);released.await.unwrap();Ok(())}));
++            assert!(poll_once(writing.as_mut()).await.is_pending());assert!(entered.load(Ordering::SeqCst));
++            let mut gate=Box::pin(f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Hold{direction:StreamDirection::Receive},tokio::time::Instant::now()+Duration::from_millis(40)));
++            assert!(poll_once(gate.as_mut()).await.is_pending());
++            // The original sink IO is STILL blocked. Camera ingress may admit.
++            port.try_publish(&frame(&port,18000)).unwrap();
++            assert_eq!(receive(&mut cameras).await.frame.timestamp_rtp,18000);
++            if expired {assert!(matches!(gate.await,Err(StreamControlError::Deadline)));}else{drop(gate);}
++            assert!(Arc::ptr_eq(&before,&port.0.ticket_snapshot()));
++            release.send(()).unwrap();writing.await.unwrap();
++            assert!(before.is_current());
++            directional_sink(&f,&mut remote,&mut sink,12000).await.deliver(|_|async{Ok(())}).await.unwrap();
++        }).await;
++    }
++}
++
++#[tokio::test]
++async fn directional_wrong_side_and_terminal_retirement_never_admit_or_reopen() {
++    let f=Fixture::new(8);
++    directional_checked(&f,async {
++        directional_reverse(&f).await;
++        let id=desired(Medium::Video).logical_id;let ids=[id.clone()].into_iter().collect();
++        let port=f.aa.port(Medium::Video);let before=port.0.ticket_snapshot();
++        let wrong=port.0.ticket(TicketSide::Egress);assert!(wrong.is_current());
++        assert!(f.a.admit(&port.0,&wrong,false,None,audio_consumer::ConsumerCheck::Current,None,scene_consumer::SceneCheck::publish()).is_err());
++        let mut remote=f.b.take_ingress(&id).unwrap();let mut sink=port.take_egress().unwrap();
++        let mut wrong_target=directional_sink(&f,&mut remote,&mut sink,9000).await;
++        wrong_target.target_ticket=port.0.ticket(TicketSide::Ingress);
++        let calls=AtomicUsize::new(0);
++        assert!(matches!(wrong_target.deliver_ready_with_origin(|_,_|async{calls.fetch_add(1,Ordering::SeqCst);Ok(())}).await,ReadyMediaDelivery::Complete(Err(StreamControlError::Authority))));
++        assert_eq!(calls.load(Ordering::SeqCst),0);
++        let queued=directional_sink(&f,&mut remote,&mut sink,12000).await;
++        let (release,released)=tokio::sync::oneshot::channel();
++        let mut writing=Box::pin(queued.deliver(|_|async {let _=released.await;Ok(())}));
++        assert!(poll_once(writing.as_mut()).await.is_pending());
++        let mut gate=Box::pin(f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Hold{direction:StreamDirection::Receive},deadline()));
++        assert!(poll_once(gate.as_mut()).await.is_pending());
++        port.report_terminal().unwrap();let terminal_revision=f.a.revision();
++        assert!(gate.await.is_err());
++        assert_eq!(f.a.revision(),terminal_revision);
++        assert!(Arc::ptr_eq(&before,&port.0.ticket_snapshot()));
++        assert!(!before.ticket(TicketSide::Ingress).is_current()&&!before.ticket(TicketSide::Egress).is_current());
++        assert_eq!(port.status(),PortStatus::Retired);
++        let _=release.send(());let _=writing.await;
++    }).await;
++}
++
++#[tokio::test]
++async fn directional_competing_gate_writer_cannot_publish_mixed_pair() {
++    let f=Fixture::new(8);
++    directional_checked(&f,async {
++        directional_reverse(&f).await;
++        let id=desired(Medium::Video).logical_id;let ids=[id.clone()].into_iter().collect();
++        let port=f.aa.port(Medium::Video);let before=port.0.ticket_snapshot();
++        let mut remote=f.b.take_ingress(&id).unwrap();let mut sink=port.take_egress().unwrap();
++        let queued=directional_sink(&f,&mut remote,&mut sink,9000).await;
++        let (release,released)=tokio::sync::oneshot::channel();
++        let mut writing=Box::pin(queued.deliver(|_|async {released.await.unwrap();Ok(())}));
++        assert!(poll_once(writing.as_mut()).await.is_pending());
++        let revision=f.a.revision();
++        let mut first=Box::pin(f.a.set_media_gate(revision,&ids,StreamGateAction::Hold{direction:StreamDirection::Receive},deadline()));
++        let mut second=Box::pin(f.a.set_media_gate(revision,&ids,StreamGateAction::Hold{direction:StreamDirection::Send},deadline()));
++        assert!(poll_once(first.as_mut()).await.is_pending());assert!(poll_once(second.as_mut()).await.is_pending());
++        release.send(()).unwrap();writing.await.unwrap();
++        first.await.unwrap();assert!(second.await.is_err());
++        assert_eq!(f.a.revision(),revision+1);
++        assert!(before.ticket(TicketSide::Ingress).same_generation(&port.0.ticket(TicketSide::Ingress)));
++        assert!(!before.ticket(TicketSide::Egress).is_current());
++        assert!(port.0.ticket_snapshot().is_current());
++    }).await;
++}
++
++#[tokio::test]
++async fn directional_pause_mute_end_replace_and_close_keep_permanent_scope() {
++    for action in 0..6 {
++        let f=Fixture::new(8);
++        directional_checked(&f,async {
++            f.start(&[Medium::Video]).await;
++            let id=desired(Medium::Video).logical_id;let ids=[id.clone()].into_iter().collect();
++            let port=f.aa.port(Medium::Video);let before=port.0.ticket_snapshot();
++            let mut original=port.retain_original_ingress(frame(&port,18000),Instant::now()).unwrap().unwrap();
++            match action {
++                0=>{f.a.set_paused(&id,f.a.revision(),true,deadline()).await.unwrap();f.a.set_paused(&id,f.a.revision(),false,deadline()).await.unwrap();},
++                1=>{f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Mute,deadline()).await.unwrap();f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Unmute,deadline()).await.unwrap();},
++                2=>{f.a.end_stream(&id,f.a.revision(),deadline()).await.unwrap();},
++                3=>{let mut receive=desired(Medium::Video);receive.direction=StreamDirection::Receive;f.a.change(f.a.revision(),&[receive],&BTreeSet::new(),deadline(),CancellationToken::new()).await.unwrap();},
++                4=>{assert_eq!(f.a.shutdown(deadline()).await,0);},
++                _=>{
++                    f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Mute,deadline()).await.unwrap();
++                    let muted=port.0.ticket_snapshot();
++                    f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Pause,deadline()).await.unwrap();
++                    assert!(!muted.ticket(TicketSide::Ingress).is_current()&&!muted.ticket(TicketSide::Egress).is_current());
++                    let paused=port.0.ticket_snapshot();
++                    f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Resume,deadline()).await.unwrap();
++                    assert!(!paused.ticket(TicketSide::Ingress).is_current()&&!paused.ticket(TicketSide::Egress).is_current());
++                    f.a.set_media_gate(f.a.revision(),&ids,StreamGateAction::Unmute,deadline()).await.unwrap();
++                },
++            }
++            assert!(!before.ticket(TicketSide::Ingress).is_current());
++            if action!=1 {assert!(!before.ticket(TicketSide::Egress).is_current());}
++            else {assert!(before.ticket(TicketSide::Egress).is_current());}
++            assert!(original.try_publish_clocked(|_|None).is_err());
++            if action<=1 || action==5 {port.try_publish(&frame(&port,21000)).unwrap();}
++            if action==3 {assert_ne!(f.aa.port(Medium::Video).binding().transport_id,port.binding().transport_id);}
++        }).await;
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+@@ -181,7 +181,7 @@
+     let (f, _) = fixture();
+     f.start(&[Medium::Audio]).await;
+     let port = f.aa.port(Medium::Audio).0;
+-    let ticket = port.ticket();
++    let ticket = port.ticket(TicketSide::Ingress);
+     let held = f.a.state.lock().unwrap();
+     let controller = f.a.clone();
+     let (sent, received) = std::sync::mpsc::channel();
+@@ -198,7 +198,7 @@
+     let (f, actions) = fixture();
+     f.start(&[Medium::Audio]).await;
+     let port = f.aa.port(Medium::Audio).0;
+-    let ticket = port.ticket();
++    let ticket = port.ticket(TicketSide::Ingress);
+     let (release, released) = std::sync::mpsc::channel();
+     let holder = Arc::new(Mutex::new(None));
+     *actions.lock().unwrap() = Some(Box::new({
+@@ -318,7 +318,7 @@
+                 .unwrap();
+         let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
+         let packet = queued_video(&f, &source, &mut input, &mut output, 160).await;
+-        let original_ticket = source.0.ticket();
++        let original_ticket = source.0.ticket(TicketSide::Ingress);
+         *actions.lock().unwrap() = Some(Box::new(move |controller| {
+             assert!(controller.state.try_lock().is_ok(), "policy owns State");
+             match changed {
+@@ -327,7 +327,7 @@
+                     // Direct model-only pause/resume changes revision but skips
+                     // the mandatory delivery-ticket generation boundary.
+                     let logical = desired(Medium::Video).logical_id;
+-                    let original = controller.state.lock().unwrap().active[&logical].ticket();
++                    let original = controller.state.lock().unwrap().active[&logical].ticket(TicketSide::Ingress);
+                     assert!(original.is_current());
+                     for paused in [true, false] {
+                         complete_uncontended_public_gate_for_policy_test(controller.set_paused(
+@@ -381,7 +381,7 @@
+     let (f, _) = fixture();
+     f.start(&[Medium::Video]).await;
+     let port = f.aa.port(Medium::Video).0;
+-    let ticket = port.ticket();
++    let ticket = port.ticket(TicketSide::Ingress);
+     let held = f.a.state.lock().unwrap();
+     let controller = f.a.clone();
+     let (sent, received) = std::sync::mpsc::channel();
+@@ -398,7 +398,7 @@
+     let (f, actions) = fixture();
+     f.start(&[Medium::Video]).await;
+     let port = f.aa.port(Medium::Video).0;
+-    let ticket = port.ticket();
++    let ticket = port.ticket(TicketSide::Ingress);
+     let (release, released) = std::sync::mpsc::channel();
+     let holder = Arc::new(Mutex::new(None));
+     *actions.lock().unwrap() = Some(Box::new({
+@@ -881,7 +881,7 @@
+     f.start(&[Medium::Video]).await;
+     let source = f.aa.port(Medium::Video);
+     let target = f.ba.port(Medium::Video).0;
+-    let ticket = target.ticket();
++    let ticket = target.ticket(TicketSide::Egress);
+     let mut input =
+         f.a.take_ingress(&desired(Medium::Video).logical_id)
+             .unwrap();
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs
+@@ -155,7 +155,7 @@
+             timestamp: index,
+         })
+         .unwrap();
+-    let clock_ticket = port.0.ticket();
++    let clock_ticket = port.0.ticket(TicketSide::Ingress);
+     let source_clock = crate::stream::MediaSourceClock {
+         source_id: if name == "alice" { 77 } else { 88 },
+         generation: 1,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
+@@ -136,7 +136,7 @@
+ async fn preparing_muted_audio_activation_preserves_original_visual(medium: Medium) {
+     let mut pending = PendingVisual::new(medium).await;
+     let binding = pending.port.binding().clone();
+-    let ticket = pending.port.0.ticket();
++    let ticket = pending.port.0.ticket(TicketSide::Ingress);
+     let scene = pending.source.current_scene_stamp().unwrap().unwrap();
+     let credential = pending.source.credential_snapshot();
+     pending.activate_muted().await;
+@@ -151,7 +151,7 @@
+             && current.sink_ready == binding.sink_ready,
+         "unrelated audio activation changed the original visual binding"
+     );
+-    assert!(ticket.same_generation(&pending.port.0.ticket()) && ticket.is_current());
++    assert!(ticket.same_generation(&pending.port.0.ticket(TicketSide::Ingress)) && ticket.is_current());
+     assert!(scene.same_generation(&pending.source.current_scene_stamp().unwrap().unwrap()));
+     pending
+         .source
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
+@@ -254,7 +254,7 @@
+ 
+ async fn retry_after_actual_audio_control(medium: Medium) {
+     let mut fixture = OriginalVisual::new(medium, false, true).await;
+-    let ticket = fixture.port.0.ticket();
++    let ticket = fixture.port.0.ticket(TicketSide::Ingress);
+     let scene = fixture.source.current_scene_stamp().unwrap().unwrap();
+     let credential = fixture.source.credential_snapshot();
+     let _action = fixture.race(medium, Change::AudioRouting);
+@@ -264,7 +264,7 @@
+         matches!(first, Err(StreamControlError::MetadataBusy)),
+         "stale {medium:?} callback: {first:?}"
+     );
+-    assert!(ticket.is_current() && ticket.same_generation(&fixture.port.0.ticket()));
++    assert!(ticket.is_current() && ticket.same_generation(&fixture.port.0.ticket(TicketSide::Ingress)));
+     assert!(scene.same_generation(&fixture.source.current_scene_stamp().unwrap().unwrap()));
+     fixture
+         .source
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/preparation_identity.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/preparation_identity.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/preparation_identity.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/preparation_identity.rs
+@@ -127,7 +127,7 @@
+                 Arc::ptr_eq(current_port, port),
+                 "muted preparation replaced an outside port"
+             );
+-            assert!(port.ticket().is_current());
++            assert!(port.ticket_snapshot().is_current());
+         }
+         drop(state);
+         let current = controller
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement.rs
+@@ -1233,7 +1233,7 @@
+         assert_eq!(state.active.len(), ports.len());
+         for (logical, port) in ports {
+             assert!(Arc::ptr_eq(&state.active[&logical], &port));
+-            assert!(port.ticket().is_current());
++            assert!(port.ticket_snapshot().is_current());
+         }
+     }
+     assert_eq!(
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+@@ -506,7 +506,7 @@
+         .lock()
+         .unwrap()[&receiver]
+         .0
+-        .ticket();
++        .ticket(TicketSide::Egress);
+     let (entered, entered_rx) = tokio::sync::oneshot::channel();
+     let (release, released) = tokio::sync::oneshot::channel();
+     let writing = tokio::spawn(async move {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/retained_audio_policy_retry.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/retained_audio_policy_retry.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/retained_audio_policy_retry.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/retained_audio_policy_retry.rs
+@@ -81,8 +81,8 @@
+     let target = room.nodes["bob"].controller.clone();
+     let source_port = room.nodes["alice"].adapter.port(Medium::Audio).0.clone();
+     let target_port = room.nodes["bob"].adapter.port(Medium::Audio).0.clone();
+-    let source_ticket = source_port.ticket();
+-    let target_ticket = target_port.ticket();
++    let source_ticket = source_port.ticket(TicketSide::Ingress);
++    let target_ticket = target_port.ticket(TicketSide::Egress);
+     let source_consumer = source.current_consumer_stamp(&source_port).unwrap();
+     let target_consumer = target.current_consumer_stamp(&target_port).unwrap();
+     let source_scene = source.current_scene_stamp().unwrap();
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
+@@ -553,7 +553,7 @@
+     let q = queued(&f, &s, &mut out, &message(0)).await;
+     let attempt = q.admit_data().unwrap();
+     let writing = attempt.begin_write().unwrap();
+-    let ticket = f.aa.port(Medium::Data).0.ticket();
++    let ticket = f.aa.port(Medium::Data).0.ticket(TicketSide::Ingress);
+     let mut drain = Box::pin(ticket.quiesce());
+     assert!(tokio::time::timeout(Duration::from_millis(15), &mut drain)
+         .await
+diff --git a/crates/foundation/rvoip-core/src/stream_lifecycle.rs b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+--- a/crates/foundation/rvoip-core/src/stream_lifecycle.rs
++++ b/crates/foundation/rvoip-core/src/stream_lifecycle.rs
+@@ -340,6 +340,23 @@
+     Unmute,
+ }
+ impl LogicalStream {
++    fn apply_gate(&mut self, action: StreamGateAction) {
++        match action {
++            StreamGateAction::Hold { direction } => {self.state=LogicalStreamState::Active;self.hold_direction=Some(direction);}
++            StreamGateAction::Pause=>self.state=LogicalStreamState::Paused,
++            StreamGateAction::Resume=>{self.hold_direction=None;self.state=LogicalStreamState::Active;}
++            StreamGateAction::Mute=>self.source_muted=true,
++            StreamGateAction::Unmute=>self.source_muted=false,
++        }
++    }
++    pub(crate) fn gate_changes(&self, action:StreamGateAction) -> [bool;2] {
++        // Pause is a whole-port epoch fence even when a side was already
++        // denied. Resume of that paused scope is likewise whole-port; clearing
++        // an ACTIVE one-way hold preserves the continuously allowed side.
++        if action==StreamGateAction::Pause || (action==StreamGateAction::Resume && self.state==LogicalStreamState::Paused) {return [true,true];}
++        let mut next=self.clone();next.apply_gate(action);
++        [self.permits(false)!=next.permits(false),self.permits(true)!=next.permits(true)]
++    }
+     pub fn permits(&self, sending: bool) -> bool {
+         self.state == LogicalStreamState::Active
+             && if sending {
+@@ -885,19 +902,7 @@
+         let mut changed = Vec::with_capacity(ids.len());
+         for id in ids {
+             let stream = self.streams.get_mut(id).expect("validated gate target");
+-            match action {
+-                StreamGateAction::Hold { direction } => {
+-                    stream.state = LogicalStreamState::Active;
+-                    stream.hold_direction = Some(direction);
+-                }
+-                StreamGateAction::Pause => stream.state = LogicalStreamState::Paused,
+-                StreamGateAction::Resume => {
+-                    stream.hold_direction = None;
+-                    stream.state = LogicalStreamState::Active;
+-                }
+-                StreamGateAction::Mute => stream.source_muted = true,
+-                StreamGateAction::Unmute => stream.source_muted = false,
+-            }
++            stream.apply_gate(action);
+             changed.push(stream.clone());
+         }
+         self.revision += 1;

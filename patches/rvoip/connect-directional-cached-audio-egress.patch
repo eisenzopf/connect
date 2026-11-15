@@ -1,0 +1,12 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -42,7 +42,7 @@
+         rate: u32,
+     ) -> Option<Self> {
+         let subscription = member.subscriptions.mix_stamp();
+-        let target_ticket = member.ticket.clone();
++        let target_ticket = member.ticket.ticket(TicketSide::Egress);
+         let target_consumer = Some(member.stamp.clone());
+         let target_scene = member.controller.current_scene_stamp().ok()?;
+         let mut total = vec![0i32; (rate / 50) as usize];

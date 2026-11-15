@@ -1,0 +1,124 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
+index f24936e7..1d0b4f60 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
+@@ -96,7 +96,8 @@ async fn original_gate_slot_wait_preserves_current_authority_and_real_revision_c
+ /// Prospective phase3 causal control, not a production change: a video sink-only
+ /// freeze must not discard an already-owned camera input while current camera
+ /// authority remains allowed. OLD is expected to fail the final camera oracle;
+-/// setup, sink refusal, fresh camera/audio and all cleanup must qualify first.
++/// setup, sink refusal, fresh camera/current audio and all cleanup qualify first.
++/// Pre-Hold audio is diagnostic only; this counter asserts camera custody.
+ #[tokio::test]
+ async fn directional_video_sink_hold_preserves_original_camera_ingress_after_cleanup() {
+     use crate::staged_streams::direct_subscriptions::{
+@@ -107,6 +108,7 @@ async fn directional_video_sink_hold_preserves_original_camera_ingress_after_cle
+     let audio_id = desired(Medium::Audio).logical_id;
+     let sink_io = Arc::new(AtomicUsize::new(0));
+     let audio_io = Arc::new(AtomicUsize::new(0));
++    let preheld_audio_io = Arc::new(AtomicUsize::new(0));
+     let work = async {
+         f.start(&[Medium::Audio, Medium::Video]).await;
+         // f.start installs A camera -> B sink. Add the actual reverse video
+@@ -174,18 +176,6 @@ async fn directional_video_sink_hold_preserves_original_camera_ingress_after_cle
+             !changed[0].permits(true),
+             "CoreSend OLD receive sink must be frozen"
+         );
+-        let old_sink_result = old_sink_packet
+-            .deliver_with_origin(|_, _| async {
+-                sink_io.fetch_add(1, Ordering::SeqCst);
+-                Ok(())
+-            })
+-            .await;
+-        let audio_result = old_audio_packet
+-            .deliver_with_origin(|_, _| async {
+-                audio_io.fetch_add(1, Ordering::SeqCst);
+-                Ok(())
+-            })
+-            .await;
+         // Observe SAME original capture outcome; never recreate it, swap its
+         // receive time or call a fresh-frame API as a substitute.
+         let camera_age = original_at.elapsed();
+@@ -208,10 +198,52 @@ async fn directional_video_sink_hold_preserves_original_camera_ingress_after_cle
+         let fresh_packet = receive(&mut camera_input).await;
+         assert_eq!(fresh_packet.frame.payload, fresh.payload);
+         assert_eq!(fresh_packet.frame.timestamp_rtp, fresh.timestamp_rtp);
++        // Unrelated awaited deliveries must not consume the SAME camera's
++        // original 200ms before its causal attempt. Preserve their original
++        // packets and capture actual wait durations, never renew their age.
++        let sink_started = Instant::now();
++        let old_sink_result = old_sink_packet
++            .deliver_with_origin(|_, _| async {
++                sink_io.fetch_add(1, Ordering::SeqCst);
++                Ok(())
++            })
++            .await;
++        let sink_elapsed = sink_started.elapsed();
++        let preheld_audio_started = Instant::now();
++        let preheld_audio_result = old_audio_packet
++            .deliver_with_origin(|_, _| async {
++                preheld_audio_io.fetch_add(1, Ordering::SeqCst);
++                Ok(())
++            })
++            .await;
++        let preheld_audio_elapsed = preheld_audio_started.elapsed();
++        // This counter concerns camera original custody, not preservation of
++        // pre-gate audio policy snapshots. Fresh post-Hold ORIGINAL audio is
++        // the independent positive check of current audio permission.
++        b_audio.try_publish(&frame(&b_audio, 320)).unwrap();
++        receive(&mut remote_audio)
++            .await
++            .try_forward_to(&f.a, &audio_id)
++            .unwrap();
++        let current_audio_packet = outgoing(&mut audio_sink).await;
++        let audio_result = current_audio_packet
++            .deliver_with_origin(|_, _| async {
++                audio_io.fetch_add(1, Ordering::SeqCst);
++                Ok(())
++            })
++            .await;
+         assert!(old_sink.try_recv().is_err());
+         assert!(audio_sink.try_recv().is_err());
+         drop(original_camera);
+-        (camera_result, old_sink_result, audio_result)
++        (
++            camera_result,
++            old_sink_result,
++            audio_result,
++            preheld_audio_result,
++            sink_elapsed,
++            preheld_audio_elapsed,
++            camera_age,
++        )
+     };
+     // Join every original controller even if a setup/control assertion panics.
+     // The expected OLD leaf is asserted only AFTER original cleanup markers.
+@@ -234,7 +266,15 @@ async fn directional_video_sink_hold_preserves_original_camera_ingress_after_cle
+     assert_eq!(f.aa.outstanding.load(Ordering::Acquire), 0);
+     assert_eq!(f.ba.outstanding.load(Ordering::Acquire), 0);
+     eprintln!("DIRECTIONAL_HOLD_COUNTER original_controllers_closed=true adapters_outstanding=0");
+-    let (camera_result, sink_result, audio_result) = match outcome {
++    let (
++        camera_result,
++        sink_result,
++        audio_result,
++        preheld_audio_result,
++        sink_elapsed,
++        preheld_audio_elapsed,
++        camera_age,
++    ) = match outcome {
+         Ok(value) => value,
+         Err(error) => std::panic::resume_unwind(error),
+     };
+@@ -249,9 +289,9 @@ async fn directional_video_sink_hold_preserves_original_camera_ingress_after_cle
+     );
+     assert!(
+         audio_result.is_ok(),
+-        "Unrelated original audio refused: {audio_result:?}"
++        "Current post-Hold original audio refused: {audio_result:?}"
+     );
+     assert_eq!(audio_io.load(Ordering::Acquire), 1);
+-    eprintln!("DIRECTIONAL_HOLD_COUNTER sink_refused=true sink_io=0 original_audio_io=1 fresh_camera_passed=true original_camera={camera_result:?}");
++    eprintln!("DIRECTIONAL_HOLD_COUNTER sink_refused=true sink_io=0 current_audio_io=1 fresh_camera_passed=true camera_attempt_before_unrelated_waits=true original_camera={camera_result:?} camera_age_us={} preheld_audio={preheld_audio_result:?} preheld_audio_io={} sink_wait_us={} preheld_audio_wait_us={}", camera_age.as_micros(), preheld_audio_io.load(Ordering::Acquire), sink_elapsed.as_micros(), preheld_audio_elapsed.as_micros());
+     assert!(camera_result.is_ok(),"directional sink-only hold discarded SAME original camera ingress while current camera authority remains allowed: {camera_result:?}");
+ }

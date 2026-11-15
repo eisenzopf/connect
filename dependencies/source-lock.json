@@ -2451,6 +2451,31 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-original-video-frame-chronology.patch",
       "sha256": "f801ed090a31856edd917ff79f2c4dc2a8092e766c736d781655c9701d7b4116"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-directional-old-sink-camera-counter.patch",
+      "sha256": "9245b9023aaa1028d7dcfff6f88e6052d0361e463d2382e63e0365f628ddc80e"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-directional-camera-counter-original-age-order.patch",
+      "sha256": "12655f890f45a66a0e37f015613d8e53d296cbaa706394388792b4730dafe404"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-directional-media-port-tickets.patch",
+      "sha256": "484b4e76360ecf7a448b5476ca020cdc1a93fe0d54faeba6839386c9db34b4d9"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-directional-cached-audio-egress.patch",
+      "sha256": "cd8629812bc82c9a178bfbd510c666f488d8bb3edb9187338ee0478c67ce29af"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-directional-source-barrier-and-visual-race-stimuli.patch",
+      "sha256": "0b2053cae7cbe828c796bba26859aec28a866f5562f4eb9ed1331f01216fca88"
     }
   ]
 }
