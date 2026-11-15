@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-15T06:09:06.828248+00:00",
-  "run_status": "Latest full v218 remains 1/32 cells, 399/432 checks. Shipping queue45, compositor66 and refusal logging6 controls pass. Held prototype SDK250/Protocol7/Store4 pass only on its preserved snapshot; bounded Core was never applied. Shipping source restored clean to pushed 3dc7d702/g452. Owner acceptance choices and prospective native-tail measurement remain open. Not ready for full32; no full matrix started.",
+  "updated": "2026-11-15T06:38:34.697589+00:00",
+  "run_status": "Latest full v218 remains 1/32 cells, 399/432 checks. Shipping queue45/compositor66/logging6 verified; held SDK250/Protocol7/Store4 scope stays separate. New native receiver-statistics API and actual numeric IPv6 facts verified; both standalone strict control failures remain failed. Owner-local receiver-tail proof and immutable pre-fanout source chronology are being authored and independently reviewed. No live source integration or full32 launch.",
   "blockers": [
     {
       "id": "B01",
@@ -3685,6 +3685,18 @@
       "title": "Prevent repeated public video frame across replacement",
       "status": "held-for-owner-review",
       "completion": "Compositor chronology66 verified. SDK250/Protocol7/Store4 pass on held snapshot; shipping restored clean. Bounded Core limits unapproved/unapplied; long-lived design and native-tail measurement reviews pending. g6-058-v219-held-frame-cut-checkpoint.json"
+    },
+    {
+      "id": "V219-NATIVE-RECEIVER-TAIL",
+      "title": "Capture real retiring-receiver high statistics",
+      "status": "assigned",
+      "completion": "One opt-in original receiver stats request at close, detached bounded result, unchanged synchronous close; owner-local receive-only high bracket with actual native sample coverage, no global poll insertion, fallback/criteria unchanged. Not integrated or tested. g6-058-v219-native-receiver-stats.json"
+    },
+    {
+      "id": "V219-SOURCE-FRAME-CHRONOLOGY",
+      "title": "Freeze source-frame chronology before canonical fanout",
+      "status": "assigned",
+      "completion": "Stable source-worker frame chronology before canonical fanout; exact duplicate mappings/fragments/PortIo/OriginalIngress/retries/repair retain same point. No per-Core-port mint, extra SQL/global mutex or arbitrary call cap. Unavailable metadata leaves ordinary IO unchanged. Not integrated or tested. g6-058-v219-native-receiver-stats.json"
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -19561,5 +19573,92 @@
       "After final source and scope: fresh normal3, complete regression, local ARM preparation/checks, normal releases and preflight.",
       "No full32 during readiness preparation."
     ]
+  },
+  "v219_native_receiver_stats": {
+    "format": "connect/g6-058-native-receiver-stats/1",
+    "recorded_at": "2026-11-15T06:38:34.697589+00:00",
+    "shipping_code_changed": false,
+    "matrix_credit": false,
+    "historical_regrade": false,
+    "original_controls": {
+      "v2": {
+        "pure_passed": 4,
+        "native_strict_result": "failed",
+        "root_session": 17455,
+        "completion_chunk": "31122a"
+      },
+      "v4": {
+        "same_four_strengthened_pure": "passed",
+        "pure_completion_chunk": "746cea",
+        "native_strict_result": "failed",
+        "root_session": 59564,
+        "completion_chunk": "785ec8"
+      }
+    },
+    "verified_facts": [
+      "Original native RTCRtpReceiver.getStats settles across immediate native close with actual track/MID/SSRC/VP8 identity.",
+      "Native sample covers the observed last callback and is no later than actual settlement.",
+      "Actual selected candidates have valid numeric IPv6 address/type/port/UDP fields; the standalone helper was IPv4-only.",
+      "Existing Connect StatsIndex accepts numeric IPv4 and IPv6; no Gate acceptance change is needed for that address family.",
+      "Both source/input guards pass, both peers close exactly once, and original browser and controller owners exit naturally."
+    ],
+    "limits": [
+      "This is native two-peer capability evidence, not actual Connect BUNDLE/prflx retirement or a Core/wire/decoded-quality proof.",
+      "Original strict control results remain failed; diagnostic facts do not regrade them.",
+      "No live observer hook or owner-local supplemental proof has been integrated or unit tested yet."
+    ],
+    "next_assigned_work": [
+      {
+        "id": "V219-NATIVE-RECEIVER-TAIL",
+        "owner": "/root/fixture_blockers",
+        "reviewer": "/root/v198_resources",
+        "scope": "One opt-in original receiver stats request at close, detached bounded result, unchanged synchronous close; owner-local receive-only high bracket with actual native sample coverage, no global poll insertion, fallback/criteria unchanged."
+      },
+      {
+        "id": "V219-SOURCE-FRAME-CHRONOLOGY",
+        "owner": "/root/media_blockers",
+        "reviewer": "/root/v198_resources",
+        "scope": "Stable source-worker frame chronology before canonical fanout; exact duplicate mappings/fragments/PortIo/OriginalIngress/retries/repair retain same point. No per-Core-port mint, extra SQL/global mutex or arbitrary call cap. Unavailable metadata leaves ordinary IO unchanged."
+      }
+    ],
+    "coordinator": "/root",
+    "last_full_matrix": {
+      "run": "v218",
+      "cells_passed": 1,
+      "cells_total": 32,
+      "checks_passed": 399,
+      "checks_total": 432,
+      "new_full_run_started": false
+    },
+    "references": {
+      "capability_v2_manifest": {
+        "path": ".local/gate-6/firefox-receiver-retirement-stats-v219-v2-candidate/manifest.json",
+        "sha256": "4cd15c4300c08968df9282ae8b0dfcc2283c62eb0c7b3de7a5e293e2221d7f6a"
+      },
+      "capability_v4_manifest": {
+        "path": ".local/gate-6/firefox-receiver-retirement-stats-v219-v4-candidate/manifest.json",
+        "sha256": "3e3053692dc28a589dcfeef728615d1a7a157fc2117525be07822023ee573e28"
+      },
+      "first_actual_review": {
+        "path": ".local/gate-6/firefox-receiver-retirement-stats-independent-v198-review/actual4-and-partial-native.json",
+        "sha256": "f461ea5507b832c97f4469870bf937fe60f9bc9659306b09f908c1f4ad4de2e3"
+      },
+      "ipv6_actual_review": {
+        "path": ".local/gate-6/firefox-receiver-retirement-stats-independent-v198-review/actual-v4-ipv6-facts.json",
+        "sha256": "e8a9c06bd09df55724ff46efe572a2ad0e28fca367bdfc9b8feaf8e93337ac74"
+      },
+      "first_original_result": {
+        "path": ".local/gate-6/v219-firefox-receiver-stats-native-root/result.json",
+        "sha256": "25d1fd1910c55b83f893d6cb0cf064e9de47832ba00ed04952cb98da80913fcf"
+      },
+      "second_original_result": {
+        "path": ".local/gate-6/v219-firefox-receiver-stats-native-root-r2/result.json",
+        "sha256": "94690596cb109844dd7f8988bb793e255760cc3128e7d019899f4812b5cf2d34"
+      },
+      "strict_long_call_plan": {
+        "path": ".local/gate-6/webrtc-source-freshness-long-call-v219-proposal/manifest.json",
+        "sha256": "a6ea5be72b5143364a08a1696a1fd1b4defea10ac7311d91dcc231cb3f18ea71"
+      }
+    }
   }
 }

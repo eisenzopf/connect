@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T06:09:06.828248+00:00",
-  "revision": 94,
+  "updated_at": "2026-11-15T06:38:34.697589+00:00",
+  "revision": 95,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 156,
-    "verified_at": "2026-11-15T06:09:06.828248+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-held-frame-cut.json",
-    "readback_evidence_sha256": "d2145f258c8ada0fff46de8cbc5acc2cc7d492259336b75cbf74a8df891df15f",
+    "content_revision": 157,
+    "verified_at": "2026-11-15T06:38:34.697589+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-native-receiver-stats.json",
+    "readback_evidence_sha256": "7bd99519e1fd6021897f6e26b1cb768094f394fad2d0f3e908f9d0534d9eda82",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2162,6 +2162,30 @@
         "/root/media_blockers",
         "/root"
       ]
+    },
+    {
+      "id": "V219-NATIVE-RECEIVER-TAIL",
+      "title": "Capture real retiring-receiver high statistics",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "status": "assigned",
+      "implementation_state": "One opt-in original receiver stats request at close, detached bounded result, unchanged synchronous close; owner-local receive-only high bracket with actual native sample coverage, no global poll insertion, fallback/criteria unchanged. Candidate authoring; not integrated or tested.",
+      "depends_on": [],
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-native-receiver-stats.json",
+      "matrix_verified": false
+    },
+    {
+      "id": "V219-SOURCE-FRAME-CHRONOLOGY",
+      "title": "Freeze source-frame chronology before canonical fanout",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "status": "assigned",
+      "implementation_state": "Stable source-worker frame chronology before canonical fanout; exact duplicate mappings/fragments/PortIo/OriginalIngress/retries/repair retain same point. No per-Core-port mint, extra SQL/global mutex or arbitrary call cap. Unavailable metadata leaves ordinary IO unchanged. Candidate authoring; not integrated or tested.",
+      "depends_on": [],
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-native-receiver-stats.json",
+      "matrix_verified": false
     }
   ],
   "failure_mapping": [
@@ -4601,6 +4625,15 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-held-frame-cut-checkpoint.json",
         "sha256": "e1c2592d77f8af598e159d407e7edee44ced8b8849605d6494c8723f98e68f1f"
       }
+    },
+    {
+      "at": "2026-11-15T06:38:34.697589+00:00",
+      "revision": 95,
+      "checkpoint": {
+        "status": "Receiver-level native statistics capability and numeric IPv6 facts verified; both strict capability failures preserved. Owner-local receive-tail integration and source-owned pre-fanout chronology assigned; not ready full32.",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-native-receiver-stats.json",
+        "sha256": "cd0541540b38f637fc0f3f7c1e090772e7b4ae0d3400a7ed84413061ba219a67"
+      }
     }
   ],
   "tracking_review": {
@@ -6230,8 +6263,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Verified shipping queue45/presentation66/logging6; held SDK250/Protocol7/Store4 prototype preserved, clean shipping HEAD restored, bounded Core never applied. Owner acceptance choices and native-tail measurement remain open; not ready full32.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-held-frame-cut-checkpoint.json",
-    "sha256": "e1c2592d77f8af598e159d407e7edee44ced8b8849605d6494c8723f98e68f1f"
+    "status": "Receiver-level native statistics capability and numeric IPv6 facts verified; both strict capability failures preserved. Owner-local receive-tail integration and source-owned pre-fanout chronology assigned; not ready full32.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-native-receiver-stats.json",
+    "sha256": "cd0541540b38f637fc0f3f7c1e090772e7b4ae0d3400a7ed84413061ba219a67"
   }
 }
