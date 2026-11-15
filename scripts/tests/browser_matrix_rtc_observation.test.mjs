@@ -544,3 +544,24 @@ test('actual capture success pins attached sender once without replacing origina
   assert.equal(observer.registerPublicReceive('original','receive'),false,'Different native owner cannot overwrite original connection');
  }finally{await observer.close();assert.equal(observer.registerPublicReceive('original','receive'),false);for(const [name,value]of saved)if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}
 });
+
+
+test('unidentified public PCM retention keeps the original caps flags discontinuity and disabled semantics',()=>{
+ const samples=new Float32Array(960).fill(.125),input=boundaryInput(samples,{}, {sourceIdentified:false});
+ const disabled=rtcAudioBoundaryDiagnostics();disabled.observe(input);assert.equal(disabled.report().suspect_pcm.events.length,0);
+ const bounded=rtcAudioBoundaryDiagnostics({retainSuspectPcm:true});
+ for(const sourceIdentified of[undefined,null,0,'false',true])bounded.observe({...input,sourceIdentified});
+ for(const origin of[null,undefined,NaN,2000,-100000])bounded.observe({...input,origin});
+ assert.equal(bounded.report().suspect_pcm.events.length,0,'Only exact false on original public clock may trigger');
+ for(let i=0;i<12;i++)bounded.observe({...input,timestamp:i*20000,at:1200+i*20});
+ const report=bounded.report();assert.equal(report.events.length,0);assert.equal(report.suspect_pcm.events.length,8);
+ assert.equal(report.suspect_pcm.omitted,4);assert.equal(report.suspect_pcm.complete,false);
+ assert.ok(report.suspect_pcm.events.every(row=>row.source_identified===false&&row.trigger==='accepted-public-source-unidentified'));
+ for(let i=2;i<=11;i++)bounded.observe({...input,owner:'public-'+i,clock:{...boundaryClock,owner:'public-'+i,epoch_id:i},timestamp:0});
+ assert.ok(bounded.report().suspect_pcm.owner_unknown>0,'Original ten-clock bound remains shared by both trigger types');
+ bounded.close();const stopped=JSON.stringify(bounded.report());bounded.observe(input);assert.equal(JSON.stringify(bounded.report()),stopped);
+ const gaps=rtcAudioBoundaryDiagnostics({retainSuspectPcm:true});
+ gaps.observe({...input,sourceIdentified:true,timestamp:0});gaps.observe({...input,timestamp:60000});gaps.observe({...input,sourceIdentified:true,timestamp:100000});
+ const event=gaps.report().suspect_pcm.events[0];assert.equal(event.before,null);assert.equal(event.after,null);assert.equal(event.after_status,'discontinuous');assert.equal(gaps.report().suspect_pcm.complete,false);
+ const snapshot=JSON.stringify(gaps.report());samples.fill(7);assert.equal(JSON.stringify(gaps.report()),snapshot);gaps.close();
+});

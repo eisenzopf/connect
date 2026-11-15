@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-15T01:59:05.783172+00:00",
-  "run_status": "Latest full v218 remains1/32 cells,399/432 checks. New normal3 failed one20ms audio identity block; all18 nonduplicate video/AV routes and all3 cleanup/capacity cycles passed. Closed forensic8/8 stop at public/Core identity namespace mismatch before wire. Full-rate PCM estimator fix72/72 and native failure-shape18/18 verified; actualaudio cause/lineage/nativeConnect diagnostics remain open. No full32 started.",
+  "updated": "2026-11-15T02:20:06.346920+00:00",
+  "run_status": "Latest full v218 remains1/32 cells,399/432 checks. New focused Connect1 audio6/6+AV6/6+nonduplicatevideo6/6;2rawvideoaliases unresolved, originalCLI1/legacyonecycle resourcefailure preserved. Native connectedpair remote.address absent; expandeddiagnostic18/18 and boundedambiguousPCMretention56/56 verified. Authoritative public/Core namespace RCA8/8 confirmed; Service mapping integration pending. No full32 started.",
   "blockers": [
     {
       "id": "B01",
@@ -18961,5 +18961,58 @@
       "bounded original ambiguous PCM retention",
       "verify all fixes before normal three-cycle and final local ARM readiness checks"
     ]
+  },
+  "v219_native_candidate_and_pcm_retention": {
+    "format": "connect/g6-058-v219-native-candidate-and-pcm-retention/1",
+    "updated_at": "2026-11-15T02:20:06.346920+00:00",
+    "matrix_credit": false,
+    "native_candidate_diagnostic": {
+      "source_review": "92c20f933d32b3e7f56d270e54352171edca5fb8c7cdc24cf1019553a9763815",
+      "tests_passed": 18,
+      "tests_failed": 0,
+      "result_sha256": "255bded13b8bc6b3557dd689c39b22b33437e7abde502c4a145e81b83cd3684d",
+      "purpose": "Distinguish actual native remote peer-reflexive address hiding from malformed selected candidate; typed native scalars and bounded numeric remote-SDP candidate census only; no selected address inferred",
+      "acceptance_changed": false,
+      "actual_expanded_diagnostic": "pending"
+    },
+    "accepted_ambiguous_PCM_retention": {
+      "source_review": "5d3c20d0b5b3c39f45d597f3d686c65a7ef181fda5c9e641575c36c95571c0f8",
+      "tests_passed": 56,
+      "tests_failed": 0,
+      "result_sha256": "e2cb7cbc18c8216e93298d3294a8419b07001d85d90a5ba05963c9a89cb2145d",
+      "original_Root_join": "51545/471e4c",
+      "trigger": "Same already-computed accepted public source_identified=false OR original exact-zero trigger, explicit opt-in only",
+      "limits": {
+        "events": 8,
+        "clock_epochs": 10,
+        "blocks_per_event": 3,
+        "samples_per_block": 960
+      },
+      "changes_to_quality_gain_graph_or_auth": false,
+      "actual_old_C1_PCM_cause_recovered": false
+    },
+    "previous_actual_Connect_diagnostic": {
+      "source": "493e3ae4",
+      "original_Root_join": "89924/eb042e",
+      "original_CLI_exit": 1,
+      "component_passed": false,
+      "audio_routes_passed": 6,
+      "av_routes_passed": 6,
+      "raw_video_routes_passed": 4,
+      "video_aliases": 2,
+      "nonduplicate_video_routes_passed": 6,
+      "legacy_one_cycle_resource_passed": false,
+      "sampled_resource_failures": 5,
+      "original_owners_closed": true,
+      "finding": "Every failing native selected pair is connected with valid local IPv4 UDP endpoint but remote address absent; selected type not yet observed"
+    },
+    "authoritative_source_namespace_RCA": {
+      "actual_closed_metadata_sha256": "8357c9c727da23a58f1b9b1bc074278d0f3a8aaf95c2c6a3ec1a571778b99375",
+      "exact_original_owner_stream_and_SSRC_matches": 8,
+      "jobs": 8,
+      "wire_proof_executed": false,
+      "implementation": "private Service publication binding and strict consumer staged/reviewing, not applied in this commit"
+    },
+    "next_full_matrix_started": false
   }
 }

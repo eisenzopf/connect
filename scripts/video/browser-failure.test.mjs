@@ -371,6 +371,20 @@ test('failed native selected pair retains bounded actual shape without another A
   [peer=>{peer.pair.remote.protocol='tcp';},d=>{assert.equal(d.remote.protocol_kind,'tcp');assert.equal(d.remote.port,40000);},2],
   [peer=>{peer.pair.local.port='PRIVATE-PORT';},d=>{assert.equal(d.local.port_kind,'invalid');assert.equal('port'in d.local,false);},2],
   [peer=>{peer.pair.remote.protocol='PRIVATE-PROTOCOL';},d=>assert.equal(d.remote.protocol_kind,'other'),2],
+  [peer=>{peer.pair.remote={address:null,port:40000,protocol:'udp',type:'prflx',candidate:''};
+   peer.remoteDescription.sdp=peer.remoteDescription.sdp.replace('a=mid:0','a=candidate:1 1 UDP 123 127.0.0.1 40000 typ host ufrag PRIVATE-UFRAG\r\na=mid:0');},d=>{
+    assert.equal(d.remote.candidate_type,'prflx');assert.equal(d.remote.candidate_empty,true);assert.equal(d.remote.port,40000);assert.equal(d.remote.protocol_kind,'udp');
+    assert.deepEqual(d.remote_description_candidates.candidates,[{mid:'0',component:1,address:'127.0.0.1',port:40000,protocol:'udp',type:'host'}]);
+    assert.equal(d.remote_description_candidates.complete,true);},2],
+  [peer=>{peer.pair.remote={address:null,port:0,protocol:'PRIVATE-PROTO',type:'PRIVATE-TYPE',candidate:'PRIVATE-CANDIDATE'};
+   peer.remoteDescription.sdp=peer.remoteDescription.sdp.replace('a=mid:0','a=mid:0\r\na=candidate:1 1 UDP 123 PRIVATE-HOST.local 40000 typ host');},d=>{
+    assert.equal(d.remote.candidate_type,'other');assert.equal(d.remote.candidate_empty,false);assert.equal(d.remote.port_kind,'invalid');assert.equal('port'in d.remote,false);
+    assert.equal(d.remote.protocol_kind,'other');assert.equal(d.remote_description_candidates.complete,false);assert.equal(d.remote_description_candidates.candidates.length,0);},2],
+  [peer=>{peer.pair.remote={address:null};for(const name of ['type','candidate','port','protocol'])Object.defineProperty(peer.pair.remote,name,{get(){throw Error('PRIVATE-GETTER');}});},d=>{
+    assert.equal(d.remote.candidate_type,'threw');assert.equal(d.remote.candidate_kind,'threw');assert.equal(d.remote.candidate_empty,null);
+    assert.equal(d.remote.port_kind,'threw');assert.equal(d.remote.protocol_kind,'threw');},2],
+  [peer=>{peer.pair.remote.address=null;peer.remoteDescription.sdp=peer.remoteDescription.sdp.replace('a=mid:0','a=mid:0\r\n'+Array.from({length:33},(_,i)=>'a=candidate:1 1 UDP 123 127.0.0.1 '+(40000+i)+' typ host').join('\r\n'));},d=>{
+    assert.equal(d.remote_description_candidates.candidates.length,32);assert.equal(d.remote_description_candidates.omitted,1);assert.equal(d.remote_description_candidates.complete,false);},2],
   [peer=>{peer.pair.local.address='::ffff:192.168.1.215';},d=>{assert.equal(d.local.address_kind,'numeric-v6');assert.equal(d.local.address,'::ffff:192.168.1.215');},2],
  ];
  for(const [change,check,pairCalls]of cases){const f=terminalFixture();try{
@@ -389,7 +403,7 @@ test('failed native selected pair retains bounded actual shape without another A
 });
 
 test('native path shape stays absent on healthy roles default mode and original getter exceptions',()=>{
- const healthy=terminalFixture();try{healthy.tag();const row=globalThis.connectPeerPublicBinding('original-connection');
+ const healthy=terminalFixture();try{healthy.tag();for(const name of ['type','candidate'])Object.defineProperty(healthy.peer.pair.remote,name,{get(){throw Error('PRIVATE-HEALTHY-READ');}});const row=globalThis.connectPeerPublicBinding('original-connection');
   assert.equal(row.bindings.send.complete,true);assert.equal(row.bindings.receive.complete,true);
   assert.equal('native_path_diagnostic'in row.bindings.send,false);assert.equal(healthy.counts.pair,2);assert.equal(healthy.counts.stats,0);
   healthy.peer.close();

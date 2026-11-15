@@ -315,7 +315,29 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
             if(fid.length){const [primary,rtx]=fid[0];if(ids.size!==2||!ids.has(primary)||!ids.has(rtx))fail('source-ssrc-ambiguous');return {primary_ssrc:primary,rtx_ssrc:rtx};}
             if(ids.size!==1)fail('source-ssrc-ambiguous');return {primary_ssrc:[...ids][0]};
         };
-        const path=transport=>{
+        // Failure-only actual native candidate facts, never a selected-path substitute.
+        const candidateCensus=description=>{
+            try{
+                const rows=[],all=sections(description),seen=new Set();let total=0,omitted=0,invalid=0;
+                for(const section of all){
+                    const mids=section.lines.filter(line=>line.startsWith('a=mid:')).map(line=>line.slice(6));
+                    const mid=mids.length===1&&boundedId(mids[0])&&!seen.has(mids[0])?mids[0]:null;
+                    if(mid!==null)seen.add(mid);else invalid++;
+                    for(const line of section.lines){if(!line.startsWith('a=candidate:'))continue;total++;
+                        const fields=line.slice(12).split(/ +/),component=Number(fields[1]),port=Number(fields[5]),protocol=fields[2]?.toLowerCase(),type=fields[7];
+                        if(mid===null||fields.length<8||!['1','2'].includes(fields[1])||!['udp','tcp'].includes(protocol)
+                            ||!numericAddress(fields[4])||!/^\d{1,5}$/.test(fields[5])||port<1||port>65535||fields[6]!=='typ'
+                            ||!['host','srflx','prflx','relay'].includes(type)){invalid++;continue;}
+                        if(rows.length>=32){omitted++;continue;}
+                        rows.push({mid,component,address:fields[4],port,protocol,type});
+                    }
+                }
+                return {profile:'connect/rtc-remote-description-candidate-census/1',complete:invalid===0&&omitted===0,
+                    reason:invalid?'candidate-census-incomplete':omitted?'candidate-census-bound':null,
+                    candidate_lines:total,omitted,invalid,candidates:rows};
+            }catch{return {profile:'connect/rtc-remote-description-candidate-census/1',complete:false,reason:'remote-description-unavailable',candidates:[]};}
+        };
+        const path=(transport,remoteDescription)=>{
             if(!transport||transport.state!=='connected')fail('dtls-unavailable');
             const dtlsState=transport.state,ice=transport.iceTransport;
             const iceState=ice?.state,iceReady=!!ice&&['connected','completed'].includes(iceState);
@@ -344,11 +366,23 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
                     ...(portValid?{port:value.port}:{}),protocol_kind:!value.protocol_read?'not-read':['udp','tcp'].includes(value.protocol)?value.protocol:
                         value.protocol===undefined||value.protocol===null?'absent':'other'};
             };
+            const remoteExtra=value=>{
+                if(!value?.native)return {};
+                const read=name=>{try{return {value:value.native[name],threw:false};}catch{return {threw:true};}};
+                const type=read('type'),candidate=read('candidate'),port=value.port_read?{value:value.port}:read('port'),protocol=value.protocol_read?{value:value.protocol}:read('protocol');
+                const validPort=!port.threw&&Number.isInteger(port.value)&&port.value>0&&port.value<=65535;
+                return {candidate_type:type.threw?'threw':['host','srflx','prflx','relay'].includes(type.value)?type.value:type.value==null?'absent':'other',
+                    candidate_kind:candidate.threw?'threw':typeof candidate.value==='string'?'string':candidate.value==null?'absent':'other',
+                    candidate_empty:!candidate.threw&&typeof candidate.value==='string'?candidate.value.length===0:null,
+                    port_kind:port.threw?'threw':validPort?'valid':port.value==null?'absent':'invalid',...(validPort?{port:port.value}:{}),
+                    protocol_kind:protocol.threw?'threw':['udp','tcp'].includes(protocol.value)?protocol.value:protocol.value==null?'absent':'other'};
+            };
             const detail=()=>({profile:'connect/rtc-native-selected-pair-shape/1',
                 ice_state:['new','checking','connected','completed','disconnected','failed','closed'].includes(iceState)?iceState:
                     iceState===undefined||iceState===null?'absent':'other',
                 dtls_state:dtlsState,method_kind:methodRead?kind(method):'not-read',pair_read:pairRead,pair_present:pairRead?pair!==null&&pair!==undefined:null,
-                pair_kind:pairRead?kind(pair):'not-read',local:endpointShape(local),remote:endpointShape(remote)});
+                pair_kind:pairRead?kind(pair):'not-read',local:endpointShape(local),remote:{...endpointShape(remote),...remoteExtra(remote)},
+                remote_description_candidates:candidateCensus(remoteDescription)});
             const unavailable=()=>fail('selected-pair-unavailable',detail());
             if(!iceReady||typeof method!=='function')unavailable();
             pairRead=true;pair=method.call(ice); // Exactly the existing one native API call.
@@ -356,7 +390,7 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
             // Preserve the original short-circuit property order. Failed local
             // fields do not cause extra remote/port/protocol getter reads.
             const endpoint=(value,side)=>{
-                const observed={present:!!value};if(side==='local')local=observed;else remote=observed;
+                const observed={present:!!value,native:value};if(side==='local')local=observed;else remote=observed;
                 if(!value)unavailable();
                 observed.address=value.address;observed.address_read=true;
                 if(!numericAddress(observed.address))unavailable();
@@ -377,9 +411,10 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
                 if(!tx||tx.mid!==original.mid)fail('original-transceiver-changed');
                 const track=direction==='send'?tx.sender?.track:tx.receiver?.track;
                 if(!track||!['live','ended'].includes(track.readyState))fail('track-state-unavailable');
-                const local=videoSection(peer.localDescription,original.mid),remote=videoSection(peer.remoteDescription,original.mid);
+                const localDescription=peer.localDescription,remoteDescription=peer.remoteDescription;
+                const local=videoSection(localDescription,original.mid),remote=videoSection(remoteDescription,original.mid);
                 const value={complete:true,reason:null,original_track:original,track_state:track.readyState,
-                    selected_udp_pair:path(direction==='send'?tx.sender?.transport:tx.receiver?.transport),
+                    selected_udp_pair:path(direction==='send'?tx.sender?.transport:tx.receiver?.transport,remoteDescription),
                     codec_declarations:{local:declarations(local),remote:declarations(remote)}};
                 if(direction==='send')Object.assign(value,senderSsrc(local));
                 else{

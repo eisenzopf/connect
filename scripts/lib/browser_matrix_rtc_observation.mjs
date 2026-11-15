@@ -113,12 +113,12 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
                         invalid(connectionId,'Invalid decoded RTC PCM observation');return;
                     }
                     const at=performance.now();
-                    audio(connectionId,value.timestamp,at,value.samples,owned.clock);
+                    const sourceIdentified=audio(connectionId,value.timestamp,at,value.samples,owned.clock);
                     // The original parent measurement and public-owner selection
                     // decide whether diagnostics may inspect this existing frame.
                     let origin=null;try{origin=measurementOrigin(connectionId);}catch{}
                     audioBoundaries.observe({owner:connectionId,clock:owned.clock,
-                        timestamp:value.timestamp,at,origin,samples:value.samples,context:owned.context});
+                        timestamp:value.timestamp,at,origin,samples:value.samples,context:owned.context,sourceIdentified});
                 }else if(value?.type==='error')invalid(connectionId,value.reason);
             };
             node.onprocessorerror=()=>{if(!closed)invalid(connectionId,'Decoded RTC PCM processor failed');};

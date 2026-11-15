@@ -289,6 +289,9 @@ export class DecodedRoute {
         globalThis.connectOriginalCompletionGate?.audio({owner,timestamp,at,index:this.index,identity});
         if(!identity.identified||identity.rms<.03){if(this.audioBoundaries.length<32)this.audioBoundaries.push({owner,original_timestamp_us:timestamp,
             callback_seconds:seconds,identity,boundary:pcmBoundary(samples),codec});else this.omittedAudioBoundaries++;}
+        // Only an already accepted public row can forward this existing result.
+        // Quiet recognition stays distinct from usable-volume availability.
+        return identity.source_identified;
     }
     recordVideoPresentation(owner, timestamp, at, presentation, refusal = null) {
         if (this.begin === null) return;
@@ -653,7 +656,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
         },
         audio(connection,timestamp,at,samples,clock){
             const owner=bindings.get(connection);if(closed||!owner||routes[owner.index].active!==connection)return;
-            try{routes[owner.index].measure.audioFrame(connection,timestamp,at,samples,null,null,clock);}
+            try{return routes[owner.index].measure.audioFrame(connection,timestamp,at,samples,null,null,clock);}
             catch(error){invalidRtc(connection,String(error.message));}
         },
         video(connection,timestamp,at,frame,width,height,presentation){

@@ -11,7 +11,7 @@ export function rtcAudioBoundaryDiagnostics({retainSuspectPcm=false,contextClose
         callback_performance_ms:frame.at,original_worklet_end_timestamp_us:frame.timestamp+20000,
         context_state_at_delivery:frame.contextState,context_time_seconds_at_delivery:frame.contextTime,
         samples:Object.freeze(Array.from(frame.samples))});
-    function retain({owner,clock,timestamp,at,samples,contextState,contextTime},suspect) {
+    function retain({owner,clock,timestamp,at,samples,contextState,contextTime},suspect,sourceUnidentified=false) {
         if(!retainSuspectPcm)return;
         if(!(samples instanceof Float32Array)||samples.length!==960||!samples.every(Number.isFinite)
             ||clock?.owner!==owner||!Number.isSafeInteger(clock?.epoch_id)||clock.epoch_id<1
@@ -29,6 +29,7 @@ export function rtcAudioBoundaryDiagnostics({retainSuspectPcm=false,contextClose
             if(pcmEvents.length<pcmLimit) {
                 pending=pcmEvents.length;
                 pcmEvents.push({owner,clock_epoch_id:clock.epoch_id,
+                    ...(sourceUnidentified?{trigger:'accepted-public-source-unidentified',source_identified:false}:{}),
                     before:contiguous?copy(prior):null,current:copy({timestamp,at,samples,contextState,contextTime}),
                     after:null,after_status:'not-yet-observed'});
             }else pcmOmitted++;
@@ -45,15 +46,18 @@ export function rtcAudioBoundaryDiagnostics({retainSuspectPcm=false,contextClose
                 callback_performance_ms:at,context_state:contextState(context),
                 context_time_seconds:number(()=>context.currentTime),...fields}));
         },
-        observe({owner,clock,timestamp,at,origin,samples,context}) {
+        observe({owner,clock,timestamp,at,origin,samples,context,sourceIdentified}) {
             if(closed||!Number.isFinite(origin)||!Number.isFinite(at)||at<origin||at>=origin+62000)return;
             let run=0,longest=0,start=null;
             for(let i=0;i<samples.length;i++){
                 run=samples[i]===0?run+1:0;
                 if(run>longest){longest=run;start=i-run+1;}
             }
+            // The parent returns this boolean only after its existing public
+            // row and source identity are accepted. Never run another estimator.
+            const sourceUnidentified=sourceIdentified===false;
             if(retainSuspectPcm)retain({owner,clock,timestamp,at,samples,contextState:contextState(context),
-                contextTime:number(()=>context.currentTime)},longest>=minimum);
+                contextTime:number(()=>context.currentTime)},longest>=minimum||sourceUnidentified,sourceUnidentified);
             if(longest<minimum)return;
             if(events.length>=limit){omitted++;return;}
             let output=null;

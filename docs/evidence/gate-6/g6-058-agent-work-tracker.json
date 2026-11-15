@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T01:59:05.783172+00:00",
-  "revision": 86,
+  "updated_at": "2026-11-15T02:20:06.346920+00:00",
+  "revision": 87,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 145,
-    "verified_at": "2026-11-15T01:59:05.783172+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-diagnostics.json",
-    "readback_evidence_sha256": "05e695412604251d43ed947c60a5ac57b35e9080d2b31141f016338442496b26",
+    "content_revision": 146,
+    "verified_at": "2026-11-15T02:20:06.346920+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-native-candidate.json",
+    "readback_evidence_sha256": "5fd8e60e2222d1008565942b32ded9d190173798a3e0d386d12fbbd42ded8099",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -4474,6 +4474,15 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-diagnostics.json",
         "sha256": "67a36ac2f9ba49a3cf3d69749226fbe2b2a1fc6cfa0773afd2b52fefaace34c1"
       }
+    },
+    {
+      "at": "2026-11-15T02:20:06.346920+00:00",
+      "revision": 87,
+      "checkpoint": {
+        "status": "retention and expanded native diagnostic verified; actual native type and authoritative mapping integration pending; not ready for full32",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-native-candidate-and-pcm-retention.json",
+        "sha256": "8f39766b53fe3c5c494c7d54d5a29c0978c6cf1e30b4110c3d5d9d1659c604a1"
+      }
     }
   ],
   "tracking_review": {
@@ -6103,8 +6112,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "fixing actual audio identity and native/Core evidence; not ready for full32",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-diagnostics.json",
-    "sha256": "67a36ac2f9ba49a3cf3d69749226fbe2b2a1fc6cfa0773afd2b52fefaace34c1"
+    "status": "retention and expanded native diagnostic verified; actual native type and authoritative mapping integration pending; not ready for full32",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-native-candidate-and-pcm-retention.json",
+    "sha256": "8f39766b53fe3c5c494c7d54d5a29c0978c6cf1e30b4110c3d5d9d1659c604a1"
   }
 }

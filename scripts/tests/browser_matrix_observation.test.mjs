@@ -907,3 +907,39 @@ test('recognized quiet duplicates remain hard failures and cannot create usable 
     assert.equal(report.audio.identified_seconds,2999*.02);
     assert.equal(report.audio.passed,false);
 });
+
+
+test('energetic source ambiguity retains the same accepted public PCM without adding rows or retaining inactive owners',async()=>{
+ const flag=Object.getOwnPropertyDescriptor(globalThis,'connectRtcAudioFacts');
+ Object.defineProperty(globalThis,'connectRtcAudioFacts',{value:true,configurable:true});
+ try{await rtcRenderFixture(async f=>{
+  await f.observer.attach(0,f.connection('public-original'),{audio:'a',video:'v',active:true},{timeoutMs:500});
+  f.observer.start({originMs:performance.now()-2000});await f.flush();assert.equal(f.nodes.length,1);
+  const quiet=tone(1100,.0005),after=tone(1100,.05);
+  const bad=Float32Array.from({length:960},(_,i)=>.05*Math.sin(2*Math.PI*1100*i/48000)+.05*Math.sin(2*Math.PI*880*i/48000));
+  const send=(node,timestamp,samples)=>node.port.onmessage({data:{type:'pcm',timestamp,samples}});
+  send(f.nodes[0],0,quiet);assert.equal(f.observer.report().rtc_audio_boundary_diagnostics.suspect_pcm.events.length,0,
+   'Recognized quiet source gets no usable credit and is not an unidentified-source trigger');
+  send(f.nodes[0],20000,bad);send(f.nodes[0],40000,after);
+  const report=f.observer.report(),audio=report.routes[0].audio,witness=report.rtc_audio_boundary_diagnostics;
+  assert.equal(audio.bad_identity_frames,1);assert.equal(audio.recognized_below_energy_floor_frames,1);
+  assert.equal(audio.unusable_or_unidentified_frames,2);assert.equal(audio.decoded_seconds,.06);
+  assert.equal(witness.events.length,0,'No128-sample zero run is invented for energetic nonzero ambiguity');
+  assert.equal(witness.suspect_pcm.events.length,1);assert.equal(witness.suspect_pcm.complete,true);
+  const event=witness.suspect_pcm.events[0];assert.equal(event.trigger,'accepted-public-source-unidentified');assert.equal(event.source_identified,false);
+  assert.equal(event.owner,'public-original');assert.equal(event.current.original_worklet_timestamp_us,20000);
+  assert.deepEqual(event.before.samples,Array.from(quiet));assert.deepEqual(event.current.samples,Array.from(bad));assert.deepEqual(event.after.samples,Array.from(after));
+  const quality=JSON.stringify(report.routes),saved=JSON.stringify(event);bad.fill(9);quiet.fill(8);
+  assert.equal(JSON.stringify(f.observer.report().routes),quality,'Retained PCM is not reclassified or added as a public row');
+  assert.equal(JSON.stringify(event),saved,'The same borrowed originals are copied before caller mutation');
+  await f.observer.attach(0,f.connection('prepared-only'),{audio:'pa',video:'pv'},{timeoutMs:500});
+  assert.equal(f.nodes.length,1,'Private preparation creates no public diagnostic graph');
+  await f.observer.activate(0,'prepared-only',{timeoutMs:500});await f.flush();assert.equal(f.nodes.length,2);
+  const beforeRetired=JSON.stringify(f.observer.report().routes),events=f.observer.report().rtc_audio_boundary_diagnostics.suspect_pcm.events.length;
+  send(f.nodes[0],60000,tone(440,.1));
+  assert.equal(JSON.stringify(f.observer.report().routes),beforeRetired,'Inactive old owner adds no public row');
+  assert.equal(f.observer.report().rtc_audio_boundary_diagnostics.suspect_pcm.events.length,events,'Inactive PCM is never copied as a new source witness');
+  const closed=await f.observer.close();assert.equal(closed.joined,true);assert.equal(closed.audio_lifetime_observer.retained_taps,0);
+  assert.equal(f.nodes[0].port.onmessage,null);assert.equal(f.nodes[1].port.onmessage,null);
+ });}finally{if(flag)Object.defineProperty(globalThis,'connectRtcAudioFacts',flag);else delete globalThis.connectRtcAudioFacts;}
+});
