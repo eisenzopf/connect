@@ -233,6 +233,10 @@ class StatsIndex:
             need(isinstance(end,dict) and end.get('protocol')=='udp' and uint(end.get('port'),16)
                  and end['port']>0,'selected-udp-tuple-unavailable')
             ipaddress.ip_address(end['address'])
+        # Selection metadata is diagnostic-only on the ordinary numeric path.
+        # Read the SAME raw row explicitly only for the typed privacy fallback.
+        path={key:item for key,item in path.items() if key not in
+              ('transport_epoch','selected_candidate_pair_changes')}
         return dict(track=original,path=path,ssrc=row['ssrc'],codec=codec,peer_index=row.get('peer_index'))
 
     def get(self,owner,direction,first,last,*,stream=None,track=None,ssrc=None,coordinates=None):
@@ -261,13 +265,16 @@ class StatsIndex:
         need(have_lo != have_hi,'native-boundary-needs-one-real-rtp-endpoint')
         public=have_hi;actual=highs[0] if public else lows[-1]
         value=self.snapshot(actual,owner,direction,stream,track,ssrc)
-        anchor,provenance=self.anchor(owner,direction,first,last,value,public,coordinates)
+        anchor,provenance=self.anchor(owner,direction,first,last,value,public,coordinates,actual)
         captured=(anchor['captured_at_ms']-self.boundaries['origin_ms'])/1000
         # Every available regular row across the original missing bracket is
         # still authoritative. Missing interior rows cannot become a boundary.
         start=min(actual,max(0,lo));end=max(actual,min(len(self.samples)-1,hi))
         for i in range(start,end+1):
             if self.rows(i,owner,direction):
+                if provenance.get('native_path_kind')=='prflx-address-redacted':
+                    need(self.selection_epoch(i,owner,direction,value['peer_index'])==provenance['transport_epoch'],
+                         'contradictory-regular-selection-epoch')
                 observed=self.snapshot(i,owner,direction,stream,track,ssrc,allow_unbound=True)
                 if observed['track'] is not None:
                     need(observed==value,'contradictory-regular-statistics');continue
@@ -302,7 +309,31 @@ class StatsIndex:
             need((delta(coordinates[0],reported)>=0 if public else delta(reported,coordinates[1])>=0),
                  'native-binding-reported-coordinate-does-not-cover-pair')
 
-    def anchor(self,owner,direction,first,last,value,public,coordinates):
+    def selection_epoch(self,number,owner,direction,peer_index):
+        rows=self.rows(number,owner,direction)
+        need(len(rows)==1,'owner-statistics-ambiguous')
+        path=rows[0].get('selected_path') or {}
+        epoch=path.get('transport_epoch')
+        self.check_selection_epoch(epoch,peer_index)
+        count=path.get('selected_candidate_pair_changes')
+        need(uint(count,32) and count==epoch['selection_count'],
+             'native-selection-statistics-counter-unproved')
+        return epoch
+
+    @staticmethod
+    def check_selection_epoch(epoch,peer_index):
+        keys={'profile','transport_id','armed_before_selection','initial_selection_count',
+              'selection_count','state_version'}
+        need(isinstance(epoch,dict) and set(epoch)==keys
+             and epoch.get('profile')=='connect/rtc-native-selection-epoch/1'
+             and isinstance(epoch.get('transport_id'),str)
+             and re.fullmatch(r'p'+str(peer_index)+r't[1-4]',epoch['transport_id'])
+             and epoch.get('armed_before_selection') is True
+             and type(epoch.get('initial_selection_count')) is int and epoch['initial_selection_count']==0
+             and uint(epoch.get('selection_count'),32) and uint(epoch.get('state_version'),32)
+             and 1<=epoch['selection_count']<=epoch['state_version']<=128, 'native-selection-epoch-unproved')
+
+    def anchor(self,owner,direction,first,last,value,public,coordinates,actual):
         data=self.boundaries
         need(isinstance(data,dict) and data.get('profile')=='connect/rtc-native-binding-boundaries/1'
              and data.get('complete') is True and isinstance(data.get('peers'),list) and len(data['peers'])<=16,
@@ -358,11 +389,27 @@ class StatsIndex:
         path=binding.get('selected_udp_pair') or {}
         need(path.get('basis')=='RTCIceTransport.getSelectedCandidatePair' and path.get('ice_state') in ('connected','completed')
              and path.get('dtls_state')=='connected','native-binding-selected-path-unproved')
+        partial=path.get('kind')=='prflx-address-redacted'
         for side in ('local','remote'):
             aend,bend=path.get(side) or {},value['path'][side]
-            need(aend.get('protocol')==bend.get('protocol')=='udp' and aend.get('port')==bend.get('port')
-                 and str(ipaddress.ip_address(aend['address']))==str(ipaddress.ip_address(bend['address'])),
+            need(aend.get('protocol')==bend.get('protocol')=='udp' and aend.get('port')==bend.get('port'),
                  'native-binding-selected-path-changed')
+            if partial and side=='remote':
+                need(aend.get('address') is None and 'address' in aend
+                     and aend.get('type')=='prflx' and aend.get('candidate_empty') is True,
+                     'native-binding-redaction-unproved')
+            else:
+                need(str(ipaddress.ip_address(aend['address']))==str(ipaddress.ip_address(bend['address'])),
+                     'native-binding-selected-path-changed')
+        privacy={}
+        if partial:
+            epoch=path.get('transport_epoch')
+            self.check_selection_epoch(epoch,entry['peer_index'])
+            need(self.selection_epoch(actual,owner,direction,entry['peer_index'])==epoch,
+                 'native-binding-selection-epoch-changed')
+            # This is a relation to a real complete Stats endpoint, never a
+            # replacement native address or a synthetic getStats sample.
+            privacy=dict(native_path_kind='prflx-address-redacted',transport_epoch=epoch)
         codec=value['codec']
         for side in ('local','remote'):
             declarations=(binding.get('codec_declarations') or {}).get(side)
@@ -383,7 +430,7 @@ class StatsIndex:
                  'native-binding-sender-primary-changed')
         return a,dict(profile=profile,connection_id=owner,peer_index=entry['peer_index'],direction=role,
                       captured_at_ms=times[0],captured_done_at_ms=times[1],
-                      reported_rtp_timestamp=(binding.get('sync_source') or {}).get('rtpTimestamp'))
+                      reported_rtp_timestamp=(binding.get('sync_source') or {}).get('rtpTimestamp'),**privacy)
 
 
 def stable_stats(cycle, owner, direction, first, last, *, stream=None, track=None, ssrc=None):

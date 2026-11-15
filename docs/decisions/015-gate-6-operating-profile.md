@@ -591,6 +591,45 @@ added, and no historical report is regraded. A pair requiring two native anchors
 without a real opposite-side RTP endpoint remains unresolved under this profile.
 
 
+#### Privacy-redacted native selection association
+
+A native `prflx-address-redacted` observation may retain only its remote address
+as null when its actual candidate is peer-reflexive with empty candidate text.
+It still supplies the numeric original local UDP tuple, visible remote port and
+protocol, actual native peer/track/MID, negotiated codec, SSRC and receiver RTP
+coordinate. Its completion flag denotes this explicitly typed observation; it
+never denotes a full native numeric tuple. No SDP address, cached address or
+inferred remote address is substituted.
+
+The opt-in observer arms the same unique native ICE transport before selection
+at a known zero count and assigns a bounded original transport token. The
+`connect/rtc-native-selection-epoch/1` record contains that token, the early-arm
+witness, zero initial count, and counts bounded by
+`1 <= selection_count <= state_version <= 128`. The
+same exact record is attached to a real RTP statistics row only after its actual
+transport's `selectedCandidatePairChanges` agrees and the unique original native
+transport, real selected pair references, count and state version remain stable
+through the existing request and completion. No statistics call or poll is added.
+
+The verifier permits this native privacy form only when its entire epoch equals
+the real, complete opposite-side RTP endpoint's epoch and actual counter. Every
+available regular row must retain that epoch and all its existing strict fields.
+Missing or masked real statistics, late arming, ambiguous or replaced transports,
+changed selection/state, visible tuple conflicts and contradictory rows refuse.
+The full numeric path retains its original comparison rules; optional epoch and
+counter metadata alone cannot change its verdict. The output labels the native
+redaction and epoch while retaining only the real statistics tuple for wire
+matching. Exact public intervals, Service publication lineage, Core epochs and
+full closed-packet frame bijection remain mandatory; no capture, quality or
+permission criterion changes and no historical report is regraded.
+
+The API's selected-pair slot update and selected-pair-change event occur in the
+same task, and its getter returns that slot; event bookkeeping must be installed
+before the first selection. See the primary [WebRTC transport algorithm](https://w3c.github.io/webrtc-pc/#rtcicetransport)
+and the [statistics selection-counter definition](https://w3c.github.io/webrtc-stats/#dom-rtctransportstats-selectedcandidatepairchanges).
+This association does not claim knowledge of the redacted native address.
+
+
 #### Explicit publication-time source namespace binding
 
 `connect/native-publication-binding/1` records a private diagnostic event from

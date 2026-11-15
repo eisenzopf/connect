@@ -519,4 +519,101 @@ class NativeBindingBoundaryControls(unittest.TestCase):
         send['primary_ssrc']+=1
         with self.assertRaisesRegex(WitnessError,'sender-primary-changed'):prepare_pair(cycle,route,pair,summaries)
 
+
+
+def selection_boundary_facts(public=False,direction='receive'):
+    values,anchor,binding=boundary_facts(public,public)
+    cycle=values[0];pipeline=cycle['decoded_media']['rtc_media_pipeline']
+    actual_index=1 if public else 0
+    actual=pipeline['samples'][actual_index]['peers'][0][1]
+    if direction=='send':
+        source=pipeline['samples'][actual_index]['peers'][0][0]
+        pipeline['samples'][0 if public else 1]['peers'][0]=[copy.deepcopy(actual)]
+        send=copy.deepcopy(binding);send.pop('sync_source')
+        send['original_track']=copy.deepcopy(source['original_track']);send['primary_ssrc']=source['ssrc']
+        send['selected_udp_pair']['local']=copy.deepcopy(source['selected_path']['local'])
+        send['selected_udp_pair']['remote']=copy.deepcopy(source['selected_path']['remote'])
+        binding=send;actual=source
+        anchor.update(connection_id='source',peer_index=0,bindings=dict(send=send))
+        name='public_binding' if public else 'terminal_binding'
+        pipeline['binding_boundaries']['peers']=[dict(connection_id='source',peer_index=0,**{name:anchor})]
+        interval=cycle['decoded_media']['source_frame_public_owners'][1]['intervals'][0]
+        interval['native_public_binding']=dict(profile='connect/rtc-validated-public-binding/1',complete=True,route=0,
+            connection_id='source',previous=None,operation_id=None,cut_ms=0,basis=interval['basis'],peer_index=0,
+            captured_at_ms=anchor['captured_at_ms'],captured_done_at_ms=anchor['captured_done_at_ms'])
+    epoch=dict(profile='connect/rtc-native-selection-epoch/1',transport_id=f"p{anchor['peer_index']}t1",
+        armed_before_selection=True,initial_selection_count=0,selection_count=1,state_version=3)
+    actual['selected_path'].update(transport_epoch=copy.deepcopy(epoch),selected_candidate_pair_changes=1)
+    path=binding['selected_udp_pair'];path.update(kind='prflx-address-redacted',transport_epoch=copy.deepcopy(epoch))
+    path['remote'].update(address=None,type='prflx',candidate_empty=True)
+    return values,anchor,binding,actual
+
+
+class NativeSelectionEpochControls(unittest.TestCase):
+    def test_typed_prflx_selection_epoch_binds_all_roles_and_boundaries_without_address_fill(self):
+        for public in (False,True):
+            for direction in ('send','receive'):
+                with self.subTest(public=public,direction=direction):
+                    values,anchor,binding,actual=selection_boundary_facts(public,direction)
+                    before=copy.deepcopy(values[0])
+                    result=prepare_pair(*values[:4]);proof=result['native_binding_boundaries'][0]
+                    self.assertEqual(proof['native_path_kind'],'prflx-address-redacted')
+                    self.assertEqual(proof['transport_epoch'],actual['selected_path']['transport_epoch'])
+                    self.assertEqual(result['source_flow'],values[4]);self.assertEqual(result['target_flow'],values[5])
+                    self.assertIsNone(binding['selected_udp_pair']['remote']['address'])
+                    self.assertEqual(values[0],before)
+
+    def test_redacted_selection_epoch_missing_changed_late_or_foreign_refuses(self):
+        def impossible_epoch(binding,row,**changes):
+            for path in (binding['selected_udp_pair'],row['selected_path']):
+                path['transport_epoch'].update(changes)
+            row['selected_path']['selected_candidate_pair_changes']=row['selected_path']['transport_epoch']['selection_count']
+        mutations=[lambda b,r:b['selected_udp_pair'].pop('transport_epoch'),
+            lambda b,r:r['selected_path'].pop('transport_epoch'),
+            lambda b,r:b['selected_udp_pair']['transport_epoch'].update(transport_id='p0t1'),
+            lambda b,r:b['selected_udp_pair']['transport_epoch'].update(armed_before_selection=False),
+            lambda b,r:b['selected_udp_pair']['transport_epoch'].update(initial_selection_count=1),
+            lambda b,r:b['selected_udp_pair']['transport_epoch'].update(selection_count=3),
+            lambda b,r:b['selected_udp_pair']['transport_epoch'].update(state_version=4),
+            lambda b,r:b['selected_udp_pair']['transport_epoch'].update(selection_count=True),
+            lambda b,r:r['selected_path'].update(selected_candidate_pair_changes=2),
+            lambda b,r:b['selected_udp_pair']['remote'].update(candidate_empty=False),
+            lambda b,r:b['selected_udp_pair']['remote'].update(type='host'),
+            lambda b,r:b['selected_udp_pair']['remote'].update(address='127.0.0.1'),
+            lambda b,r:b['selected_udp_pair']['local'].update(port=4321),
+            lambda b,r:impossible_epoch(b,r,selection_count=129,state_version=129),
+            lambda b,r:impossible_epoch(b,r,selection_count=4,state_version=3)]
+        for mutate in mutations:
+            values,anchor,binding,actual=selection_boundary_facts();mutate(binding,actual)
+            with self.subTest(mutation=mutate),self.assertRaises(ValueError):prepare_pair(*values[:4])
+
+    def test_redacted_native_needs_numeric_real_rtp_and_rejects_available_epoch_contradiction(self):
+        values,anchor,binding,actual=selection_boundary_facts()
+        actual['selected_path']['remote']['address']=None
+        with self.assertRaises(ValueError):prepare_pair(*values[:4])
+        values,anchor,binding,actual=selection_boundary_facts()
+        values[0]['decoded_media']['rtc_media_pipeline']['samples'][0]['peers'][0].pop(1)
+        with self.assertRaisesRegex(WitnessError,'needs-one-real-rtp-endpoint'):prepare_pair(*values[:4])
+        values,anchor,binding,actual=selection_boundary_facts()
+        pipeline=values[0]['decoded_media']['rtc_media_pipeline']
+        sample=copy.deepcopy(pipeline['samples'][0]);sample.update(requested_seconds=2.205,completed_seconds=2.210)
+        sample['peers'][0][1]['selected_path']['transport_epoch'].update(selection_count=2)
+        sample['peers'][0][1]['selected_path']['selected_candidate_pair_changes']=2
+        pipeline['samples'].insert(1,sample)
+        with self.assertRaisesRegex(WitnessError,'contradictory-regular-selection-epoch'):prepare_pair(*values[:4])
+
+    def test_numeric_native_and_regular_brackets_preserve_optional_metadata_independence(self):
+        values=facts()
+        for n,sample in enumerate(values[0]['decoded_media']['rtc_media_pipeline']['samples']):
+            for row in sample['peers'][0]:
+                row['selected_path'].update(transport_epoch={'unproved':n},selected_candidate_pair_changes=n)
+        result=prepare_pair(*values[:4]);self.assertEqual(result['native_binding_boundaries'],[])
+        self.assertEqual(result['source_flow'],values[4]);self.assertEqual(result['target_flow'],values[5])
+        values,anchor,binding=boundary_facts()
+        values[0]['decoded_media']['rtc_media_pipeline']['samples'][0]['peers'][0][1]['selected_path'].update(
+            transport_epoch={'unproved':True},selected_candidate_pair_changes=None)
+        result=prepare_pair(*values[:4])
+        self.assertNotIn('native_path_kind',result['native_binding_boundaries'][0])
+        self.assertEqual(result['target_flow'],values[5])
+
 if __name__=='__main__':unittest.main()

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-15T02:54:36.692539+00:00",
-  "run_status": "Latest full v218 remains1/32 cells,399/432 checks. Authoritative public/Core source bridge:191/191 targeted checks+format and normal shipping compile PASS. Closed diagnostic5aliases+3passives all8strictpacketbijections, originalgradesunchanged/allregularbrackets. Nativeprivacy epoch implementation pending using pinnedFirefox158 synchronousvisiblepair/event semantics and REALStats change counter; no IP guessing, threshold waiver or newpacket-path auth. Fresh proper3-cycle then final regression/localARM/releases/preflight required. No full32 started.",
+  "updated": "2026-11-15T03:24:43.825791+00:00",
+  "run_status": "Latest full v218 remains1/32 cells,399/432 checks. Both source bridge and native privacy epoch fixes implemented:200/200 targeted controls+format PASS, serialized realFirefox epoch API PASS, sourceBridge shippingcompile PASS. Closed diagnosticall5aliases+3passive wirebijections verified, originalfailedgradesretained. Fresh proper3-cycle actualService/prflx/fullStats/quality/resource verification next; final877regression/localARM/releases/preflight stillrequired. No full32 started.",
   "blockers": [
     {
       "id": "B01",
@@ -19072,5 +19072,64 @@
       "final_regression_ARM_releases_preflight": "not started on final source",
       "next_full32_started": false
     }
+  },
+  "v219_native_selection_epoch": {
+    "format": "connect/g6-058-v219-native-selection-epoch/1",
+    "updated_at": "2026-11-15T03:24:43.825791+00:00",
+    "matrix_credit": false,
+    "independent_source_review": "c390318b195c6e4c3325ebb4468359cd3f5c3000bbe2e997b4621a856d39dbe2",
+    "getter_refusal_repair_review": "a50bd0473c32982b4e49e7de24147ffa5e0e248daf5dd22a1ad4f39e880f4901",
+    "implementation": {
+      "typed_native_kind": "prflx-address-redacted",
+      "native_address_remains_null": true,
+      "epoch_profile": "connect/rtc-native-selection-epoch/1",
+      "early_arm": "Original local offer promise settles; first trusted capture-phase listeners armed at known zero before SDK offer relay; late tagging does not affect early arming",
+      "transport_identity": "One exact original negotiated ICE transport and one real selected Stats transport/pair referenced by actual RTP rows",
+      "counter_match": "Native selection count matches actual selectedCandidatePairChanges at original read request/completion and native boundary, with unchanged original visible fields and bounded state version",
+      "bound": "1 <= selection_count <= state_version <= 128",
+      "real_opposite_numeric_RTP_endpoint_required": true,
+      "all_available_rows_authoritative": true,
+      "all_prior_public_Service_Core_SSRC_codec_RTP_bounds_and_wire_checks_retained": true,
+      "no_IP_from_SDP_or_synthetic_Stats": true,
+      "no_additional_getStats_timer_or_close_delay": true,
+      "no_packet_path_authorization_work": true,
+      "capture_expansion": false
+    },
+    "source_ordering": {
+      "browser": "Firefox158.0.1",
+      "source_stamp": "48a735cc74a7e6d730f9bf59c3de58f750287a23",
+      "scope": "Same main-thread-observable selected-pair state as original numeric API, not hidden-worker atomicity",
+      "primary_sources": [
+        "https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/tags/FIREFOX_158_0_1_RELEASE/dom/media/webrtc/jsapi/PeerConnectionImpl.cpp",
+        "https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/tags/FIREFOX_158_0_1_RELEASE/dom/media/webrtc/jsapi/RTCIceTransport.cpp",
+        "https://www.w3.org/TR/webrtc/#rtcicetransport-interface"
+      ]
+    },
+    "targeted_controls": {
+      "original_Root_join": "42837/85622a",
+      "python_passed": 63,
+      "node_passed": 137,
+      "failed": 0,
+      "skipped": 0,
+      "format_exit": 0,
+      "result_sha256": "d6cdc7fcb2ff1fd2f76e7ca884d4f1c5cadb7351bc23bece6667ba4539b356ce",
+      "independent_actual_review": "37a3d51079a6f298e0f05e1c2c85045ad8808e0f058ac178e59c2c407d799f95",
+      "prior_199_of_200_preserved": true
+    },
+    "actual_serialized_observer": {
+      "original_Root_join": "5654/0807cd",
+      "in_page_epoch_complete": true,
+      "host_epoch_complete": true,
+      "native_public_and_terminal_caller_roles": 4,
+      "actual_RTP_stats_epochs": 2,
+      "all_six_equal": true,
+      "caller_tagged_after_original_SLD": true,
+      "original_browser_and_Node_natural_exit0": true,
+      "result_sha256": "d812c04c211dc3fbf97bd753d0e5d20b9a05dd428a0ecff95191ad9dd2fe9fac",
+      "independent_actual_review": "5e932a89ba35f1eae77e9207eaf2a48157d343e86ef0d64763399e5498e7fedb",
+      "scope": "Real serialized numeric IPv4 native API capability; real Connect prflx-to-fullStats/Core/packet proof still pending",
+      "prior_incomplete_BiDi_artifact_preserved": true
+    },
+    "next": "Normal3 local Firefox, audio debugOFF/completioncounterOFF/sourcewitnessON, then final877-case inventory/localARM/releases/preflight. Full32 unstarted; G6054 parked."
   }
 }

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T02:54:36.692539+00:00",
-  "revision": 88,
+  "updated_at": "2026-11-15T03:24:43.825791+00:00",
+  "revision": 89,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 147,
-    "verified_at": "2026-11-15T02:54:36.692539+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-source-namespace.json",
-    "readback_evidence_sha256": "59c861748689e11101255319d6d5f07e6d54bea917d60cf6ee56da18de8ed18d",
+    "content_revision": 149,
+    "verified_at": "2026-11-15T03:24:43.825791+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-native-selection-epoch.json",
+    "readback_evidence_sha256": "0cbc45496041106811706fe7a61ef596b7479022e152f357847cc6f7ecb86655",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2127,12 +2127,13 @@
       "consumer_owner": "/root/media_blockers",
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
-      "status": "cause-confirmed",
-      "implementation_state": "Native/API and exact Firefox source verified; strict event-counter/real-Stats transport association is being staged; no implementation or matrix credit",
+      "status": "component-verified",
+      "implementation_state": "200 targeted controls+format and real serialized native API pass; actual Connect prflx/fullStats association and combined proof pending",
       "depends_on": [
         "V219-SOURCE-NAMESPACE"
       ],
-      "matrix_verified": false
+      "matrix_verified": false,
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-native-selection-epoch.json"
     }
   ],
   "failure_mapping": [
@@ -4518,6 +4519,15 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-authoritative-source-namespace.json",
         "sha256": "0948a780cc798ea55b064a59206bbe84a78450c58396feb46b97fb59af04c8cd"
       }
+    },
+    {
+      "at": "2026-11-15T03:24:43.825791+00:00",
+      "revision": 89,
+      "checkpoint": {
+        "status": "native epoch200controls+serializedAPI verified; fresh normal3 Connect proof next; finalregression/ARM/releases/preflight pending; not ready for full32",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-native-selection-epoch.json",
+        "sha256": "7ca5a69a04e826bafe2d0f4c0ad2e77d9360ab0e1cacb8ba2729c3e842b5a4f7"
+      }
     }
   ],
   "tracking_review": {
@@ -6147,8 +6157,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "source namespace controls and shipping compile verified; actual fresh exports and native transport epoch implementation pending; not ready for full32",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-authoritative-source-namespace.json",
-    "sha256": "0948a780cc798ea55b064a59206bbe84a78450c58396feb46b97fb59af04c8cd"
+    "status": "native epoch200controls+serializedAPI verified; fresh normal3 Connect proof next; finalregression/ARM/releases/preflight pending; not ready for full32",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-native-selection-epoch.json",
+    "sha256": "7ca5a69a04e826bafe2d0f4c0ad2e77d9360ab0e1cacb8ba2729c3e842b5a4f7"
   }
 }

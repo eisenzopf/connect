@@ -220,7 +220,7 @@ function terminalFixture(options={}){
         getStats(){counts.stats++;throw Error('Terminal capture must never ask getStats');}
         close(){counts.close++;if(this.closeError)throw this.closeError;this.connectionState='closed';this.signalingState='closed';return 'original-native-close-return';}
     }
-    globalThis.RTCPeerConnection=Peer;installPeerDiagnostics({peerBound:16,rtcSourceFrameWitness:options.enabled??true});
+    globalThis.RTCPeerConnection=Peer;const install=options.serialized?new Function('return ('+installPeerDiagnostics.toString()+')')():installPeerDiagnostics;install({peerBound:16,rtcSourceFrameWitness:options.enabled??true});
     const peer=new globalThis.RTCPeerConnection();
     const tag=(describe=true)=>{
         assert.equal(globalThis.connectPeerTag(peer,'original-connection'),true);
@@ -414,4 +414,95 @@ test('native path shape stays absent on healthy roles default mode and original 
   assert.equal(row.bindings.send.reason,'native-binding-unavailable');assert.equal('native_path_diagnostic'in row.bindings.send,false);
   assert.equal(JSON.stringify(row).includes('PRIVATE'),false);assert.equal(thrown.peer.close(),'original-native-close-return');
  }finally{thrown.restore();}
+});
+
+
+// The production observer sees the ORIGINAL native promise/transport/event
+// graph below. Controlled trusted-event calls are test fixtures, not authority.
+function selectionFixture({twoEarly=false,late=false,unsupported=false,serialized=false}={}){
+ const f=terminalFixture({serialized}),peer=f.peer,local=peer.localDescription,remote=peer.remoteDescription,pair=peer.pair;
+ const listeners=new Map(),extraListeners=new Map();let resolveLocal,rejectLocal,reads=0;
+ const original=new Promise((ok,fail)=>{resolveLocal=ok;rejectLocal=fail;});
+ const nativePrototype=Object.getPrototypeOf(Object.getPrototypeOf(peer));
+ nativePrototype.setLocalDescription=function(){return original;};
+ const attach=(ice,store)=>{ice.onselectedcandidatepairchange=null;ice.onstatechange=null;
+  ice.addEventListener=(kind,fn,options)=>{const rows=store.get(kind)??[];rows.push({fn,capture:options?.capture===true});store.set(kind,rows);};
+  ice.removeEventListener=(kind,fn)=>{store.set(kind,(store.get(kind)??[]).filter(row=>row.fn!==fn));};};
+ attach(peer.ice,listeners);if(unsupported)delete peer.ice.onselectedcandidatepairchange;
+ peer.connectionState='new';peer.iceConnectionState='new';peer.signalingState='have-local-offer';peer.ice.state='new';peer.pair=null;
+ peer.remoteDescription=late?remote:null;
+ const extra={state:'new',getSelectedCandidatePair:()=>null};attach(extra,extraListeners);
+ if(twoEarly)peer.txs.push({mid:'2',sender:{transport:{state:'new',iceTransport:extra}},receiver:{track:{kind:'audio'}}});
+ let counter=1,change=null,blocked=null;
+ const map=()=>{const rows=[
+  ['c',{id:'c',type:'codec',mimeType:'video/VP8',payloadType:120,clockRate:90000}],
+  ['t',{id:'t',type:'transport',dtlsState:'connected',selectedCandidatePairId:'p',selectedCandidatePairChanges:counter}],
+  ['p',{id:'p',type:'candidate-pair',transportId:'t',localCandidateId:'l',remoteCandidateId:'r',state:'succeeded',nominated:true}],
+  ['l',{id:'l',type:'local-candidate',transportId:'t',address:'127.0.0.1',port:50000,protocol:'udp'}],
+  ['r',{id:'r',type:'remote-candidate',transportId:'t',address:'127.0.0.2',port:40000,protocol:'udp'}],
+  ['send',{id:'send',type:'outbound-rtp',kind:'video',ssrc:11,codecId:'c',transportId:'t',packetsSent:7}],
+  ['receive',{id:'receive',type:'inbound-rtp',kind:'video',ssrc:22,codecId:'c',transportId:'t',packetsReceived:9}],
+ ];const report=new Map(rows);change?.(report);return report;};
+ peer.getStats=()=>{reads++;return blocked??Promise.resolve(map());};
+ const emit=(type,trusted=true)=>{for(const row of [...(listeners.get(type)??[])].sort((a,b)=>Number(b.capture)-Number(a.capture)))row.fn({type,isTrusted:trusted,currentTarget:peer.ice});};
+ return {...f,original,emit,extra,listeners,arm:async()=>{const returned=peer.setLocalDescription(local);assert.equal(returned,original);resolveLocal();await returned;},reject:rejectLocal,
+  select(){if(twoEarly)peer.txs.pop();peer.remoteDescription=remote;peer.connectionState='connected';peer.iceConnectionState='connected';peer.signalingState='stable';peer.ice.state='connected';peer.pair={...pair,remote:{address:null,port:40000,protocol:'udp',type:'prflx',candidate:''}};f.tag();emit('selectedcandidatepairchange');emit('statechange');},
+  report:map,setCounter:value=>{counter=value;},setChange:value=>{change=value;},setBlocked:value=>{blocked=value;},reads:()=>reads,
+  listenerCount:()=>[...listeners.values(),...extraListeners.values()].reduce((n,v)=>n+v.length,0),
+  cleanup(){peer.close();assert.equal(this.listenerCount(),0);f.restore();}};
+}
+
+test('early original transport selection epoch binds typed redaction to the same one real Stats read',async()=>{
+ const f=selectionFixture({twoEarly:true,serialized:true});try{await f.arm();assert.equal(f.listenerCount(),4);f.select();
+  const rows=(await globalThis.connectPeerMediaDiagnostics())[0];assert.equal(f.reads(),1);assert.equal(rows.length,2);
+  const epoch=rows[0].selected_path.transport_epoch;assert.deepEqual(epoch,{profile:'connect/rtc-native-selection-epoch/1',transport_id:'p0t1',armed_before_selection:true,initial_selection_count:0,selection_count:1,state_version:2});
+  assert.deepEqual(rows[1].selected_path.transport_epoch,epoch);assert.equal(rows[0].selected_path.selected_candidate_pair_changes,1);
+  assert.equal(rows[0].selected_path.remote.address,'127.0.0.2','Only REAL original Stats contains this address');
+  const snapshot=globalThis.connectPeerPublicBinding('original-connection');assert.equal(snapshot.bindings.send.complete,true);assert.equal(snapshot.bindings.receive.complete,true);
+  for(const role of Object.values(snapshot.bindings)){assert.equal(role.selected_udp_pair.kind,'prflx-address-redacted');assert.equal(role.selected_udp_pair.remote.address,null);assert.deepEqual(role.selected_udp_pair.transport_epoch,epoch);}
+  const saved=JSON.stringify(snapshot);f.setCounter(2);f.emit('selectedcandidatepairchange');assert.equal(JSON.stringify(globalThis.connectPeerPublicBinding('original-connection')),saved,'Original public capture cannot be refreshed');
+  assert.equal(f.peer.close(),'original-native-close-return');assert.equal(f.listenerCount(),0);assert.equal(globalThis.connectPeerDiagnostics().peers[0].live_owner_retained,false);assert.equal(globalThis.connectPeerDiagnostics().peers[0].terminal_binding.complete,true);
+ }finally{f.cleanup();}
+});
+
+test('selection metadata refuses late unsupported synthetic and overflowing epochs without changing native promise outcomes',async()=>{
+ for(const options of [{late:true},{unsupported:true},{}]){const f=selectionFixture(options);try{await f.arm();f.select();
+  if(!options.late&&!options.unsupported)f.emit('selectedcandidatepairchange',false);
+  const rows=(await globalThis.connectPeerMediaDiagnostics())[0];assert(rows.every(row=>!row.selected_path.transport_epoch));
+  assert.equal(globalThis.connectPeerPublicBinding('original-connection').bindings.send.complete,false);
+ }finally{f.cleanup();}}
+ const bounded=selectionFixture();try{await bounded.arm();bounded.select();for(let n=0;n<130;n++)bounded.emit('statechange');
+  assert((await globalThis.connectPeerMediaDiagnostics())[0].every(row=>!row.selected_path.transport_epoch));
+  assert.equal(globalThis.connectPeerPublicBinding('original-connection').bindings.receive.complete,false);
+ }finally{bounded.cleanup();}
+ const rejected=selectionFixture();try{const original=rejected.peer.setLocalDescription(rejected.peer.localDescription),error=Error('exact original rejection');assert.equal(original,rejected.original);rejected.reject(error);await assert.rejects(original,value=>value===error);assert.equal(rejected.listenerCount(),0);}finally{rejected.cleanup();}
+ const late=selectionFixture();try{const pending=late.peer.setLocalDescription(late.peer.localDescription);assert.equal(pending,late.original);late.peer.close();await late.arm();assert.equal(late.listenerCount(),0,'Late original resolution never rearms a closed peer');}finally{late.cleanup();}
+});
+
+test('the original Stats request refuses pending counter state and tuple changes including same tuple selection ABA',async()=>{
+ for(const mutation of ['selection','state','tuple','counter']){const f=selectionFixture();try{await f.arm();f.select();
+  let release;f.setBlocked(new Promise(ok=>{release=ok;}));const pending=globalThis.connectPeerMediaDiagnostics();assert.equal(f.reads(),1);
+  if(mutation==='selection'){f.emit('selectedcandidatepairchange');f.emit('selectedcandidatepairchange');f.setCounter(3);}
+  if(mutation==='state')f.emit('statechange');
+  if(mutation==='tuple')f.peer.pair.remote.port=40001;
+  if(mutation==='counter')f.setCounter(2);
+  release(f.report());const rows=(await pending)[0];assert(rows.every(row=>!row.selected_path.transport_epoch),mutation);assert.equal(rows[0].packetsSent,7);
+ }finally{f.cleanup();}}
+});
+
+test('typed privacy metadata never escapes masked Stats ambiguous transports or contradictory original RTP references',async()=>{
+ const changes=[r=>{delete r.get('t').selectedCandidatePairChanges;},r=>{r.get('r').address=null;},r=>{r.get('p').nominated=false;},r=>{r.get('receive').transportId='foreign';},r=>{r.set('t2',{...r.get('t'),id:'t2'});},r=>{r.get('l').port++;}];
+ for(const change of changes){const f=selectionFixture();try{await f.arm();f.select();f.setChange(change);const rows=(await globalThis.connectPeerMediaDiagnostics())[0];assert(rows.every(row=>!row.selected_path.transport_epoch));assert.equal(f.reads(),1);}finally{f.cleanup();}}
+ const changed=selectionFixture();try{await changed.arm();changed.select();changed.peer.txs[1].receiver.transport={state:'connected',iceTransport:{...changed.peer.ice}};
+  assert((await globalThis.connectPeerMediaDiagnostics())[0].every(row=>!row.selected_path.transport_epoch));assert.equal(globalThis.connectPeerPublicBinding('original-connection').bindings.send.complete,false);
+ }finally{changed.cleanup();}
+});
+
+test('capture phase epoch handler precedes reentrant ordinary callbacks and default mode preserves original promise',async()=>{
+ const f=selectionFixture();let reentrant;const ordinary=()=>{if(f.peer.connectionState==='connected')reentrant=globalThis.connectPeerPublicBinding('original-connection');};try{
+  f.peer.ice.addEventListener('selectedcandidatepairchange',ordinary);
+  await f.arm();f.select();assert.equal(reentrant.bindings.send.selected_udp_pair.transport_epoch.selection_count,1);
+  assert.equal(reentrant.bindings.send.selected_udp_pair.transport_epoch.state_version,1,'FIRST trusted selection callback is already counted before ordinary callback');
+ }finally{f.peer.ice.removeEventListener('selectedcandidatepairchange',ordinary);f.cleanup();}
+ const disabled=terminalFixture({enabled:false});let resolve;const promise=new Promise(ok=>{resolve=ok;});try{const native=Object.getPrototypeOf(Object.getPrototypeOf(disabled.peer));native.setLocalDescription=()=>promise;assert.equal(disabled.peer.setLocalDescription(),promise);resolve();await promise;assert.equal('transport_epoch'in globalThis.connectPeerDiagnostics().peers[0],false);disabled.peer.close();}finally{disabled.restore();}
 });
