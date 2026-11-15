@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-15T01:28:06.198944+00:00",
-  "run_status": "Latest full v218 remains 1/32 cells,399/432 checks. Complete native activation/retirement binding batch applied:163/163 targeted checks+format PASS, real pinned-Firefox serializer API capability PASS, independently reviewed. Prior161/163 and one-way API probe remain failed. Normal local Firefox three-cycle native/Core/closed-wire/quality verification next; then full current regression/local ARM/releases/preflight. No full32 during preparation.",
+  "updated": "2026-11-15T01:59:05.783172+00:00",
+  "run_status": "Latest full v218 remains1/32 cells,399/432 checks. New normal3 failed one20ms audio identity block; all18 nonduplicate video/AV routes and all3 cleanup/capacity cycles passed. Closed forensic8/8 stop at public/Core identity namespace mismatch before wire. Full-rate PCM estimator fix72/72 and native failure-shape18/18 verified; actualaudio cause/lineage/nativeConnect diagnostics remain open. No full32 started.",
   "blockers": [
     {
       "id": "B01",
@@ -18885,5 +18885,81 @@
   "v219_focused449_original_result": "docs/evidence/gate-6/g6-058-v219-focused449-original-result.json",
   "v219_numeric_ice_profile": "docs/evidence/gate-6/g6-058-v219-firefox-numeric-ice.json",
   "v219_public_epoch_witness_main": "docs/evidence/gate-6/g6-058-v219-public-epoch-witness-main.json",
-  "v219_native_binding_boundaries": "docs/evidence/gate-6/g6-058-v219-native-binding-boundaries.json"
+  "v219_native_binding_boundaries": "docs/evidence/gate-6/g6-058-v219-native-binding-boundaries.json",
+  "v219_diagnostics": {
+    "format": "connect/g6-058-v219-diagnostics/1",
+    "updated_at": "2026-11-15T01:59:05.783172+00:00",
+    "source_base": "5599b2d0a9791d886ce9bb0605b18c855f7bacff",
+    "matrix_credit": false,
+    "latest_full_matrix": {
+      "run": "v218",
+      "cells_passed": 1,
+      "cells_required": 32,
+      "checks_passed": 399,
+      "checks_required": 432
+    },
+    "normal_three_cycle": {
+      "owner": ".local/gate-6/v219-public2-firefox3-owner-root",
+      "original_session": 90665,
+      "completion_chunk": "cf14a1",
+      "original_CLI_exit": 1,
+      "component_passed": false,
+      "audio_routes_passed": 17,
+      "audio_routes_total": 18,
+      "nonduplicate_video_routes_passed": 18,
+      "av_routes_passed": 18,
+      "ownership_and_capacity_cycles_passed": 3,
+      "ambiguous_audio": {
+        "milliseconds": 20,
+        "dominance": 7.814030967,
+        "required": 8,
+        "original_PCM_retained": false,
+        "root_cause": "unresolved"
+      }
+    },
+    "closed_video_forensic": {
+      "owner": ".local/gate-6/v219-public2-forensic-root",
+      "original_session": 30678,
+      "completion_chunk": "138ad6",
+      "original_exit": 0,
+      "diagnostic_sha256": "3ee7c5a1597a6b85c165cd6a55bb89b26f031bcd9c25fb05234b0c33ecec0ea2",
+      "all_original_inputs_unchanged": true,
+      "original_failed_flags_preserved": true,
+      "jobs": 8,
+      "observed_bijections": 0,
+      "unknown": 8,
+      "stage": "prepare",
+      "reason": "mapping-source-not-original-authenticated-route",
+      "investigation": "Core physical connection namespace differs from public owner namespace; authoritative identity bridge required, no stream-only inference accepted"
+    },
+    "native_pair_shape": {
+      "independent_source_review": "ae68635239efb15b4da09601499f7ce9aabea0daeb128e50d317ab32847b73f9",
+      "targeted_tests": 18,
+      "passed": true,
+      "result_sha256": "8cdd83d0ecf79273d018f018bbed071c99e829d65779b793cbabb9b3ce38f8db",
+      "actual_Connect_diagnostic": "pending; first launcher correctly refused dirty worktree before starting browser"
+    },
+    "fullrate_pcm_estimator": {
+      "independent_source_review": "5a724d26f89a853476f84f6b62d5a73564d24778f5e0a35c8b25f49688fa1655",
+      "old_whole5": {
+        "tests_passed": 4,
+        "tests_failed": 1,
+        "failure": "all four energetic forbidden high-frequency aliases falsely identified",
+        "result_sha256": "88cfe8df930447dea18319e6f58e7aa449b36bdbc490c7cbc96b56c25711515a"
+      },
+      "fixed_and_retained": {
+        "tests_passed": 72,
+        "tests_failed": 0,
+        "result_sha256": "27c524e4047c0bc2ad4d2154748d5c2d70e8680d2a61290c188d8f404bcbe503"
+      },
+      "thresholds_changed": false,
+      "actual_20ms_audio_cause_or_cure_proved": false
+    },
+    "next": [
+      "actual bounded Connect native-path shape diagnostic",
+      "authoritative public/Core identity mapping fix and negative controls",
+      "bounded original ambiguous PCM retention",
+      "verify all fixes before normal three-cycle and final local ARM readiness checks"
+    ]
+  }
 }

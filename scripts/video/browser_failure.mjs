@@ -264,8 +264,8 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
     if(rtcSourceFrameWitness){
         const boundedId=value=>typeof value==='string'&&value.length>0&&value.length<=256&&!/[\x00-\x1f\x7f]/.test(value);
         const u32=value=>Number.isInteger(value)&&value>=0&&value<=0xffffffff;
-        const capturedReasons=new WeakMap();
-        const fail=reason=>{const marker={};capturedReasons.set(marker,reason);throw marker;};
+        const capturedReasons=new WeakMap(),nativePathDetails=new WeakMap();
+        const fail=(reason,detail)=>{const marker={};capturedReasons.set(marker,reason);if(detail)nativePathDetails.set(marker,detail);throw marker;};
         const reason=(error,fallback)=>{try{return capturedReasons.get(error)??fallback;}catch{return fallback;}};
         const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
         const numericAddress=value=>{
@@ -316,13 +316,59 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
             if(ids.size!==1)fail('source-ssrc-ambiguous');return {primary_ssrc:[...ids][0]};
         };
         const path=transport=>{
-            if(!transport||transport.state!=='connected')fail('dtls-unavailable');const dtlsState=transport.state,ice=transport.iceTransport;
-            if(!ice||!['connected','completed'].includes(ice.state)||typeof ice.getSelectedCandidatePair!=='function')fail('selected-pair-unavailable');
-            const iceState=ice.state,pair=ice.getSelectedCandidatePair();
-            const endpoint=value=>{if(!value||!numericAddress(value.address)||!Number.isInteger(value.port)||value.port<1||value.port>65535||value.protocol!=='udp')fail('selected-pair-unavailable');return {address:value.address,port:value.port,protocol:value.protocol};};
-            if(!pair)fail('selected-pair-unavailable');const local=endpoint(pair.local),remote=endpoint(pair.remote);
+            if(!transport||transport.state!=='connected')fail('dtls-unavailable');
+            const dtlsState=transport.state,ice=transport.iceTransport;
+            const iceState=ice?.state,iceReady=!!ice&&['connected','completed'].includes(iceState);
+            let method,methodRead=false,pairRead=false,pair,local,remote;
+            if(iceReady){method=ice.getSelectedCandidatePair;methodRead=true;}
+            // Failure-only scalar observation of this SAME getter invocation.
+            // No candidate text, hostname, SDP, credentials or exception string.
+            const kind=value=>value===null?'null':typeof value;
+            const address=value=>{
+                if(value===undefined||value===null)return {address_kind:'absent'};
+                if(typeof value!=='string'||value.length>128)return {address_kind:'other'};
+                if(numericAddress(value))return {address_kind:value.includes(':')?'numeric-v6':'numeric-v4',address:value};
+                // Diagnose a valid embedded-IPv4 IPv6 literal without accepting
+                // it into the existing stricter path predicate or normalizing it.
+                if(value.includes(':')&&/^[0-9a-fA-F:.]+$/.test(value)){
+                    try{new URL('http://['+value+']/');return {address_kind:'numeric-v6',address:value};}catch{}
+                }
+                return {address_kind:/^[A-Za-z0-9_-]+\.local\.?$/.test(value)?'mdns':'other'};
+            };
+            const endpointShape=value=>{
+                if(!value)return {read:false};
+                if(!value.present)return {read:true,present:false};
+                const portValid=value.port_read&&Number.isInteger(value.port)&&value.port>0&&value.port<=65535;
+                return {read:true,present:true,...(value.address_read?address(value.address):{address_kind:'not-read'}),
+                    port_kind:!value.port_read?'not-read':portValid?'valid':value.port===undefined||value.port===null?'absent':'invalid',
+                    ...(portValid?{port:value.port}:{}),protocol_kind:!value.protocol_read?'not-read':['udp','tcp'].includes(value.protocol)?value.protocol:
+                        value.protocol===undefined||value.protocol===null?'absent':'other'};
+            };
+            const detail=()=>({profile:'connect/rtc-native-selected-pair-shape/1',
+                ice_state:['new','checking','connected','completed','disconnected','failed','closed'].includes(iceState)?iceState:
+                    iceState===undefined||iceState===null?'absent':'other',
+                dtls_state:dtlsState,method_kind:methodRead?kind(method):'not-read',pair_read:pairRead,pair_present:pairRead?pair!==null&&pair!==undefined:null,
+                pair_kind:pairRead?kind(pair):'not-read',local:endpointShape(local),remote:endpointShape(remote)});
+            const unavailable=()=>fail('selected-pair-unavailable',detail());
+            if(!iceReady||typeof method!=='function')unavailable();
+            pairRead=true;pair=method.call(ice); // Exactly the existing one native API call.
+            if(!pair)unavailable();
+            // Preserve the original short-circuit property order. Failed local
+            // fields do not cause extra remote/port/protocol getter reads.
+            const endpoint=(value,side)=>{
+                const observed={present:!!value};if(side==='local')local=observed;else remote=observed;
+                if(!value)unavailable();
+                observed.address=value.address;observed.address_read=true;
+                if(!numericAddress(observed.address))unavailable();
+                observed.port=value.port;observed.port_read=true;
+                if(!Number.isInteger(observed.port)||observed.port<1||observed.port>65535)unavailable();
+                observed.protocol=value.protocol;observed.protocol_read=true;
+                if(observed.protocol!=='udp')unavailable();
+                return {address:observed.address,port:observed.port,protocol:observed.protocol};
+            };
+            const selectedLocal=endpoint(pair.local,'local'),selectedRemote=endpoint(pair.remote,'remote');
             if(ice.state!==iceState||transport.state!==dtlsState)fail('selected-pair-changed');
-            return {local,remote,ice_state:iceState,dtls_state:dtlsState,basis:'RTCIceTransport.getSelectedCandidatePair'};
+            return {local:selectedLocal,remote:selectedRemote,ice_state:iceState,dtls_state:dtlsState,basis:'RTCIceTransport.getSelectedCandidatePair'};
         };
         const role=(peer,entry,direction)=>{
             try{
@@ -344,7 +390,8 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
                     value.sync_source={source:source.source,rtpTimestamp:source.rtpTimestamp,timestamp:source.timestamp,timestamp_clock:'native-uninterpreted'};
                 }
                 return freeze(value);
-            }catch(error){return freeze({complete:false,reason:reason(error,'native-binding-unavailable')});}
+            }catch(error){const detail=nativePathDetails.get(error);return freeze({complete:false,reason:reason(error,'native-binding-unavailable'),
+                ...(detail?{native_path_diagnostic:detail}:{})});}
         };
         const bindingCapture=(peer,entry,profile)=>{
             const began=performance.now();let value={profile,peer_index:entry.peer_index,connection_id:entry.connection_id,

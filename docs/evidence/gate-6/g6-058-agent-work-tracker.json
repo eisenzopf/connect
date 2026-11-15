@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T01:28:06.198944+00:00",
-  "revision": 85,
+  "updated_at": "2026-11-15T01:59:05.783172+00:00",
+  "revision": 86,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 144,
-    "verified_at": "2026-11-15T01:28:06.198944+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-native-binding.json",
-    "readback_evidence_sha256": "968c2c04f84f74fa32b71e381da32f5d59abba44e22363dedebd7f38e04a3013",
+    "content_revision": 145,
+    "verified_at": "2026-11-15T01:59:05.783172+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-diagnostics.json",
+    "readback_evidence_sha256": "05e695412604251d43ed947c60a5ac57b35e9080d2b31141f016338442496b26",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -4465,6 +4465,15 @@
       "at": "2026-11-13T04:48:07.477612+00:00",
       "revision": 65,
       "event": "Actualcomplete362+correctednormalshippingPASS on1fc; preserved runner/preflightfailures, calibrated authenticatedMac52fixture and16units; newsourcequalification before32/432."
+    },
+    {
+      "at": "2026-11-15T01:59:05.783172+00:00",
+      "revision": 86,
+      "checkpoint": {
+        "status": "fixing actual audio identity and native/Core evidence; not ready for full32",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-diagnostics.json",
+        "sha256": "67a36ac2f9ba49a3cf3d69749226fbe2b2a1fc6cfa0773afd2b52fefaace34c1"
+      }
     }
   ],
   "tracking_review": {
@@ -6094,9 +6103,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v219-native-binding-boundaries.json",
-    "sha256": "0021ac378574f276ce4b20d1df12a6261bbc1c7393af8979e4a15ec6dffda161",
-    "ready": false,
-    "next": "Fresh normal local Firefox three-cycle programme must prove actual native/Core/closed-wire frame association and quality/cleanup; then current full regression/localARM/releases/preflight. No full32 during preparation."
+    "status": "fixing actual audio identity and native/Core evidence; not ready for full32",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-diagnostics.json",
+    "sha256": "67a36ac2f9ba49a3cf3d69749226fbe2b2a1fc6cfa0773afd2b52fefaace34c1"
   }
 }

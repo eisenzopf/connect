@@ -6,10 +6,12 @@ const check=(ok,message)=>{if(!ok)throw Error(message);};
 export function pcmIdentity(samples,expected) {
     check(samples.length===960&&Number.isInteger(expected)&&expected>=0&&expected<4,'Mono 20ms source identity');
     let energy=0;for(const value of samples){check(Number.isFinite(value),'Finite decoded PCM');energy+=value*value;}
+    // Project the original 48kHz block directly. Unfiltered 8:1 sampling
+    // folds other decoded frequencies into the four authored source tones.
     const powers=frequencies.map(hz=>{
-        const coefficient=2*Math.cos(2*Math.PI*hz/6000);let a=0,b=0;
-        for(let i=0;i<samples.length;i+=8){const value=samples[i]+coefficient*a-b;b=a;a=value;}
-        return (a*a+b*b-coefficient*a*b)/120**2;
+        const coefficient=2*Math.cos(2*Math.PI*hz/48000);let a=0,b=0;
+        for(let i=0;i<samples.length;i++){const value=samples[i]+coefficient*a-b;b=a;a=value;}
+        return (a*a+b*b-coefficient*a*b)/960**2;
     });
     const rms=Math.sqrt(energy/samples.length),wrong=Math.max(...powers.filter((_,i)=>i!==expected));
     // Source recognition and usable-volume availability are independent.

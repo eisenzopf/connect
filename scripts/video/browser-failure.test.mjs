@@ -357,3 +357,47 @@ test('public native capture is opt-in unavailable on ambiguous owner and never r
         assert.equal(f.peer.close(),'original-native-close-return');assert.equal(other.close(),'original-native-close-return');
     }finally{f.restore();}
 });
+
+
+test('failed native selected pair retains bounded actual shape without another API or sensitive candidate text',()=>{
+ const cases=[
+  [peer=>{peer.transport.iceTransport=undefined;},d=>{assert.equal(d.ice_state,'absent');assert.equal(d.pair_read,false);},0],
+  [peer=>{peer.ice.state='failed';},d=>{assert.equal(d.ice_state,'failed');assert.equal(d.pair_read,false);},0],
+  [peer=>{peer.ice.state='failed';Object.defineProperty(peer.ice,'getSelectedCandidatePair',{get(){throw Error('PRIVATE-MUST-NOT-READ');}});},d=>assert.equal(d.method_kind,'not-read'),0],
+  [peer=>{peer.pair.local.address='PRIVATE-LOCAL.local';Object.defineProperty(peer.pair,'remote',{get(){throw Error('PRIVATE-MUST-NOT-READ');}});Object.defineProperty(peer.pair.local,'port',{get(){throw Error('PRIVATE-MUST-NOT-READ');}});},d=>{assert.equal(d.local.address_kind,'mdns');assert.equal(d.local.port_kind,'not-read');assert.equal(d.remote.read,false);},2],
+  [peer=>{peer.ice.getSelectedCandidatePair=undefined;},d=>{assert.equal(d.method_kind,'undefined');assert.equal(d.pair_read,false);},0],
+  [peer=>{peer.pair=null;},d=>{assert.equal(d.pair_present,false);assert.equal(d.pair_kind,'null');},2],
+  [peer=>{peer.pair.local.address='PRIVATE-UNIQUE-HOST.local';},d=>{assert.equal(d.local.address_kind,'mdns');assert.equal('address'in d.local,false);},2],
+  [peer=>{peer.pair.remote.protocol='tcp';},d=>{assert.equal(d.remote.protocol_kind,'tcp');assert.equal(d.remote.port,40000);},2],
+  [peer=>{peer.pair.local.port='PRIVATE-PORT';},d=>{assert.equal(d.local.port_kind,'invalid');assert.equal('port'in d.local,false);},2],
+  [peer=>{peer.pair.remote.protocol='PRIVATE-PROTOCOL';},d=>assert.equal(d.remote.protocol_kind,'other'),2],
+  [peer=>{peer.pair.local.address='::ffff:192.168.1.215';},d=>{assert.equal(d.local.address_kind,'numeric-v6');assert.equal(d.local.address,'::ffff:192.168.1.215');},2],
+ ];
+ for(const [change,check,pairCalls]of cases){const f=terminalFixture();try{
+  f.tag();change(f.peer);const snapshot=globalThis.connectPeerPublicBinding('original-connection');
+  assert.equal(snapshot.complete,true);assert.equal(snapshot.bindings.send.complete,false);assert.equal(snapshot.bindings.receive.complete,false);
+  for(const role of Object.values(snapshot.bindings)){
+   assert.equal(role.reason,'selected-pair-unavailable');const detail=role.native_path_diagnostic;
+   assert.equal(detail.profile,'connect/rtc-native-selected-pair-shape/1');check(detail);assert(Object.isFrozen(detail));
+   const encoded=JSON.stringify(detail);for(const word of ['PRIVATE','candidate:','DO-NOT-COPY','ufrag','sdp','password','error'])assert.equal(encoded.includes(word),false);
+  }
+  assert.equal(f.counts.pair,pairCalls);assert.equal(f.counts.stats,0);assert.equal(f.counts.sync,0);assert.equal(f.counts.close,0);
+  assert.equal(globalThis.connectPeerPublicBinding('original-connection'),snapshot);assert.equal(f.counts.pair,pairCalls);
+  assert(new TextEncoder().encode(JSON.stringify(snapshot)).byteLength<=32768);
+  assert.equal(f.peer.close(),'original-native-close-return');
+ }finally{f.restore();}}
+});
+
+test('native path shape stays absent on healthy roles default mode and original getter exceptions',()=>{
+ const healthy=terminalFixture();try{healthy.tag();const row=globalThis.connectPeerPublicBinding('original-connection');
+  assert.equal(row.bindings.send.complete,true);assert.equal(row.bindings.receive.complete,true);
+  assert.equal('native_path_diagnostic'in row.bindings.send,false);assert.equal(healthy.counts.pair,2);assert.equal(healthy.counts.stats,0);
+  healthy.peer.close();
+ }finally{healthy.restore();}
+ const disabled=terminalFixture({enabled:false});try{disabled.peer.close();assert.equal(disabled.counts.pair,0);assert.equal('terminal_binding'in disabled.report(),false);}finally{disabled.restore();}
+ const thrown=terminalFixture();try{thrown.tag();thrown.peer.pairError=Error('PRIVATE-GETTER-ERROR');
+  const row=globalThis.connectPeerPublicBinding('original-connection');assert.equal(thrown.counts.pair,2);
+  assert.equal(row.bindings.send.reason,'native-binding-unavailable');assert.equal('native_path_diagnostic'in row.bindings.send,false);
+  assert.equal(JSON.stringify(row).includes('PRIVATE'),false);assert.equal(thrown.peer.close(),'original-native-close-return');
+ }finally{thrown.restore();}
+});
