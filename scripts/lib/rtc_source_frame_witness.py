@@ -123,59 +123,213 @@ def mapping_summaries(path, original_server_pid, deadline=None):
 
 class StatsIndex:
     def __init__(self, cycle, deadline=None):
-        self.samples = cycle['decoded_media']['rtc_media_pipeline']['samples']
+        self.cycle = cycle
+        pipeline = cycle['decoded_media']['rtc_media_pipeline']
+        self.samples = pipeline['samples']
         need(isinstance(self.samples, list) and len(self.samples) <= 256, 'bounded-original-statistics')
-        self.requested = array('d', (sample['requested_seconds'] for sample in self.samples))
-        self.completed = array('d', (sample['completed_seconds'] for sample in self.samples))
-        need(all(math.isfinite(value) for value in self.requested) and all(math.isfinite(value) for value in self.completed)
-             and all(a <= b for a, b in zip(self.requested, self.requested[1:]))
-             and all(a <= b for a, b in zip(self.completed, self.completed[1:])), 'original-statistics-clock')
-        self.receiver_owners = {}
+        self.requested = array('d', (s['requested_seconds'] for s in self.samples))
+        self.completed = array('d', (s['completed_seconds'] for s in self.samples))
+        need(all(math.isfinite(v) for v in self.requested) and all(math.isfinite(v) for v in self.completed)
+             and all(a <= b for a,b in zip(self.requested,self.requested[1:]))
+             and all(a <= b for a,b in zip(self.completed,self.completed[1:])), 'original-statistics-clock')
+        self.boundaries = pipeline.get('binding_boundaries')
+        self.receiver_owners, self.cache = {}, {}
+        self.boundary_bytes_checked=False
+        self.deadline = time.monotonic()+30 if deadline is None else deadline
         for sample in self.samples:
             for group in sample['peers']:
                 for row in group:
-                    original = row.get('original_track') or {}
-                    if row.get('type') == 'inbound-rtp' and row.get('kind') == 'video' and isinstance(original.get('stream_id'), str):
-                        self.receiver_owners.setdefault(original['stream_id'], set()).add(original.get('connection_id'))
-        self.cache = {}
-        self.deadline = time.monotonic() + 30 if deadline is None else deadline
+                    tag=row.get('original_track') or {}
+                    if row.get('type')=='inbound-rtp' and row.get('kind')=='video' and isinstance(tag.get('stream_id'),str):
+                        self.receiver_owners.setdefault(tag['stream_id'],set()).add(tag.get('connection_id'))
+        if isinstance(self.boundaries,dict):
+            for peer in self.boundaries.get('peers',[]):
+                for name in ('public_binding','terminal_binding'):
+                    tag=(((peer.get(name) or {}).get('bindings') or {}).get('receive') or {}).get('original_track') or {}
+                    if isinstance(tag.get('stream_id'),str):
+                        self.receiver_owners.setdefault(tag['stream_id'],set()).add(tag.get('connection_id'))
 
-    def get(self, owner, direction, first, last, *, stream=None, track=None, ssrc=None):
-        need(time.monotonic() < self.deadline, 'closed-metadata-time-bound')
-        lo, hi = bisect_right(self.completed, first) - 1, bisect_left(self.requested, last)
-        need(0 <= lo <= hi < len(self.samples), 'owner-statistics-do-not-bracket-pair')
-        need(first - self.completed[lo] <= 2 and self.requested[hi] - last <= 2, 'owner-statistics-too-distant')
-        key = (owner, direction, lo, hi, stream, track, ssrc)
-        if key in self.cache: return self.cache[key]
-        need(len(self.cache) < 16384, 'original-statistics-cache-bound')
-        selected = self.samples[lo:hi + 1]
-        values = []
-        for sample in selected:
-            rows = [r for group in sample["peers"] for r in group if r.get("connection_id") == owner
-                    and r.get("kind") == "video" and r.get("type") == direction
-                    and r.get("codec", {}).get("mime_type", "").lower() == "video/vp8"]
-            need(len(rows) == 1, "owner-statistics-ambiguous")
-            row = rows[0]
-            original = row.get("original_track") or {}
-            need(original.get("connection_id") == owner and isinstance(original.get("track_id"), str)
-                 and isinstance(original.get("stream_id"), str), "original-peer-track-unproved")
-            need((stream is None or original["stream_id"] == stream)
-                 and (track is None or original["track_id"] == track)
-                 and (ssrc is None or row.get("ssrc") == ssrc), "original-track-or-ssrc-changed")
-            if direction == 'inbound-rtp':
-                need(self.receiver_owners.get(original['stream_id']) == {owner}, 'ambiguous-observed-target-owner')
-            path, codec = row.get("selected_path") or {}, row["codec"]
-            need(path.get("nominated") is True and path.get("succeeded") is True, "selected-path-unproved")
-            for end in (path.get("local"), path.get("remote")):
-                need(isinstance(end, dict) and end.get("protocol") == "udp"
-                     and uint(end.get("port"), 16) and end["port"] > 0, "selected-udp-tuple-unavailable")
-                ipaddress.ip_address(end["address"])
-            need(codec.get("clock_rate") == 90000 and uint(codec.get("payload_type"), 7)
-                 and uint(row.get("ssrc"), 32), "original-vp8-clock-profile")
-            values.append({"track": original, "path": path, "ssrc": row["ssrc"], "codec": codec})
-        need(all(v == values[0] for v in values), "source-or-receiver-state-changed")
-        self.cache[key] = values[0]
-        return values[0]
+    def rows(self, number, owner, direction):
+        return [r for group in self.samples[number]['peers'] for r in group if r.get('connection_id')==owner
+                and r.get('kind')=='video' and r.get('type')==direction]
+
+    def endpoint(self,number,owner,direction):
+        rows=self.rows(number,owner,direction)
+        return bool(rows) and (len(rows)!=1 or rows[0].get('original_track') is not None)
+
+    def snapshot(self, number, owner, direction, stream, track, ssrc, allow_unbound=False):
+        rows=self.rows(number,owner,direction)
+        need(len(rows)==1,'owner-statistics-ambiguous')
+        row=rows[0];original=row.get('original_track')
+        unbound=allow_unbound and original is None
+        if not unbound:
+            original=original or {}
+            need(original.get('connection_id')==owner and isinstance(original.get('track_id'),str)
+                 and isinstance(original.get('stream_id'),str),'original-peer-track-unproved')
+            need((stream is None or original['stream_id']==stream) and (track is None or original['track_id']==track),
+                 'original-track-or-ssrc-changed')
+            if direction=='inbound-rtp':
+                need(self.receiver_owners.get(original['stream_id'])=={owner},'ambiguous-observed-target-owner')
+        need(ssrc is None or row.get('ssrc')==ssrc,'original-track-or-ssrc-changed')
+        path,codec=row.get('selected_path') or {},row.get('codec') or {}
+        need(codec.get('mime_type','').lower()=='video/vp8' and codec.get('clock_rate')==90000
+             and uint(codec.get('payload_type'),7) and uint(row.get('ssrc'),32),'original-vp8-clock-profile')
+        need(path.get('nominated') is True and path.get('succeeded') is True,'selected-path-unproved')
+        for end in (path.get('local'),path.get('remote')):
+            need(isinstance(end,dict) and end.get('protocol')=='udp' and uint(end.get('port'),16)
+                 and end['port']>0,'selected-udp-tuple-unavailable')
+            ipaddress.ip_address(end['address'])
+        return dict(track=original,path=path,ssrc=row['ssrc'],codec=codec,peer_index=row.get('peer_index'))
+
+    def get(self,owner,direction,first,last,*,stream=None,track=None,ssrc=None,coordinates=None):
+        need(time.monotonic()<self.deadline,'closed-metadata-time-bound')
+        lo,hi=bisect_right(self.completed,first)-1,bisect_left(self.requested,last)
+        key=(owner,direction,lo,hi,stream,track,ssrc)
+        if key in self.cache:
+            value=self.cache[key]
+            if 'native_binding_boundary' not in value:
+                need(first-self.completed[lo]<=2 and self.requested[hi]-last<=2,'owner-statistics-too-distant')
+            self.coordinate_bound(value,first,last,coordinates);return value
+        need(len(self.cache)<16384,'original-statistics-cache-bound')
+        # The normal actual-snapshot bracket remains preferred and unchanged.
+        if 0<=lo<=hi<len(self.samples) and all(self.endpoint(i,owner,direction) for i in range(lo,hi+1)):
+            need(first-self.completed[lo]<=2 and self.requested[hi]-last<=2,'owner-statistics-too-distant')
+            values=[self.snapshot(i,owner,direction,stream,track,ssrc) for i in range(lo,hi+1)]
+            need(all(v==values[0] for v in values),'source-or-receiver-state-changed')
+            self.cache[key]=values[0];return values[0]
+        need(self.boundaries is not None,'owner-statistics-ambiguous' if 0<=lo<=hi<len(self.samples) else 'owner-statistics-do-not-bracket-pair')
+        # A boundary NEVER manufactures both endpoints. One original, complete,
+        # actual RTP snapshot must remain on the opposite side of the pair.
+        lows=[i for i in range(max(0,lo+1)) if self.endpoint(i,owner,direction)]
+        highs=[i for i in range(hi,len(self.samples)) if self.endpoint(i,owner,direction)]
+        have_lo=bool(lows) and first-self.completed[lows[-1]]<=2
+        have_hi=bool(highs) and self.requested[highs[0]]-last<=2
+        need(have_lo != have_hi,'native-boundary-needs-one-real-rtp-endpoint')
+        public=have_hi;actual=highs[0] if public else lows[-1]
+        value=self.snapshot(actual,owner,direction,stream,track,ssrc)
+        anchor,provenance=self.anchor(owner,direction,first,last,value,public,coordinates)
+        captured=(anchor['captured_at_ms']-self.boundaries['origin_ms'])/1000
+        # Every available regular row across the original missing bracket is
+        # still authoritative. Missing interior rows cannot become a boundary.
+        start=min(actual,max(0,lo));end=max(actual,min(len(self.samples)-1,hi))
+        for i in range(start,end+1):
+            if self.rows(i,owner,direction):
+                observed=self.snapshot(i,owner,direction,stream,track,ssrc,allow_unbound=True)
+                if observed['track'] is not None:
+                    need(observed==value,'contradictory-regular-statistics');continue
+                need(public and direction=='inbound-rtp','null-tag-is-not-a-public-receiver-head')
+                # A prepared peer can have actual RTP rows before its exact
+                # receive tag is installed at public activation. No identity is
+                # invented for that row: all available real fields must agree.
+                need(all(observed[key]==value[key] for key in ('path','ssrc','codec','peer_index')),
+                     'contradictory-unbound-regular-statistics')
+            if public:
+                need(self.samples[i]['requested_seconds']<=captured,'public-cannot-explain-later-missing-statistics')
+            else:
+                need(self.samples[i]['completed_seconds']>=captured,'terminal-cannot-explain-earlier-missing-statistics')
+        provenance['actual_rtp_snapshot']=actual
+        result={**value,'native_binding_boundary':provenance}
+        self.cache[key]=result;return result
+
+    def coordinate_bound(self,value,first,last,coordinates):
+        proof=value.get('native_binding_boundary')
+        if proof is None:return
+        public=proof['profile']=='connect/rtc-native-public-binding/1'
+        actual=proof['actual_rtp_snapshot']
+        need((self.requested[actual]-last if public else first-self.completed[actual])<=2,'owner-statistics-too-distant')
+        captured=(proof['captured_at_ms']-self.boundaries['origin_ms'])/1000
+        done=(proof['captured_done_at_ms']-self.boundaries['origin_ms'])/1000
+        need(abs(captured-(first if public else last))<=2,'native-binding-too-distant')
+        if public:need(done<=first,'public-binding-after-pair')
+        if proof['direction']=='receive':
+            need(isinstance(coordinates,(list,tuple)) and len(coordinates)==2 and all(uint(v,32) for v in coordinates),
+                 'native-binding-pair-coordinate-missing')
+            reported=proof['reported_rtp_timestamp']
+            need((delta(coordinates[0],reported)>=0 if public else delta(reported,coordinates[1])>=0),
+                 'native-binding-reported-coordinate-does-not-cover-pair')
+
+    def anchor(self,owner,direction,first,last,value,public,coordinates):
+        data=self.boundaries
+        need(isinstance(data,dict) and data.get('profile')=='connect/rtc-native-binding-boundaries/1'
+             and data.get('complete') is True and isinstance(data.get('peers'),list) and len(data['peers'])<=16,
+             'native-binding-collection-incomplete')
+        if not self.boundary_bytes_checked:
+            for peer in data['peers']:
+                for name in ('public_binding','terminal_binding'):
+                    record=peer.get(name)
+                    if record is not None:
+                        need(len(json.dumps(record,separators=(',',':'),ensure_ascii=False).encode('utf-8'))<=32768,
+                             'native-binding-record-byte-bound')
+            need(time.monotonic()<self.deadline,'closed-metadata-time-bound')
+            self.boundary_bytes_checked=True
+        origin=data.get('origin_ms')
+        need(type(origin) in (int,float) and math.isfinite(origin)
+             and origin==self.cycle['programme']['source_programme']['originMs'],'native-binding-original-clock-unproved')
+        found=[entry for entry in data['peers'] if entry.get('connection_id')==owner]
+        need(len(found)==1,'native-binding-original-peer-ambiguous')
+        entry=found[0];name='public_binding' if public else 'terminal_binding'
+        a=entry.get(name) or {};profile='connect/rtc-native-'+('public' if public else 'terminal')+'-binding/1'
+        need(a.get('profile')==profile and a.get('complete') is True and a.get('connection_id')==owner
+             and uint(entry.get('peer_index'),8) and entry['peer_index']<16 and a.get('peer_index')==entry['peer_index']
+             and value['peer_index']==entry['peer_index'],'native-binding-original-peer-unproved')
+        times=[a.get(k) for k in ('captured_at_ms','captured_done_at_ms')]
+        need(all(type(v) in (int,float) and math.isfinite(v) for v in times) and 0<=times[0]<=times[1],
+             'native-binding-clock-invalid')
+        captured,done=((v-origin)/1000 for v in times)
+        need(abs(captured-(first if public else last))<=2,'native-binding-too-distant')
+        if public:
+            need(done<=first,'public-binding-after-pair')
+            ledger=[]
+            for record in self.cycle['decoded_media'].get('source_frame_public_owners',[]):
+                for interval in public_intervals(self.cycle,record['route']):
+                    if interval['owner']==owner:ledger.append((record['route'],interval))
+            need(len(ledger)==1,'public-binding-owner-ledger-ambiguous')
+            route,interval=ledger[0];link=interval.get('native_public_binding') or {}
+            need(link.get('profile')=='connect/rtc-validated-public-binding/1' and link.get('complete') is True
+                 and link.get('route')==route and link.get('connection_id')==owner and link.get('previous')==interval['previous']
+                 and link.get('operation_id')==interval['operation_id'] and link.get('cut_ms')==interval['start_ms']
+                 and link.get('basis')==interval['basis'] and link.get('peer_index')==entry['peer_index']
+                 and link.get('captured_at_ms')==times[0] and link.get('captured_done_at_ms')==times[1],
+                 'validated-public-binding-operation-unproved')
+            need(interval['operation_id'] is None or captured>=interval['start_ms']/1000,'public-binding-predates-original-cut')
+        else:
+            closed=a.get('native_closed_at_ms')
+            need(a.get('native_close_observed') is True and type(closed) in (int,float)
+                 and math.isfinite(closed) and closed>=times[1],'terminal-original-close-unproved')
+        role='receive' if direction=='inbound-rtp' else 'send';binding=(a.get('bindings') or {}).get(role) or {}
+        tag=binding.get('original_track') or {}
+        need(binding.get('complete') is True and binding.get('track_state') in ('live','ended') and tag==value['track']
+             and uint(tag.get('transceiver_index'),8) and isinstance(tag.get('mid'),str)
+             and re.fullmatch(r'[A-Za-z0-9_-]{1,64}',tag['mid']),'native-binding-original-tag-or-mid-changed')
+        path=binding.get('selected_udp_pair') or {}
+        need(path.get('basis')=='RTCIceTransport.getSelectedCandidatePair' and path.get('ice_state') in ('connected','completed')
+             and path.get('dtls_state')=='connected','native-binding-selected-path-unproved')
+        for side in ('local','remote'):
+            aend,bend=path.get(side) or {},value['path'][side]
+            need(aend.get('protocol')==bend.get('protocol')=='udp' and aend.get('port')==bend.get('port')
+                 and str(ipaddress.ip_address(aend['address']))==str(ipaddress.ip_address(bend['address'])),
+                 'native-binding-selected-path-changed')
+        codec=value['codec']
+        for side in ('local','remote'):
+            declarations=(binding.get('codec_declarations') or {}).get(side)
+            need(isinstance(declarations,list) and len(declarations)<=32 and len([d for d in declarations
+                 if d.get('payload_type')==codec['payload_type'] and d.get('mime_type','').lower()==codec['mime_type'].lower()
+                 and d.get('clock_rate')==codec['clock_rate']])==1,'native-binding-codec-declarations-changed')
+        if role=='receive':
+            sync=binding.get('sync_source') or {}
+            need(sync.get('source')==value['ssrc'] and uint(sync.get('rtpTimestamp'),32)
+                 and sync.get('timestamp_clock')=='native-uninterpreted' and type(sync.get('timestamp')) in (int,float)
+                 and math.isfinite(sync['timestamp']),'native-binding-receiver-source-unproved')
+            need(isinstance(coordinates,(list,tuple)) and len(coordinates)==2 and all(uint(v,32) for v in coordinates),
+                 'native-binding-pair-coordinate-missing')
+            need((delta(coordinates[0],sync['rtpTimestamp'])>=0 if public else delta(sync['rtpTimestamp'],coordinates[1])>=0),
+                 'native-binding-reported-coordinate-does-not-cover-pair')
+        else:
+            need(uint(binding.get('primary_ssrc'),32) and binding['primary_ssrc']==value['ssrc'],
+                 'native-binding-sender-primary-changed')
+        return a,dict(profile=profile,connection_id=owner,peer_index=entry['peer_index'],direction=role,
+                      captured_at_ms=times[0],captured_done_at_ms=times[1],
+                      reported_rtp_timestamp=(binding.get('sync_source') or {}).get('rtpTimestamp'))
 
 
 def stable_stats(cycle, owner, direction, first, last, *, stream=None, track=None, ssrc=None):
@@ -630,7 +784,7 @@ def prepare_pair(cycle, route, pair, summaries, stats=None):
     need(1 <= a['callback_seconds'] < b['callback_seconds'] < 61, 'outside-public-quality-window')
     within_public(public_intervals(cycle, route['route']), a['owner'], pa['stream_id'], a['callback_seconds'], b['callback_seconds'], 'receive')
     stats = stats or StatsIndex(cycle)
-    receiver = stats.get(a['owner'], 'inbound-rtp', a['callback_seconds'], b['callback_seconds'], stream=pa['stream_id'], track=pa['track_id'])
+    receiver = stats.get(a['owner'], 'inbound-rtp', a['callback_seconds'], b['callback_seconds'], stream=pa['stream_id'], track=pa['track_id'], coordinates=[pa['rtpTimestamp'],pb['rtpTimestamp']])
     timeline, epoch = epoch_for_pair(summaries, receiver, pa['rtpTimestamp'], pb['rtpTimestamp'])
     selected = [source for source in cycle['programme']['sources']['sources'] if source.get('index') == route['source_route_index']]
     need(len(selected) == 1 and any(binding['connection_id'] == epoch['source_connection'] for binding in selected[0]['attachments']), 'mapping-source-not-original-authenticated-route')
@@ -640,7 +794,8 @@ def prepare_pair(cycle, route, pair, summaries, stats=None):
     if source_cipher is not None and receiver_cipher is not None: need(source_cipher == receiver_cipher, 'different-srtp-wire-profiles')
     output_ts = [pa['rtpTimestamp'], pb['rtpTimestamp']]
     return dict(timeline=timeline, epoch=epoch, source_flow=packet_flow(source, True), target_flow=packet_flow(receiver, False),
-                input_ts=[(value - epoch['timestamp_offset']) % 2**32 for value in output_ts], output_ts=output_ts)
+                input_ts=[(value - epoch['timestamp_offset']) % 2**32 for value in output_ts], output_ts=output_ts,
+                native_binding_boundaries=[value['native_binding_boundary'] for value in (source,receiver) if 'native_binding_boundary' in value])
 
 
 def prepare_association_control(cycle, summaries, censuses=None, stats=None):
@@ -677,7 +832,11 @@ def finalize(report, browser_folder, server_log, pcap_path):
     cycle_bytes = 0
     statistics = []
     census_bytes = {}
+    boundary_used = {}
     def request(prepared, cycle_index, route_index, reference, control=False):
+        for binding in prepared.get('native_binding_boundaries', []):
+            key=(cycle_index,binding['profile'],binding['peer_index'],binding['direction'])
+            boundary_used[key]=dict(cycle=cycle_index,**binding)
         key = (prepared['timeline'], prepared['epoch']['ordinal'], prepared['source_flow'], prepared['target_flow'])
         context = context_ids.get(key)
         if context is None:
@@ -714,7 +873,7 @@ def finalize(report, browser_folder, server_log, pcap_path):
     grouped = [[] for _ in contexts]
     for number, value in enumerate(requests): grouped[value[0]].append(number)
     auxiliary = metadata_size(requests, grouped, contexts, context_ids, windows, [value.cache for value in statistics],
-                              [value.requested for value in statistics], [value.completed for value in statistics], [value.receiver_owners for value in statistics], deadline=deadline)
+                              [value.requested for value in statistics], [value.completed for value in statistics], [value.receiver_owners for value in statistics], [value.boundaries for value in statistics], boundary_used, deadline=deadline)
     headers = capture_headers(pcap_path, report['packet_capture'], windows, cycles=len(cycles), deadline=deadline, auxiliary_bytes=auxiliary)
     compact, control_facts = [], []
     for context_id, numbers in enumerate(grouped):
@@ -747,7 +906,8 @@ def finalize(report, browser_folder, server_log, pcap_path):
             if control['cycle'] == cycle_index:
                 used.update(i for i, context in enumerate(contexts) if context['timeline'] == control['timeline'] and context['epoch']['ordinal'] == control['epoch'])
         encoded = json.dumps(dict(proofs=selected, epochs=[dict(timeline=contexts[i]['timeline'], epoch=contexts[i]['epoch']) for i in used],
-            controls=[control for control in control_facts if control['cycle'] == cycle_index]), separators=(',', ':')).encode()
+            controls=[control for control in control_facts if control['cycle'] == cycle_index],
+            native_binding_boundaries=[value for value in boundary_used.values() if value['cycle']==cycle_index]), separators=(',', ':')).encode()
         need(len(used) <= 10 * 32 and size + len(encoded) <= WITNESS_CYCLE_BYTES, 'final-cycle-witness-byte-bound')
         need(time.monotonic() < deadline, 'closed-metadata-time-bound')
 
@@ -775,6 +935,7 @@ def finalize(report, browser_folder, server_log, pcap_path):
         source_revision=report['source_revision'], original_server_pid=actual[0]['original_pid'], association_controls=control_facts,
         proof_json=proof_json, proof_rows=len(compact), proof_layout=['cycle','route','original_pair_reference','epoch_descriptor','matched_packets'],
         epochs=[dict(timeline=value['timeline'], epoch=value['epoch']) for value in contexts],
+        native_binding_boundaries_used=list(boundary_used.values()),
         header_index_accounted_bytes=index_accounted, header_index_peak_scratch_bytes=index_scratch,
         scope='Prospective exact public-owner/source-origin predicate only; all original quality rows and historical results unchanged')
     need(len(json.dumps(final, separators=(',', ':')).encode()) <= CYCLES_JSON_BYTES, 'final-private-browser-byte-bound')

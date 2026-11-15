@@ -510,3 +510,37 @@ test('audio lifetime witness caps state metadata and restores only its own proto
  assert.equal(f.context.listeners.size,0);assert.equal(f.context.closes,0);assert.equal(f.Context.prototype.close,f.originals.close);
  assert.ok(f.nodes.every(node=>node.port.closed&&node.disconnected));f.Source.prototype.disconnect=f.originals.disconnect;
 }));
+
+
+test('actual capture success pins attached sender once without replacing original promise or capture outcome',async()=>{
+ const names=['MediaStreamAudioSourceNode','CanvasRenderingContext2D','HTMLVideoElement','connectPeerStreamTag'];
+ const saved=names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]);
+ class MediaStreamAudioSourceNode{connect(){}}
+ class CanvasRenderingContext2D{drawImage(){}}
+ class HTMLVideoElement{requestVideoFrameCallback(){}}
+ let settle,reject,next,mode='async',pins=[];const tx={sender:{track:null}},track={id:'original-track'};
+ class Rtc{constructor(){this.input={connectionId:'original',video:'video',receiveVideo:'receive'};this.remote=new Map();this.peer={};this.senders=new Map([['video',tx]]);}
+  render(){}capture(){if(mode==='throw')throw next;if(mode==='sync'){tx.sender.track=track;return next;}
+   const original=new Promise((done,fail)=>{settle=()=>{tx.sender.track=track;done(next);};reject=fail;});this.original=original;return original;}}
+ Object.assign(globalThis,{MediaStreamAudioSourceNode,CanvasRenderingContext2D,HTMLVideoElement,
+  connectPeerStreamTag:(...args)=>{pins.push(args);if(args[3]==='send')assert.equal(args[4].sender.track,track);else assert.equal(args[4],track);return true;}});
+ const observer=browserMatrixRtcObservation(Rtc,{audio(){},video(){},invalid(){}}),rtc=new Rtc();
+ try{
+  next={originalOwner:true};const original=rtc.capture();assert.equal(original,rtc.original);assert.equal(pins.length,0);
+  settle();assert.equal(await original,next);assert.equal(pins.length,1);assert.equal(pins[0][4],tx);
+  assert.equal(observer.registerPublicReceive('original','receive'),false,'Capture can succeed before ontrack');
+  rtc.remote.set('receive',track);
+  assert.equal(observer.registerPublicReceive('original','wrong'),false);
+  assert.equal(observer.registerPublicReceive('original','receive'),true);assert.equal(pins.pop()[3],'receive');
+  tx.sender.track=null;const failure=Error('original-rejection');const refused=rtc.capture();reject(failure);
+  await assert.rejects(refused,error=>error===failure);assert.equal(pins.length,1);
+  mode='throw';next=Error('original-throw');assert.throws(()=>rtc.capture(),error=>error===next);assert.equal(pins.length,1);
+  mode='sync';next={syncOwner:true};assert.equal(rtc.capture(),next);assert.equal(pins.length,2);
+  globalThis.connectPeerStreamTag=()=>{throw Error('diagnostic-only');};assert.equal(rtc.capture(),next);
+  mode='async';const safe=rtc.capture();settle();assert.equal(await safe,next);
+  mode='sync';for(const value of [Object.defineProperty({},'then',{get(){throw Error('then getter');}}),
+   {then(){throw Error('then attachment');}}]){next=value;assert.equal(rtc.capture(),value);}
+  globalThis.connectPeerStreamTag=()=>true;mode='sync';next={};const impostor=new Rtc();impostor.capture();
+  assert.equal(observer.registerPublicReceive('original','receive'),false,'Different native owner cannot overwrite original connection');
+ }finally{await observer.close();assert.equal(observer.registerPublicReceive('original','receive'),false);for(const [name,value]of saved)if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}
+});

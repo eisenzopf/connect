@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-15T00:33:08.892861+00:00",
-  "run_status": "Latest fullv218 remains1/32cells399/432checks. Reviewedpublic-epoch main batch APPLIED:130 targetedchecks PASS(46Py84Node)+format. Completecensus/publicdirections/index/whole-frame-loss controls verified; real native/Core/wire programme pending. Confirmed retirementStats tail376\u2013556ms requiresseparate typedterminalbinding before readiness. No newfull32.",
+  "updated": "2026-11-15T01:28:06.198944+00:00",
+  "run_status": "Latest full v218 remains 1/32 cells,399/432 checks. Complete native activation/retirement binding batch applied:163/163 targeted checks+format PASS, real pinned-Firefox serializer API capability PASS, independently reviewed. Prior161/163 and one-way API probe remain failed. Normal local Firefox three-cycle native/Core/closed-wire/quality verification next; then full current regression/local ARM/releases/preflight. No full32 during preparation.",
   "blockers": [
     {
       "id": "B01",
@@ -18884,5 +18884,6 @@
   },
   "v219_focused449_original_result": "docs/evidence/gate-6/g6-058-v219-focused449-original-result.json",
   "v219_numeric_ice_profile": "docs/evidence/gate-6/g6-058-v219-firefox-numeric-ice.json",
-  "v219_public_epoch_witness_main": "docs/evidence/gate-6/g6-058-v219-public-epoch-witness-main.json"
+  "v219_public_epoch_witness_main": "docs/evidence/gate-6/g6-058-v219-public-epoch-witness-main.json",
+  "v219_native_binding_boundaries": "docs/evidence/gate-6/g6-058-v219-native-binding-boundaries.json"
 }

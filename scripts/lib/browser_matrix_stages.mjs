@@ -77,7 +77,8 @@ export class MatrixMediaStages {
         owners:[...this.owners.values()].map(({last_sample,last_second,...row})=>row)};}
 }
 
-export function browserMatrixRtcStages(read=()=>globalThis.connectPeerMediaDiagnostics?.()) {
+export function browserMatrixRtcStages(read=()=>globalThis.connectPeerMediaDiagnostics?.(),{bindingBoundaries=false}={}) {
+    if(typeof bindingBoundaries!=='boolean')throw Error('Explicit native binding witness option required');
     let origin=null,timer=null,stopped=false,pending=null,closing,attempts=0;const rows=[],failures=[];
     const stopTimer=()=>{if(timer!==null){clearInterval(timer);timer=null;}};
     const sample=()=>{
@@ -94,8 +95,20 @@ export function browserMatrixRtcStages(read=()=>globalThis.connectPeerMediaDiagn
     return {
         start(value){if(origin!==null||stopped||!Number.isFinite(value))throw Error('One original statistics clock');
             origin=value;sample();timer=setInterval(sample,1000);},
-        report(){return {scope:'Read-only original RTC statistics; no decoded-quality or delivery pass',sample_bound:64,attempts,
-            samples:structuredClone(rows),failures:structuredClone(failures),pending:pending!==null};},
+        report(){
+            const value={scope:'Read-only original RTC statistics; no decoded-quality or delivery pass',sample_bound:64,attempts,
+                samples:structuredClone(rows),failures:structuredClone(failures),pending:pending!==null};
+            if(bindingBoundaries){
+                let terminal={profile:'connect/rtc-native-binding-boundaries/1',origin_ms:origin,complete:false,peers:[]};
+                try{const actual=globalThis.connectPeerDiagnostics?.();
+                    if(!actual||actual.omitted_peers!==0||!Array.isArray(actual.peers)||actual.peers.length>16)throw Error('Bounded original peers required');
+                    terminal={...terminal,complete:true,peers:structuredClone(actual.peers.map(({peer_index,connection_id,terminal_binding,public_binding})=>({peer_index,connection_id,
+                            ...(terminal_binding?{terminal_binding}:{}),...(public_binding?{public_binding}:{})})))};
+                }catch{terminal.reason='original-native-binding-export-unavailable';}
+                value.binding_boundaries=terminal;
+            }
+            return value;
+        },
         close(){return closing??=(async()=>{
             stopped=true;stopTimer();read=null;
             if(!pending)return {joined:true};let wait;

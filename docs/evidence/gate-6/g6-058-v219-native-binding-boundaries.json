@@ -1,0 +1,65 @@
+{
+  "format": "connect/g6-058-native-binding-boundaries/1",
+  "updated_at": "2026-11-15T01:25:48.565720+00:00",
+  "upstream_generation_unchanged": 449,
+  "Rust_or_SDK_changes": false,
+  "changed_workspace_paths": 11,
+  "source_components": {
+    "native_serializer_manifest_sha256": "bb60901b0db39e34ee47b912a46c6c8c3cf585452f8dfd52226ab9638b27e3d4",
+    "consumer_manifest_sha256": "0599af7d55f5e181959e3512135beaf7d0bd84e78ac8a29bd1d27939aceac972",
+    "combined_source_review_sha256": "37ad0654d1d5508e827330671cedad8dc423d2ee2046251f03bcb298f933b87d",
+    "test_only_repair_manifest_sha256": "68e3133c9d14a6407d39cf3e9f527c34006d38789b7c908ea6eecddbcc63e539",
+    "test_repair_source_review_sha256": "4b7ee53b1b9fea4cd13f85e8bee4758429414fcbf8a8b6c94d99f99892536496"
+  },
+  "implemented": [
+    "One synchronous typed native binding capture at the validated public switch and first actual native close, with immediate original close behavior preserved.",
+    "Sender registration pins the exact track after the original capture promise succeeds and preserves that same promise and errors.",
+    "Receiver registration uses a bounded per-observer weak registry and exact SDK receive stream/remote track at the validated cut, before snapshot and render.",
+    "Native pointer/MID, selected ICE API tuple, codec declarations, sender primary SSRC and conservative receiver synchronization-source RTP-coordinate bounds supplement only a missing endpoint. At least one real opposite RTP sample, all observed contradictions, public ownership, Core epoch and full closed-wire proof remain required."
+  ],
+  "actual_targeted_units": {
+    "python": 55,
+    "node": 108,
+    "passed": 163,
+    "required": 163,
+    "format_passed": true,
+    "source_unchanged": true,
+    "all_original_test_and_format_groups_joined": true,
+    "result_sha256": "55c701e3c05bdbcc46cf85054bfa6fa1ca94f9b94f5601993dab6d2dddc5bc7d",
+    "root_original_join_sha256": "dc7ec7ecd6b0590d1ac71a14f736324bb22b030758d159e2cc70c6394530c5d8",
+    "independent_actual_review_sha256": "4e8b99d6c6a9a7cb043912573c290d9ac474bcd236f6d1a30e9067fc1542214d"
+  },
+  "actual_native_API_capability": {
+    "pinned_Firefox": "158.0.1",
+    "passed": true,
+    "bidirectional_peers": 2,
+    "negotiated_null_sender_then_successful_replaceTrack": true,
+    "four_native_role_tags_accepted": true,
+    "both_public_and_terminal_bindings_complete": true,
+    "public_snapshot_cached_once": true,
+    "ended_sender_tracks_identity_only": true,
+    "immediate_duplicate_native_close": true,
+    "diagnostic_native_references_released": true,
+    "original_engine_and_Node_natural_exit0": true,
+    "source_and_probe_unchanged": true,
+    "result_sha256": "5c8c72f9457ce4751426bce80c62a3258d8756b2612fff26f3ab4a994552fb54",
+    "root_original_join_sha256": "cfe35295b8e472a5c7556f4f707ac2517a221a945e8102f6996992638bc4a495",
+    "independent_actual_review_pending": false,
+    "independent_actual_review_sha256": "3004b1bb7a723de32e51611e0cd59cb00c3752b8b56e0f49fb9b9928822df606"
+  },
+  "preserved_failures": [
+    "Original161/163 unit run remains failed. Test-only repair retains normal contradiction refusal and tests a genuine interior contradiction; simulated capture/ontrack now completes before activation.",
+    "First native API probe negotiated one direction due an unassociated answerer transceiver; missing bindings were correctly refused. Corrected answering setup uses the incoming negotiated transceiver; production code is unchanged.",
+    "Pre-close interrupted async statistics and fresh post-close statistics cannot supply the required RTP binding; no such reads are added."
+  ],
+  "invariants": {
+    "media_quality_thresholds_unchanged": true,
+    "no_fake_getStats_rows_or_clock_conversion": true,
+    "no_new_native_stats_polls_timers_tasks_or_authority_checks": true,
+    "no_historical_regrade": true
+  },
+  "fresh_Connect_native_Core_PCAP_proof": false,
+  "full_regression_qualified": false,
+  "matrix_qualified": false,
+  "ready_for_full32": false
+}

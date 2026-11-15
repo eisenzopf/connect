@@ -561,3 +561,31 @@ exception, new media stimulus or changing-frame/FPS credit is introduced. The
 previous profiles and all historical failed artifacts retain their recorded
 criteria and results. Source-only changes and synthetic controls do not qualify
 an actual browser/native wire association; original runtime evidence is required.
+
+
+#### Typed native binding endpoints for profile 2
+
+Regular original RTP snapshots remain preferred. An explicitly opted-in native
+binding record may supply only a missing public-start or first-close endpoint,
+with one actual complete RTP snapshot on the opposite side. It does not fabricate
+a getStats sample or its nominated/succeeded/active-codec evidence. Contradictory
+regular rows, both endpoints missing, ambiguous or changed native object/tag,
+MID, negotiated VP8 declaration, numeric selected UDP tuple or SSRC still fail.
+The public-start record is called synchronously after both validated original
+receipts inside the original local-public-cut recording path, before public
+render. Its immutable wrapper pins operation, old/new owner, route and exact cut;
+a cached anchor cannot stand for a later operation. Initial public startup is
+separately identified. The terminal record observes the first original native
+close without awaiting statistics, delaying close or changing its result.
+
+The same original native sender/transceiver and same-MID canonical local SDP
+primary/FID bind source SSRC; SDP MSID is never compared to JavaScript track ID.
+A receiver synchronization-source RTP coordinate supplies a conservative bound
+covering the pair. It is not asserted monotonic; a coordinate that cannot cover
+the pair refuses. The synchronization timestamp remains uninterpreted in its
+native clock domain; captured-at/done use the original performance clock. Ended
+original tracks may retain identity without claiming live transmission. Exact
+public intervals, Core epochs, original closed capture and full packet bijection
+remain required. No audio, frame, FPS, coverage, gap, AV or ownership credit is
+added, and no historical report is regraded. A pair requiring two native anchors
+without a real opposite-side RTP endpoint remains unresolved under this profile.

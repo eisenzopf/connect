@@ -56,7 +56,7 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
     const contextCloseDescriptor=contextPrototype?Object.getOwnPropertyDescriptor(contextPrototype,'close'):undefined;
     const draw=CanvasRenderingContext2D.prototype.drawImage,frame=HTMLVideoElement.prototype.requestVideoFrameCallback;
     const canvases=new Map(),metadata=new WeakMap(),pending=new Set(),taps=new Set(),modules=new WeakMap(),observed=new WeakSet();
-    const presentations = new WeakMap();
+    const presentations = new WeakMap(),capturePeers=new Map(),captureConflicts=new Set();
     let nextPresentationElement = 0;
     let nextAudioClock = 0;
     let rendering=null,closed=false,lifetimeFailures=0;
@@ -184,8 +184,23 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
         // Its diagnostic identity does not require starting public playback.
         globalThis.connectPeerTag?.(this.peer,this.input.connectionId);
         const stream=this.input.video??this.input.screen;
-        if(stream)globalThis.connectPeerStreamTag?.(this.peer,this.input.connectionId,stream,'send',this.senders?.get(stream));
-        return capture.apply(this,args);
+        const original=capture.apply(this,args);
+        // Pin only at THIS original capture's successful attachment boundary.
+        // This passive reaction preserves the exact original return/promise and
+        // cannot turn a diagnostic refusal into a capture failure.
+        const pin=()=>{try{if(!closed&&stream&&typeof globalThis.connectPeerStreamTag==='function'){
+            if(typeof WeakRef==='function'){
+                const previous=capturePeers.get(this.input.connectionId);
+                if(previous&&previous.deref()!==this){captureConflicts.add(this.input.connectionId);return;}
+                if(!previous){if(capturePeers.size>=10)return;capturePeers.set(this.input.connectionId,new WeakRef(this));}
+            }
+            globalThis.connectPeerStreamTag(this.peer,this.input.connectionId,stream,'send',this.senders?.get(stream));
+        }}catch{}};
+        try{if(typeof globalThis.connectPeerStreamTag==='function'){
+            if(original&&typeof original.then==='function')void original.then(pin,()=>{});
+            else pin();
+        }}catch{}
+        return original;
     };
     if(capture)Rtc.prototype.capture=observedCapture;
     const observedFrame=function(callback){
@@ -237,6 +252,18 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
     };
     CanvasRenderingContext2D.prototype.drawImage=observedDraw;
     return {
+        // Called only at the parent's validated public cut, before snapshot
+        // or render. This registers metadata for the SDK's actual remote map;
+        // it does not start playback or manufacture a receive-track identity.
+        registerPublicReceive(connectionId,stream){
+            try{if(closed||captureConflicts.has(connectionId)||typeof globalThis.connectPeerStreamTag!=='function')return false;
+                const owner=capturePeers.get(connectionId)?.deref();
+                if(!owner||owner.input.connectionId!==connectionId
+                    ||(owner.input.receiveVideo??owner.input.video??owner.input.screen)!==stream)return false;
+                const track=owner.remote?.get(stream);if(!track)return false;
+                return globalThis.connectPeerStreamTag(owner.peer,connectionId,stream,'receive',track)===true;
+            }catch{return false;}
+        },
         report(){return audioBoundaries.report();},
         decodedVideoReport(){return decoded?.report()??null;},
         stopDecodedVideo(){return decoded?.close();},
@@ -245,7 +272,7 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
             canvases.set(canvas,connectionId);
         },
         async close(){
-            if(closed)return;closed=true;audioBoundaries.close();
+            if(closed)return;closed=true;capturePeers.clear();captureConflicts.clear();audioBoundaries.close();
             if(Rtc.prototype.render===observedRender)Rtc.prototype.render=render;
             if(sourcePrototype.connect===observedConnect){
                 if(sourceConnectDescriptor)Object.defineProperty(sourcePrototype,'connect',sourceConnectDescriptor);

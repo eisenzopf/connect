@@ -597,12 +597,31 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
             rendered:nativeRtcVideo?new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1,{sourceFrameIdentity:true}):null,selected,active:null};
     });
     const bindings=new Map(),owners=[],surfaces=new Set(),pendingRenders=new Set(),initialRenders=new Map(),originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
-    let closed=false,closing,lastReport,measurementsRetired=false;const rtcStages=Rtc?browserMatrixRtcStages():null;
+    let closed=false,closing,lastReport,measurementsRetired=false;const rtcStages=Rtc?browserMatrixRtcStages(undefined,{bindingBoundaries:rtcSourceFrameWitness}):null;
     const pipeline=Peer?browserMatrixPipeline(Peer,(connection,kind,stream)=>{
         const owner=bindings.get(connection);
         return owner&&routes[owner.index].active===connection&&stream===(kind==='audio'?owner.audio:owner.sendVideo)?owner:null;
     },(connection,kind,stream)=>{const owner=bindings.get(connection);
         return owner&&stream===(kind==='audio'?owner.audio:owner.sendVideo)?owner:null;}):null;
+    // The serializer owns the real native snapshot. This immutable wrapper
+    // binds it to this original validated local publication, never to a later
+    // operation or a guessed server-commit clock. Failure changes diagnostics
+    // only; activation/render follows its unchanged public path.
+    function publicBinding(interval,index,origin){
+        let link={profile:'connect/rtc-validated-public-binding/1',complete:false,route:index,
+            connection_id:interval.owner,previous:interval.previous,operation_id:interval.operation_id,
+            cut_ms:interval.start_ms,basis:interval.basis};
+        try{if(rtc?.registerPublicReceive(interval.owner,interval.receive_stream_id)!==true)throw Error('Exact original receive tag unavailable');
+            const anchor=globalThis.connectPeerPublicBinding?.(interval.owner);
+            if(!anchor||anchor.profile!=='connect/rtc-native-public-binding/1'||anchor.connection_id!==interval.owner
+                ||!Number.isFinite(anchor.captured_at_ms)||!Number.isFinite(anchor.captured_done_at_ms)
+                ||anchor.captured_done_at_ms<anchor.captured_at_ms||anchor.complete!==true)throw Error('Native public snapshot unavailable');
+            if(interval.operation_id!==null&&anchor.captured_at_ms<origin+interval.start_ms)throw Error('Cached snapshot predates this cut');
+            link={...link,complete:true,peer_index:anchor.peer_index,captured_at_ms:anchor.captured_at_ms,
+                captured_done_at_ms:anchor.captured_done_at_ms};
+        }catch{link.reason='original-public-binding-unavailable';}
+        interval.native_public_binding=Object.freeze(link);
+    }
     function observe(renderer,binding,frame,kind,native){
         const owner=bindings.get(binding.connectionId);if(closed||!owner)return;
         if(Rtc && routes[owner.index].active!==binding.connectionId)return;
@@ -747,7 +766,8 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
             route.measure.start(origin.originMs);route.rendered?.start(origin.originMs);
             if(rtcSourceFrameWitness){const binding=bindings.get(route.active);check(binding?.initial,'Original public startup owner required');
                 route.measure.publicOwnerIntervals=[{owner:route.active,receive_stream_id:binding.video,send_stream_id:binding.sendVideo,start_ms:0,end_ms:null,
-                    previous:null,operation_id:null,basis:'original-initial-public-render'}];}
+                    previous:null,operation_id:null,basis:'original-initial-public-render'}];
+                publicBinding(route.measure.publicOwnerIntervals[0],route.measure.index,origin.originMs);}
         }},
         activate(index,connectionId,options,publication){const owner=bindings.get(connectionId);check(!closed&&owner?.index===index,'Original prepared observer required');
             const recordCut=()=>{
@@ -765,6 +785,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                     ledger.push({owner:connectionId,receive_stream_id:owner.video,send_stream_id:owner.sendVideo,start_ms:cut.atMs,end_ms:null,
                         previous:publication.previous,operation_id:publication.operationId,
                         basis:'validated-receipts-local-public-render-cut'});
+                    publicBinding(ledger.at(-1),index,measure.begin);
                 }
                 for(const route of routes){
                     if(plan.routes[route.measure.index].session!==plan.routes[index].session)continue;

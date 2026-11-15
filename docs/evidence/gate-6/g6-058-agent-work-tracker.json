@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T00:33:08.892861+00:00",
-  "revision": 84,
+  "updated_at": "2026-11-15T01:28:06.198944+00:00",
+  "revision": 85,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 143,
-    "verified_at": "2026-11-15T00:33:08.892861+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-public-epoch-units.json",
-    "readback_evidence_sha256": "b5a84e5a5eeb85c7cf95d7091a75df17d6d605bedcd9723160c10e4ffa5b03cd",
+    "content_revision": 144,
+    "verified_at": "2026-11-15T01:28:06.198944+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-native-binding.json",
+    "readback_evidence_sha256": "968c2c04f84f74fa32b71e381da32f5d59abba44e22363dedebd7f38e04a3013",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1889,7 +1889,7 @@
         "V219-VIDEO-ADOPTION"
       ],
       "status": "component-verified",
-      "implementation_state": "Main public-epoch profile2 and complete census/index applied with130 controls pass. Exact original-source native wire proof remains pending; retirement statistics tail is a separate known fixture coverage gap.",
+      "implementation_state": "Complete profile2 census/epoch/packet proof and typed activation/retirement endpoints implemented;163 current targeted checks and actual native serializer capability pass. Normal three-cycle Connect wire/quality proof remains pending.",
       "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
       "verification_runs": [
         {
@@ -1915,7 +1915,7 @@
         "status": "Accepted for prospective component scope after Fixture source and actual review",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-15T00:33:08.892861+00:00"
+      "updated_at": "2026-11-15T01:28:06.198944+00:00"
     },
     {
       "id": "V219-ICE-CLOSE",
@@ -2078,7 +2078,7 @@
     {
       "id": "V219-RETIREMENT-BINDING",
       "plan_id": "V219-RETIREMENT-BINDING",
-      "title": "Actual native terminal binding for retiring-peer statistics tail",
+      "title": "Actual native activation and retirement binding evidence",
       "owner_agent": "/root/media_blockers",
       "contributing_agent": "/root/v198_resources",
       "independent_reviewer": "/root/fixture_blockers",
@@ -2089,22 +2089,24 @@
       "depends_on": [
         "V219-PUBLIC-EPOCH-WITNESS"
       ],
-      "status": "cause-confirmed",
-      "implementation_state": "Actual prior449 snapshots end376\u2013556ms before public cut; no old-owner strict hi sample. Async stats approaches refuted by actual pinned-browser probes. Warm synchronous metadata capability verified; separate typed terminal binding design reviewed, implementation pending.",
-      "required_evidence": "Exact original native peer/MID/track and selected ICE facts, receiver synchronization-source coordinate, source primary SSRC declaration, unchanged public/Core/closed-wire proof; independent source/actual unit review and fresh combined programme. No fake stats, mixed clocks, delayed close or quality waiver.",
+      "status": "component-verified",
+      "implementation_state": "Combined11-file batch applied. Actual163 targeted checks+format pass and real pinned-Firefox serializer capability pass, both independently reviewed. Original failed161/163 and one-way native probe preserved. Actual Connect/public/Core/PCAP proof still pending.",
+      "required_evidence": "Fresh normal three-cycle actual native/Core/closed-PCAP proof with unchanged quality and original owners, complete current regression/localARM/releases/preflight, then full32 later.",
       "verification_runs": [
         {
-          "scope": "Native capability observations only, not Connect ownership/wire association or a matrix result",
-          "independent_native_probe_review_sha256": "589b4ed2851c7ef0cb4ca931842dda0ffc9e80eb1b84ab76c50bb42d8e08e283",
+          "evidence": "docs/evidence/gate-6/g6-058-v219-native-binding-boundaries.json",
+          "passed": 163,
+          "required": 163,
+          "scope": "55Python+108Node; original group/source/format checks pass. Native API capability separately passed; no Connect/matrix grant.",
           "matrix_result": false
         }
       ],
       "matrix_result_refs": [],
       "coordinator_review": {
-        "status": "Accepted design direction only; code and runtime unverified",
+        "status": "Accepted independent source, actual targeted units and native API capability only; combined Connect proof pending",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-15T00:33:08.892861+00:00"
+      "updated_at": "2026-11-15T01:28:06.198944+00:00"
     }
   ],
   "failure_mapping": [
@@ -6092,9 +6094,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v219-public-epoch-witness-main.json",
-    "sha256": "b88e1ab3c1b48805d494d3e614689b654142c0f315d20d53e90150de96db84fe",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-native-binding-boundaries.json",
+    "sha256": "0021ac378574f276ce4b20d1df12a6261bbc1c7393af8979e4a15ec6dffda161",
     "ready": false,
-    "next": "Complete separately reviewed real terminal binding and units; fresh normal three-cycle exact native/Core/wire proof, then current full regression/localARM/releases/preflight. No full32 during preparation."
+    "next": "Fresh normal local Firefox three-cycle programme must prove actual native/Core/closed-wire frame association and quality/cleanup; then current full regression/localARM/releases/preflight. No full32 during preparation."
   }
 }

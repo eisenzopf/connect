@@ -194,3 +194,57 @@ test('terminal statistics join stops new reads before a peer closes and close re
   assert.equal(sampler.close(),terminal,'Physical close must reuse the exact original join receipt');
  }finally{resolve?.([]);await sampler.close();globalThis.setInterval=oldSet;globalThis.clearInterval=oldClear;}
 });
+
+
+test('opted native binding export copies exact public and terminal records without another RTC read',async()=>{
+ const names=['connectPeerDiagnostics','setInterval','clearInterval'];const saved=names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]);
+ const publicBinding={profile:'connect/rtc-native-public-binding/1',connection_id:'original',complete:true,captured_at_ms:10};
+ const terminal={profile:'connect/rtc-native-terminal-binding/1',connection_id:'original',complete:true,captured_at_ms:20};
+ let reads=0;Object.assign(globalThis,{setInterval:()=>1,clearInterval:()=>{},connectPeerDiagnostics:()=>({omitted_peers:0,
+  peers:[{peer_index:0,connection_id:'original',public_binding:publicBinding,terminal_binding:terminal}]})});
+ const sampler=browserMatrixRtcStages(()=>{reads++;return [];},{bindingBoundaries:true});
+ const normal=browserMatrixRtcStages(()=>[]);
+ try{sampler.start(1);await Promise.resolve();await Promise.resolve();await Promise.resolve();
+  const report=sampler.report(),count=reads;assert.equal(report.binding_boundaries.profile,'connect/rtc-native-binding-boundaries/1');
+  assert.deepEqual(report.binding_boundaries.peers[0].public_binding,publicBinding);
+  assert.deepEqual(report.binding_boundaries.peers[0].terminal_binding,terminal);
+  assert.equal(sampler.report().binding_boundaries.complete,true);assert.equal(reads,count);
+  publicBinding.captured_at_ms=999;assert.equal(report.binding_boundaries.peers[0].public_binding.captured_at_ms,10);
+  assert.equal('binding_boundaries' in normal.report(),false);
+  globalThis.connectPeerDiagnostics=()=>({omitted_peers:1,peers:[]});assert.equal(sampler.report().binding_boundaries.complete,false);
+ }finally{await sampler.close();await normal.close();for(const [name,value]of saved)if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}
+});
+
+test('public anchor is called inside original validated switch and diagnostics cannot prevent public activation',async()=>{
+ const names=['MediaStreamAudioSourceNode','CanvasRenderingContext2D','HTMLVideoElement','document','connectPeerPublicBinding','connectPeerStreamTag'];
+ const saved=names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]);let observer,phase='initial',calls=[];
+ class MediaStreamAudioSourceNode{connect(){}}
+ class CanvasRenderingContext2D{drawImage(){}getImageData(){return {data:new Uint8Array(128*72*4)};}}
+ class HTMLVideoElement{requestVideoFrameCallback(){}}
+ class Rtc{constructor(id){this.input={connectionId:id};this.remote=new Map();}capture(){return Promise.resolve({}).then(value=>{calls.push('capture:'+this.input.connectionId);return value;});}render(){if(phase==='replacement')assert.ok(calls.includes('new'));calls.push('render:'+this.input.connectionId);
+  return Promise.resolve({finished:Promise.resolve(),retirement:Promise.resolve(),close(){}});}}
+ class Renderer{audio(){}video(){}}
+ Object.assign(globalThis,{MediaStreamAudioSourceNode,CanvasRenderingContext2D,HTMLVideoElement,
+  document:{createElement:()=>({width:128,height:72,getContext:()=>new CanvasRenderingContext2D()})},
+  connectPeerStreamTag:(_peer,id,_stream,direction)=>{if(direction==='receive')calls.push('receive:'+id);return true;},
+  connectPeerPublicBinding:id=>{calls.push(id);const at=performance.now();return {profile:'connect/rtc-native-public-binding/1',complete:true,
+   connection_id:id,peer_index:id==='new'?2:id==='a'?0:1,captured_at_ms:at,captured_done_at_ms:performance.now()};}});
+ const plan={routes:[0,1].map(index=>({index,session:'one',role:'source-'+(index+1)})),moves:[]};
+ const connection=async(id,stream)=>{const rtc=new Rtc(id);rtc.input.video='send';rtc.input.receiveVideo=stream;const original=rtc.capture();await original.then(()=>{rtc.remote.set(stream,{kind:'video',id:'track-'+id});calls.push('ontrack:'+id);});return {id,streams:{byId:value=>value},render:()=>rtc.render({video:{[stream]:{}}})};};
+ try{observer=browserMatrixObservation(Renderer,plan,null,Rtc,{rtcSourceFrameWitness:true});
+  await observer.attach(0,await connection('a','ra'),{audio:'aa',video:'ra',sendVideo:'sa',active:true});
+  await observer.attach(1,await connection('b','rb'),{audio:'ab',video:'rb',sendVideo:'sb',active:true});
+  observer.start({originMs:performance.now()-1000});phase='replacement';
+  await observer.attach(0,await connection('new','rn'),{audio:'an',video:'rn',sendVideo:'sn'});
+  await observer.activate(0,'new',{}, {operationId:'exact-original-op',previous:'a'});
+  const ledger=observer.report().source_frame_public_owners[0].intervals;const link=ledger[1].native_public_binding;
+  assert.equal(link.operation_id,'exact-original-op');assert.equal(link.previous,'a');assert.equal(link.connection_id,'new');
+  assert.equal(link.cut_ms,ledger[0].end_ms);assert.equal(link.complete,true);assert.equal(calls.filter(id=>id==='new').length,1);
+  assert.ok(calls.indexOf('capture:new')<calls.indexOf('ontrack:new'));assert.ok(calls.indexOf('ontrack:new')<calls.indexOf('receive:new'));
+  assert.ok(calls.indexOf('receive:new')<calls.indexOf('new'));assert.ok(calls.indexOf('new')<calls.indexOf('render:new'));
+  globalThis.connectPeerPublicBinding=()=>{throw Error('diagnostic-only');};
+  await observer.attach(0,await connection('new2','rn2'),{audio:'an2',video:'rn2',sendVideo:'sn2'});
+  await observer.activate(0,'new2',{}, {operationId:'second-original-op',previous:'new'});
+  assert.equal(observer.report().source_frame_public_owners[0].intervals[2].native_public_binding.complete,false);
+ }finally{await observer?.close();for(const [name,value]of saved)if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}
+});

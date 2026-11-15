@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib.rtc_source_frame_witness import (PROFILE, WitnessError, HeaderIndex, WITNESS_CYCLE_BYTES,
     capture_headers, delta, finalize, mapping_summaries, prepare_pair, prepare_association_control,
-    prove_headers, read_json, report_bound, decode_census)
+    prove_headers, read_json, report_bound, decode_census, StatsIndex)
 
 
 def encode(route, census):
@@ -278,5 +278,156 @@ class SourceFrameWitness(unittest.TestCase):
             self.assertFalse(report_bound(changed))
         self.assertTrue(report_bound(dict(browser_observation=dict(decoded_media=dict(routes=[])))))
 
+
+
+
+def boundary_facts(public=False, replacement=False):
+    values=facts();cycle,route,pair=values[:3]
+    cycle['programme']['source_programme']={'originMs':1000}
+    pipeline=cycle['decoded_media']['rtc_media_pipeline']
+    for sample in pipeline['samples']:
+        for row in sample['peers'][0]:
+            row['peer_index']=0 if row['type']=='outbound-rtp' else 1
+            row['original_track'].update(transceiver_index=0,mid='video0')
+    actual=pipeline['samples'][1 if public else 0]['peers'][0][1]
+    tag=copy.deepcopy(actual['original_track']);path=actual['selected_path'];codec=actual['codec']
+    captured=3050 if not public else 2500
+    coordinate=pair['first' if public else 'current']['presentation']['rtpTimestamp']
+    binding=dict(complete=True,reason=None,track_state='ended' if not public else 'live',original_track=tag,
+        selected_udp_pair=dict(local=copy.deepcopy(path['local']),remote=copy.deepcopy(path['remote']),
+            ice_state='connected',dtls_state='connected',basis='RTCIceTransport.getSelectedCandidatePair'),
+        codec_declarations=dict(local=[copy.deepcopy(codec)],remote=[copy.deepcopy(codec)]),
+        sync_source=dict(source=actual['ssrc'],rtpTimestamp=coordinate,timestamp=1794700000000,
+            timestamp_clock='native-uninterpreted'))
+    name='public_binding' if public else 'terminal_binding'
+    anchor=dict(profile='connect/rtc-native-'+('public' if public else 'terminal')+'-binding/1',peer_index=1,
+        connection_id='receiver',captured_at_ms=captured,captured_done_at_ms=captured+.1,complete=True,reason=None,
+        bindings=dict(receive=binding))
+    if not public:anchor.update(native_close_observed=True,native_closed_at_ms=captured+.2)
+    pipeline['binding_boundaries']=dict(profile='connect/rtc-native-binding-boundaries/1',origin_ms=1000,
+        complete=True,peers=[dict(peer_index=1,connection_id='receiver',**{name:anchor})])
+    pipeline['samples'][0 if public else 1]['peers'][0].pop(1)
+    ledger=cycle['decoded_media']['source_frame_public_owners'][0]['intervals']
+    if replacement:
+        old=copy.deepcopy(ledger[0]);old.update(owner='previous',end_ms=1400)
+        ledger[0].update(start_ms=1400,previous='previous',operation_id='original-op',basis='validated-receipts-local-public-render-cut')
+        ledger.insert(0,old)
+        cycle['source_startup']['sources'][0]['attachments'][0]['connection_id']='previous'
+        cycle['programme']['moves']=[dict(source_index=1,ordinal=0,source='previous',target='receiver',operation_id='original-op')]
+        route['video']['transition_coverage']['original_public_cuts']=[dict(id='receiver',atMs=1400,basis='validated-receipts-local-public-render-cut')]
+    interval=ledger[-1]
+    interval['native_public_binding']=dict(profile='connect/rtc-validated-public-binding/1',complete=True,route=1,
+        connection_id='receiver',previous=interval['previous'],operation_id=interval['operation_id'],cut_ms=interval['start_ms'],
+        basis=interval['basis'],peer_index=1,captured_at_ms=captured,captured_done_at_ms=captured+.1)
+    census=decode_census(route);census['public_intervals']=copy.deepcopy(ledger);encode(route,census)
+    return values,anchor,binding
+
+
+class NativeBindingBoundaryControls(unittest.TestCase):
+    def test_terminal_native_binding_uses_real_lo_and_conservative_coordinate_without_mutating_samples(self):
+        values,anchor,binding=boundary_facts();cycle,route,pair,summaries=values[:4]
+        before=copy.deepcopy(cycle['decoded_media']['rtc_media_pipeline']['samples'])
+        result=prepare_pair(cycle,route,pair,summaries)
+        self.assertEqual(result['native_binding_boundaries'][0]['profile'],'connect/rtc-native-terminal-binding/1')
+        self.assertEqual(before,cycle['decoded_media']['rtc_media_pipeline']['samples'])
+        self.assertEqual(result['target_flow'],values[5])
+        self.assertEqual(binding['track_state'],'ended')
+
+    def test_public_start_binding_requires_original_operation_cut_and_real_hi(self):
+        for replacement in (False,True):
+            values,anchor,binding=boundary_facts(True,replacement);cycle,route,pair,summaries=values[:4]
+            result=prepare_pair(cycle,route,pair,summaries)
+            self.assertEqual(result['native_binding_boundaries'][0]['profile'],'connect/rtc-native-public-binding/1')
+            pipeline=cycle['decoded_media']['rtc_media_pipeline']
+            unbound=copy.deepcopy(pipeline['samples'][1]['peers'][0][1]);unbound['original_track']=None
+            pipeline['samples'][0]['peers'][0].append(unbound)
+            self.assertEqual(prepare_pair(cycle,route,pair,summaries)['native_binding_boundaries'][0]['direction'],'receive')
+            unbound['codec']['payload_type']=121
+            with self.assertRaisesRegex(WitnessError,'contradictory-unbound-regular-statistics'):
+                prepare_pair(cycle,route,pair,summaries)
+            unbound['codec']['payload_type']=120
+            link=cycle['decoded_media']['source_frame_public_owners'][0]['intervals'][-1]['native_public_binding']
+            link['operation_id']='other'
+            with self.assertRaisesRegex(WitnessError,'validated-public-binding-operation-unproved'):
+                prepare_pair(cycle,route,pair,summaries)
+
+    def test_native_boundary_never_replaces_both_real_rtp_endpoints_or_regular_contradictions(self):
+        values,anchor,binding=boundary_facts();cycle,route,pair,summaries=values[:4]
+        cycle['decoded_media']['rtc_media_pipeline']['samples'][0]['peers'][0].pop(1)
+        with self.assertRaisesRegex(WitnessError,'needs-one-real-rtp-endpoint'):prepare_pair(cycle,route,pair,summaries)
+        values,anchor,binding=boundary_facts();cycle,route,pair,summaries=values[:4]
+        sample=copy.deepcopy(cycle['decoded_media']['rtc_media_pipeline']['samples'][0]);sample.update(requested_seconds=2.22,completed_seconds=2.23)
+        sample['peers'][0][1]['codec']['payload_type']=121
+        cycle['decoded_media']['rtc_media_pipeline']['samples'].insert(1,sample)
+        # This complete after-pair sample uses the normal bracket, which must
+        # reject its changed codec before considering any optional boundary.
+        with self.assertRaisesRegex(WitnessError,'source-or-receiver-state-changed'):prepare_pair(cycle,route,pair,summaries)
+        # Put the SAME contradictory observation inside the pair, leaving the
+        # real later endpoint missing so the terminal fallback is exercised.
+        sample.update(requested_seconds=2.205,completed_seconds=2.210)
+        with self.assertRaisesRegex(WitnessError,'contradictory-regular-statistics'):prepare_pair(cycle,route,pair,summaries)
+
+    def test_terminal_and_public_reported_coordinates_refuse_queued_or_reordered_uncovered_pair(self):
+        for public in (False,True):
+            values,anchor,binding=boundary_facts(public);cycle,route,pair,summaries=values[:4]
+            binding['sync_source']['rtpTimestamp']+=1 if public else -1
+            with self.assertRaisesRegex(WitnessError,'coordinate-does-not-cover-pair'):prepare_pair(cycle,route,pair,summaries)
+
+    def test_boundary_native_peer_tag_mid_path_codec_and_source_must_match_real_stats(self):
+        mutations=[lambda a,b:a.update(peer_index=3),lambda a,b:b['original_track'].update(mid='other'),
+            lambda a,b:b['selected_udp_pair']['local'].update(port=1234),
+            lambda a,b:b['codec_declarations']['remote'][0].update(payload_type=121),
+            lambda a,b:b['sync_source'].update(source=123),lambda a,b:a.update(complete=False),
+            lambda a,b:a.update(native_close_observed=False)]
+        for mutate in mutations:
+            values,anchor,binding=boundary_facts();mutate(anchor,binding)
+            with self.assertRaises(WitnessError):prepare_pair(*values[:4])
+
+    def test_public_anchor_reuse_after_new_cut_or_late_capture_and_duplicate_owner_are_unknown(self):
+        for mode in ('old-cut','after-pair','duplicate','missing-link'):
+            values,anchor,binding=boundary_facts(True,True);cycle,route,pair,summaries=values[:4]
+            if mode=='old-cut':anchor['captured_at_ms']=2000
+            elif mode=='after-pair':anchor['captured_done_at_ms']=3300
+            elif mode=='duplicate':cycle['decoded_media']['rtc_media_pipeline']['binding_boundaries']['peers']*=2
+            else:del cycle['decoded_media']['source_frame_public_owners'][0]['intervals'][-1]['native_public_binding']
+            with self.assertRaises(WitnessError):prepare_pair(cycle,route,pair,summaries)
+
+    def test_cached_source_binding_rechecks_each_pairs_original_temporal_bounds(self):
+        values,anchor,binding=boundary_facts(True);cycle=values[0]
+        pipeline=cycle['decoded_media']['rtc_media_pipeline'];source=pipeline['samples'][1]['peers'][0][0]
+        # Exercise the outbound cache (no receive-coordinate key) explicitly.
+        send=copy.deepcopy(binding);send.pop('sync_source');send['original_track']=copy.deepcopy(source['original_track'])
+        send['primary_ssrc']=source['ssrc'];send['selected_udp_pair']['local']=copy.deepcopy(source['selected_path']['local'])
+        send['selected_udp_pair']['remote']=copy.deepcopy(source['selected_path']['remote'])
+        anchor.update(connection_id='source',peer_index=0,bindings=dict(send=send))
+        pipeline['samples'][0]['peers'][0]=[]
+        pipeline['binding_boundaries']['peers']=[dict(connection_id='source',peer_index=0,public_binding=anchor)]
+        target=cycle['decoded_media']['source_frame_public_owners'][1]['intervals'][0]
+        target['native_public_binding']=dict(profile='connect/rtc-validated-public-binding/1',complete=True,route=0,
+            connection_id='source',previous=None,operation_id=None,cut_ms=0,basis=target['basis'],peer_index=0,
+            captured_at_ms=anchor['captured_at_ms'],captured_done_at_ms=anchor['captured_done_at_ms'])
+        stats=StatsIndex(cycle)
+        stats.get('source','outbound-rtp',2.2,2.217,stream=source['original_track']['stream_id'])
+        with self.assertRaisesRegex(WitnessError,'public-binding-after-pair'):
+            stats.get('source','outbound-rtp',1.4,2.217,stream=source['original_track']['stream_id'])
+
+    def test_regular_rtp_bracket_is_preferred_even_when_optional_native_anchor_is_incomplete(self):
+        values=facts();cycle,route,pair,summaries=values[:4]
+        cycle['decoded_media']['rtc_media_pipeline']['binding_boundaries']={'complete':False}
+        result=prepare_pair(cycle,route,pair,summaries)
+        self.assertEqual(result['native_binding_boundaries'],[])
+
+    def test_source_terminal_anchor_requires_original_local_sdp_primary_not_msid_track_equality(self):
+        values,anchor,binding=boundary_facts();cycle,route,pair,summaries=values[:4]
+        pipeline=cycle['decoded_media']['rtc_media_pipeline'];source=pipeline['samples'][0]['peers'][0][0]
+        # Restore target's ordinary hi, remove only source's hi.
+        restored=copy.deepcopy(pipeline['samples'][0]['peers'][0][1]);pipeline['samples'][1]['peers'][0]=[restored]
+        send=copy.deepcopy(binding);send.pop('sync_source');send['original_track']=copy.deepcopy(source['original_track']);send['primary_ssrc']=source['ssrc']
+        send['selected_udp_pair']['local']=copy.deepcopy(source['selected_path']['local']);send['selected_udp_pair']['remote']=copy.deepcopy(source['selected_path']['remote'])
+        anchor.update(connection_id='source',peer_index=0,bindings=dict(send=send))
+        pipeline['binding_boundaries']['peers']=[dict(connection_id='source',peer_index=0,terminal_binding=anchor)]
+        self.assertEqual(prepare_pair(cycle,route,pair,summaries)['native_binding_boundaries'][0]['direction'],'send')
+        send['primary_ssrc']+=1
+        with self.assertRaisesRegex(WitnessError,'sender-primary-changed'):prepare_pair(cycle,route,pair,summaries)
 
 if __name__=='__main__':unittest.main()

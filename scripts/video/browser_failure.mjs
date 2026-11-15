@@ -10,6 +10,7 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
     const NativePeer = globalThis.RTCPeerConnection;
     const entries = [];
     let omittedPeers = 0;
+    let terminalCapture,terminalFinish,describeTagged;
     const state = (value, allowed) => allowed.includes(value) ? value : "other";
     const sample = (peer) => ({
         connection: state(peer.connectionState, ["new", "connecting", "connected", "disconnected", "failed", "closed"]),
@@ -58,11 +59,19 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
         close(){
             const entry=entries.find(value=>value.peer===this);
             if(entry)try{entry.codecs=codecSnapshot(this);}catch{entry.codecs={unavailable:true};}
-            try{return super.close();}
+            let terminal,returned=false;
+            if(rtcSourceFrameWitness&&entry&&!entry.terminal_binding_started){
+                entry.terminal_binding_started=true;
+                try{terminal=terminalCapture(this,entry);}catch{terminal={profile:'connect/rtc-native-terminal-binding/1',peer_index:entry.peer_index,connection_id:entry.connection_id,captured_at_ms:null,captured_done_at_ms:null,native_close_observed:false,native_closed_at_ms:null,complete:false,reason:'native-terminal-unavailable',bindings:{}};}
+            }
+            try{const value=super.close();returned=true;return value;}
             finally{
-                if(entry&&(this.connectionState==='closed'||this.signalingState==='closed')){
+                const closed=!!entry&&(this.connectionState==='closed'||this.signalingState==='closed');
+                if(terminal)entry.terminal_binding=terminalFinish(terminal,closed,returned);
+                if(entry&&closed){
                     try{entry.current=sample(this);}catch{entry.current={unavailable:true};}
                     entry.detach?.();entry.detach=null;entry.peer=null;entry.stats_ids.clear();
+                    if(rtcSourceFrameWitness){entry.video_send_pointers=undefined;entry.video_receive_pointers=undefined;}
                 }
             }
         }
@@ -74,35 +83,49 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
         entry.connection_id=connectionId;return true;
     };
     // Opt-in private endpoint/track metadata from the SAME original peer.
-    if(rtcSourceFrameWitness){globalThis.connectPeerStreamTag=(peer,connectionId,stream,direction,track)=>{
-        if(!rtcSourceFrameWitness)return false;
+    if(rtcSourceFrameWitness){
+    const object=value=>value!==null&&(typeof value==='object'||typeof value==='function');
+    globalThis.connectPeerStreamTag=(peer,connectionId,stream,direction,track)=>{
+        try{
         const entry=entries.find(value=>value.peer===peer);
-        if(!entry||entry.connection_id!==connectionId||!['send','receive'].includes(direction)
-            ||typeof stream!=='string'||stream.length<1||stream.length>256)return false;
-        const key='video_'+direction;let descriptor;
+        if(!entry||entry.connection_id!==connectionId||!['send','receive'].includes(direction)||typeof stream!=='string'||stream.length<1||stream.length>256)return false;
+        const txs=peer.getTransceivers();if(txs.length>4)return false;
+        const key='video_'+direction;let descriptor,pointers;
         if(direction==='send'){
-            const index=peer.getTransceivers().indexOf(track);
-            if(index<0)return false;descriptor={connection_id:connectionId,stream_id:stream,transceiver_index:index};
+            const index=txs.indexOf(track),originalTrack=track?.sender?.track;
+            if(index<0||!object(track.sender)||!originalTrack||originalTrack.kind!=='video'||typeof originalTrack.id!=='string'||originalTrack.id.length<1||originalTrack.id.length>256)return false;
+            descriptor={connection_id:connectionId,stream_id:stream,track_id:originalTrack.id,transceiver_index:index};
+            pointers={tx:new WeakSet([track]),endpoint:new WeakSet([track.sender]),track:new WeakSet([originalTrack])};
         }else{
-            if(!track||track.kind!=='video'||typeof track.id!=='string'||track.id.length<1||track.id.length>256
-                ||!peer.getReceivers().some(value=>value.track===track))return false;
-            descriptor={connection_id:connectionId,stream_id:stream,track_id:track.id};
+            const selected=txs.filter(tx=>tx.receiver?.track===track);if(selected.length!==1||!track||track.kind!=='video'||typeof track.id!=='string'||track.id.length<1||track.id.length>256||!peer.getReceivers().some(value=>value===selected[0].receiver))return false;
+            descriptor={connection_id:connectionId,stream_id:stream,track_id:track.id,transceiver_index:txs.indexOf(selected[0])};
+            pointers={tx:new WeakSet(selected),endpoint:new WeakSet([selected[0].receiver]),track:new WeakSet([track])};
         }
-        if(entry[key]&&JSON.stringify(entry[key])!==JSON.stringify(descriptor))return false;
-        entry[key]=descriptor;return true;
+        const actualTx=txs[descriptor.transceiver_index],actualEndpoint=direction==='send'?actualTx.sender:actualTx.receiver;
+        if(entry[key])return JSON.stringify(entry[key])===JSON.stringify(descriptor)&&entry[key+'_pointers']?.tx.has(actualTx)===true&&entry[key+'_pointers']?.endpoint.has(actualEndpoint)===true&&entry[key+'_pointers']?.track.has(actualEndpoint.track)===true;
+        entry[key]=descriptor;entry[key+'_pointers']=pointers;
+        if(typeof actualTx.mid==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(actualTx.mid))entry[key+'_mid']=actualTx.mid;
+        return true;
+        }catch{return false;}
+    };
+    describeTagged=(entry,direction)=>{
+        try{
+        const peer=entry.peer,descriptor=entry['video_'+direction],pointers=entry['video_'+direction+'_pointers'];if(!peer||!descriptor||!pointers)return null;
+        const txs=peer.getTransceivers();if(txs.length>4)return null;const tx=txs[descriptor.transceiver_index];
+        if(!tx||!pointers.tx.has(tx)||typeof tx.mid!=='string'||!/^[A-Za-z0-9_-]{1,64}$/.test(tx.mid))return null;
+        const endpoint=direction==='send'?tx.sender:tx.receiver,track=endpoint?.track;
+        if(!object(endpoint)||!pointers.endpoint.has(endpoint)||!track||track.kind!=='video'||typeof track.id!=='string'||track.id.length<1||track.id.length>256)return null;
+        if(direction==='receive'&&(track.id!==descriptor.track_id||!pointers.track.has(track)||!peer.getReceivers().includes(endpoint)))return null;
+        if(direction==='send'){
+            if(descriptor.track_id!==track.id||!pointers.track.has(track))return null;
+        }
+        const midKey='video_'+direction+'_mid';
+        if(entry[midKey]!==undefined&&entry[midKey]!==tx.mid)return null;entry[midKey]=tx.mid;
+        return {connection_id:entry.connection_id,stream_id:descriptor.stream_id,track_id:track.id,transceiver_index:descriptor.transceiver_index,mid:tx.mid};
+        }catch{return null;}
     };
     globalThis.connectPeerStreamDescriptor=(connectionId,direction)=>{
-        if(!rtcSourceFrameWitness)return null;
-        const found=entries.filter(value=>value.peer&&value.connection_id===connectionId);
-        if(found.length!==1)return null;const entry=found[0],peer=entry.peer,descriptor=entry['video_'+direction];
-        if(!descriptor)return null;
-        const tracks=direction==='send'?[peer.getTransceivers()[descriptor.transceiver_index]?.sender?.track]:
-            peer.getReceivers().map(value=>value.track).filter(value=>value?.id===descriptor.track_id);
-        if(tracks.length!==1||tracks[0]?.kind!=='video'||typeof tracks[0].id!=='string')return null;
-        const id=tracks[0].id;
-        if(direction==='send'&&entry.original_video_send_track!==undefined&&entry.original_video_send_track!==id)return null;
-        if(direction==='send')entry.original_video_send_track=id;
-        return {connection_id:connectionId,stream_id:descriptor.stream_id,track_id:id};
+        const found=entries.filter(value=>value.peer&&value.connection_id===connectionId);return found.length===1?describeTagged(found[0],direction):null;
     };
     }
     globalThis.connectPeerDiagnostics = () => ({
@@ -110,7 +133,7 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
         peers: entries.map(entry => {
             let current;
             try { current = entry.peer?sample(entry.peer):entry.current; } catch { current = {unavailable: true}; }
-            return {peer_index:entry.peer_index,connection_id:entry.connection_id,live_owner_retained:entry.peer!==null,current, events: entry.events, omitted_events: entry.omitted_events, snapshot_errors: entry.snapshot_errors,omitted_media_rows:entry.omitted_media_rows,omitted_listeners:entry.omitted_listeners};
+            return {peer_index:entry.peer_index,connection_id:entry.connection_id,live_owner_retained:entry.peer!==null,current, events: entry.events, omitted_events: entry.omitted_events, snapshot_errors: entry.snapshot_errors,omitted_media_rows:entry.omitted_media_rows,omitted_listeners:entry.omitted_listeners,...(rtcSourceFrameWitness?{terminal_binding:entry.terminal_binding??null,public_binding:entry.public_binding??null}:{})};
         }),
     });
     globalThis.connectPeerMediaDiagnostics = async () => Promise.all(entries.map(async(entry)=>{
@@ -236,6 +259,129 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
         transceivers:peer.getTransceivers().slice(0,4).map(tx=>({
             direction:state(tx.direction,["sendrecv","sendonly","recvonly","inactive","stopped"]),
             current_direction:tx.currentDirection===null?null:state(tx.currentDirection,["sendrecv","sendonly","recvonly","inactive","stopped"])}))});
+    // All helpers remain inside this serialized page-init function. The
+    // explicit witness option alone owns these scalar terminal observations.
+    if(rtcSourceFrameWitness){
+        const boundedId=value=>typeof value==='string'&&value.length>0&&value.length<=256&&!/[\x00-\x1f\x7f]/.test(value);
+        const u32=value=>Number.isInteger(value)&&value>=0&&value<=0xffffffff;
+        const capturedReasons=new WeakMap();
+        const fail=reason=>{const marker={};capturedReasons.set(marker,reason);throw marker;};
+        const reason=(error,fallback)=>{try{return capturedReasons.get(error)??fallback;}catch{return fallback;}};
+        const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
+        const numericAddress=value=>{
+            if(typeof value!=='string'||value.length<1||value.length>128)return false;
+            if(value.includes(':')){if(!/^[0-9a-fA-F:]+$/.test(value))return false;try{new URL('http://['+value+']/');return true;}catch{return false;}}
+            return /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(value)&&value.split('.').every(part=>Number(part)<=255&&String(Number(part))===part);
+        };
+        const sections=description=>{
+            if(!description||!['offer','answer','pranswer'].includes(description.type)||typeof description.sdp!=='string'||description.sdp.length>65536)fail('sdp-unavailable');
+            const lines=description.sdp.split(/\r?\n/);if(lines.length>2048||lines.some(line=>line.length>1024))fail('sdp-bound');
+            const result=[];let current;
+            for(const line of lines){if(line.startsWith('m=')){if(result.length>=4)fail('media-section-bound');current={kind:line.split(' ')[0].slice(2),lines:[]};result.push(current);}if(current)current.lines.push(line);}
+            return result;
+        };
+        const videoSection=(description,mid)=>{
+            const all=sections(description),mids=[];
+            for(const section of all){const values=section.lines.filter(line=>line.startsWith('a=mid:'));if(values.length>1)fail('mid-unavailable-or-ambiguous');for(const value of values){if(mids.includes(value))fail('mid-unavailable-or-ambiguous');mids.push(value);}}
+            const found=all.filter(section=>section.kind==='video'&&section.lines.includes('a=mid:'+mid));
+            if(found.length!==1)fail('mid-unavailable-or-ambiguous');
+            const selected=found[0];if(selected.lines.filter(line=>line.startsWith('a=mid:')).length!==1)fail('mid-unavailable-or-ambiguous');
+            const groups=selected.lines.filter(line=>line.startsWith('a=ssrc-group:'));
+            if(groups.length>1||groups.some(line=>!/^a=ssrc-group:FID [0-9]{1,10} [0-9]{1,10}$/.test(line)))fail('source-ssrc-group-unsupported');return selected;
+        };
+        const declarations=section=>{
+            const result=[],seen=new Set(),formats=section.lines[0].split(/ +/).slice(3);
+            if(!formats.length||formats.length>32||formats.some(value=>!/^\d{1,3}$/.test(value)||Number(value)>=128)||new Set(formats).size!==formats.length)fail('codec-declaration-invalid');
+            for(const line of section.lines){if(!line.startsWith('a=rtpmap:'))continue;
+                const match=/^a=rtpmap:([0-9]{1,3}) ([A-Za-z0-9._-]{1,32})\/([0-9]{1,8})$/.exec(line);
+                if(!match||result.length>=32)fail('codec-declaration-invalid');
+                const pt=Number(match[1]),clock=Number(match[3]);if(pt>=128||clock<1||seen.has(pt)||!formats.includes(String(pt)))fail('codec-declaration-invalid');seen.add(pt);
+                result.push({payload_type:pt,mime_type:'video/'+match[2],clock_rate:clock});
+            }
+            if(!result.some(value=>value.mime_type.toLowerCase()==='video/vp8'&&value.clock_rate===90000))fail('codec-declaration-invalid');return result;
+        };
+        const senderSsrc=section=>{
+            const ids=new Set(),fid=[];
+            for(const line of section.lines){
+                if(line.startsWith('a=ssrc-group:')){
+                    const match=/^a=ssrc-group:FID ([0-9]{1,10}) ([0-9]{1,10})$/.exec(line);
+                    if(!match||fid.length>=1)fail('source-ssrc-group-unsupported');
+                    const values=match.slice(1).map(Number);if(values.some(value=>!u32(value)||value===0)||values[0]===values[1])fail('source-ssrc-group-unsupported');fid.push(values);
+                }else if(line.startsWith('a=ssrc:')){
+                    const match=/^a=ssrc:([0-9]{1,10}) /.exec(line);if(!match)fail('source-ssrc-invalid');
+                    const value=Number(match[1]);if(!u32(value)||value===0)fail('source-ssrc-invalid');ids.add(value);if(ids.size>2)fail('source-ssrc-ambiguous');
+                }
+            }
+            if(fid.length){const [primary,rtx]=fid[0];if(ids.size!==2||!ids.has(primary)||!ids.has(rtx))fail('source-ssrc-ambiguous');return {primary_ssrc:primary,rtx_ssrc:rtx};}
+            if(ids.size!==1)fail('source-ssrc-ambiguous');return {primary_ssrc:[...ids][0]};
+        };
+        const path=transport=>{
+            if(!transport||transport.state!=='connected')fail('dtls-unavailable');const dtlsState=transport.state,ice=transport.iceTransport;
+            if(!ice||!['connected','completed'].includes(ice.state)||typeof ice.getSelectedCandidatePair!=='function')fail('selected-pair-unavailable');
+            const iceState=ice.state,pair=ice.getSelectedCandidatePair();
+            const endpoint=value=>{if(!value||!numericAddress(value.address)||!Number.isInteger(value.port)||value.port<1||value.port>65535||value.protocol!=='udp')fail('selected-pair-unavailable');return {address:value.address,port:value.port,protocol:value.protocol};};
+            if(!pair)fail('selected-pair-unavailable');const local=endpoint(pair.local),remote=endpoint(pair.remote);
+            if(ice.state!==iceState||transport.state!==dtlsState)fail('selected-pair-changed');
+            return {local,remote,ice_state:iceState,dtls_state:dtlsState,basis:'RTCIceTransport.getSelectedCandidatePair'};
+        };
+        const role=(peer,entry,direction)=>{
+            try{
+                const original=describeTagged(entry,direction);if(!original)fail('original-track-unavailable');
+                const txs=peer.getTransceivers();if(txs.length>4)fail('transceiver-bound');const tx=txs[original.transceiver_index];
+                if(!tx||tx.mid!==original.mid)fail('original-transceiver-changed');
+                const track=direction==='send'?tx.sender?.track:tx.receiver?.track;
+                if(!track||!['live','ended'].includes(track.readyState))fail('track-state-unavailable');
+                const local=videoSection(peer.localDescription,original.mid),remote=videoSection(peer.remoteDescription,original.mid);
+                const value={complete:true,reason:null,original_track:original,track_state:track.readyState,
+                    selected_udp_pair:path(direction==='send'?tx.sender?.transport:tx.receiver?.transport),
+                    codec_declarations:{local:declarations(local),remote:declarations(remote)}};
+                if(direction==='send')Object.assign(value,senderSsrc(local));
+                else{
+                    if(typeof tx.receiver?.getSynchronizationSources!=='function')fail('synchronization-source-unavailable');
+                    const sources=tx.receiver.getSynchronizationSources();if(!Array.isArray(sources)||sources.length!==1)fail('synchronization-source-ambiguous');
+                    const source=sources[0];if(!source||!u32(source.source)||source.source===0||!u32(source.rtpTimestamp)||!Number.isFinite(source.timestamp)||source.timestamp<=0)fail('synchronization-source-invalid');
+                    if(remote.lines.some(line=>line.startsWith('a=ssrc:')||line.startsWith('a=ssrc-group:'))&&senderSsrc(remote).primary_ssrc!==source.source)fail('synchronization-source-contradiction');
+                    value.sync_source={source:source.source,rtpTimestamp:source.rtpTimestamp,timestamp:source.timestamp,timestamp_clock:'native-uninterpreted'};
+                }
+                return freeze(value);
+            }catch(error){return freeze({complete:false,reason:reason(error,'native-binding-unavailable')});}
+        };
+        const bindingCapture=(peer,entry,profile)=>{
+            const began=performance.now();let value={profile,peer_index:entry.peer_index,connection_id:entry.connection_id,
+                captured_at_ms:Number.isFinite(began)&&began>=0?began:null,captured_done_at_ms:null,complete:false,reason:'native-terminal-unavailable',bindings:{}};
+            try{
+                if(!boundedId(entry.connection_id)||entry.peer!==peer||peer.connectionState!=='connected'||!['connected','completed'].includes(peer.iceConnectionState)||peer.signalingState!=='stable')fail('native-peer-unavailable');
+                value.bindings={send:role(peer,entry,'send'),receive:role(peer,entry,'receive')};
+                const done=performance.now();if(!Number.isFinite(began)||began<0||!Number.isFinite(done)||done<began)fail('native-clock-unavailable');
+                value.captured_done_at_ms=done;value.complete=true;value.reason=null;
+            }catch(error){value.complete=false;value.reason=reason(error,'native-terminal-unavailable');value.bindings={};}
+            return value;
+        };
+        const freezeRecord=value=>{
+            try{if(new TextEncoder().encode(JSON.stringify(value)).byteLength>32768)value={...value,complete:false,reason:'binding-metadata-bound',bindings:{}};}
+            catch{value={...value,complete:false,reason:'native-binding-unavailable',bindings:{}};}
+            return freeze(value);
+        };
+        terminalCapture=(peer,entry)=>bindingCapture(peer,entry,'connect/rtc-native-terminal-binding/1');
+        terminalFinish=(value,closed,returned)=>{
+            let at=null;try{const now=performance.now();if(Number.isFinite(now)&&now>=value.captured_done_at_ms)at=now;}catch{}
+            return freezeRecord({...value,native_close_observed:closed,native_closed_at_ms:closed?at:null,
+                complete:value.complete&&closed&&returned&&at!==null,
+                reason:!returned?'native-close-error':!closed?'native-close-unconfirmed':at===null?'native-clock-unavailable':value.reason});
+        };
+        // The observer's immutable validated-cut ledger binds this ONE capture
+        // to its operation/route/previous+target owner. It is never a new grant.
+        globalThis.connectPeerPublicBinding=connectionId=>{
+            if(!boundedId(connectionId))return null;
+            const found=entries.filter(entry=>entry.connection_id===connectionId);if(found.length!==1)return null;
+            const entry=found[0];if(entry.public_binding!==undefined)return entry.public_binding;
+            if(!entry.peer)return null;
+            try{entry.public_binding=freezeRecord(bindingCapture(entry.peer,entry,'connect/rtc-native-public-binding/1'));}
+            catch{entry.public_binding=freezeRecord({profile:'connect/rtc-native-public-binding/1',peer_index:entry.peer_index,connection_id:entry.connection_id,captured_at_ms:null,captured_done_at_ms:null,complete:false,reason:'native-binding-unavailable',bindings:{}});}
+            return entry.public_binding;
+        };
+    }
+
     globalThis.connectPeerRetireCycle=()=>{
         const snapshot=globalThis.connectPeerDiagnostics();
         if(entries.some(entry=>entry.peer!==null||entry.detach!==null))
