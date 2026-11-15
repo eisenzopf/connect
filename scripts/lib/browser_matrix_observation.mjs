@@ -366,6 +366,10 @@ export class DecodedRoute {
                 presentedFrames:presentation.presentedFrames, callbackTime:presentation.callbackTime ?? null,
                 rtpTimestamp:presentation.rtpTimestamp ?? null, mediaTime:presentation.mediaTime ?? null,
                 captureTime:presentation.captureTime ?? null, receiveTime:presentation.receiveTime ?? null,
+                // Preserve only native-supplied boundary times. Callback
+                // delivery may be later than presentation; neither is a cut.
+                ...(Object.hasOwn(presentation,'presentationTime')?{presentationTime:Number.isFinite(presentation.presentationTime)?presentation.presentationTime:null}:{}),
+                ...(Object.hasOwn(presentation,'expectedDisplayTime')?{expectedDisplayTime:Number.isFinite(presentation.expectedDisplayTime)?presentation.expectedDisplayTime:null}:{}),
                 ...(Object.hasOwn(presentation,'connection_id')?{connection_id:typeof presentation.connection_id==='string'?presentation.connection_id:null}:{}),
                 ...(Object.hasOwn(presentation,'stream_id')?{stream_id:typeof presentation.stream_id==='string'?presentation.stream_id:null}:{}),
                 ...(Object.hasOwn(presentation,'track_id')?{track_id:typeof presentation.track_id==='string'?presentation.track_id:null}:{})} : null,

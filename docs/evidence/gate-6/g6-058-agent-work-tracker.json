@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T04:06:01.542250+00:00",
-  "revision": 91,
+  "updated_at": "2026-11-15T04:14:08.086530+00:00",
+  "revision": 92,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 151,
-    "verified_at": "2026-11-15T04:06:01.542250+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-normal3-r2.json",
-    "readback_evidence_sha256": "b6b2f17c57d319dc040a590331c34bb4b719963c42a638ef74e0df11b0133af4",
+    "content_revision": 152,
+    "verified_at": "2026-11-15T04:14:08.086530+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-packet-gap.json",
+    "readback_evidence_sha256": "ca299425cad7bf674e4962a31fb85af760e94aeff497cfff8910c4c97161eea6",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -4570,6 +4570,15 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-r2-failures.json",
         "sha256": "583dd964d56bcac8382b8b69e7fada3ab2432cd75dc3d587cb6506e9408d4875"
       }
+    },
+    {
+      "at": "2026-11-15T04:14:08.086530+00:00",
+      "revision": 92,
+      "checkpoint": {
+        "status": "Actual packet gap located between captured ingress and primary egress; exact internaldrop pending. Native presentation projection8/8 verified; SDK distinctframe contract stillopen. Notreadyfull32.",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-packet-gap-and-projection.json",
+        "sha256": "a5f554856ca58a34b0d52cdd7b6152379628175781dccb4a25ce3e940997bed3"
+      }
     }
   ],
   "tracking_review": {
@@ -6199,8 +6208,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Normal3 r2 FAILED:18/18audio,18/18AV,17/18nonduplicatevideo,3/3resources pass; C1return-video950ms stall and C2cross-owner sameframe remain under parallel diagnosis. Final877/ARM/releases/preflight held; full32 unstarted.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-r2-failures.json",
-    "sha256": "583dd964d56bcac8382b8b69e7fada3ab2432cd75dc3d587cb6506e9408d4875"
+    "status": "Actual packet gap located between captured ingress and primary egress; exact internaldrop pending. Native presentation projection8/8 verified; SDK distinctframe contract stillopen. Notreadyfull32.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-packet-gap-and-projection.json",
+    "sha256": "a5f554856ca58a34b0d52cdd7b6152379628175781dccb4a25ce3e940997bed3"
   }
 }

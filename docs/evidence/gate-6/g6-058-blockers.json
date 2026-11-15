@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-15T04:06:01.542250+00:00",
-  "run_status": "Latest full v218 remains1/32 cells,399/432 checks. Normal3 r2 FAILED:18/18audio,18/18AV,17/18nonduplicatevideo,3/3resources pass; C1return-video950ms stall and C2cross-owner sameframe remain under parallel diagnosis. Final877/ARM/releases/preflight held; full32 unstarted.",
+  "updated": "2026-11-15T04:14:08.086530+00:00",
+  "run_status": "Latest complete v218 remains1/32cells,399/432checks. Normal3r2 failed video stall and crossownerreplay; actualpackettrace source1048exists/target19154missing. Exactdropcallsite unresolved; safe preeffectBackpressure retention beingimplemented. Presentationprojection8/8 verified. No full32started; finalregression/ARMheld.",
   "blockers": [
     {
       "id": "B01",
@@ -19306,5 +19306,58 @@
     "G6_054": "parked",
     "ready_for_full32": false,
     "next": "Verify and fix both actual failures, pass fresh normal3, then final current regression/localARM/releases/preflight."
+  },
+  "v219_packet_gap_and_projection": {
+    "format": "connect/g6-058-v219-packet-gap-and-projection/1",
+    "updated_at": "2026-11-15T04:14:08.086530+00:00",
+    "matrix_credit": false,
+    "presentation_projection": {
+      "source_manifest_sha256": "27e67cd38c1e5fccac78cec4b10665ffa13599e8440c4c7085bd2725c0a9cfd2",
+      "source_review_sha256": "b1f4ba3f8811404e336354b49a6268c32b95c0a0491377b0e5cdbbb73a9dedbe",
+      "actual_review_sha256": "7a819bc092e2dc3d3fdcc95e096cdeaab2193698d4b64a05e2f6c2c3e8df72de",
+      "Root_original_join": "45285/f9c204",
+      "old_expected_missing_field_failure": true,
+      "fixed_whole_file_passed": 8,
+      "fixed_skipped": 0,
+      "source_unchanged": true,
+      "scope": "Retain only two already native-supplied presentation scalar times through bounded report rows. No callback/filter/frame/quality change; no historical time recovery or handoff cure."
+    },
+    "closed_packet_diagnostic": {
+      "Root_original_join": "70048/346fcb",
+      "source_manifest_sha256": "fe25d590f512415651cb128593df8964c8c92e8a098d5ed4565c1fbef078a44b",
+      "source_review_sha256": "117dd9bddd23106eb420e3d501f6e694beb712fe0234ec8fee9f4fdb7a628e43",
+      "actual_review_sha256": "d5f15d945773f8594048a13907ee59e00078616c607b67fd21226944e0e4fa50",
+      "diagnostic_sha256": "e0c28fb939f5a12cff9c42636ccb297a1c3d0872f9b1bb0180bc6f4af1f628d1",
+      "original_group_joined": true,
+      "source_and_all_original_inputs_unchanged": true,
+      "all_original_failed_flags_preserved": true,
+      "unique_selected_target_packets": 173,
+      "target_missing_sequences": [
+        19154
+      ],
+      "target_repeated_packets": 0,
+      "source_marker_fragment": {
+        "sequence": 1048,
+        "RTP_timestamp": 3121303140,
+        "marker": true,
+        "SRTP_body_bytes": 640,
+        "original_capture_record": 66734
+      },
+      "exact_epoch_mapping": {
+        "sequence_offset": 18106,
+        "timestamp_offset": 3600345294,
+        "target_timestamp": 2426681138
+      },
+      "target_same_timestamp_observation": "Only mapped first fragment19153 markerfalse; next observed19155 advances timestamp. No marker-ending fragment19154 on selected original primary target flow.",
+      "limit": "Clear encrypted RTP headers only: no VP8 payload/keyframe/dependency assertion or absence of RTX on other flows; exact internal drop callsite unresolved."
+    },
+    "source_supported_safe_fix_seam": {
+      "owner": "/root/media_blockers",
+      "reviewer": "/root/v198_resources",
+      "state": "staging",
+      "finding": "Failed egress enqueue Full returns preeffect Backpressure, but realtime Pending.forward drops that error. Preserve exact original under existing FIFO/current authority/age/deadline/queue limits.",
+      "actual_packet1048_attribution_proved": false
+    },
+    "next": "Verify and integrate safe source corrections and controls; fresh normal3 remains required before final regression/ARM/releases/preflight. Full32 unstarted;G6054parked."
   }
 }

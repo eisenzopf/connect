@@ -80,17 +80,21 @@ test('report-derived duplicate snapshots retain original presentation scalars be
  const r=route(),add=(owner,ordinal,at,p)=>r.videoFrame(owner,0,at,gray(0),footer(pixels(),ordinal),640,360,null,p);
  const base=(element_id,presentedFrames)=>({profile:'connect/rtc-video-presentation/1',element_id,presentedFrames});
  for(let i=0;i<16;i++)add('old',0,500+i,base(1,i+1));
- const first={...base(1,17),callbackTime:100,rtpTimestamp:0,mediaTime:0,captureTime:0,receiveTime:1.25};
- const second={...base(2,1),callbackTime:133,rtpTimestamp:3000,mediaTime:0,captureTime:10,receiveTime:11};
+ const first={...base(1,17),callbackTime:100,rtpTimestamp:0,mediaTime:0,captureTime:0,receiveTime:1.25,presentationTime:0,expectedDisplayTime:99};
+ const second={...base(2,1),callbackTime:133,rtpTimestamp:3000,mediaTime:0,captureTime:10,receiveTime:11,presentationTime:120,expectedDisplayTime:121};
  add('old',1,1500,first);add('new',1,1533,second);
- add('new',2,1566,{...base(2,2),mediaTime:0,rtpTimestamp:null});
+ add('new',2,1566,{...base(2,2),mediaTime:0,rtpTimestamp:null,presentationTime:null,expectedDisplayTime:NaN});
  add('new',2,1599,base(2,3));
- first.rtpTimestamp=999;second.receiveTime=999;
+ first.rtpTimestamp=999;second.receiveTime=999;first.presentationTime=999;second.expectedDisplayTime=999;
  const report=r.report(),v=report.video,events=v.duplicate_diagnostics.events;
  assert.equal(v.duplicate_frames,2);assert.equal(v.passed,false);
  assert.deepEqual(events[0].first.presentation,{profile:'connect/rtc-video-presentation/1',element_id:1,
-  callbackTime:100,mediaTime:0,presentedFrames:17,rtpTimestamp:0,captureTime:0,receiveTime:1.25});
+  callbackTime:100,mediaTime:0,presentedFrames:17,rtpTimestamp:0,captureTime:0,receiveTime:1.25,presentationTime:0,expectedDisplayTime:99});
  assert.equal(events[0].current.presentation.rtpTimestamp,3000);assert.equal(events[0].current.presentation.receiveTime,11);
+ assert.equal(events[0].current.presentation.presentationTime,120);assert.equal(events[0].current.presentation.expectedDisplayTime,121);
+ assert.equal(events[0].first.presentation.presentationTime,0,'Native zero is retained, not fabricated from callback delivery');
+ assert.equal(events[1].first.presentation.presentationTime,null);assert.equal(events[1].first.presentation.expectedDisplayTime,null);
+ for(const key of ['presentationTime','expectedDisplayTime'])assert.equal(Object.hasOwn(events[1].current.presentation,key),false,'Absent native time stays absent');
  assert.equal(events[0].first.native,null);assert.equal('ssrc' in events[0].first.presentation,false);
  assert.equal(events[1].first.presentation.mediaTime,0);assert.equal(events[1].first.presentation.rtpTimestamp,null);
  for(const key of ['callbackTime','mediaTime','rtpTimestamp','captureTime','receiveTime'])assert.equal(events[1].current.presentation[key],null);
