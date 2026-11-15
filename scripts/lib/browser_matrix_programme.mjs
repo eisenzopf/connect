@@ -278,7 +278,8 @@ export async function browserMatrixProgramme({state,actors,plan,sources,journal,
                 completionGate?.validated({operationId:intent.operation,old:before.connection.id,target:targetOwner.connection.id});
                 completionGate?.render('public-render-begins',targetOwner.connection.id);
             }
-            await observer?.activate(route.index,targetOwner.connection.id,options());
+            await observer?.activate(route.index,targetOwner.connection.id,options(),
+                {operationId:intent.operation,previous:before.connection.id});
             if(intent.source===0&&intent.ordinal===0)completionGate?.render('public-render-resolved',targetOwner.connection.id);
             phase = 'retired-source-refresh';
             const old=await before.connection.refresh(options());check(old.state==='retired','Original source must be durably retired');

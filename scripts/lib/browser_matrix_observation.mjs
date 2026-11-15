@@ -1,4 +1,4 @@
-import {rtcSourceFrameCandidates} from './browser_matrix_source_frame_witness.mjs';
+import {rtcSourceFrameCandidates,rtcSourceFrameControlRoute,RTC_WITNESS_CYCLE_BYTES} from './browser_matrix_source_frame_witness.mjs';
 import {matrixFrameIdentity,MATRIX_FRAME_ID_PROFILE} from './browser_matrix_frame_identity.mjs';
 import {rtcDecodedVideoOwners} from './browser_matrix_rtc_decoded.mjs';
 import {nativeMembership} from "../../sdk/typescript/dist/browser_native_activation.js";
@@ -226,7 +226,7 @@ function includedSourceVideo(rows,start,end){
 }
 
 export class DecodedRoute {
-    constructor(index,expected,{sourceFrameIdentity=false,rtcSourceFrameWitness=false,initialOrdinaryReceiver=false}={}){this.initialOrdinaryReceiver=initialOrdinaryReceiver;this.rtcSourceFrameWitness=rtcSourceFrameWitness;this.sourceFrameIdentity=sourceFrameIdentity;this.index=index;this.expected=expected;this.audio=[];this.video=[];this.envelope=new AudioEnvelope();
+    constructor(index,expected,{sourceFrameIdentity=false,rtcSourceFrameWitness=false,initialOrdinaryReceiver=false,associationControl=null}={}){this.publicOwnerIntervals=[];this.associationControl=associationControl;this.initialOrdinaryReceiver=initialOrdinaryReceiver;this.rtcSourceFrameWitness=rtcSourceFrameWitness;this.sourceFrameIdentity=sourceFrameIdentity;this.index=index;this.expected=expected;this.audio=[];this.video=[];this.envelope=new AudioEnvelope();
         this.audioBoundaries=[];this.omittedAudioBoundaries=0;this.invalid=[];this.seen=new Set();this.videoHigh=false;this.lastPixels=null;this.videoEdges=[];this.begin=null;this.ownerPixels=new Map();
         this.audioCuts=[];this.videoCuts=[];
         this.audioClocks = new Map();
@@ -568,7 +568,7 @@ export class DecodedRoute {
             // Original row.duplicate still excludes changing/FPS credit above.
             // Only the hard source-frame predicate can await external proof.
             videoResult.original_source_frame_witness=rtcSourceFrameCandidates(video,duplicateEvents,
-                sourceVideo?.omittedDuplicates??0,nonDuplicatePassed,this.initialOrdinaryReceiver);
+                sourceVideo?.omittedDuplicates??0,nonDuplicatePassed,this.initialOrdinaryReceiver,this.associationControl,this.publicOwnerIntervals);
         }
         return {route:this.index,expected_source_id:this.expected,window_start_ms:1000,window_end_ms:61000,
             ...(this.rtcSourceFrameWitness?{collection_passed:!this.invalid.length&&audioResult.passed
@@ -588,10 +588,12 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
     check(!Rtc||['native-decoded-frames/1','render-callback/1'].includes(rtcVideoObserver),'Declared RTC decoded video observer required');
     const nativeRtcVideo=Boolean(Rtc&&rtcVideoObserver==='native-decoded-frames/1');
     check(typeof rtcSourceFrameWitness==='boolean'&&(!rtcSourceFrameWitness||(Rtc&&!nativeRtcVideo)),'Source-frame witness requires original RTC render callbacks');
+    const control=rtcSourceFrameWitness?rtcSourceFrameControlRoute(plan):null;
     const routes=plan.routes.map(route=>{
         const peers=plan.routes.filter(other=>other.session===route.session),at=peers.indexOf(route);
         const selected=peers[(at+peers.length-1)%peers.length];
-        return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1,{sourceFrameIdentity:true,rtcSourceFrameWitness,initialOrdinaryReceiver:!plan.moves.some(move=>move.source===route.index)}),
+        return {measure:new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1,{sourceFrameIdentity:true,rtcSourceFrameWitness,initialOrdinaryReceiver:!plan.moves.some(move=>move.source===route.index),
+            associationControl:control?.receiver_route_index===route.index?control:null}),
             rendered:nativeRtcVideo?new DecodedRoute(route.index,Number(selected.role.split('-').at(-1))-1,{sourceFrameIdentity:true}):null,selected,active:null};
     });
     const bindings=new Map(),owners=[],surfaces=new Set(),pendingRenders=new Set(),initialRenders=new Map(),originalAudio=Renderer.prototype.audio,originalVideo=Renderer.prototype.video;
@@ -741,12 +743,29 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                     'Original initial renderer must have completed startup and remain owned');
             }
         },
-        start(origin){pipeline?.start(origin.originMs);rtcStages?.start(origin.originMs);webTransportStatistics?.start(origin.originMs);for(const route of routes){route.measure.start(origin.originMs);route.rendered?.start(origin.originMs);}},
-        activate(index,connectionId,options){const owner=bindings.get(connectionId);check(!closed&&owner?.index===index,'Original prepared observer required');
+        start(origin){pipeline?.start(origin.originMs);rtcStages?.start(origin.originMs);webTransportStatistics?.start(origin.originMs);for(const route of routes){
+            route.measure.start(origin.originMs);route.rendered?.start(origin.originMs);
+            if(rtcSourceFrameWitness){const binding=bindings.get(route.active);check(binding?.initial,'Original public startup owner required');
+                route.measure.publicOwnerIntervals=[{owner:route.active,receive_stream_id:binding.video,send_stream_id:binding.sendVideo,start_ms:0,end_ms:null,
+                    previous:null,operation_id:null,basis:'original-initial-public-render'}];}
+        }},
+        activate(index,connectionId,options,publication){const owner=bindings.get(connectionId);check(!closed&&owner?.index===index,'Original prepared observer required');
             const recordCut=()=>{
                 const measure=routes[index].measure;if(measure.begin===null)return;
                 const cut={id:connectionId,atMs:performance.now()-measure.begin,
                     basis:Rtc?'validated-receipts-local-public-render-cut':'validated-native-public-cut-observed'};
+                if(rtcSourceFrameWitness){
+                    const ledger=measure.publicOwnerIntervals,last=ledger.at(-1);
+                    check(ledger.length<3&&last&&last.end_ms===null&&last.owner===routes[index].active
+                        &&publication?.previous===last.owner&&typeof publication.operationId==='string'
+                        &&publication.operationId.length>0&&publication.operationId.length<=256,
+                        'Original validated publication owner chain required');
+                    check(cut.atMs>last.start_ms,'Original public cut must advance');
+                    last.end_ms=cut.atMs;
+                    ledger.push({owner:connectionId,receive_stream_id:owner.video,send_stream_id:owner.sendVideo,start_ms:cut.atMs,end_ms:null,
+                        previous:publication.previous,operation_id:publication.operationId,
+                        basis:'validated-receipts-local-public-render-cut'});
+                }
                 for(const route of routes){
                     if(plan.routes[route.measure.index].session!==plan.routes[index].session)continue;
                     check(route.measure.audioCuts.length<2,'Bounded original Session handoffs');
@@ -778,6 +797,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
                 }catch(error){if(route.measure.invalid.length<16)route.measure.invalid.push(String(error.message));return false;}
             },route.rendered));const nativeVideo=rtc?.decodedVideoReport()??null;
             const decodedVideoComplete=!nativeRtcVideo||(nativeVideo?.owners.length>=6&&nativeVideo.owners.every(owner=>owner.frames>0&&!owner.failed));
+            const witnessBytes=rtcSourceFrameWitness?measured.reduce((n,row)=>n+row.video.original_source_frame_witness.encoded_bytes,0):0;
             return lastReport=structuredClone({format:Rtc?'connect/browser-matrix-decoded-media/1':'connect/browser-matrix-decoded-media/2',
             quality_profile:'connect/decoded-audio-quality/3',
             metric_scope:'measurable-decoded-quality-source-quanta-diagnostic',
@@ -789,7 +809,9 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
             window_ms:60000,source_counters_used:false,rtc_media_pipeline:rtcStages?.report()??null,
             webtransport_statistics:webTransportStatistics?.report()??null,
             rtc_audio_boundary_diagnostics:rtc?.report()??null,
-            ...(rtcSourceFrameWitness?{collection_passed:decodedVideoComplete&&measured.every(route=>route.collection_passed)}:{}),
+            ...(rtcSourceFrameWitness?{collection_passed:decodedVideoComplete&&witnessBytes<=RTC_WITNESS_CYCLE_BYTES&&measured.every(route=>route.collection_passed),
+                source_frame_census_bytes:witnessBytes,source_frame_census_limit:RTC_WITNESS_CYCLE_BYTES,
+                source_frame_public_owners:routes.map(route=>({route:route.measure.index,intervals:structuredClone(route.measure.publicOwnerIntervals)}))}:{}),
             pipeline:pipeline?.report(routes.map((route,index)=>({index,source:route.selected.index,
                 audio:route.measure.envelope.edges,audioEnvelope:route.measure.envelope.report(1),video:route.measure.videoEdges}))),passed:decodedVideoComplete&&measured.every(route=>route.passed),routes:rtcSourceFrameWitness?measured.map((value,index)=>({...value,source_route_index:routes[index].selected.index})):measured});},
         // Stop and join the original diagnostic read while its peer is still

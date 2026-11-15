@@ -4,6 +4,9 @@ Never regrades an old profile, fits an offset, decodes SRTP, or creates authorit
 The caller still owns the original browser/capture/server joins and every gate.
 """
 import copy
+from array import array
+from bisect import bisect_left, bisect_right
+import sys
 import hashlib
 import ipaddress
 import json
@@ -15,9 +18,12 @@ import struct
 import time
 from pathlib import Path
 
-PROFILE = "connect/native-rtc-original-source-frame/1"
+PROFILE = "connect/native-rtc-original-source-frame/2"
 MAP_PROFILE = "connect/rtc-original-video-mapping/1"
-MAX_PAIRS, MAX_HEADERS = 16, 16384
+MAX_PAIRS, MAX_HEADERS = 179982, 600000
+WITNESS_CYCLE_BYTES = 8 * 1024**2
+CYCLE_JSON_BYTES = 32 * 1024**2
+CYCLES_JSON_BYTES = 96 * 1024**2
 
 
 class WitnessError(ValueError):
@@ -66,7 +72,7 @@ def read_json(path, maximum=16 * 1024**2):
         return json.loads(raw), hashlib.sha256(raw).hexdigest()
 
 
-def mapping_summaries(path, original_server_pid):
+def mapping_summaries(path, original_server_pid, deadline=None):
     result = []
     digest = hashlib.sha256()
     message = b"RTC original video mapping witness"
@@ -91,6 +97,7 @@ def mapping_summaries(path, original_server_pid):
     with regular(path, 256 * 1024**2) as (source, _):
         line, line_size, selected, tail = bytearray(), 0, False, b""
         while chunk := source.readline(chunk_cap):
+            if deadline is not None: need(time.monotonic() < deadline, "closed-metadata-time-bound")
             digest.update(chunk)
             line_size += len(chunk)
             search = tail + chunk
@@ -114,39 +121,65 @@ def mapping_summaries(path, original_server_pid):
     return result, digest.hexdigest()
 
 
+class StatsIndex:
+    def __init__(self, cycle, deadline=None):
+        self.samples = cycle['decoded_media']['rtc_media_pipeline']['samples']
+        need(isinstance(self.samples, list) and len(self.samples) <= 256, 'bounded-original-statistics')
+        self.requested = array('d', (sample['requested_seconds'] for sample in self.samples))
+        self.completed = array('d', (sample['completed_seconds'] for sample in self.samples))
+        need(all(math.isfinite(value) for value in self.requested) and all(math.isfinite(value) for value in self.completed)
+             and all(a <= b for a, b in zip(self.requested, self.requested[1:]))
+             and all(a <= b for a, b in zip(self.completed, self.completed[1:])), 'original-statistics-clock')
+        self.receiver_owners = {}
+        for sample in self.samples:
+            for group in sample['peers']:
+                for row in group:
+                    original = row.get('original_track') or {}
+                    if row.get('type') == 'inbound-rtp' and row.get('kind') == 'video' and isinstance(original.get('stream_id'), str):
+                        self.receiver_owners.setdefault(original['stream_id'], set()).add(original.get('connection_id'))
+        self.cache = {}
+        self.deadline = time.monotonic() + 30 if deadline is None else deadline
+
+    def get(self, owner, direction, first, last, *, stream=None, track=None, ssrc=None):
+        need(time.monotonic() < self.deadline, 'closed-metadata-time-bound')
+        lo, hi = bisect_right(self.completed, first) - 1, bisect_left(self.requested, last)
+        need(0 <= lo <= hi < len(self.samples), 'owner-statistics-do-not-bracket-pair')
+        need(first - self.completed[lo] <= 2 and self.requested[hi] - last <= 2, 'owner-statistics-too-distant')
+        key = (owner, direction, lo, hi, stream, track, ssrc)
+        if key in self.cache: return self.cache[key]
+        need(len(self.cache) < 16384, 'original-statistics-cache-bound')
+        selected = self.samples[lo:hi + 1]
+        values = []
+        for sample in selected:
+            rows = [r for group in sample["peers"] for r in group if r.get("connection_id") == owner
+                    and r.get("kind") == "video" and r.get("type") == direction
+                    and r.get("codec", {}).get("mime_type", "").lower() == "video/vp8"]
+            need(len(rows) == 1, "owner-statistics-ambiguous")
+            row = rows[0]
+            original = row.get("original_track") or {}
+            need(original.get("connection_id") == owner and isinstance(original.get("track_id"), str)
+                 and isinstance(original.get("stream_id"), str), "original-peer-track-unproved")
+            need((stream is None or original["stream_id"] == stream)
+                 and (track is None or original["track_id"] == track)
+                 and (ssrc is None or row.get("ssrc") == ssrc), "original-track-or-ssrc-changed")
+            if direction == 'inbound-rtp':
+                need(self.receiver_owners.get(original['stream_id']) == {owner}, 'ambiguous-observed-target-owner')
+            path, codec = row.get("selected_path") or {}, row["codec"]
+            need(path.get("nominated") is True and path.get("succeeded") is True, "selected-path-unproved")
+            for end in (path.get("local"), path.get("remote")):
+                need(isinstance(end, dict) and end.get("protocol") == "udp"
+                     and uint(end.get("port"), 16) and end["port"] > 0, "selected-udp-tuple-unavailable")
+                ipaddress.ip_address(end["address"])
+            need(codec.get("clock_rate") == 90000 and uint(codec.get("payload_type"), 7)
+                 and uint(row.get("ssrc"), 32), "original-vp8-clock-profile")
+            values.append({"track": original, "path": path, "ssrc": row["ssrc"], "codec": codec})
+        need(all(v == values[0] for v in values), "source-or-receiver-state-changed")
+        self.cache[key] = values[0]
+        return values[0]
+
+
 def stable_stats(cycle, owner, direction, first, last, *, stream=None, track=None, ssrc=None):
-    samples = cycle["decoded_media"]["rtc_media_pipeline"]["samples"]
-    before = [s for s in samples if s["completed_seconds"] <= first]
-    after = [s for s in samples if s["requested_seconds"] >= last]
-    need(before and after, "owner-statistics-do-not-bracket-pair")
-    lo, hi = before[-1], after[0]
-    need(first - lo["completed_seconds"] <= 2 and hi["requested_seconds"] - last <= 2,
-         "owner-statistics-too-distant")
-    selected = samples[samples.index(lo):samples.index(hi) + 1]
-    values = []
-    for sample in selected:
-        rows = [r for group in sample["peers"] for r in group if r.get("connection_id") == owner
-                and r.get("kind") == "video" and r.get("type") == direction
-                and r.get("codec", {}).get("mime_type", "").lower() == "video/vp8"]
-        need(len(rows) == 1, "owner-statistics-ambiguous")
-        row = rows[0]
-        original = row.get("original_track") or {}
-        need(original.get("connection_id") == owner and isinstance(original.get("track_id"), str)
-             and isinstance(original.get("stream_id"), str), "original-peer-track-unproved")
-        need((stream is None or original["stream_id"] == stream)
-             and (track is None or original["track_id"] == track)
-             and (ssrc is None or row.get("ssrc") == ssrc), "original-track-or-ssrc-changed")
-        path, codec = row.get("selected_path") or {}, row["codec"]
-        need(path.get("nominated") is True and path.get("succeeded") is True, "selected-path-unproved")
-        for end in (path.get("local"), path.get("remote")):
-            need(isinstance(end, dict) and end.get("protocol") == "udp"
-                 and uint(end.get("port"), 16) and end["port"] > 0, "selected-udp-tuple-unavailable")
-            ipaddress.ip_address(end["address"])
-        need(codec.get("clock_rate") == 90000 and uint(codec.get("payload_type"), 7)
-             and uint(row.get("ssrc"), 32), "original-vp8-clock-profile")
-        values.append({"track": original, "path": path, "ssrc": row["ssrc"], "codec": codec})
-    need(all(v == values[0] for v in values), "source-or-receiver-state-changed")
-    return values[0]
+    return StatsIndex(cycle).get(owner, direction, first, last, stream=stream, track=track, ssrc=ssrc)
 
 
 def epoch_for_pair(summaries, receiver, first_ts, last_ts):
@@ -156,24 +189,30 @@ def epoch_for_pair(summaries, receiver, first_ts, last_ts):
         for i, epoch in enumerate(epochs):
             if epoch.get("target_ssrc") != receiver["ssrc"] or epoch.get("target_logical") != receiver["track"]["stream_id"]:
                 continue
+            if epoch.get("target_connection") is not None and epoch["target_connection"] != receiver["track"]["connection_id"]:
+                continue
             need(summary.get("complete") is True and summary.get("omitted")==summary.get("invalid")==0,"selected-mapping-incomplete")
+            need(all(isinstance(epoch.get(key), str) and 0 < len(epoch[key]) <= 256
+                     and re.fullmatch(r'[A-Za-z0-9_-]+', epoch[key]) for key in
+                     ('source_connection','source_logical','source_transport','target_logical','target_transport')),
+                 'mapping-typed-id-invalid')
             need(all(type(epoch.get(k)) is int and 0 < epoch[k] < 2**64 for k in
                      ("source_generation","target_generation","target_connection_generation")),"mapping-generation-invalid")
             need(all(uint(epoch.get(k), bits) for k, bits in (("input_sequence", 16), ("output_sequence", 16),
                  ("input_timestamp", 32), ("output_timestamp", 32), ("sequence_offset", 16), ("timestamp_offset", 32))),
                  "mapping-coordinate-invalid")
+            need((epoch['input_sequence'] + epoch['sequence_offset']) % 65536 == epoch['output_sequence']
+                 and (epoch['input_timestamp'] + epoch['timestamp_offset']) % 2**32 == epoch['output_timestamp'],
+                 'mapping-coordinate-offset-mismatch')
             if delta(first_ts, epoch["output_timestamp"]) < 0:
                 continue
             next_epoch = epochs[i + 1] if i + 1 < len(epochs) else None
             if next_epoch is not None and delta(last_ts, next_epoch["output_timestamp"]) >= 0:
                 continue
-            # No transition near the exception window, including target rebind.
-            if delta(first_ts, epoch["output_timestamp"]) < 90000:
-                continue
-            if next_epoch is not None and delta(next_epoch["output_timestamp"], last_ts) <= 90000:
-                continue
             need(epoch["target_pt"] == receiver["codec"]["payload_type"], "target-profile-mismatch")
-            found.append((summary["timeline"], epoch))
+            selected = dict(epoch)
+            selected["_end_output_timestamp"] = next_epoch["output_timestamp"] if next_epoch is not None else None
+            found.append((summary["timeline"], selected))
     need(len(found) == 1, "mapping-missing-or-ambiguous")
     return found[0]
 
@@ -186,15 +225,21 @@ def packet_flow(stats, outbound):
             str(ipaddress.ip_address(b["address"])), b["port"], stats["ssrc"], stats["codec"]["payload_type"])
 
 
-def capture_headers(path, capture, windows, *, cycles=1):
+def capture_headers(path, capture, windows, *, cycles=1, deadline=None, auxiliary_bytes=0):
     need(capture.get("observed") is True and capture.get("original_joined") is True
          and capture.get("exit_code") == 0 and not capture.get("forced")
          and capture.get("kernel_dropped_packets") == 0, "original-capture-not-complete")
-    kept, count = [], 0
-    deadline = time.monotonic() + 30
+    count = 0
+    deadline = time.monotonic() + 30 if deadline is None else deadline
+    kept = HeaderIndex(200000 * cycles, deadline, auxiliary_bytes)
+    flows = {tuple(flow) for flow, _, _ in windows}
     with regular(path, 256 * 1024**2 * cycles) as (source, st):
         need(st.st_size == capture.get("pcap_bytes"), "capture-size-changed")
-        digest = hashlib.file_digest(source, "sha256").hexdigest()
+        digest_state = hashlib.sha256()
+        while chunk := source.read(64 * 1024):
+            need(time.monotonic() < deadline, "closed-metadata-time-bound")
+            digest_state.update(chunk)
+        digest = digest_state.hexdigest()
         need(digest == capture.get("pcap_sha256"), "capture-digest-changed")
         source.seek(0)
         head = source.read(24)
@@ -245,8 +290,7 @@ def capture_headers(path, capture, windows, *, cycles=1):
             if flags >> 6 != 2 or 192 <= pt_marker <= 223:
                 source.seek(end); continue
             flow = (address_a, port_a, address_b, port_b, ssrc, pt_marker & 127)
-            wanted = [(low, high) for f, low, high in windows if f == flow]
-            if not wanted or not any(-90000 <= delta(ts, low) and delta(ts, high) <= 90000 for low, high in wanted):
+            if flow not in flows:
                 source.seek(end); continue
             header_len = 12 + (flags & 15) * 4
             source.seek(rtp_at + header_len)
@@ -256,163 +300,519 @@ def capture_headers(path, capture, windows, *, cycles=1):
                 header_len += 4 + int.from_bytes(extension[2:4], "big") * 4
             need(not flags & 32 and header_len < udp_len - 8 and rtp_at + udp_len - 8 <= end,
                  "selected-rtp-unsupported-or-truncated")
-            need(len(kept) < MAX_HEADERS, "witness-global-header-cap")
-            kept.append({"flow": flow, "seq": seq, "ts": ts, "marker": bool(pt_marker & 128),
-                         "body_bytes": udp_len - 8 - header_len,
-                         "unix_ns": sec * 1000000000 + frac * (1000000000 // resolution), "record": count})
+            kept.add(flow, seq, ts, bool(pt_marker & 128), udp_len - 8 - header_len,
+                     sec * 1000000000 + frac * (1000000000 // resolution), count)
             source.seek(end)
     need(count == capture.get("original_packets_captured"), "original-capture-count")
-    return kept
+    return kept.build()
+
+
+# Compact closed-header index. Seven uint64 columns retain no packet payload.
+# The conservative live allocation account includes every owned container/key,
+# overcounts shared scalar references, and reserves transient epoch work arrays.
+class HeaderIndex:
+    LIMIT = 512 * 1024**2
+    ALLOCATION_SLACK = 64 * 1024**2
+
+    def __init__(self, maximum=600000, deadline=None, auxiliary_bytes=0):
+        self.maximum = maximum
+        self.deadline = time.monotonic() + 30 if deadline is None else deadline
+        self.columns = [array('Q') for _ in range(7)]
+        self.flows, self.groups, self.packets, self.sorted = {}, {}, {}, {}
+        self.account = (sys.getsizeof(self) + sys.getsizeof(self.__dict__) + sys.getsizeof(self.columns)
+                        + sum(sys.getsizeof(v) for v in self.columns)
+                        + sum(sys.getsizeof(v) for v in (self.flows, self.groups, self.packets, self.sorted)))
+        self.scratch = 0
+        self.work_scratch = 0
+        self.account += auxiliary_bytes
+
+    def check(self, scratch=0):
+        need(time.monotonic() < self.deadline, 'closed-metadata-time-bound')
+        need(self.account + self.work_scratch + scratch + self.ALLOCATION_SLACK <= self.LIMIT, 'closed-header-index-memory-bound')
+        self.scratch = max(self.scratch, self.work_scratch + scratch)
+
+    def __len__(self):
+        return len(self.columns[0])
+
+    def add(self, flow, sequence, timestamp, marker, body_bytes, unix_ns, record):
+        need(len(self) < self.maximum, 'witness-global-header-cap')
+        fid = self.flows.get(flow)
+        if fid is None:
+            need(len(self.flows) < 128 * 32 * 2, 'witness-flow-cap')
+            before = sys.getsizeof(self.flows)
+            fid = len(self.flows)
+            self.flows[flow] = fid
+            self.account += (sys.getsizeof(self.flows) - before + sys.getsizeof(flow)
+                             + sum(sys.getsizeof(v) for v in flow) + sys.getsizeof(fid))
+        at = len(self)
+        for column, value in zip(self.columns, (fid, sequence, timestamp, int(marker), body_bytes, unix_ns, record)):
+            before = sys.getsizeof(column); column.append(value)
+            self.account += sys.getsizeof(column) - before
+        key = (fid, timestamp)
+        group = self.groups.get(key)
+        if group is None:
+            before = sys.getsizeof(self.groups)
+            group = array('I'); self.groups[key] = group
+            self.account += (sys.getsizeof(self.groups) - before + sys.getsizeof(key)
+                             + sys.getsizeof(fid) + sys.getsizeof(timestamp) + sys.getsizeof(group))
+        before = sys.getsizeof(group); group.append(at)
+        self.account += sys.getsizeof(group) - before
+        key = (fid, sequence, timestamp, int(marker))
+        if key in self.packets:
+            self.packets[key] = None  # Selected duplicate original packet is never guessed away.
+        else:
+            before = sys.getsizeof(self.packets); self.packets[key] = at
+            self.account += (sys.getsizeof(self.packets) - before + sys.getsizeof(key)
+                             + sum(sys.getsizeof(v) for v in key) + sys.getsizeof(at))
+        need(self.account + self.ALLOCATION_SLACK <= self.LIMIT, "closed-header-index-memory-bound")
+        if at % 4096 == 0:
+            self.check()
+
+    def release_work(self):
+        self.work_scratch = 0
+
+    def charge(self, amount):
+        self.account += amount
+        self.check()
+
+    def radix(self, values):
+        # Four fixed byte passes, O(4*frames), including reordered timestamps.
+        a = array('I', values)
+        for shift in (0, 8, 16, 24):
+            self.check()
+            counts = [0] * 256
+            for value in a: counts[(value >> shift) & 255] += 1
+            total = 0
+            for i, count in enumerate(counts): counts[i], total = total, total + count
+            b = array('I', [0]) * len(a)
+            for value in a:
+                bucket = (value >> shift) & 255
+                b[counts[bucket]] = value; counts[bucket] += 1
+            a = b
+        return a
+
+    def build(self):
+        temporary = {fid: array('I') for fid in self.flows.values()}
+        # At most one original timestamp per indexed frame, no copied payload.
+        self.check(24 * len(self.groups) + 65536)
+        for n, (fid, timestamp) in enumerate(self.groups):
+            temporary[fid].append(timestamp)
+            if n % 4096 == 0: self.check(24 * len(self.groups) + 65536)
+        for fid, timestamps in temporary.items():
+            ordered = self.radix(timestamps)
+            before = sys.getsizeof(self.sorted); self.sorted[fid] = ordered
+            self.account += sys.getsizeof(self.sorted) - before + sys.getsizeof(fid) + sys.getsizeof(ordered)
+            self.check(24 * len(self.groups) + 65536)
+        self.check()
+        return self
+
+    def frame(self, source, target, source_ts, target_ts, epoch):
+        source_rows, target_rows = self.groups.get((source, source_ts)), self.groups.get((target, target_ts))
+        need(source_rows and target_rows and len(source_rows) == len(target_rows), 'original-frame-group-incomplete')
+        _, seqs, timestamps, markers, bodies, times, _ = self.columns
+        if target_ts == epoch['output_timestamp']:
+            need(source_ts == epoch['input_timestamp']
+                 and all(delta(seqs[i], epoch['input_sequence'], 16) >= 0 for i in source_rows)
+                 and all(delta(seqs[i], epoch['output_sequence'], 16) >= 0 for i in target_rows),
+                 'frame-crosses-source-target-epoch-boundary')
+        first = seqs[source_rows[0]]
+        offsets = set(); last_offset = None; marked = 0
+        # Reserve the worst original-fragment set; it is discarded per frame.
+        self.check(160 * len(source_rows) + 65536)
+        for number, i in enumerate(source_rows):
+            if number % 4096 == 0: self.check(160 * len(source_rows) + 65536)
+            key = (source, seqs[i], timestamps[i], markers[i])
+            need(self.packets.get(key) == i, 'source-duplicate-packet')
+            offset = delta(seqs[i], first, 16)
+            need(offset not in offsets, 'original-frame-fragment-gap'); offsets.add(offset)
+            last_offset = offset if last_offset is None else max(last_offset, offset)
+            if markers[i]: marked += 1
+            key = (target, (seqs[i] + epoch['sequence_offset']) % 65536, target_ts, markers[i])
+            j = self.packets.get(key)
+            need(j is not None and bodies[i] == bodies[j], 'header-mapping-or-packetization-differs')
+            need(0 < times[j] - times[i] < 200000000, 'primary-transit-unproved')
+        need(marked == 1 and len(offsets) == max(offsets) - min(offsets) + 1, 'original-frame-fragment-gap')
+        need(any(markers[i] and delta(seqs[i], first, 16) == last_offset for i in source_rows), 'original-frame-fragment-gap')
+        for j in target_rows:
+            need(self.packets.get((target, seqs[j], timestamps[j], markers[j])) == j, 'target-duplicate-packet')
+        return len(source_rows)
+
+    def timestamp_spans(self, flow, start, end=None):
+        ordered = self.sorted[flow]
+        finish = (start + (1 << 31)) % 2**32 if end is None else end
+        need(uint(start, 32) and uint(finish, 32) and finish != start, 'ambiguous-epoch-coordinate-range')
+        if end is not None: need(delta(finish, start) > 0, 'backward-epoch-coordinate-range')
+        low, high = bisect_left(ordered, start), bisect_left(ordered, finish)
+        return ((low, high),) if finish > start else ((low, len(ordered)), (0, high))
+
+    def timestamps(self, flow, start, end=None):
+        ordered = self.sorted[flow]
+        for a, b in self.timestamp_spans(flow, start, end):
+            for i in range(a, b): yield ordered[i]
+
+    def prove_many(self, source_flow, target_flow, epoch, requests):
+        source, target = self.flows.get(source_flow), self.flows.get(target_flow)
+        need(source is not None and target is not None, 'primary-window-not-bijective')
+        anchor, end = epoch['output_timestamp'], epoch.get('_end_output_timestamp')
+        ordered = self.sorted[target]
+        epoch_frames = sum(b - a for a, b in self.timestamp_spans(target, anchor, end))
+        scratch = 64 * epoch_frames + 768 * len(requests) + 65536
+        self.check(scratch)
+        self.work_scratch = scratch
+        # Two bisected slices at most; unrelated epochs of a reused flow
+        # are never scanned. EndNone is the exact nonnegative serial half-range.
+        ts = array('I', self.timestamps(target, anchor, end))
+        distances = array('I', (delta(value, anchor) for value in ts))
+        need(ts, 'primary-window-not-bijective')
+        # Fixed coordinate arrays and per-request integer pairs; no headers x aliases scan.
+        self.check()
+        coverage = array('i', [0]) * (len(ts) + 1)
+        spans = []
+        for n, (input_ts, output_ts) in enumerate(requests):
+            need(all(uint(v, 32) for v in input_ts + output_ts), 'original-frame-coordinate-invalid')
+            need(delta(input_ts[1], input_ts[0]) > 0, 'repeated-or-backward-original-source-frame')
+            first, last = (bisect_left(distances, delta(value, anchor)) for value in output_ts)
+            need(0 < first <= last < len(ts) - 1 and ts[first] == output_ts[0] and ts[last] == output_ts[1], 'original-neighbors-missing')
+            lo, hi = first - 1, last + 1
+            coverage[lo] += 1; coverage[hi + 1] -= 1; spans.append((lo, hi))
+            if n % 4096 == 0: self.check()
+        # A source-only complete frame inside a covered mapped span is loss,
+        # even though target-driven iteration would never visit its timestamp.
+        intervals, active, start = [], 0, None
+        for i in range(len(ts)):
+            active += coverage[i]
+            if active and start is None: start = i
+            if start is not None and (not active or i == len(ts) - 1):
+                finish = i if active else i - 1
+                intervals.append((distances[start], distances[finish])); start = None
+        visited = 0
+        for low, high in intervals:
+            input_start = (anchor + low - epoch['timestamp_offset']) % 2**32
+            input_end = (anchor + high - epoch['timestamp_offset'] + 1) % 2**32
+            for source_ts in self.timestamps(source, input_start, input_end):
+                mapped = (source_ts + epoch['timestamp_offset']) % 2**32
+                at = bisect_left(distances, delta(mapped, anchor))
+                need(at < len(ts) and ts[at] == mapped, 'source-frame-missing-from-target')
+                visited += 1
+                if visited % 4096 == 0: self.check()
+        prefix = array('Q', [0]); active = 0
+        for i, target_ts in enumerate(ts):
+            active += coverage[i]; count = 0
+            if active:
+                count = self.frame(source, target, (target_ts - epoch['timestamp_offset']) % 2**32, target_ts, epoch)
+            prefix.append(prefix[-1] + count)
+            if i % 4096 == 0: self.check()
+        self.check()
+        result = [{'matched_packets': prefix[hi + 1] - prefix[lo], 'original_timestamps': original,
+                 'target_timestamps': target_ts} for (lo, hi), (original, target_ts) in zip(spans, requests)]
+        return result
 
 
 def prove_headers(rows, source_flow, target_flow, epoch, input_ts, output_ts):
-    source = [r for r in rows if tuple(r["flow"]) == source_flow]
-    target = [r for r in rows if tuple(r["flow"]) == target_flow]
-    need(source and len(source) == len(target), "primary-window-not-bijective")
-    index = {}
-    for row in target:
-        key = (row["seq"], row["ts"], row["marker"])
-        need(key not in index, "target-duplicate-packet")
-        index[key] = row
-    matched = []
-    source_keys = set()
-    for a in source:
-        key = (a["seq"], a["ts"], a["marker"])
-        need(key not in source_keys, "source-duplicate-packet")
-        source_keys.add(key)
-        key = ((a["seq"] + epoch["sequence_offset"]) % 65536,
-               (a["ts"] + epoch["timestamp_offset"]) % 2**32, a["marker"])
-        b = index.get(key)
-        need(b is not None and a["body_bytes"] == b["body_bytes"], "header-mapping-or-packetization-differs")
-        need(0 < b["unix_ns"] - a["unix_ns"] < 200000000, "primary-transit-unproved")
-        matched.append((a, b))
-    need(len({b["record"] for _, b in matched}) == len(target), "nonunique-primary-association")
-    need(any(delta(r["ts"], input_ts[0]) < 0 for r in source)
-         and any(delta(r["ts"], input_ts[1]) > 0 for r in source), "original-neighbors-missing")
-    for ts, target_ts in zip(input_ts, output_ts):
-        a = [r for r in source if r["ts"] == ts]
-        b = [r for r in target if r["ts"] == target_ts]
-        need(a and len(a) == len(b) and sum(r["marker"] for r in a) == 1, "original-frame-group-incomplete")
-        ordered = sorted(a, key=lambda r: delta(r["seq"], a[0]["seq"], 16))
-        need(ordered[-1]["marker"] and all(delta(y["seq"], x["seq"], 16) == 1 for x, y in zip(ordered, ordered[1:])),
-             "original-frame-fragment-gap")
-    need(input_ts[0] != input_ts[1] and delta(input_ts[1], input_ts[0]) > 0, "repeated-or-backward-original-source-frame")
-    return {"matched_packets": len(matched), "original_timestamps": input_ts, "target_timestamps": output_ts}
+    index = rows
+    if not isinstance(index, HeaderIndex):
+        index = HeaderIndex()
+        for row in rows:
+            index.add(tuple(row['flow']), row['seq'], row['ts'], row['marker'], row['body_bytes'], row['unix_ns'], row['record'])
+        index.build()
+    return index.prove_many(source_flow, target_flow, epoch, [(input_ts, output_ts)])[0]
 
 
-def prepare_pair(cycle, route, pair, summaries):
-    a, b = pair["first"], pair["current"]
-    pa, pb = a["presentation"], b["presentation"]
-    need(a["owner"] == b["owner"] and pa["element_id"] == pb["element_id"]
-         and pa["stream_id"] == pb["stream_id"] and pa["track_id"] == pb["track_id"]
-         and pb["presentedFrames"] > pa["presentedFrames"], "cross-owner-or-presentation-replay")
-    need(1 <= a["callback_seconds"] <= b["callback_seconds"] < 61, "outside-public-quality-window")
-    receiver = stable_stats(cycle, a["owner"], "inbound-rtp", a["callback_seconds"], b["callback_seconds"],
-                            stream=pa["stream_id"], track=pa["track_id"])
-    timeline, epoch = epoch_for_pair(summaries, receiver, pa["rtpTimestamp"], pb["rtpTimestamp"])
-    sources = cycle["programme"]["sources"]["sources"]
-    selected = [value for value in sources if value.get("index")==route["source_route_index"]]
-    need(len(selected)==1,"original-source-route-ambiguous")
-    source_record = selected[0]
-    need(any(v["connection_id"] == epoch["source_connection"] for v in source_record["attachments"]),
-         "mapping-source-not-original-authenticated-route")
-    source = stable_stats(cycle, epoch["source_connection"], "outbound-rtp", a["callback_seconds"], b["callback_seconds"],
-                          stream=epoch["source_logical"], ssrc=epoch["source_ssrc"])
-    source_cipher,receiver_cipher=source["path"].get("srtp_cipher"),receiver["path"].get("srtp_cipher")
-    if source_cipher is not None and receiver_cipher is not None:
-        need(source_cipher==receiver_cipher,"different-srtp-wire-profiles")
-    output_ts = [pa["rtpTimestamp"], pb["rtpTimestamp"]]
-    input_ts = [(v - epoch["timestamp_offset"]) % 2**32 for v in output_ts]
-    return {"timeline": timeline, "epoch": epoch, "source_flow": packet_flow(source, True),
-            "target_flow": packet_flow(receiver, False), "input_ts": input_ts, "output_ts": output_ts}
+def metadata_size(*roots, deadline):
+    # Invoked before the capture index exists. Count all retained request,
+    # grouping, context, and result roots once, including scalar objects.
+    seen, stack, total, visits = set(), list(roots), 0, 0
+    while stack:
+        value = stack.pop(); identity = id(value)
+        if identity in seen: continue
+        seen.add(identity); total += sys.getsizeof(value); visits += 1
+        if isinstance(value, dict): stack.extend(value.keys()); stack.extend(value.values())
+        elif isinstance(value, (tuple, list, set)): stack.extend(value)
+        if visits % 4096 == 0:
+            need(time.monotonic() < deadline, 'closed-metadata-time-bound')
+            need(total + sys.getsizeof(seen) + len(seen) * sys.getsizeof(identity) + sys.getsizeof(stack) + HeaderIndex.ALLOCATION_SLACK <= HeaderIndex.LIMIT,
+                 'closed-proof-metadata-memory-bound')
+    return total
+
+
+def decode_census(route, deadline=None):
+    candidate = route['video']['original_source_frame_witness']
+    need(candidate.get('profile') == PROFILE and candidate.get('collection_passed') is True, 'incomplete-or-unrequested-source-candidate')
+    text = candidate.get('census_json')
+    need(isinstance(text, str), 'census-missing')
+    size = len(text.encode('utf-8'))
+    need(size == candidate.get('encoded_bytes') and size <= WITNESS_CYCLE_BYTES, 'census-byte-bound')
+    if deadline is not None: need(time.monotonic() < deadline, 'closed-metadata-time-bound')
+    value = json.loads(text)
+    if deadline is not None: need(time.monotonic() < deadline, 'closed-metadata-time-bound')
+    descriptors, rows, pairs = value.get('descriptors'), value.get('rows'), value.get('pairs')
+    need(isinstance(descriptors, list) and 1 <= len(descriptors) <= 10 and isinstance(rows, list)
+         and 1 <= len(rows) <= 10000 and isinstance(pairs, list) and len(pairs) < 10000, 'census-shape')
+    for d in descriptors:
+        need(isinstance(d, list) and len(d) == 4 and all(isinstance(v, str) and 0 < len(v) <= 256 for v in d[:3])
+             and uint(d[3], 53) and d[3] > 0, 'census-original-descriptor')
+    seen_indices, seen_rtp, footer = set(), set(), {}
+    expected = []
+    for at, row in enumerate(rows):
+        if deadline is not None and at % 4096 == 0: need(time.monotonic() < deadline, 'closed-metadata-time-bound')
+        need(isinstance(row, list) and len(row) == 6 and uint(row[0], 16) and row[0] < 10000
+             and uint(row[1], 8) and row[1] < len(descriptors) and type(row[2]) in (int, float)
+             and math.isfinite(row[2]) and 1 <= row[2] < 61 and uint(row[3], 53) and row[3] > 0
+             and uint(row[4], 32) and uint(row[5], 16) and row[5] < 1860, 'census-original-row')
+        need(row[0] not in seen_indices, 'census-repeated-row-reference'); seen_indices.add(row[0])
+        descriptor = descriptors[row[1]]
+        key = (*descriptor[:3], row[4])
+        need(key not in seen_rtp, 'repeated-receiver-rtp-frame'); seen_rtp.add(key)
+        if row[5] in footer: expected.append([footer[row[5]], at])
+        else: footer[row[5]] = at
+    need(pairs == expected and len(pairs) == candidate.get('pair_count') == route['video']['duplicate_frames']
+         and len(rows) == candidate.get('rows') and candidate.get('legacy_draw_repeat_frames') == len(pairs), 'incomplete-alias-census')
+    return value
+
+
+def census_point(census, reference):
+    rows = census['rows']
+    need(uint(reference, 16) and reference < len(rows), 'census-index')
+    row = rows[reference]; owner, stream, track, element = census['descriptors'][row[1]]
+    return dict(owner=owner, row_index=row[0], callback_seconds=row[2],
+                presentation=dict(connection_id=owner, stream_id=stream, track_id=track,
+                                  element_id=element, presentedFrames=row[3], rtpTimestamp=row[4]))
+
+
+def public_intervals(cycle, index):
+    records = cycle['decoded_media'].get('source_frame_public_owners', [])
+    original = [source for source in cycle['source_startup']['sources'] if source.get('index') == index]
+    found = [record for record in records if record.get('route') == index]
+    need(len(found) == len(original) == 1 and len(original[0]['attachments']) == 1, 'original-public-owner-ledger-missing')
+    ledger = found[0]['intervals']
+    moves = sorted((move for move in cycle['programme']['moves'] if move['source_index'] == index), key=lambda move: move['ordinal'])
+    need(isinstance(ledger, list) and 1 <= len(ledger) <= 3 and len(ledger) == len(moves) + 1, 'public-owner-ledger-shape')
+    first = ledger[0]
+    need(first.get('owner') == original[0]['attachments'][0]['connection_id'] and first.get('start_ms') == 0
+         and first.get('operation_id') is None and first.get('previous') is None
+         and first.get('basis') == 'original-initial-public-render', 'original-public-start-unproved')
+    route = next((route for route in cycle['decoded_media']['routes'] if route['route'] == index), None)
+    cuts = [] if route is None else route['video']['transition_coverage']['original_public_cuts']
+    need(not moves or route is not None, 'public-cut-route-missing')
+    owners = set()
+    for i, interval in enumerate(ledger):
+        need(isinstance(interval.get('owner'), str) and interval['owner'] not in owners
+             and isinstance(interval.get('receive_stream_id'), str) and isinstance(interval.get('send_stream_id'), str), 'public-owner-ambiguous')
+        owners.add(interval['owner'])
+        start, end = interval.get('start_ms'), interval.get('end_ms')
+        need(type(start) in (int, float) and math.isfinite(start) and 0 <= start < 62000
+             and (end is None if i == len(ledger) - 1 else type(end) in (int, float) and math.isfinite(end) and start < end <= 62000), 'public-interval-clock')
+        if i:
+            move = moves[i - 1]
+            matched = [cut for cut in cuts if cut.get('id') == move['target']]
+            need(move['source'] == ledger[i - 1]['owner'] and move['target'] == interval['owner']
+                 and interval.get('previous') == move['source'] and interval.get('operation_id') == move['operation_id']
+                 and interval.get('basis') == 'validated-receipts-local-public-render-cut'
+                 and len(matched) == 1 and matched[0].get('basis') == interval['basis']
+                 and matched[0].get('atMs') == start == ledger[i - 1]['end_ms'], 'validated-original-public-cut-unproved')
+    return ledger
+
+
+def within_public(ledger, owner, stream, first, last, direction):
+    found = [entry for entry in ledger if entry['owner'] == owner and entry[direction + '_stream_id'] == stream
+             and entry['start_ms'] / 1000 <= first <= last
+             and (entry['end_ms'] is None or last < entry['end_ms'] / 1000)]
+    need(len(found) == 1, 'private-or-cross-public-owner-boundary')
+    return found[0]
+
+
+def prepare_pair(cycle, route, pair, summaries, stats=None):
+    a, b = pair['first'], pair['current']; pa, pb = a['presentation'], b['presentation']
+    need(a['owner'] == b['owner'] and pa['element_id'] == pb['element_id']
+         and pa['stream_id'] == pb['stream_id'] and pa['track_id'] == pb['track_id']
+         and pb['presentedFrames'] > pa['presentedFrames'], 'cross-owner-or-presentation-replay')
+    need(all(uint(p['rtpTimestamp'], 32) for p in (pa, pb)), 'invalid-original-rtp-coordinate')
+    need(1 <= a['callback_seconds'] < b['callback_seconds'] < 61, 'outside-public-quality-window')
+    within_public(public_intervals(cycle, route['route']), a['owner'], pa['stream_id'], a['callback_seconds'], b['callback_seconds'], 'receive')
+    stats = stats or StatsIndex(cycle)
+    receiver = stats.get(a['owner'], 'inbound-rtp', a['callback_seconds'], b['callback_seconds'], stream=pa['stream_id'], track=pa['track_id'])
+    timeline, epoch = epoch_for_pair(summaries, receiver, pa['rtpTimestamp'], pb['rtpTimestamp'])
+    selected = [source for source in cycle['programme']['sources']['sources'] if source.get('index') == route['source_route_index']]
+    need(len(selected) == 1 and any(binding['connection_id'] == epoch['source_connection'] for binding in selected[0]['attachments']), 'mapping-source-not-original-authenticated-route')
+    within_public(public_intervals(cycle, route['source_route_index']), epoch['source_connection'], epoch['source_logical'], a['callback_seconds'], b['callback_seconds'], 'send')
+    source = stats.get(epoch['source_connection'], 'outbound-rtp', a['callback_seconds'], b['callback_seconds'], stream=epoch['source_logical'], ssrc=epoch['source_ssrc'])
+    source_cipher, receiver_cipher = source['path'].get('srtp_cipher'), receiver['path'].get('srtp_cipher')
+    if source_cipher is not None and receiver_cipher is not None: need(source_cipher == receiver_cipher, 'different-srtp-wire-profiles')
+    output_ts = [pa['rtpTimestamp'], pb['rtpTimestamp']]
+    return dict(timeline=timeline, epoch=epoch, source_flow=packet_flow(source, True), target_flow=packet_flow(receiver, False),
+                input_ts=[(value - epoch['timestamp_offset']) % 2**32 for value in output_ts], output_ts=output_ts)
+
+
+def prepare_association_control(cycle, summaries, censuses=None, stats=None):
+    routes = cycle['decoded_media']['routes']; moved = {move['source_index'] for move in cycle['programme']['moves']}
+    eligible = [route for route in routes if route['route'] != route['source_route_index'] and route['route'] not in moved and route['source_route_index'] not in moved]
+    need(eligible, 'passive-original-unmoved-edge-missing'); selected = min(eligible, key=lambda route: route['route'])
+    censuses = censuses or {route['route']: decode_census(route) for route in routes}
+    controls = [(route, censuses[route['route']].get('control')) for route in routes if censuses[route['route']].get('control') is not None]
+    need(len(controls) == 1 and controls[0][0]['route'] == selected['route'], 'passive-control-missing-or-wrong-route')
+    route, control = controls[0]
+    need(control.get('receiver_route_index') == route['route'] and control.get('source_route_index') == route['source_route_index']
+         and control.get('window_start_seconds') == 2 and control.get('window_end_seconds') == 3
+         and isinstance(control.get('rows'), list) and len(control['rows']) == 2, 'passive-control-profile-or-selection')
+    census = censuses[route['route']]
+    a, b = (census_point(census, reference) for reference in control['rows'])
+    need(2 <= a['callback_seconds'] < b['callback_seconds'] <= 3, 'passive-control-window-or-pair')
+    return route, prepare_pair(cycle, route, dict(first=a, current=b), summaries, stats)
 
 
 def finalize(report, browser_folder, server_log, pcap_path):
-    """Return a NEW final observation; never mutate original raw cycle artifacts."""
-    need(report.get("transport") == "firefox-wss-webrtc" and report.get("stage") == "quality", "firefox-quality-profile-only")
-    need(report.get("browser_exit_code") == 0 and report.get("browser_owner_joined") is True, "original-browser-collection-not-joined0")
-    raw = report["browser_observation"]
-    need(raw.get("source_revision")==report.get("source_revision") and raw.get("transport")==report.get("transport"),
-         "original-browser-source-or-transport-differs")
-    need(raw.get("source_frame_witness_profile") == PROFILE and raw.get("collection_passed") is True,
-         "not-a-prospective-complete-collection")
-    servers = report.get("servers", [])
-    need(servers and all(s.get("original_joined") is True and s.get("original_exit_code") == 0
-         and s.get("original_process_group_joined") is True for s in servers), "original-server-joins-unproved")
-    actual = [s for s in servers if s["name"] == "materialized-server"]
-    need(len(actual) == 1, "original-server-owner-ambiguous")
-    summaries, log_sha = mapping_summaries(server_log, actual[0]["original_pid"])
-    cycles, pairs, windows = [], [], []
-    for archive in raw["resource_cycles"]:
-        folder = Path(browser_folder) / "cycles" / ("cycle-" + str(archive["index"]))
-        cycle, digest = read_json(folder / "cycle-observation.json")
-        need(digest == archive["observation_sha256"] and cycle.get("collection_passed") is True,
-             "original-cycle-hash-or-collection")
-        need(cycle.get("cycle", {}).get("workload_id") == archive["workload_id"], "original-cycle-owner")
-        final_cycle = copy.deepcopy(cycle)
-        for route in final_cycle["decoded_media"]["routes"]:
-            candidate = route["video"].get("original_source_frame_witness")
-            need(candidate and candidate.get("profile") == PROFILE and candidate.get("collection_passed") is True,
-                 "incomplete-or-unrequested-source-candidate")
-            if candidate["pairs"]:
-                need(candidate.get("initial_ordinary_receiver") is True, "prepared-receiver-remains-strict")
-                need(not any(move.get("source_index")==route["route"] for move in cycle["programme"]["moves"]),
-                     "moved-receiver-remains-strict")
-                original_receivers=[v for v in cycle["source_startup"]["sources"] if v.get("index")==route["route"]]
-                need(len(original_receivers)==1 and len(original_receivers[0]["attachments"])==1,
-                     "initial-receiver-owner-unproved")
-                original_owner=original_receivers[0]["attachments"][0]["connection_id"]
-                need(all(pair["first"]["owner"]==pair["current"]["owner"]==original_owner for pair in candidate["pairs"]),
-                     "replacement-receiver-remains-strict")
-            for pair in candidate["pairs"]:
-                need(len(pairs) < MAX_PAIRS, "global-source-pair-cap")
-                prepared = prepare_pair(cycle, route, pair, summaries)
-                pairs.append((route, prepared))
-                windows.extend([(prepared["source_flow"], *prepared["input_ts"]),
-                                (prepared["target_flow"], *prepared["output_ts"])])
-            route["video"]["raw_draw_duplicate_frames"] = route["video"]["duplicate_frames"]
+    """Return a NEW final observation; original raw files and quality rows stay unchanged."""
+    deadline = time.monotonic() + 30
+    need(report.get('transport') == 'firefox-wss-webrtc' and report.get('stage') == 'quality', 'firefox-quality-profile-only')
+    need(report.get('browser_exit_code') == 0 and report.get('browser_owner_joined') is True, 'original-browser-collection-not-joined0')
+    raw = report['browser_observation']
+    need(raw.get('source_revision') == report.get('source_revision') and raw.get('transport') == report.get('transport'), 'original-browser-source-or-transport-differs')
+    need(raw.get('source_frame_witness_profile') == PROFILE and raw.get('collection_passed') is True, 'not-a-prospective-complete-collection')
+    archives = raw['resource_cycles']; need(1 <= len(archives) <= 3, 'original-cycle-count')
+    servers = report.get('servers', [])
+    need(servers and all(server.get('original_joined') is True and server.get('original_exit_code') == 0 and server.get('original_process_group_joined') is True for server in servers), 'original-server-joins-unproved')
+    actual = [server for server in servers if server['name'] == 'materialized-server']; need(len(actual) == 1, 'original-server-owner-ambiguous')
+    summaries, log_sha = mapping_summaries(server_log, actual[0]['original_pid'], deadline)
+    cycles, contexts, context_ids, requests, windows = [], [], {}, [], []
+    cycle_bytes = 0
+    statistics = []
+    census_bytes = {}
+    def request(prepared, cycle_index, route_index, reference, control=False):
+        key = (prepared['timeline'], prepared['epoch']['ordinal'], prepared['source_flow'], prepared['target_flow'])
+        context = context_ids.get(key)
+        if context is None:
+            context = len(contexts); context_ids[key] = context; contexts.append(prepared)
+            windows.extend(((prepared['source_flow'], 0, 0), (prepared['target_flow'], 0, 0)))
+        requests.append((context, tuple(prepared['input_ts']), tuple(prepared['output_ts']), cycle_index, route_index, reference, control))
+        if len(requests) % 4096 == 0: need(time.monotonic() < deadline, 'closed-metadata-time-bound')
+    for archive in archives:
+        path = Path(browser_folder) / 'cycles' / ('cycle-' + str(archive['index'])) / 'cycle-observation.json'
+        cycle_bytes += path.stat().st_size; need(cycle_bytes <= CYCLES_JSON_BYTES, 'original-cycle-aggregate-byte-bound')
+        cycle, digest = read_json(path, CYCLE_JSON_BYTES)
+        need(digest == archive['observation_sha256'] and cycle.get('collection_passed') is True, 'original-cycle-hash-or-collection')
+        need(cycle.get('cycle', {}).get('workload_id') == archive['workload_id'], 'original-cycle-owner')
+        final_cycle = copy.deepcopy(cycle); censuses = {}; witness_bytes = 0
+        stats = StatsIndex(cycle, deadline); statistics.append(stats)
+        for route in cycle['decoded_media']['routes']:
+            census = decode_census(route, deadline); censuses[route['route']] = census
+            witness_bytes += route['video']['original_source_frame_witness']['encoded_bytes']
+            need(census['public_intervals'] == public_intervals(cycle, route['route']), 'census-public-ledger-differs')
+            for number, row in enumerate(census['rows']):
+                descriptor = census['descriptors'][row[1]]
+                within_public(census['public_intervals'], descriptor[0], descriptor[1], row[2], row[2], 'receive')
+                if number % 4096 == 0: need(time.monotonic() < deadline, 'closed-metadata-time-bound')
+
+            for reference, (first, current) in enumerate(census['pairs']):
+                need(len(requests) < MAX_PAIRS + 3, 'global-source-pair-cap')
+                pair = dict(first=census_point(census, first), current=census_point(census, current))
+                request(prepare_pair(cycle, route, pair, summaries, stats), archive['index'], route['route'], reference)
+        need(witness_bytes <= WITNESS_CYCLE_BYTES, 'cycle-census-byte-bound')
+        census_bytes[archive['index']] = witness_bytes
+        control_route, control = prepare_association_control(cycle, summaries, censuses, stats)
+        request(control, archive['index'], control_route['route'], -1, True)
         cycles.append(final_cycle)
-    headers = capture_headers(pcap_path, report["packet_capture"], windows, cycles=len(cycles))
-    facts = []
-    for route, pair in pairs:
-        fact = prove_headers(headers, pair["source_flow"], pair["target_flow"], pair["epoch"], pair["input_ts"], pair["output_ts"])
-        facts.append({"route": route["route"], "timeline": pair["timeline"], "epoch": pair["epoch"]["ordinal"], **fact})
-    # Resolve ONLY the source-frame predicate. Existing row flags, bins, counts,
-    # transitions, gaps, identity, invalid, audio and AV facts remain untouched.
+    grouped = [[] for _ in contexts]
+    for number, value in enumerate(requests): grouped[value[0]].append(number)
+    auxiliary = metadata_size(requests, grouped, contexts, context_ids, windows, [value.cache for value in statistics],
+                              [value.requested for value in statistics], [value.completed for value in statistics], [value.receiver_owners for value in statistics], deadline=deadline)
+    headers = capture_headers(pcap_path, report['packet_capture'], windows, cycles=len(cycles), deadline=deadline, auxiliary_bytes=auxiliary)
+    compact, control_facts = [], []
+    for context_id, numbers in enumerate(grouped):
+        context = contexts[context_id]
+        proofs = headers.prove_many(context['source_flow'], context['target_flow'], context['epoch'], [(list(requests[n][1]), list(requests[n][2])) for n in numbers])
+        for number, proof in zip(numbers, proofs):
+            _, _, _, cycle_index, route_index, reference, control = requests[number]
+            if control:
+                control_facts.append(dict(profile='connect/rtc-passive-source-association/1', cycle=cycle_index, route=route_index,
+                    timeline=context['timeline'], epoch=context['epoch']['ordinal'], **proof))
+            else:
+                row = [cycle_index, route_index, reference, context_id, proof['matched_packets']]
+                before = sys.getsizeof(compact); compact.append(row)
+                headers.charge(sys.getsizeof(compact) - before + sys.getsizeof(row) + sum(sys.getsizeof(v) for v in row))
+        headers.charge(4096 * sum(requests[n][-1] for n in numbers))
+        del proofs
+        headers.release_work()
+    headers.check(128 * len(compact) + 8192 * len(contexts) + 65536)
+    index_accounted, index_scratch = headers.account, headers.scratch
+    # No original header/index owners survive into final quality graph copies.
+    del headers
+    proof_json = json.dumps(compact, separators=(',', ':'))
+    need(time.monotonic() < deadline, 'closed-metadata-time-bound')
+    # Proof rows reference immutable original census and epoch descriptors; no repeated long IDs.
+    need(len(proof_json.encode()) <= WITNESS_CYCLE_BYTES * len(cycles), 'final-proof-byte-bound')
+    for cycle_index, size in census_bytes.items():
+        selected = [row for row in compact if row[0] == cycle_index]
+        used = {row[3] for row in selected}
+        for control in control_facts:
+            if control['cycle'] == cycle_index:
+                used.update(i for i, context in enumerate(contexts) if context['timeline'] == control['timeline'] and context['epoch']['ordinal'] == control['epoch'])
+        encoded = json.dumps(dict(proofs=selected, epochs=[dict(timeline=contexts[i]['timeline'], epoch=contexts[i]['epoch']) for i in used],
+            controls=[control for control in control_facts if control['cycle'] == cycle_index]), separators=(',', ':')).encode()
+        need(len(used) <= 10 * 32 and size + len(encoded) <= WITNESS_CYCLE_BYTES, 'final-cycle-witness-byte-bound')
+        need(time.monotonic() < deadline, 'closed-metadata-time-bound')
+
     for cycle in cycles:
-        for route in cycle["decoded_media"]["routes"]:
-            v = route["video"]
-            v["actual_source_duplicate_frames"] = 0
-            v["source_frame_profile"] = PROFILE
-            v["duplicate_frames"] = 0
-            v["passed"] = v["original_source_frame_witness"]["non_duplicate_passed"] is True
-            route["passed"] = not route["invalid"] and route["audio"]["passed"] and v["passed"] and route["sync"]["status"] == "passed"
-        cycle["decoded_media"]["passed"] = all(r["passed"] for r in cycle["decoded_media"]["routes"])
-        cycle["programme"]["decoded_media"] = copy.deepcopy(cycle["decoded_media"])
-        cycle["raw_quality_passed"] = cycle["passed"]
-        cycle["passed"] = cycle["collection_passed"] and cycle["decoded_media"]["passed"]
-        if cycle.get("failure") == {"stage": "decoded-media-quality", "name": "ProfileBudgetsFailed"}:
-            cycle["raw_failure"] = cycle.pop("failure")
-    final = copy.deepcopy(raw)
-    first = next((c for c in cycles if not c["passed"]), cycles[0])
-    final.update(first)
-    final["passed"] = all(c["passed"] for c in cycles)
-    final["raw_quality_pending_original_source_witness"] = final.get("quality_pending_original_source_witness", False)
-    final["quality_pending_original_source_witness"] = False
-    final["cycles"] = [{**s, "raw_passed": s["passed"], "passed": c["passed"]} for s, c in zip(raw["cycles"], cycles)]
-    for summary in final["cycles"]:
-        if summary.get("failure")=={"stage":"decoded-media-quality","name":"ProfileBudgetsFailed"}:
-            summary["raw_failure"]=summary.pop("failure")
-    if final.get("failure")=={"stage":"decoded-media-quality","name":"ProfileBudgetsFailed"}:
-        final["raw_failure"]=final.pop("failure")
-    if final["passed"]:
-        final.pop("first_failed_cycle",None)
-    final["original_source_frame_adjudication"] = {"profile": PROFILE, "complete": True, "passed": final["passed"],
-        "raw_browser_sha256": report["browser_observation_sha256"], "pcap_sha256": report["packet_capture"]["pcap_sha256"],
-        "server_log_sha256": log_sha, "source_revision": report["source_revision"],
-        "original_server_pid": actual[0]["original_pid"], "pairs": facts,
-        "scope": "Prospective original-source frame predicate only; changing/FPS/AV/raw rows unchanged; no historical regrade"}
+        for route in cycle['decoded_media']['routes']:
+            video = route['video']; video['raw_draw_duplicate_frames'] = video['duplicate_frames']
+            video['actual_source_duplicate_frames'] = 0; video['source_frame_profile'] = PROFILE; video['duplicate_frames'] = 0
+            video['passed'] = video['original_source_frame_witness']['non_duplicate_passed'] is True
+            route['passed'] = not route['invalid'] and route['audio']['passed'] and video['passed'] and route['sync']['status'] == 'passed'
+        cycle['decoded_media']['passed'] = all(route['passed'] for route in cycle['decoded_media']['routes'])
+        cycle['programme']['decoded_media'] = copy.deepcopy(cycle['decoded_media'])
+        cycle['raw_quality_passed'] = cycle['passed']; cycle['passed'] = cycle['collection_passed'] and cycle['decoded_media']['passed']
+        if cycle.get('failure') == dict(stage='decoded-media-quality', name='ProfileBudgetsFailed'): cycle['raw_failure'] = cycle.pop('failure')
+        need(len(json.dumps(cycle, separators=(',', ':')).encode()) <= CYCLE_JSON_BYTES, 'final-cycle-byte-bound')
+        need(time.monotonic() < deadline, 'closed-metadata-time-bound')
+    final = copy.deepcopy(raw); first = next((cycle for cycle in cycles if not cycle['passed']), cycles[0]); final.update(first)
+    final['passed'] = all(cycle['passed'] for cycle in cycles)
+    final['raw_quality_pending_original_source_witness'] = final.get('quality_pending_original_source_witness', False); final['quality_pending_original_source_witness'] = False
+    final['cycles'] = [{**summary, 'raw_passed': summary['passed'], 'passed': cycle['passed']} for summary, cycle in zip(raw['cycles'], cycles)]
+    for summary in final['cycles']:
+        if summary.get('failure') == dict(stage='decoded-media-quality', name='ProfileBudgetsFailed'): summary['raw_failure'] = summary.pop('failure')
+    if final['passed']: final.pop('first_failed_cycle', None)
+    final['original_source_frame_adjudication'] = dict(profile=PROFILE, complete=True, passed=final['passed'],
+        raw_browser_sha256=report['browser_observation_sha256'], pcap_sha256=report['packet_capture']['pcap_sha256'], server_log_sha256=log_sha,
+        source_revision=report['source_revision'], original_server_pid=actual[0]['original_pid'], association_controls=control_facts,
+        proof_json=proof_json, proof_rows=len(compact), proof_layout=['cycle','route','original_pair_reference','epoch_descriptor','matched_packets'],
+        epochs=[dict(timeline=value['timeline'], epoch=value['epoch']) for value in contexts],
+        header_index_accounted_bytes=index_accounted, header_index_peak_scratch_bytes=index_scratch,
+        scope='Prospective exact public-owner/source-origin predicate only; all original quality rows and historical results unchanged')
+    need(len(json.dumps(final, separators=(',', ':')).encode()) <= CYCLES_JSON_BYTES, 'final-private-browser-byte-bound')
+    need(time.monotonic() < deadline, 'closed-metadata-time-bound')
     return final, cycles
+
+
+
+def compact_proof_bound(value, report):
+    try:
+        text = value.get('proof_json')
+        if not isinstance(text, str) or len(text.encode()) > WITNESS_CYCLE_BYTES * 3: return False
+        rows = json.loads(text)
+        if not isinstance(rows, list) or len(rows) != value.get('proof_rows') or len(rows) > MAX_PAIRS: return False
+        observation = report.get('browser_observation', {})
+        archives = observation.get('resource_cycles', [])
+        cycles = report.get('cycle_observations') if len(archives) > 1 else [observation]
+        if not isinstance(cycles, list) or len(cycles) != len(archives): return False
+        expected = {}
+        for archive, cycle in zip(archives, cycles):
+            for route in cycle.get('decoded_media', {}).get('routes', []):
+                candidate = route['video']['original_source_frame_witness']
+                count = candidate.get('pair_count')
+                if candidate.get('profile') != PROFILE or not uint(count, 16) or count >= 10000: return False
+                expected[(archive['index'], route['route'])] = count
+        descriptors = value.get('epochs', [])
+        if not isinstance(descriptors, list) or len(descriptors) > 128 * 32: return False
+        seen = set(); counts = {}
+        for row in rows:
+            if not isinstance(row, list) or len(row) != 5 or not all(uint(v, 32) for v in row): return False
+            cycle, route, reference, epoch, matched = row
+            if (cycle, route) not in expected or reference >= expected[(cycle, route)] or epoch >= len(descriptors) or matched == 0: return False
+            key = (cycle, route, reference)
+            if key in seen: return False
+            seen.add(key); counts[(cycle, route)] = counts.get((cycle, route), 0) + 1
+        return all(counts.get(key, 0) == count for key, count in expected.items())
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return False
 
 
 def report_bound(report):
@@ -438,6 +838,20 @@ def report_bound(report):
             and value.get('profile') == PROFILE and value.get('complete') is True and value.get('passed') is True
             and value.get('source_revision') == report.get('source_revision')
             and value.get('pcap_sha256') == report.get('packet_capture', {}).get('pcap_sha256')
+            and compact_proof_bound(value, report)
+            and uint(value.get('proof_rows'), 32) and value['proof_rows'] <= MAX_PAIRS
+            and isinstance(value.get('association_controls'), list)
+            and 1 <= len(value['association_controls']) == len(observation.get('resource_cycles', [])) <= 3
+            and all(control.get('profile') == 'connect/rtc-passive-source-association/1'
+                and type(control.get('matched_packets')) is int and 0 < control['matched_packets'] <= MAX_HEADERS
+                and uint(control.get('route'), 16)
+                and isinstance(control.get('original_timestamps'), list) and len(control['original_timestamps']) == 2
+                and all(uint(timestamp, 32) for timestamp in control['original_timestamps'])
+                and control['original_timestamps'][0] != control['original_timestamps'][1]
+                for control in value['association_controls'])
+            and len({control.get('cycle') for control in value['association_controls']}) == len(value['association_controls'])
+            and all(control.get('cycle') == archive.get('index') for control, archive in
+                zip(value['association_controls'], observation['resource_cycles']))
             and value.get('raw_browser_sha256') == report.get('raw_browser_observation_sha256')
             and isinstance(value.get('raw_browser_sha256'), str) and len(value['raw_browser_sha256']) == 64
             and all(c in '0123456789abcdef' for c in value['raw_browser_sha256'])

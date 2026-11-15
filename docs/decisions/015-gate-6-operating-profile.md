@@ -523,3 +523,41 @@ adjudication bound to the original report and capture hashes. Raw rows, draw
 repeat counts, changed-frame/FPS counts, coverage, gaps, AV skew, wrong-source and
 all ownership checks stay unchanged. No repeated draw gains extra changing-frame
 credit. The mapping is diagnostic metadata, never a grant or cached authority.
+
+
+#### Prospective public-epoch witness profile 2
+
+`connect/native-rtc-original-source-frame/2` supersedes the profile1 collector
+for future explicit Firefox witness runs. The original zero repeated source
+video timestamp requirement and every non-duplicate quality/ownership limit
+remain unchanged. A complete proof may resolve a repeated authored draw only
+inside the SAME physical public owner, stream, track and presentation element,
+with advancing original presentation/RTP coordinates and one exact immutable
+Core source-origin/current-target mapping epoch. The public interval must chain
+from original public startup or both validated original replacement receipts;
+it is not inferred from a completed-at timestamp, SSRC, mediaTime or guessed
+one-second margin. Separate receive and send bindings are retained. Private,
+cross-owner, cross-interval, ambiguous and repeated-original-timestamp cases
+remain failures. This witnesses public observation and distinct original wire
+frames, not camera capture after the Root or flushing every queued private frame.
+
+The complete compact metadata census retains all aliases in the existing
+10000-row/route, six-route, three-cycle bound. Legacy first16 diagnostic snapshots
+remain diagnostics and cannot silently cap proof. Numeric scalar rows are stored
+once, with bounded descriptor and pair-reference tables; encoded witness plus
+proof is limited to8MiB per cycle. Private cycle JSON is limited to32MiB and the
+sum of three original cycle files to96MiB. These are private envelope limits,
+not a claim that the whole component embedding raw and final views is96MiB.
+Overflow is explicit incomplete evidence, never omission-to-pass.
+
+Every cycle also needs a passive association control on a derived never-moved
+source/receiver edge, using two existing public callbacks in [2,3] seconds and
+the same original closed capture, mapping and authenticated stats proof. Zero
+aliases cannot make that requirement vacuous. Header association is indexed by
+exact flow, mapping epoch and original coordinate span, including source-only
+whole-frame loss and complete neighboring frame groups; windows from another
+epoch cannot contaminate a proof. No offset fitting, guessed address, bare RTP
+exception, new media stimulus or changing-frame/FPS credit is introduced. The
+previous profiles and all historical failed artifacts retain their recorded
+criteria and results. Source-only changes and synthetic controls do not qualify
+an actual browser/native wire association; original runtime evidence is required.

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-14T23:42:16.948920+00:00",
-  "revision": 83,
+  "updated_at": "2026-11-15T00:33:08.892861+00:00",
+  "revision": 84,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 142,
-    "verified_at": "2026-11-14T23:42:16.948920+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-public-epoch.json",
-    "readback_evidence_sha256": "bf871430aa9759bfd0158d8853fd497c06a86e2e48d345fa13d983e1350f0a7d",
+    "content_revision": 143,
+    "verified_at": "2026-11-15T00:33:08.892861+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-public-epoch-units.json",
+    "readback_evidence_sha256": "b5a84e5a5eeb85c7cf95d7091a75df17d6d605bedcd9723160c10e4ffa5b03cd",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1889,7 +1889,7 @@
         "V219-VIDEO-ADOPTION"
       ],
       "status": "component-verified",
-      "implementation_state": "Normal449 exports verified. Raw audio6/AV6/resource pass; video0/6 due22 unresolved draw aliases. Public-epoch coverage, pair capacity and exact native tuple proof being completed prospectively; no regrade.",
+      "implementation_state": "Main public-epoch profile2 and complete census/index applied with130 controls pass. Exact original-source native wire proof remains pending; retirement statistics tail is a separate known fixture coverage gap.",
       "required_evidence": "Actual controls, independentreview, completecurrentcombined/localARM/release/preflight andfreshmatrix. No componentpass closes matrixfailure.",
       "verification_runs": [
         {
@@ -1915,7 +1915,7 @@
         "status": "Accepted for prospective component scope after Fixture source and actual review",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-14T23:42:16.948920+00:00"
+      "updated_at": "2026-11-15T00:33:08.892861+00:00"
     },
     {
       "id": "V219-ICE-CLOSE",
@@ -2056,12 +2056,15 @@
       "depends_on": [
         "V219-RTC-OWNERSHIP"
       ],
-      "status": "assigned",
-      "implementation_state": "Independently reviewed design accepted; bounded compact implementation and exact source/receiver epoch-window proof in progress.",
+      "status": "component-verified",
+      "implementation_state": "Main11-file profile2 batch applied; actual130 targeted checks and format pass, independently source/actual reviewed. Retirement statistics tail remains separately unresolved; no real combined media proof.",
       "required_evidence": "Independent code review, original joined focused/unit results, exact closed-wire proof and final current preparation checks; no original quality waivers.",
       "verification_runs": [
         {
-          "evidence": "docs/evidence/gate-6/g6-058-v219-focused449-original-result.json",
+          "evidence": "docs/evidence/gate-6/g6-058-v219-public-epoch-witness-main.json",
+          "passed": 130,
+          "required": 130,
+          "scope": "46Python+84Node controls;18 directly affected,112 retained/adjacent. No native/wire delivery or matrix claim.",
           "matrix_result": false
         }
       ],
@@ -2070,7 +2073,38 @@
         "status": "Accepted only for recorded scope",
         "actual_matrix_effect_verified": false
       },
-      "updated_at": "2026-11-14T23:42:16.948920+00:00"
+      "updated_at": "2026-11-15T00:33:08.892861+00:00"
+    },
+    {
+      "id": "V219-RETIREMENT-BINDING",
+      "plan_id": "V219-RETIREMENT-BINDING",
+      "title": "Actual native terminal binding for retiring-peer statistics tail",
+      "owner_agent": "/root/media_blockers",
+      "contributing_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-ORIGINAL-FRAME-WITNESS"
+      ],
+      "depends_on": [
+        "V219-PUBLIC-EPOCH-WITNESS"
+      ],
+      "status": "cause-confirmed",
+      "implementation_state": "Actual prior449 snapshots end376\u2013556ms before public cut; no old-owner strict hi sample. Async stats approaches refuted by actual pinned-browser probes. Warm synchronous metadata capability verified; separate typed terminal binding design reviewed, implementation pending.",
+      "required_evidence": "Exact original native peer/MID/track and selected ICE facts, receiver synchronization-source coordinate, source primary SSRC declaration, unchanged public/Core/closed-wire proof; independent source/actual unit review and fresh combined programme. No fake stats, mixed clocks, delayed close or quality waiver.",
+      "verification_runs": [
+        {
+          "scope": "Native capability observations only, not Connect ownership/wire association or a matrix result",
+          "independent_native_probe_review_sha256": "589b4ed2851c7ef0cb4ca931842dda0ffc9e80eb1b84ab76c50bb42d8e08e283",
+          "matrix_result": false
+        }
+      ],
+      "matrix_result_refs": [],
+      "coordinator_review": {
+        "status": "Accepted design direction only; code and runtime unverified",
+        "actual_matrix_effect_verified": false
+      },
+      "updated_at": "2026-11-15T00:33:08.892861+00:00"
     }
   ],
   "failure_mapping": [
@@ -6058,9 +6092,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "evidence": "docs/evidence/gate-6/g6-058-v219-focused449-original-result.json",
-    "sha256": "9a8c0d04a4e52bb389e016d29a9f7f2e1d1efd8132423d42ca7e4f90ff5a6f0a",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-public-epoch-witness-main.json",
+    "sha256": "b88e1ab3c1b48805d494d3e614689b654142c0f315d20d53e90150de96db84fe",
     "ready": false,
-    "next": "Complete reviewed public-epoch/source-wire witness and focused controls; fresh normal exact native proof, then current regression/localARM/releases/preflight. No full32 in this preparation phase."
+    "next": "Complete separately reviewed real terminal binding and units; fresh normal three-cycle exact native/Core/wire proof, then current full regression/localARM/releases/preflight. No full32 during preparation."
   }
 }

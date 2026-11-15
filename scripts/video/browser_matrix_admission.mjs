@@ -167,21 +167,22 @@ try{
     await page.goto(spec.origin,{timeout:5000});
     if(spec.stage==='quality')await page.exposeFunction('matrixResources',matrixResourceBridge(output,{cycles:cycleCount}));
     await page.exposeFunction('matrixAuthority',matrixAuthorityBridge(output,{cycles:cycleCount}));
-    const cycleArchives=[],cycleSocketBaselines=[];
+    const cycleArchives=[],cycleSocketBaselines=[];let cycleObservationBytes=0;
     await page.exposeFunction('matrixCycleStart',cycle=>{
         assert.equal(cycle.index,cycleSocketBaselines.length+1);
         assert.deepEqual(cycle,spec.cycleWorkloads[cycle.index-1]);
         cycleSocketBaselines.push(unavailable.observation());
     });
     await page.exposeFunction('matrixCycleArchive',async(cycle,valueJson)=>{
-        assert.equal(typeof valueJson,'string');assert.ok(Buffer.byteLength(valueJson)<=16*1024*1024);
+        assert.equal(typeof valueJson,'string');assert.ok(Buffer.byteLength(valueJson)<=(rtcSourceFrameWitness?32:16)*1024*1024);
         const value=JSON.parse(valueJson);
         assert.equal(cycle.index,cycleArchives.length+1);
         assert.deepEqual(cycle,spec.cycleWorkloads[cycle.index-1]);
         const folder=path.join(output,'cycles',`cycle-${cycle.index}`);
         await fs.mkdir(folder,{recursive:true,mode:0o700});
         const save=async(name,data)=>{
-            const body=JSON.stringify(data)+'\n';assert.ok(Buffer.byteLength(body)<=16*1024*1024);
+            const body=JSON.stringify(data)+'\n';assert.ok(Buffer.byteLength(body)<=(rtcSourceFrameWitness?32:16)*1024*1024);
+            if(rtcSourceFrameWitness&&name==='cycle-observation.json'){cycleObservationBytes+=Buffer.byteLength(body);assert.ok(cycleObservationBytes<=96*1024*1024);}
             await fs.writeFile(path.join(folder,name),body,{flag:'wx',mode:0o600});
             return createHash('sha256').update(body).digest('hex');
         };
@@ -368,7 +369,7 @@ try{
                 &&programmeReport.decoded_media.collection_passed===true
                 &&idleResources?.renderer.playback_passed===true&&idleResources.passed;
             return {...(spec.rtcSourceFrameWitness===true?{collection_passed:sourceFrameCollection,
-                source_frame_witness_profile:'connect/native-rtc-original-source-frame/1'}:{}),
+                source_frame_witness_profile:'connect/native-rtc-original-source-frame/2'}:{}),
                 workload_started:Boolean(programmeReport.source_programme),
                 workload_complete:programmeReport.source_programme?.durationMs===62000
                     &&programmeReport.finished_ms>=62000&&programmeReport.finished_ms<67000,cycle:{...cycle},passed:retirement.passed&&selection.passed&&currentAuthority.passed&&(spec.stage==='admission'||programmeReport.passed)&&(!observer||(programmeReport.decoded_media.passed&&idleResources?.renderer.playback_passed===true))&&(!idleResources||idleResources.passed),
@@ -474,7 +475,7 @@ try{
     const primary=JSON.parse(await fs.readFile(path.join(output,'cycles',`cycle-${primaryIndex}`,'cycle-observation.json'),'utf8'));
     Object.assign(report,primary,result);report.resource_cycles=cycleArchives;
     if(rtcSourceFrameWitness){
-        report.source_frame_witness_profile='connect/native-rtc-original-source-frame/1';
+        report.source_frame_witness_profile='connect/native-rtc-original-source-frame/2';
         report.collection_passed=result.cycles?.length===cycleCount&&result.cycles.every(cycle=>cycle.collection_passed===true);
         report.quality_pending_original_source_witness=report.collection_passed&&!report.passed;
     }
@@ -496,7 +497,9 @@ try{
     await serial.catch(()=>{});await journal?.close();await diagnostics;
     if(server)await new Promise(resolve=>server.close(resolve));
     report.journal_events=events;
-    await fs.writeFile(path.join(output,'browser-observation.json'),JSON.stringify(report,null,2)+'\n',{mode:0o600});
+    const reportBody=(rtcSourceFrameWitness?JSON.stringify(report):JSON.stringify(report,null,2))+'\n';
+    if(rtcSourceFrameWitness)assert.ok(Buffer.byteLength(reportBody)<=96*1024*1024,'Bounded private browser witness envelope');
+    await fs.writeFile(path.join(output,'browser-observation.json'),reportBody,{mode:0o600});
 }
 process.stdout.write(JSON.stringify({browser_admission_passed:report.passed,cell_qualified:false})+'\n');
 // Exit0 in this explicit profile can mean complete COLLECTION only. The

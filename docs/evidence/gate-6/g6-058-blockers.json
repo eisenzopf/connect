@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-14T23:42:16.948920+00:00",
-  "run_status": "Latest full v218 remains1/32cells399/432checks. Focused449 CLOSED/failed:audio6/AV6/resourcePASS,rawvideo0/6 due22 unresolved drawaliases;10complete mappingexports/14epochs verifyownershipfix. Numericprivateprofile6/6 plusnativepreferenceeffectPASS. Completepublic-epoch/Core/wire proof inprogress; thenfreshfocused/currentregression/localARM/releases/preflight. No full32.",
+  "updated": "2026-11-15T00:33:08.892861+00:00",
+  "run_status": "Latest fullv218 remains1/32cells399/432checks. Reviewedpublic-epoch main batch APPLIED:130 targetedchecks PASS(46Py84Node)+format. Completecensus/publicdirections/index/whole-frame-loss controls verified; real native/Core/wire programme pending. Confirmed retirementStats tail376\u2013556ms requiresseparate typedterminalbinding before readiness. No newfull32.",
   "blockers": [
     {
       "id": "B01",
@@ -18883,5 +18883,6 @@
     "final_witness_passed": false
   },
   "v219_focused449_original_result": "docs/evidence/gate-6/g6-058-v219-focused449-original-result.json",
-  "v219_numeric_ice_profile": "docs/evidence/gate-6/g6-058-v219-firefox-numeric-ice.json"
+  "v219_numeric_ice_profile": "docs/evidence/gate-6/g6-058-v219-firefox-numeric-ice.json",
+  "v219_public_epoch_witness_main": "docs/evidence/gate-6/g6-058-v219-public-epoch-witness-main.json"
 }

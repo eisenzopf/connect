@@ -656,7 +656,7 @@ def main():
                     if remote is None else browser_output / "browser.pcap")
                 raw_sha = report["browser_observation_sha256"]
                 final_path = browser_output / "browser-source-frame-final.json"
-                publish(final_path, (json.dumps(final, indent=2) + "\n").encode())
+                publish(final_path, (json.dumps(final, separators=(",", ":")) + "\n").encode())
                 report["raw_browser_observation_sha256"] = raw_sha
                 report["browser_observation_sha256"] = digest(final_path)
                 report["browser_observation"] = final

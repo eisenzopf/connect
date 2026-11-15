@@ -1,0 +1,48 @@
+{
+  "format": "connect/g6-058-public-epoch-witness-main/1",
+  "updated_at": "2026-11-15T00:30:15.364317+00:00",
+  "upstream_generation_unchanged": 449,
+  "candidate_manifest_sha256": "5b53a656a576981c8306037b0813785194cbeec88b3d15c7f9ee2c5b100f35ca",
+  "independent_source_review_sha256": "5e2d0aaa11ec357c6558e823f09017bcbd683e154c4412ce2575e9ec078b02a4",
+  "changed_workspace_files": 11,
+  "new_Rust_SDK_or_packet_path_work": false,
+  "changes": [
+    "Prospective profile2 checks exact public ownership intervals for source and receiver, with separate send/receive stream IDs.",
+    "Complete compact row/alias census replaces the sixteen-pair proof cap; original diagnostic examples and raw quality metrics remain unchanged.",
+    "Every alias and the mandatory zero-alias passive control require unique Core epochs and complete source/target closed-wire bijections, including source-only whole-frame loss.",
+    "Bounded indexed analysis checks original record/byte, memory and deadline limits; wrong/private/cross-owner/unknown evidence still fails."
+  ],
+  "actual_targeted_checks": {
+    "python": 46,
+    "node": 84,
+    "passed": 130,
+    "required": 130,
+    "new_supplemental_python_selectors": 6,
+    "directly_affected_cases_included": 18,
+    "retained_or_adjacent_controls": 112,
+    "format_check_passed": true,
+    "all_original_process_groups_joined": true,
+    "source_unchanged": true,
+    "original_result_sha256": "fe1c61249ac0ccc37015f8287eed00b6e9b146f8289f7ac62af0d2ebbce76e5d",
+    "root_original_join_sha256": "f4c4f5d5dd6544499f1ae1d011b5d9f7a1a880c1be0104bffb02e9e3d9999d6d",
+    "independent_actual_review_sha256": "9d14856f8b8822f42b791f77739b51ae0199c5983dce6f23ae03d27b32b02e68"
+  },
+  "known_unresolved": {
+    "retirement_statistics_tail": "Actual prior focused run has no old-peer native RTP sample for the final376\u2013556ms before its public cut. Main profile2 refuses an unbracketed pair.",
+    "terminal_binding_not_implemented": true,
+    "main_tests_include_strict_unknown_refusal": true
+  },
+  "limits": {
+    "census_and_proof_bytes_per_cycle": 8388608,
+    "private_cycle_json_bytes": 33554432,
+    "aggregate_original_cycle_bytes": 100663296,
+    "separate_private_browser_bytes": 100663296,
+    "whole_component_byte_claim": null,
+    "offline_index_and_proof_bytes": 536870912,
+    "metadata_deadline_seconds": 30
+  },
+  "fresh_media_programme_qualified": false,
+  "full_regression_qualified": false,
+  "matrix_qualified": false,
+  "ready_for_full32": false
+}
