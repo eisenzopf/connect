@@ -1,0 +1,98 @@
+{
+  "format": "connect/g6-058-held-prototype/1",
+  "recorded_at": "2026-11-15T06:09:06.828248+00:00",
+  "status": "held-for-owner-review",
+  "coordinator": "/root",
+  "shipping_source": {
+    "head": "3dc7d702fe60f0c8148f2334fa23e7fb6676e8d4",
+    "generation": 452,
+    "source_lock_sha256": "8ce10380519f413518a6fd9d342adc378b1621e64de50610569ad39f30805649",
+    "bounded_core_applied": false
+  },
+  "verified_component_scopes": {
+    "shipping": {
+      "realtime_queue": 45,
+      "native_first_presentation": 66,
+      "refusal_logging": 6
+    },
+    "held_snapshot": {
+      "sdk": 250,
+      "protocol": 7,
+      "store": 4
+    },
+    "joint_core_service_compile": false,
+    "fresh_media": false,
+    "full32": false
+  },
+  "latest_matrix": {
+    "run": "v218",
+    "passed_cells": 1,
+    "total_cells": 32,
+    "passed_checks": 399,
+    "total_checks": 432,
+    "changed_by_this_record": false
+  },
+  "latest_normal3": {
+    "status": "failed",
+    "audio": {
+      "passed": 18,
+      "total": 18
+    },
+    "av": {
+      "passed": 18,
+      "total": 18
+    },
+    "nonduplicate_video": {
+      "passed": 17,
+      "total": 18
+    },
+    "session_resource_cycles_passed": 3
+  },
+  "constraints": {
+    "bounded_prototype_unapproved": [
+      "half-range cumulative RTP progress; approximately 6.6 hours at 90 kHz",
+      "earlier extreme timestamp jumps",
+      "65th active source-base refused"
+    ],
+    "long_lived_alternative": "Shared frozen source chronology and a fresh public native receive generation with its own decode readiness; not implemented.",
+    "handoff_hold": "Pending owner acceptance decision; no credit for repeated boundary image, 735 ms gap unchanged, existing native/Core/wire/current-owner guards retained.",
+    "historical_native_tail": "9000 RTP ticks behind last old callback; proposal cannot qualify saved pair.",
+    "historical_failures_regraded": false
+  },
+  "references": {
+    "preserved_prototype": {
+      "path": ".local/gate-6/v219-frame-cut-prototype-root-snapshot/manifest.json",
+      "sha256": "fc87486b82ea09933ff5785dbe59059e406aacb2dc7d5edccc16a1d8e4ee68a0"
+    },
+    "restored_checkpoint": {
+      "path": ".local/gate-6/v219-frame-cut-prototype-root-snapshot/restored-checkpoint.json",
+      "sha256": "0ee28818f44d6dae6534ea778ce70cc6f1fee10906a1c2949e07c51dcdf7e5e3"
+    },
+    "independent_restoration": {
+      "path": ".local/gate-6/webrtc-frame-cut-wire-independent-v198-review/held-snapshot-restoration.json",
+      "sha256": "21550f511090d7770468aaf8c15bce14091d4dd9ef91fbc7863b205e128022a9"
+    },
+    "sdk250_protocol7_store4_review": {
+      "path": ".local/gate-6/rtc-sdk-public-frame-cut-independent-fixture-followup/actual-sdk250-protocol7-store4-receipt.json",
+      "sha256": "e4aaef165298c48b843d7bd04731e3838be73a69d5972766600fc287c323f71d"
+    },
+    "protocol_store_review": {
+      "path": ".local/gate-6/webrtc-frame-cut-wire-independent-v198-review/actual-protocol7-store4.json",
+      "sha256": "310189e6403a1a7936491a689b29c0c149386b0fcbe4a5d5b416f1ced038c4de"
+    },
+    "handoff_hold_proposal": {
+      "path": ".local/gate-6/rtc-adjacent-handoff-hold-v219-owner-proposal/manifest.json",
+      "sha256": "eb8ff096e4c686c2ab553a483ceed1753cf8efe02faf506bef0fecb1d254ee03"
+    },
+    "long_lived_design": {
+      "path": ".local/gate-6/webrtc-source-cut-chronology-independent-v198-review/long-lived-alternatives.json",
+      "sha256": "93842f8072346f2bb7452a2566f966ea42553da92417cd40b7e70dc813707674"
+    }
+  },
+  "next_work": [
+    "Agents independently review prospective native-tail measurement and long-lived design.",
+    "Root integrates only accepted, authorized changes and executes meaningful targeted controls.",
+    "After final source and scope: fresh normal3, complete regression, local ARM preparation/checks, normal releases and preflight.",
+    "No full32 during readiness preparation."
+  ]
+}

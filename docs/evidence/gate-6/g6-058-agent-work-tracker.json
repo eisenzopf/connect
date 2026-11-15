@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T04:53:40.992996+00:00",
-  "revision": 93,
+  "updated_at": "2026-11-15T06:09:06.828248+00:00",
+  "revision": 94,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 154,
-    "verified_at": "2026-11-15T04:53:40.992996+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-queue-presentation.json",
-    "readback_evidence_sha256": "c8fe9e7dc1ea1555353d47ae261c9e747b88efa883f39b4542bf87569ae6f670",
+    "content_revision": 156,
+    "verified_at": "2026-11-15T06:09:06.828248+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-held-frame-cut.json",
+    "readback_evidence_sha256": "d2145f258c8ada0fff46de8cbc5acc2cc7d492259336b75cbf74a8df891df15f",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2153,10 +2153,10 @@
       "owner_agent": "/root/fixture_blockers",
       "independent_reviewer": "/root/media_blockers",
       "coordinator": "/root",
-      "status": "implemented-unverified",
-      "implementation_state": "Partial compositorclock66verified. Complete Core sourceexclusions/typedwire/same-targetSDKfrontier source-staged, preservesprivateconsultation; jointreview+units+normal3pending.",
+      "status": "held-for-owner-review",
+      "implementation_state": "Committed compositor chronology66 verified. SDK250/Protocol7/Store4 pass on preserved prototype only; shipping source restored clean to 3dc7d702/g452. Core never applied; bounded lifetime/source limits unapproved. Long-lived design and prospective hold/measurement reviews pending.",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-realtime-queue-and-rtc-presentation.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-held-frame-cut-checkpoint.json",
       "matrix_verified": false,
       "contributing_agents": [
         "/root/media_blockers",
@@ -4592,6 +4592,15 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-realtime-queue-and-rtc-presentation.json",
         "sha256": "e1401897635b70f01b12ca869927eb19692414e9c9520f6692104581eca2a739"
       }
+    },
+    {
+      "at": "2026-11-15T06:09:06.828248+00:00",
+      "revision": 94,
+      "checkpoint": {
+        "status": "Verified shipping queue45/presentation66/logging6; held SDK250/Protocol7/Store4 prototype preserved, clean shipping HEAD restored, bounded Core never applied. Owner acceptance choices and native-tail measurement remain open; not ready full32.",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-held-frame-cut-checkpoint.json",
+        "sha256": "e1c2592d77f8af598e159d407e7edee44ced8b8849605d6494c8723f98e68f1f"
+      }
     }
   ],
   "tracking_review": {
@@ -6221,8 +6230,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Same-original queue backpressure fix45/45 +SDK native first-composition66/66 +refusal wiring6/6 verified; fullsource-frame-cut/Core/wire/SDK batch staged andpending; no full32 readiness claim.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-realtime-queue-and-rtc-presentation.json",
-    "sha256": "e1401897635b70f01b12ca869927eb19692414e9c9520f6692104581eca2a739"
+    "status": "Verified shipping queue45/presentation66/logging6; held SDK250/Protocol7/Store4 prototype preserved, clean shipping HEAD restored, bounded Core never applied. Owner acceptance choices and native-tail measurement remain open; not ready full32.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-held-frame-cut-checkpoint.json",
+    "sha256": "e1c2592d77f8af598e159d407e7edee44ced8b8849605d6494c8723f98e68f1f"
   }
 }
