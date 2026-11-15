@@ -24,7 +24,7 @@ async function fixture(run,{video=false}={}) {
   beginDecoder(retain){work=observeWebRtcDecodedReadiness(peer,audio,picture,new BrowserDeadline(500),abort.signal,track,retain);void work.catch(()=>{});return work;},
   async started(){while(!nodes.length||(video&&elements.length<2))await tick();},
   pcm(values=new Float32Array(960)){nodes[0].port.onmessage({data:{epoch:0,timestampUs:1000,samples:values}});},
-  frame(presentedFrames=1){const fn=callback;callback=undefined;assert.equal(typeof fn,'function');fn(10,{width:640,height:360,mediaTime:0,presentedFrames});},
+  frame(presentedFrames=1,metadata={},callbackNow){const fn=callback;callback=undefined;assert.equal(typeof fn,'function');const now=performance.now();fn(callbackNow??now,{width:640,height:360,mediaTime:0,presentedFrames,presentationTime:now,...metadata});},
   pendingFrame(){return callback;},
   publicOwner(decoder,completion){
    // Controlled internal owner: invoke the ACTUAL renderer and ACTUAL retained
@@ -423,6 +423,7 @@ test('timeout or cancellation before first public video paint cannot bypass its 
   const second=originalCanvas(),retry=f.render(owner,second);await tick();assert.equal(f.elements.length,3);
   const current=f.pendingFrame();lateFirst(20,{width:640,height:360,mediaTime:0,presentedFrames:999});
   assert.equal(f.pendingFrame(),current);assert.equal(second.frames.length,0,'Late failed-render callback cannot paint or replace retry owner');
+  f.frame(1,{presentationTime:0});await tick();assert.equal(second.frames.length,0,'Pre-take composition cannot establish the retry baseline');
   f.frame(1);await tick();assert.equal(second.frames.length,0,'First NEW-element callback is baseline only');
   f.frame(1);assert.equal(second.frames.length,0,'Cached equal counter cannot bypass floor');
   assert.notEqual(owner.replacementVideoPresented,true);f.frame(2);const render=await retry;
@@ -467,5 +468,61 @@ test('connection retirement clears exact-track retry roots before and after the 
   late.resolve({recordId:'original-root',generation:2});await tick();await owner.shutdown();
   assert.equal(owner.replacementCompletion,undefined,'Late recovered receipt cannot repopulate closed connection');
   assert.equal(owner.replacementVideoSource,undefined);assert.equal(canvas.frames.length,0);
+ },{video:true});
+});
+
+
+test('replacement first public draw rejects pre-take composition delivered later with an advancing counter',async()=>{
+ for(const boundary of [0,100]){
+  const saved=Object.getOwnPropertyDescriptor(globalThis,'performance');let now=boundary;
+  Object.defineProperty(globalThis,'performance',{configurable:true,value:{now:()=>now}});
+  try{await fixture(async f=>{
+   const decoder=await retainedVideo(f),root=originalDeferred(),canvas=originalCanvas();
+   const actualBoundary=boundary+(boundary===0?0:5);
+   const lease={...decoder,takeVideo(track){const value=decoder.takeVideo(track);now=actualBoundary;return value;}};
+   const owner=f.publicOwner(lease,root.promise);
+   f.frame(6);const work=f.render(owner,canvas);await tick();assert.equal(canvas.frames.length,0);
+   root.resolve({recordId:'original-root',generation:2});await tick();
+   now=boundary+10;
+   f.frame(7,{presentationTime:boundary===0?0:boundary-1,receiveTime:boundary+9});await tick();
+   assert.equal(canvas.frames.length,0,'Late delivery and even later receive metadata do not make pre-take composition public');
+   assert.notEqual(owner.replacementVideoPresented,true);
+   f.frame(8,{presentationTime:actualBoundary});await tick();assert.equal(canvas.frames.length,0,'Equal native time is valid zero/boundary but does not prove after-take');
+   if(boundary!==0){f.frame(9,{presentationTime:actualBoundary-1});await tick();assert.equal(canvas.frames.length,0,'Composition during the synchronous take cannot pass a boundary captured too early');}
+   now=boundary+11;f.frame(10,{presentationTime:actualBoundary+1,receiveTime:0},boundary);
+   const render=await work;
+   try{
+    assert.deepEqual(canvas.frames,[f.elements[1]]);assert.equal(render.diagnostics.video,1);assert.equal(owner.replacementVideoPresented,true,'Shared rendering callback now is not an upper bound on native compositor submission');
+    f.frame(11,{presentationTime:undefined});
+    assert.deepEqual(canvas.frames,[f.elements[1],f.elements[1]],'After first-public eligibility, ongoing frames retain the original counter-only rule');
+    assert.equal(render.diagnostics.video,2);
+   }
+   finally{render.close();await render.retirement;await render.finished;}
+   assert.equal(f.elements[1].srcObject,null);assert.equal(f.pendingFrame(),undefined);
+  },{video:true});}finally{if(saved)Object.defineProperty(globalThis,'performance',saved);else delete globalThis.performance;}
+ }
+});
+
+test('replacement first public draw refuses unavailable or invalid native presentation clocks under the original owner',async()=>{
+ for(const clock of [undefined,null,NaN,-1,Infinity,'100'])await fixture(async f=>{
+  const decoder=await retainedVideo(f),canvas=originalCanvas(),owner=f.publicOwner(decoder,Promise.resolve({recordId:'original-root',generation:2}));
+  const work=f.render(owner,canvas);await tick();const terminal=owner.renderOwner.finished.catch(error=>error);let reported;
+  f.frame(clock===undefined?1:2,{presentationTime:clock});
+  await assert.rejects(work,error=>{reported=error;return error.code==='media'&&error.message==='Original video presentation clock unavailable';});
+  assert.equal(await terminal,reported,'Internal cleanup preserves the same native-clock refusal');
+  await owner.tasks.join();assert.equal(canvas.frames.length,0);assert.notEqual(owner.replacementVideoPresented,true);
+  assert.equal(f.elements[1].srcObject,null);assert.equal(f.elements[1].pauses,1);assert.equal(f.pendingFrame(),undefined);
+ },{video:true});
+ await fixture(async f=>{
+  const decoder=await retainedVideo(f),saved=Object.getOwnPropertyDescriptor(globalThis,'performance'),canvas=originalCanvas();
+  const lease={...decoder,takeVideo(track){const value=decoder.takeVideo(track);Object.defineProperty(globalThis,'performance',{configurable:true,value:{now:()=>NaN}});return value;}};
+  const owner=f.publicOwner(lease,Promise.resolve({recordId:'original-root',generation:2}));
+  try{
+   const work=f.render(owner,canvas);
+   await assert.rejects(work,{code:'media',message:'Original video presentation boundary unavailable'});
+   await owner.tasks.join();assert.equal(canvas.frames.length,0);
+   assert.equal(f.elements[1].srcObject,null,'Boundary-clock failure still retires the transferred exact element');
+   assert.equal(f.elements[1].pauses,1);assert.equal(f.pendingFrame(),undefined);
+  }finally{if(saved)Object.defineProperty(globalThis,'performance',saved);else delete globalThis.performance;}
  },{video:true});
 });

@@ -891,6 +891,10 @@ export class BrowserRtcConnection {
                     this.replacementVideoSource = track;
                 const requirePresentationFloor = !!adopted ||
                     (replacement && !this.replacementVideoPresented);
+                // Read only for first-public eligibility, after validated
+                // completion AND return from the exact decoder take.
+                // Callback delivery alone cannot date native composition.
+                const presentationBoundary = requirePresentationFloor ? performance.now() : 0;
                 const element = adopted?.element ?? document.createElement("video");
                 if (!adopted) {
                     element.muted = true;
@@ -912,6 +916,11 @@ export class BrowserRtcConnection {
                     rejectFirst: firstReject,
                 };
                 outputs.push(output);
+                // The exact adopted element is already in this renderer's
+                // cleanup inventory before any boundary-clock refusal.
+                if (requirePresentationFloor &&
+                    (!Number.isFinite(presentationBoundary) || presentationBoundary < 0))
+                    throw new ConnectError("media", "Original video presentation boundary unavailable");
                 let presented = adopted?.presentedFloor;
                 let firstPainted = false;
                 const paint = (_now, metadata) => {
@@ -922,19 +931,30 @@ export class BrowserRtcConnection {
                             close(new ConnectError("media", "Original video presentation counter unavailable"));
                             return;
                         }
+                        if (!firstPainted &&
+                            (!Number.isFinite(metadata.presentationTime) || metadata.presentationTime < 0)) {
+                            close(new ConnectError("media", "Original video presentation clock unavailable"));
+                            return;
+                        }
+                        if (presented !== undefined && metadata.presentedFrames <= presented) {
+                            if (firstPainted) {
+                                close(new ConnectError("media", "Original video presentation counter did not advance"));
+                                return;
+                            }
+                            output.callback = element.requestVideoFrameCallback(paint);
+                            return;
+                        }
+                        if (!firstPainted && metadata.presentationTime <= presentationBoundary) {
+                            // Private/pre-take composition is not public first
+                            // output merely because its callback arrived late.
+                            output.callback = element.requestVideoFrameCallback(paint);
+                            return;
+                        }
                         if (presented === undefined) {
                             // Retried consumed lease or deliberately retired
                             // audio-only picture: this NEW same-track element's
                             // first callback is a baseline only, never a draw.
                             presented = metadata.presentedFrames;
-                            output.callback = element.requestVideoFrameCallback(paint);
-                            return;
-                        }
-                        if (metadata.presentedFrames <= presented) {
-                            if (firstPainted) {
-                                close(new ConnectError("media", "Original video presentation counter did not advance"));
-                                return;
-                            }
                             output.callback = element.requestVideoFrameCallback(paint);
                             return;
                         }

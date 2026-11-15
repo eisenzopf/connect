@@ -1,0 +1,36 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -329,7 +329,9 @@
+             );
+             match result {
+                 Ok(()) | Err(StreamControlError::NotRecipient) => false,
+-                Err(StreamControlError::NotReady) if !data => {
++                Err(error @ (StreamControlError::NotReady | StreamControlError::Backpressure))
++                    if !data =>
++                {
+                     let retained = destination.realtime.as_ref().is_some_and(|original| {
+                         original.ticket.is_current()
+                             && tokio::time::Instant::now() < original.deadline
+@@ -338,14 +340,20 @@
+                     observe_pending(
+                         &self.packet,
+                         diagnostic_events,
+-                        if retained {
++                        if matches!(&error, StreamControlError::Backpressure) {
++                            if retained {
++                                "retain-backpressure"
++                            } else {
++                                "drop-backpressure"
++                            }
++                        } else if retained {
+                             "retain-not-ready"
+                         } else {
+                             "drop-not-ready"
+                         },
+                         Some(&target),
+                         destination.realtime.as_ref().map(|r| r.deadline),
+-                        Some(&StreamControlError::NotReady),
++                        Some(&error),
+                         None,
+                     );
+                     if retained {

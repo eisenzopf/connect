@@ -1,0 +1,295 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
+@@ -679,3 +679,292 @@
+ 
+ #[path = "transient/pending_diagnostics.rs"]
+ mod pending_diagnostics;
++
++// Real scene/Port egress queue controls, not decoded codec or network proof.
++// One fragment fills the last target slot; its companion and a later frame
++// must retain exact original FIFO work without blocking a healthy recipient.
++fn publish_backpressure_fragment(
++    f: &RecipientScene,
++    sequence: u16,
++    timestamp: u32,
++    marker: bool,
++    first: bool,
++) -> (u32, Vec<u8>) {
++    let port = f.f.aa.port(Medium::Video);
++    let mut original = frame(&port, timestamp);
++    let mut payload = vec![0x80, 96 | if marker { 0x80 } else { 0 }];
++    payload.extend_from_slice(&sequence.to_be_bytes());
++    payload.extend_from_slice(&timestamp.to_be_bytes());
++    payload.extend_from_slice(&7u32.to_be_bytes());
++    payload.extend_from_slice(&[if first { 0x10 } else { 0 }, 0x31, 0x42, sequence as u8]);
++    original.payload = Bytes::from(payload.clone());
++    port.try_publish(&original).unwrap();
++    (timestamp, payload)
++}
++async fn record_backpressure_output(
++    output: &mut mpsc::Receiver<QueuedMedia>,
++    observed: &Arc<Mutex<Vec<(u32, Vec<u8>)>>>,
++) -> Vec<String> {
++    let mut failures = Vec::new();
++    while let Ok(packet) = output.try_recv() {
++        let observed = observed.clone();
++        if let Err(error) = packet
++            .deliver(move |frame| async move {
++                observed
++                    .lock()
++                    .unwrap()
++                    .push((frame.timestamp_rtp, frame.payload.to_vec()));
++                Ok(())
++            })
++            .await
++        {
++            failures.push(format!("{error:?}"));
++        }
++    }
++    failures
++}
++async fn close_backpressure_scene(f: &RecipientScene) -> Vec<String> {
++    // The fixture manually ticks the original scene; it starts no scheduler.
++    // Remove its original members, then await every actual controller cleanup.
++    for controller in [&f.f.a, &f.f.b]
++        .into_iter()
++        .chain(f.candidates.iter().map(|(c, _)| c))
++    {
++        f.scene.remove(&controller.connection);
++    }
++    let mut failures = Vec::new();
++    for controller in [&f.f.a, &f.f.b]
++        .into_iter()
++        .chain(f.candidates.iter().map(|(c, _)| c))
++    {
++        let remaining = controller.shutdown(deadline()).await;
++        if remaining != 0 {
++            failures.push(format!("{}:{remaining}", controller.connection.as_str()));
++        }
++    }
++    for adapter in [&f.f.aa, &f.f.ba]
++        .into_iter()
++        .chain(f.candidates.iter().map(|(_, a)| a))
++    {
++        if adapter.outstanding.load(Ordering::Acquire) != 0 {
++            failures.push("original adapter cleanup outstanding".into());
++        }
++    }
++    failures
++}
++
++#[tokio::test]
++async fn scene_video_egress_full_retains_original_fragment_and_fifo_while_healthy_recipient_progresses()
++ {
++    let f = RecipientScene::new(&[Medium::Video], 1).await;
++    let mut healthy = f.f.ba.port(Medium::Video).take_egress().unwrap();
++    let mut blocked = f.candidates[0].1.port(Medium::Video).take_egress().unwrap();
++    let capacity = blocked.max_capacity();
++    let healthy_seen = Arc::new(Mutex::new(Vec::new()));
++    let blocked_seen = Arc::new(Mutex::new(Vec::new()));
++    let mut expected = Vec::new();
++    let mut failures = Vec::new();
++    for n in 0..capacity - 1 {
++        expected.push(publish_backpressure_fragment(
++            &f,
++            n as u16,
++            90000 + n as u32 * 3000,
++            true,
++            true,
++        ));
++        f.scene.tick();
++        failures.extend(record_backpressure_output(&mut healthy, &healthy_seen).await);
++    }
++    let timestamp = 90000 + (capacity - 1) as u32 * 3000;
++    expected.push(publish_backpressure_fragment(
++        &f,
++        (capacity - 1) as u16,
++        timestamp,
++        false,
++        true,
++    ));
++    f.scene.tick();
++    failures.extend(record_backpressure_output(&mut healthy, &healthy_seen).await);
++    // These are NEW original inputs, not retries/republication of the first
++    // fragment. The second fragment alone encounters the actual full queue.
++    expected.push(publish_backpressure_fragment(
++        &f,
++        capacity as u16,
++        timestamp,
++        true,
++        false,
++    ));
++    expected.push(publish_backpressure_fragment(
++        &f,
++        (capacity + 1) as u16,
++        timestamp + 3000,
++        true,
++        true,
++    ));
++    f.scene.tick();
++    failures.extend(record_backpressure_output(&mut healthy, &healthy_seen).await);
++    let retained_before = f.retained();
++    let healthy_before_release = healthy_seen.lock().unwrap().clone();
++    let no_authority_retained = f.f.policy.0.try_write().is_ok();
++    failures.extend(record_backpressure_output(&mut blocked, &blocked_seen).await);
++    f.scene.tick();
++    failures.extend(record_backpressure_output(&mut blocked, &blocked_seen).await);
++    let after = f.retained();
++    let healthy_after = healthy_seen.lock().unwrap().clone();
++    let blocked_after = blocked_seen.lock().unwrap().clone();
++    drop(healthy);
++    drop(blocked);
++    failures.extend(close_backpressure_scene(&f).await);
++    eprintln!(
++        "G6_SCENE_EGRESS_FULL original_inputs={} target_capacity={} healthy_before_release={} blocked_after_release={} retained_before={:?} retained_after={:?} no_authority_retained={} all_original_cleanup={} failures={:?}",
++        expected.len(),
++        capacity,
++        healthy_before_release.len(),
++        blocked_after.len(),
++        retained_before,
++        after,
++        no_authority_retained,
++        failures.is_empty(),
++        failures
++    );
++    // The old source naturally reaches this unique post-cleanup loss oracle:
++    // full-target fragment and later frame were discarded, healthy stayed live.
++    assert!(failures.is_empty(), "{failures:?}");
++    assert!(no_authority_retained);
++    assert_eq!(
++        healthy_before_release, expected,
++        "healthy recipient waited for another recipient's capacity"
++    );
++    assert_eq!(healthy_after, expected, "retry duplicated healthy output");
++    assert_eq!(
++        retained_before,
++        (2, 2, 0, 0),
++        "known pre-enqueue backpressure dropped original work"
++    );
++    assert_eq!(
++        blocked_after, expected,
++        "full-target original fragment/FIFO bytes lost or repeated"
++    );
++    assert_eq!(after, (0, 0, 0, 0));
++}
++
++#[tokio::test]
++async fn scene_video_egress_full_retry_keeps_age_earliest_expiry_revocation_and_receiver_epochs() {
++    for mode in ["age", "expiry", "revocation", "subscription", "port"] {
++        let f = RecipientScene::new(&[Medium::Video], 1).await;
++        let mut healthy = f.f.ba.port(Medium::Video).take_egress().unwrap();
++        let mut blocked = f.candidates[0].1.port(Medium::Video).take_egress().unwrap();
++        let healthy_seen = Arc::new(Mutex::new(Vec::new()));
++        let blocked_seen = Arc::new(Mutex::new(Vec::new()));
++        let mut failures = Vec::new();
++        for n in 0..blocked.max_capacity() {
++            f.publish(Medium::Video, n as u32);
++            f.scene.tick();
++            failures.extend(record_backpressure_output(&mut healthy, &healthy_seen).await);
++        }
++        if mode == "expiry" {
++            *f.source_expiry.lock().unwrap() =
++                Some(chrono::Utc::now() + chrono::Duration::milliseconds(50));
++        }
++        let original = publish_backpressure_fragment(&f, 500, 90000, true, true);
++        f.scene.tick();
++        failures.extend(record_backpressure_output(&mut healthy, &healthy_seen).await);
++        *f.source_expiry.lock().unwrap() = None;
++        let retained_before = f.retained();
++        // Drop the older queued fixture packets without invoking stale IO.
++        while blocked.try_recv().is_ok() {}
++        match mode {
++            "age" => tokio::time::sleep(Duration::from_millis(215)).await,
++            "expiry" => tokio::time::sleep(Duration::from_millis(80)).await,
++            "revocation" => {
++                f.f.policy
++                    .0
++                    .write()
++                    .await
++                    .revoked
++                    .insert("candidate-0".into());
++            }
++            "subscription" => {
++                f.scene
++                    .change_direct_subscriptions(
++                        &f.candidates[0].0.connection,
++                        f.candidates[0].0.revision(),
++                        DirectSubscriptionChange::Clear,
++                        deadline(),
++                        CancellationToken::new(),
++                        None,
++                    )
++                    .await
++                    .unwrap();
++            }
++            "port" => {
++                let controller = &f.candidates[0].0;
++                controller
++                    .change(
++                        controller.revision(),
++                        &[desired(Medium::Video)],
++                        &[desired(Medium::Video).logical_id].into_iter().collect(),
++                        deadline(),
++                        CancellationToken::new(),
++                    )
++                    .await
++                    .unwrap();
++            }
++            _ => unreachable!(),
++        }
++        f.scene.tick();
++        let no_old_output = blocked.try_recv().is_err();
++        if mode == "revocation" {
++            f.f.policy.0.write().await.revoked.remove("candidate-0");
++        }
++        if mode == "subscription" {
++            let c = &f.candidates[0].0;
++            f.scene
++                .change_direct_subscriptions(
++                    &c.connection,
++                    c.revision(),
++                    DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                        &f.f.a,
++                        desired(Medium::Video).logical_id.clone(),
++                        desired(Medium::Video).logical_id,
++                    )]),
++                    deadline(),
++                    CancellationToken::new(),
++                    None,
++                )
++                .await
++                .unwrap();
++        }
++        if mode == "port" {
++            blocked = f.candidates[0].1.port(Medium::Video).take_egress().unwrap();
++        }
++        f.scene.tick();
++        let no_revival = blocked.try_recv().is_err();
++        let fresh = publish_backpressure_fragment(&f, 501, 93000, true, true);
++        f.scene.tick();
++        failures.extend(record_backpressure_output(&mut healthy, &healthy_seen).await);
++        failures.extend(record_backpressure_output(&mut blocked, &blocked_seen).await);
++        let recovered = blocked_seen.lock().unwrap().clone();
++        let after = f.retained();
++        drop(healthy);
++        drop(blocked);
++        failures.extend(close_backpressure_scene(&f).await);
++        assert!(failures.is_empty(), "{mode}:{failures:?}");
++        assert_eq!(
++            retained_before,
++            (1, 1, 0, 0),
++            "{mode}: initial backpressure was not retained"
++        );
++        assert!(
++            no_old_output && no_revival,
++            "{mode}: original crossed expiry/current receiver fence"
++        );
++        assert_eq!(
++            recovered,
++            vec![fresh],
++            "{mode}: only new original should recover"
++        );
++        assert!(!recovered.contains(&original));
++        assert_eq!(after, (0, 0, 0, 0));
++    }
++}

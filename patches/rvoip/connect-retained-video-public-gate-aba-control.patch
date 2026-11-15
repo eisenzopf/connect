@@ -1,0 +1,83 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/packet_admission.rs
+@@ -284,6 +284,28 @@
+         "completed IO retained policy authority"
+     );
+ }
++// No original delivery guard exists while this controlled policy callback runs.
++// Poll the SAME real public gate operation to completion without adding a task
++// or waiting while policy/model metadata is owned. Unexpected Pending is a
++// fixture failure; it is never replaced with direct StreamModel mutation.
++fn complete_uncontended_public_gate_for_policy_test(
++    future: impl std::future::Future<Output = ControlResult<()>>,
++) {
++    struct GateWake;
++    impl std::task::Wake for GateWake {
++        fn wake(self: Arc<Self>) {}
++    }
++    let waker = std::task::Waker::from(Arc::new(GateWake));
++    let mut context = std::task::Context::from_waker(&waker);
++    let mut original = Box::pin(future);
++    let completed = std::future::Future::poll(original.as_mut(), &mut context);
++    drop(original);
++    assert!(
++        matches!(completed, std::task::Poll::Ready(Ok(()))),
++        "uncontended original public gate did not complete: {completed:?}"
++    );
++}
++
+ #[tokio::test]
+ async fn retained_video_policy_cannot_lend_current_model_credential_or_route_to_an_older_callback()
+ {
+@@ -296,26 +318,26 @@
+                 .unwrap();
+         let mut output = f.ba.port(Medium::Video).take_egress().unwrap();
+         let packet = queued_video(&f, &source, &mut input, &mut output, 160).await;
+-        let authority = f.policy.0.try_read().unwrap().owners["alice"].clone();
++        let original_ticket = source.0.ticket();
+         *actions.lock().unwrap() = Some(Box::new(move |controller| {
+             assert!(controller.state.try_lock().is_ok(), "policy owns State");
+             match changed {
+                 0 => {
+-                    // Same final permission and actual port, different revision.
+-                    // Do not rely only on permits() after a pause/resume edge.
+-                    let mut state = controller.state.lock().unwrap();
++                    // Exercise the real public gate during the policy read.
++                    // Direct model-only pause/resume changes revision but skips
++                    // the mandatory delivery-ticket generation boundary.
++                    let logical = desired(Medium::Video).logical_id;
++                    let original = controller.state.lock().unwrap().active[&logical].ticket();
++                    assert!(original.is_current());
+                     for paused in [true, false] {
+-                        let expected = state.model.revision();
+-                        state
+-                            .model
+-                            .set_paused(
+-                                &authority.current(),
+-                                expected,
+-                                &desired(Medium::Video).logical_id,
+-                                paused,
+-                            )
+-                            .unwrap();
++                        complete_uncontended_public_gate_for_policy_test(controller.set_paused(
++                            &logical,
++                            controller.revision(),
++                            paused,
++                            deadline(),
++                        ));
+                     }
++                    assert!(!original.is_current(), "real pause/resume revived the old ticket");
+                 }
+                 1 => controller.credential.lock().unwrap().revision += 1,
+                 2 => controller.state.lock().unwrap().closed = true,
+@@ -336,6 +358,9 @@
+                 Ok(())
+             })
+             .await;
++        if changed == 0 {
++            assert!(!original_ticket.is_current(), "original queued source ticket stayed current");
++        }
+         assert!(result.is_err(), "changed={changed}");
+         assert!(
+             !called.load(Ordering::Acquire),

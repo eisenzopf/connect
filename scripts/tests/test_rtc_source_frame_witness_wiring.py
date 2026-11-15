@@ -25,4 +25,16 @@ class Wiring(unittest.TestCase):
     for network in ['local','remote-profile-fixture']:
      argv=['original'];execute([node],{'cell':{'transport':transport,'network':network,'execution':{'stage':stage}},'sys':SimpleNamespace(argv=argv)})
      self.assertEqual(argv,['original']+(['--rtc-source-frame-witness']if transport=='firefox-wss-webrtc'and stage=='quality'else []))
+ def test_frame_witness_opts_into_failure_only_refusal_targets_without_audio_fact_buffers(self):
+  main=next(n for n in tree('scripts/rehearse-gate6-browser-matrix.py').body if isinstance(n,ast.FunctionDef)and n.name=='main')
+  branch=next(n for n in main.body if isinstance(n,ast.If)and ast.unparse(n.test)=='args.rtc_source_frame_witness'
+   and 'RUST_LOG' in ast.unparse(n))
+  targets=('rvoip_webrtc::canonical::media=debug','rvoip_webrtc_stack::owned_rtp_refusal=debug')
+  for enabled in (False,True):
+   env={'RUST_LOG':'warn'}
+   execute([branch],{'args':SimpleNamespace(rtc_source_frame_witness=enabled),'env':env})
+   for target in targets:self.assertEqual(env['RUST_LOG'].count(target),int(enabled))
+   self.assertNotIn('audio_facts',env['RUST_LOG'])
+   self.assertNotIn('video_pending',env['RUST_LOG'])
+   if not enabled:self.assertEqual(env['RUST_LOG'],'warn')
 if __name__=='__main__':unittest.main()

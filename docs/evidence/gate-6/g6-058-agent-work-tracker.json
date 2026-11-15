@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T04:14:08.086530+00:00",
-  "revision": 92,
+  "updated_at": "2026-11-15T04:53:40.992996+00:00",
+  "revision": 93,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 152,
-    "verified_at": "2026-11-15T04:14:08.086530+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-packet-gap.json",
-    "readback_evidence_sha256": "ca299425cad7bf674e4962a31fb85af760e94aeff497cfff8910c4c97161eea6",
+    "content_revision": 154,
+    "verified_at": "2026-11-15T04:53:40.992996+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-queue-presentation.json",
+    "readback_evidence_sha256": "c8fe9e7dc1ea1555353d47ae261c9e747b88efa883f39b4542bf87569ae6f670",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2141,10 +2141,10 @@
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root/v198_resources",
       "coordinator": "/root",
-      "status": "diagnosing",
-      "implementation_state": "Exact source/target RTP sequence, timestamp, marker and frame dependency diagnosis; no threshold waiver",
+      "status": "component-verified",
+      "implementation_state": "Actual queue-loss oldcounter reproduced; fixedwhole45 pass. Historicalpacket1048 exactinternaldrop remainsunproved; freshmedia workload required.",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-normal3-r2-failures.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-realtime-queue-and-rtc-presentation.json",
       "matrix_verified": false
     },
     {
@@ -2153,11 +2153,15 @@
       "owner_agent": "/root/fixture_blockers",
       "independent_reviewer": "/root/media_blockers",
       "coordinator": "/root",
-      "status": "diagnosing",
-      "implementation_state": "Diagnose actual new public draw against native presentation/cut timing, then prove a strict SDK freshness fix",
+      "status": "implemented-unverified",
+      "implementation_state": "Partial compositorclock66verified. Complete Core sourceexclusions/typedwire/same-targetSDKfrontier source-staged, preservesprivateconsultation; jointreview+units+normal3pending.",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-normal3-r2-failures.json",
-      "matrix_verified": false
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-realtime-queue-and-rtc-presentation.json",
+      "matrix_verified": false,
+      "contributing_agents": [
+        "/root/media_blockers",
+        "/root"
+      ]
     }
   ],
   "failure_mapping": [
@@ -4579,6 +4583,15 @@
         "evidence": "docs/evidence/gate-6/g6-058-v219-packet-gap-and-projection.json",
         "sha256": "a5f554856ca58a34b0d52cdd7b6152379628175781dccb4a25ce3e940997bed3"
       }
+    },
+    {
+      "at": "2026-11-15T04:53:40.992996+00:00",
+      "revision": 93,
+      "checkpoint": {
+        "status": "Same-original queue backpressure fix45/45 +SDK native first-composition66/66 +refusal wiring6/6 verified; fullsource-frame-cut/Core/wire/SDK batch staged andpending; no full32 readiness claim.",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-realtime-queue-and-rtc-presentation.json",
+        "sha256": "e1401897635b70f01b12ca869927eb19692414e9c9520f6692104581eca2a739"
+      }
     }
   ],
   "tracking_review": {
@@ -6208,8 +6221,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Actual packet gap located between captured ingress and primary egress; exact internaldrop pending. Native presentation projection8/8 verified; SDK distinctframe contract stillopen. Notreadyfull32.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-packet-gap-and-projection.json",
-    "sha256": "a5f554856ca58a34b0d52cdd7b6152379628175781dccb4a25ce3e940997bed3"
+    "status": "Same-original queue backpressure fix45/45 +SDK native first-composition66/66 +refusal wiring6/6 verified; fullsource-frame-cut/Core/wire/SDK batch staged andpending; no full32 readiness claim.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-realtime-queue-and-rtc-presentation.json",
+    "sha256": "e1401897635b70f01b12ca869927eb19692414e9c9520f6692104581eca2a739"
   }
 }

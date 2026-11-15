@@ -2428,6 +2428,24 @@
       "path": "patches/rvoip/connect-rtc-video-mapping-profile-control.patch",
       "sha256": "47f7885d9b14099f140cffa63b9a019f5ee10fb75385ebda743824b095308b67",
       "source": "Tests-only strengthen existing final-Arc mapping lifecycle control using actual server-style EnvFilter and UNFORCED Timeline.default. Require enabled positive/default history Some, disabled NoSubscriber/default None, unchanged firstArc noexport/finalArc exactlyone/retirement nottaskjoin assertions. Production code and all5 selectors unchanged; actual Root proof required."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-scene-egress-backpressure-counter.patch",
+      "sha256": "e4ce736e9ad0712c0b4e2d685b5a22de54e7e44fad0f880957081033fa7776f6",
+      "source": "Tests-only actual scene egress Full counter: exact original fragment/FIFO, healthy recipient progress, expiry/revocation/selection/port fences; old failure must remain recorded."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-scene-egress-backpressure-retain.patch",
+      "sha256": "4ad2a971df337c516dc1ccb1e53c88568dfab2c2698921232d3c1063aaad4d7e",
+      "source": "Retain realtime exact-original pending destination after preeffect egress enqueue Full Backpressure under existing current admission/FIFO/ticket/age/deadline/cap; no new queue/wait/limits. Actual packet1048 drop attribution remains unresolved."
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-retained-video-public-gate-aba-control.patch",
+      "sha256": "1ea7099c11d3e24d71e1064bd74531d6cfc8d6283098e51c515106245ffdeadb",
+      "source": "Tests-only repair stale model-only ABA negative: exercise actual public pause/resume while original policy callback is active, require old route ticket permanently superseded and no IO. Keep same four other negatives/current fresh recovery; zero new selectors or production changes. Original451 44/45 failure remains preserved."
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-15T04:14:08.086530+00:00",
-  "run_status": "Latest complete v218 remains1/32cells,399/432checks. Normal3r2 failed video stall and crossownerreplay; actualpackettrace source1048exists/target19154missing. Exactdropcallsite unresolved; safe preeffectBackpressure retention beingimplemented. Presentationprojection8/8 verified. No full32started; finalregression/ARMheld.",
+  "updated": "2026-11-15T04:53:40.992996+00:00",
+  "run_status": "Latest fullv218 remains1/32cells,399/432checks. Actualqueue-loss counter reproduced66\u219264; same-original boundedretention fix45/45pass, SDK compositorclock66/66pass, refusalwiring6/6pass. Complete Core/wire/SDK sourceframecutstaged, unrun; jointverification andnormal3/currentregression/ARM/releases/preflight pending. No full32started.",
   "blockers": [
     {
       "id": "B01",
@@ -3677,14 +3677,14 @@
     {
       "id": "V219-RETURN-VIDEO-LOSS",
       "title": "Locate and fix return-handoff video stall",
-      "status": "diagnosing",
-      "completion": "Exact source/target RTP sequence, timestamp, marker and frame dependency diagnosis; no threshold waiver; owner /root/media_blockers, reviewer /root/v198_resources. Evidence g6-058-v219-normal3-r2-failures.json"
+      "status": "component-verified",
+      "completion": "Bounded same-original queue fix whole45pass; historical1048callsite and actualmedia cure unproved. g6-058-v219-realtime-queue-and-rtc-presentation.json"
     },
     {
       "id": "V219-PUBLIC-FRAME-REPLAY",
       "title": "Prevent repeated public video frame across replacement",
-      "status": "diagnosing",
-      "completion": "Diagnose actual new public draw against native presentation/cut timing, then prove a strict SDK freshness fix; owner /root/fixture_blockers, reviewer /root/media_blockers. Evidence g6-058-v219-normal3-r2-failures.json"
+      "status": "implemented-unverified",
+      "completion": "Compositorchronology66pass; complete Core/wire/SDK freshnessbatch source-staged with independentreviews andprivatepathpreservation; actualjointcontrols/normal3pending. g6-058-v219-realtime-queue-and-rtc-presentation.json"
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -19359,5 +19359,109 @@
       "actual_packet1048_attribution_proved": false
     },
     "next": "Verify and integrate safe source corrections and controls; fresh normal3 remains required before final regression/ARM/releases/preflight. Full32 unstarted;G6054parked."
+  },
+  "v219_realtime_queue_and_rtc_presentation": {
+    "format": "connect/g6-058-v219-realtime-queue-and-rtc-presentation/1",
+    "updated_at": "2026-11-15T04:53:40.992996+00:00",
+    "matrix_credit": false,
+    "dependency_generation": 452,
+    "source_lock_sha256": "8ce10380519f413518a6fd9d342adc378b1621e64de50610569ad39f30805649",
+    "queue_cause": "Realtime pending fanout discarded Backpressure from failed outbound try_send despite no enqueue or delivery effect.",
+    "queue_fix": "Retain same original for that exact receiver under existing FIFO/ticket/current authority/earliest deadline/200ms/64 packet limits. No new queue, task, wait or capacity.",
+    "source_reviews": {
+      "pending_original": "22f88e4026d77583cab7a67585470d08748d9939bb59be59e4022693158856db",
+      "formatted450451": "aab08c56804c9e04fee6c614f97bb125205eb27d1df6780bb4a08aaed1a3ffc7",
+      "real_public_gate_fixture": "c5175607d6b21fed8b19f151ec5a3d55c242f0fda0f0aee615e1cafad899e03a"
+    },
+    "old_counter": {
+      "Root_original_join": "23784/067d08",
+      "Rust_passed": 0,
+      "Rust_failed": 2,
+      "desired_post_cleanup_assertions_observed": true,
+      "original_inputs": 66,
+      "queue_capacity": 64,
+      "healthy_receiver_delivered": 66,
+      "blocked_receiver_delivered": 64,
+      "retained_originals": 0,
+      "all_original_cleanup": true,
+      "source_unchanged": true,
+      "independent_actual_review": "0d66a2589022efcf15a7e3100bd469891938a96d674bbf0aebe9a1fe716f1bbd"
+    },
+    "preserved451": {
+      "Root_original_join": "32055/5c590e",
+      "passed": 44,
+      "failed": 1,
+      "scope": "New queue positive and all five queue refusal/recovery modes passed. Existing model-only pause/resume negative bypassed actual route-ticket transition and expected refusal despite valid same-original fresh retry.",
+      "outcome_still_failed": true
+    },
+    "fresh452": {
+      "Root_original_join": "2405/de72dc",
+      "passed": 45,
+      "failed": 0,
+      "ignored": 0,
+      "build_original_exit": 0,
+      "all_original_groups_joined": true,
+      "source_unchanged": true,
+      "positive_original_inputs": 66,
+      "healthy_receiver_delivered": 66,
+      "blocked_receiver_delivered": 66,
+      "retained_originals_before": 2,
+      "retained_originals_after": 0,
+      "all_original_cleanup": true,
+      "negative_modes": [
+        "age",
+        "earliest_expiry",
+        "revocation",
+        "subscription_change",
+        "port_change"
+      ],
+      "existing_actual_public_pause_resume_negative": "Permanently superseded original ticket; no IO, no idle permission reader; fresh current recovery. All other four original negative cases retained.",
+      "independent_actual_review": "c96e5a0f25002ed9e5ba74207774634ba0da55cb7390ac60d28d207da558347f"
+    },
+    "normal_dependency_preparations": {
+      "450": "64163/6c9f44",
+      "451": "70285/b90d82",
+      "452": "23908/f7faa4",
+      "all_original_prepare_and_verification_owners_exit0": true,
+      "unchanged_source_mtimes_restored_each": 4198,
+      "complete_previous_generations_preserved": true
+    },
+    "SDK_presentation_chronology": {
+      "cause": "New callback delivery and an advancing per-element presentation counter did not prove its native composition was after exact decoder transfer.",
+      "fix": "Require finite native presentationTime strictly after validated completion and exact take, only until actual first draw; retain original presentation counter, retry, cancellation and cleanup behavior. No shared rendering timestamp upper-bound assumption.",
+      "source_review": "afa5c25b9617e9b035bdf8907476ca05fcb33030401af4a3e4e2d3f52be7ef1f",
+      "actual_review": "f0670adccdc3fe70541d18f7c96965696711a2387f6426fa3faa490cf827dc76",
+      "old_expected_pre_take_draw_assertion_reproduced": true,
+      "normal_TypeScript_build_exit": 0,
+      "format_exit": 0,
+      "fresh_Root_original_join": "22932/de0fee",
+      "fresh_tests_passed": 66,
+      "fresh_tests_failed_or_skipped": 0,
+      "fresh_source_unchanged": true,
+      "prior_Root20124_wrapper_failure_preserved": "SDK build intentionally changed tracked generated dist inside too-broad seal; first outer result stays failed. New fresh postbuild source phase is separately qualified.",
+      "cross_owner_source_uniqueness_proved": false
+    },
+    "bounded_refusal_logging": {
+      "Root_original_join": "direct-exec0/6ce9f8",
+      "tests_passed": 6,
+      "failed_or_skipped": 0,
+      "source_unchanged": true,
+      "source_review": "3f36da71ea816b000c8bf488593000611b698da60488e3c6586b696d3cad008e",
+      "scope": "Existing source-frame witness enables canonical refusal/anomaly/worker-end and hard128 typed refusal rows, without audio fact buffers or healthy per-packet logging. video_pending remains off.",
+      "all_internal_drop_callsites_covered": false
+    },
+    "not_proved": {
+      "historical1048_exact_drop_callsite": true,
+      "actual_C2_source_frame_replay_cure": true,
+      "production_media_throughput": true,
+      "fresh_normal3_or_matrix": true
+    },
+    "active_followthrough": {
+      "Core_adapter": "Complete conservative old-source histories and inherited exclusions, primary/repair guards and same-target attempted RTP ceiling at original quiesced activation. Staged; unrun.",
+      "Protocol_Service_Store_OpenAPI": "Typed public-webrtc audience bound to same immutable signed operation/capture/replay. Wire source review caught and corrected Serde tag spelling; staged, unrun.",
+      "SDK": "Exact native binding and persistent drawn RTP frontier, preserving explicit private-consultation semantics; staged, unrun.",
+      "performance": "No packet SQL, new global mutex, queue or timer; no acceptance changes."
+    },
+    "next": "Joint source review and unit controls, proper normal3, current complete regression/localARM/releases/preflight. Full32 unstarted;G6054parked."
   }
 }
