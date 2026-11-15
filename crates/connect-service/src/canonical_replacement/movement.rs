@@ -563,6 +563,17 @@ impl Runtime {
         tracing::debug!(target:"connect_service::canonical_replacement", generation=origin.generation(),
             connection=%outcome.admitted, stage="adopted", elapsed_us=commit_began.elapsed().as_micros() as u64,
             "Replacement actual managed movement activated");
+        if crate::canonical_media::source_binding_witness::enabled() {
+            // One control-path metadata snapshot after the original Store/Core
+            // publication and activation, never a packet-path authority read.
+            let bindings = started.controller.active_bindings();
+            crate::canonical_media::source_binding_witness::emit(
+                &origin,
+                &bindings,
+                &root.origin.request().operation_id,
+                crate::canonical_media::source_binding_witness::Phase::ReplacementPublished,
+            );
+        }
         self.watch_moved_replacement(origin).await;
         Ok(())
     }

@@ -589,3 +589,28 @@ public intervals, Core epochs, original closed capture and full packet bijection
 remain required. No audio, frame, FPS, coverage, gap, AV or ownership credit is
 added, and no historical report is regraded. A pair requiring two native anchors
 without a real opposite-side RTP endpoint remains unresolved under this profile.
+
+
+#### Explicit publication-time source namespace binding
+
+`connect/native-publication-binding/1` records a private diagnostic event from
+sealed Service `NativeMediaOrigin` only after successful original ordinary RTC
+admission or actual replacement publication/activation. It explicitly binds the
+public Connect connection ID to its Core runtime connection ID, original public
+operation, conversation/session/participant and actual negotiated Core port rows.
+Initial private handoff preparation is excluded. Disabled logging allocates no
+record; enabled collection is at original control boundaries only, never packet
+SQL, a new grant, a retry or a changed publication path. Replacement snapshots
+its existing controller metadata once, after activation and only when opted in.
+
+The outer proof uses the public ID for original capture membership, immutable
+public-handle conversation/session, send interval and native sender statistics;
+it separately requires the exact exported runtime ID for the Core source epoch.
+Logical stream, actual transport and Core stream generation must match. Public
+connection generation and Core stream generation retain different semantic
+names; one is never substituted for the other. Initial/replacement operation
+identities must match their original validated receipt chain. Missing, duplicate,
+ambiguous, foreign-session, changed-port and old-target bindings remain unknown.
+The closed historical Store copy is RCA evidence only, never a qualifier input or
+a fabricated historical Service event. All prior failed results remain failed;
+no original frame, identity, coverage, FPS, AV, packet or ownership rule changes.

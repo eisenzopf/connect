@@ -388,6 +388,15 @@ impl Runtime {
         }
         // All newly acquired readers disappear here, before idle monitoring.
         drop(invocation);
+        if !handoff_preparation {
+            // Original sealed Store completion succeeded; metadata only.
+            crate::canonical_media::source_binding_witness::emit(
+                &entry.origin,
+                &ready.bindings,
+                attempt.original_attempt().operation_id(),
+                crate::canonical_media::source_binding_witness::Phase::InitialReady,
+            );
+        }
         if handoff_preparation {
             self.queue_handoff_preparation(entry, ready.physical.lifetime.clone());
         }

@@ -22,6 +22,7 @@ pub(crate) mod reconciliation;
 pub(crate) mod replacement;
 #[cfg(feature = "test-support")]
 pub(crate) mod route_enrollment_fixture;
+pub(crate) mod source_binding_witness;
 mod sources;
 #[cfg(feature = "test-support")]
 pub(crate) mod video_preparation_fixture;

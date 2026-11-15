@@ -159,7 +159,7 @@ def main():
     # without adding per-packet logging to the measured programme.
     env["RUST_LOG"] = "warn,connect_service::canonical_replacement=debug,rvoip_core::replacement_commit=debug,rvoip_core::audio_summary=debug,connect_service::packet_refusal=debug,connect_service::runtime_retention=debug" + ",quinn_proto::datagram_queue=debug"
     if args.rtc_source_frame_witness:
-        env["RUST_LOG"] += ",rvoip_webrtc::video_mapping=debug"
+        env["RUST_LOG"] += ",rvoip_webrtc::video_mapping=debug,connect_service::native_publication_binding=debug"
     if rtc_audio_facts:
         env["RUST_LOG"] += ",rvoip_webrtc_stack::audio_facts=debug,rvoip_webrtc::audio_facts=debug,rvoip_webrtc::canonical::media=debug"
     # Bounded failure-only library target, exclusively for this explicit counter.

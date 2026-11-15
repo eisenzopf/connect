@@ -72,16 +72,69 @@ def read_json(path, maximum=16 * 1024**2):
         return json.loads(raw), hashlib.sha256(raw).hexdigest()
 
 
+PUBLICATION_PROFILE = "connect/native-publication-binding/1"
+PUBLICATION_MARKER = b"Connect native publication binding"
+
+
+class PublicationMappings(list):
+    """Closed original log records; never a runtime authority or grant."""
+    def __init__(self, values=(), source_bindings=()):
+        super().__init__(values)
+        self.source_bindings = list(source_bindings)
+
+
+def publication_record(value, original_server_pid):
+    need(isinstance(value, dict) and value.get('profile') == PUBLICATION_PROFILE
+         and value.get('process') == original_server_pid, 'publication-original-process-unproved')
+    need(value.get('complete') is True,'publication-incomplete')
+    need(value.get('phase') in ('initial-ready','replacement-published'), 'publication-phase-unproved')
+    for key in ('public_connection_id','runtime_connection_id','conversation_id','session_id','participant_id',
+                'offer_record_id','publication_operation_id'):
+        need(isinstance(value.get(key), str) and re.fullmatch(r'[A-Za-z0-9_-]{1,256}', value[key]),
+             'publication-typed-identity-invalid')
+    for key in ('public_connection_generation','membership_epoch'):
+        need(type(value.get(key)) is int and 0 < value[key] < 2**64, 'publication-public-generation-invalid')
+    streams=value.get('streams')
+    need(isinstance(streams,list) and 0<len(streams)<=32, 'publication-stream-bound')
+    seen=set()
+    for stream in streams:
+        need(isinstance(stream,dict) and all(isinstance(stream.get(key),str)
+             and re.fullmatch(r'[A-Za-z0-9_-]{1,256}',stream[key]) for key in ('logical_id','transport_id')),
+             'publication-stream-identity-invalid')
+        need(stream['logical_id'] not in seen, 'publication-duplicate-logical-stream');seen.add(stream['logical_id'])
+        need(stream.get('medium') in ('audio','video','screen','data') and stream.get('direction') in ('send','receive','both')
+             and type(stream.get('source_ready')) is bool and type(stream.get('sink_ready')) is bool,
+             'publication-stream-state-invalid')
+        need(all(type(stream.get(key)) is int and 0<stream[key]<2**64 for key in
+                 ('core_stream_generation','core_connection_generation')), 'publication-core-generation-invalid')
+    need(len(json.dumps(value,separators=(',',':'),ensure_ascii=False).encode('utf8'))<=16*1024,
+         'publication-record-byte-bound')
+    return value
+
+
 def mapping_summaries(path, original_server_pid, deadline=None):
-    result = []
+    result = PublicationMappings()
     digest = hashlib.sha256()
     message = b"RTC original video mapping witness"
+    messages = (message,PUBLICATION_MARKER)
+    source_public_ids,source_runtime_ids=set(),set()
     selected_cap, chunk_cap = 256 * 1024, 64 * 1024
 
     def accept(raw):
         # The actual server uses tracing's normal text formatter. Its optional
         # SGR field styling is presentation only; the JSON witness stays exact.
         line = re.sub(rb"\x1b\[[0-9;]*m", b"", raw)
+        if PUBLICATION_MARKER in line:
+            at=line.find(b'binding=')
+            need(at>=0,'publication-export-format')
+            value,_=json.JSONDecoder().raw_decode(line[at+len(b'binding='):].decode('utf8'))
+            value=publication_record(value,original_server_pid)
+            need(len(result.source_bindings)<48,'publication-global-record-bound')
+            need(value['public_connection_id'] not in source_public_ids and value['runtime_connection_id'] not in source_runtime_ids,
+                 'publication-duplicate-or-ambiguous-namespace')
+            source_public_ids.add(value['public_connection_id']);source_runtime_ids.add(value['runtime_connection_id'])
+            result.source_bindings.append(value)
+            return
         marker = b'witness={"profile":"connect/rtc-original-video-mapping/1"'
         at = line.find(marker)
         need(at >= 0, "mapping-export-format")
@@ -101,8 +154,8 @@ def mapping_summaries(path, original_server_pid, deadline=None):
             digest.update(chunk)
             line_size += len(chunk)
             search = tail + chunk
-            selected |= message in search
-            tail = search[-(len(message) - 1):]
+            selected |= any(marker in search for marker in messages)
+            tail = search[-(max(map(len,messages)) - 1):]
             if line_size <= selected_cap:
                 line.extend(chunk)
             else:
@@ -134,6 +187,7 @@ class StatsIndex:
              and all(a <= b for a,b in zip(self.completed,self.completed[1:])), 'original-statistics-clock')
         self.boundaries = pipeline.get('binding_boundaries')
         self.receiver_owners, self.cache = {}, {}
+        self.publications = None
         self.boundary_bytes_checked=False
         self.deadline = time.monotonic()+30 if deadline is None else deadline
         for sample in self.samples:
@@ -775,6 +829,66 @@ def within_public(ledger, owner, stream, first, last, direction):
     return found[0]
 
 
+def capture_attachment(cycle,index,owner):
+    sources=[source for source in cycle['programme']['sources']['sources'] if source.get('index')==index]
+    need(len(sources)==1,'original-public-source-route-ambiguous')
+    found=[entry for entry in sources[0]['attachments'] if entry.get('connection_id')==owner]
+    need(len(found)==1 and found[0].get('capture_started') is True,'original-public-capture-attachment-unproved')
+    context=found[0].get('public_context') or {}
+    need(all(isinstance(context.get(key),str) and re.fullmatch(r'[A-Za-z0-9_-]{1,256}',context[key])
+             for key in ('conversation_id','session_id')), 'original-public-capture-context-unproved')
+    return context
+
+
+def publication_source(cycle,route,epoch,summaries,receiver_owner,first,last,stats):
+    if stats.publications is None:
+        records=getattr(summaries,'source_bindings',())
+        need(isinstance(records,(list,tuple)) and 0<len(records)<=48,'publication-source-bridge-missing')
+        public_ids,runtime_ids=set(),set()
+        process={entry.get('process') for entry in summaries}
+        need(len(process)==1,'mapping-original-process-ambiguous')
+        by_runtime={}
+        for record in records:
+            publication_record(record,next(iter(process)))
+            need(record['public_connection_id'] not in public_ids and record['runtime_connection_id'] not in runtime_ids,
+                 'publication-duplicate-or-ambiguous-namespace')
+            public_ids.add(record['public_connection_id']);runtime_ids.add(record['runtime_connection_id'])
+            by_runtime[record['runtime_connection_id']]=record
+        # Original closed collection is indexed once per cycle, not rescanned
+        # and serialized per alias. The actual reader never mutates this input.
+        stats.publications={'source':summaries,'by_runtime':by_runtime}
+    need(stats.publications['source'] is summaries,'publication-original-collection-changed')
+    found=[stats.publications['by_runtime'][epoch['source_connection']]] if epoch['source_connection'] in stats.publications['by_runtime'] else []
+    need(len(found)==1,'mapping-source-runtime-bridge-unproved')
+    record=found[0];owner=record['public_connection_id']
+    source_context=capture_attachment(cycle,route['source_route_index'],owner)
+    target_context=capture_attachment(cycle,route['route'],receiver_owner)
+    need(record['conversation_id']==source_context['conversation_id']==target_context['conversation_id']
+         and record['session_id']==source_context['session_id']==target_context['session_id'],
+         'publication-foreign-public-session')
+    interval=within_public(public_intervals(cycle,route['source_route_index']),owner,epoch['source_logical'],first,last,'send')
+    if interval['operation_id'] is None:
+        operations=[op for op in cycle.get('admission',{}).get('operations',[]) if op.get('name')=='offer-'+str(route['source_route_index'])]
+        need(record['phase']=='initial-ready' and len(operations)==1 and operations[0].get('state')=='completed'
+             and record['publication_operation_id']==operations[0].get('operationId'), 'publication-original-initial-operation-unproved')
+    else:
+        need(record['phase']=='replacement-published' and record['publication_operation_id']==interval['operation_id'],
+             'publication-original-replacement-operation-unproved')
+    streams=[stream for stream in record['streams'] if stream['logical_id']==epoch['source_logical']]
+    need(len(streams)==1,'publication-original-send-stream-unproved')
+    stream=streams[0]
+    need(stream['medium']=='video' and stream['direction'] in ('send','both') and stream['source_ready'] is True
+         and stream['transport_id']==epoch['source_transport']
+         and stream['core_stream_generation']==epoch['source_generation'], 'publication-core-source-port-changed')
+    # Public connection generation and Core stream generation are deliberately
+    # NOT equated. Each is retained under its own explicit semantic field.
+    return owner,dict(profile=PUBLICATION_PROFILE,process=record['process'],phase=record['phase'],
+        public_connection_id=owner,runtime_connection_id=record['runtime_connection_id'],conversation_id=record['conversation_id'],
+        session_id=record['session_id'],participant_id=record['participant_id'],membership_epoch=record['membership_epoch'],
+        public_connection_generation=record['public_connection_generation'],offer_record_id=record['offer_record_id'],
+        publication_operation_id=record['publication_operation_id'],stream=stream)
+
+
 def prepare_pair(cycle, route, pair, summaries, stats=None):
     a, b = pair['first'], pair['current']; pa, pb = a['presentation'], b['presentation']
     need(a['owner'] == b['owner'] and pa['element_id'] == pb['element_id']
@@ -786,15 +900,14 @@ def prepare_pair(cycle, route, pair, summaries, stats=None):
     stats = stats or StatsIndex(cycle)
     receiver = stats.get(a['owner'], 'inbound-rtp', a['callback_seconds'], b['callback_seconds'], stream=pa['stream_id'], track=pa['track_id'], coordinates=[pa['rtpTimestamp'],pb['rtpTimestamp']])
     timeline, epoch = epoch_for_pair(summaries, receiver, pa['rtpTimestamp'], pb['rtpTimestamp'])
-    selected = [source for source in cycle['programme']['sources']['sources'] if source.get('index') == route['source_route_index']]
-    need(len(selected) == 1 and any(binding['connection_id'] == epoch['source_connection'] for binding in selected[0]['attachments']), 'mapping-source-not-original-authenticated-route')
-    within_public(public_intervals(cycle, route['source_route_index']), epoch['source_connection'], epoch['source_logical'], a['callback_seconds'], b['callback_seconds'], 'send')
-    source = stats.get(epoch['source_connection'], 'outbound-rtp', a['callback_seconds'], b['callback_seconds'], stream=epoch['source_logical'], ssrc=epoch['source_ssrc'])
+    source_owner,publication=publication_source(cycle,route,epoch,summaries,a['owner'],a['callback_seconds'],b['callback_seconds'],stats)
+    source = stats.get(source_owner, 'outbound-rtp', a['callback_seconds'], b['callback_seconds'], stream=epoch['source_logical'], ssrc=epoch['source_ssrc'])
     source_cipher, receiver_cipher = source['path'].get('srtp_cipher'), receiver['path'].get('srtp_cipher')
     if source_cipher is not None and receiver_cipher is not None: need(source_cipher == receiver_cipher, 'different-srtp-wire-profiles')
     output_ts = [pa['rtpTimestamp'], pb['rtpTimestamp']]
     return dict(timeline=timeline, epoch=epoch, source_flow=packet_flow(source, True), target_flow=packet_flow(receiver, False),
                 input_ts=[(value - epoch['timestamp_offset']) % 2**32 for value in output_ts], output_ts=output_ts,
+                source_publication_binding=publication,
                 native_binding_boundaries=[value['native_binding_boundary'] for value in (source,receiver) if 'native_binding_boundary' in value])
 
 
@@ -833,7 +946,10 @@ def finalize(report, browser_folder, server_log, pcap_path):
     statistics = []
     census_bytes = {}
     boundary_used = {}
+    publication_used = {}
     def request(prepared, cycle_index, route_index, reference, control=False):
+        publication=prepared['source_publication_binding']
+        publication_used[(cycle_index,publication['runtime_connection_id'],publication['stream']['transport_id'])]=dict(cycle=cycle_index,**publication)
         for binding in prepared.get('native_binding_boundaries', []):
             key=(cycle_index,binding['profile'],binding['peer_index'],binding['direction'])
             boundary_used[key]=dict(cycle=cycle_index,**binding)
@@ -873,7 +989,7 @@ def finalize(report, browser_folder, server_log, pcap_path):
     grouped = [[] for _ in contexts]
     for number, value in enumerate(requests): grouped[value[0]].append(number)
     auxiliary = metadata_size(requests, grouped, contexts, context_ids, windows, [value.cache for value in statistics],
-                              [value.requested for value in statistics], [value.completed for value in statistics], [value.receiver_owners for value in statistics], [value.boundaries for value in statistics], boundary_used, deadline=deadline)
+                              [value.requested for value in statistics], [value.completed for value in statistics], [value.receiver_owners for value in statistics], [value.boundaries for value in statistics], boundary_used, summaries.source_bindings, [value.publications for value in statistics], publication_used, deadline=deadline)
     headers = capture_headers(pcap_path, report['packet_capture'], windows, cycles=len(cycles), deadline=deadline, auxiliary_bytes=auxiliary)
     compact, control_facts = [], []
     for context_id, numbers in enumerate(grouped):
@@ -907,7 +1023,8 @@ def finalize(report, browser_folder, server_log, pcap_path):
                 used.update(i for i, context in enumerate(contexts) if context['timeline'] == control['timeline'] and context['epoch']['ordinal'] == control['epoch'])
         encoded = json.dumps(dict(proofs=selected, epochs=[dict(timeline=contexts[i]['timeline'], epoch=contexts[i]['epoch']) for i in used],
             controls=[control for control in control_facts if control['cycle'] == cycle_index],
-            native_binding_boundaries=[value for value in boundary_used.values() if value['cycle']==cycle_index]), separators=(',', ':')).encode()
+            native_binding_boundaries=[value for value in boundary_used.values() if value['cycle']==cycle_index],
+            source_publication_bindings=[value for value in publication_used.values() if value['cycle']==cycle_index]), separators=(',', ':')).encode()
         need(len(used) <= 10 * 32 and size + len(encoded) <= WITNESS_CYCLE_BYTES, 'final-cycle-witness-byte-bound')
         need(time.monotonic() < deadline, 'closed-metadata-time-bound')
 
@@ -935,6 +1052,7 @@ def finalize(report, browser_folder, server_log, pcap_path):
         source_revision=report['source_revision'], original_server_pid=actual[0]['original_pid'], association_controls=control_facts,
         proof_json=proof_json, proof_rows=len(compact), proof_layout=['cycle','route','original_pair_reference','epoch_descriptor','matched_packets'],
         epochs=[dict(timeline=value['timeline'], epoch=value['epoch']) for value in contexts],
+        source_publication_bindings_used=list(publication_used.values()),
         native_binding_boundaries_used=list(boundary_used.values()),
         header_index_accounted_bytes=index_accounted, header_index_peak_scratch_bytes=index_scratch,
         scope='Prospective exact public-owner/source-origin predicate only; all original quality rows and historical results unchanged')

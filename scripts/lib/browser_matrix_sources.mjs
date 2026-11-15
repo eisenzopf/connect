@@ -120,7 +120,9 @@ export async function browserMatrixSources() {
                 };
                 record.draw=draw;draw();record.timer=setInterval(draw,1000/30);
             }
-            const binding={connectionId:connection.id,capture:undefined,retired:false};
+            const publicContext=typeof connection.conversationId==='string'&&typeof connection.sessionId==='string'?
+                Object.freeze({conversation_id:connection.conversationId,session_id:connection.sessionId}):null;
+            const binding={connectionId:connection.id,capture:undefined,retired:false,publicContext};
             bindings.set(connection.id,binding);record.attachments.push(binding);
             try{
                 binding.capture=await connection.capture({audio:true,audioNode:record.gain,video:'camera',videoCanvas:record.canvas},options);
@@ -196,6 +198,7 @@ export async function browserMatrixSources() {
                 original_source_retired:source.retired,original_oscillator_ended:source.oscillatorEnded,
                 original_canvas_backing_released:source.canvas.width===0&&source.canvas.height===0,
                 attachments:source.attachments.map(binding=>({connection_id:binding.connectionId,retired:binding.retired,
+                    ...(binding.publicContext?{public_context:{...binding.publicContext}}:{}),
                     capture_started:Boolean(binding.capture)}))})),
             scope:'Generated source and capture ownership only. No decoded receive, movement or profile-quality pass.'}),
     };

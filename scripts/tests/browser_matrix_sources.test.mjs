@@ -298,3 +298,15 @@ test('actual canvas painter tags preprogramme separately and preserves all1860 p
   }
  }
 }));
+
+
+test('original capture retains immutable public handle context across moves without a new control request',()=>fixture(async f=>{
+ const native=f.connection('scoped-source'),connection={...native,conversationId:'original-conversation',sessionId:'original-session'};
+ await f.owner.start({route:f.route(0),connection,options:{}});
+ connection.conversationId='foreign-conversation';connection.sessionId='foreign-session';
+ const first=f.owner.observation().sources[0].attachments[0];
+ assert.deepEqual(first.public_context,{conversation_id:'original-conversation',session_id:'original-session'});
+ first.public_context.session_id='changed-report-copy';
+ assert.equal(f.owner.observation().sources[0].attachments[0].public_context.session_id,'original-session');
+ assert.equal(f.captures.length,1);assert.equal(first.connection_id,'scoped-source');
+}));

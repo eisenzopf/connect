@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from lib.rtc_source_frame_witness import (PROFILE, WitnessError, HeaderIndex, WITNESS_CYCLE_BYTES,
     capture_headers, delta, finalize, mapping_summaries, prepare_pair, prepare_association_control,
-    prove_headers, read_json, report_bound, decode_census, StatsIndex)
+    prove_headers, read_json, report_bound, decode_census, StatsIndex, PublicationMappings, PUBLICATION_MARKER)
 
 
 def encode(route, census):
@@ -28,7 +28,7 @@ def facts(aliases=1, index=1):
     source, receiver = 'source'+suffix, 'receiver'+suffix
     sf = ('127.0.0.1', 50000+index*2, '127.0.0.1', 40000+index*2, 10+index, 120)
     tf = ('127.0.0.1', 40001+index*2, '127.0.0.1', 50001+index*2, 21+index, 120)
-    epoch = dict(ordinal=0, source_connection=source, source_logical='source_video'+suffix, source_transport='source_transport'+suffix,
+    epoch = dict(ordinal=0, source_connection='runtime-source'+suffix, source_logical='source_video'+suffix, source_transport='source_transport'+suffix,
         source_generation=3, source_ssrc=sf[4], target_logical='sink_video'+suffix, target_transport='sink_transport'+suffix,
         target_generation=2, target_connection_generation=1, target_ssrc=tf[4], target_pt=120,
         input_sequence=1,input_timestamp=1000,output_sequence=101,output_timestamp=2000,sequence_offset=100,timestamp_offset=1000)
@@ -55,11 +55,20 @@ def facts(aliases=1, index=1):
             codec=dict(mime_type='video/VP8',payload_type=120,clock_rate=90000),
             selected_path=dict(nominated=True,succeeded=True,local=dict(address='127.0.0.1',port=local,protocol='udp'),
                 remote=dict(address='127.0.0.1',port=remote,protocol='udp'),srtp_cipher=None))
+    public_context=dict(conversation_id='conversation',session_id='session')
+    source_binding=dict(profile='connect/native-publication-binding/1',complete=True,process=4242,public_connection_id=source,
+        runtime_connection_id=epoch['source_connection'],conversation_id='conversation',session_id='session',participant_id='participant'+suffix,
+        membership_epoch=2,public_connection_generation=7,offer_record_id='source-offer'+suffix,
+        publication_operation_id='source-offer'+suffix,phase='initial-ready',
+        streams=[dict(logical_id=epoch['source_logical'],transport_id=epoch['source_transport'],medium='video',direction='both',
+            core_stream_generation=3,core_connection_generation=7,source_ready=True,sink_ready=True)])
+    summaries=PublicationMappings([summary],source_bindings=[source_binding])
     peers=[[stat(source,'outbound-rtp',sf[4],epoch['source_logical'],'source-track',sf[1],sf[3]),
             stat(receiver,'inbound-rtp',tf[4],epoch['target_logical'],'target-track',tf[3],tf[1])]]
     cycle=dict(cycle=dict(index=index,workload_id='original'+suffix),passed=False,collection_passed=True,
-        source_startup=dict(sources=[dict(index=1,attachments=[dict(connection_id=receiver)]),dict(index=0,attachments=[dict(connection_id=source)])]),
-        programme=dict(moves=[],sources=dict(sources=[dict(index=0,attachments=[dict(connection_id=source)])])),
+        source_startup=dict(sources=[dict(index=1,attachments=[dict(connection_id=receiver,public_context=copy.deepcopy(public_context),capture_started=True)]),dict(index=0,attachments=[dict(connection_id=source,public_context=copy.deepcopy(public_context),capture_started=True)])]),
+        admission=dict(operations=[dict(name='offer-0',operationId='source-offer'+suffix,state='completed')]),
+        programme=dict(moves=[],sources=dict(sources=[dict(index=0,attachments=[dict(connection_id=source,public_context=copy.deepcopy(public_context),capture_started=True)]),dict(index=1,attachments=[dict(connection_id=receiver,public_context=copy.deepcopy(public_context),capture_started=True)])])),
         decoded_media=dict(passed=False,routes=[route],source_frame_public_owners=[dict(route=1,intervals=target_ledger),dict(route=0,intervals=source_ledger)],
             rtc_media_pipeline=dict(samples=[dict(requested_seconds=1,completed_seconds=1.1,peers=copy.deepcopy(peers)),
                 dict(requested_seconds=3,completed_seconds=3.1,peers=copy.deepcopy(peers))])),
@@ -74,7 +83,7 @@ def facts(aliases=1, index=1):
     for i,ts in enumerate(times):
         rows.append(dict(flow=sf,seq=2+i,ts=ts,marker=True,body_bytes=100,unix_ns=1000000000+i*20000000,record=2*i+1))
         rows.append(dict(flow=tf,seq=102+i,ts=ts+1000,marker=True,body_bytes=100,unix_ns=1005000000+i*20000000,record=2*i+2))
-    return cycle,route,pair,[summary],sf,tf,epoch,rows
+    return cycle,route,pair,summaries,sf,tf,epoch,rows
 
 
 def pcap(path,rows):
@@ -91,13 +100,14 @@ def pcap(path,rows):
 
 
 def final_case(folder,sets):
-    allrows=[];maps=[];archives=[]
+    allrows=[];maps=[];archives=[];bindings=[]
     for cycle,_,_,summaries,*rest in sets:
         index=cycle['cycle']['index'];leaf=folder/'cycles'/('cycle-'+str(index));leaf.mkdir(parents=True)
         raw=json.dumps(cycle).encode();(leaf/'cycle-observation.json').write_bytes(raw)
         archives.append(dict(index=index,workload_id=cycle['cycle']['workload_id'],observation_sha256=hashlib.sha256(raw).hexdigest()))
-        maps.extend(summaries);allrows.extend(rest[-1])
+        bindings.extend(summaries.source_bindings);maps.extend(summaries);allrows.extend(rest[-1])
     log=folder/'server.log';logged=(b'unrelated audio facts '+b'x'*(1400*1024)+b'\n')
+    for value in bindings:logged+=b'DEBUG '+PUBLICATION_MARKER+b' binding='+json.dumps(value,separators=(',',':')).encode()+b'\n'
     for value in maps:logged+=b'\x1b[34mDEBUG\x1b[0m RTC original video mapping witness \x1b[3mwitness\x1b[0m\x1b[2m=\x1b[0m'+json.dumps(value,separators=(',',':')).encode()+b'\n'
     log.write_bytes(logged);capture=pcap(folder/'original.pcap',allrows)
     browser=dict(source_revision='original-source',transport='firefox-wss-webrtc',source_frame_witness_profile=PROFILE,collection_passed=True,passed=False,
@@ -132,6 +142,84 @@ class SourceFrameWitness(unittest.TestCase):
             self.assertEqual(final['original_source_frame_adjudication']['proof_rows'],0)
             self.assertEqual(len(final['original_source_frame_adjudication']['association_controls']),1)
 
+    def test_authoritative_source_bridge_keeps_public_and_runtime_namespaces_and_generations_distinct(self):
+        cycle,route,pair,maps,*_=facts()
+        original=copy.deepcopy(cycle)
+        proof=prepare_pair(cycle,route,pair,maps)
+        self.assertEqual(proof['input_ts'],[199000,200530])
+        self.assertNotEqual(maps[0]['epochs'][0]['source_connection'],'source')
+        self.assertEqual(maps.source_bindings[0]['public_connection_generation'],7)
+        self.assertEqual(maps.source_bindings[0]['streams'][0]['core_stream_generation'],3)
+        self.assertIn('source_publication_binding',proof)
+        self.assertEqual(cycle,original,'Identity proof must not rewrite source rows or owner ledgers')
+        # Actual source handoffs use a distinct physical runtime plus the exact
+        # original public operation/cut, independently of receiver continuity.
+        ledger=cycle['decoded_media']['source_frame_public_owners'][1]['intervals']
+        old=copy.deepcopy(ledger[0]);old.update(owner='old-source',end_ms=1400,send_stream_id='old-source-video')
+        ledger[0].update(start_ms=1400,previous='old-source',operation_id='source-move',basis='validated-receipts-local-public-render-cut')
+        ledger.insert(0,old)
+        cycle['source_startup']['sources'][1]['attachments'][0]['connection_id']='old-source'
+        cycle['programme']['sources']['sources'][0]['attachments'].append(dict(connection_id='old-source',capture_started=True,
+            public_context=dict(conversation_id='conversation',session_id='session')))
+        cycle['programme']['moves']=[dict(source_index=0,ordinal=0,source='old-source',target='source',operation_id='source-move')]
+        cycle['decoded_media']['routes'].append(dict(route=0,video=dict(transition_coverage=dict(original_public_cuts=[
+            dict(id='source',atMs=1400,basis='validated-receipts-local-public-render-cut')]))))
+        maps[0]['epochs'][0]['source_connection']='replacement-runtime-source'
+        maps.source_bindings[0].update(runtime_connection_id='replacement-runtime-source',phase='replacement-published',
+            publication_operation_id='source-move',public_connection_generation=8)
+        replacement=prepare_pair(cycle,route,pair,maps)
+        self.assertEqual(replacement['source_publication_binding']['phase'],'replacement-published')
+        self.assertEqual(replacement['source_publication_binding']['public_connection_generation'],8)
+        self.assertEqual(replacement['input_ts'],proof['input_ts'])
+        for change in [dict(phase='initial-ready'),dict(publication_operation_id='foreign-move'),dict(runtime_connection_id='old-runtime')]:
+            with self.subTest(replacement_change=change),self.assertRaises(WitnessError):
+                bad=copy.deepcopy(maps);bad.source_bindings[0].update(change);prepare_pair(cycle,route,pair,bad)
+
+    def test_missing_duplicate_or_conflicting_authoritative_public_runtime_bindings_refuse(self):
+        cycle,route,pair,maps,*_=facts()
+        for bindings in [[],maps.source_bindings*2,
+                [maps.source_bindings[0],{**maps.source_bindings[0],'runtime_connection_id':'old-runtime'}],
+                [maps.source_bindings[0],{**maps.source_bindings[0],'public_connection_id':'foreign-public'}]]:
+            with self.subTest(bindings=bindings),self.assertRaises(WitnessError):
+                prepare_pair(cycle,route,pair,PublicationMappings(list(maps),source_bindings=copy.deepcopy(bindings)))
+        oversized=[{**maps.source_bindings[0],'public_connection_id':'public-'+str(i),'runtime_connection_id':'runtime-'+str(i)} for i in range(49)]
+        with self.assertRaises(WitnessError):prepare_pair(cycle,route,pair,PublicationMappings(list(maps),source_bindings=oversized))
+        with self.assertRaises(WitnessError):prepare_pair(cycle,route,pair,list(maps))
+        equal=copy.deepcopy(maps);equal[0]['epochs'][0]['source_connection']='source'
+        with self.assertRaises(WitnessError):prepare_pair(cycle,route,pair,equal)
+
+    def test_publication_binding_wrong_process_session_stream_generation_or_operation_refuses(self):
+        cycle,route,pair,maps,*_=facts()
+        changes=[{'complete':False},{'process':4243},{'public_connection_id':'old-public'},{'runtime_connection_id':'old-runtime'},
+            {'conversation_id':'foreign-conversation'},{'session_id':'foreign-session'},
+            {'offer_record_id':''},{'publication_operation_id':'foreign-operation'},
+            {'phase':'replacement-published'},{'profile':'unknown-profile'}]
+        for change in changes:
+            with self.subTest(change=change),self.assertRaises(WitnessError):
+                bad=copy.deepcopy(maps);bad.source_bindings[0].update(change);prepare_pair(cycle,route,pair,bad)
+        for key,value in [('logical_id','foreign-logical'),('transport_id','old-transport'),
+                ('core_stream_generation',4),('medium','audio'),('direction','receive'),('source_ready',False)]:
+            with self.subTest(stream_field=key),self.assertRaises(WitnessError):
+                bad=copy.deepcopy(maps);bad.source_bindings[0]['streams'][0][key]=value;prepare_pair(cycle,route,pair,bad)
+
+    def test_authenticated_source_and_receiver_capture_contexts_are_required_without_cross_session_inference(self):
+        cycle,route,pair,maps,*_=facts()
+        for source_index in [0,1]:
+            for change in [None,{'conversation_id':'foreign','session_id':'session'},
+                    {'conversation_id':'conversation','session_id':'foreign'}]:
+                with self.subTest(source_index=source_index,change=change),self.assertRaises(WitnessError):
+                    bad=copy.deepcopy(cycle)
+                    for group in [bad['source_startup']['sources'],bad['programme']['sources']['sources']]:
+                        for source in group:
+                            if source['index']!=source_index:continue
+                            for attachment in source['attachments']:
+                                if change is None:attachment.pop('public_context',None)
+                                else:attachment['public_context']=copy.deepcopy(change)
+                    prepare_pair(bad,bad['decoded_media']['routes'][0],pair,maps)
+            with self.assertRaises(WitnessError):
+                bad=copy.deepcopy(cycle);bad['programme']['sources']['sources'][source_index]['attachments'][0]['capture_started']=False
+                prepare_pair(bad,bad['decoded_media']['routes'][0],pair,maps)
+
     def test_original_replay_retag_and_changed_footer_do_not_create_a_new_original_frame(self):
         *_,sf,tf,e,rows=facts();altered=copy.deepcopy(rows);altered[4]['ts']=altered[2]['ts']
         with self.assertRaises(WitnessError):prove_headers(altered,sf,tf,e,[199000,200530],[200000,201530])
@@ -157,9 +245,9 @@ class SourceFrameWitness(unittest.TestCase):
             encode(route,value)
             with self.assertRaises(WitnessError):prepare_association_control(cycle,m)
         with tempfile.TemporaryDirectory() as tmp:
-            log=Path(tmp)/'server.log';message=b'RTC original video mapping witness';valid=message+b' witness='+json.dumps(m[0],separators=(',',':')).encode();noise=b'unrelated '+b'x'*(1400*1024)+b'\n'
+            log=Path(tmp)/'server.log';message=b'RTC original video mapping witness';valid=PUBLICATION_MARKER+b' binding='+json.dumps(m.source_bindings[0],separators=(',',':')).encode()+b'\n'+message+b' witness='+json.dumps(m[0],separators=(',',':')).encode();noise=b'unrelated '+b'x'*(1400*1024)+b'\n'
             crossing=b'x'*(64*1024-len(message)//2)+valid;log.write_bytes(noise+crossing)
-            parsed,digest=mapping_summaries(log,4242);self.assertEqual(parsed,m);self.assertEqual(digest,hashlib.sha256(noise+crossing).hexdigest())
+            parsed,digest=mapping_summaries(log,4242);self.assertEqual(parsed,m);self.assertEqual(parsed.source_bindings,m.source_bindings);self.assertEqual(digest,hashlib.sha256(noise+crossing).hexdigest())
             for raw in [noise,b'x'*(300*1024)+valid+b'\n',valid+b'x'*(300*1024),valid+b'\n'+valid+b'\n',message+b' witness={not-json}']:
                 log.write_bytes(raw)
                 with self.assertRaises(WitnessError):mapping_summaries(log,4242)
@@ -182,6 +270,7 @@ class SourceFrameWitness(unittest.TestCase):
         ledger.append(dict(owner='new',receive_stream_id='sink_video',send_stream_id='different-send',start_ms=1000,end_ms=None,previous='receiver',operation_id='op',basis='validated-receipts-local-public-render-cut'))
         changed['programme']['moves']=[dict(source_index=1,ordinal=0,source='receiver',target='new',operation_id='op')]
         route['video']['transition_coverage']['original_public_cuts']=[dict(id='new',atMs=1000,basis='validated-receipts-local-public-render-cut')]
+        changed['programme']['sources']['sources'][1]['attachments'].append(dict(connection_id='new',public_context=dict(conversation_id='conversation',session_id='session'),capture_started=True))
         for point in pair.values():point['owner']='new';point['presentation']['connection_id']='new'
         for sample in changed['decoded_media']['rtc_media_pipeline']['samples']:
             sample['peers'][0][1]['connection_id']='new';sample['peers'][0][1]['original_track']['connection_id']='new'

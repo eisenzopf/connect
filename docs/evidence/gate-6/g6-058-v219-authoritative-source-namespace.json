@@ -1,0 +1,58 @@
+{
+  "format": "connect/g6-058-v219-authoritative-source-namespace/1",
+  "updated_at": "2026-11-15T02:54:36.692539+00:00",
+  "matrix_credit": false,
+  "source_candidate_manifest": "d3257416ec1189e8fa5d0249d02bbf873c840d8c1e3674e50cd1c19c2a22d6af",
+  "independent_source_review": "1748a35ce217c1d0af8c7cb9b78d471b5655e7e111703921bb2f562d506cb738",
+  "targeted_controls": {
+    "python_passed": 59,
+    "node_passed": 132,
+    "failed": 0,
+    "skipped": 0,
+    "format_exit": 0,
+    "original_Root_join": "19498/0bffc9",
+    "result_sha256": "fae80b6a9be31e7f8eb7911b5b2e0a5fb8e07f05f11e5fb2811f0dcb15b11a91",
+    "independent_actual_review": "74801b1fc0df7f80713be5ef89ada7d210b691dc5dafc320ba723943d7adfb5f"
+  },
+  "shipping_compile": {
+    "passed": true,
+    "original_Root_join": "45411/2a1706",
+    "prepare_exit": 0,
+    "generation": 449,
+    "cargo_exit": 0,
+    "normal_profile": "macos15-arm64/staticOpus/release-opt3/debug0/no-test-support/12jobs",
+    "actual_elapsed_seconds": 1131.4929042090662,
+    "source_unchanged": true,
+    "all_original_groups_absent": true,
+    "result_sha256": "93778d9faa6b8a1dd1fa86312654e655915a4f1d2ae739ada2fea6f0bce29bf8"
+  },
+  "closed_evidence_diagnostic": {
+    "original_Root_join": "42878/7c8fc5",
+    "diagnostic_sha256": "6639ab35412bb7beaf55633e218ddbb1197e2ec0c4e7ab0545ac9401dee7aa32",
+    "aliases": 5,
+    "passive_controls": 3,
+    "observed_bijections": 8,
+    "unknown": 0,
+    "all_16_original_input_hash_pairs_equal": true,
+    "original_failed_flags_preserved": true,
+    "native_boundaries_used": 0,
+    "scope": "Closed copied-authority diagnostic, all regular RTP brackets. No prospective Service export, native head/tail or historical quality/matrix promotion.",
+    "independent_actual_review": "c11734146a2cd432e56a256ca0662a75a9d79b963f8d615d3ce880d4a4cc20d2"
+  },
+  "implementation": {
+    "private_service_publication_export": true,
+    "new_public_API": false,
+    "new_SQL_or_packet_path_authority_work": false,
+    "initial_private_handoff_excluded": true,
+    "source_namespaces": "Explicit public ConnectionId to sealed runtime ConnectionId, never equal-ID or stream-only inference",
+    "generation_namespaces": "Public Connection generation and Core stream/connection generations remain separate",
+    "required_identity": "Exact process, original public capture conversation/session, original operation/cut/SEND interval, Core logical/transport/stream generation and native real RTP statistics",
+    "strict_missing_duplicate_foreign_refusal": true
+  },
+  "remaining": {
+    "actual_fresh_Service_exports_and_normal_three_cycle": "pending native epoch implementation",
+    "native_peer_reflexive_privacy": "early native selection-event epoch matched to actual selected Stats transport change counter being implemented; exact Firefox158 source proves synchronous visible pair/event update; unsupported/late/ambiguous/mismatched records refuse",
+    "final_regression_ARM_releases_preflight": "not started on final source",
+    "next_full32_started": false
+  }
+}
