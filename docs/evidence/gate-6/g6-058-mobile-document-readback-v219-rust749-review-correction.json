@@ -1,0 +1,9 @@
+{
+  "format": "connect/mobile-review-claim-correction/1",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMQ1rez2gjkvIpDeFfI50DvKo8HvdgqtYmgLfjArpXdTGGBiP1SOHGYqUi49LKiaRqiyy2E33yanlUS5-_9MMfO1ZBsJLEovB5cvw8o",
+  "content_revision": 168,
+  "verified": true,
+  "reason": "SDK B readiness is authored but independent review was pending at checkpoint; no component or matrix result changes.",
+  "paragraph": "5. Parallel execution — Media owns server B reservation/queue custody and warm/discard path; Fixture owns exact-B browser readiness and independent runtime audit; Resource owns original-plan freeze/drain/F and controller ownership. Root integrates and runs workloads. Actual generation 465: 749/749 Rust checks pass, independently audited960e1440; SDK/observer123 remains a separate verified cohort. All three actual OLD counters are qualified and fixed in their component scopes. Server B setup/metadata and SDK B constructor are independently source-reviewed but unapplied/unrun. SDK B video-only readiness is authored and awaiting independent review; no review or runtime credit is claimed. Durable original-root phases, actual B writer/activation/abort, complete current media, combined regression, ARM, releases and preflight remain required before32. No matrix promotion or acceptance change.\n"
+}

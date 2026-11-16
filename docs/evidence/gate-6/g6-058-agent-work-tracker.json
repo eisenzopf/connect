@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-16T03:40:34.722761+00:00",
-  "revision": 100,
+  "updated_at": "2026-11-16T04:01:56.830398+00:00",
+  "revision": 102,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 168,
-    "verified_at": "2026-11-16T03:40:34.722761+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-rust749.json",
-    "readback_evidence_sha256": "596260e05e8202c4510752da37dbb7a7cc2fb9111da89df91027eca918c625a4",
+    "content_revision": 169,
+    "verified_at": "2026-11-16T04:01:56.830398+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-g465-default.json",
+    "readback_evidence_sha256": "1d779ce2a79fdddc72390e99fff04a1369a5a4ef6f47e4f662ab779530801b47",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2355,9 +2355,9 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "status": "independent-source-reviewed",
-      "implementation_state": "Server setup/metadata and SDK constructor/video-only readiness source-reviewed; unapplied/unrun. Actual post-F B feed, publication, discard and resume pending.",
+      "implementation_state": "Server setup/metadata and SDK constructor source-reviewed; SDK video-only readiness V1 authored but review found retained-lease deadline gap. V1 held; V2 awaiting independent review. No B public feed/activation/abort or runtime qualification.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T03:40:34.722761+00:00",
+      "updated_at": "2026-11-16T03:58:32.360093+00:00",
       "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
     }
   ],
@@ -4840,6 +4840,18 @@
       "updated_at": "2026-11-16T03:40:34.722761+00:00",
       "summary": "Generation465 actual749/749 Rust components pass: Core668/RTC70/UCTP10/retained-native-retry1. Source and four binaries stable,14 original owners naturally joined; independently audited960e1440. Audio unrelated-video drop fixed with all current-policy/privacy negatives. Realm/native custody/physical tracking/raw accessor seals tested. Factory-controller closure and strict freeze/B lifecycle still open; no media/ARM/shipping/full32 promotion.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
+    },
+    {
+      "revision": 101,
+      "updated_at": "2026-11-16T03:58:32.360093+00:00",
+      "summary": "Corrected prior broader SDK-readiness review claim: V1 pending review at checkpoint, now held on actual retained-lease deadline gap; V2 review pending.749counts unchanged. Normal default check has closed successfully and awaits independent audit.",
+      "evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-rust749-review-correction.json"
+    },
+    {
+      "revision": 102,
+      "updated_at": "2026-11-16T04:01:56.830398+00:00",
+      "summary": "Normal shipping-default Service/client libraries compile successfully on612f0a74/g465; source unchanged and2original owners joined0, auditb9f89fd4. Rust749 remainsverifiedcomponent scope. FactoryOLD/fixed counter, strictfreeze, post-F publicB flow andNative/WT frontier are stillpending; no media/ARM/release/matrix promotion.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g465-default-check.json"
     }
   ],
   "tracking_review": {
@@ -6469,8 +6481,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Generation465 actual749/749 Rust components pass: Core668/RTC70/UCTP10/retained-native-retry1. Source and four binaries stable,14 original owners naturally joined; independently audited960e1440. Audio unrelated-video drop fixed with all current-policy/privacy negatives. Realm/native custody/physical tracking/raw accessor seals tested. Factory-controller closure and strict freeze/B lifecycle still open; no media/ARM/shipping/full32 promotion.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json",
-    "sha256": "5ef6349de7aef60edd562b9192b600c34190a63b7487548a11695ada9d82e609"
+    "status": "Normal shipping-default Service/client libraries compile successfully on612f0a74/g465; source unchanged and2original owners joined0, auditb9f89fd4. Rust749 remainsverifiedcomponent scope. FactoryOLD/fixed counter, strictfreeze, post-F publicB flow andNative/WT frontier are stillpending; no media/ARM/release/matrix promotion.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g465-default-check.json",
+    "sha256": "1c61bb3c6027224279c489c0cb2bff02b28011992af73f26397cbf2eb8e8df86"
   }
 }

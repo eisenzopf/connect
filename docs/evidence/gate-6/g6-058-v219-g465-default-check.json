@@ -1,0 +1,36 @@
+{
+  "format": "connect/g6-058-default-compile-checkpoint/1",
+  "updated_at": "2026-11-16T04:01:56.830398+00:00",
+  "status": "verified-normal-default-library-check",
+  "source_base_revision": "612f0a74f232a0217b92080d9d5f19d5e59f385b",
+  "source_workspace_sha256": "5f134eacebde989353b2cf02a376172fc2700c63a9738e389a5c7679b6c863e1",
+  "dependency_patch_count": 465,
+  "source_unchanged": true,
+  "commands": {
+    "prepare": {
+      "exit_code": 0,
+      "elapsed_seconds": 0.20729733299958752,
+      "original_natural_join_verified": true
+    },
+    "default-service-client-check": {
+      "exit_code": 0,
+      "elapsed_seconds": 870.2600002910003,
+      "original_natural_join_verified": true
+    }
+  },
+  "original_evidence": {
+    ".local/gate-6/v219-g465-default-check-root/result.json": "b4949d07211406381cc2d0da983cfb730ca33259765ff0037ece50a0d11da61e",
+    ".local/gate-6/v219-g465-default-check-root/root-original-join.json": "925b8d0a751fd38e3fa9fd157d864024e7a9f15a6e86159dd0f41647406cdecd",
+    ".local/gate-6/v219-g465-default-check-root/source.json": "3859c88c95e67bd19be4b0035b677793ef4188a92dfe2f15d1b0859139be626d",
+    ".local/gate-6/v219-g465-default-check-independent-fixture-review/receipt.json": "b9f89fd4762a343e1e763b9109d87390b4563bebd43d419d58b79e2e27abff7f"
+  },
+  "scope": "Normal shipping-default Service/client libraries at612f0a74/g465; not media, release, ARM or full32 qualification",
+  "not_qualified": [
+    "newphysicalmedia",
+    "fullcombinedregression",
+    "ARM",
+    "normalshippingexecutables",
+    "full32"
+  ],
+  "latest_full_matrix_unchanged": "v2181/32cells399/432checks"
+}

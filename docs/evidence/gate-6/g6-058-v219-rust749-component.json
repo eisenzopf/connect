@@ -63,7 +63,7 @@
   "scope_limits": [
     "No new physical-media, ARM, shipping release, full coherent qualification or full32 run. Current normal Service/client compile not yet run.",
     "Raw accessor seal does not close the separate adapter-factory/controller ownership escape; original-plan freeze is held pending that structural fix.",
-    "B setup/metadata and SDK constructor/readiness are separately source-reviewed, not applied or runtime-qualified. B warm writer, activation, abort/resume and durable phases remain.",
+    "B setup/metadata and SDK constructor are separately source-reviewed. SDK B video-only readiness V1 was incorrectly grouped with these: its independent review was pending and subsequently found a retained-lease deadline gap. V1 is held; corrected V2 awaits review. None are applied/runtime-qualified; B warm writer, activation, abort/resume and durable phases remain.",
     "Unsupported old transport roots remain explicit; WebRTC tracking does not establish native/WT freeze proof.",
     "Original failed preparation classification and formatter guard attempts remain failed and ungraded; all failed receipts preserved."
   ],
@@ -73,5 +73,11 @@
     "cells_required": 32,
     "checks_passed": 399,
     "checks_required": 432
+  },
+  "review_claim_correction": {
+    "updated_at": "2026-11-16T03:58:32.360093+00:00",
+    "reason": "Readiness V1 was authored, not independently reviewed at the749checkpoint. Preserve component counts/source receipts and explicitly correct broader status.",
+    "v1_held": true,
+    "v2_manifest": ".local/gate-6/sdk-public-b-video-readiness-v219-v2-candidate/manifest.json"
   }
 }
