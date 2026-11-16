@@ -1,0 +1,88 @@
+{
+  "format": "connect/g6-058-native-owner-causal-component-checkpoint/1",
+  "updated_at": "2026-11-16T10:54:10.091321+00:00",
+  "source_generation": 486,
+  "dependency_patch_generation": 483,
+  "tested_working_base": "15adb6a24a9b9c0ee70f185ac32ec51d0c899390",
+  "source_lock_sha256": "d3b153be1f2f75d6831417d9a4833a557eab570c45ea12a56449c8a90233af4a",
+  "original_result": {
+    "path": ".local/gate-6/v219-g486-native-owner-fix-root/result.json",
+    "sha256": "311f90d6737820f991c74bf0c5b13d20ae8ade103f922f32ebb6c5d15c954786",
+    "passed": true,
+    "join_sha256": "8d09c0c1633dc6213f8de80442791427a6b2b66b4e72f9894c8a5a562cb2a9b8"
+  },
+  "independent_review": {
+    "path": ".local/gate-6/v219-g486-native-owner-fixed-independent-fixture-review/receipt.json",
+    "sha256": "41c7ea25dcc6750d24cd207f55a1326eafe231225cf008081178c37d748cc386"
+  },
+  "observed": {
+    "native_original_controller_counter": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    "actual_tls_original_owner_controls": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    "normal_prepare": true,
+    "format_check": true,
+    "debug_test_build": true,
+    "production_server_locked_offline_compile": true,
+    "original_children": 11,
+    "all_original_children_natural_zero_joined_groups_absent": true,
+    "root_original_pid": 72289,
+    "root_tool": 91104,
+    "root_original_group_absent": true,
+    "current_source_files_and_modes_exact": 6369,
+    "original_binaries_exact": 2
+  },
+  "before_fix": {
+    "generation": 485,
+    "result": ".local/gate-6/v219-g485-original-native-factory-counter-root/result.json",
+    "result_sha256": "096ad76522505cabbd47415e3e837895df8452c147c2735c085383c4f0f8152d",
+    "audit": ".local/gate-6/v219-g485-native-factory-old-independent-fixture-review/receipt.json",
+    "audit_sha256": "3e704029ee3662687b237ac66d8ee18af9621364df4c057973352ab2172227aa",
+    "test_failed": true,
+    "reproduced_desired_old_leaf": true,
+    "affected_transports": [
+      "quic",
+      "webtransport"
+    ],
+    "causal_finding": "A second actual Core controller obtained a native port from the original canonical backend; original reconfiguration and complete cleanup prerequisites both passed. The SAME test now refuses the second controller without breaking the original."
+  },
+  "scope": "Native original backend/controller ownership and accepted TLS custody only; production canonical intake compiled with original capacity/TLS/key/RTT/JoinSet lifetimes. No full ordinary suite, decoded public B handoff, Native F completeness, ARM or matrix claim.",
+  "selected": [
+    "peer_native::canonical_media::original_controller::canonical_native_factory_refuses_a_second_actual_controller_before_port_effect_and_keeps_original_reconfiguration",
+    "substrate::quinn::accepted::controls::owned_native_actual_quic_and_wt_refuse_raw_escape_while_same_original_signaling_remains_live",
+    "substrate::quinn::accepted::controls::owned_native_public_router_or_datagrams_escape_and_reader_retirement_permanently_refuse_the_original_seal",
+    "substrate::quinn::accepted::controls::owned_native_actual_context_cannot_adopt_foreign_or_generic_media_and_cancelled_upgrade_retires_before_return",
+    "substrate::quinn::accepted::controls::owned_native_actual_seal_and_public_raw_access_have_one_original_atomic_winner"
+  ],
+  "new_coherent_batch": {
+    "manifest": ".local/gate-6/public-b-full-coherent-v219-root-batch/manifest.json",
+    "manifest_sha256": "9c4ffcd650239204d5acc202983b2159ccef4aac008de4ebf4eadf3616a294fd",
+    "status": "SOURCE_COMPOSED_INDEPENDENTLY_REVIEWED_NOT_APPLIED_UNRUN",
+    "upstream_paths": 64,
+    "workspace_paths": 65,
+    "review": ".local/gate-6/public-b-full-coherent-independent-v198-review/receipt-base.json",
+    "review_sha256": "d56dc42ed20b532fe5e0944f6e9020c8bf429830e31970bfaa3c8c725cb3254b",
+    "missing_runtime": [
+      "New controls and normal schema generation/validation",
+      "Actual same-B decoded RTC and Native-to-RTC handoff, repeated public adoption/repair",
+      "Actual original whole-candidate Closed/freshOLD restoration and late-read/refusal controls",
+      "Coherent affected regression and local ARM/release/preflight"
+    ]
+  },
+  "full_matrix": {
+    "new_run": false,
+    "latest_complete": "v218",
+    "passed": 1,
+    "total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "ready_for_32": false,
+  "mobile_revision": 177
+}

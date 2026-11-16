@@ -1,0 +1,38 @@
+{
+  "format": "connect/mobile-plan-scoped-readback/1",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "content_revision": 177,
+  "native_revision": "AHj4eMR9ed1IUbKOwQxcnjj7zF7LY76b9IRMVHATaIVxD7d3ZJxhx3lCfBlSYfWcSIHjENvllWYQrInlKJVEv1FITRA_CbAr52Cf3UkJfH4",
+  "previous_native_revision": "AHj4eMTpy04deic8FRjWW0Pixikj_URUk1nEFKj1EKdv_qDTB5xp1wR1OiD3IA5Heu67sgE_V2odkr43pqNHJ25aoDdB5t2y1Q79d8A1PVk",
+  "verified_at": "2026-11-16T10:52:41.496Z",
+  "changes": [
+    {
+      "old_absent": true,
+      "new_occurrences": 1
+    },
+    {
+      "old_absent": true,
+      "new_occurrences": 1
+    },
+    {
+      "old_absent": true,
+      "new_occurrences": 1
+    },
+    {
+      "old_absent": true,
+      "new_occurrences": 1
+    },
+    {
+      "old_absent": true,
+      "new_occurrences": 1
+    },
+    {
+      "old_absent": true,
+      "new_occurrences": 1
+    }
+  ],
+  "all_six_scoped_replacements_verified": true,
+  "owner_edits_preserved": "Revision-guarded exact existing paragraphs only; no full-document replacement.",
+  "component_scope": "g486 five targeted native controls and production server compile only. Next129-path batch source-only. Last full matrix1/32 unchanged."
+}

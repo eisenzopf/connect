@@ -496,7 +496,7 @@ impl RunningCanonicalServer {
         let webtransport_url = config.webtransport.as_ref().map(|c| c.contact(address));
         let webtransport = match &config.webtransport {
             Some(wt) => Some(
-                rvoip_webtransport::canonical::start(
+                rvoip_webtransport::canonical::start_original(
                     wt_receiver,
                     profile.clone(),
                     wt.contact(address),
@@ -511,7 +511,7 @@ impl RunningCanonicalServer {
             }
         };
         let websocket_profile = profile.clone();
-        let profile = rvoip_quic::canonical::start(
+        let profile = rvoip_quic::canonical::start_original(
             receiver,
             profile,
             format!("quic://localhost:{}", address.port()),
@@ -707,15 +707,19 @@ impl RunningCanonicalServer {
                             let sender=sender.clone();let wt_sender=wt_sender.clone();let cancelled=cancelled.clone();let observed_rtt=observed_rtt.clone();
                             handshakes.spawn(async move{
                                 let _slot=slot;
-                                let connection=tokio::select!{biased;_=cancelled.cancelled()=>return,result=tokio::time::timeout(Duration::from_secs(5),incoming)=>match result{Ok(Ok(c))=>c,_=>return}};
-                                struct ObservedPath(quinn::Connection,Arc<AtomicU64>);
-                                impl Drop for ObservedPath{fn drop(&mut self){self.1.fetch_max(self.0.stats().path.rtt.as_millis().min(u64::MAX as u128) as u64,Ordering::AcqRel);}}
-                                let _path=ObservedPath(connection.clone(),observed_rtt);
-                                let alpn = connection.handshake_data().and_then(|value| value.downcast::<quinn::crypto::rustls::HandshakeData>().ok()).and_then(|value| value.protocol.clone());
-                                let target = if alpn.as_deref()==Some(RAW_QUIC_ALPN) { &sender } else if alpn.as_deref()==Some(b"h3".as_slice()) { if connection.max_datagram_size().is_none() { connection.close(0u32.into(),b"WebTransport requires QUIC datagrams"); return; } &wt_sender } else { connection.close(0u32.into(),b"unsupported canonical transport"); return; };
-                                if let Err(error)=target.try_send(connection.clone()){error.into_inner().close(0u32.into(),b"canonical admission full");return;}
-                                // Retain this physical slot through the entire peer lifetime.
-                                tokio::select!{biased;_=cancelled.cancelled()=>{connection.close(0u32.into(),b"canonical admission stopped");},_=connection.closed()=>{}}
+                                // Consume the original nonclone pre-handshake Incoming inside
+                                // UCTP. No cloneable raw Connection crosses this boundary.
+                                let connection=tokio::select!{biased;_=cancelled.cancelled()=>return,result=tokio::time::timeout(Duration::from_secs(5),rvoip_uctp::substrate::AcceptedNativeConnection::accept_original(incoming))=>match result{Ok(Ok(c))=>c,_=>return}};
+                                let observation=connection.observation();
+                                struct ObservedPath(rvoip_uctp::substrate::OriginalNativeConnectionObservation,Arc<AtomicU64>);
+                                impl Drop for ObservedPath{fn drop(&mut self){self.1.fetch_max(self.0.rtt().as_millis().min(u64::MAX as u128) as u64,Ordering::AcqRel);}}
+                                let _path=ObservedPath(observation.clone(),observed_rtt);
+                                let alpn = observation.negotiated_alpn();
+                                let target = if alpn.as_deref()==Some(RAW_QUIC_ALPN) { &sender } else if alpn.as_deref()==Some(b"h3".as_slice()) { if observation.maximum_datagram_bytes().is_none() { connection.close(0u32.into(),b"WebTransport requires QUIC datagrams"); return; } &wt_sender } else { connection.close(0u32.into(),b"unsupported canonical transport"); return; };
+                                if let Err(error)=target.try_send(connection){error.into_inner().close(0u32.into(),b"canonical admission full");return;}
+                                // The same physical slot and task retain only a scalar/close
+                                // observation through the entire original peer lifetime.
+                                tokio::select!{biased;_=cancelled.cancelled()=>{observation.close(0u32.into(),b"canonical admission stopped");},_=observation.closed()=>{}}
                             });
                         },
                     }

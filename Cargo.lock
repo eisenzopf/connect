@@ -4260,6 +4260,7 @@ dependencies = [
  "chrono",
  "dashmap",
  "futures",
+ "http",
  "metrics",
  "parking_lot",
  "quinn",
@@ -4278,6 +4279,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "uuid",
+ "web-transport-quinn",
 ]
 
 [[package]]

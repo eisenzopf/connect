@@ -1,0 +1,61 @@
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/original_controller.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/original_controller.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/original_controller.rs
+@@ -0,0 +1,46 @@
++//! Actual canonical native TLS/adapter factory, public allocator surface and
++//! Core controller ownership. Raw access here intentionally makes strict F
++//! unavailable; this is an independent factory counter, not coverage proof.
++use super::*;
++use futures::FutureExt;
++#[tokio::test]
++async fn canonical_native_factory_refuses_a_second_actual_controller_before_port_effect_and_keeps_original_reconfiguration() {
++    let mut observations=Vec::new();
++    for kind in ["quic","wt"] {
++        let mut network=Network::new(kind).await;
++        let mut foreign:Option<Arc<StreamController>>=None;
++        let result=std::panic::AssertUnwindSafe(async {
++            let original=network.configure(0).await;
++            network.start(&original,&[Medium::Audio,Medium::Video]).await;
++            let backend=network.adapter().staged_media(&original.id).unwrap();
++            // Existing public generic API can supply real same-router opaque
++            // allocations. It does NOT certify first raw-owner provenance.
++            let allocator=StagedRtpMedia::new(network.scope(&original.id),
++                original.media.router(),
++                Arc::new(dashmap::DashMap::new()),original.readiness.clone(),
++                original.media.datagrams(),CancellationToken::new());
++            let second=StreamController::new(network.factory.core.conversation.clone(),network.factory.core.session.clone(),
++                original.id.clone(),principal("old"),network.grants.clone(),backend,allocator.handle_allocator(),16).unwrap();
++            foreign=Some(second.clone());
++            let requested=DesiredStream {logical_id:StreamId::from_string("foreign-native-video"),medium:Medium::Video,direction:StreamDirection::Both};
++            let attempt=second.change(second.revision(),&[requested],&BTreeSet::new(),deadline(),CancellationToken::new()).await;
++            let no_second_port=second.active_bindings().is_empty();
++            let same_original=Arc::ptr_eq(&original.controller,&network.adapter().media_controller(&original.id).unwrap());
++            let reconfigured=original.controller.change(original.controller.revision(),
++                &[desired(Medium::Audio),desired(Medium::Video),desired(Medium::Screen)],&BTreeSet::new(),deadline(),CancellationToken::new()).await.is_ok();
++            let original_binding_count=original.controller.active_bindings().len();
++            (matches!(attempt,Err(StreamControlError::Authority)),no_second_port,same_original,reconfigured,original_binding_count)
++        }).catch_unwind().await;
++        // Attempt every original cleanup before the unique desired rejection
++        // oracle, including the extra Core owner if OLD incorrectly admitted it.
++        let foreign_clean=match foreign.take() {Some(owner)=>owner.shutdown(deadline()).await==0,None=>true};
++        let stopped=std::panic::AssertUnwindSafe(network.stop()).catch_unwind().await.is_ok();
++        if let Err(panic)=result {std::panic::resume_unwind(panic);}
++        let(denied,no_port,same,reconfigured,count)=result.unwrap();
++        observations.push((kind,foreign_clean,stopped,denied,no_port,same,reconfigured,count));
++    }
++    assert!(observations.iter().all(|(_,clean,stopped,_,_,same,reconfigured,count)|*clean&&*stopped&&*same&&*reconfigured&&*count==3),
++        "original controller/reconfiguration and every native/Core owner must survive and join before rejection oracle: {observations:?}");
++    assert!(observations.iter().all(|(_,_,_,denied,no_port,_,_,_)|*denied&&*no_port),
++        "same public names/allocator borrowed canonical native factory for a different actual Core controller: {observations:?}");
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -1444,3 +1444,6 @@
+ 
+ #[path = "canonical_media/ingress_retry.rs"]
+ mod ingress_retry;
++
++#[path="canonical_media/original_controller.rs"]
++mod original_controller;

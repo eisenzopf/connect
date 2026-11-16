@@ -20385,5 +20385,12 @@
     "status": "FOCUSED_ORIGINAL_THREE_STORE_REGRESSIONS_PASS",
     "historical_regrade": false,
     "ready_for_32": false
+  },
+  "v219_g486_native_owner_checkpoint": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json",
+    "sha256": "0a8db28ab3d277bf50efde48eb4c5f9189852a77cbc23329985430652b4d22f1",
+    "status": "Generation 486: original native-controller regression and four real TLS ownership controls PASS, zero ignored. Normal preparation, format, test build and production server compile pass. All 11 child owners and Root 72289 / tool 91104 close naturally; 6,369 source files and both binaries remain exact. Independent audit 41c7 accepted this scope. OLD 485 desired failure is preserved. The next public B/native/phase/restore batch covers 129 source paths and has passed source review, unrun. Decoded RTC/Native handoff, combined regression, local ARM/releases/preflight remain. Last full matrix: 1/32.",
+    "full_matrix_unchanged": true,
+    "ready_for_32": false
   }
 }

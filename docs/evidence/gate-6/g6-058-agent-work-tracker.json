@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-16T09:42:22.564718+00:00",
-  "revision": 109,
+  "updated_at": "2026-11-16T10:54:10.091321+00:00",
+  "revision": 110,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 176,
-    "verified_at": "2026-11-16T09:42:22.508Z",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components484.json",
-    "readback_evidence_sha256": "30a6fab26b20a94daaf4e6cca8d5db9c9445eea93ae2f7681358dd764e96b665",
+    "content_revision": 177,
+    "verified_at": "2026-11-16T10:52:41.496Z",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components486.json",
+    "readback_evidence_sha256": "9e294af473885fd78e932d5956442ff97cd22e5e2fa701880d375be1b2aecc47",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -29,22 +29,22 @@
     {
       "id": "/root",
       "role": "Coordinator, integration and final evidence adjudication",
-      "current_work": "Protocol/Store/Service warm/phase/discard integration; local component runtime, evidence and coordinator review"
+      "current_work": "Coherent publicB source integration, normal local builds/tests, checkpoint/mobile/push and readiness adjudication"
     },
     {
       "id": "/root/v198_resources",
       "role": "Store/authority isolation owner; independent safety review",
-      "current_work": "Native/WT coldaccepteddriver closure, physical writer/history/F andindependent reviews"
+      "current_work": "Independent source composition, ownership/deadline/control reviews"
     },
     {
       "id": "/root/media_blockers",
       "role": "Media/admission/handoff owner; protocol architecture review",
-      "current_work": "CoreW1/W2 same publicB route/worker andkeyframe bootstrap"
+      "current_work": "Core/native fixes, original Native witness controls and genuine Native-to-WebRTC decoded representative"
     },
     {
       "id": "/root/fixture_blockers",
       "role": "Harness/coverage owner; independent verification review",
-      "current_work": "SDKW3 sameB phase/decode/adoption andactual-role measurement"
+      "current_work": "Actual signed RTCsameB/abort/OLDresume integration and independent original runtime audit"
     }
   ],
   "state_machine": [
@@ -2413,11 +2413,11 @@
       "owner_agent": "/root/v198_resources",
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
-      "status": "implemented-unverified",
-      "implementation_state": "Core675 run670pass5fail: all retained668 pass,2newnegativefreezecontrols pass;3positivefreeze+2published lifetime fail because controlled metadata was installed after Native cursor/queue custody. Reviewed test-only cold setup correction pending actualrerun; productionUnsupported safeguard retained. Compatible scene Reader Store test and newService default compile remain required.",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Root source retains the same plan/F on definitely unstarted retries, releases roles/readers before IO, and owns Core Warm before awaits/SQL. Actual Closed and fresh OLD/source authorization govern restoration under one original two-second cutoff. Unresolved recovery stays owned and explicit. Coherent runtime is pending.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T05:56:07.651328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json"
+      "updated_at": "2026-11-16T10:54:10.091321+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
     },
     {
       "id": "V219-FRESH-B-RECEIVER",
@@ -2425,11 +2425,11 @@
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
-      "status": "implemented-unverified",
-      "implementation_state": "ActualSDK167/167 verifies reservedconstructor/phase/readiness helpers, realRTC native B queue+metadata controls pass within75/77. Full publicB workflow NOT wired: CoreW1sealed/unrun, W2 worker missing, SDKW3beingimplemented. Two pureSDPfixturefails reviewedc= correction pendingrerun. SamewarmedB publicadoption/actualphase/abort/restore missing.",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Negotiated B reservation and the same original native tuple are composed with Host 31. Firefox/Chrome A+B capability evidence retains its separate scope. Actual Connect B decode/adoption remains unrun.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T05:56:07.651328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json"
+      "updated_at": "2026-11-16T10:54:10.091321+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
     },
     {
       "id": "V219-NATIVE-POTENTIAL-IO",
@@ -2449,11 +2449,11 @@
       "owner_agent": "/root/v198_resources",
       "independent_reviewer": "/root",
       "coordinator": "/root",
-      "status": "assigned",
-      "implementation_state": "N1-N4 sourceplanc90edaa reviewed: coldALPN accepteddriver provenance, escape-aware raw getters, exactcontrollerfactory, retired in-flight joins/history and egress-only drain. Implementationstarting; Native/WTfullF remainsunsupported.",
+      "status": "implemented-unverified",
+      "implementation_state": "N1 original canonical backend/controller ownership and accepted TLS custody are applied. Generation 486 verifies five controls and production server compilation. N2 complete writer inventory/pin/F is composed in the next source-reviewed batch, unapplied and unrun. Actual Native F and decoded handoff remain unqualified.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T05:56:07.651328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json"
+      "updated_at": "2026-11-16T10:54:10.091321+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
     },
     {
       "id": "V219-PUBLIC-B-WARM-WRITER",
@@ -2461,11 +2461,11 @@
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root",
       "coordinator": "/root",
-      "status": "implemented-unverified",
-      "implementation_state": "W1 sourcee79sealed includescompatiblewarm policy/initialhint, pendingindependentreview and runtime. W2 actual Bworker unimplemented atcheckpoint; nopublicB IO claim.",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Warm/adoption, reservation and restore sources are composed. Latch V3 ends pending bootstrap after publication while keeping the permanent frame floor. Host source requires actual whole-keyframe local submission and signed B decode. The coherent batch is unapplied and unrun.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T05:56:07.651328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json"
+      "updated_at": "2026-11-16T10:54:10.091321+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
     },
     {
       "id": "V219-PUBLIC-B-SDK-WORKFLOW",
@@ -2473,11 +2473,11 @@
       "owner_agent": "/root/fixture_blockers",
       "independent_reviewer": "/root",
       "coordinator": "/root",
-      "status": "assigned",
-      "implementation_state": "Sourceplanbae0 approved: exactAprivate readiness, sameoriginal signed phase/publicReady payload, bounded frozenreplay, sameBlease transfer beforeoriginalcutoff and independentcompletedpubliclifetime. Implementationunderway; helpers167pass do not proveworkflow.",
+      "status": "implemented-unverified",
+      "implementation_state": "SDK 206 component evidence remains qualified separately. A real RTC move/return representative is source-reviewed and unrun. Genuine Native-to-RTC encoder/feedback and actual abort/OLD-resume siblings are being implemented. Actual workflow behavior is not yet qualified.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T05:56:07.651328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json"
+      "updated_at": "2026-11-16T10:54:10.091321+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
     },
     {
       "id": "V219-PUBLIC-B-ROLE-MEASUREMENT",
@@ -2498,10 +2498,10 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "status": "independent-source-reviewed",
-      "implementation_state": "StoreV3 production library compiles after bounded helper fix. Store tests still blocked by one missing test enum qualification, reviewed correction awaits481. Protocol85 including phase/reservation DTOs pass. Physical issuers/actual signed projection not yet applied.",
+      "implementation_state": "Private original-capture identity survives value clones. Runtime phase SPI, atomic Activated publication, signed public Ready and typed NotSubmitted cleanup are composed in 23 Store paths. Prospective 32 ledger controls plus 2 OLD-scene controls are source-reviewed and unrun.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T07:03:16.914328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g480-component-progress.json"
+      "updated_at": "2026-11-16T10:54:10.091321+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
     },
     {
       "id": "V219-OWNED-CANDIDATE-DISCARD",
@@ -2510,10 +2510,10 @@
       "independent_reviewer": "/root/v198_resources",
       "coordinator": "/root",
       "status": "independent-source-reviewed",
-      "implementation_state": "Core/Host/sharedRoot source applied; RTC original-origin cleanup control passes in78/78. Actual Core tests still blocked by fixture activation arity, reviewed original plan retention awaits481. Native full-close/retry/OLD restore unqualified.",
+      "implementation_state": "Actual Closed physical/adapter binding and independent fresh OLD/all-selected-source authorization are composed. A retained Frozen/held witness, including N2, is required before another restoration admission. The first two-second cutoff is never renewed. Late failure is explicit; no false restoration success. Actual abort controls remain pending.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T07:03:16.914328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g480-component-progress.json"
+      "updated_at": "2026-11-16T10:54:10.091321+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
     },
     {
       "id": "V219-G481-AFFECTED-REGRESSIONS",
@@ -5067,6 +5067,14 @@
       "revision": 109,
       "checkpoint": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
       "summary": "Audited g484 focused exact3 Store failures PASS/0ignored; previous full416 failure preserved. Pipeline/source clone identity +native preflight/OLD restore integration pending. Mobile176 verified; no full32."
+    },
+    {
+      "updated_at": "2026-11-16T10:54:10.091321+00:00",
+      "revision": 110,
+      "summary": "Generation 486: original native-controller regression and four real TLS ownership controls PASS, zero ignored. Normal preparation, format, test build and production server compile pass. All 11 child owners and Root 72289 / tool 91104 close naturally; 6,369 source files and both binaries remain exact. Independent audit 41c7 accepted this scope. OLD 485 desired failure is preserved. The next public B/native/phase/restore batch covers 129 source paths and has passed source review, unrun. Decoded RTC/Native handoff, combined regression, local ARM/releases/preflight remain. Last full matrix: 1/32.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json",
+      "sha256": "0a8db28ab3d277bf50efde48eb4c5f9189852a77cbc23329985430652b4d22f1",
+      "mobile_revision": 177
     }
   ],
   "tracking_review": {
@@ -6696,8 +6704,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "g484 focused exact3 Store regressions PASS/0ignored, independently audited; g483 full416 originalFAILED preserved (413pass3fail), Service90pass. Both production scope defects and all previously failed selectors now have focused passing evidence; whole coherent handoff integration/actual media/ARM/preflight pending. Last full32 stays1/32.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
-    "sha256": "48e43f35ec273d91da94956bd8eabd3f46fffd836c2f87db48f5c62ddbbc7c9c"
+    "status": "Generation 486: original native-controller regression and four real TLS ownership controls PASS, zero ignored. Normal preparation, format, test build and production server compile pass. All 11 child owners and Root 72289 / tool 91104 close naturally; 6,369 source files and both binaries remain exact. Independent audit 41c7 accepted this scope. OLD 485 desired failure is preserved. The next public B/native/phase/restore batch covers 129 source paths and has passed source review, unrun. Decoded RTC/Native handoff, combined regression, local ARM/releases/preflight remain. Last full matrix: 1/32.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json",
+    "sha256": "0a8db28ab3d277bf50efde48eb4c5f9189852a77cbc23329985430652b4d22f1"
   }
 }

@@ -2591,6 +2591,16 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-discard-expired-original-activation-plan-test.patch",
       "sha256": "acc2d6af97c0213bd4237591ae7a9a79239862bbf513f98a92d8680f26a7e4b6"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-original-controller-factory-counter.patch",
+      "sha256": "cb96ee0d40f5993823826d7852762439d8ea9bee01c1f1a8632bd01df231891c"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-original-physical-owner.patch",
+      "sha256": "2388cbb8954153dca4eb88c7b248df89b9351624d3ccfeface4ddfb137c7e0c5"
     }
   ]
 }

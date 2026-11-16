@@ -1,0 +1,1215 @@
+diff --git a/Cargo.lock b/Cargo.lock
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -7693,6 +7693,7 @@
+  "chrono",
+  "dashmap",
+  "futures",
++ "http 1.4.2",
+  "jsonwebtoken",
+  "metrics 0.23.1",
+  "parking_lot",
+diff --git a/crates/uctp/rvoip-quic/src/canonical.rs b/crates/uctp/rvoip-quic/src/canonical.rs
+--- a/crates/uctp/rvoip-quic/src/canonical.rs
++++ b/crates/uctp/rvoip-quic/src/canonical.rs
+@@ -120,3 +120,58 @@
+             .map_err(|_| DispatchError::Closed)
+     }
+ }
++
++/// Strict-capability setup from original opaque library accepts only. Never
++/// construct this profile by adopting a raw Connection or external IO Arc.
++pub fn start_owned(
++    incoming:rvoip_uctp::substrate::OwnedAlpnReceiver,
++    profile:CanonicalProfile,contact:String,
++)->Result<ProfileServer,DispatchError> {
++    let(incoming,lifetime)=incoming.into_parts();
++    start_original_inner(incoming,Some(lifetime),profile,contact)
++}
++/// Caller owns and joins its exact original bounded intake/handshake tasks.
++/// Only opaque Incoming-derived owners are accepted, never raw Connections.
++pub fn start_original(
++    incoming:mpsc::Receiver<rvoip_uctp::substrate::AcceptedNativeConnection>,
++    profile:CanonicalProfile,contact:String,
++)->Result<ProfileServer,DispatchError> {
++    start_original_inner(incoming,None,profile,contact)
++}
++fn start_original_inner(
++    incoming:mpsc::Receiver<rvoip_uctp::substrate::AcceptedNativeConnection>,
++    accept_lifetime:Option<rvoip_uctp::substrate::OwnedAcceptLifetime>,
++    profile:CanonicalProfile,contact:String,
++)->Result<ProfileServer,DispatchError> {
++    ProfileServer::spawn(incoming,profile.max_connections(),move|accepted,cancel| {
++        let _accept_lifetime=accept_lifetime.clone();
++        let profile=profile.clone();let contact=contact.clone();
++        async move {
++            let _accept_lifetime=_accept_lifetime;
++            let cancel=cancel.child_token();let _lifetime=cancel.clone().drop_guard();
++            let deadline=tokio::time::Instant::now()+AUTHENTICATION_TIMEOUT;
++            let peer=profile.peer(PeerTransport::Quic,&contact,cancel.clone())?.with_original_authentication_deadline(deadline);
++            let setup=NativeTransportContext::from_accepted_quic(accepted,cancel.clone(),deadline)?;
++            let control=setup.control;
++            struct CloseOwned(rvoip_uctp::v2::server::OriginalQuicControl);
++            impl Drop for CloseOwned {fn drop(&mut self){self.0.close(0u32.into(),b"canonical-peer-retired");}}
++            let _close=CloseOwned(control.clone());let mut media_reader=setup.media_reader;
++            let handler=profile.physical_handler(setup.context)?;
++            let(mut writer,reader)=tokio::select! {biased;
++                _=cancel.cancelled()=>return Err(DispatchError::Closed),
++                _=media_reader.as_mut()=>return Err(DispatchError::Closed),
++                result=tokio::time::timeout_at(deadline,control.accept_bi())=>result.map_err(|_|DispatchError::Closed)??,
++            };
++            let result=tokio::select! {biased;
++                _=media_reader.as_mut()=>Err(DispatchError::Closed),
++                value=peer.run(reader,&mut writer,handler.as_ref())=>value,
++            };
++            drop(media_reader);
++            if writer.finish().is_ok() {tokio::select! {biased;
++                _=cancel.cancelled()=>{},
++                _=tokio::time::timeout(std::time::Duration::from_secs(1),writer.stopped())=>{},
++            }}
++            result
++        }
++    },|accepted|accepted.close(0u32.into(),b"canonical-admission-closed"))
++}
+diff --git a/crates/uctp/rvoip-uctp/Cargo.toml b/crates/uctp/rvoip-uctp/Cargo.toml
+--- a/crates/uctp/rvoip-uctp/Cargo.toml
++++ b/crates/uctp/rvoip-uctp/Cargo.toml
+@@ -47,6 +47,8 @@
+ 
+ # Substrate
+ quinn.workspace = true
++web-transport-quinn.workspace = true
++http = "1"
+ rustls.workspace = true
+ rustls-pemfile.workspace = true
+ rcgen.workspace = true
+@@ -59,7 +61,6 @@
+ thiserror.workspace = true
+ 
+ [dev-dependencies]
+-web-transport-quinn.workspace = true
+ tokio-tungstenite.workspace = true
+ tokio = { workspace = true, features = ["full", "test-util"] }
+ tracing-subscriber.workspace = true
+diff --git a/crates/uctp/rvoip-uctp/src/staged_data.rs b/crates/uctp/rvoip-uctp/src/staged_data.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_data.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_data.rs
+@@ -745,11 +745,24 @@
+     }
+ }
+ pub(crate) struct NativeMedia {
++    pub(crate) original_controller:std::sync::OnceLock<rvoip_core::staged_streams::adapter_owner::AdapterMediaOwner>,
+     pub(crate) announcements: Arc<tokio::sync::Mutex<crate::v2::native_lifecycle::Announcements>>,
+     pub(crate) flow: Arc<crate::native_flow::NativeFlow>,
+     pub(crate) negotiation: Option<Arc<crate::v2::native_negotiation::NativeNegotiation>>,
+     pub(crate) rtp: Option<Arc<StagedRtpMedia>>,
+     pub(crate) data: Option<Arc<StagedNativeData>>,
++}
++impl NativeMedia {
++    pub(crate) fn bind_original_controller(&self,controller:&Arc<StreamController>)->ControlResult<()> {
++        let original=controller.adapter_media_owner();
++        if let Some(owner)=self.original_controller.get() {
++            return if owner.same_original(&original) {Ok(())}else{Err(StreamControlError::Authority)};
++        }
++        match self.original_controller.set(original) {
++            Ok(())=>Ok(()),
++            Err(original)=>if self.original_controller.get().is_some_and(|owner|owner.same_original(&original)) {Ok(())}else{Err(StreamControlError::Authority)},
++        }
++    }
+ }
+ #[async_trait]
+ impl StagedMediaAdapter for NativeMedia {
+@@ -762,6 +775,10 @@
+         deadline: tokio::time::Instant,
+         cancel: CancellationToken,
+     ) -> ControlResult<()> {
++        let original=self.original_controller.get().ok_or(StreamControlError::Authority)?;
++        if ports.iter().any(|prepared|!prepared.port.matches_adapter_media_owner(original)) {
++            return Err(StreamControlError::Authority);
++        }
+         // Reject unsupported families before either backend has effects. Core
+         // owns rollback of all partially prepared candidates before commit.
+         if ports.iter().any(|p| {
+diff --git a/crates/uctp/rvoip-uctp/src/substrate/mod.rs b/crates/uctp/rvoip-uctp/src/substrate/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/substrate/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/mod.rs
+@@ -37,7 +37,8 @@
+     PeerMediaRouteKey, PeerMediaRouter, PeerMediaRouterError, PeerMediaRouterSnapshot,
+ };
+ pub use quinn::{
+-    dispatch_by_alpn, make_client_endpoint, make_server_endpoint, spawn_stats_sampler, AlpnRoutes,
++    dispatch_by_alpn, dispatch_by_alpn_owned, AcceptedNativeConnection, OriginalNativeConnectionObservation, OwnedAlpnRoutes, OwnedAlpnReceiver, OwnedAcceptLifetime,
++    make_client_endpoint, make_server_endpoint, spawn_stats_sampler, AlpnRoutes,
+     ALPN_ACCEPT_CAP, DEFAULT_QUINN_STATS_INTERVAL,
+ };
+ pub use tls::{
+diff --git a/crates/uctp/rvoip-uctp/src/substrate/quinn/accepted/controls.rs b/crates/uctp/rvoip-uctp/src/substrate/quinn/accepted/controls.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/substrate/quinn/accepted/controls.rs
+@@ -0,0 +1,236 @@
++//! Real TLS original accept/control tests. These prove no-escape ownership,
++//! not complete media writer coverage, Core F, native frame proof or readiness.
++use super::*;
++use futures::{FutureExt,future::BoxFuture};
++use crate::v2::{auth_dispatch::DispatchError,server::{NativeTransportContext,OriginalQuicControl,OriginalWebTransportControl}};
++struct ExternalDatagrams(quinn::Connection);
++impl crate::staged_media::StagedDatagramTransport for ExternalDatagrams {
++    fn maximum_datagram_bytes(&self)->Option<usize>{self.0.max_datagram_size()}
++    fn send_datagram(&self,bytes:bytes::Bytes)->rvoip_core::staged_streams::ControlResult<()> {
++        self.0.send_datagram(bytes).map_err(|_|rvoip_core::staged_streams::StreamControlError::Backpressure)
++    }
++    fn is_closed(&self)->bool{self.0.close_reason().is_some()}
++}
++#[async_trait::async_trait]
++impl crate::v2::native_media::NativeDatagramTransport for ExternalDatagrams {
++    async fn read_datagram(&self)->Result<bytes::Bytes,DispatchError>{self.0.read_datagram().await.map_err(|_|DispatchError::Closed)}
++}
++use tokio_util::sync::CancellationToken;
++use std::time::Duration;
++fn until()->tokio::time::Instant {tokio::time::Instant::now()+Duration::from_secs(4)}
++#[derive(Default)]
++struct Harness {
++    host:Option<Arc<quinn::Endpoint>>,raw_original:Option<quinn::Connection>,remote_endpoint:Option<quinn::Endpoint>,remote:Option<quinn::Connection>,
++    dispatcher:Option<OwnedAlpnRoutes>,accept_lifetime:Option<OwnedAcceptLifetime>,accepted:Option<AcceptedNativeConnection>,
++    observation:Option<OriginalNativeConnectionObservation>,context:Option<NativeTransportContext>,quic:Option<OriginalQuicControl>,wt:Option<OriginalWebTransportControl>,
++    reader:Option<BoxFuture<'static,Result<(),DispatchError>>>,remote_wt:Option<web_transport_quinn::Session>,
++}
++impl Harness {
++    async fn pair(&mut self,alpn:&[u8]) {self.pair_mode(alpn,false).await;}
++    async fn pair_mode(&mut self,alpn:&[u8],direct:bool) {
++        let _=rustls::crypto::ring::default_provider().install_default();
++        let(cert,key)=crate::substrate::self_signed_for_dev(&["localhost".into()]).unwrap();
++        let mut tls=rustls::ServerConfig::builder().with_no_client_auth().with_single_cert(vec![cert.clone()],key).unwrap();tls.alpn_protocols=vec![alpn.to_vec()];
++        let host=Arc::new(make_server_endpoint("127.0.0.1:0".parse().unwrap(),Arc::new(tls),quinn::TransportConfig::default()).unwrap());
++        self.host=Some(host.clone());
++        let mut receiver=if direct {None}else {
++            let mut dispatcher=dispatch_by_alpn_owned(host.clone(),&[alpn]).unwrap();
++            let(receiver,lifetime)=dispatcher.take(alpn).unwrap().into_parts();
++            self.dispatcher=Some(dispatcher);self.accept_lifetime=Some(lifetime);Some(receiver)
++        };
++        let mut tls=crate::substrate::dev_client_config_trusting(&cert).unwrap();tls.alpn_protocols=vec![alpn.to_vec()];
++        let mut client=quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++        client.set_default_client_config(quinn::ClientConfig::new(Arc::new(quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap())));
++        self.remote_endpoint=Some(client);
++        let connecting=self.remote_endpoint.as_ref().unwrap().connect(host.local_addr().unwrap(),"localhost").unwrap();
++        let original=async {
++            if direct {
++                // Same external custom-intake seam used by the Server partner:
++                // no raw completed Connection ever crosses this await.
++                AcceptedNativeConnection::accept_original(host.accept().await?).await.ok()
++            }else {receiver.as_mut().unwrap().recv().await}
++        };
++        let(remote,accepted)=tokio::join!(tokio::time::timeout_at(until(),connecting),tokio::time::timeout_at(until(),original));
++        // Register both actual owners before inspecting any setup assertion.
++        if let Ok(Ok(remote))=remote {self.remote=Some(remote);}
++        if let Ok(Some(accepted))=accepted {self.observation=Some(accepted.observation());self.accepted=Some(accepted);}
++        assert!(self.remote.is_some()&&self.accepted.is_some());
++    }
++    async fn setup(&mut self,wt:bool) {self.setup_mode(wt,false).await;}
++    async fn setup_mode(&mut self,wt:bool,direct:bool) {
++        self.pair_mode(if wt {b"h3"}else{crate::v2::RAW_QUIC_ALPN},direct).await;
++        let accepted=self.accepted.take().unwrap();
++        if wt {
++            let remote=self.remote.as_ref().unwrap().clone();
++            let upgrade=NativeTransportContext::from_accepted_webtransport(accepted,CancellationToken::new(),until(),"/uctp",None);
++            let client=web_transport_quinn::Session::connect(remote,"https://localhost/uctp".parse::<url::Url>().unwrap());
++            let(host,remote)=tokio::join!(tokio::time::timeout_at(until(),upgrade),tokio::time::timeout_at(until(),client));
++            if let Ok(Ok(remote))=remote {self.remote_wt=Some(remote);}
++            if let Ok(Ok(setup))=host {self.context=Some(setup.context);self.wt=Some(setup.control);self.reader=Some(setup.media_reader);}
++            assert!(self.remote_wt.is_some()&&self.context.is_some());
++        }else {
++            let setup=NativeTransportContext::from_accepted_quic(accepted,CancellationToken::new(),until()).unwrap();
++            self.context=Some(setup.context);self.quic=Some(setup.control);self.reader=Some(setup.media_reader);
++        }
++    }
++    async fn signal(&self,wt:bool)->bool {
++        if wt {
++            let(mut sent,_received)=tokio::time::timeout_at(until(),self.remote_wt.as_ref().unwrap().open_bi()).await.unwrap().unwrap();
++            sent.write_all(b"s").await.unwrap();
++            let(_sent,mut received)=tokio::time::timeout_at(until(),self.wt.as_ref().unwrap().accept_bi()).await.unwrap().unwrap();
++            let mut value=[0];received.read_exact(&mut value).await.unwrap();value==[b's']
++        }else {
++            let(mut sent,_received)=tokio::time::timeout_at(until(),self.remote.as_ref().unwrap().open_bi()).await.unwrap().unwrap();
++            sent.write_all(b"s").await.unwrap();
++            let(_sent,mut received)=tokio::time::timeout_at(until(),self.quic.as_ref().unwrap().accept_bi()).await.unwrap().unwrap();
++            let mut value=[0];received.read_exact(&mut value).await.unwrap();value==[b's']
++        }
++    }
++    async fn close(&mut self)->bool {
++        self.reader=None;self.accepted=None;
++        let observed=if let Some(observation)=self.observation.take() {
++            // Root intake uses only scalar RTT/ALPN/datagram metadata plus its
++            // same-original physical-close waiter; no native IO escapes.
++            let _rtt=observation.rtt();
++            observation.close(0u32.into(),b"owned-test-end");
++            tokio::time::timeout_at(until(),observation.closed()).await.is_ok()
++        }else {true};
++        if let Some(raw)=self.raw_original.take(){raw.close(0u32.into(),b"owned-test-end");}
++        if let Some(control)=self.quic.take(){control.close(0u32.into(),b"owned-test-end");}
++        if let Some(control)=self.wt.take(){control.close(0u32.into(),b"owned-test-end");}
++        if let Some(session)=self.remote_wt.take(){session.close(0,b"owned-test-end");}
++        if let Some(remote)=self.remote.take(){remote.close(0u32.into(),b"owned-test-end");}
++        self.context=None;
++        let joined=if let Some(dispatcher)=&self.dispatcher {dispatcher.shutdown().await.is_ok()}else{true};
++        self.dispatcher=None;self.accept_lifetime=None;
++        let mut idle=true;
++        if let Some(host)=self.host.take(){host.close(0u32.into(),b"owned-test-end");idle&=tokio::time::timeout_at(until(),host.wait_idle()).await.is_ok();}
++        if let Some(remote)=self.remote_endpoint.take(){remote.close(0u32.into(),b"owned-test-end");idle&=tokio::time::timeout_at(until(),remote.wait_idle()).await.is_ok();}
++        observed&&joined&&idle
++    }
++}
++#[tokio::test]
++async fn owned_native_actual_quic_and_wt_refuse_raw_escape_while_same_original_signaling_remains_live() {
++    let mut observations=Vec::new();
++    for (wt,direct) in [(false,false),(true,false),(false,true),(true,true)] {
++        let mut h=Harness::default();
++        let result=std::panic::AssertUnwindSafe(async {
++            h.setup_mode(wt,direct).await;
++            let observation=h.observation.as_ref().unwrap();
++            let metadata=observation.negotiated_alpn().as_deref()==Some(if wt {b"h3".as_slice()}else{crate::v2::RAW_QUIC_ALPN})
++                &&observation.maximum_datagram_bytes().is_some();
++            let _rtt=observation.rtt();
++            let context=h.context.as_ref().unwrap();let media=context.media().unwrap();
++            // No raw reference is returned by a wrong-type lookup. It must not
++            // permanently poison the same actual original coverage root.
++            let wrong_type=context.native::<String>().is_none();
++            let seal=media.try_seal_raw_access().unwrap();
++            let denied=context.native::<quinn::Connection>().is_none()
++                &&context.native::<web_transport_quinn::Session>().is_none()&&media.router().is_none()&&media.datagrams().is_none();
++            let signal=h.signal(wt).await;let same=seal.is_current();
++            seal.abort();
++            let raw=if wt {context.native::<web_transport_quinn::Session>().is_some()}else{context.native::<quinn::Connection>().is_some()};
++            let unavailable=media.try_seal_raw_access().is_err();
++            (metadata,wrong_type,denied,signal,same,raw,unavailable)
++        }).catch_unwind().await;
++        let clean=h.close().await;
++        if let Err(panic)=result {std::panic::resume_unwind(panic);}
++        observations.push((wt,direct,clean,result.unwrap()));
++    }
++    assert!(observations.iter().all(|(_,_,clean,(metadata,wrong_type,denied,signal,same,raw,unavailable))|*clean&&*metadata&&*wrong_type&&*denied&&*signal&&*same&&*raw&&*unavailable),
++        "owned signaling cannot borrow a raw DATAGRAM capability or reseal after actual exposure: {observations:?}");
++}
++#[tokio::test]
++async fn owned_native_public_router_or_datagrams_escape_and_reader_retirement_permanently_refuse_the_original_seal() {
++    let mut observations=Vec::new();
++    for mode in 0..3 {
++        let mut h=Harness::default();
++        let result=std::panic::AssertUnwindSafe(async {
++            h.setup(false).await;let media=h.context.as_ref().unwrap().media().unwrap();
++            if mode==0 {assert!(media.router().is_some());return media.try_seal_raw_access().is_err();}
++            if mode==1 {assert!(media.datagrams().is_some());return media.try_seal_raw_access().is_err();}
++            let seal=media.try_seal_raw_access().unwrap();h.reader=None;
++            !seal.is_current()&&media.router().is_none()&&media.datagrams().is_none()&&media.try_seal_raw_access().is_err()
++        }).catch_unwind().await;
++        let clean=h.close().await;if let Err(panic)=result {std::panic::resume_unwind(panic);}
++        observations.push((mode,clean,result.unwrap()));
++    }
++    assert!(observations.iter().all(|(_,clean,refused)|*clean&&*refused),"original raw escape/retirement cannot be reset by a new observation: {observations:?}");
++}
++#[tokio::test]
++async fn owned_native_actual_context_cannot_adopt_foreign_or_generic_media_and_cancelled_upgrade_retires_before_return() {
++    let mut h=Harness::default();let mut foreign=Harness::default();
++    let result=std::panic::AssertUnwindSafe(async {
++        h.setup(false).await;foreign.setup(false).await;
++        let media=h.context.as_ref().unwrap().media().unwrap();
++        let generic_context=NativeTransportContext::new(crate::v2::reachability::PeerTransport::Quic,CancellationToken::new(),until(),());
++        let raw_cannot_adopt=generic_context.with_media(media.clone()).is_err();
++        let generic=crate::v2::native_media::NativePeerMedia::new(crate::v2::reachability::PeerTransport::Quic,
++            Arc::new(ExternalDatagrams(h.remote.as_ref().unwrap().clone())),CancellationToken::new()).unwrap();
++        let generic_reader=generic.reader().unwrap();
++        let external_unqualified=matches!(generic.try_seal_raw_access(),Err(rvoip_core::staged_streams::StreamControlError::Unsupported));
++        // An owned original context cannot replace its root with a generic IO
++        // instance. Generic ordinary IO remains live and unqualified.
++        let owned_cannot_adopt=h.context.take().unwrap().with_media(generic.clone()).is_err();
++        let foreign_cannot_adopt=foreign.context.take().unwrap().with_media(media.clone()).is_err();
++        let seal=media.try_seal_raw_access().unwrap();let unchanged=seal.is_current();seal.retire();
++        drop(generic_reader);
++        (raw_cannot_adopt,external_unqualified,owned_cannot_adopt,foreign_cannot_adopt,unchanged)
++    }).catch_unwind().await;
++    let clean=h.close().await;let foreign_clean=foreign.close().await;
++    if let Err(panic)=result {std::panic::resume_unwind(panic);}
++    let(raw,external,owned,other,unchanged)=result.unwrap();assert!(clean&&foreign_clean&&raw&&external&&owned&&other&&unchanged);
++    let mut h=Harness::default();
++    let result=std::panic::AssertUnwindSafe(async {
++        h.pair(b"h3").await;
++        let accepted=h.accepted.take().unwrap();let root=accepted.coverage.clone();
++        let cancel=CancellationToken::new();cancel.cancel();
++        let refused=NativeTransportContext::from_accepted_webtransport(accepted,cancel,until(),"/uctp",None).await.is_err();
++        let retired=matches!(root.try_seal(),Err(rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoSealUnavailable::Retired));
++        let actual_close=tokio::time::timeout_at(until(),h.remote.as_ref().unwrap().closed()).await.is_ok();
++        (refused,retired,actual_close)
++    }).catch_unwind().await;
++    let clean=h.close().await;if let Err(panic)=result {std::panic::resume_unwind(panic);}
++    let(refused,retired,actual_close)=result.unwrap();assert!(clean&&refused&&retired&&actual_close);
++    for raw in [false,true] {
++        let mut h=Harness::default();
++        let result=std::panic::AssertUnwindSafe(async {
++            h.pair(crate::v2::RAW_QUIC_ALPN).await;
++            let accepted=h.accepted.take().unwrap();let root=accepted.coverage.clone();
++            if raw {
++                h.raw_original=accepted.into_raw();
++                h.raw_original.is_some()&&matches!(root.try_seal(),Err(rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoSealUnavailable::Escaped))
++            }else {
++                drop(accepted);
++                matches!(root.try_seal(),Err(rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoSealUnavailable::Retired))
++                    &&tokio::time::timeout_at(until(),h.remote.as_ref().unwrap().closed()).await.is_ok()
++            }
++        }).catch_unwind().await;
++        let clean=h.close().await;if let Err(panic)=result {std::panic::resume_unwind(panic);}
++        assert!(clean&&result.unwrap(),"unclaimed original accept must close; explicit raw conversion must remain permanently unqualified");
++    }
++}
++#[tokio::test]
++async fn owned_native_actual_seal_and_public_raw_access_have_one_original_atomic_winner() {
++    let mut observations=Vec::new();
++    for _ in 0..16 {
++        let mut h=Harness::default();
++        let result=std::panic::AssertUnwindSafe(async {
++            h.setup(false).await;
++            let context=h.context.as_ref().unwrap();let media=context.media().unwrap();
++            let barrier=std::sync::Barrier::new(2);
++            let(raw,seal)=std::thread::scope(|threads| {
++                let raw=threads.spawn(||{barrier.wait();context.native::<quinn::Connection>().is_some()});
++                let seal=threads.spawn(||{barrier.wait();media.try_seal_raw_access().ok()});
++                (raw.join().unwrap(),seal.join().unwrap())
++            });
++            let exclusive=raw!=seal.is_some();
++            let current=seal.as_ref().is_none_or(|seal|seal.is_current());
++            if let Some(seal)=seal {seal.retire();}
++            (exclusive,current)
++        }).catch_unwind().await;
++        let clean=h.close().await;if let Err(panic)=result {std::panic::resume_unwind(panic);}
++        observations.push((clean,result.unwrap()));
++    }
++    assert!(observations.iter().all(|(clean,(exclusive,current))|*clean&&*exclusive&&*current),"raw escape/seal cannot both win or recycle a token: {observations:?}");
++}
+diff --git a/crates/uctp/rvoip-uctp/src/substrate/quinn/accepted.rs b/crates/uctp/rvoip-uctp/src/substrate/quinn/accepted.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/substrate/quinn/accepted.rs
+@@ -0,0 +1,88 @@
++//! Provenance begins at the original library-owned handshake completion,
++//! before the first cloneable Connection can cross a public receiver boundary.
++use super::*;
++use rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage;
++
++/// Nonclone original accepted native transport. No public constructor, Default,
++/// Deserialize, claimed provenance flag or adoption of an external Connection.
++/// Only the library-owned original Incoming handshake can mint this type.
++pub struct AcceptedNativeConnection {
++    connection:Option<quinn::Connection>,
++    coverage:Arc<PhysicalVideoExposureCoverage>,
++}
++/// Read-only original connection observation for external intake ownership.
++/// Clone carries no DATAGRAM/stream/native/accepted-owner constructor. A close
++/// is terminal retirement only; observations cannot mint or reset provenance.
++#[derive(Clone)]
++pub struct OriginalNativeConnectionObservation {
++    connection:quinn::Connection,
++    coverage:Arc<PhysicalVideoExposureCoverage>,
++}
++impl OriginalNativeConnectionObservation {
++    pub fn negotiated_alpn(&self)->Option<Vec<u8>> {
++        self.connection.handshake_data()
++            .and_then(|data|data.downcast::<quinn::crypto::rustls::HandshakeData>().ok())
++            .and_then(|data|data.protocol.clone())
++    }
++    pub fn maximum_datagram_bytes(&self)->Option<usize> {self.connection.max_datagram_size()}
++    pub fn rtt(&self)->std::time::Duration {self.connection.stats().path.rtt}
++    pub async fn closed(&self) {let _=self.connection.closed().await;}
++    pub fn close(&self,code:quinn::VarInt,reason:&[u8]) {
++        self.coverage.retire();self.connection.close(code,reason);
++    }
++}
++impl AcceptedNativeConnection {
++    /// Consume the nonclone PRE-handshake original Incoming. An external
++    /// already-raw Connection cannot be adopted here. The caller retains its
++    /// original ingress slot, timeout, cancellation, intake and JoinSet owner.
++    /// Pinned quinn IncomingFuture owns Connecting/ConnectionRef: dropping a
++    /// pending handshake implicitly closes its last native application ref.
++    pub async fn accept_original(incoming:quinn::Incoming)->Result<Self,quinn::ConnectionError> {
++        Ok(Self::accepted(incoming.await?))
++    }
++    pub fn observation(&self)->OriginalNativeConnectionObservation {
++        OriginalNativeConnectionObservation {
++            connection:self.connection.as_ref().expect("same original accepted connection").clone(),
++            coverage:self.coverage.clone(),
++        }
++    }
++    pub(super) fn accepted(connection:quinn::Connection)->Self {
++        Self {connection:Some(connection),coverage:Arc::new(PhysicalVideoExposureCoverage::new(false))}
++    }
++    /// Scalar negotiated protocol, never raw TLS/native capabilities.
++    pub fn negotiated_alpn(&self)->Option<Vec<u8>> {
++        self.connection.as_ref()?.handshake_data()
++            .and_then(|data|data.downcast::<quinn::crypto::rustls::HandshakeData>().ok())
++            .and_then(|data|data.protocol.clone())
++    }
++    pub fn remote_address(&self)->Option<std::net::SocketAddr> {self.connection.as_ref().map(quinn::Connection::remote_address)}
++    /// Exact original close is always an abort, never an IO/publication grant.
++    pub fn close(&self,code:quinn::VarInt,reason:&[u8]) {
++        self.coverage.retire();
++        if let Some(connection)=&self.connection {connection.close(code,reason);}
++    }
++    /// Explicit ordinary/raw consumption. Preexisting exposure permanently
++    /// prevents this original root from later becoming strict coverage.
++    /// A live owned seal refuses BEFORE any raw Connection is returned.
++    pub fn into_raw(self)->Option<quinn::Connection> {
++        let(connection,coverage)=self.into_owned_parts();
++        if coverage.mark_escaped() {Some(connection)}
++        else {coverage.retire();connection.close(0u32.into(),b"original-native-raw-refused");None}
++    }
++    // The canonical native setup implementation is inside this SAME UCTP
++    // crate and keeps all returned clones private behind scalar/stream facades.
++    // Adapter crates never receive this internal extraction method.
++    pub(crate) fn into_owned_parts(mut self)->(quinn::Connection,Arc<PhysicalVideoExposureCoverage>) {
++        (self.connection.take().expect("same original accepted connection"),self.coverage.clone())
++    }
++}
++impl Drop for AcceptedNativeConnection {
++    fn drop(&mut self) {
++        if let Some(connection)=self.connection.take() {
++            self.coverage.retire();connection.close(0u32.into(),b"unclaimed-native-accepted-owner");
++        }
++    }
++}
++
++#[cfg(test)]
++mod controls;
+diff --git a/crates/uctp/rvoip-uctp/src/substrate/quinn.rs b/crates/uctp/rvoip-uctp/src/substrate/quinn.rs
+--- a/crates/uctp/rvoip-uctp/src/substrate/quinn.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/quinn.rs
+@@ -66,6 +66,39 @@
+ }
+ 
+ /// Per-ALPN receiver handles handed back from [`dispatch_by_alpn`].
++mod accepted;
++pub use accepted::{AcceptedNativeConnection,OriginalNativeConnectionObservation};
++
++// Original accept/handshake custody only, never a media authority owner.
++struct OwnedAccept {
++    stop:tokio_util::sync::CancellationToken,
++    done:futures::future::Shared<futures::future::BoxFuture<'static,Result<(),()>>>,
++}
++impl Drop for OwnedAccept {fn drop(&mut self){self.stop.cancel();}}
++#[derive(Clone)]
++pub struct OwnedAcceptLifetime(Arc<OwnedAccept>);
++/// One original route receiver carries its original dispatcher owner until the
++/// canonical ProfileServer actually stops accepting and joins its handlers.
++pub struct OwnedAlpnReceiver {
++    receiver:mpsc::Receiver<AcceptedNativeConnection>,owner:Arc<OwnedAccept>,
++}
++impl OwnedAlpnReceiver {
++    pub fn into_parts(self)->(mpsc::Receiver<AcceptedNativeConnection>,OwnedAcceptLifetime) {
++        (self.receiver,OwnedAcceptLifetime(self.owner))
++    }
++}
++/// Explicit owned accept profile. Never run two dispatchers on one endpoint.
++/// shutdown rejoins the SAME accept/handshake owner after observer cancellation.
++pub struct OwnedAlpnRoutes {
++    routes:HashMap<Vec<u8>,mpsc::Receiver<AcceptedNativeConnection>>,owner:Arc<OwnedAccept>,
++}
++impl OwnedAlpnRoutes {
++    pub fn take(&mut self,alpn:&[u8])->Option<OwnedAlpnReceiver> {
++        self.routes.remove(alpn).map(|receiver|OwnedAlpnReceiver {receiver,owner:self.owner.clone()})
++    }
++    pub async fn shutdown(&self)->Result<(),()> {self.owner.stop.cancel();self.owner.done.clone().await}
++}
++
+ pub struct AlpnRoutes {
+     routes: HashMap<Vec<u8>, mpsc::Receiver<quinn::Connection>>,
+ }
+@@ -155,6 +188,56 @@
+     });
+ 
+     Ok(AlpnRoutes { routes })
++}
++
++/// Canonical no-escape provenance profile. Generic raw dispatch remains
++/// ordinary IO only; strict native coverage never falls back to that path.
++pub fn dispatch_by_alpn_owned(
++    endpoint:Arc<Endpoint>,alpns:&[&[u8]],
++)->Result<OwnedAlpnRoutes,SubstrateError> {
++    use futures::FutureExt;
++    let mut txs=HashMap::new();let mut routes=HashMap::new();
++    for alpn in alpns {
++        let(tx,rx)=mpsc::channel(ALPN_ACCEPT_CAP);
++        txs.insert(alpn.to_vec(),tx);routes.insert(alpn.to_vec(),rx);
++    }
++    let maximum=ALPN_ACCEPT_CAP.saturating_mul(txs.len()).max(1);
++    let stop=tokio_util::sync::CancellationToken::new();let stopped=stop.clone();
++    let task=tokio::spawn(async move {
++        let mut handshakes=tokio::task::JoinSet::new();
++        let mut failed=false;
++        loop {
++            tokio::select! {biased;
++                _=stopped.cancelled()=>break,
++                result=handshakes.join_next(),if !handshakes.is_empty()=>{
++                    if result.is_some_and(|r|r.is_err()) {failed=true;break;}
++                },
++                incoming=endpoint.accept()=>{
++                    let Some(incoming)=incoming else {break;};
++                    // Bound unsettled setup by the SAME configured route queue
++                    // capacity; no unbounded detached handshake owners remain.
++                    if handshakes.len()>=maximum {incoming.refuse();continue;}
++                    let txs=txs.clone();let cancelled=stopped.clone();
++                    handshakes.spawn(async move {
++                        let accepted=tokio::select! {biased;
++                            _=cancelled.cancelled()=>return,
++                            value=AcceptedNativeConnection::accept_original(incoming)=>match value {Ok(accepted)=>accepted,Err(_)=>return},
++                        };
++                        let alpn=accepted.negotiated_alpn().unwrap_or_default();
++                        let Some(tx)=txs.get(&alpn) else {accepted.close(1u32.into(),b"alpn-not-registered");return;};
++                        // A full/closed route owns no successful accept. Dropping
++                        // the returned original owner closes it immediately.
++                        drop(tx.try_send(accepted));
++                    });
++                },
++            }
++        }
++        stopped.cancel();
++        while let Some(result)=handshakes.join_next().await {if result.is_err(){failed=true;}}
++        if failed {Err(())}else{Ok(())}
++    });
++    let done=async move {task.await.map_err(|_|())?}.boxed().shared();
++    Ok(OwnedAlpnRoutes {routes,owner:Arc::new(OwnedAccept {stop,done})})
+ }
+ 
+ /// Default interval for `quinn::Connection::stats()` sampling, per design
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -462,7 +462,7 @@
+         }
+         let streams = Arc::new(DashMap::new());
+         let handles = match &media {
+-            Some(media) => crate::staged_media::native_handles(media.router(), scope.owner.clone()),
++            Some(media) => crate::staged_media::native_handles(media.router_internal(), scope.owner.clone()),
+             None => route.physical.data.handles(scope.owner.clone()),
+         };
+         let flow = crate::native_flow::NativeFlow::new(route.cancel.child_token());
+@@ -470,6 +470,7 @@
+             broker.attach_flow(&flow);
+         }
+         let backend = Arc::new(crate::staged_data::NativeMedia {
++            original_controller:std::sync::OnceLock::new(),
+             flow: flow.clone(),
+             announcements: Arc::new(tokio::sync::Mutex::new(Default::default())),
+             negotiation,
+@@ -477,10 +478,10 @@
+                 let media = media.as_ref().expect("RTP media checked");
+                 crate::staged_media::StagedRtpMedia::new_with_flow(
+                     scope.clone(),
+-                    media.router(),
++                    media.router_internal(),
+                     streams.clone(),
+                     negotiator,
+-                    media.datagrams(),
++                    media.datagrams_internal(),
+                     route.cancel.clone(),
+                     Some(flow.clone()),
+                     Some(self.ready_audio.clone()),
+@@ -490,7 +491,7 @@
+             data: data.map(|negotiator| {
+                 crate::staged_data::StagedNativeData::new(
+                     scope.clone(),
+-                    media.as_ref().map(|m| m.router()),
++                    media.as_ref().map(|m| m.router_internal()),
+                     route.physical.data.clone(),
+                     negotiator,
+                     route.cancel.clone(),
+@@ -540,6 +541,10 @@
+         {
+             controller.retire();
+             return Err(RvoipError::AdmissionRejected("native media retired"));
++        }
++        if backend.bind_original_controller(&controller).is_err() {
++            controller.retire();
++            return Err(RvoipError::AdmissionRejected("native original controller differs"));
+         }
+         *installed = Some(InstalledMedia {
+             scope,
+@@ -2397,7 +2402,7 @@
+         if let Some(media)=physical.media() {
+             // Core froze this exact retained runtime before the dormant hook;
+             // every later binding copies it once, never on packet retry.
+-            media.router().freeze_original_frame_realm(
++            media.router_internal().freeze_original_frame_realm(
+                 crate::substrate::PeerMediaConnectionKey::new(request.intent().session.clone(),id.clone()),
+                 request.source_frame_realm().and_then(|realm|realm.for_scope(request.frozen_member().conversation(),&request.intent().session)),
+             );
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_media.rs b/crates/uctp/rvoip-uctp/src/v2/native_media.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_media.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_media.rs
+@@ -61,6 +61,7 @@
+     claimed: AtomicBool,
+     running: AtomicBool,
+     counters: Counters,
++    coverage:Option<Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage>>,
+ }
+ mod original_video;
+ use original_video::NativeOriginalVideo;
+@@ -82,6 +83,7 @@
+         // Immediately fence every binding, even if a handler retained its
+         // physical context or an asynchronous per-route cleanup wait is dropped.
+         self.0.router.shutdown();
++        if let Some(coverage)=&self.0.coverage {coverage.retire();}
+     }
+ }
+ impl NativePeerMedia {
+@@ -90,6 +92,20 @@
+         io: Arc<dyn NativeDatagramTransport>,
+         lifetime: CancellationToken,
+     ) -> Result<Arc<Self>, DispatchError> {
++        // Caller already owns an external raw IO Arc. It can never assert
++        // first-owner provenance merely by choosing this constructor.
++        Self::new_inner(transport,io,lifetime,None)
++    }
++    pub(super) fn new_accepted(
++        transport:PeerTransport,io:Arc<dyn NativeDatagramTransport>,lifetime:CancellationToken,
++        coverage:Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage>,
++    )->Result<Arc<Self>,DispatchError> {
++        Self::new_inner(transport,io,lifetime,Some(coverage))
++    }
++    fn new_inner(
++        transport:PeerTransport,io:Arc<dyn NativeDatagramTransport>,lifetime:CancellationToken,
++        coverage:Option<Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage>>,
++    )->Result<Arc<Self>,DispatchError> {
+         if transport == PeerTransport::WebSocket
+             || io.maximum_datagram_bytes().is_none_or(|size| size < 20)
+         {
+@@ -106,16 +122,33 @@
+             claimed: AtomicBool::new(false),
+             running: AtomicBool::new(false),
+             counters: Counters::default(),
++            coverage,
+         }))
+     }
+     pub fn transport(&self) -> PeerTransport {
+         self.transport
+     }
+-    pub fn router(&self) -> Arc<PeerMediaRouter> {
+-        self.router.clone()
+-    }
+-    pub fn datagrams(&self) -> Arc<dyn StagedDatagramTransport> {
+-        self.io.clone()
++    /// Public mutable/router capability. A strict owned seal refuses before
++    /// exposure; an ordinary raw call permanently excludes strict coverage.
++    pub fn router(&self) -> Option<Arc<PeerMediaRouter>> {
++        self.mark_raw_escape().then(||self.router.clone())
++    }
++    pub fn datagrams(&self) -> Option<Arc<dyn StagedDatagramTransport>> {
++        self.mark_raw_escape().then(||self.datagrams_internal())
++    }
++    fn mark_raw_escape(&self)->bool {self.coverage.as_ref().is_none_or(|root|root.mark_escaped())}
++    pub(crate) fn router_internal(&self)->Arc<PeerMediaRouter> {self.router.clone()}
++    pub(crate) fn datagrams_internal(&self)->Arc<dyn StagedDatagramTransport> {self.io.clone()}
++    pub(crate) fn coverage_internal(&self)->Option<Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage>> {self.coverage.clone()}
++    /// Metadata-only exclusion of future raw escape, not writer drain or F.
++    /// Generic external-Arc construction is explicitly unsupported.
++    pub fn try_seal_raw_access(&self)->rvoip_core::staged_streams::ControlResult<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureSeal> {
++        use rvoip_core::staged_streams::StreamControlError as E;
++        if !self.is_live() {return Err(E::NotReady);}
++        let root=self.coverage.as_ref().ok_or(E::Unsupported)?;
++        let seal=root.try_seal().map_err(|_|E::NotReady)?;
++        if !self.is_live() {seal.retire();return Err(E::NotReady);}
++        Ok(seal)
+     }
+     pub fn is_live(&self) -> bool {
+         self.running.load(Ordering::Acquire)
+diff --git a/crates/uctp/rvoip-uctp/src/v2/server/owned_native.rs b/crates/uctp/rvoip-uctp/src/v2/server/owned_native.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/server/owned_native.rs
+@@ -0,0 +1,117 @@
++//! Setup only from the first actual opaque library accept. Adapter crates
++//! receive stream/scalar controls, never a cloneable native datagram handle.
++use super::*;
++use crate::substrate::quinn::AcceptedNativeConnection;
++use crate::v2::native_media::{NativeDatagramTransport,NativePeerMedia};
++use crate::staged_media::StagedDatagramTransport;
++use rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage;
++use rvoip_core::staged_streams::{ControlResult,StreamControlError};
++use bytes::Bytes;
++
++pub struct OwnedNativeSetup<C> {
++    pub context:NativeTransportContext,
++    pub control:C,
++    pub media_reader:BoxFuture<'static,Result<(),DispatchError>>,
++}
++struct QuicOwner {connection:quinn::Connection,coverage:Arc<PhysicalVideoExposureCoverage>}
++impl Drop for QuicOwner {fn drop(&mut self){self.coverage.retire();self.connection.close(0u32.into(),b"original-native-control-retired");}}
++/// No Deref/native()/DATAGRAM method. Signaling stream handles cannot recover
++/// the native Connection; exact pinned stream APIs are audited separately.
++#[derive(Clone)]
++pub struct OriginalQuicControl(Arc<QuicOwner>);
++impl OriginalQuicControl {
++    pub async fn accept_bi(&self)->Result<(quinn::SendStream,quinn::RecvStream),DispatchError> {
++        self.0.connection.accept_bi().await.map_err(|_|DispatchError::Closed)
++    }
++    pub fn close(&self,code:quinn::VarInt,reason:&[u8]) {self.0.coverage.retire();self.0.connection.close(code,reason);}
++    pub fn is_closed(&self)->bool {self.0.connection.close_reason().is_some()}
++}
++struct WtOwner {session:web_transport_quinn::Session,connection:quinn::Connection,coverage:Arc<PhysicalVideoExposureCoverage>}
++impl Drop for WtOwner {fn drop(&mut self){self.coverage.retire();self.connection.close(0u32.into(),b"original-native-control-retired");}}
++/// The underlying Session's Deref/raw()/DATAGRAM surfaces remain private.
++#[derive(Clone)]
++pub struct OriginalWebTransportControl(Arc<WtOwner>);
++impl OriginalWebTransportControl {
++    pub async fn accept_bi(&self)->Result<(web_transport_quinn::SendStream,web_transport_quinn::RecvStream),DispatchError> {
++        self.0.session.accept_bi().await.map_err(|_|DispatchError::Closed)
++    }
++    pub fn close(&self,code:quinn::VarInt,reason:&[u8]) {self.0.coverage.retire();self.0.connection.close(code,reason);}
++    pub fn is_closed(&self)->bool {self.0.session.close_reason().is_some()}
++}
++// Cancellation at ANY setup await closes the original connection and retires
++// its coverage before an upgrade future/stream owner can outlive the observer.
++struct SetupAbort {connection:quinn::Connection,coverage:Arc<PhysicalVideoExposureCoverage>,armed:bool}
++impl Drop for SetupAbort {fn drop(&mut self){if self.armed {self.coverage.retire();self.connection.close(0u32.into(),b"original-native-setup-aborted");}}}
++struct QuicDatagrams(quinn::Connection);
++impl StagedDatagramTransport for QuicDatagrams {
++    fn maximum_datagram_bytes(&self)->Option<usize> {self.0.max_datagram_size()}
++    fn send_datagram(&self,bytes:Bytes)->ControlResult<()> {self.0.send_datagram(bytes).map_err(|_|StreamControlError::Backpressure)}
++    fn is_closed(&self)->bool {self.0.close_reason().is_some()}
++}
++#[async_trait::async_trait]
++impl NativeDatagramTransport for QuicDatagrams {
++    async fn read_datagram(&self)->Result<Bytes,DispatchError> {self.0.read_datagram().await.map_err(|_|DispatchError::Closed)}
++}
++struct WtDatagrams(web_transport_quinn::Session);
++impl StagedDatagramTransport for WtDatagrams {
++    fn maximum_datagram_bytes(&self)->Option<usize> {Some(self.0.max_datagram_size())}
++    fn send_datagram(&self,bytes:Bytes)->ControlResult<()> {self.0.send_datagram(bytes).map_err(|_|StreamControlError::Backpressure)}
++    fn is_closed(&self)->bool {self.0.close_reason().is_some()}
++}
++#[async_trait::async_trait]
++impl NativeDatagramTransport for WtDatagrams {
++    async fn read_datagram(&self)->Result<Bytes,DispatchError> {self.0.read_datagram().await.map_err(|_|DispatchError::Closed)}
++}
++impl NativeTransportContext {
++    pub fn from_accepted_quic(
++        accepted:AcceptedNativeConnection,lifetime:CancellationToken,deadline:tokio::time::Instant,
++    )->Result<OwnedNativeSetup<OriginalQuicControl>,DispatchError> {
++        if accepted.negotiated_alpn().as_deref()!=Some(crate::v2::RAW_QUIC_ALPN) {return Err(DispatchError::Unsupported);}
++        let(connection,coverage)=accepted.into_owned_parts();
++        let mut abort=SetupAbort {connection:connection.clone(),coverage:coverage.clone(),armed:true};
++        if lifetime.is_cancelled() || tokio::time::Instant::now()>=deadline || connection.close_reason().is_some() {return Err(DispatchError::Closed);}
++        let mut context=Self::new(PeerTransport::Quic,lifetime.clone(),deadline,connection.clone());
++        context.coverage=Some(coverage.clone());
++        let media_reader=if connection.max_datagram_size().is_some_and(|size|size>=20) {
++            let media=NativePeerMedia::new_accepted(PeerTransport::Quic,Arc::new(QuicDatagrams(connection.clone())),lifetime.child_token(),coverage.clone())?;
++            let reader=media.reader()?;context=context.with_media(media)?;reader
++        }else {Box::pin(std::future::pending()) as BoxFuture<'static,Result<(),DispatchError>>};
++        let control=OriginalQuicControl(Arc::new(QuicOwner {connection,coverage}));
++        abort.armed=false;
++        Ok(OwnedNativeSetup {context,control,media_reader})
++    }
++    pub async fn from_accepted_webtransport(
++        accepted:AcceptedNativeConnection,lifetime:CancellationToken,deadline:tokio::time::Instant,
++        mount:&str,origins:Option<&std::collections::HashSet<String>>,
++    )->Result<OwnedNativeSetup<OriginalWebTransportControl>,DispatchError> {
++        if accepted.negotiated_alpn().as_deref()!=Some(b"h3".as_slice()) || !mount.starts_with('/') || mount.contains(['?','#']) {return Err(DispatchError::Unsupported);}
++        let(connection,coverage)=accepted.into_owned_parts();
++        let mut abort=SetupAbort {connection:connection.clone(),coverage:coverage.clone(),armed:true};
++        let upgrade=async {
++            let request=web_transport_quinn::Request::accept(connection.clone()).await.map_err(|_|DispatchError::Closed)?;
++            let headers=request.headers.get_all(http::header::ORIGIN);
++            let valid=origin_allowed(headers.iter().map(|v|v.to_str().unwrap_or("")),origins)
++                && headers.iter().count()<=1 && headers.iter().all(|v|v.to_str().is_ok());
++            if request.url.path()!=mount || !valid {
++                let _=request.reject(if valid {http::StatusCode::NOT_FOUND}else{http::StatusCode::FORBIDDEN}).await;
++                return Err(DispatchError::Authority);
++            }
++            let origin=request.headers.get(http::header::ORIGIN).and_then(|v|v.to_str().ok()).map(str::to_owned);
++            let session=request.ok().await.map_err(|_|DispatchError::Closed)?;
++            Ok((session,origin))
++        };
++        let(session,origin)=tokio::select! {biased;
++            _=lifetime.cancelled()=>return Err(DispatchError::Closed),
++            value=tokio::time::timeout_at(deadline,upgrade)=>value.map_err(|_|DispatchError::Closed)??,
++        };
++        let mut context=Self::new(PeerTransport::WebTransport,lifetime.clone(),deadline,session.clone()).with_browser_origin(origin)?;
++        context.coverage=Some(coverage.clone());
++        let media_reader=if session.max_datagram_size()>=20 {
++            let media=NativePeerMedia::new_accepted(PeerTransport::WebTransport,Arc::new(WtDatagrams(session.clone())),lifetime.child_token(),coverage.clone())?;
++            let reader=media.reader()?;context=context.with_media(media)?;reader
++        }else {Box::pin(std::future::pending()) as BoxFuture<'static,Result<(),DispatchError>>};
++        let control=OriginalWebTransportControl(Arc::new(WtOwner {session,connection,coverage}));
++        abort.armed=false;
++        Ok(OwnedNativeSetup {context,control,media_reader})
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/server.rs b/crates/uctp/rvoip-uctp/src/v2/server.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/server.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/server.rs
+@@ -34,6 +34,7 @@
+     native: Arc<dyn std::any::Any + Send + Sync>,
+     media: Option<Arc<super::native_media::NativePeerMedia>>,
+     browser_origin: Option<String>,
++    coverage:Option<Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage>>,
+ }
+ impl NativeTransportContext {
+     pub fn new<T: std::any::Any + Send + Sync>(
+@@ -49,6 +50,7 @@
+             native: Arc::new(native),
+             media: None,
+             browser_origin: None,
++            coverage:None,
+         }
+     }
+     /// Exact HTTP Origin captured by the accepting driver, never a payload field.
+@@ -71,7 +73,9 @@
+         Ok(self)
+     }
+     pub fn native<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
+-        self.native.downcast_ref()
++        let value=self.native.downcast_ref::<T>()?;
++        if self.coverage.as_ref().is_some_and(|root|!root.mark_escaped()) {return None;}
++        Some(value)
+     }
+     /// Driver-installed datagrams. WSS carries signaling only and cannot opt
+     /// into this native path. The reader must already have been claimed.
+@@ -79,7 +83,13 @@
+         mut self,
+         media: Arc<super::native_media::NativePeerMedia>,
+     ) -> Result<Self, DispatchError> {
++        if self.coverage.as_ref().is_some_and(|root|media.coverage_internal().is_none_or(|other|!Arc::ptr_eq(root,&other))) {
++            return Err(DispatchError::Unsupported);
++        }
+         if self.transport != media.transport() || !media.is_live() {
++            return Err(DispatchError::Unsupported);
++        }
++        if self.coverage.is_none() && media.coverage_internal().is_some() {
+             return Err(DispatchError::Unsupported);
+         }
+         self.media = Some(media);
+@@ -426,3 +436,6 @@
+         assert_eq!(profile.stats().active_physical, 0);
+     }
+ }
++
++mod owned_native;
++pub use owned_native::{OwnedNativeSetup,OriginalQuicControl,OriginalWebTransportControl};
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
+@@ -109,7 +109,7 @@
+     let fresh_preserved = observed_original(&network, &target, fresh, 320).await;
+     let rejected = source.media.snapshot().ingress_rejected;
+     network.stop().await;
+-    let joined = !source.media.snapshot().reader_running && source.media.router().is_shutdown();
++    let joined = !source.media.snapshot().reader_running && source.media.router().expect("ordinary unsealed native router").is_shutdown();
+     println!("original_recovered={original_preserved} fresh_received={fresh_preserved} temporary_refusals={} ingress_rejected={rejected} reader_joined={joined}", policy.refused.load(Ordering::SeqCst));
+     assert!(
+         joined,
+@@ -234,7 +234,7 @@
+             }
+             network.stop().await;
+         }
+-        assert!(!source.media.snapshot().reader_running && source.media.router().is_shutdown());
++        assert!(!source.media.snapshot().reader_running && source.media.router().expect("ordinary unsealed native router").is_shutdown());
+         assert!(
+             independent,
+             "contended stream blocked independent stream, action {action}"
+@@ -303,7 +303,7 @@
+     let after = source.media.snapshot();
+     network.stop().await;
+     println!("saturated={saturated} accepted_before={} rejected_before={} accepted_after={} rejected_after={} originals={originals} no_extra={no_extra} fresh={fresh}", before.ingress_accepted,before.ingress_rejected,after.ingress_accepted,after.ingress_rejected);
+-    assert!(!source.media.snapshot().reader_running && source.media.router().is_shutdown());
++    assert!(!source.media.snapshot().reader_running && source.media.router().expect("ordinary unsealed native router").is_shutdown());
+     assert!(saturated && before.ingress_accepted == 0 && before.ingress_rejected == 10);
+     assert!(originals && no_extra && fresh);
+     assert_eq!(after.ingress_accepted, 11);
+@@ -452,7 +452,7 @@
+     let fresh_authorization = policy.calls.load(Ordering::SeqCst) > calls;
+     let no_extra = input.try_recv().is_err();
+     network.stop().await;
+-    let joined = !source.media.snapshot().reader_running && source.media.router().is_shutdown();
++    let joined = !source.media.snapshot().reader_running && source.media.router().expect("ordinary unsealed native router").is_shutdown();
+     assert!(joined, "original canonical reader did not join");
+     assert!(deferred && before.ingress_accepted == 64 && before.ingress_rejected == 0);
+     assert_eq!(drained, 64);
+@@ -539,7 +539,7 @@
+         network.stop().await;
+         let after = counters.snapshot();
+         assert!(
+-            !source.media.snapshot().reader_running && source.media.router().is_shutdown(),
++            !source.media.snapshot().reader_running && source.media.router().expect("ordinary unsealed native router").is_shutdown(),
+             "{action}: reader unjoined"
+         );
+         assert!(
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/media_profiles.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/media_profiles.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/media_profiles.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/media_profiles.rs
+@@ -56,7 +56,7 @@
+         let mut scene =
+             Scene::new_profiled(kind, false, managed, true, full_profile(), Some(1400)).await;
+         let source_peer = scene.record.media.lock().unwrap().clone().unwrap();
+-        assert!(source_peer.datagrams().maximum_datagram_bytes().unwrap() >= 1189);
++        assert!(source_peer.datagrams().expect("ordinary unsealed native datagrams").maximum_datagram_bytes().unwrap() >= 1189);
+         let canonical =
+             CanonicalProfile::new(scene.f.config.clone(), Arc::new(Handler::default()), 8)
+                 .unwrap()
+@@ -79,7 +79,7 @@
+             .unwrap()
+             .as_ref()
+             .unwrap()
+-            .datagrams()
++            .datagrams().expect("ordinary unsealed native datagrams")
+             .maximum_datagram_bytes()
+             .unwrap();
+         assert!(
+@@ -269,7 +269,7 @@
+             );
+             artifact(
+                 &format!("{kind}-{name}"),
+-                json!({"codec":name,"decoded_samples":decoded.len(),"sample_rate":rate,"mean_absolute_sample":mean,"measured_zero_crossing_hz":hz,"source_datagram_budget":p.source_peer.datagrams().maximum_datagram_bytes(),"destination_datagram_budget":p.target_budget,"source_mtu":1400,"destination_mtu":1200}),
++                json!({"codec":name,"decoded_samples":decoded.len(),"sample_rate":rate,"mean_absolute_sample":mean,"measured_zero_crossing_hz":hz,"source_datagram_budget":p.source_peer.datagrams().expect("ordinary unsealed native datagrams").maximum_datagram_bytes(),"destination_datagram_budget":p.target_budget,"source_mtu":1400,"destination_mtu":1200}),
+             );
+             assert!(p.scene.grants.0.try_write().is_ok());
+             p.stop().await;
+@@ -494,7 +494,7 @@
+             assert!(split > 0, "real MTU mismatch must cause fragmentation");
+             artifact(
+                 &format!("{kind}-{logical}"),
+-                json!({"codec":"vp8","frames":frames.len(),"decoded_pixel_hashes":expected,"refragmented_inputs":split,"source_datagram_budget":p.source_peer.datagrams().maximum_datagram_bytes(),"destination_datagram_budget":p.target_budget,"source_mtu":1400,"destination_mtu":1200,"malformed_descriptor_rejected_without_effect":true,"source_loss_gap_preserved":observed_gap}),
++                json!({"codec":"vp8","frames":frames.len(),"decoded_pixel_hashes":expected,"refragmented_inputs":split,"source_datagram_budget":p.source_peer.datagrams().expect("ordinary unsealed native datagrams").maximum_datagram_bytes(),"destination_datagram_budget":p.target_budget,"source_mtu":1400,"destination_mtu":1200,"malformed_descriptor_rejected_without_effect":true,"source_loss_gap_preserved":observed_gap}),
+             );
+             assert_eq!(
+                 hashes(&ivf),
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/original_controller.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/original_controller.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/original_controller.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/original_controller.rs
+@@ -16,9 +16,9 @@
+             // Existing public generic API can supply real same-router opaque
+             // allocations. It does NOT certify first raw-owner provenance.
+             let allocator=StagedRtpMedia::new(network.scope(&original.id),
+-                original.media.router(),
++                original.media.router().expect("unsealed ordinary native router"),
+                 Arc::new(dashmap::DashMap::new()),original.readiness.clone(),
+-                original.media.datagrams(),CancellationToken::new());
++                original.media.datagrams().expect("unsealed ordinary native datagrams"),CancellationToken::new());
+             let second=StreamController::new(network.factory.core.conversation.clone(),network.factory.core.session.clone(),
+                 original.id.clone(),principal("old"),network.grants.clone(),backend,allocator.handle_allocator(),16).unwrap();
+             foreign=Some(second.clone());
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/reliable_data.rs
+@@ -981,7 +981,7 @@
+             .media()
+             .unwrap();
+         assert!(media
+-            .router()
++            .router().expect("ordinary unsealed native router")
+             .lookup(std::num::NonZeroU16::new(data.stream_local_id).unwrap())
+             .is_none());
+         let request = s.request(0, 60, "mixed data".into(), "utf8");
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media.rs
+@@ -550,7 +550,7 @@
+             SessionState::Initiating
+         );
+         n.stop().await;
+-        assert!(a.media.router().is_shutdown());
++        assert!(a.media.router().expect("ordinary unsealed native router").is_shutdown());
+         assert!(!a.media.snapshot().reader_running);
+         assert_eq!(n.adapter().route_count(), 0);
+     }
+@@ -611,7 +611,7 @@
+         let _ = packet(&mut input).await;
+         assert!(a
+             .media
+-            .router()
++            .router().expect("ordinary unsealed native router")
+             .lookup(std::num::NonZeroU16::new(audio_id).unwrap())
+             .is_some());
+         n.stop().await;
+@@ -660,7 +660,7 @@
+             16
+         )
+         .is_err());
+-    let before = a.media.router().snapshot();
++    let before = a.media.router().expect("ordinary unsealed native router").snapshot();
+     assert!(a
+         .controller
+         .change(
+@@ -673,7 +673,7 @@
+         .await
+         .is_err());
+     assert_eq!(
+-        a.media.router().snapshot().issued_local_ids,
++        a.media.router().expect("ordinary unsealed native router").snapshot().issued_local_ids,
+         before.issued_local_ids
+     );
+     let mut input = a
+@@ -863,10 +863,10 @@
+             .unwrap();
+         assert!(a
+             .media
+-            .router()
++            .router().expect("ordinary unsealed native router")
+             .lookup(std::num::NonZeroU16::new(retired).unwrap())
+             .is_none());
+-        assert!(!a.media.router().is_shutdown());
++        assert!(!a.media.router().expect("ordinary unsealed native router").is_shutdown());
+         let mut input = b
+             .controller
+             .take_ingress(&StreamId::from_string("audio"))
+@@ -957,10 +957,10 @@
+     )
+     .with_media(media.clone())
+     .is_err());
+-    let reservation = media.router().reserve().unwrap();
++    let reservation = media.router().expect("ordinary unsealed native router").reserve().unwrap();
+     drop(reader);
+     assert!(!media.is_live());
+-    assert!(media.router().is_shutdown());
++    assert!(media.router().expect("ordinary unsealed native router").is_shutdown());
+     assert!(reservation.cancellation_token().is_cancelled());
+     assert!(media.reader().is_err());
+ }
+@@ -980,7 +980,7 @@
+     let reader = media.reader().unwrap();
+     drop(tx);
+     assert!(reader.await.is_err());
+-    assert!(media.router().is_shutdown());
++    assert!(media.router().expect("ordinary unsealed native router").is_shutdown());
+     assert!(!media.is_live());
+     for maximum in [None, Some(19)] {
+         let (_tx, rx) = mpsc::channel(1);
+@@ -1114,7 +1114,7 @@
+             )
+             .is_err());
+         assert!(n.adapter().staged_media(&id).is_none());
+-        assert_eq!(media.router().snapshot().issued_local_ids, 0);
++        assert_eq!(media.router().expect("ordinary unsealed native router").snapshot().issued_local_ids, 0);
+     }
+     n.grants.0.write().await.owners.insert(id.clone(), baseline);
+     assert!(n
+@@ -1196,7 +1196,7 @@
+             .close(0u32.into(), b"abrupt first peer EOF");
+         n.wire.retired().await;
+         core_fixture::until(|| n.adapter().route_count() == 1).await;
+-        assert!(a.media.router().is_shutdown());
++        assert!(a.media.router().expect("ordinary unsealed native router").is_shutdown());
+         assert!(!a.media.is_live());
+         assert!(b.media.is_live());
+         send(&other, audio(binding(&b, Medium::Audio).stream_local_id, 0));
+@@ -1266,7 +1266,7 @@
+     let a = n.configure(0).await;
+     let stream = core_fixture::TestStream::new(true);
+     let (tx, mut rx) = mpsc::channel(1);
+-    let reservation = a.media.router().reserve().unwrap();
++    let reservation = a.media.router().expect("ordinary unsealed native router").reserve().unwrap();
+     let local = reservation.local_id();
+     reservation
+         .commit(PeerMediaRegistration::new(
+diff --git a/crates/uctp/rvoip-uctp/tests/support/credential_rebind_wire_tests.rs b/crates/uctp/rvoip-uctp/tests/support/credential_rebind_wire_tests.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/credential_rebind_wire_tests.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/credential_rebind_wire_tests.rs
+@@ -24,7 +24,7 @@
+         let model = controller.revision();
+         let binding = h.readiness.offers.lock().unwrap()[0].clone();
+         let media = h.adapter().physical_source(&h.id).unwrap().media().unwrap();
+-        let handles = media.router().snapshot().issued_local_ids;
++        let handles = media.router().expect("ordinary unsealed native router").snapshot().issued_local_ids;
+         let peer = h.native.records.lock().unwrap()[0]
+             .peer
+             .lock()
+@@ -64,7 +64,7 @@
+             h.readiness.offers.lock().unwrap()[0].transport_id,
+             binding.transport_id
+         );
+-        assert_eq!(media.router().snapshot().issued_local_ids, handles);
++        assert_eq!(media.router().expect("ordinary unsealed native router").snapshot().issued_local_ids, handles);
+         assert_eq!(peer.snapshot().connections, quota.connections);
+         assert_eq!(peer.snapshot().sessions, quota.sessions);
+         assert!(stale
+diff --git a/crates/uctp/rvoip-uctp/tests/support/media_control.rs b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/media_control.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/media_control.rs
+@@ -751,7 +751,7 @@
+             physical
+                 .media()
+                 .unwrap()
+-                .router()
++                .router().expect("ordinary unsealed native router")
+                 .snapshot()
+                 .issued_local_ids,
+             0
+diff --git a/crates/uctp/rvoip-webtransport/src/canonical.rs b/crates/uctp/rvoip-webtransport/src/canonical.rs
+--- a/crates/uctp/rvoip-webtransport/src/canonical.rs
++++ b/crates/uctp/rvoip-webtransport/src/canonical.rs
+@@ -195,3 +195,70 @@
+             .map_err(|_| DispatchError::Closed)
+     }
+ }
++
++/// Owned original accepted transport; no raw Session/Connection crosses the
++/// strict setup facade, and this profile never falls back to generic accepts.
++pub fn start_owned(
++    incoming:rvoip_uctp::substrate::OwnedAlpnReceiver,
++    profile:CanonicalProfile,contact:String,mount:String,origins:Option<HashSet<String>>,
++)->Result<ProfileServer,DispatchError> {
++    let(incoming,lifetime)=incoming.into_parts();
++    start_original_inner(incoming,Some(lifetime),profile,contact,mount,origins)
++}
++/// The caller retains its original physical ingress slot, TLS bound, key
++/// cutoff and intake joins. No already-raw native connection can enter here.
++pub fn start_original(
++    incoming:mpsc::Receiver<rvoip_uctp::substrate::AcceptedNativeConnection>,
++    profile:CanonicalProfile,contact:String,mount:String,origins:Option<HashSet<String>>,
++)->Result<ProfileServer,DispatchError> {
++    start_original_inner(incoming,None,profile,contact,mount,origins)
++}
++fn start_original_inner(
++    incoming:mpsc::Receiver<rvoip_uctp::substrate::AcceptedNativeConnection>,
++    accept_lifetime:Option<rvoip_uctp::substrate::OwnedAcceptLifetime>,
++    profile:CanonicalProfile,contact:String,mount:String,origins:Option<HashSet<String>>,
++)->Result<ProfileServer,DispatchError> {
++
++    if !mount.starts_with('/')||mount.contains(['?','#']) {return Err(DispatchError::Unsupported);}
++    let origins=Arc::new(origins);
++    ProfileServer::spawn(incoming,profile.max_connections(),move|accepted,cancel| {
++        let _accept_lifetime=accept_lifetime.clone();
++        let profile=profile.clone();let contact=contact.clone();let mount=mount.clone();let origins=origins.clone();
++        async move {
++            let _accept_lifetime=_accept_lifetime;
++            let cancel=cancel.child_token();let _lifetime=cancel.clone().drop_guard();
++            let deadline=tokio::time::Instant::now()+AUTHENTICATION_TIMEOUT;
++            let peer=profile.peer(PeerTransport::WebTransport,&contact,cancel.clone())?.with_original_authentication_deadline(deadline);
++            let setup=NativeTransportContext::from_accepted_webtransport(accepted,cancel.clone(),deadline,&mount,origins.as_ref().as_ref()).await?;
++            let control=setup.control;
++            struct CloseOwned(rvoip_uctp::v2::server::OriginalWebTransportControl);
++            impl Drop for CloseOwned {fn drop(&mut self){self.0.close(0u32.into(),b"canonical-peer-retired");}}
++            let _close=CloseOwned(control.clone());let mut media_reader=setup.media_reader;
++            let handler=profile.physical_handler(setup.context)?;
++            let(mut transport_writer,reader)=tokio::select! {biased;
++                _=cancel.cancelled()=>return Err(DispatchError::Closed),
++                _=media_reader.as_mut()=>return Err(DispatchError::Closed),
++                value=tokio::time::timeout_at(deadline,control.accept_bi())=>value.map_err(|_|DispatchError::Closed)??,
++            };
++            let reader=futures::stream::unfold(crate::framing::EnvelopeReader::new(reader),|mut reader|async move {
++                match reader.next_bytes().await {Ok(Some(bytes))=>Some((Ok(bytes),reader)),Ok(None)=>None,Err(_)=>Some((Err(DispatchError::Closed),reader))}
++            });
++            let writer=futures::sink::unfold(&mut transport_writer,|writer,bytes:Bytes|async move {
++                if bytes.len()>MAX_ENVELOPE_BYTES {return Err(DispatchError::Closed);}
++                let mut frame=Vec::with_capacity(4+bytes.len());frame.extend_from_slice(&(bytes.len()as u32).to_be_bytes());frame.extend_from_slice(&bytes);
++                writer.write_all(&frame).await.map_err(|_|DispatchError::Closed)?;
++                tokio::io::AsyncWriteExt::flush(writer).await.map_err(|_|DispatchError::Closed)?;Ok(writer)
++            });
++            let result=tokio::select! {biased;
++                _=media_reader.as_mut()=>Err(DispatchError::Closed),
++                value=peer.run_frames(Box::pin(reader),Box::pin(writer),handler.as_ref())=>value,
++            };
++            drop(media_reader);
++            if transport_writer.finish().is_ok() {tokio::select! {biased;
++                _=cancel.cancelled()=>{},
++                _=tokio::time::timeout(std::time::Duration::from_secs(1),transport_writer.stopped())=>{},
++            }}
++            result
++        }
++    },|accepted|accepted.close(0u32.into(),b"canonical-admission-closed"))
++}
