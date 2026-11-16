@@ -1,0 +1,77 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "updated_at": "2026-11-16T03:40:34.722761+00:00",
+  "status": "component-verified",
+  "source_base_revision": "c1b920c69ffb22772c7e37c9776d1aaedd98bbc5",
+  "source_workspace_sha256": "439999233ab8d0399862ac2d23651bc61c38e7b6dda56083c85e1fcdae04515e",
+  "source_lock_sha256": "6a0da3ca41bea78568f3abc319923600927089e9ae5e6a68560e5fdd9533e25b",
+  "dependency_patch_count": 465,
+  "counts": {
+    "rvoip-core": {
+      "status": "ok",
+      "passed": 668,
+      "failed": 0,
+      "ignored": 0
+    },
+    "rvoip-webrtc": {
+      "status": "ok",
+      "passed": 70,
+      "failed": 0,
+      "ignored": 0
+    },
+    "rvoip-uctp": {
+      "status": "ok",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0
+    },
+    "rvoip-uctp-v2-peer-admission": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "total_passed": 749,
+  "failed": 0,
+  "ignored": 0,
+  "retained_core640_and_rtc42": true,
+  "original_owners": {
+    "count": 14,
+    "all_natural_zero_and_groups_gone": true
+  },
+  "binary_sha256": {
+    "rvoip-core": "a07f675bcc5b841449a54a70dcda98e8172e5e190ebed2ee8b15124c9efd3ee4",
+    "rvoip-webrtc": "7449bb0e4048b1daf8ee7a187a0f9e474379c4cc42d2aec87f90f68c6f457a27",
+    "rvoip-uctp": "0dd2c82fc4b6715e7293ad9e81527a3a77f5ffdd2580f44a0efdb82b8c093a0b",
+    "rvoip-uctp-v2-peer-admission": "b4627ab2b7b7ba8299981caee63d2ed829393e709b7defb089ec4731729b086d"
+  },
+  "original_evidence": {
+    ".local/gate-6/v219-reviewed-rust-batch-units-root-r2/result.json": "0620c15380823c0639a0fdac7e664cd7ce81a302c7d130c0a087f3353a7f67be",
+    ".local/gate-6/v219-reviewed-rust-batch-units-root-r2/root-original-join.json": "20bb75bb64b5e62e5c59c2da0b19361e9b83b7512f2af4a2459f34a9ff6b360d",
+    ".local/gate-6/v219-reviewed-rust-batch-units-root-r2/source.json": "bf94dddbc8ada849098fea9a310c44d94bcb2097ae17e894a0dd8a45f18dfba4",
+    ".local/gate-6/v219-reviewed-rust-batch-units-independent-fixture-review/receipt.json": "960e14409e3ab4481c2f6c68bf5a4b961a61d40c79da4b9171dc3d882a6f78d2",
+    ".local/gate-6/v219-reviewed-rust-batch-preparation-root/normal465-runtime/receipt.json": "6308de6a9114e68be78100c6e15dc436fb19328b6b382e33ccf9ed99ed7a1445",
+    ".local/gate-6/v219-reviewed-rust-batch-preparation-root/normal465-verification-runtime/receipt.json": "d0ede8510c4c9ff2d17edec8821e7123aa364906950a0eae670f4551bc5876f0",
+    ".local/gate-6/v219-reviewed-rust-batch-preparation-root/normal465-verification-runtime-r2/receipt.json": "e299bba764049f30e5ee98947a9c78ef7544597a49f23b573993ffb1d999962f",
+    ".local/gate-6/v219-reviewed-rust-batch-units-root/result.json": "dcce830d714e308f3e4dcdc4e41f26ecc621d0b79a6f0c642955d76c45b9e997"
+  },
+  "verified_changes": [
+    "Original audio subscription scope survives unrelated public-video Hold for both model-free and model-busy capture; fresh current policy and programme/private-audience negatives retained.",
+    "Retained-session frame realm and native/WebRTC original group custody before retention, retry and fanout.",
+    "Physical WebRTC original-source tracking before actual primary/repair IO; raw-peer accessor seal and scalar ICE facade."
+  ],
+  "scope_limits": [
+    "No new physical-media, ARM, shipping release, full coherent qualification or full32 run. Current normal Service/client compile not yet run.",
+    "Raw accessor seal does not close the separate adapter-factory/controller ownership escape; original-plan freeze is held pending that structural fix.",
+    "B setup/metadata and SDK constructor/readiness are separately source-reviewed, not applied or runtime-qualified. B warm writer, activation, abort/resume and durable phases remain.",
+    "Unsupported old transport roots remain explicit; WebRTC tracking does not establish native/WT freeze proof.",
+    "Original failed preparation classification and formatter guard attempts remain failed and ungraded; all failed receipts preserved."
+  ],
+  "latest_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  }
+}

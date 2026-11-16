@@ -1,0 +1,36 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
+@@ -549,12 +549,11 @@
+ /// OLD is expected to fail only the final Some-arrival original-audio oracle.
+ #[tokio::test]
+ async fn original_audio_survives_unrelated_public_video_hold_for_free_and_busy_capture() {
+-    use futures::FutureExt as _;
+     let mut observations=Vec::new();
+     for busy in [false,true] {
+         let (f,mode)=fixture().await;
+         let io=Arc::new(AtomicUsize::new(0));
+-        let work=std::panic::AssertUnwindSafe(async {
++        let mut work=Box::pin(async {
+             let port=f.aa.port(Medium::Audio);let id=desired(Medium::Audio).logical_id;
+             let ticket=port.0.ticket(TicketSide::Ingress);let mut input=f.a.take_ingress(&id).unwrap();let mut output=f.ba.port(Medium::Audio).take_egress().unwrap();
+             let before=f.a.revision();let received=Instant::now();let original_frame=frame(&port,160);
+@@ -582,7 +581,18 @@
+             outgoing(&mut output).await.deliver(move|delivered|async move {assert_eq!(delivered.timestamp_rtp,320);count.fetch_add(1,Ordering::AcqRel);Ok(())}).await.unwrap();
+             assert!(input.try_recv().is_err());assert!(matches!(original.try_publish_clocked(|_|None),Err(StreamControlError::Cancelled)));
+             (result,age,captured,original_io,io.load(Ordering::Acquire))
+-        }).catch_unwind().await;
++        });
++        let outcome = std::future::poll_fn(|cx| {
++            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++                std::future::Future::poll(work.as_mut(), cx)
++            })) {
++                Ok(std::task::Poll::Ready(value)) => std::task::Poll::Ready(Ok(value)),
++                Ok(std::task::Poll::Pending) => std::task::Poll::Pending,
++                Err(error) => std::task::Poll::Ready(Err(error)),
++            }
++        }).await;
++        drop(work);
++        let work = outcome;
+         // Always drain BOTH original controllers before any desired OLD leaf.
+         let a=f.a.shutdown(deadline()).await;let b=f.b.shutdown(deadline()).await;
+         assert_eq!(a,0);assert_eq!(b,0);assert_eq!(f.aa.outstanding.load(Ordering::Acquire),0);assert_eq!(f.ba.outstanding.load(Ordering::Acquire),0);

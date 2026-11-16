@@ -6,7 +6,7 @@ use connect_store::{
     AuthorityWait, NativeIceOrigin, NativeStreamCommitted, NativeStreamLease, PeerAuthorityGuard,
 };
 use rvoip_core::{peer_admission::PeerAdmission, staged_streams::TransportUpdateSlot};
-use rvoip_webrtc::peer::RvoipPeerConnection;
+use rvoip_webrtc::canonical::OriginalWebRtcIceControl;
 
 /// The ordinary signed reply writer owns the original invocation through its
 /// actual write. Read the private original answer under that SAME current proof;
@@ -51,7 +51,7 @@ pub(super) struct Restart {
     lease: Option<NativeStreamLease>,
     receipt: Option<NativeStreamCommitted>,
     slot: Option<TransportUpdateSlot>,
-    rtc: Option<Arc<RvoipPeerConnection>>,
+    rtc: Option<OriginalWebRtcIceControl>,
     submitted: bool,
     deadline: Instant,
     stop: CancellationToken,
@@ -224,16 +224,16 @@ impl Restart {
             &self.stop,
             &self.physical,
             self.adapter
-                .original_peer(&self.id, &self.peer, self.deadline),
+                .original_ice_control(&self.id, &self.peer, self.deadline),
         )
         .await?
         .map_err(|_| Error::forbidden())?;
-        let descriptions = bounded(self.deadline, &self.stop, &self.physical, async {
-            (
-                rtc.peer_connection().local_description().await,
-                rtc.peer_connection().remote_description().await,
-            )
-        })
+        let descriptions = bounded(
+            self.deadline,
+            &self.stop,
+            &self.physical,
+            rtc.descriptions(),
+        )
         .await?;
         let (Some(local), Some(remote)) = descriptions else {
             return Err(Error::forbidden());
@@ -247,7 +247,7 @@ impl Restart {
         let lease = self.lease.as_mut().ok_or_else(Error::forbidden)?;
         self.policy
             .store
-            .capture_native_ice_baseline(lease, &local.sdp, &remote.sdp)?;
+            .capture_native_ice_baseline(lease, &local, &remote)?;
         let current = self
             .slot
             .as_ref()
@@ -311,12 +311,12 @@ impl Restart {
             &self.stop,
             &self.physical,
             self.adapter
-                .original_peer(&self.id, &self.peer, self.deadline),
+                .original_ice_control(&self.id, &self.peer, self.deadline),
         )
         .await?
         .map_err(|_| Error::forbidden())
         .inspect_err(|e| self.diagnostic("original-peer", Some(e)))?;
-        if !Arc::ptr_eq(rtc, &same) {
+        if !rtc.same_physical(&same) {
             self.diagnostic("original-identity", Some(&Error::forbidden()));
             return Err(Error::forbidden());
         }
@@ -326,8 +326,7 @@ impl Restart {
             self.deadline,
             &self.stop,
             &self.physical,
-            rtc.peer_connection()
-                .ice_descriptions_ready(answer, intent.proposed_remote_offer()),
+            rtc.ice_descriptions_ready(answer, intent.proposed_remote_offer()),
         )
         .await
         .inspect_err(|e| self.diagnostic("rtc-observation", Some(e)))?;
@@ -384,7 +383,7 @@ impl Restart {
         // Historical cleanup is bound to actual allocation identity, even
         // after authority or the physical signaling peer has retired.
         self.adapter
-            .end_original(self.id.clone(), &self.peer, rtc, EndReason::Normal)
+            .end_original_ice_control(self.id.clone(), &self.peer, rtc, EndReason::Normal)
             .await
             .map_err(|_| {
                 Error::new(

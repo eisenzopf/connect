@@ -2476,6 +2476,41 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-directional-source-barrier-and-visual-race-stimuli.patch",
       "sha256": "0b2053cae7cbe828c796bba26859aec28a866f5562f4eb9ed1331f01216fca88"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-original-audio-video-isolation-old-counter.patch",
+      "sha256": "df375116681114783904f453f0781fdf66b325afa7fed1783310eff37e3e0f02"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-original-audio-video-counter-poll-unwind.patch",
+      "sha256": "2e6ad5612328e187f344d2eb9aadf1a0ecb090cc9c8159506ae555554459b362"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-session-source-frame-realm.patch",
+      "sha256": "4b16e00258a11253c68f48f7bce3337ce9995e9bb418593563e955a1a9a645f7"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-original-video-realm.patch",
+      "sha256": "80a3c70e3fac20b1faf53411e9be3c274cedd024d4e0b4b682045e0e57d15d1f"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-physical-video-exposure-frontier.patch",
+      "sha256": "7060851fdb3c941fe1792cb2c6ba90d8a52d3681047cedead03b528e1e6de1b5"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-audio-original-scoped-custody.patch",
+      "sha256": "72d5252d90eb8a5696e50f955567225c00b0af858c2ad53cd85026116b1fb086"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-physical-video-raw-access-seal.patch",
+      "sha256": "93d130af2976ea9925f93c8aaa601b1e573098c9810663e4f4ee034c180255b6"
     }
   ]
 }

@@ -1,0 +1,294 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -3409,18 +3409,18 @@
+                 Err(error) => return Err(error),
+             }
+         };
+-        let mut retry_owned_visual_original = false;
++        let mut retry_owned_realtime_original = false;
+         let mut retry_owned_queued_visual = false;
+         let mut retry_owned_audio = false;
+         if detached {
+             // This callback must never publish across a model revision. Only
+-            // an exact still-eligible owned raw visual or queued media copy may ask
++            // an exact still-eligible owned original or queued media copy may ask
+             // its owner for a fresh attempt after every reader drops.
+             if state.model.revision() != revision {
+                 if original.is_some()
+                     && matches!(
+                         port.binding.negotiated.requested.medium,
+-                        Medium::Video | Medium::Screen
++                        Medium::Audio | Medium::Video | Medium::Screen
+                     )
+                     && !sending
+                     && source.is_none()
+@@ -3429,7 +3429,7 @@
+                     && packet_context.is_none()
+                     && queued_deadline.is_some()
+                 {
+-                    retry_owned_visual_original = true;
++                    retry_owned_realtime_original = true;
+                 } else if matches!(owner, AdmissionOwner::QueuedVisual)
+                     && matches!(
+                         port.binding.negotiated.requested.medium,
+@@ -3514,14 +3514,14 @@
+             .as_deref()
+             .map_or(deadline, |until| deadline.min(*until));
+         let deadline = Self::media_deadline(&credential.principal, lease.as_ref(), deadline)?;
+-        if retry_owned_visual_original || retry_owned_queued_visual || retry_owned_audio {
++        if retry_owned_realtime_original || retry_owned_queued_visual || retry_owned_audio {
+             // All the normal current port/ticket, consumer/scene, credential
+             // and authority eligibility checks above remain required. This is
+             // still a refusal: no admission or stale lease leaves this call.
+             if tokio::time::Instant::now() >= deadline {
+                 return Err(StreamControlError::Deadline);
+             }
+-            return Err(if retry_owned_visual_original {
++            return Err(if retry_owned_realtime_original {
+                 StreamControlError::MetadataBusy
+             } else {
+                 StreamControlError::NotReady
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -211,6 +211,20 @@
+     pub(super) cancellation: CancellationToken,
+ }
+ impl ConsumerStamp {
++    /// Optional original AUDIO input scope from THIS exact captured consumer.
++    /// No grant, model lookup, private mix stamp or later member adoption.
++    pub(super) fn original_programme_stamp(&self)->ControlResult<super::audio_subscriptions::SubscriptionStamp> {
++        let owner=self.owner.upgrade().ok_or(StreamControlError::NotReady)?;
++        {
++            let state=owner.state.lock().unwrap_or_else(|p|p.into_inner());
++            if !state.active||state.epoch!=self.epoch||state.started!=self.started
++                ||!self.ticket.same_generation(&state.ticket)||!self.ticket.is_current()
++                ||self.cancellation.is_cancelled() {
++                return Err(StreamControlError::NotReady);
++            }
++        }
++        Ok(owner.subscriptions.stamp())
++    }
+     // Descriptor freshness only; publication still reacquires current authority.
+     pub(super) fn active_at(&self, received_at: Instant) -> bool {
+         self.owner.upgrade().is_some_and(|owner| {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_ingress.rs
+@@ -5,7 +5,7 @@
+ pub mod native_observation;
+ 
+ pub(super) struct OriginalStamp {
+-    revision: Option<u64>,
++    audio_programme: Option<audio_subscriptions::SubscriptionStamp>,
+     #[cfg(test)]
+     captured_revision: Option<u64>,
+     received_at: Instant,
+@@ -14,10 +14,11 @@
+     scene: Option<scene_consumer::SceneStamp>,
+ }
+ impl OriginalStamp {
+-    pub(super) fn validate(&self, owner: &StreamController, state: &State) -> ControlResult<()> {
+-        if self
+-            .revision
+-            .is_some_and(|revision| state.model.revision() != revision)
++    pub(super) fn validate(&self, owner: &StreamController, _state: &State) -> ControlResult<()> {
++        // Exact original AUDIO programme, not an opportunistic whole-model
++        // revision that also advances for unrelated video/signaling changes.
++        if self.audio_programme.as_ref().is_some_and(|stamp|
++            stamp.started>self.received_at||!stamp.is_current())
+         {
+             return Err(MediaTransitionError::Conflict.into());
+         }
+@@ -150,6 +151,15 @@
+         if consumer.as_ref().is_some_and(|s| !s.active_at(received_at))
+             || scene.as_ref().is_some_and(|s| !s.active_at(received_at))
+         {
++            return Err(StreamControlError::NotReady);
++        }
++        // Freeze from the SAME original member even when model State is busy.
++        // Plain programme stamp only: never mixer/private preparation custody,
++        // and never discover a now-current programme on a later retry.
++        let audio_programme=if self.0.kind()==StreamKind::Audio {
++            consumer.as_ref().map(|stamp|stamp.original_programme_stamp()).transpose()?
++        } else {None};
++        if audio_programme.as_ref().is_some_and(|stamp|stamp.started>received_at||!stamp.is_current()) {
+             return Err(StreamControlError::NotReady);
+         }
+         let state = match owner.state.try_lock() {
+@@ -172,22 +182,13 @@
+                 return Err(StreamControlError::NotReady);
+             }
+         }
+-        // Audio keeps the stricter opportunistic whole-model fence.
+-        // Video and screen instead always retain its exact port/ticket, consumer/scene
+-        // activation and credential: unrelated audio-only routing revisions
+-        // cannot discard an original merely because State was free at arrival.
+-        // Every attempt still validates the CURRENT model and its same revision
+-        // before/after fresh policy. No old authorization survives this capture.
++        // Every original retains exact input/member/scene/credential custody.
++        // AUDIO additionally freezes its own actual programme generation, so
++        // relevant audio changes remain permanent fences in BOTH capture paths.
++        // Every attempt still validates CURRENT model before/after fresh policy;
++        // no cached grant survives capture or retry.
+         let stamp = OriginalStamp {
+-            revision: state
+-                .as_ref()
+-                .filter(|_| {
+-                    !matches!(
+-                        self.0.binding.negotiated.requested.medium,
+-                        Medium::Video | Medium::Screen
+-                    )
+-                })
+-                .map(|s| s.model.revision()),
++            audio_programme,
+             #[cfg(test)]
+             captured_revision: state.as_ref().map(|s| s.model.revision()),
+             received_at,
+@@ -315,6 +316,10 @@
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+         }
++        // Pin only the original own-programme epoch across synchronous enqueue.
++        // A concurrent real audio selection change drains this SAME old gate;
++        // no scope/ticket/permission is recaptured and no guard crosses a wait.
++        let _programme=self.stamp.audio_programme.as_ref().map(|stamp|stamp.begin_local(&owner)).transpose()?;
+         let mut frame = self.frame.clone();
+         frame.source_clock = observe(self.port.clock_liveness(self.ticket.clone(), &admission));
+         self.port
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_video_ingress.rs
+@@ -184,7 +184,7 @@
+             pending.audio_original.try_publish_clocked(|_| None),
+             Err(StreamControlError::Model(MediaTransitionError::Conflict))
+         ),
+-        "audio must keep its original whole-model fence"
++        "audio must keep its original programme/input scope fence"
+     );
+     pending.drain_old_input();
+     let before = pending.room.domain.fresh.load(Ordering::Acquire);
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/original_visual_policy_retry.rs
+@@ -337,8 +337,11 @@
+             Change::PolicyAuthority,
+             Change::AudioOriginal,
+         ] {
++            // Actual audio programme change must fence BOTH original capture
++            // paths, including the legacy arrival that observed no model State.
++            for exclude_initial_state in [false,true].into_iter().filter(|exclude|change==Change::AudioOriginal||!*exclude) {
+             let mut fixture =
+-                OriginalVisual::new(medium, change == Change::AudioOriginal, false).await;
++                OriginalVisual::new(medium, change == Change::AudioOriginal, exclude_initial_state).await;
+             let _action = fixture.race(medium, change);
+             let first = fixture.original.try_publish_clocked(|_| None);
+             fixture.assert_refused_without_readers();
+@@ -431,6 +434,106 @@
+                     .try_write()
+                     .expect("terminal refusal retained authority"),
+             );
++            }
+         }
+     }
+ }
++
++/// Actual current-policy model turn, not a pre-call revision mismatch. Refuse
++/// this callback without IO, then reauthorize only the SAME original input.
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn original_audio_video_policy_race_retries_same_scoped_input_without_old_grant() {
++    for busy in [false,true] {
++        let mut fixture=OriginalVisual::new(Medium::Video,true,busy).await;
++        let source=fixture.source.clone();let runtime=tokio::runtime::Handle::current();let cutoff=tokio::time::Instant::from_std(fixture.received+Duration::from_millis(200));
++        let callback:OriginalVisualPolicyAction=Box::new(move|lease| {
++            drop(source.state.try_lock().expect("audio policy callback held model State"));
++            let control=std::thread::spawn(move||runtime.block_on(async move {
++                let ids=[desired(Medium::Video).logical_id].into_iter().collect();let revision=source.revision();
++                source.set_media_gate(revision,&ids,StreamGateAction::Hold {direction:StreamDirection::Receive},cutoff).await?;
++                Ok::<(),StreamControlError>(())
++            })).join().expect("original video-only control worker panicked");
++            control?;Ok(lease)
++        });
++        let action=ActionOwner(fixture.room.domain.clone());
++        assert!(fixture.room.domain.original_visual_policy_action.lock().unwrap().replace(callback).is_none());
++        let mut owned_work=Box::pin(async {
++            let first=fixture.original.try_publish_clocked(|_|None);fixture.assert_refused_without_readers();
++            assert!(matches!(&first,Err(StreamControlError::MetadataBusy)),"unchanged audio model turn must be retryable without IO: {first:?}");
++            assert!(fixture.received.elapsed()<Duration::from_millis(200));
++            let before=fixture.room.domain.fresh.load(Ordering::Acquire);
++            fixture.original.try_publish_clocked(|_|None).unwrap();
++            assert!(fixture.room.domain.fresh.load(Ordering::Acquire)>before,"same original retry reused old policy grant");
++            fixture.room.tick();fixture.room.heard("bob",1800).await;
++            assert!(matches!(fixture.original.try_publish_clocked(|_|None),Err(StreamControlError::Cancelled)));
++            assert!(fixture.room.nodes.get_mut("bob").unwrap().out.try_recv().is_err(),"same original duplicated actual audio output");
++        });
++        let work=std::future::poll_fn(|cx|match std::panic::catch_unwind(std::panic::AssertUnwindSafe(||std::future::Future::poll(owned_work.as_mut(),cx))) {
++            Ok(std::task::Poll::Pending)=>std::task::Poll::Pending,
++            Ok(std::task::Poll::Ready(value))=>std::task::Poll::Ready(Ok(value)),
++            Err(error)=>std::task::Poll::Ready(Err(error)),
++        }).await;
++        drop(owned_work);
++        drop(action); // Break callback/domain/owner custody before all cleanup.
++        let mut cleanup=Vec::new();for node in fixture.room.nodes.values() {cleanup.push(node.controller.shutdown(deadline()).await);}
++        assert!(cleanup.into_iter().all(|remaining|remaining==0));assert!(fixture.room.nodes.values().all(|node|node.adapter.outstanding.load(Ordering::Acquire)==0));
++        if let Err(error)=work {std::panic::resume_unwind(error)}
++    }
++}
++
++#[tokio::test]
++async fn original_audio_programme_clear_before_publication_fences_both_capture_paths() {
++    for busy in [false,true] {
++        let mut fixture=OriginalVisual::new(Medium::Video,true,busy).await;
++        // Work borrows the actual room; cleanup is explicit below after drop.
++        let mut owned=Box::pin(async {
++            let revision=fixture.source.revision();let cutoff=tokio::time::Instant::from_std(fixture.received+Duration::from_millis(200));
++            fixture.room.scene.change_subscriptions(&fixture.source.connection,revision,AudioSubscriptionChange::Clear,cutoff,CancellationToken::new(),None).await.unwrap();
++            assert!(fixture.source.revision()>revision);assert!(fixture.received.elapsed()<Duration::from_millis(200));
++            let before=fixture.room.domain.fresh.load(Ordering::Acquire);
++            let result=fixture.original.try_publish_clocked(|_|None);
++            assert!(matches!(&result,Err(StreamControlError::Model(MediaTransitionError::Conflict))),"same original captured a newer audio programme: busy={busy} {result:?}");
++            assert_eq!(fixture.room.domain.fresh.load(Ordering::Acquire),before,"invalid original scope borrowed a new current grant");
++            assert_eq!(fixture.port.ingress_capacity().0,fixture.port.ingress_capacity().1);assert!(fixture.room.nodes.get_mut("bob").unwrap().out.try_recv().is_err());
++            fixture.room.publish("alice",1800).unwrap();fixture.room.tick();fixture.room.heard("bob",1800).await;
++            assert!(matches!(fixture.original.try_publish_clocked(|_|None),Err(StreamControlError::Cancelled)));
++        });
++        let result=std::future::poll_fn(|cx|match std::panic::catch_unwind(std::panic::AssertUnwindSafe(||std::future::Future::poll(owned.as_mut(),cx))) {
++            Ok(std::task::Poll::Pending)=>std::task::Poll::Pending,
++            Ok(std::task::Poll::Ready(value))=>std::task::Poll::Ready(Ok(value)),
++            Err(error)=>std::task::Poll::Ready(Err(error)),
++        }).await;drop(owned);
++        let mut cleanup=Vec::new();for node in fixture.room.nodes.values() {cleanup.push(node.controller.shutdown(deadline()).await);}
++        assert!(cleanup.into_iter().all(|remaining|remaining==0));assert!(fixture.room.nodes.values().all(|node|node.adapter.outstanding.load(Ordering::Acquire)==0));
++        if let Err(error)=result {std::panic::resume_unwind(error)}
++    }
++}
++
++#[tokio::test]
++async fn original_audio_private_audience_cannot_adopt_prechange_input_from_either_capture_path() {
++    for busy in [false,true] {
++        let mut fixture=OriginalVisual::new(Medium::Video,true,busy).await;
++        let mut owned=Box::pin(async {
++            fixture.room.add("consult",None,true).await;
++            let plan=fixture.room.begin_plan();let grant=fixture.room.grant(Approval::Audience(plan.clone())).await;
++            let cutoff=tokio::time::Instant::from_std(fixture.received+Duration::from_millis(200));
++            fixture.room.scene.apply_audio_audience(plan,cutoff,CancellationToken::new(),&grant).await.unwrap();drop(grant);
++            assert!(fixture.received.elapsed()<Duration::from_millis(200));
++            let result=fixture.original.try_publish_clocked(|_|None);
++            assert!(matches!(&result,Err(StreamControlError::NotReady|StreamControlError::Model(MediaTransitionError::Conflict))),"pre-audience original adopted new scope: busy={busy} {result:?}");
++            assert_eq!(fixture.port.ingress_capacity().0,fixture.port.ingress_capacity().1);
++            // New current microphone data may reach ONLY the actual private
++            // receiver. It cannot substitute for rejection of the old original.
++            fixture.room.publish("alice",1800).unwrap();fixture.room.tick();fixture.room.heard("consult",1800).await;fixture.room.silent(&["bob"]);
++            assert!(matches!(fixture.original.try_publish_clocked(|_|None),Err(StreamControlError::Cancelled)));
++        });
++        let result=std::future::poll_fn(|cx|match std::panic::catch_unwind(std::panic::AssertUnwindSafe(||std::future::Future::poll(owned.as_mut(),cx))) {
++            Ok(std::task::Poll::Pending)=>std::task::Poll::Pending,
++            Ok(std::task::Poll::Ready(value))=>std::task::Poll::Ready(Ok(value)),
++            Err(error)=>std::task::Poll::Ready(Err(error)),
++        }).await;drop(owned);
++        let mut cleanup=Vec::new();for node in fixture.room.nodes.values() {cleanup.push(node.controller.shutdown(deadline()).await);}
++        assert!(cleanup.into_iter().all(|remaining|remaining==0));assert!(fixture.room.nodes.values().all(|node|node.adapter.outstanding.load(Ordering::Acquire)==0));
++        if let Err(error)=result {std::panic::resume_unwind(error)}
++    }
++}

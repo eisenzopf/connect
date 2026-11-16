@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-16T02:02:25.014510+00:00",
-  "run_status": "Latest full v218 remains1/32 cells,399/432 checks. Closed g458 normal3 FAILED: raw audio18/18, AV18/18, video14/18, collections17/18, resources3/3. One unidentified pixel source-frame marker blocks exact witness;16 same-owner draw aliases have distinct receiver RTP. Independent owner/source/binary/PCAP audit accepted; no media/matrix promotion. Next: causal old counters, reviewed code integration/unit tests; complete WebRTC B/originalRoot path and final media/regression/ARM/release/preflight before32.",
+  "updated": "2026-11-16T03:40:34.722761+00:00",
+  "run_status": "Generation465 actual749/749 Rust components pass: Core668/RTC70/UCTP10/retained-native-retry1. Source and four binaries stable,14 original owners naturally joined; independently audited960e1440. Audio unrelated-video drop fixed with all current-policy/privacy negatives. Realm/native custody/physical tracking/raw accessor seals tested. Factory-controller closure and strict freeze/B lifecycle still open; no media/ARM/shipping/full32 promotion.",
   "blockers": [
     {
       "id": "B01",
@@ -17730,6 +17730,18 @@
   },
   "current_component_verification": [
     {
+      "name": "Generation465 retained Core/RTC and native custody/retry batch; no media/ARM/shipping/matrix credit",
+      "passed": 749,
+      "planned": 749,
+      "evidence": "g6-058-v219-rust749-component.json"
+    },
+    {
+      "name": "Separate SDK native decoder/public-render and RTC rendered-canvas observer cohort",
+      "passed": 123,
+      "planned": 123,
+      "evidence": "g6-058-v219-native-rtc123-component.json"
+    },
+    {
       "name": "Owned first-page race/current snapshot/start security; normal default features pass",
       "passed": 15,
       "planned": 15,
@@ -20242,5 +20254,10 @@
         "sha256": "d876cfffaf5f0158195a0a03ee2373fd22a36e6c6b58451cdedac59924f05428"
       }
     }
+  },
+  "v219_rust749_components": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json",
+    "sha256": "5ef6349de7aef60edd562b9192b600c34190a63b7487548a11695ada9d82e609",
+    "summary": "Generation465 actual749/749 Rust components pass: Core668/RTC70/UCTP10/retained-native-retry1. Source and four binaries stable,14 original owners naturally joined; independently audited960e1440. Audio unrelated-video drop fixed with all current-policy/privacy negatives. Realm/native custody/physical tracking/raw accessor seals tested. Factory-controller closure and strict freeze/B lifecycle still open; no media/ARM/shipping/full32 promotion."
   }
 }

@@ -90,6 +90,7 @@ pub(super) async fn run(
     for generation in 0..2 {
         let before = peers[0]
             .peer_connection()
+            .expect("ordinary fixture raw peer remains unsealed")
             .local_description()
             .await
             .unwrap()

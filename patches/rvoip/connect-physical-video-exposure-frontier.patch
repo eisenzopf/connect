@@ -1,0 +1,760 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+@@ -0,0 +1,176 @@
++//! Optional historical potential-IO metadata. Not a gate, readiness result,
++//! source-exclusion certificate or future no-escape capability.
++use super::SourceFrameRealmPoint;
++use std::sync::{Arc, OnceLock, Weak, atomic::{AtomicBool, AtomicU64, Ordering}};
++
++/// One peer-wide sticky coverage root, installed at original canonical creation.
++/// A public escaping capability marks this BEFORE returning the original handle.
++/// No method here denies, delays or changes ordinary IO.
++pub struct PhysicalVideoExposureCoverage { escaped: AtomicBool }
++impl PhysicalVideoExposureCoverage {
++    pub fn new(already_exposed: bool) -> Self { Self { escaped: AtomicBool::new(already_exposed) } }
++    pub fn mark_escaped(&self) { self.escaped.store(true, Ordering::Release); }
++    pub fn escaped(&self) -> bool { self.escaped.load(Ordering::Acquire) }
++}
++
++/// Strong lifetime belongs to SAME actual physical Track+SSRC family, not Port.
++/// It owns no policy, runtime, peer, track, timeline, or parent history.
++pub struct PhysicalVideoExposure {
++    identity: u128,
++    expected: OnceLock<u128>,
++    coverage: OnceLock<Arc<PhysicalVideoExposureCoverage>>,
++    attempted: AtomicBool,
++    untracked: AtomicBool,
++    maximum: AtomicU64,
++}
++impl Default for PhysicalVideoExposure {
++    fn default() -> Self {
++        Self { identity: uuid::Uuid::new_v4().as_u128(), expected: OnceLock::new(),
++            coverage: OnceLock::new(), attempted: AtomicBool::new(false),
++            untracked: AtomicBool::new(false), maximum: AtomicU64::new(0) }
++    }
++}
++impl PhysicalVideoExposure {
++    pub fn observer(self: &Arc<Self>) -> PhysicalVideoExposureObserver {
++        PhysicalVideoExposureObserver(Arc::downgrade(self))
++    }
++    pub fn mark_untracked(&self) {
++        if !self.untracked.load(Ordering::Relaxed) { self.untracked.store(true, Ordering::Release); }
++    }
++    /// Freeze TARGET's original setup realm, never first-source adoption.
++    /// Equal existing setup is allowed on the same family after Port rebind.
++    pub fn configure_expected_realm(&self, incarnation: Option<u128>) {
++        let Some(value) = incarnation.filter(|n| *n != 0) else { self.mark_untracked(); return; };
++        if let Some(old) = self.expected.get() {
++            if *old != value { self.mark_untracked(); }
++            return;
++        }
++        if self.attempted.load(Ordering::Acquire) { self.mark_untracked(); }
++        if let Err(value) = self.expected.set(value) {
++            if self.expected.get() != Some(&value) { self.mark_untracked(); }
++        }
++    }
++    /// Coverage root is shared even with future track families/cloned handles.
++    pub fn bind_coverage(&self, coverage: Arc<PhysicalVideoExposureCoverage>) {
++        if let Some(old) = self.coverage.get() {
++            if !Arc::ptr_eq(old, &coverage) { self.mark_untracked(); }
++            return;
++        }
++        if self.attempted.load(Ordering::Acquire) { self.mark_untracked(); }
++        if let Err(other) = self.coverage.set(coverage) {
++            if self.coverage.get().is_none_or(|old| !Arc::ptr_eq(old, &other)) { self.mark_untracked(); }
++        }
++    }
++    /// Called only after original current guards/mapping, BEFORE possible IO.
++    /// Unknown/failed/partial IO conservatively remains in the potential maximum.
++    /// No result, grant, retry, lock, SQL, timestamp pacing, or source-count quota.
++    pub fn record_potential(&self, point: Option<SourceFrameRealmPoint>) {
++        if !self.attempted.load(Ordering::Relaxed) { self.attempted.store(true, Ordering::Release); }
++        let Some(point) = point else { self.mark_untracked(); return; };
++        if self.expected.get() != Some(&point.incarnation()) || point.ordinal() == 0
++            || self.coverage.get().is_none() {
++            self.mark_untracked(); return;
++        }
++        // Repeated fragments/repairs are already covered. A concurrent higher
++        // writer only makes this inequality more conservative; never lower max.
++        if point.ordinal() > self.maximum.load(Ordering::Relaxed) {
++            self.maximum.fetch_max(point.ordinal(), Ordering::AcqRel);
++        }
++    }
++    fn snapshot(&self) -> PhysicalVideoExposureSnapshot {
++        let expected = self.expected.get().copied();
++        let coverage = self.coverage.get();
++        PhysicalVideoExposureSnapshot {
++            physical_family: self.identity,
++            realm_incarnation: expected,
++            maximum_potential_ordinal: self.maximum.load(Ordering::Acquire),
++            coverage_complete: expected.is_some() && coverage.is_some_and(|c| !c.escaped())
++                && !self.untracked.load(Ordering::Acquire),
++        }
++    }
++}
++/// Weak opaque observer. Copying a Port's observer cannot retain its writer.
++#[derive(Clone)]
++pub struct PhysicalVideoExposureObserver(Weak<PhysicalVideoExposure>);
++impl PhysicalVideoExposureObserver {
++    pub fn same_family(&self, other: &Self) -> bool { Weak::ptr_eq(&self.0, &other.0) }
++    pub fn mark_untracked(&self) { if let Some(family)=self.0.upgrade() { family.mark_untracked(); } }
++    pub fn snapshot(&self) -> Option<PhysicalVideoExposureSnapshot> { Some(self.0.upgrade()?.snapshot()) }
++}
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub struct PhysicalVideoExposureSnapshot {
++    pub physical_family: u128,
++    pub realm_incarnation: Option<u128>,
++    pub maximum_potential_ordinal: u64,
++    /// Past tracking coverage only. A caller must separately quiesce/drain the
++    /// exact writer family; this is NOT future exclusion or a no-escape seal.
++    pub coverage_complete: bool,
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::ids::{ConversationId, SessionId};
++    use crate::staged_streams::frame_realm::SessionFrameRealm;
++    fn setup() -> (Arc<SessionFrameRealm>, Arc<PhysicalVideoExposure>, Arc<PhysicalVideoExposureCoverage>) {
++        let realm = SessionFrameRealm::new(ConversationId::new(), SessionId::new());
++        let family = Arc::new(PhysicalVideoExposure::default());
++        let coverage = Arc::new(PhysicalVideoExposureCoverage::new(false));
++        family.configure_expected_realm(realm.handle().incarnation());
++        family.bind_coverage(coverage.clone());
++        (realm, family, coverage)
++    }
++    #[test]
++    fn physical_exposure_tracks_potential_max_without_source_quota_or_repair_remint() {
++        let (realm, family, _) = setup();
++        let mut points=Vec::new();
++        for _ in 0..320 { points.push(realm.handle().next_point().unwrap()); }
++        family.record_potential(Some(points[319]));
++        family.record_potential(Some(points[0])); // older queued/repair SAME point
++        let before=family.observer().snapshot().unwrap();
++        assert_eq!(before.maximum_potential_ordinal,320);
++        family.record_potential(Some(points[319])); // repeated repair, not allocation
++        assert_eq!(family.observer().snapshot().unwrap(),before);
++        assert!(before.coverage_complete);
++        // Historical scalar identity survives runtime retirement, no grant.
++        drop(realm);
++        family.record_potential(Some(points[318]));
++        assert_eq!(family.observer().snapshot().unwrap(),before);
++    }
++    #[test]
++    fn physical_exposure_unknown_mixed_late_setup_and_escape_are_sticky_only_metadata() {
++        let (realm, family, coverage) = setup();
++        family.record_potential(Some(realm.handle().next_point().unwrap()));
++        coverage.mark_escaped();
++        assert!(!family.observer().snapshot().unwrap().coverage_complete);
++        let (_, mixed, _) = setup();
++        mixed.record_potential(Some(realm.handle().next_point().unwrap()));
++        assert!(!mixed.observer().snapshot().unwrap().coverage_complete);
++        let (_, missing, _) = setup();
++        missing.record_potential(None);
++        missing.record_potential(Some(realm.handle().next_point().unwrap()));
++        assert!(!missing.observer().snapshot().unwrap().coverage_complete);
++        let late=Arc::new(PhysicalVideoExposure::default());
++        late.record_potential(None);
++        late.configure_expected_realm(realm.handle().incarnation());
++        late.bind_coverage(Arc::new(PhysicalVideoExposureCoverage::new(false)));
++        assert!(!late.observer().snapshot().unwrap().coverage_complete);
++        let fresh=Arc::new(PhysicalVideoExposure::default());
++        fresh.bind_coverage(coverage); // escaped BEFORE this family was born
++        fresh.configure_expected_realm(realm.handle().incarnation());
++        assert!(!fresh.observer().snapshot().unwrap().coverage_complete);
++    }
++    #[test]
++    fn physical_exposure_observer_is_weak_and_equal_rebind_keeps_original_family() {
++        let (realm,family,coverage)=setup();
++        let observer=family.observer();
++        let original=observer.snapshot().unwrap().physical_family;
++        family.record_potential(Some(realm.handle().next_point().unwrap()));
++        family.configure_expected_realm(realm.handle().incarnation());
++        family.bind_coverage(coverage);
++        assert_eq!(observer.snapshot().unwrap().physical_family,original);
++        assert!(observer.snapshot().unwrap().coverage_complete);
++        drop(family);
++        assert!(observer.snapshot().is_none());
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -579,6 +579,7 @@
+     #[cfg(feature = "test-support")]
+     video_boundary: Option<Arc<video_boundary::Counters>>,
+     native_egress: std::sync::OnceLock<Arc<native_activation::Cursor>>,
++    video_exposure: std::sync::OnceLock<physical_video_exposure::PhysicalVideoExposureObserver>,
+     audio_egress_owner: std::sync::OnceLock<u128>,
+     audio_egress_binding: std::sync::OnceLock<audio_egress_clock::AudioEgressBinding>,
+     ingress: mpsc::Sender<MediaPacket>,
+@@ -980,6 +981,20 @@
+                 mpsc::error::TrySendError::Full(_) => StreamControlError::Backpressure,
+                 mpsc::error::TrySendError::Closed(_) => StreamControlError::NotReady,
+             })
++    }
++    /// Optional historical metadata only. Installing after queue ownership is
++    /// unavailable proof, never a new IO error or permission decision.
++    pub fn observe_physical_video_exposure(&self, observer: physical_video_exposure::PhysicalVideoExposureObserver) {
++        let queue = self.0.output.lock().unwrap_or_else(|p| p.into_inner());
++        if queue.is_none() { observer.mark_untracked(); }
++        if let Some(old) = self.0.video_exposure.get() {
++            if !old.same_family(&observer) { old.mark_untracked(); observer.mark_untracked(); }
++        } else { let _ = self.0.video_exposure.set(observer); }
++    }
++    /// Snapshot for this exact original Port, not another current binding.
++    /// Caller must separately establish original writer quiescence/coverage.
++    pub fn physical_video_exposure(&self) -> Option<physical_video_exposure::PhysicalVideoExposureSnapshot> {
++        self.0.video_exposure.get()?.snapshot()
+     }
+     pub fn take_egress(&self) -> ControlResult<mpsc::Receiver<QueuedMedia>> {
+         self.0
+@@ -1414,6 +1429,7 @@
+ }
+ 
+ pub mod audio_egress_clock;
++pub mod physical_video_exposure;
+ 
+ impl QueuedMedia {
+     /// Original source RTP-frame capsule paired with this queued contribution.
+@@ -3999,6 +4015,7 @@
+                     && tracing::enabled!(target: "rvoip_core::video_boundary", tracing::Level::DEBUG))
+                     .then(|| Arc::new(video_boundary::Counters::new())),
+                 native_egress: std::sync::OnceLock::new(),
++                video_exposure: std::sync::OnceLock::new(),
+                 audio_egress_owner: std::sync::OnceLock::new(),
+                 audio_egress_binding: std::sync::OnceLock::new(),
+                 ingress,
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/exposure_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/exposure_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/exposure_tests.rs
+@@ -0,0 +1,40 @@
++//! Actual canonical constructor, scalar ICE facade and raw getter coverage.
++//! Metadata only; no offer, frame, B, cut or admission authority is claimed.
++use super::*;
++use rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposure;
++#[tokio::test]
++async fn canonical_scalar_ice_control_keeps_coverage_until_original_raw_getter_escape() {
++    for kind in 0..4 {
++        let peer=RvoipPeerConnection::new_canonical(&WebRtcConfig::loopback(),PeerRole::Offerer).await.unwrap();
++        let work=std::panic::AssertUnwindSafe(async {
++            let original=OriginalWebRtcIceControl {peer:peer.clone()};
++            let same=original.clone();
++            let exposure=Arc::new(PhysicalVideoExposure::default());
++            exposure.configure_expected_realm(Some(17)); // isolated metadata namespace only
++            exposure.bind_coverage(peer.video_exposure_coverage());
++            let observer=exposure.observer();
++            assert!(original.same_physical(&same));
++            assert_eq!(original.descriptions().await,(None,None));
++            assert!(!original.ice_descriptions_ready("","").await);
++            assert!(observer.snapshot().unwrap().coverage_complete);
++            match kind {
++                0=>{let _original=peer.peer_connection();},
++                1=>{let _original=peer.local_video_track();},
++                2=>{let _original=peer.local_audio_track();},
++                _=>{let _original=peer.local_dtmf_track();},
++            }
++            assert!(!observer.snapshot().unwrap().coverage_complete);
++            let later=Arc::new(PhysicalVideoExposure::default());
++            later.configure_expected_realm(Some(17));
++            later.bind_coverage(peer.video_exposure_coverage());
++            assert!(!later.observer().snapshot().unwrap().coverage_complete);
++            // Same owned control/peer remains usable; escape never changes IO
++            // results, closes, permission or the original returned capability.
++            assert!(same.same_physical(&original));
++            assert_eq!(original.descriptions().await,(None,None));
++        }).catch_unwind().await;
++        let closed=peer.close().await;
++        assert!(closed.is_ok(),"original peer driver must join before outcome");
++        if let Err(error)=work {std::panic::resume_unwind(error)}
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -506,7 +506,7 @@
+     if !peer.core_transport_current() || !peer.signaling_is_stable().await {
+         return Err(StreamControlError::NotReady);
+     }
+-    let pc = peer.peer_connection();
++    let pc = peer.peer_connection_internal();
+     let local = pc
+         .local_description()
+         .await
+@@ -687,7 +687,7 @@
+         if io.health.stop.is_cancelled() || cancel.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+-        let peer = tokio::select! {biased;_=cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=io.health.stop.cancelled()=>return Err(StreamControlError::Cancelled),p=self.physical.peer(deadline)=>p.map_err(|_|StreamControlError::NotReady)?};
++        let peer = tokio::select! {biased;_=cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=io.health.stop.cancelled()=>return Err(StreamControlError::Cancelled),p=self.physical.peer_internal(deadline)=>p.map_err(|_|StreamControlError::NotReady)?};
+         tokio::select! {biased;
+             _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
+             _=io.health.stop.cancelled()=>return Err(StreamControlError::Cancelled),
+@@ -727,7 +727,7 @@
+             } else {
+                 Egress::Video(
+                     peer.core_video_egress(&prepared.port, deadline.into_std())
+-                        .await?,
++                        .await?.with_frame_realm(self.frame_realm.as_ref()),
+                 )
+             })
+         } else {
+@@ -1567,14 +1567,14 @@
+         let peer = tokio::select! {biased;
+             _=self.lifetime.cancelled()=>return Err(StreamControlError::Cancelled),
+             _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
+-            p=self.physical.peer(deadline)=>p.map_err(|_|StreamControlError::NotReady)?,
++            p=self.physical.peer_internal(deadline)=>p.map_err(|_|StreamControlError::NotReady)?,
+         };
+         tokio::select! {biased;
+             _=self.lifetime.cancelled()=>return Err(StreamControlError::Cancelled),
+             _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
+             r=peer.wait_connected(deadline.saturating_duration_since(tokio::time::Instant::now()))=>r.map_err(|_|StreamControlError::NotReady)?,
+         }
+-        let local=peer.peer_connection().local_description().await.ok_or(StreamControlError::NotReady)?;
++        let local=peer.peer_connection_internal().local_description().await.ok_or(StreamControlError::NotReady)?;
+         let parsed=local.sdp.parse::<rvoip_sip_core::types::sdp::SdpSession>().map_err(|_|StreamControlError::Unsupported)?;
+         let mut media=std::collections::BTreeSet::new();
+         for section in parsed.media_descriptions.iter().filter(|m|m.port!=0) {
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -36,6 +36,21 @@
+ };
+ use tokio::sync::mpsc;
+ use tokio_util::sync::CancellationToken;
++
++/// Original ICE control only. Returns scalar/owned SDP, never a raw peer,
++/// sender, track or user closure with an escaping native capability.
++#[derive(Clone)]
++pub struct OriginalWebRtcIceControl { peer: Arc<RvoipPeerConnection> }
++impl OriginalWebRtcIceControl {
++    pub fn same_physical(&self, other: &Self) -> bool { Arc::ptr_eq(&self.peer, &other.peer) }
++    pub async fn descriptions(&self) -> (Option<String>, Option<String>) {
++        let pc = self.peer.peer_connection_internal();
++        (pc.local_description().await.map(|d|d.sdp),pc.remote_description().await.map(|d|d.sdp))
++    }
++    pub async fn restart_ice_as_answerer(&self, offer: &str) -> crate::errors::Result<String> { self.peer.restart_ice_as_answerer(offer).await }
++    pub async fn ice_descriptions_ready(&self, local: &str, remote: &str) -> bool { self.peer.peer_connection_internal().ice_descriptions_ready(local,remote).await }
++}
++
+ #[derive(Clone)]
+ enum AllocationError {
+     Construction,
+@@ -175,6 +190,11 @@
+         Ok(())
+     }
+     pub async fn peer(&self, deadline: tokio::time::Instant) -> Result<Arc<RvoipPeerConnection>> {
++        let original = self.peer_internal(deadline).await?;
++        original.mark_video_exposure_escaped();
++        Ok(original)
++    }
++    pub(crate) async fn peer_internal(&self, deadline: tokio::time::Instant) -> Result<Arc<RvoipPeerConnection>> {
+         if !self.owner_current() {
+             return Err(RvoipError::AdmissionRejected(
+                 "WebRTC physical peer retired",
+@@ -504,6 +524,13 @@
+         peer: &Arc<PeerAdmission>,
+         deadline: tokio::time::Instant,
+     ) -> Result<Arc<RvoipPeerConnection>> {
++        let original = self.original_peer_internal(id, peer, deadline).await?;
++        original.mark_video_exposure_escaped();
++        Ok(original)
++    }
++    async fn original_peer_internal(
++        &self, id: &ConnectionId, peer: &Arc<PeerAdmission>, deadline: tokio::time::Instant,
++    ) -> Result<Arc<RvoipPeerConnection>> {
+         let route = self
+             .routes
+             .get(id)
+@@ -523,7 +550,7 @@
+                 "Original WebRTC peer retired",
+             ));
+         }
+-        let original = route.binding.peer(deadline).await?;
++        let original = route.binding.peer_internal(deadline).await?;
+         if !current() {
+             return Err(RvoipError::AdmissionRejected(
+                 "Original WebRTC peer retired",
+@@ -532,6 +559,12 @@
+         Ok(original)
+     }
+ 
++    pub async fn original_ice_control(&self, id:&ConnectionId, peer:&Arc<PeerAdmission>, deadline:tokio::time::Instant) -> Result<OriginalWebRtcIceControl> {
++        Ok(OriginalWebRtcIceControl {peer:self.original_peer_internal(id,peer,deadline).await?})
++    }
++    pub async fn end_original_ice_control(&self,id:ConnectionId,peer:&Arc<PeerAdmission>,control:&OriginalWebRtcIceControl,reason:EndReason)->Result<()> {
++        self.end_original(id,peer,&control.peer,reason).await
++    }
+     /// Test-only observation of the exact existing admitted allocation. The
+     /// original_peer path rechecks route identity and physical lifetime; this
+     /// never starts/replaces an allocation or exposes mutable route storage.
+@@ -855,3 +888,6 @@
+ 
+ #[cfg(test)]
+ pub(crate) use media::{canonical_poll_submission_for_test, PollEgressForTest};
++
++#[cfg(test)]
++mod exposure_tests;
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests/exposure_tests.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests/exposure_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests/exposure_tests.rs
+@@ -0,0 +1,119 @@
++//! Real original Core enqueue/current admission -> actual Producer callback.
++//! Fake borrowed IO observes pre-IO metadata; no UDP/delivery claim.
++use super::*;
++use rvoip_core::staged_streams::{
++    frame_realm::FrameRealmTestOwner,
++    physical_video_exposure::{PhysicalVideoExposure, PhysicalVideoExposureCoverage},
++};
++use rtc::media_stream::{MediaStreamId,MediaStreamTrack};
++use rtc::rtp_transceiver::rtp_sender::{RTCRtpCodec,RTCRtpCodingParameters,RTCRtpEncodingParameters,RtpCodecKind};
++
++fn track(ssrc:u32) -> Arc<TrackLocalStaticRTP> {
++    Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
++        MediaStreamId::from("exposure-stream"), "exposure-track".into(), "video".into(),
++        RtpCodecKind::Video,
++        vec![RTCRtpEncodingParameters {
++            rtp_coding_parameters: RTCRtpCodingParameters {ssrc:Some(ssrc),..Default::default()},
++            codec:RTCRtpCodec {mime_type:"video/VP8".into(),clock_rate:90000,channels:0,..Default::default()},
++            ..Default::default()
++        }],
++    )))
++}
++#[tokio::test]
++async fn physical_video_family_survives_actual_track_clone_and_rejects_wrong_ssrc() {
++    let track=track(77);
++    let first=track.owned_rtp_timeline::<PhysicalVideoFamily>(77).await.unwrap();
++    let clone=track.as_ref().clone();
++    let rebound=clone.owned_rtp_timeline::<PhysicalVideoFamily>(77).await.unwrap();
++    assert!(Arc::ptr_eq(&first,&rebound));
++    assert!(Arc::ptr_eq(&first.timeline,&rebound.timeline));
++    assert!(Arc::ptr_eq(&first.exposure,&rebound.exposure));
++    assert!(clone.owned_rtp_timeline::<PhysicalVideoFamily>(78).await.is_err());
++    assert!(clone.owned_rtp_timeline::<AsyncMutex<Timeline>>(77).await.is_err());
++    // A weak Port observer alone does not root family, track or sequence state.
++    let observer=first.exposure.observer();
++    drop(first);drop(rebound);drop(clone);drop(track);
++    assert!(observer.snapshot().is_none());
++}
++struct ObserveIo {
++    family:Arc<PhysicalVideoExposure>,
++    ordinal:u64,
++    complete:bool,
++    mode:u8,
++    attempted:bool,
++    written:bool,
++    calls:usize,
++    control:OwnedRtpControl,
++}
++#[async_trait::async_trait]
++impl OwnedRtpIo for ObserveIo {
++    async fn write(&mut self,_:rtp::Packet)->rtc::shared::error::Result<()> { panic!("clocked original operation required") }
++    fn written(&self)->bool {self.written}
++    fn attempted(&self)->bool {self.attempted}
++    fn submission_control(&self)->OwnedRtpControl {self.control.clone()}
++    async fn write_with_clock(&mut self,_:rtp::Packet,_:SenderClockHandle,_:Option<SenderClockUpdate>)->rtc::shared::error::Result<()> {
++        let snapshot=self.family.observer().snapshot().unwrap();
++        assert_eq!(snapshot.coverage_complete,self.complete);
++        assert_eq!(snapshot.maximum_potential_ordinal,self.ordinal,"potential maximum must precede actual IO callback entry");
++        self.calls+=1;self.attempted=true;
++        match self.mode {
++            0=>{self.written=true;Ok(())},
++            1=>Err(rtc::shared::error::Error::ErrRTPTransceiverCodecUnsupported),
++            _=>std::future::pending().await,
++        }
++    }
++}
++#[tokio::test]
++async fn physical_video_actual_primary_and_repair_track_before_success_error_or_cancelled_io() {
++    use futures::FutureExt as _;
++    for mode in 0..5u8 {
++        let mut f=Fixture::new(Medium::Video).await;
++        let work=std::panic::AssertUnwindSafe(async {
++            let realm=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"));
++            let handle=realm.handle();
++            let source_ssrc=77;let sequence=100u16;let timestamp=300000;
++            let other=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"));
++            let other_handle=other.handle();
++            let point=OriginalVideoFrame::observed_in_realm(19,source_ssrc,timestamp,timestamp as u64,if mode==3 {None} else if mode==4 {Some(&other_handle)} else {Some(&handle)});
++            let ordinal=if mode>=3 {0} else {point.frame_realm().unwrap().ordinal()};
++            let track=track(88);
++            let mut output=CoreVideoEgress::bind(&f.target,track,88,96,SenderClockHandle::default(),deadline().into_std()).await.unwrap();
++            // Isolated trusted setup stands in for canonical peer creation,
++            // not a forged public capability or a shipping ownership claim.
++            output.exposure.bind_coverage(Arc::new(PhysicalVideoExposureCoverage::new(false)));
++            output.exposure.configure_expected_realm(handle.incarnation());
++            let packet=rtp::Packet {header:rtp::Header {version:2,ssrc:source_ssrc,sequence_number:sequence,timestamp,marker:true,payload_type:96,..Default::default()},payload:vec![0x10,0,1,2].into()};
++            let frame=MediaFrame {stream_id:f.source.binding().transport_id.clone(),kind:StreamKind::Video,payload:packet.marshal().unwrap().freeze(),timestamp_rtp:timestamp,captured_at:Utc::now(),payload_type:Some(96),source_clock:None};
++            let mut original=f.source.retain_original_video_ingress(frame,Instant::now(),Some(point)).unwrap().unwrap();
++            original.try_publish_clocked(|_|None).unwrap();
++            tokio::time::timeout_at(deadline(),f.input.recv()).await.unwrap().unwrap().try_forward_to(&f.b,&desired(Medium::Video).logical_id).unwrap();
++            let queued=output.output.recv().await.unwrap();
++            let producer=Producer {
++                original:Mutex::new(Some((queued,output.timeline.clone().lock_owned().await))),
++                exposure:output.exposure.clone(),retained:Mutex::new(None),
++                ssrc:output.ssrc,payload_type:output.payload_type,clock:output.clock.clone(),
++                mid:None,pictures:output.pictures.clone(),mapping_target:None,
++            };
++            let mut io=ObserveIo {family:output.exposure.clone(),ordinal,complete:mode<3,mode:if mode>=3 {0} else {mode},attempted:false,written:false,calls:0,control:OwnedRtpControl::new(deadline().into_std())};
++            if mode==2 {
++                assert!(tokio::time::timeout(Duration::from_millis(5),producer.write(&mut io)).await.is_err());
++                assert!(io.attempted&&!io.written);
++            } else {
++                let actual=producer.write(&mut io).await;
++                assert_eq!(actual,OwnedRtpAttempt::Complete(if mode==0 || mode>=3 {Ok(())} else {Err(OwnedRtpError::Refused)}));
++                if mode==0 || mode>=3 {
++                    assert!(producer.repair(&mut io).await.is_ok());
++                    assert_eq!(io.calls,2,"same original successful repair executes once");
++                } else {assert_eq!(io.calls,1);}
++            }
++            let snapshot=f.target.physical_video_exposure().unwrap();
++            assert_eq!(snapshot.coverage_complete,mode<3);
++            assert_eq!(snapshot.maximum_potential_ordinal,ordinal);
++            drop(producer);drop(output);
++            io.calls
++        }).catch_unwind().await;
++        let clean=f.close().await;
++        assert!(clean,"both original Core controllers/adapter cleanup must complete");
++        if let Err(error)=work {std::panic::resume_unwind(error)}
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video/picture_tests.rs
+@@ -1971,3 +1971,6 @@
+         );
+     }
+ }
++
++#[cfg(test)]
++mod exposure_tests;
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -37,6 +37,7 @@
+     output: mpsc::Receiver<QueuedMedia>,
+     track: Arc<TrackLocalStaticRTP>,
+     timeline: Arc<AsyncMutex<Timeline>>,
++    exposure: Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposure>,
+     ssrc: u32,
+     payload_type: u8,
+     clock: SenderClockHandle,
+@@ -81,18 +82,23 @@
+         }
+         let timeline = tokio::time::timeout_at(
+             deadline.into(),
+-            track.owned_rtp_timeline::<AsyncMutex<Timeline>>(ssrc),
++            track.owned_rtp_timeline::<PhysicalVideoFamily>(ssrc),
+         )
+         .await
+         .map_err(|_| StreamControlError::Deadline)?
+         .map_err(|_| StreamControlError::Unsupported)?;
+         let mapping_target = mapping_witness::enabled()
+             .then(|| Arc::new(Target::from_binding(binding, ssrc, payload_type)));
++        // SAME actual Track+SSRC family; weak observer precedes queue ownership.
++        port.observe_physical_video_exposure(timeline.exposure.observer());
++        let exposure = timeline.exposure.clone();
++        let timeline = timeline.timeline.clone();
+         let output = port.take_egress()?;
+         Ok(Self {
+             output,
+             track,
+             timeline,
++            exposure,
+             ssrc,
+             payload_type,
+             clock,
+@@ -107,8 +113,14 @@
+         peer: Arc<crate::peer::RvoipPeerConnection>,
+         mid: Option<(u8, String)>,
+     ) -> Self {
++        self.exposure.bind_coverage(peer.video_exposure_coverage());
+         self.physical_peer = Some(peer);
+         self.mid = mid;
++        self
++    }
++    /// Metadata frozen from the original Core request before the worker starts.
++    pub(crate) fn with_frame_realm(self, realm: Option<&rvoip_core::staged_streams::SourceFrameRealm>) -> Self {
++        self.exposure.configure_expected_realm(realm.and_then(|r| r.incarnation()));
+         self
+     }
+     pub(crate) fn picture_requests(&self) -> PictureRequests {
+@@ -148,6 +160,7 @@
+             .map_err(|_| StreamControlError::Deadline)?;
+         let producer = Producer {
+             original: Mutex::new(Some((queued, timeline))),
++            exposure: self.exposure.clone(),
+             retained: Mutex::new(None),
+             ssrc: self.ssrc,
+             payload_type: self.payload_type,
+@@ -158,6 +171,12 @@
+         };
+         Ok(Some(self.track.owned_rtp(Arc::new(producer), deadline)))
+     }
++}
++/// Same physical registry owns both sequence serialization and exposure metadata.
++#[derive(Default)]
++struct PhysicalVideoFamily {
++    timeline: Arc<AsyncMutex<Timeline>>,
++    exposure: Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposure>,
+ }
+ #[derive(Clone, PartialEq, Eq)]
+ struct Source {
+@@ -458,6 +477,7 @@
+     }
+ }
+ struct Producer {
++    exposure: Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposure>,
+     original: Mutex<Option<(QueuedMedia, OwnedMutexGuard<Timeline>)>>,
+     retained: Mutex<Option<Retained>>,
+     ssrc: u32,
+@@ -543,6 +563,7 @@
+         let mut metadata = None;
+         let saved = &mut metadata;
+         let diagnostic_control = &control;
++        let frame_point = queued.original_video_frame().and_then(|f| f.frame_realm());
+         let attempt = queued
+             .deliver_ready_video_with_repair_and_feedback(|frame, origin| {
+                 let mut timeline = original_timeline
+@@ -627,6 +648,7 @@
+                         })?;
+                     packet.header.sequence_number = mapping.sequence;
+                     packet.header.timestamp = mapping.timestamp;
++                    self.exposure.record_potential(frame_point);
+                     io.write_with_clock(packet, self.clock.clone(), timing(&frame, mapping.offset))
+                         .await
+                         .map_err(|_| StreamControlError::NotReady)
+@@ -737,6 +759,7 @@
+             return Err(OwnedRtpError::Refused);
+         };
+         let source_ssrc = source.ssrc;
++        let frame_point = core.original_video_frame().and_then(|f| f.frame_realm());
+         core.repair(|frame, origin| {
+             let io = &mut *io;
+             async move {
+@@ -753,6 +776,7 @@
+                 packet.header.timestamp = mapping.timestamp;
+                 // Reuse the original wire mapping. A repair must not advance the
+                 // primary timeline or restore an older source's report selection.
++                self.exposure.record_potential(frame_point);
+                 io.write_with_clock(packet, self.clock.clone(), timing(&frame, mapping.offset))
+                     .await
+                     .map_err(|_| StreamControlError::NotReady)
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/dtmf.rs b/crates/webrtc/rvoip-webrtc/src/media/dtmf.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/dtmf.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/dtmf.rs
+@@ -407,7 +407,7 @@
+     // Connect) still receives events on the primary audio SSRC, exactly as it
+     // receives primary audio.
+     let mid = peer.negotiated_outbound_audio_mid();
+-    peer.local_dtmf_track()
++    peer.local_dtmf_track_internal()
+         .ok_or(WebRtcError::IncompatibleCapabilities)?;
+     let writer = peer
+         .outbound_audio_writer()
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -60,6 +60,7 @@
+     pc: Arc<dyn PeerConnection>,
+     role: PeerRole,
+     guarded_video_io: bool,
++    video_exposure: Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage>,
+     // One random synchronization identity for all local tracks on this peer.
+     local_stream_id: String,
+     gather_rx: Arc<AsyncMutex<mpsc::Receiver<()>>>,
+@@ -147,6 +148,7 @@
+             pc,
+             role,
+             guarded_video_io: VIDEO,
++            video_exposure: Arc::new(rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage::new(!VIDEO)),
+             local_stream_id: format!("rvoip-stream-{:032x}", rand::random::<u128>()),
+             gather_rx: Arc::new(AsyncMutex::new(receivers.gather_complete)),
+             connected_rx: Arc::new(AsyncMutex::new(receivers.connected)),
+@@ -211,8 +213,12 @@
+     }
+ 
+     pub fn peer_connection(&self) -> &Arc<dyn PeerConnection> {
++        self.mark_video_exposure_escaped();
+         &self.pc
+     }
++    pub(crate) fn peer_connection_internal(&self) -> &Arc<dyn PeerConnection> { &self.pc }
++    pub(crate) fn mark_video_exposure_escaped(&self) { self.video_exposure.mark_escaped(); }
++    pub(crate) fn video_exposure_coverage(&self) -> Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage> { self.video_exposure.clone() }
+ 
+     /// ICE candidates observed during local gathering (full SDP embeds these inline).
+     pub fn gathered_ice_candidates(&self) -> Vec<String> {
+@@ -516,8 +522,10 @@
+     }
+ 
+     pub fn local_audio_track(&self) -> Option<Arc<TrackLocalStaticRTP>> {
++        self.mark_video_exposure_escaped();
+         self.local_audio.lock().clone()
+     }
++    pub(crate) fn local_audio_track_internal(&self) -> Option<Arc<TrackLocalStaticRTP>> { self.local_audio.lock().clone() }
+ 
+     /// Protected transport composition: derive a unique current SDP mapping,
+     /// local track and SSRC from this actual peer, never caller scalar claims.
+@@ -594,7 +602,7 @@
+         {
+             return Err(E::Unsupported);
+         }
+-        let track = self.local_audio_track().ok_or(E::NotReady)?;
++        let track = self.local_audio_track_internal().ok_or(E::NotReady)?;
+         let ssrc = self.local_audio_ssrc().ok_or(E::NotReady)?;
+         let egress = crate::media::core_audio::CoreAudioEgress::bind(
+             port,
+@@ -631,7 +639,7 @@
+             };
+             let mapping = crate::media::core_video_profile::negotiated_profile(offer, answer)?;
+             let mid = crate::media::core_video_profile::outbound_mid(offer, answer, local_offer)?;
+-            let track = self.local_video_track().ok_or(E::NotReady)?;
++            let track = self.local_video_track_internal().ok_or(E::NotReady)?;
+             let ssrc = self.local_video_ssrc().ok_or(E::NotReady)?;
+             let egress = crate::media::core_video::CoreVideoEgress::bind(
+                 port,
+@@ -663,8 +671,10 @@
+     /// The shared audio track capable of carrying RFC 4733 payloads.
+     /// Returns `None` when telephone-event was not enabled.
+     pub fn local_dtmf_track(&self) -> Option<Arc<TrackLocalStaticRTP>> {
++        self.mark_video_exposure_escaped();
+         self.local_dtmf.lock().clone()
+     }
++    pub(crate) fn local_dtmf_track_internal(&self) -> Option<Arc<TrackLocalStaticRTP>> { self.local_dtmf.lock().clone() }
+ 
+     /// SSRC of the primary audio source used for RFC 4733 payloads.
+     pub fn local_dtmf_ssrc(&self) -> Option<u32> {
+@@ -883,8 +893,10 @@
+     }
+ 
+     pub fn local_video_track(&self) -> Option<Arc<TrackLocalStaticRTP>> {
++        self.mark_video_exposure_escaped();
+         self.local_video.lock().clone()
+     }
++    pub(crate) fn local_video_track_internal(&self) -> Option<Arc<TrackLocalStaticRTP>> { self.local_video.lock().clone() }
+ 
+     /// Canonical feedback names one source SSRC observed inside the current
+     /// Core delivery guard. Never substitute another camera after a rebind.
+@@ -1617,7 +1629,7 @@
+     pub async fn hold_audio(&self) -> Result<()> {
+         use webrtc::media_stream::Track;
+ 
+-        if let Some(track) = self.local_audio_track() {
++        if let Some(track) = self.local_audio_track_internal() {
+             let _ = tokio::time::timeout(Duration::from_millis(500), track.set_muted(true)).await;
+         }
+         let _ = tokio::time::timeout(
+@@ -1632,7 +1644,7 @@
+     pub async fn resume_audio(&self) -> Result<()> {
+         use webrtc::media_stream::Track;
+ 
+-        if let Some(track) = self.local_audio_track() {
++        if let Some(track) = self.local_audio_track_internal() {
+             let _ = tokio::time::timeout(Duration::from_millis(500), track.set_muted(false)).await;
+         }
+         let _ = tokio::time::timeout(

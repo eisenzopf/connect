@@ -1,0 +1,450 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+@@ -1,16 +1,72 @@
+ //! Optional historical potential-IO metadata. Not a gate, readiness result,
+-//! source-exclusion certificate or future no-escape capability.
++//! source-exclusion certificate. The owned control-plane seal below only
++//! excludes raw-handle escape; it does not stop or drain any physical writer.
+ use super::SourceFrameRealmPoint;
+ use std::sync::{Arc, OnceLock, Weak, atomic::{AtomicBool, AtomicU64, Ordering}};
+ 
+-/// One peer-wide sticky coverage root, installed at original canonical creation.
+-/// A public escaping capability marks this BEFORE returning the original handle.
+-/// No method here denies, delays or changes ordinary IO.
+-pub struct PhysicalVideoExposureCoverage { escaped: AtomicBool }
++/// Peer-wide control-plane coverage root. Every raw capability accessor must
++/// linearize here BEFORE returning a peer/track/sender/transceiver capability.
++/// This never runs on a packet path and does not quiesce or deny ordinary IO.
++/// State: 0 unexposed, 1 escaped, 2 retired-unexposed, 3 retired-escaped,
++/// 4 retired-sealed; >=5 is the unique live owned seal token.
++pub struct PhysicalVideoExposureCoverage { state: AtomicU64, next_token: AtomicU64 }
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub enum PhysicalVideoSealUnavailable { Escaped, Retired, AlreadySealed, Exhausted }
++/// Nonclone owned no-escape lease. This is NOT an IO drain, source cut, F,
++/// authorization, or readiness certificate. It owns only this metadata root.
++pub struct PhysicalVideoExposureSeal {
++    coverage: Arc<PhysicalVideoExposureCoverage>,
++    token: u64,
++}
+ impl PhysicalVideoExposureCoverage {
+-    pub fn new(already_exposed: bool) -> Self { Self { escaped: AtomicBool::new(already_exposed) } }
+-    pub fn mark_escaped(&self) { self.escaped.store(true, Ordering::Release); }
+-    pub fn escaped(&self) -> bool { self.escaped.load(Ordering::Acquire) }
++    pub fn new(already_exposed: bool) -> Self {
++        Self { state: AtomicU64::new(u64::from(already_exposed)), next_token: AtomicU64::new(5) }
++    }
++    /// True permits this SAME original capability to escape; false requires
++    /// the accessor to return unavailable without returning any raw handle.
++    /// Preexisting escape is permanent. A concurrent seal and escape cannot
++    /// both win. Ordinary retired peers retain their prior raw-access behavior.
++    pub fn mark_escaped(&self) -> bool {
++        self.state.fetch_update(Ordering::AcqRel, Ordering::Acquire, |state| match state {
++            0 => Some(1), 1 => Some(1), 2 => Some(3), 3 => Some(3), _ => None,
++        }).is_ok()
++    }
++    pub fn escaped(&self) -> bool { matches!(self.state.load(Ordering::Acquire), 1 | 3 | 4) }
++    pub fn try_seal(self: &Arc<Self>) -> Result<PhysicalVideoExposureSeal, PhysicalVideoSealUnavailable> {
++        let token = self.next_token.fetch_update(Ordering::Relaxed, Ordering::Relaxed,
++            |next| next.checked_add(1)).map_err(|_| PhysicalVideoSealUnavailable::Exhausted)?;
++        self.state.compare_exchange(0, token, Ordering::AcqRel, Ordering::Acquire)
++            .map_err(|state| match state {
++                1 | 3 => PhysicalVideoSealUnavailable::Escaped,
++                2 | 4 => PhysicalVideoSealUnavailable::Retired,
++                _ => PhysicalVideoSealUnavailable::AlreadySealed,
++            })?;
++        Ok(PhysicalVideoExposureSeal { coverage: self.clone(), token })
++    }
++    /// Called synchronously before original native close/Drop. An outstanding
++    /// lease can never abort or Drop back to an alive/unexposed state afterward.
++    pub fn retire(&self) {
++        let _ = self.state.fetch_update(Ordering::AcqRel, Ordering::Acquire, |state| match state {
++            0 => Some(2), 1 => Some(3), 2..=4 => Some(state), _ => Some(4),
++        });
++    }
++}
++impl PhysicalVideoExposureSeal {
++    pub fn is_current(&self) -> bool { self.coverage.state.load(Ordering::Acquire) == self.token }
++    pub fn covers(&self, coverage: &Arc<PhysicalVideoExposureCoverage>) -> bool {
++        Arc::ptr_eq(&self.coverage, coverage) && self.is_current()
++    }
++    /// Abort releases only this exact live token. Drop has identical behavior.
++    pub fn abort(self) { drop(self); }
++    /// Terminal lease retirement never reopens raw access to this strict peer.
++    pub fn retire(self) {
++        let _ = self.coverage.state.compare_exchange(self.token, 4, Ordering::AcqRel, Ordering::Acquire);
++    }
++}
++impl Drop for PhysicalVideoExposureSeal {
++    fn drop(&mut self) {
++        let _ = self.coverage.state.compare_exchange(self.token, 0, Ordering::AcqRel, Ordering::Acquire);
++    }
+ }
+ 
+ /// Strong lifetime belongs to SAME actual physical Track+SSRC family, not Port.
+@@ -96,6 +152,14 @@
+     pub fn same_family(&self, other: &Self) -> bool { Weak::ptr_eq(&self.0, &other.0) }
+     pub fn mark_untracked(&self) { if let Some(family)=self.0.upgrade() { family.mark_untracked(); } }
+     pub fn snapshot(&self) -> Option<PhysicalVideoExposureSnapshot> { Some(self.0.upgrade()?.snapshot()) }
++    /// Exact peer no-escape association only. The caller still must obtain the
++    /// original physical writer quiescence/drain before treating any max as F.
++    pub fn snapshot_sealed(&self, seal: &PhysicalVideoExposureSeal) -> Option<PhysicalVideoExposureSnapshot> {
++        let family = self.0.upgrade()?;
++        if !seal.covers(family.coverage.get()?) { return None; }
++        let snapshot = family.snapshot();
++        seal.is_current().then_some(snapshot)
++    }
+ }
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ pub struct PhysicalVideoExposureSnapshot {
+@@ -173,4 +237,69 @@
+         drop(family);
+         assert!(observer.snapshot().is_none());
+     }
+-}
++    #[test]
++    fn raw_escape_and_owned_seal_linearize_on_one_original_coverage_root() {
++        for _ in 0..64 {
++            let root=Arc::new(PhysicalVideoExposureCoverage::new(false));
++            let start=Arc::new(std::sync::Barrier::new(3));
++            let sealing={let root=root.clone();let start=start.clone();std::thread::spawn(move||{start.wait();root.try_seal()})};
++            let escaping={let root=root.clone();let start=start.clone();std::thread::spawn(move||{start.wait();root.mark_escaped()})};
++            start.wait();
++            let seal=sealing.join().unwrap();
++            let escaped=escaping.join().unwrap();
++            match seal {
++                Ok(seal)=>{
++                    assert!(!escaped);assert!(seal.is_current());
++                    assert!(!root.mark_escaped());
++                    assert_eq!(root.try_seal().err(),Some(PhysicalVideoSealUnavailable::AlreadySealed));
++                    seal.abort();assert!(root.mark_escaped());
++                }
++                Err(reason)=>{assert!(escaped);assert_eq!(reason,PhysicalVideoSealUnavailable::Escaped);}
++            }
++            assert_eq!(root.try_seal().err(),Some(PhysicalVideoSealUnavailable::Escaped));
++        }
++    }
++    #[test]
++    fn owned_seal_preserves_exact_peer_late_family_and_abort_token_identity() {
++        let (realm,family,root)=setup();
++        let seal=root.try_seal().unwrap();let original_token=seal.token;
++        let other=Arc::new(PhysicalVideoExposureCoverage::new(false));
++        assert!(!seal.covers(&other));
++        let wrong=other.try_seal().unwrap();
++        assert!(family.observer().snapshot_sealed(&wrong).is_none());
++        let late=Arc::new(PhysicalVideoExposure::default());
++        late.configure_expected_realm(realm.handle().incarnation());late.bind_coverage(root.clone());
++        late.record_potential(Some(realm.handle().next_point().unwrap()));
++        assert!(late.observer().snapshot_sealed(&seal).unwrap().coverage_complete);
++        assert!(!root.mark_escaped());
++        seal.abort();
++        let replacement=root.try_seal().unwrap();
++        assert_ne!(replacement.token,original_token);
++        assert!(root.state.compare_exchange(original_token,0,Ordering::AcqRel,Ordering::Acquire).is_err());
++        assert!(replacement.is_current());
++        drop(wrong);drop(replacement);
++        assert!(root.mark_escaped());
++        assert!(!late.observer().snapshot().unwrap().coverage_complete);
++    }
++    #[test]
++    fn owned_seal_retirement_drop_and_serial_exhaustion_never_reopen_strict_access() {
++        let root=Arc::new(PhysicalVideoExposureCoverage::new(false));
++        let seal=root.try_seal().unwrap();root.retire();
++        assert!(!seal.is_current());drop(seal);
++        assert!(!root.mark_escaped());
++        assert_eq!(root.try_seal().err(),Some(PhysicalVideoSealUnavailable::Retired));
++        let root=Arc::new(PhysicalVideoExposureCoverage::new(false));
++        root.try_seal().unwrap().retire();
++        assert!(!root.mark_escaped());
++        let ordinary=Arc::new(PhysicalVideoExposureCoverage::new(false));
++        ordinary.retire();assert!(ordinary.mark_escaped()); // no strict API change outside a seal
++        assert_eq!(ordinary.try_seal().err(),Some(PhysicalVideoSealUnavailable::Escaped));
++        let exhausted=Arc::new(PhysicalVideoExposureCoverage::new(false));
++        exhausted.next_token.store(u64::MAX,Ordering::Relaxed);
++        assert_eq!(exhausted.try_seal().err(),Some(PhysicalVideoSealUnavailable::Exhausted));
++        assert!(exhausted.mark_escaped()); // metadata exhaustion does not alter ordinary access/IO
++        let escaped=Arc::new(PhysicalVideoExposureCoverage::new(true));
++        assert_eq!(escaped.try_seal().err(),Some(PhysicalVideoSealUnavailable::Escaped));
++    }
++
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/adapter.rs b/crates/webrtc/rvoip-webrtc/src/adapter.rs
+--- a/crates/webrtc/rvoip-webrtc/src/adapter.rs
++++ b/crates/webrtc/rvoip-webrtc/src/adapter.rs
+@@ -2325,7 +2325,7 @@
+         );
+         if has_remote {
+             media.enable_webrtc_stats(
+-                Arc::clone(route.peer.peer_connection()),
++                Arc::clone(route.peer.peer_connection().ok_or(WebRtcError::InvalidState("raw peer capability sealed"))?),
+                 Arc::clone(&route.cancel),
+             );
+         }
+@@ -5644,6 +5644,7 @@
+ pub async fn export_local_sdp(peer: &Arc<RvoipPeerConnection>) -> Result<String> {
+     let desc = peer
+         .peer_connection()
++        .ok_or(WebRtcError::InvalidState("raw peer capability sealed"))?
+         .local_description()
+         .await
+         .ok_or_else(|| WebRtcError::Sdp("no local description".into()))?;
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/exposure_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/exposure_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/exposure_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/exposure_tests.rs
+@@ -38,3 +38,64 @@
+         if let Err(error)=work {std::panic::resume_unwind(error)}
+     }
+ }
++
++#[tokio::test]
++async fn original_native_raw_getters_refuse_during_seal_including_late_tracks_then_abort() {
++    let peer=RvoipPeerConnection::new_canonical(&WebRtcConfig::loopback(),PeerRole::Offerer).await.unwrap();
++    let work=std::panic::AssertUnwindSafe(async {
++        let root=peer.video_exposure_coverage();
++        let seal=root.try_seal().unwrap();
++        // Original native setup stays nonescaping, even after seal creation.
++        peer.add_local_audio_track().await.unwrap();peer.add_local_video_track().await.unwrap();
++        assert!(peer.local_audio_track_internal().is_some());
++        assert!(peer.local_video_track_internal().is_some());
++        assert!(peer.peer_connection().is_none());
++        assert!(peer.local_audio_track().is_none());
++        assert!(peer.local_video_track().is_none());
++        assert!(peer.local_dtmf_track().is_none());
++        let control=OriginalWebRtcIceControl {peer:peer.clone()};
++        assert_eq!(control.descriptions().await,(None,None));
++        assert!(seal.is_current());
++        seal.abort();
++        assert!(peer.peer_connection().is_some());
++        assert!(peer.local_video_track().is_some());
++        assert!(root.try_seal().is_err(),"escaped original peer can never be resealed");
++    }).catch_unwind().await;
++    let closed=peer.close().await;
++    assert!(closed.is_ok(),"join original native driver before outcome");
++    if let Err(error)=work {std::panic::resume_unwind(error)}
++}
++#[tokio::test]
++async fn original_scalar_control_seal_binds_connected_peer_and_native_close_retires_same_lease() {
++    let mut config=WebRtcConfig::loopback();config.trickle_ice=false;
++    let a=RvoipPeerConnection::new_canonical(&config,PeerRole::Offerer).await.unwrap();
++    let b=match RvoipPeerConnection::new_canonical(&config,PeerRole::Answerer).await {
++        Ok(b)=>b,Err(error)=>{a.close().await.unwrap();panic!("second original owner setup: {error}")}
++    };
++    let mut a_closed=false;
++    let work=std::panic::AssertUnwindSafe(async {
++        let control=OriginalWebRtcIceControl {peer:a.clone()};
++        assert!(control.try_seal_raw_access().is_err(),"unconnected owner cannot mint a live seal");
++        let offer=a.create_offer_and_gather().await.unwrap();
++        let answer=b.accept_offer_and_gather(&offer).await.unwrap();
++        a.set_remote_answer(&answer).await.unwrap();
++        a.wait_connected(std::time::Duration::from_secs(5)).await.unwrap();
++        b.wait_connected(std::time::Duration::from_secs(5)).await.unwrap();
++        let other=OriginalWebRtcIceControl {peer:b.clone()};
++        let seal=control.try_seal_raw_access().unwrap();
++        assert!(seal.covers(&a.video_exposure_coverage()));
++        assert!(!seal.covers(&b.video_exposure_coverage()));
++        assert!(!control.same_physical(&other));
++        assert!(control.descriptions().await.0.is_some());
++        assert!(a.peer_connection().is_none());
++        assert!(a.local_audio_track().is_none());
++        a.close().await.unwrap();a_closed=true;
++        assert!(!seal.is_current());drop(seal);
++        assert!(a.peer_connection().is_none());
++        assert!(control.try_seal_raw_access().is_err());
++    }).catch_unwind().await;
++    // Attempt BOTH original joins even if work or the first close fails.
++    let close_a=if a_closed {Ok(())} else {a.close().await};let close_b=b.close().await;
++    assert!(close_a.is_ok() && close_b.is_ok(),"both original native drivers join before outcome");
++    if let Err(error)=work {std::panic::resume_unwind(error)}
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -43,6 +43,21 @@
+ pub struct OriginalWebRtcIceControl { peer: Arc<RvoipPeerConnection> }
+ impl OriginalWebRtcIceControl {
+     pub fn same_physical(&self, other: &Self) -> bool { Arc::ptr_eq(&self.peer, &other.peer) }
++    /// Metadata-only exclusive raw-access seal on this SAME original peer.
++    /// This is not current authorization, writer drain, or a publication cut.
++    pub fn try_seal_raw_access(&self) -> std::result::Result<
++        rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureSeal,
++        rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoSealUnavailable,
++    > {
++        use rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoSealUnavailable;
++        if !self.peer.core_transport_current() { return Err(PhysicalVideoSealUnavailable::Retired); }
++        let seal = self.peer.video_exposure_coverage().try_seal()?;
++        if !self.peer.core_transport_current() || !seal.is_current() {
++            drop(seal);
++            return Err(PhysicalVideoSealUnavailable::Retired);
++        }
++        Ok(seal)
++    }
+     pub async fn descriptions(&self) -> (Option<String>, Option<String>) {
+         let pc = self.peer.peer_connection_internal();
+         (pc.local_description().await.map(|d|d.sdp),pc.remote_description().await.map(|d|d.sdp))
+@@ -191,7 +206,9 @@
+     }
+     pub async fn peer(&self, deadline: tokio::time::Instant) -> Result<Arc<RvoipPeerConnection>> {
+         let original = self.peer_internal(deadline).await?;
+-        original.mark_video_exposure_escaped();
++        if !original.mark_video_exposure_escaped() {
++            return Err(RvoipError::AdmissionRejected("Original WebRTC raw capability sealed"));
++        }
+         Ok(original)
+     }
+     pub(crate) async fn peer_internal(&self, deadline: tokio::time::Instant) -> Result<Arc<RvoipPeerConnection>> {
+@@ -525,7 +542,9 @@
+         deadline: tokio::time::Instant,
+     ) -> Result<Arc<RvoipPeerConnection>> {
+         let original = self.original_peer_internal(id, peer, deadline).await?;
+-        original.mark_video_exposure_escaped();
++        if !original.mark_video_exposure_escaped() {
++            return Err(RvoipError::AdmissionRejected("Original WebRTC raw capability sealed"));
++        }
+         Ok(original)
+     }
+     async fn original_peer_internal(
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -212,12 +212,13 @@
+         self.remote_track_rx.lock().await.recv().await
+     }
+ 
+-    pub fn peer_connection(&self) -> &Arc<dyn PeerConnection> {
+-        self.mark_video_exposure_escaped();
+-        &self.pc
++    /// Raw native peer capability. Explicit strict seals return unavailable
++    /// before exposing get_senders/get_transceivers/track writers transitively.
++    pub fn peer_connection(&self) -> Option<&Arc<dyn PeerConnection>> {
++        self.mark_video_exposure_escaped().then_some(&self.pc)
+     }
+     pub(crate) fn peer_connection_internal(&self) -> &Arc<dyn PeerConnection> { &self.pc }
+-    pub(crate) fn mark_video_exposure_escaped(&self) { self.video_exposure.mark_escaped(); }
++    pub(crate) fn mark_video_exposure_escaped(&self) -> bool { self.video_exposure.mark_escaped() }
+     pub(crate) fn video_exposure_coverage(&self) -> Arc<rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureCoverage> { self.video_exposure.clone() }
+ 
+     /// ICE candidates observed during local gathering (full SDP embeds these inline).
+@@ -522,7 +523,7 @@
+     }
+ 
+     pub fn local_audio_track(&self) -> Option<Arc<TrackLocalStaticRTP>> {
+-        self.mark_video_exposure_escaped();
++        if !self.mark_video_exposure_escaped() { return None; }
+         self.local_audio.lock().clone()
+     }
+     pub(crate) fn local_audio_track_internal(&self) -> Option<Arc<TrackLocalStaticRTP>> { self.local_audio.lock().clone() }
+@@ -671,7 +672,7 @@
+     /// The shared audio track capable of carrying RFC 4733 payloads.
+     /// Returns `None` when telephone-event was not enabled.
+     pub fn local_dtmf_track(&self) -> Option<Arc<TrackLocalStaticRTP>> {
+-        self.mark_video_exposure_escaped();
++        if !self.mark_video_exposure_escaped() { return None; }
+         self.local_dtmf.lock().clone()
+     }
+     pub(crate) fn local_dtmf_track_internal(&self) -> Option<Arc<TrackLocalStaticRTP>> { self.local_dtmf.lock().clone() }
+@@ -893,7 +894,7 @@
+     }
+ 
+     pub fn local_video_track(&self) -> Option<Arc<TrackLocalStaticRTP>> {
+-        self.mark_video_exposure_escaped();
++        if !self.mark_video_exposure_escaped() { return None; }
+         self.local_video.lock().clone()
+     }
+     pub(crate) fn local_video_track_internal(&self) -> Option<Arc<TrackLocalStaticRTP>> { self.local_video.lock().clone() }
+@@ -1430,6 +1431,7 @@
+     }
+ 
+     pub async fn close(&self) -> Result<()> {
++        self.video_exposure.retire();
+         self.source_clock.retire();
+         // Local close is terminal intent even when its original asynchronous
+         // driver stops before delivering the queued Closed callback. Publish
+@@ -1949,3 +1951,7 @@
+         );
+     }
+ }
++
++impl Drop for RvoipPeerConnection {
++    fn drop(&mut self) { self.video_exposure.retire(); }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/tests/loopback.rs b/crates/webrtc/rvoip-webrtc/tests/loopback.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/loopback.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/loopback.rs
+@@ -61,7 +61,7 @@
+         None,
+     );
+     answerer_stream.enable_webrtc_stats(
+-        Arc::clone(answerer.peer_connection()),
++        Arc::clone(answerer.peer_connection().expect("ordinary raw peer remains unsealed")),
+         Arc::new(Notify::new()),
+     );
+ 
+diff --git a/crates/webrtc/rvoip-webrtc/tests/lossy_turn_nack.rs b/crates/webrtc/rvoip-webrtc/tests/lossy_turn_nack.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/lossy_turn_nack.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/lossy_turn_nack.rs
+@@ -70,7 +70,7 @@
+     );
+     // Enable outbound stats on the offerer so we can observe NACK counts.
+     offerer_stream.enable_webrtc_stats(
+-        Arc::clone(offerer.peer_connection()),
++        Arc::clone(offerer.peer_connection().expect("ordinary raw peer remains unsealed")),
+         Arc::new(Notify::new()),
+     );
+ 
+@@ -85,7 +85,7 @@
+         None,
+     );
+     answerer_stream.enable_webrtc_stats(
+-        Arc::clone(answerer.peer_connection()),
++        Arc::clone(answerer.peer_connection().expect("ordinary raw peer remains unsealed")),
+         Arc::new(Notify::new()),
+     );
+ 
+diff --git a/crates/webrtc/rvoip-webrtc/tests/turn_relay_e2e.rs b/crates/webrtc/rvoip-webrtc/tests/turn_relay_e2e.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/turn_relay_e2e.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/turn_relay_e2e.rs
+@@ -108,7 +108,7 @@
+         None,
+     );
+     answerer_stream.enable_webrtc_stats(
+-        Arc::clone(answerer.peer_connection()),
++        Arc::clone(answerer.peer_connection().expect("ordinary raw peer remains unsealed")),
+         Arc::new(Notify::new()),
+     );
+ 
+diff --git a/crates/webrtc/rvoip-webrtc/tests/whep_counter_offer_conformance.rs b/crates/webrtc/rvoip-webrtc/tests/whep_counter_offer_conformance.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/whep_counter_offer_conformance.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/whep_counter_offer_conformance.rs
+@@ -43,27 +43,27 @@
+         .expect("parse counter-offer");
+ 
+     subscriber
+-        .peer_connection()
++        .peer_connection().expect("ordinary raw peer remains unsealed")
+         .set_remote_description(counter_offer)
+         .await
+         .expect("apply counter-offer after rollback");
+     let answer = subscriber
+-        .peer_connection()
++        .peer_connection().expect("ordinary raw peer remains unsealed")
+         .create_answer(None)
+         .await
+         .expect("create answer to counter-offer");
+     subscriber
+-        .peer_connection()
++        .peer_connection().expect("ordinary raw peer remains unsealed")
+         .set_local_description(answer)
+         .await
+         .expect("apply local counter-offer answer");
+     let answer = subscriber
+-        .peer_connection()
++        .peer_connection().expect("ordinary raw peer remains unsealed")
+         .local_description()
+         .await
+         .expect("retained answer");
+     origin
+-        .peer_connection()
++        .peer_connection().expect("ordinary raw peer remains unsealed")
+         .set_remote_description(answer)
+         .await
+         .expect("origin accepts counter-offer answer");

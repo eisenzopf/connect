@@ -330,7 +330,7 @@ async fn canonical_chromium_connected_candidate_close_notifies_exact_pending_roo
         // The retained Core remains queryable after normal adapter shutdown.
         // Only the typed alert path sets this original transport statistic to
         // Failed; normal local close does not invent that state.
-        let stats=peer.peer_connection().get_stats(std::time::Instant::now(),rtc::statistics::StatsSelector::None).await;
+        let stats=peer.peer_connection().expect("ordinary fixture raw peer remains unsealed").get_stats(std::time::Instant::now(),rtc::statistics::StatsSelector::None).await;
         let dtls=stats.transport().expect("original backend transport statistic");
         assert_eq!(dtls.dtls_state,rtc::peer_connection::transport::RTCDtlsTransportState::Failed,
             "actual original server did not observe the encrypted terminal DTLS alert");

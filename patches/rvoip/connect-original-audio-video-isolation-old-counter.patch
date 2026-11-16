@@ -1,0 +1,58 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
+@@ -542,3 +542,54 @@
+         drop(f.policy.0.try_write().unwrap());
+     }
+ }
++
++/// OLD causal control: free-State audio capture owns Some(model revision),
++/// busy-State capture owns None. A public VIDEO-only hold must not turn this
++/// scheduling accident into loss of an unchanged original microphone frame.
++/// OLD is expected to fail only the final Some-arrival original-audio oracle.
++#[tokio::test]
++async fn original_audio_survives_unrelated_public_video_hold_for_free_and_busy_capture() {
++    use futures::FutureExt as _;
++    let mut observations=Vec::new();
++    for busy in [false,true] {
++        let (f,mode)=fixture().await;
++        let io=Arc::new(AtomicUsize::new(0));
++        let work=std::panic::AssertUnwindSafe(async {
++            let port=f.aa.port(Medium::Audio);let id=desired(Medium::Audio).logical_id;
++            let ticket=port.0.ticket(TicketSide::Ingress);let mut input=f.a.take_ingress(&id).unwrap();let mut output=f.ba.port(Medium::Audio).take_egress().unwrap();
++            let before=f.a.revision();let received=Instant::now();let original_frame=frame(&port,160);
++            let mut original=if busy {
++                let held=f.a.state.lock().unwrap();let captured=port.retain_original_ingress(original_frame.clone(),received).unwrap().unwrap();drop(held);captured
++            } else {port.retain_original_ingress(original_frame.clone(),received).unwrap().unwrap()};
++            let captured=original.captured_model_revision_for_test();assert_eq!(captured,if busy {None}else{Some(before)});
++            assert!(matches!(original.try_publish_clocked(|_|None),Err(StreamControlError::MetadataBusy)));
++            mode.store(0,Ordering::SeqCst);
++            let ids=[desired(Medium::Video).logical_id].into_iter().collect();
++            let (after,changed)=f.a.set_media_gate(before,&ids,StreamGateAction::Hold {direction:StreamDirection::Receive},deadline()).await.unwrap();
++            assert_eq!(after,before+1);assert!(changed[0].permits(false)&&!changed[0].permits(true));
++            assert!(ticket.is_current()&&ticket.same_generation(&port.0.ticket(TicketSide::Ingress)));
++            let age=received.elapsed();assert!(age<Duration::from_millis(200),"counter expired before original audio attempt");
++            let result=original.try_publish_clocked(|_|None);
++            let mut original_io=false;
++            if result.is_ok() {
++                let packet=input.try_recv().expect("synchronous original enqueue missing");assert_eq!(packet.admitted_at,received);assert_eq!(packet.frame.payload,original_frame.payload);assert_eq!(packet.frame.timestamp_rtp,160);
++                packet.try_forward_to(&f.b,&id).unwrap();let queued=outgoing(&mut output).await;let count=io.clone();let expected=original_frame.payload.clone();
++                queued.deliver(move|delivered|async move {assert_eq!(delivered.payload,expected);count.fetch_add(1,Ordering::AcqRel);Ok(())}).await.unwrap();original_io=true;
++            } else {assert!(input.try_recv().is_err());}
++            // A genuinely fresh current original proves unaffected authority,
++            // reader, source/sink and actual guarded IO remain operational.
++            let fresh_frame=frame(&port,320);port.try_publish_clocked(&fresh_frame,|_|None).unwrap();let packet=receive(&mut input).await;assert_eq!(packet.frame.payload,fresh_frame.payload);packet.try_forward_to(&f.b,&id).unwrap();let count=io.clone();
++            outgoing(&mut output).await.deliver(move|delivered|async move {assert_eq!(delivered.timestamp_rtp,320);count.fetch_add(1,Ordering::AcqRel);Ok(())}).await.unwrap();
++            assert!(input.try_recv().is_err());assert!(matches!(original.try_publish_clocked(|_|None),Err(StreamControlError::Cancelled)));
++            (result,age,captured,original_io,io.load(Ordering::Acquire))
++        }).catch_unwind().await;
++        // Always drain BOTH original controllers before any desired OLD leaf.
++        let a=f.a.shutdown(deadline()).await;let b=f.b.shutdown(deadline()).await;
++        assert_eq!(a,0);assert_eq!(b,0);assert_eq!(f.aa.outstanding.load(Ordering::Acquire),0);assert_eq!(f.ba.outstanding.load(Ordering::Acquire),0);
++        let (result,age,captured,original_io,calls)=match work {Ok(value)=>value,Err(error)=>std::panic::resume_unwind(error)};
++        assert_eq!(calls,if result.is_ok(){2}else{1},"fresh current IO positive must qualify independently");
++        eprintln!("ORIGINAL_AUDIO_VIDEO_ISOLATION busy={busy} captured_model_revision={captured:?} original_age_us={} original={result:?} original_io={original_io} guarded_io={calls} both_cleanup=0",age.as_micros());
++        observations.push((busy,result.is_ok()&&original_io));
++    }
++    assert!(observations.iter().all(|(_,pass)|*pass),"unchanged original microphone frame lost across VIDEO-only public hold: {observations:?}");
++}

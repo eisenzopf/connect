@@ -1,0 +1,579 @@
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -561,13 +561,20 @@
+     }
+ }
+ impl CheckedMediaIngress for PortIngress {
++    fn original_video_source_incarnation(&self)->Option<u128> {self.clock.binding_incarnation()}
+     fn retain_rtp_observed(
++        self: Arc<Self>,frame:MediaFrame,ssrc:u32,datagram_bytes:usize,sequence:u32,received_at:std::time::Instant,
++    )->Result<Option<Box<dyn crate::substrate::peer_media_router::PendingNativeIngress>>,()> {
++        self.retain_rtp_observed_original(frame,ssrc,datagram_bytes,sequence,received_at,None)
++    }
++    fn retain_rtp_observed_original(
+         self: Arc<Self>,
+         frame: MediaFrame,
+         ssrc: u32,
+         datagram_bytes: usize,
+         sequence: u32,
+         received_at: std::time::Instant,
++        original:Option<Arc<OriginalVideoFrame>>,
+     ) -> Result<Option<Box<dyn crate::substrate::peer_media_router::PendingNativeIngress>>, ()>
+     {
+         let timestamp = frame.timestamp_rtp;
+@@ -575,7 +582,9 @@
+             .port
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)
+-            .and_then(|port| port.retain_original_ingress(frame, received_at));
++            .and_then(|port| if frame.kind==StreamKind::Video {
++                port.retain_original_video_ingress(frame,received_at,original)
++            } else {port.retain_original_ingress(frame, received_at)});
+         match result {
+             Ok(Some(original)) => {
+                 #[cfg(feature = "test-support")]
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/source_clock.rs b/crates/uctp/rvoip-uctp/src/staged_media/source_clock.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media/source_clock.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/source_clock.rs
+@@ -125,6 +125,10 @@
+     true
+ }
+ impl Track {
++    /// Physical native source-binding ID established once by track registration.
++    /// CNAME/report availability never changes it. Reader freezes this before
++    /// its first packet; a later SSRC restart cannot remint chronology.
++    pub fn binding_incarnation(&self)->Option<u128> {self.group.state.lock().unwrap_or_else(|p|p.into_inner()).entries.get(&self.handle).map(|entry|entry.id)}
+     pub fn report(&self, r: Report, current: Current, receipt: u64) -> bool {
+         let mut s = self.group.state.lock().unwrap_or_else(|p| p.into_inner());
+         let Some(mut e) = s.entries.remove(&self.handle) else {
+@@ -229,12 +233,14 @@
+         let g = Group::new();
+         let a = g.track(1, 48000, yes()).unwrap();
+         let v = g.track(2, 90000, yes()).unwrap();
++        let native_source=v.binding_incarnation().unwrap();
+         assert!(a.snapshot(10, yes()).unwrap().anchor.is_none());
+         assert!(a.report(report(10, 100u64 << 32, 48000), yes(), 200u64 << 32));
+         assert!(v.report(report(20, 101u64 << 32, 180000), yes(), 205u64 << 32));
+         let a = a.snapshot(10, yes()).unwrap();
+         let v = v.snapshot(20, yes()).unwrap();
+         assert_ne!(a.source_id, v.source_id);
++        assert_eq!(v.source_id,native_source,"first real SSRC/report must keep the setup-only native source identity");
+         assert_eq!(a.generation, v.generation);
+         assert_eq!(a.anchor.unwrap().ntp_time, 200u64 << 32);
+         assert_eq!(v.anchor.unwrap().ntp_time, 201u64 << 32);
+@@ -280,11 +286,13 @@
+         v.snapshot(20, yes());
+         a.report(report(10, 100u64 << 32, 0), yes(), 200u64 << 32);
+         let old = a.snapshot(10, yes()).unwrap();
++        let native_source=a.binding_incarnation();
+         let mut conflict = report(20, 100u64 << 32, 0);
+         conflict.cname = "other".into();
+         assert!(!v.report(conflict, yes(), 200u64 << 32));
+         assert!(!(old.is_current)());
+         assert!(!a.snapshot(10, yes()).unwrap().supported);
++        assert_eq!(a.binding_incarnation(),native_source,"CNAME change cannot mint a physical source incarnation");
+         assert!(v.snapshot(20, yes()).unwrap().anchor.is_none());
+     }
+     #[test]
+diff --git a/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs b/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
+--- a/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
+@@ -31,6 +31,15 @@
+ /// Runs at physical ingress before any channel buffering. Staged routes use
+ /// this to reject packets while their engine generation is still inactive.
+ pub trait CheckedMediaIngress: Send + Sync {
++    /// Frozen native source-binding identity, sampled only on original reader
++    /// setup for a nonreused binding. Metadata, never a current IO grant.
++    fn original_video_source_incarnation(&self)->Option<u128> {None}
++    /// Original physical reader capsule; custom/unmanaged adapters keep their
++    /// existing retained IO semantics without claiming this optional proof.
++    fn retain_rtp_observed_original(self:Arc<Self>,frame:MediaFrame,ssrc:u32,datagram_bytes:usize,sequence:u32,received_at:std::time::Instant,_original:Option<Arc<rvoip_core::staged_streams::OriginalVideoFrame>>)->Result<Option<Box<dyn PendingNativeIngress>>,()> {
++        self.retain_rtp_observed(frame,ssrc,datagram_bytes,sequence,received_at)
++    }
++
+     fn try_send(&self, frame: MediaFrame) -> Result<(), mpsc::error::TrySendError<MediaFrame>>;
+     fn try_send_rtp(
+         &self,
+@@ -257,6 +266,7 @@
+ 
+ /// A committed peer-local media route.
+ pub struct PeerMediaBinding {
++    frame_realm: Option<rvoip_core::staged_streams::SourceFrameRealm>,
+     local_id: NonZeroU16,
+     owner: PrincipalOwnershipKey,
+     route: PeerMediaRouteKey,
+@@ -267,6 +277,7 @@
+ }
+ 
+ impl PeerMediaBinding {
++    pub(crate) fn original_frame_realm(&self)->Option<rvoip_core::staged_streams::SourceFrameRealm> {self.frame_realm.clone()}
+     pub fn local_id(&self) -> NonZeroU16 {
+         self.local_id
+     }
+@@ -449,6 +460,9 @@
+     by_route: HashMap<PeerMediaRouteKey, NonZeroU16>,
+     by_session: HashMap<SessionId, HashSet<NonZeroU16>>,
+     by_connection: HashMap<PeerMediaConnectionKey, HashSet<NonZeroU16>>,
++    // Setup only, copied once into each actual binding. Missing/duplicate setup
++    // stays unavailable, never refreshed from a later current Session.
++    frame_realms: HashMap<PeerMediaConnectionKey,Option<rvoip_core::staged_streams::SourceFrameRealm>>,
+ }
+ 
+ impl RouterState {
+@@ -470,6 +484,15 @@
+ }
+ 
+ impl PeerMediaRouter {
++    pub(crate) fn freeze_original_frame_realm(&self,key:PeerMediaConnectionKey,realm:Option<rvoip_core::staged_streams::SourceFrameRealm>) {
++        let mut state=self.state.lock();if state.shutdown{return;}
++        let realm=if state.by_connection.contains_key(&key) {None} else {realm};
++        match state.frame_realms.entry(key) {
++            std::collections::hash_map::Entry::Vacant(entry)=>{entry.insert(realm);},
++            // Repeated setup cannot adopt a newer runtime or grant identity.
++            std::collections::hash_map::Entry::Occupied(mut entry)=>{entry.insert(None);},
++        }
++    }
+     pub fn new() -> Arc<Self> {
+         Arc::new(Self {
+             state: Mutex::new(RouterState::active()),
+@@ -591,6 +614,7 @@
+         connection: &PeerMediaConnectionKey,
+     ) -> Vec<Arc<PeerMediaBinding>> {
+         let mut state = self.state.lock();
++        state.frame_realms.remove(connection);
+         let local_ids: Vec<_> = state
+             .by_connection
+             .get(connection)
+@@ -606,6 +630,7 @@
+ 
+     pub fn remove_session(&self, session_id: &SessionId) -> Vec<Arc<PeerMediaBinding>> {
+         let mut state = self.state.lock();
++        state.frame_realms.retain(|key,_|&key.session_id!=session_id);
+         let local_ids: Vec<_> = state
+             .by_session
+             .get(session_id)
+@@ -660,6 +685,7 @@
+         state.by_route.clear();
+         state.by_session.clear();
+         state.by_connection.clear();
++        state.frame_realms.clear();
+         drop(state);
+         cancel_all(&removed);
+         removed
+@@ -696,6 +722,7 @@
+         let session_id = registration.route.session_id.clone();
+         let route = registration.route.clone();
+         let binding = Arc::new(PeerMediaBinding {
++            frame_realm:state.frame_realms.get(&connection).cloned().flatten(),
+             local_id,
+             owner: registration.owner,
+             route: registration.route,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -2394,6 +2394,14 @@
+         }
+         physical.bind(request.peer())?;
+         let id = request.intent().connection.clone();
++        if let Some(media)=physical.media() {
++            // Core froze this exact retained runtime before the dormant hook;
++            // every later binding copies it once, never on packet retry.
++            media.router().freeze_original_frame_realm(
++                crate::substrate::PeerMediaConnectionKey::new(request.intent().session.clone(),id.clone()),
++                request.source_frame_realm().and_then(|realm|realm.for_scope(request.frozen_member().conversation(),&request.intent().session)),
++            );
++        }
+         let route = Arc::new(Route {
+             physical,
+             peer: Arc::downgrade(request.peer()),
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_media.rs b/crates/uctp/rvoip-uctp/src/v2/native_media.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_media.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_media.rs
+@@ -62,6 +62,8 @@
+     running: AtomicBool,
+     counters: Counters,
+ }
++mod original_video;
++use original_video::NativeOriginalVideo;
+ type PendingIngress = Box<dyn crate::substrate::peer_media_router::PendingNativeIngress>;
+ enum RoutedIngress {
+     Complete(bool),
+@@ -152,6 +154,7 @@
+             let owner = owner;
+             let mut pending: BTreeMap<u16, VecDeque<PendingIngress>> = BTreeMap::new();
+             let mut pending_count = 0usize;
++            let mut original_video=NativeOriginalVideo::default();
+             let mut retry = tokio::time::interval(Duration::from_millis(1));
+             retry.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+             loop {
+@@ -177,7 +180,7 @@
+                 let received_at = Instant::now();
+                 tokio::task::consume_budget().await;
+                 let clock = crate::staged_media::rtcp::is_rtcp(&bytes);
+-                let accepted = match owner.0.route(&bytes, received_at) {
++                let accepted = match owner.0.route(&bytes, received_at,&mut original_video) {
+                     RoutedIngress::Complete(accepted) => accepted,
+                     RoutedIngress::Original(local, maximum, mut original) => {
+                         if pending.get(&local).is_none_or(|q| q.is_empty()) {
+@@ -216,7 +219,7 @@
+         }
+         .boxed())
+     }
+-    fn route(&self, bytes: &[u8], received_at: Instant) -> RoutedIngress {
++    fn route(&self, bytes: &[u8], received_at: Instant, original_video:&mut NativeOriginalVideo) -> RoutedIngress {
+         // Bound parsing before RTP extension/CSRC processing. Audio payloads
+         // are bounded again by the staged engine; video has its tighter cap.
+         if bytes.len() > 16 * 1024 + 20 || self.lifetime.is_cancelled() {
+@@ -278,10 +281,13 @@
+         } else {
+             return RoutedIngress::Complete(false);
+         };
++        if binding.stream().codec().payload_type != Some(datagram.rtp.packet().header.payload_type) {
++            return RoutedIngress::Complete(false);
++        }
++        let original=if kind==StreamKind::Video {
++            original_video.observe(&binding,datagram.rtp.packet(),video.as_ref().unwrap(),received_at)
++        } else {None};
+         let payload = datagram.rtp.into_media_payload();
+-        if binding.stream().codec().payload_type != Some(payload.payload_type) {
+-            return RoutedIngress::Complete(false);
+-        }
+         let maximum = if kind == StreamKind::Audio {
+             MAX_PENDING_AUDIO
+         } else {
+@@ -299,12 +305,13 @@
+         // Checked staged ingress rejects prepared/paused/revoked generations
+         // before any queue buffering. There is no unguarded fanout fallback.
+         match binding.ingress() {
+-            PeerMediaIngress::Checked(ingress) => match ingress.clone().retain_rtp_observed(
++            PeerMediaIngress::Checked(ingress) => match ingress.clone().retain_rtp_observed_original(
+                 frame,
+                 payload.ssrc,
+                 bytes.len(),
+                 datagram.seq,
+                 received_at,
++                original,
+             ) {
+                 Ok(Some(original)) => RoutedIngress::Original(local.get(), maximum, original),
+                 Ok(None) => RoutedIngress::Complete(true),
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_media/original_video.rs b/crates/uctp/rvoip-uctp/src/v2/native_media/original_video.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_media/original_video.rs
+@@ -0,0 +1,162 @@
++//! Optional source-owned accepted RTP-group provenance. The sole original
++//! native reader mutates this before retain/retry; it never changes media IO.
++use bytes::Bytes;
++use rvoip_core::staged_streams::{OriginalVideoFrame,SourceFrameRealm};
++use rvoip_rtp_core::RtpPacket;
++use crate::substrate::{PeerMediaBinding,PeerMediaIngress};
++use std::{collections::{HashMap,VecDeque},sync::Arc,time::{Duration,Instant}};
++use tokio_util::sync::CancellationToken;
++const HISTORY:usize=256; // One peer-wide metadata history, not a delivery queue.
++const AGE:Duration=Duration::from_millis(200);
++struct Remembered {raw:Bytes,point:Option<Arc<OriginalVideoFrame>>,at:Instant}
++struct Group {point:Arc<OriginalVideoFrame>,first_sequence:u16,marker_sequence:Option<u16>,born:Instant}
++struct SourceGroups {
++    incarnation:Option<u128>,realm:Option<SourceFrameRealm>,cancel:CancellationToken,
++    identity:Option<(u32,u8)>,last_sequence:Option<u16>,group:Option<Group>,unavailable:bool,
++}
++impl SourceGroups {
++    fn new(incarnation:Option<u128>,realm:Option<SourceFrameRealm>,cancel:CancellationToken)->Self {
++        Self {incarnation,realm,cancel,identity:None,last_sequence:None,group:None,unavailable:incarnation.is_none()}
++    }
++    fn frame(&mut self,packet:&RtpPacket,now:Instant)->Option<Arc<OriginalVideoFrame>> {
++        if self.unavailable{return None;}
++        // Empty/padding-only RTP cannot establish a video frame ordinal.
++        if packet.payload.is_empty(){return None;}
++        let header=&packet.header;let identity=(header.ssrc,header.payload_type);
++        if self.identity.is_some_and(|old|old!=identity) {self.unavailable=true;return None;}
++        self.identity=Some(identity);
++        let sequence=header.sequence_number;
++        let forward=self.last_sequence.map_or(true,|old|{let delta=sequence.wrapping_sub(old);delta>0&&delta<(1u16<<15)});
++        let extended=if let Some(group)=&mut self.group {
++            let delta=header.timestamp.wrapping_sub(group.point.timestamp());
++            if delta==0 {
++                let in_group=sequence.wrapping_sub(group.first_sequence)<(1u16<<15);
++                let within_marker=group.marker_sequence.is_none_or(|end|sequence.wrapping_sub(group.first_sequence)<=end.wrapping_sub(group.first_sequence));
++                let marker_consistent=!header.marker||group.marker_sequence.is_none_or(|end|end==sequence);
++                if now.saturating_duration_since(group.born)>=AGE||!in_group||!within_marker||!marker_consistent {
++                    self.unavailable=true;return None;
++                }
++                if header.marker {group.marker_sequence=Some(sequence);}
++                if forward {self.last_sequence=Some(sequence);}
++                return Some(group.point.clone());
++            }
++            if !forward||delta>=(1u32<<31) {self.unavailable=true;return None;}
++            match group.point.extended_timestamp().checked_add(u64::from(delta)) {Some(value)=>value,None=>{self.unavailable=true;return None;}}
++        } else {
++            if !forward {self.unavailable=true;return None;}
++            u64::from(header.timestamp)
++        };
++        let point=OriginalVideoFrame::observed_in_realm(self.incarnation?,header.ssrc,header.timestamp,extended,self.realm.as_ref());
++        self.group=Some(Group {point:point.clone(),first_sequence:sequence,marker_sequence:header.marker.then_some(sequence),born:now});
++        self.last_sequence=Some(sequence);Some(point)
++    }
++}
++#[derive(Default)]
++pub(super) struct NativeOriginalVideo {
++    // Nonreused original physical peer stream IDs, not targets or Core Ports.
++    sources:HashMap<u16,SourceGroups>,
++    recent:HashMap<(u16,u16),Remembered>,order:VecDeque<(u16,u16)>,
++}
++impl NativeOriginalVideo {
++    pub(super) fn observe(&mut self,binding:&Arc<PeerMediaBinding>,packet:&RtpPacket,raw:&Bytes,now:Instant)->Option<Arc<OriginalVideoFrame>> {
++        let key=binding.local_id().get();
++        self.observe_prepared(key,packet,raw,now,|| {
++            let incarnation=match binding.ingress() {PeerMediaIngress::Checked(ingress)=>ingress.original_video_source_incarnation(),PeerMediaIngress::Channel(_)=>None};
++            SourceGroups::new(incarnation,binding.original_frame_realm(),binding.cancellation_token())
++        })
++    }
++    fn observe_prepared(&mut self,key:u16,packet:&RtpPacket,raw:&Bytes,now:Instant,setup:impl FnOnce()->SourceGroups)->Option<Arc<OriginalVideoFrame>> {
++        while self.order.front().is_some_and(|key|self.recent.get(key).is_none_or(|entry|now.saturating_duration_since(entry.at)>=AGE)) {
++            let key=self.order.pop_front().unwrap();self.recent.remove(&key);
++        }
++        if !self.sources.contains_key(&key) {
++            // State-change cleanup only; no per-packet scan or native/Port roots.
++            self.sources.retain(|_,source|!source.cancel.is_cancelled());
++            self.sources.insert(key,setup());
++        }
++        let cache_key=(key,packet.header.sequence_number);
++        if let Some(entry)=self.recent.get(&cache_key) {
++            if entry.raw==*raw {return entry.point.clone();}
++            self.sources.get_mut(&key).unwrap().unavailable=true;return None;
++        }
++        let source=self.sources.get_mut(&key).unwrap();
++        if raw.len()>rvoip_core::video_bridge::MAX_VIDEO_RTP_BYTES {source.unavailable=true;return None;}
++        let point=source.frame(packet,now);
++        if self.order.len()==HISTORY {let expired=self.order.pop_front().unwrap();self.recent.remove(&expired);}
++        self.order.push_back(cache_key);self.recent.insert(cache_key,Remembered {raw:raw.clone(),point:point.clone(),at:now});
++        point
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use rvoip_core::{ids::{ConversationId,SessionId},staged_streams::frame_realm::FrameRealmTestOwner};
++    fn owner()->FrameRealmTestOwner {FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"))}
++    fn packet(seq:u16,ts:u32,marker:bool)->RtpPacket {
++        let mut header=rvoip_rtp_core::RtpHeader::new(96,seq,ts,77);header.marker=marker;RtpPacket::new(header,Bytes::from_static(&[0x10,1,2,3]))
++    }
++    fn observe(observer:&mut NativeOriginalVideo,key:u16,packet:RtpPacket,now:Instant,realm:Option<SourceFrameRealm>)->Option<Arc<OriginalVideoFrame>> {
++        let raw=packet.serialize().unwrap();observer.observe_prepared(key,&packet,&raw,now,||SourceGroups::new(Some(u128::from(key)),realm,CancellationToken::new()))
++    }
++    #[test]
++    fn native_original_groups_reordered_fragments_and_exact_duplicates_before_retain() {
++        let realm=owner();let mut observer=NativeOriginalVideo::default();let now=Instant::now();
++        let first=observe(&mut observer,1,packet(10,90000,false),now,Some(realm.handle())).unwrap();
++        let marker=observe(&mut observer,1,packet(12,90000,true),now,Some(realm.handle())).unwrap();
++        let late_fragment=observe(&mut observer,1,packet(11,90000,false),now,Some(realm.handle())).unwrap();
++        assert!(Arc::ptr_eq(&first,&marker));assert!(Arc::ptr_eq(&first,&late_fragment));
++        let next=observe(&mut observer,1,packet(13,93000,true),now,Some(realm.handle())).unwrap();
++        let duplicate=observe(&mut observer,1,packet(10,90000,false),now,Some(realm.handle())).unwrap();
++        assert!(Arc::ptr_eq(&first,&duplicate));assert_eq!(first.frame_realm().unwrap().ordinal(),1);assert_eq!(next.frame_realm().unwrap().ordinal(),2);
++        assert_eq!(observer.sources.len(),1);
++    }
++    #[test]
++    fn native_original_wrap_and_many_sources_share_runtime_without_halfspace_quota() {
++        let realm=owner();let mut observer=NativeOriginalVideo::default();let now=Instant::now();
++        let start=u32::MAX-3000;let mut last=None;
++        for (i,delta) in [0u32,3001,0x4000_0000,0x4000_0000,0x4000_0000].into_iter().enumerate() {
++            let timestamp=last.as_ref().map_or(start,|point:&Arc<OriginalVideoFrame>|point.timestamp().wrapping_add(delta));
++            let point=observe(&mut observer,1,packet(i as u16,timestamp,true),now,Some(realm.handle())).unwrap();
++            assert_eq!(point.frame_realm().unwrap().ordinal(),i as u64+1);last=Some(point);
++        }
++        assert!(last.unwrap().extended_timestamp()>u64::from(start)+(1u64<<31));
++        for key in 2..=90 {let point=observe(&mut observer,key,packet(1,90000,true),now,Some(realm.handle())).unwrap();assert_eq!(point.source_incarnation(),u128::from(key));}
++        let another=owner();let point=observe(&mut observer,91,packet(1,90000,true),now,Some(another.handle())).unwrap();
++        assert_ne!(point.frame_realm().unwrap().incarnation(),realm.handle().incarnation().unwrap());
++    }
++    #[test]
++    fn native_original_ambiguity_is_metadata_only_and_cannot_remint_after_reset() {
++        let realm=owner();let now=Instant::now();
++        for cause in 0..5 {
++            let mut observer=NativeOriginalVideo::default();
++            let first=observe(&mut observer,1,packet(10,90000,false),now,Some(realm.handle())).unwrap();
++            let (mut bad,at)=match cause {0=>(packet(9,87000,true),now),1=>(packet(11,90000u32.wrapping_add(1<<31),true),now),2=>(packet(10,90000,false),now),3=>(packet(11,90000,false),now+AGE),_=>(packet(11,93000,true),now)};
++            if cause==2 {bad.payload=Bytes::from_static(&[0x10,99]);}
++            if cause==4 {bad.header.ssrc=88;}
++            assert!(observe(&mut observer,1,bad,at,Some(realm.handle())).is_none());
++            assert!(observe(&mut observer,1,packet(12,96000,true),at,Some(owner().handle())).is_none(),"later setup cannot mint after ambiguity");
++            assert_eq!(first.timestamp(),90000);
++        }
++        let mut observer=NativeOriginalVideo::default();let mut padding=packet(1,0,false);padding.payload=Bytes::new();
++        assert!(observe(&mut observer,1,padding,now,Some(realm.handle())).is_none());
++        assert_eq!(observe(&mut observer,1,packet(2,90000,true),now,Some(realm.handle())).unwrap().frame_realm().unwrap().ordinal(),6);
++    }
++    #[test]
++    fn native_original_missing_dead_exhausted_realm_preserves_source_capsule() {
++        let now=Instant::now();let realm=owner();let mut observer=NativeOriginalVideo::default();
++        let first=observe(&mut observer,1,packet(1,90000,true),now,None).unwrap();assert!(first.frame_realm().is_none());
++        assert!(observe(&mut observer,1,packet(2,93000,true),now,Some(realm.handle())).unwrap().frame_realm().is_none());
++        let dead=owner();let handle=dead.handle();drop(dead);
++        assert!(observe(&mut observer,2,packet(1,90000,true),now,Some(handle)).unwrap().frame_realm().is_none());
++        let full=FrameRealmTestOwner::with_last_for_test(ConversationId::new(),SessionId::new(),u64::MAX);
++        assert!(observe(&mut observer,3,packet(1,90000,true),now,Some(full.handle())).unwrap().frame_realm().is_none());
++        // Metadata history has one peer-wide cap; no source/media is stopped.
++        for i in 4..400 {let _=observe(&mut observer,i,packet(1,90000,true),now,None).unwrap();}
++        assert_eq!(observer.recent.len(),HISTORY);assert_eq!(observer.order.len(),HISTORY);
++        assert!(observer.sources.len()>65);
++    }
++}
++
++#[cfg(test)]
++mod reader_tests;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_media/original_video/reader_tests.rs b/crates/uctp/rvoip-uctp/src/v2/native_media/original_video/reader_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_media/original_video/reader_tests.rs
+@@ -0,0 +1,127 @@
++//! Actual sole reader/parser/router/retained callback with a controlled local
++//! carrier. No TLS/network/Core authorization or media-delivery claim.
++use super::*;
++use super::super::{NativePeerMedia,NativeDatagramTransport,PeerTransport,DispatchError};
++use crate::staged_media::StagedDatagramTransport;
++use crate::substrate::{CheckedMediaIngress,PeerMediaRegistration,PeerMediaRouteKey,PeerMediaConnectionKey,ObservedRtpDatagram,observe_rtp,pack_observed_rtp_datagram};
++use crate::substrate::peer_media_router::PendingNativeIngress;
++use rvoip_core::{capability::CodecInfo,connection::Direction,ids::{ConversationId,SessionId,ConnectionId,StreamId},identity::{AuthenticatedPrincipal,AuthenticationMethod,IdentityAssurance},stream::{MediaStream,MediaFrame,StreamKind,QualitySnapshot},staged_streams::{ControlResult,StreamControlError,frame_realm::FrameRealmTestOwner}};
++use std::sync::{Mutex,atomic::{AtomicUsize,Ordering}};
++use tokio::sync::{mpsc,Notify};
++struct Carrier {receiver:tokio::sync::Mutex<mpsc::Receiver<Bytes>>}
++impl StagedDatagramTransport for Carrier {
++    fn maximum_datagram_bytes(&self)->Option<usize> {Some(1400)}
++    fn send_datagram(&self,_:Bytes)->ControlResult<()> {Err(StreamControlError::Unsupported)}
++    fn is_closed(&self)->bool {false}
++}
++#[async_trait::async_trait]
++impl NativeDatagramTransport for Carrier {
++    async fn read_datagram(&self)->Result<Bytes,DispatchError> {self.receiver.lock().await.recv().await.ok_or(DispatchError::Closed)}
++}
++struct Stream {id:StreamId,tx:mpsc::Sender<MediaFrame>,rx:Mutex<Option<mpsc::Receiver<MediaFrame>>>}
++#[async_trait::async_trait]
++impl MediaStream for Stream {
++    fn id(&self)->StreamId {self.id.clone()}
++    fn kind(&self)->StreamKind {StreamKind::Video}
++    fn codec(&self)->CodecInfo {CodecInfo {name:"vp8".into(),clock_rate_hz:90000,channels:0,fmtp:None,payload_type:Some(96)}}
++    fn direction(&self)->Direction {Direction::Inbound}
++    fn frames_in(&self)->mpsc::Receiver<MediaFrame> {self.rx.lock().unwrap().take().unwrap()}
++    fn frames_out(&self)->mpsc::Sender<MediaFrame> {self.tx.clone()}
++    fn quality_snapshot(&self)->QualitySnapshot {QualitySnapshot::default()}
++    async fn close(self:Arc<Self>)->rvoip_core::Result<()> {Ok(())}
++}
++#[derive(Default)]
++struct Evidence {retained:Vec<(Bytes,Option<Arc<OriginalVideoFrame>>)>,attempts:Vec<Option<Arc<OriginalVideoFrame>>>,completed:usize}
++struct Ingress {source_reads:AtomicUsize,evidence:Arc<Mutex<Evidence>>,done:Arc<Notify>}
++struct Pending {first:bool,point:Option<Arc<OriginalVideoFrame>>,evidence:Arc<Mutex<Evidence>>,done:Arc<Notify>}
++impl PendingNativeIngress for Pending {
++    fn try_publish(&mut self)->Option<bool> {
++        self.evidence.lock().unwrap().attempts.push(self.point.clone());
++        if self.first {self.first=false;return None;}
++        self.evidence.lock().unwrap().completed+=1;self.done.notify_one();Some(true)
++    }
++}
++impl CheckedMediaIngress for Ingress {
++    fn original_video_source_incarnation(&self)->Option<u128> {self.source_reads.fetch_add(1,Ordering::SeqCst);Some(77)}
++    fn try_send(&self,_:MediaFrame)->Result<(),mpsc::error::TrySendError<MediaFrame>> {Ok(())}
++    fn retain_rtp_observed(self:Arc<Self>,frame:MediaFrame,ssrc:u32,bytes:usize,seq:u32,at:Instant)->Result<Option<Box<dyn PendingNativeIngress>>,()> {self.retain_rtp_observed_original(frame,ssrc,bytes,seq,at,None)}
++    fn retain_rtp_observed_original(self:Arc<Self>,frame:MediaFrame,_:u32,_:usize,_:u32,_:Instant,point:Option<Arc<OriginalVideoFrame>>)->Result<Option<Box<dyn PendingNativeIngress>>,()> {
++        self.evidence.lock().unwrap().retained.push((frame.payload,point.clone()));
++        Ok(Some(Box::new(Pending {first:true,point,evidence:self.evidence.clone(),done:self.done.clone()})))
++    }
++    fn capacity(&self)->usize {32}
++    fn max_capacity(&self)->usize {32}
++    fn is_closed(&self)->bool {false}
++}
++fn owner_key()->rvoip_core::identity::PrincipalOwnershipKey {
++    AuthenticatedPrincipal {subject:"source".into(),tenant:Some("tenant".into()),issuer:Some("fixture".into()),scopes:vec![],expires_at:None,method:AuthenticationMethod::Bearer,assurance:IdentityAssurance::Anonymous}.ownership_key()
++}
++fn wire(local:u16,seq:u16,ts:u32,marker:bool,body:u8)->Bytes {
++    let mut header=rvoip_rtp_core::RtpHeader::new(96,seq,ts,77);header.marker=marker;
++    let raw=RtpPacket::new(header,Bytes::from(vec![0x10,body])).serialize().unwrap();
++    pack_observed_rtp_datagram(&ObservedRtpDatagram {flags:0,stream_local_id:local,seq:u32::from(seq),rtp:observe_rtp(raw).unwrap()}).unwrap()
++}
++async fn complete(sender:&mpsc::Sender<Bytes>,done:&Notify,raw:Bytes) {sender.send(raw).await.unwrap();tokio::time::timeout(Duration::from_secs(1),done.notified()).await.unwrap();}
++#[tokio::test]
++async fn native_quic_and_webtransport_reader_freezes_capsule_once_across_actual_retained_retry() {
++    use futures::FutureExt as _;
++    for transport in [PeerTransport::Quic,PeerTransport::WebTransport] {
++        let realm=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"));
++        let (sender,receiver)=mpsc::channel(8);let cancel=CancellationToken::new();
++        let media=NativePeerMedia::new(transport,Arc::new(Carrier {receiver:tokio::sync::Mutex::new(receiver)}),cancel.clone()).unwrap();
++        let session=SessionId::from_string("session");let connection=ConnectionId::from_string("source");
++        let key=PeerMediaConnectionKey::new(session.clone(),connection.clone());
++        media.router.freeze_original_frame_realm(key.clone(),Some(realm.handle()));
++        let (tx,rx)=mpsc::channel(1);let stream=Arc::new(Stream {id:StreamId::new(),tx,rx:Mutex::new(Some(rx))});
++        let evidence=Arc::new(Mutex::new(Evidence::default()));let done=Arc::new(Notify::new());
++        let ingress=Arc::new(Ingress {source_reads:AtomicUsize::new(0),evidence:evidence.clone(),done:done.clone()});
++        let reservation=media.router.reserve().unwrap();let local=reservation.local_id().get();
++        let binding=reservation.commit(PeerMediaRegistration::checked(owner_key(),PeerMediaRouteKey::new(session,connection,stream.id()),stream,ingress.clone())).unwrap();
++        let reader=tokio::spawn(media.reader().unwrap());
++        let work=std::panic::AssertUnwindSafe(async {
++            complete(&sender,&done,wire(local,10,90000,false,1)).await;
++            complete(&sender,&done,wire(local,12,90000,true,3)).await;
++            complete(&sender,&done,wire(local,11,90000,false,2)).await;
++            complete(&sender,&done,wire(local,13,93000,true,4)).await;
++            // Exact prior raw packet gets SAME cached Arc; no new ordinal.
++            complete(&sender,&done,wire(local,10,90000,false,1)).await;
++            // Conflicting original metadata cannot suppress legacy IO.
++            complete(&sender,&done,wire(local,13,93000,true,99)).await;
++            let e=evidence.lock().unwrap();assert_eq!(e.completed,6);assert_eq!(e.retained.len(),6);assert_eq!(e.attempts.len(),12);
++            let first=e.retained[0].1.as_ref().unwrap();
++            for index in [1,2,4] {assert!(Arc::ptr_eq(first,e.retained[index].1.as_ref().unwrap()));}
++            assert_eq!(first.frame_realm().unwrap().ordinal(),1);assert_eq!(e.retained[3].1.as_ref().unwrap().frame_realm().unwrap().ordinal(),2);
++            assert!(e.retained[5].1.is_none());assert_eq!(e.retained[5].0.last(),Some(&99));
++            for (index,pair) in e.attempts.chunks_exact(2).enumerate() {
++                match &e.retained[index].1 {Some(expected)=>{assert!(Arc::ptr_eq(expected,pair[0].as_ref().unwrap()));assert!(Arc::ptr_eq(expected,pair[1].as_ref().unwrap()));},None=>assert!(pair.iter().all(Option::is_none))}
++            }
++            assert_eq!(ingress.source_reads.load(Ordering::SeqCst),1);
++        }).catch_unwind().await;
++        cancel.cancel();let joined=reader.await;
++        assert!(matches!(joined,Ok(Err(DispatchError::Closed))));assert!(!media.snapshot().reader_running);assert!(media.router.is_shutdown());assert!(binding.is_cancelled());
++        if let Err(error)=work {std::panic::resume_unwind(error)}
++    }
++}
++
++#[test]
++fn native_original_binding_setup_cannot_adopt_late_or_foreign_runtime_handle() {
++    let (sender,receiver)=mpsc::channel(1);let media=NativePeerMedia::new(PeerTransport::Quic,Arc::new(Carrier {receiver:tokio::sync::Mutex::new(receiver)}),CancellationToken::new()).unwrap();
++    let session=SessionId::from_string("session");let connection=ConnectionId::from_string("source");let key=PeerMediaConnectionKey::new(session.clone(),connection.clone());
++    let a=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),session.clone());let foreign_runtime=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),session.clone());
++    let make=|connection:ConnectionId| {
++        let (tx,rx)=mpsc::channel(1);let stream=Arc::new(Stream {id:StreamId::new(),tx,rx:Mutex::new(Some(rx))});
++        let ingress=Arc::new(Ingress {source_reads:AtomicUsize::new(0),evidence:Arc::new(Mutex::new(Evidence::default())),done:Arc::new(Notify::new())});
++        media.router.reserve().unwrap().commit(PeerMediaRegistration::checked(owner_key(),PeerMediaRouteKey::new(session.clone(),connection,stream.id()),stream,ingress)).unwrap()
++    };
++    media.router.freeze_original_frame_realm(key.clone(),Some(a.handle()));let first=make(connection.clone());
++    assert_eq!(first.original_frame_realm().unwrap().incarnation(),a.handle().incarnation());
++    media.router.freeze_original_frame_realm(key,Some(foreign_runtime.handle()));
++    let next=make(connection);assert!(next.original_frame_realm().is_none());
++    assert_eq!(first.original_frame_realm().unwrap().incarnation(),a.handle().incarnation(),"immutable original binding cannot be rewritten");
++    let late_connection=ConnectionId::from_string("late-source");let missing=make(late_connection.clone());assert!(missing.original_frame_realm().is_none());
++    media.router.freeze_original_frame_realm(PeerMediaConnectionKey::new(session.clone(),late_connection.clone()),Some(a.handle()));
++    assert!(make(late_connection).original_frame_realm().is_none());
++    assert_ne!(a.handle().incarnation(),foreign_runtime.handle().incarnation());
++    let removed=media.router.shutdown();assert!(removed.iter().all(|binding|binding.is_cancelled()));assert_eq!(media.router.snapshot().connection_count,0);
++    drop(a);assert!(first.original_frame_realm().unwrap().incarnation().is_none());drop(sender);
++}
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/ingress_retry.rs
+@@ -435,6 +435,7 @@
+         .ok()
+         .flatten();
+     let recovered = original.is_some();
++    let capsule=original.as_ref().and_then(|packet|packet.original_video_frame()).cloned();
+     let forward_result = original
+         .as_ref()
+         .map(|packet| packet.try_forward_to(&target.controller, &StreamId::from_string("video")));
+@@ -456,6 +457,9 @@
+     assert!(deferred && before.ingress_accepted == 64 && before.ingress_rejected == 0);
+     assert_eq!(drained, 64);
+     assert!(recovered, "the SAME65th original was not recovered: deferred={deferred} before={before:?} after={after:?}");
++    let capsule=capsule.expect("actual native clocked Core publication lost original source capsule");
++    assert_eq!(capsule.timestamp(),65*3000);assert_eq!(capsule.extended_timestamp(),u64::from(65*3000u32));
++    assert!(capsule.frame_realm().is_none(),"this unmanaged fixture cannot invent a managed runtime realm");
+     assert!(
+         forwarded,
+         "selected receiver refused recovered original: result={forward_result:?}"

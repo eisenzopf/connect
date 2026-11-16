@@ -1,0 +1,602 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -248,6 +248,7 @@
+     conversation: ConversationId,
+     policy: Arc<dyn ParticipantPolicy>,
+     mixer: Arc<Conference>,
++    frame_realm: Option<Arc<crate::staged_streams::frame_realm::SessionFrameRealm>>,
+     slots: Arc<Semaphore>,
+     replacement_slots: Arc<Semaphore>,
+     limits: ParticipantLimits,
+@@ -391,11 +392,14 @@
+             limits.retained_operations,
+         )?;
+         let (events, _) = broadcast::channel(256);
++        // One retained runtime identity, not a Scene/member/target counter.
++        let frame_realm=media.as_ref().map(|_|crate::staged_streams::frame_realm::SessionFrameRealm::new(conversation.id.clone(),session_id.clone()));
+         self.participant_sessions.insert(
+             session_id.clone(),
+             Arc::new(ManagedParticipantSession {
+                 session: session_id.clone(),
+                 conversation: conversation.id.clone(),
++                frame_realm,
+                 policy,
+                 mixer: Arc::new(match media {
+                     Some(media) => Conference::start_staged(
+@@ -426,6 +430,12 @@
+         Ok(())
+     }
+ 
++    // Preparation metadata only; unknown/non-staged runtimes remain ordinary
++    // media-capable but have no represented frame-realm proof.
++    pub(super) fn source_frame_realm_for_preparation(&self,session:&SessionId,conversation:&ConversationId)->Option<crate::staged_streams::SourceFrameRealm> {
++        let runtime=self.participant_sessions.get(session)?;
++        runtime.frame_realm.as_ref()?.handle().for_scope(conversation,session)
++    }
+     fn participant_runtime(
+         &self,
+         session: &SessionId,
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs b/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
+@@ -78,6 +78,7 @@
+ /// physical transport factory, never deserialized from a wire body.
+ pub struct NativeConnectionRequest {
+     intent: PeerNativeIntent,
++    frame_realm: Option<crate::staged_streams::SourceFrameRealm>,
+     peer: Arc<PeerAdmission>,
+     participant: ParticipantId,
+     frozen_member: Membership,
+@@ -86,6 +87,8 @@
+     cancellation: CancellationToken,
+ }
+ impl NativeConnectionRequest {
++    /// Frozen retained-runtime metadata, independent of media readiness/grant.
++    pub fn source_frame_realm(&self)->Option<crate::staged_streams::SourceFrameRealm> {self.frame_realm.clone()}
+     pub fn intent(&self) -> &PeerNativeIntent {
+         &self.intent
+     }
+@@ -119,6 +122,7 @@
+ }
+ pub struct WebRtcConnectionRequest(NativeConnectionRequest);
+ impl WebRtcConnectionRequest {
++    pub fn source_frame_realm(&self)->Option<crate::staged_streams::SourceFrameRealm> {self.0.source_frame_realm()}
+     pub fn session(&self) -> &SessionId {
+         &self.0.intent.session
+     }
+@@ -512,6 +516,9 @@
+                 webrtc,
+             };
+             let request = NativeConnectionRequest {
++                // Freeze before the dormant adapter hook. No later source/Port
++                // callback may rediscover a new runtime from public IDs.
++                frame_realm:self.source_frame_realm_for_preparation(&intent.session,authority.actor.conversation()),
+                 intent: intent.clone(),
+                 peer: peer.clone(),
+                 participant: authority.actor.participant().clone(),
+@@ -563,3 +570,6 @@
+         Ok(candidate)
+     }
+ }
++
++#[cfg(test)]
++mod frame_realm_tests;
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/peer_native/frame_realm_tests.rs b/crates/foundation/rvoip-core/src/orchestrator/peer_native/frame_realm_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/peer_native/frame_realm_tests.rs
+@@ -0,0 +1,113 @@
++//! Actual retained managed runtime -> original Core adapter preparation hook.
++//! Dormant error-only adapters allocate no transport/codec/media resources.
++use super::*;
++use chrono::Utc;
++use crate::{adapter::*,capability::{CapabilityDescriptor,NegotiatedCodecs},identity::{CredentialKind,IdentityAssurance},ids::{DeviceId,EndpointId},message::Message,peer_admission::PeerAdmissionOwner,relationships::IdentityBinding,staged_streams::{MediaPolicy,MediaScope,MediaAuthorityLease,OriginalVideoFrame,SourceFrameRealm},orchestrator::participant_control::ParticipantLimits,stream::MediaStream};
++#[allow(dead_code)]
++#[path="../../../tests/support/participant_control_fixture.rs"]
++mod fixture;
++use fixture::{Fixture,participant,principal};
++struct NoMedia;
++impl MediaPolicy for NoMedia {
++    fn current(&self,_:&MediaScope<'_>)->crate::staged_streams::ControlResult<Box<dyn MediaAuthorityLease>> {Err(crate::staged_streams::StreamControlError::Authority)}
++}
++struct Authority(PeerNativeAuthority);
++impl PeerNativeAuthorityLease for Authority {fn authority(&self)->&PeerNativeAuthority {&self.0}}
++struct HookAdapter {
++    transport:Transport,
++    observed:Mutex<Vec<Option<SourceFrameRealm>>>,
++    _events:tokio::sync::mpsc::Sender<AdapterEvent>,
++    receiver:Mutex<Option<tokio::sync::mpsc::Receiver<AdapterEvent>>>,
++}
++impl HookAdapter {
++    fn new(transport:Transport)->Arc<Self> {let(events,receiver)=tokio::sync::mpsc::channel(2);Arc::new(Self {transport,observed:Mutex::new(Vec::new()),_events:events,receiver:Mutex::new(Some(receiver))})}
++    fn record(&self,realm:Option<SourceFrameRealm>)->crate::Result<ConnectionHandle> {self.observed.lock().unwrap().push(realm);Err(RvoipError::NotImplemented("dormant hook observed; no physical allocation"))}
++}
++#[async_trait::async_trait]
++impl ConnectionAdapter for HookAdapter {
++    fn transport(&self)->Transport {self.transport}
++    fn kind(&self)->AdapterKind {AdapterKind::Interop}
++    fn lifecycle_capabilities(&self)->AdapterLifecycleCapabilities {AdapterLifecycleCapabilities {authoritative_liveness:true,..Default::default()}}
++    fn is_connection_live(&self,_:&ConnectionId)->bool {false}
++    fn supports_peer_native_preparation(&self)->bool {true}
++    fn supports_peer_webrtc_preparation(&self)->bool {true}
++    fn prepare_peer_native_connection(&self,request:&NativeConnectionRequest)->crate::Result<ConnectionHandle> {self.record(request.source_frame_realm())}
++    fn prepare_peer_webrtc_connection(&self,request:&WebRtcConnectionRequest)->crate::Result<ConnectionHandle> {self.record(request.source_frame_realm())}
++    async fn originate(&self,_:OriginateRequest)->crate::Result<ConnectionHandle> {Err(RvoipError::NotImplemented("fixture"))}
++    async fn accept(&self,_:ConnectionId)->crate::Result<()> {Ok(())}
++    async fn reject(&self,_:ConnectionId,_:RejectReason)->crate::Result<()> {Ok(())}
++    async fn end(&self,_:ConnectionId,_:EndReason)->crate::Result<()> {Ok(())}
++    async fn hold(&self,_:ConnectionId)->crate::Result<()> {Ok(())}
++    async fn resume(&self,_:ConnectionId)->crate::Result<()> {Ok(())}
++    async fn transfer(&self,_:ConnectionId,_:TransferTarget)->crate::Result<()> {Ok(())}
++    async fn streams(&self,_:ConnectionId)->crate::Result<Vec<Arc<dyn MediaStream>>> {Ok(vec![])}
++    async fn send_message(&self,_:ConnectionId,_:Message)->crate::Result<()> {Ok(())}
++    async fn send_dtmf(&self,_:ConnectionId,_:&str,_:u32)->crate::Result<()> {Ok(())}
++    async fn renegotiate_media(&self,_:ConnectionId,_:CapabilityDescriptor)->crate::Result<NegotiatedCodecs> {Ok(NegotiatedCodecs::default())}
++    fn subscribe_events(&self)->tokio::sync::mpsc::Receiver<AdapterEvent> {self.receiver.lock().unwrap().take().unwrap()}
++    fn capabilities(&self)->CapabilityDescriptor {CapabilityDescriptor::default()}
++    async fn verify_request_signature(&self,_:ConnectionId,_:SignatureHeaders)->crate::Result<IdentityAssurance> {Ok(IdentityAssurance::Anonymous)}
++}
++#[tokio::test]
++async fn retained_runtime_realm_is_frozen_in_core_native_and_webrtc_request_before_hook() {
++    let f=Fixture::new().await;
++    let sid=f.orch.start_session(f.conversation.clone(),SessionMedium::Voice,vec![]).await.unwrap();
++    assert!(f.orch.source_frame_realm_for_preparation(&sid,&f.conversation).is_none());
++    f.orch.enable_staged_participant_control(&sid,f.policy.clone(),Arc::new(NoMedia),ParticipantLimits::default()).unwrap();
++    let retained=f.orch.source_frame_realm_for_preparation(&sid,&f.conversation).unwrap();
++    let native=HookAdapter::new(Transport::Quic);let rtc=HookAdapter::new(Transport::WebRtc);
++    f.orch.register(native.clone()).unwrap();f.orch.register(rtc.clone()).unwrap();
++    let mut actor=principal("alice");actor.expires_at=Some(Utc::now()+chrono::Duration::minutes(5));actor.assurance=IdentityAssurance::Identified {credential_kind:CredentialKind::Oidc};
++    let member=f.policy.0.read().unwrap().members[&participant("alice")].clone();
++    let identity=IdentityBinding::from_authenticated(&actor,member.identity().clone(),Utc::now()).unwrap();
++    let device=DeviceId::new();
++    let owner=PeerAdmissionOwner::new(&actor,member.identity().clone(),device.clone(),CancellationToken::new(),Default::default()).unwrap();
++    let mut owned_work=Box::pin(async {
++        assert!(f.orch.source_frame_realm_for_preparation(&sid,&ConversationId::new()).is_none());
++        for transport in [Transport::Quic,Transport::WebRtc] {
++            let mut endpoint=EndpointBinding::provision(identity.clone(),EndpointId::new(),device.clone(),transport,"fixture".into()).unwrap();
++            endpoint.verify(&identity,"fixture-proof".into(),Utc::now()).unwrap();
++            let authority=Authority(PeerNativeAuthority {actor:member.clone(),endpoint,may_prepare:true});
++            let connection=ConnectionId::new();
++            // Actual Core public entrypoint reserves ownership and constructs
++            // the original request before invoking our dormant adapter hook.
++            let refused=if transport==Transport::WebRtc {
++                matches!(f.orch.prepare_peer_webrtc_connection(owner.peer(),&actor,PeerWebRtcIntent {session:sid.clone(),connection},&authority,Arc::new(())),Err(PeerNativeError::Adapter))
++            } else {
++                matches!(f.orch.prepare_peer_native_connection(owner.peer(),&actor,PeerNativeIntent {session:sid.clone(),connection,transport},&authority,Arc::new(())),Err(PeerNativeError::Adapter))
++            };
++            assert!(refused,"actual hook must run and deliberately return its no-allocation error");
++        }
++        // Original Core retirement tasks, not a fresh route or manual permit
++        // replacement, release the exact failed preparations before oracles.
++        tokio::time::timeout(std::time::Duration::from_secs(2),async {while owner.peer().snapshot().connections!=0 {tokio::task::yield_now().await}}).await.unwrap();
++        let n=native.observed.lock().unwrap();let w=rtc.observed.lock().unwrap();
++        assert_eq!(n.len(),1);assert_eq!(w.len(),1);
++        let a=n[0].as_ref().unwrap();let b=w[0].as_ref().unwrap();
++        assert_eq!(a.incarnation(),retained.incarnation());assert_eq!(b.incarnation(),retained.incarnation());
++        let first=OriginalVideoFrame::observed_in_realm(17,77,90000,90000,Some(a));
++        let second=OriginalVideoFrame::observed_in_realm(18,88,90000,90000,Some(b));
++        assert_eq!(first.frame_realm().unwrap().incarnation(),second.frame_realm().unwrap().incarnation());
++        assert_eq!(second.frame_realm().unwrap().ordinal(),first.frame_realm().unwrap().ordinal()+1);
++    });
++    let work=std::future::poll_fn(|cx|match std::panic::catch_unwind(std::panic::AssertUnwindSafe(||std::future::Future::poll(owned_work.as_mut(),cx))) {
++        Ok(std::task::Poll::Pending)=>std::task::Poll::Pending,
++        Ok(std::task::Poll::Ready(value))=>std::task::Poll::Ready(Ok(value)),
++        Err(error)=>std::task::Poll::Ready(Err(error)),
++    }).await;
++    drop(owned_work);
++    // Join BOTH original managed runtimes even if a behavior oracle failed.
++    let ended=f.orch.end_session(sid.clone(),EndReason::Normal).await;
++    let base_ended=f.orch.end_session(f.session.clone(),EndReason::Normal).await;
++    let clean_connections=owner.peer().snapshot().connections;
++    drop(owner);
++    assert!(ended.is_ok()&&base_ended.is_ok());assert_eq!(clean_connections,0);
++    if let Err(error)=work {std::panic::resume_unwind(error)}
++    // Stored request handles are weak: retaining diagnostics cannot retain the
++    // runtime, while already-born scalar points remain historical provenance.
++    assert!(retained.incarnation().is_none());
++    assert!(native.observed.lock().unwrap()[0].as_ref().unwrap().incarnation().is_none());
++    assert!(rtc.observed.lock().unwrap()[0].as_ref().unwrap().incarnation().is_none());
++    assert!(OriginalVideoFrame::observed_in_realm(17,77,93000,93000,Some(&retained)).frame_realm().is_none());
++    assert!(f.orch.enable_staged_participant_control(&sid,f.policy.clone(),Arc::new(NoMedia),ParticipantLimits::default()).is_err());
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -4976,6 +4976,8 @@
+ 
+ pub mod original_ingress;
+ pub mod original_video_frame;
++pub mod frame_realm;
++pub use frame_realm::{SourceFrameRealm,SourceFrameRealmPoint};
+ pub use original_video_frame::OriginalVideoFrame;
+ 
+ #[cfg(feature = "test-support")]
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/frame_realm.rs b/crates/foundation/rvoip-core/src/staged_streams/frame_realm.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/frame_realm.rs
+@@ -0,0 +1,86 @@
++//! Optional original-frame provenance for ONE retained local managed runtime.
++//! No IO permission, delivery/readiness certificate or cross-runtime transfer.
++use crate::ids::{ConversationId,SessionId};
++use std::sync::{Arc,Weak,atomic::{AtomicU64,Ordering}};
++
++pub(crate) struct SessionFrameRealm {
++    incarnation:u128,
++    conversation:ConversationId,
++    session:SessionId,
++    last:AtomicU64,
++}
++impl SessionFrameRealm {
++    pub(crate) fn new(conversation:ConversationId,session:SessionId) -> Arc<Self> {
++        Arc::new(Self {incarnation:uuid::Uuid::new_v4().as_u128(),conversation,session,last:AtomicU64::new(0)})
++    }
++    pub(crate) fn handle(self:&Arc<Self>) -> SourceFrameRealm {SourceFrameRealm(Arc::downgrade(self))}
++}
++/// Opaque setup-only weak metadata handle. Only Core creates production realms;
++/// cloning one neither retains its runtime nor grants current source authority.
++#[derive(Clone)]
++pub struct SourceFrameRealm(Weak<SessionFrameRealm>);
++impl SourceFrameRealm {
++    /// Setup identity only; a live weak owner is NOT current IO authority.
++    pub fn incarnation(&self)->Option<u128> {self.0.upgrade().map(|realm|realm.incarnation)}
++    /// Frozen namespace comparison only, never an authorization/liveness grant.
++    pub fn for_scope(&self,conversation:&ConversationId,session:&SessionId) -> Option<Self> {
++        let realm=self.0.upgrade()?;
++        (&realm.conversation==conversation && &realm.session==session).then(||self.clone())
++    }
++    pub(super) fn next_point(&self) -> Option<SourceFrameRealmPoint> {
++        let realm=self.0.upgrade()?;
++        let last=realm.last.fetch_update(Ordering::Relaxed,Ordering::Relaxed,|last|last.checked_add(1)).ok()?;
++        Some(SourceFrameRealmPoint {incarnation:realm.incarnation,ordinal:last+1})
++    }
++}
++/// Scalar original accepted source-group ordering, NOT capture/content/IO proof.
++/// Only points with the SAME actual runtime incarnation may be compared.
++#[derive(Clone,Copy,Debug,PartialEq,Eq)]
++pub struct SourceFrameRealmPoint {incarnation:u128,ordinal:u64}
++impl SourceFrameRealmPoint {
++    pub fn incarnation(&self)->u128 {self.incarnation}
++    pub fn ordinal(&self)->u64 {self.ordinal}
++}
++
++/// Isolated metadata-only owner for existing explicit test-support composition.
++/// No controller, scene, policy, adapter or media permission is created.
++#[cfg(feature="test-support")]
++pub struct FrameRealmTestOwner(Arc<SessionFrameRealm>);
++#[cfg(feature="test-support")]
++impl FrameRealmTestOwner {
++    pub fn new(conversation:ConversationId,session:SessionId)->Self {Self(SessionFrameRealm::new(conversation,session))}
++    pub fn handle(&self)->SourceFrameRealm {self.0.handle()}
++    pub fn with_last_for_test(conversation:ConversationId,session:SessionId,last:u64)->Self {
++        let owner=Self::new(conversation,session);owner.0.last.store(last,Ordering::Relaxed);owner
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn frame_realm_scope_runtime_identity_and_weak_retirement_are_distinct() {
++        let conversation=ConversationId::from_string("conversation");let session=SessionId::from_string("session");
++        let a=SessionFrameRealm::new(conversation.clone(),session.clone());let b=SessionFrameRealm::new(conversation.clone(),session.clone());
++        let handle=a.handle();assert!(handle.for_scope(&conversation,&session).is_some());
++        assert!(handle.for_scope(&ConversationId::from_string("foreign"),&session).is_none());
++        assert!(handle.for_scope(&conversation,&SessionId::from_string("foreign")).is_none());
++        let first=handle.next_point().unwrap();let other=b.handle().next_point().unwrap();
++        assert_eq!(first.ordinal(),1);assert_eq!(other.ordinal(),1);assert_ne!(first.incarnation(),other.incarnation());
++        drop(a);assert!(handle.incarnation().is_none());assert!(handle.next_point().is_none());
++        assert_eq!(first.ordinal(),1); // historical scalar, not a live grant
++        assert!(b.handle().next_point().is_some());
++    }
++    #[test]
++    fn frame_realm_concurrent_sources_share_checked_nonwrapping_order_without_quota() {
++        let realm=SessionFrameRealm::new(ConversationId::new(),SessionId::new());let handle=realm.handle();
++        let jobs:Vec<_>=(0..4).map(|_|{let handle=handle.clone();std::thread::spawn(move||(0..80).map(|_|handle.next_point().unwrap()).collect::<Vec<_>>())}).collect();
++        let points:Vec<_>=jobs.into_iter().flat_map(|job|job.join().unwrap()).collect();
++        let ordinals:std::collections::BTreeSet<_>=points.iter().map(|point|point.ordinal()).collect();
++        assert_eq!(ordinals,(1..=320).collect());assert!(points.iter().all(|point|point.incarnation()==realm.incarnation));
++        // Checked numerical exhaustion is unavailable metadata, not wrap/reuse.
++        realm.last.store(u64::MAX-1,Ordering::Relaxed);
++        assert_eq!(handle.next_point().unwrap().ordinal(),u64::MAX);
++        assert!(handle.next_point().is_none());assert_eq!(realm.last.load(Ordering::Relaxed),u64::MAX);
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/original_video_frame.rs b/crates/foundation/rvoip-core/src/staged_streams/original_video_frame.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/original_video_frame.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/original_video_frame.rs
+@@ -13,6 +13,7 @@
+     ssrc: u32,
+     timestamp: u32,
+     extended_timestamp: u64,
++    realm: Option<super::SourceFrameRealmPoint>,
+ }
+ impl OriginalVideoFrame {
+     /// Trusted producer SPI. Call only after original-source grouping, once
+@@ -24,13 +25,16 @@
+         timestamp: u32,
+         extended_timestamp: u64,
+     ) -> Arc<Self> {
+-        Arc::new(Self {
+-            source_incarnation,
+-            ssrc,
+-            timestamp,
+-            extended_timestamp,
+-        })
++        Self::observed_in_realm(source_incarnation,ssrc,timestamp,extended_timestamp,None)
+     }
++    /// Trusted original producer only: allocate once when this accepted source
++    /// group is born BEFORE fanout. Never call from target/retained retry/repair.
++    /// Missing/dead/exhausted realm leaves valid source grouping intact.
++    pub fn observed_in_realm(source_incarnation:u128,ssrc:u32,timestamp:u32,extended_timestamp:u64,realm:Option<&super::SourceFrameRealm>) -> Arc<Self> {
++        Arc::new(Self {source_incarnation,ssrc,timestamp,extended_timestamp,
++            realm:realm.and_then(super::SourceFrameRealm::next_point)})
++    }
++    pub fn frame_realm(&self)->Option<super::SourceFrameRealmPoint> {self.realm}
+     pub fn source_incarnation(&self) -> u128 {
+         self.source_incarnation
+     }
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -268,6 +268,7 @@
+ }
+ struct Route {
+     session: SessionId,
++    frame_realm: Option<rvoip_core::staged_streams::SourceFrameRealm>,
+     member: Membership,
+     endpoint: EndpointBinding,
+     installation: Mutex<Option<Installation>>,
+@@ -597,6 +598,7 @@
+             route.binding.clone(),
+             route.cancel.child_token(),
+             Arc::downgrade(&self.routes),
++            route.frame_realm.clone(),
+         );
+         let controller = StreamController::with_held_control(
+             conversation,
+@@ -684,6 +686,7 @@
+         let id = request.connection().clone();
+         let route = Arc::new(Route {
+             session: request.session().clone(),
++            frame_realm: request.source_frame_realm().and_then(|realm|realm.for_scope(request.frozen_member().conversation(),request.session())),
+             member: request.frozen_member().clone(),
+             endpoint: request.frozen_endpoint().clone(),
+             installation: Mutex::new(None),
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/cleanup_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/cleanup_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/cleanup_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/cleanup_tests.rs
+@@ -173,6 +173,7 @@
+     // Exercise the exact-binding check independently of the adapter identity
+     // check, including a failed/conflicting reservation's bound context.
+     let route = Arc::new(Route {
++        frame_realm: None,
+         session: SessionId::new(),
+         member,
+         endpoint,
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -119,9 +119,10 @@
+ }
+ // Installed once for this SourceJob's exact TrackRemote/SSRC. No packet-time
+ // binding lookup, clock generation recapture or recipient-owned allocation.
+-fn original_video_mapper(source: &Source) -> crate::media::video_normalize::SequenceMapper {
++fn original_video_mapper(source: &Source,frame_realm:Option<SourceFrameRealm>) -> crate::media::video_normalize::SequenceMapper {
+     let mut mapper = crate::media::video_normalize::SequenceMapper::default();
+     mapper.observe_original_source(source.lease.source_binding_id(source.ssrc), source.ssrc);
++    mapper.observe_frame_realm(frame_realm);
+     mapper
+ }
+ struct SourceJob {
+@@ -246,6 +247,7 @@
+ }
+ pub(super) struct Backend {
+     id: ConnectionId,
++    frame_realm: Option<SourceFrameRealm>,
+     physical: Arc<WebRtcPhysicalBinding>,
+     lifetime: CancellationToken,
+     ports: Arc<DashMap<StreamId, Arc<PortIo>>>,
+@@ -266,9 +268,11 @@
+         physical: Arc<WebRtcPhysicalBinding>,
+         lifetime: CancellationToken,
+         routes: Weak<DashMap<ConnectionId, Arc<Route>>>,
++        frame_realm: Option<SourceFrameRealm>,
+     ) -> Arc<Self> {
+         Arc::new(Self {
+             id,
++            frame_realm,
+             physical,
+             lifetime,
+             ports: Arc::new(DashMap::new()),
+@@ -345,6 +349,7 @@
+             let (tx, ready) = watch::channel(None);
+             let stop = self.lifetime.child_token();
+             let ports = self.ports.clone();
++            let frame_realm=self.frame_realm.clone();
+             let job_stop = stop.clone();
+             let task = tokio::spawn(async move {
+                 let _lifetime = JobLifetime {
+@@ -359,6 +364,7 @@
+                     stop.clone(),
+                     ports.clone(),
+                     &tx,
++                    frame_realm,
+                 )
+                 .await;
+                 if tx.borrow().is_none() {
+@@ -965,6 +971,7 @@
+     stop: CancellationToken,
+     ports: Arc<DashMap<StreamId, Arc<PortIo>>>,
+     ready: &watch::Sender<Option<std::result::Result<Arc<Source>, ()>>>,
++    frame_realm: Option<SourceFrameRealm>,
+ ) -> ControlResult<()> {
+     let track = loop {
+         let found = tokio::select! {biased;_=stop.cancelled()=>return Ok(()),_=peer.wait_failed()=>return Err(StreamControlError::NotReady),t=async{if medium==Medium::Audio{peer.discover_remote_audio_track().await}else{peer.discover_remote_video_track().await}}=>t};
+@@ -1017,7 +1024,7 @@
+     let mut audio_reorder = crate::media::audio_reorder::AudioReorder::default();
+     let mut audio_sequence = None::<u16>;
+     let mut audio_anomalies = 0u64;
+-    let mut mapping = original_video_mapper(&source);
++    let mut mapping = original_video_mapper(&source,frame_realm);
+     loop {
+         if stop.is_cancelled() {
+             return Ok(());
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+@@ -725,6 +725,7 @@
+         physical,
+         physical_lifetime.child_token(),
+         Weak::new(),
++        None,
+     );
+     let activation = Arc::new(RtcMediaActivation {
+         controller: Weak::new(),
+@@ -1375,11 +1376,14 @@
+             Instant::now(),
+             true,
+         ));
+-        let mut mapper = original_video_mapper(&first.source);
++        let realm=rvoip_core::staged_streams::frame_realm::FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"));
++        let mut mapper = original_video_mapper(&first.source,Some(realm.handle()));
+         let (ready, _) = watch::channel(None);
+         let stop = CancellationToken::new();
+         publish_video(output, &mut mapper, &first.source, &ports, &ready, &stop);
+         let capsule = mapper.original_frame().unwrap().clone();
++        let realm_point=capsule.frame_realm().unwrap();
++        assert_eq!(realm_point.ordinal(),1);
+         first.wait_attempt(0).await;
+         second.wait_attempt(0).await;
+         first.policy.mode.store(0, Ordering::SeqCst);
+@@ -1403,6 +1407,8 @@
+                     queued.original_video_frame().unwrap(),
+                     &capsule
+                 ));
++                assert_eq!(packet.original_video_frame().unwrap().frame_realm(),Some(realm_point));
++                assert_eq!(queued.original_video_frame().unwrap().frame_realm(),Some(realm_point));
+                 let expected = fixture.port.binding().clone();
+                 let original_bytes = Arc::new(Mutex::new(None));
+                 let sent = original_bytes.clone();
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+@@ -613,6 +613,7 @@
+             physical.clone(),
+             cancel.child_token(),
+             Arc::downgrade(&self.routes),
++            None,
+         );
+         self.backends.push(backend.clone());
+         let controller = StreamController::new(
+@@ -628,6 +629,7 @@
+         .unwrap();
+         self.controllers.push(controller.clone());
+         let route = Arc::new(Route {
++            frame_realm: None,
+             session: SessionId::from_string("session"),
+             member: facts.member,
+             endpoint: facts.endpoint,
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/video_normalize.rs b/crates/webrtc/rvoip-webrtc/src/media/video_normalize.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/video_normalize.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/video_normalize.rs
+@@ -3,7 +3,7 @@
+ #[cfg(test)]
+ use rtc::shared::marshal::Marshal;
+ use rvoip_core::media_diagnostics::WebRtcVideoReject;
+-use rvoip_core::staged_streams::OriginalVideoFrame;
++use rvoip_core::staged_streams::{OriginalVideoFrame,SourceFrameRealm};
+ use std::{sync::Arc, time::Duration};
+ 
+ /// Bounded sequence translation for VP8 repacketization. Missing source packets
+@@ -36,6 +36,9 @@
+     unavailable: bool,
+     last: Option<Arc<OriginalVideoFrame>>,
+     closed: bool,
++    frame_realm: Option<SourceFrameRealm>,
++    realm_bound: bool,
++    processed: bool,
+ }
+ impl SourceChronology {
+     fn observe(&mut self, source: Option<u128>, ssrc: u32) {
+@@ -49,6 +52,7 @@
+         }
+     }
+     fn frame(&mut self, packet: &rtp::Packet) -> Option<Arc<OriginalVideoFrame>> {
++        self.processed=true;
+         if !self.observed {
+             self.observed = true;
+             self.unavailable = true;
+@@ -82,13 +86,21 @@
+         } else {
+             u64::from(timestamp)
+         };
+-        let frame = OriginalVideoFrame::observed(id, ssrc, timestamp, extended);
++        let frame = OriginalVideoFrame::observed_in_realm(id, ssrc, timestamp, extended,self.frame_realm.as_ref());
+         self.last = Some(frame.clone());
+         self.closed = packet.header.marker;
+         Some(frame)
+     }
+ }
+ impl SequenceMapper {
++    pub(crate) fn observe_frame_realm(&mut self, realm:Option<SourceFrameRealm>) {
++        // Single setup observation. Late/repeated setup cannot remint old work
++        // or make a source group born without a realm comparable retroactively.
++        if self.chronology.realm_bound||self.chronology.processed {
++            self.chronology.frame_realm=None;self.chronology.realm_bound=true;return;
++        }
++        self.chronology.realm_bound=true;self.chronology.frame_realm=realm;
++    }
+     pub(crate) fn observe_original_source(&mut self, source: Option<u128>, ssrc: u32) {
+         self.chronology.observe(source, ssrc);
+     }
+@@ -660,3 +672,48 @@
+         );
+     }
+ }
++
++#[cfg(test)]
++mod source_realm_tests {
++    use super::*;
++    use rvoip_core::{ids::{ConversationId,SessionId},staged_streams::frame_realm::FrameRealmTestOwner};
++    fn owner()->FrameRealmTestOwner {FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"))}
++    fn packet(seq:u16,ts:u32,marker:bool)->rtp::Packet {
++        rtp::Packet {header:rtp::Header {version:2,ssrc:77,payload_type:96,sequence_number:seq,timestamp:ts,marker,..Default::default()},payload:vec![0x10;1400].into()}
++    }
++    fn mapper(realm:Option<SourceFrameRealm>,incarnation:u128)->SequenceMapper {
++        let mut mapper=SequenceMapper::default();mapper.observe_original_source(Some(incarnation),77);mapper.observe_frame_realm(realm);mapper
++    }
++    #[test]
++    fn source_realm_group_allocates_once_before_fragments_duplicates_and_source_changes() {
++        let realm=owner();let mut a=mapper(Some(realm.handle()),1);
++        let original=packet(10,u32::MAX-2999,false);
++        assert_eq!(normalize(original.clone(),&mut a).unwrap().len(),2);
++        let first=a.original_frame().unwrap().clone();assert_eq!(first.frame_realm().unwrap().ordinal(),1);
++        normalize(packet(11,u32::MAX-2999,true),&mut a).unwrap();assert!(Arc::ptr_eq(a.original_frame().unwrap(),&first));
++        normalize(packet(12,0,true),&mut a).unwrap();let second=a.original_frame().unwrap().clone();assert_eq!(second.frame_realm().unwrap().ordinal(),2);
++        normalize(original,&mut a).unwrap();assert!(Arc::ptr_eq(a.original_frame().unwrap(),&first));
++        let mut b=mapper(Some(realm.handle()),2);normalize(packet(1,90000,true),&mut b).unwrap();
++        assert_eq!(b.original_frame().unwrap().frame_realm().unwrap().ordinal(),3);
++        assert_ne!(b.original_frame().unwrap().source_incarnation(),first.source_incarnation());
++        assert_eq!(b.original_frame().unwrap().frame_realm().unwrap().incarnation(),first.frame_realm().unwrap().incarnation());
++    }
++    #[test]
++    fn source_realm_missing_dead_late_or_exhausted_keeps_group_and_ordinary_packets() {
++        let realm=owner();let mut missing=mapper(None,1);
++        let original=packet(10,90000,true);let expected=normalize(original.clone(),&mut missing).unwrap();
++        let first=missing.original_frame().unwrap().clone();assert!(first.frame_realm().is_none());
++        missing.observe_frame_realm(Some(realm.handle()));
++        let repeated=normalize(original,&mut missing).unwrap();assert_eq!(repeated[0].payload,expected[0].payload);assert!(Arc::ptr_eq(missing.original_frame().unwrap(),&first));
++        normalize(packet(11,93000,true),&mut missing).unwrap();assert!(missing.original_frame().unwrap().frame_realm().is_none());
++        let dead=owner();let mut gone=mapper(Some(dead.handle()),1);drop(dead);
++        assert_eq!(normalize(packet(10,90000,true),&mut gone).unwrap().len(),2);assert!(gone.original_frame().unwrap().frame_realm().is_none());
++        let full=FrameRealmTestOwner::with_last_for_test(ConversationId::new(),SessionId::new(),u64::MAX);
++        let mut exhausted=mapper(Some(full.handle()),1);
++        assert_eq!(normalize(packet(10,90000,true),&mut exhausted).unwrap().len(),2);assert!(exhausted.original_frame().unwrap().frame_realm().is_none());
++        // Same public namespace in another runtime cannot compare by ordinal.
++        let another=owner();let mut other=mapper(Some(another.handle()),1);normalize(packet(10,90000,true),&mut other).unwrap();
++        let mut known=mapper(Some(realm.handle()),1);normalize(packet(10,90000,true),&mut known).unwrap();
++        assert_ne!(known.original_frame().unwrap().frame_realm().unwrap().incarnation(),other.original_frame().unwrap().frame_realm().unwrap().incarnation());
++    }
++}

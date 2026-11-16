@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-16T03:00:57.725458+00:00",
-  "revision": 99,
+  "updated_at": "2026-11-16T03:40:34.722761+00:00",
+  "revision": 100,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 167,
-    "verified_at": "2026-11-16T03:00:57.725458+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-native-rtc123.json",
-    "readback_evidence_sha256": "2c6bcdaaae56f1041086e1efb452f8785a5d94972f933c7ddfa964f8790c0987",
+    "content_revision": 168,
+    "verified_at": "2026-11-16T03:40:34.722761+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-rust749.json",
+    "readback_evidence_sha256": "596260e05e8202c4510752da37dbb7a7cc2fb9111da89df91027eca918c625a4",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2247,10 +2247,11 @@
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root/v198_resources",
       "coordinator": "/root",
-      "status": "independent-source-reviewed",
-      "implementation_state": "Canonical realm5 and native producer6 controls authored/source-reviewed, unapplied/unrun.",
+      "status": "component-verified",
+      "implementation_state": "Generation465 actual749/749 Rust components pass: Core668/RTC70/UCTP10/retained-native-retry1. Source and four binaries stable,14 original owners naturally joined; independently audited960e1440. Audio unrelated-video drop fixed with all current-policy/privacy negatives. Realm/native custody/physical tracking/raw accessor seals tested. Factory-controller closure and strict freeze/B lifecycle still open; no media/ARM/shipping/full32 promotion.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+      "updated_at": "2026-11-16T03:40:34.722761+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
     },
     {
       "id": "V219-PHYSICAL-FRAME-FRONTIER",
@@ -2258,10 +2259,11 @@
       "owner_agent": "/root/v198_resources",
       "independent_reviewer": "/root/media_blockers",
       "coordinator": "/root",
-      "status": "independent-source-reviewed",
-      "implementation_state": "Source batch and6 controls accepted; no future seal/F exclusion or B claim, unapplied/unrun.",
+      "status": "component-verified",
+      "implementation_state": "Generation465 actual749/749 Rust components pass: Core668/RTC70/UCTP10/retained-native-retry1. Source and four binaries stable,14 original owners naturally joined; independently audited960e1440. Audio unrelated-video drop fixed with all current-policy/privacy negatives. Realm/native custody/physical tracking/raw accessor seals tested. Factory-controller closure and strict freeze/B lifecycle still open; no media/ARM/shipping/full32 promotion.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+      "updated_at": "2026-11-16T03:40:34.722761+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
     },
     {
       "id": "V219-NATIVE-DECODER-BOUNDARY",
@@ -2281,11 +2283,11 @@
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
-      "status": "independent-source-reviewed",
-      "implementation_state": "Actual free-model capture loses original Audio on unrelated publicVideoHold while busy-model capture succeeds. Both owners cleaned before desired old failure. Scoped subscription fix and current-policy/privacy negatives independently reviewed; applying in batch, not yet tested.",
+      "status": "component-verified",
+      "implementation_state": "Generation465 actual749/749 Rust components pass: Core668/RTC70/UCTP10/retained-native-retry1. Source and four binaries stable,14 original owners naturally joined; independently audited960e1440. Audio unrelated-video drop fixed with all current-policy/privacy negatives. Realm/native custody/physical tracking/raw accessor seals tested. Factory-controller closure and strict freeze/B lifecycle still open; no media/ARM/shipping/full32 promotion.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T03:00:57.725458+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-native-rtc123-component.json"
+      "updated_at": "2026-11-16T03:40:34.722761+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
     },
     {
       "id": "V219-RTC-RENDER-SNAPSHOT",
@@ -2309,6 +2311,54 @@
       "implementation_state": "DTO3 controls and inertSDK7 source reviewed, unrun. Actual producer, B construction/readiness and durableRootphases remain unimplemented.",
       "matrix_verified": false,
       "updated_at": "2026-11-16T02:02:25.014510+00:00"
+    },
+    {
+      "id": "V219-NATIVE-FRAME-CUSTODY",
+      "title": "Freeze native original video grouping before retain and retry",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "implementation_state": "Actual native group/clock and retained65-packet retry checks pass in749.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T03:40:34.722761+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
+    },
+    {
+      "id": "V219-FACTORY-CONTROLLER-CUSTODY",
+      "title": "Bind staged backend to the original controller incarnation",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "status": "cause-confirmed",
+      "implementation_state": "Public staged-media factory can escape original controller tickets; structural once-owned binding authoring, freeze held.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T03:40:34.722761+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
+    },
+    {
+      "id": "V219-ROOT-FREEZE-PHASE",
+      "title": "Freeze and drain original old video under compatible current Readers",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "status": "implemented-unverified",
+      "implementation_state": "Core fail-closed draft and read-only Service phase source-reviewed; runtime and factory closure pending. No Commit Writer or global role guard over drain.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T03:40:34.722761+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
+    },
+    {
+      "id": "V219-FRESH-B-RECEIVER",
+      "title": "Prepare and verify exact separate public B receiver",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Server setup/metadata and SDK constructor/video-only readiness source-reviewed; unapplied/unrun. Actual post-F B feed, publication, discard and resume pending.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T03:40:34.722761+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
     }
   ],
   "failure_mapping": [
@@ -4784,6 +4834,12 @@
       "updated_at": "2026-11-16T03:00:57.725458+00:00",
       "summary": "Native/WT completion decoder boundary, rendered RTC canvas observation and bounded unknown-marker diagnostics pass123/123 fresh whole-module tests. Actual old Native/RTC/Audio counters qualified; audio fix reviewed but not yet applied. No physical-media or matrix promotion.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-native-rtc123-component.json"
+    },
+    {
+      "revision": 100,
+      "updated_at": "2026-11-16T03:40:34.722761+00:00",
+      "summary": "Generation465 actual749/749 Rust components pass: Core668/RTC70/UCTP10/retained-native-retry1. Source and four binaries stable,14 original owners naturally joined; independently audited960e1440. Audio unrelated-video drop fixed with all current-policy/privacy negatives. Realm/native custody/physical tracking/raw accessor seals tested. Factory-controller closure and strict freeze/B lifecycle still open; no media/ARM/shipping/full32 promotion.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json"
     }
   ],
   "tracking_review": {
@@ -6413,8 +6469,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Native/WT completion decoder boundary, rendered RTC canvas observation and bounded unknown-marker diagnostics pass123/123 fresh whole-module tests. Actual old Native/RTC/Audio counters qualified; audio fix reviewed but not yet applied. No physical-media or matrix promotion.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-native-rtc123-component.json",
-    "sha256": "530ccb581e73ef1aabd2c9b11e50f80e74cc03cb617d22fc78f1f147c7fe059e"
+    "status": "Generation465 actual749/749 Rust components pass: Core668/RTC70/UCTP10/retained-native-retry1. Source and four binaries stable,14 original owners naturally joined; independently audited960e1440. Audio unrelated-video drop fixed with all current-policy/privacy negatives. Realm/native custody/physical tracking/raw accessor seals tested. Factory-controller closure and strict freeze/B lifecycle still open; no media/ARM/shipping/full32 promotion.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-rust749-component.json",
+    "sha256": "5ef6349de7aef60edd562b9192b600c34190a63b7487548a11695ada9d82e609"
   }
 }
