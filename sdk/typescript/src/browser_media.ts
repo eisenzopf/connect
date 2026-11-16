@@ -14,6 +14,7 @@ import {
 } from "./browser_video_publication.js";
 import {
     nativeEgressIdentity,
+    currentNativeOutput,
     sameNativeIdentity,
     type NativeEgressIdentity,
     type NativeDecodedObservation,
@@ -165,6 +166,7 @@ interface Route {
 }
 interface ConnectionState {
     nativeReadiness?: BrowserNativeReadiness;
+    nativeOutputBoundary?: NativeActivationBoundary;
     nativeReplacementCompleted?: boolean;
     scope: Scope & { cid: string; sid: string; connid: string };
     revision: number;
@@ -1084,6 +1086,8 @@ export class BrowserMediaPeer {
                             route!.observed.decoded++;
                             const observation = route!.decodedObservation;
                             route!.decodedObservation = undefined;
+                            if (!this.currentNativeOutput(route!, observation))
+                                return;
                             this.callbacks.audio?.(
                                 route!.binding,
                                 frame,
@@ -1120,6 +1124,8 @@ export class BrowserMediaPeer {
                             route!.observed.decoded++;
                             const observation = route!.decodedObservation;
                             route!.decodedObservation = undefined;
+                            if (!this.currentNativeOutput(route!, observation))
+                                return;
                             this.callbacks.video?.(
                                 route!.binding,
                                 frame,
@@ -1377,11 +1383,33 @@ export class BrowserMediaPeer {
             this.deliverRtp(route, packet, arrived);
         }
     }
+    private currentNativeOutput(
+        route: Route,
+        observation: NativeDecodedObservation | undefined,
+    ): boolean {
+        return currentNativeOutput(
+            this.connections.get(route.binding.connectionId)?.nativeOutputBoundary,
+            route.binding,
+            observation,
+        );
+    }
     private deliverRtp(
         route: Route,
         packet: RtpDatagram,
         arrived: number,
     ): void {
+        // Reject private datagrams before clocks, assembly, ordering or decode.
+        // The complete-frame check below still requires every fragment to agree.
+        if (!this.currentNativeOutput(route, route.nativeEgress ? {
+            profile: "connect/native-decoded-sequence/1",
+            identity: route.nativeEgress,
+            datagramSequences: [packet.datagramSequence],
+            ssrc: packet.ssrc,
+            rtpTimestamp: packet.timestamp,
+        } : undefined)) {
+            this.counters.rejected++;
+            return;
+        }
         this.counters.received++;
         route.observed.received++;
         const timing = route.clock.timestamp(
@@ -1472,6 +1500,17 @@ export class BrowserMediaPeer {
         for (const { frame, timestampUs } of frames) {
             if (this.stopped || this.routes.get(route.binding.handle) !== route)
                 return;
+            if (!this.currentNativeOutput(route, route.nativeEgress ? {
+                profile: "connect/native-decoded-sequence/1",
+                identity: route.nativeEgress,
+                datagramSequences: frame.datagramSequences,
+                ssrc: frame.ssrc,
+                rtpTimestamp: frame.timestamp,
+            } : undefined)) {
+                route.observed.skipped++;
+                route.vp8!.lost();
+                continue;
+            }
             const state = this.connections.get(route.binding.connectionId),
                 readiness = state?.nativeReadiness,
                 notice = route.receiveEpoch;
@@ -2225,6 +2264,24 @@ export class BrowserMediaPeer {
                             "Replacement receipt changed the negotiated target streams",
                         );
                     this.requireState(state);
+                    const activation = state.nativeReadiness.activationBoundary;
+                    if (!activation)
+                        return fail("Original native activation boundary unavailable");
+                    // Public video starts with an independent decoder reference
+                    // history. Encoder/camera and the existing Opus decoder stay
+                    // owned by their original routes. Private consultation keeps A.
+                    if (activation.audience.scope === "public") {
+                        for (const route of state.routes.values()) {
+                            if (!route.vp8 || route.binding.direction === "sendonly")
+                                continue;
+                            route.assembler!.clear();
+                            route.order!.clear();
+                            route.vp8.beginPublicReceive();
+                            route.decodedObservation = undefined;
+                            this.requestVideoRecovery(route);
+                        }
+                    }
+                    state.nativeOutputBoundary = activation;
                     state.revision = receipt.streamRevision;
                     state.connectionGeneration = receipt.generation;
                     // The original completed move transfers these receiver

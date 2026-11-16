@@ -173,8 +173,8 @@ function audioProvenance(rows) {
             last_before_end:edge(beforeEnd),first_at_or_after_end:edge(atEnd)})});
 }
 
-// Closed metadata from an already captured row. Only duplicate events call
-// this helper; no extra canvas read, pixel copy, frame credit or network claim.
+// Closed metadata from an already captured row. Bounded duplicate and identity
+// refusal diagnostics use this; no extra readback, frame credit or network claim.
 function duplicateVideoSnapshot(row,index,presentation=row.presentation){
     const value={owner:row.owner,row_index:index,original_timestamp_us:row.timestamp,
         callback_seconds:row.seconds,kind:row.kind,changed:row.changed,dimensions:row.dimensions,
@@ -488,6 +488,7 @@ export class DecodedRoute {
         for(const row of video)if(row.native){const key=row.native.rtpTimestamp;if(videoSourceSeen.has(key))videoSourceOverlaps++;videoSourceSeen.add(key);}
         const counts={};for(const row of video)counts[row.kind]=(counts[row.kind]??0)+1;
         const validFrameId=row=>!this.sourceFrameIdentity||row.sourceFrameIdentity?.status==='identified';
+        const unavailableVideoIdentity=this.sourceFrameIdentity?video.filter(row=>!validFrameId(row)):[];
         const perSecond=Array(60).fill(0);for(const row of video)if(validFrameId(row)&&row.changed&&!row.duplicate&&row.dimensions&&
             [String(this.expected),'pulse'].includes(row.kind))perSecond[Math.floor(row.seconds-start)]++;
         const changingVideo=video.filter(row=>validFrameId(row)&&row.changed&&!row.duplicate&&row.dimensions&&[String(this.expected),'pulse'].includes(row.kind));
@@ -558,7 +559,11 @@ export class DecodedRoute {
                 scope:'Original decoded footer ordinal; expected source is logical-route association. White pulses retain the declared source-identity exception, never an invented pixel-source ID',
                 status:!this.sourceFrameIdentity?'not-requested':video.length>0&&video.every(validFrameId)?'passed':'failed',
                 identified_frames:video.filter(row=>row.sourceFrameIdentity?.status==='identified').length,
-                unavailable_frames:video.filter(row=>this.sourceFrameIdentity&&!validFrameId(row)).length,
+                unavailable_frames:unavailableVideoIdentity.length,
+                unavailable_diagnostics:Object.freeze({profile:'connect/decoded-video-identity-refusal/1',limit:16,
+                    scope:'Original included decoded-row metadata only; unidentified pixels remain hard failures, no inferred ordinal or packet cause',
+                    omitted:Math.max(0,unavailableVideoIdentity.length-16),
+                    events:Object.freeze(unavailableVideoIdentity.slice(0,16).map(row=>duplicateVideoSnapshot(row,row.row_index)))}),
                 pulse_exception_frames:video.filter(row=>row.sourceFrameIdentity?.pulse_exception).length},
             timestamp_reuse_diagnostics:{profile:'connect/decoded-video-timestamp-reuse/1',limit:16,
                 scope:'Repeated browser/decoder timestamp only; source-frame duplicates remain independently mandatory',

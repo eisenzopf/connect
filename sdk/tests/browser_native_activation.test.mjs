@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {nativeActivation,nativeMembership,nativeCut,nativeEgressIdentity} from '../typescript/dist/browser_native_activation.js';
+import {nativeActivation,nativeMembership,nativeCut,nativeEgressIdentity,currentNativeOutput} from '../typescript/dist/browser_native_activation.js';
 import {bindNativeStreams,nativeBoundary} from './native_activation_fixture.mjs';
 const root={recordId:'record',operationId:'move',sourceConnectionId:'old',targetConnectionId:'new'};
 const streams=bindNativeStreams([{strm_id:'audio',kind:'audio',direction:'sendrecv',stream_local_id:1},{strm_id:'video',kind:'video',direction:'sendonly',stream_local_id:2}],2);
@@ -29,4 +29,16 @@ test('a frame spanning the cut, repeated reservations, half-range or wrapped cur
 test('decoded provenance cannot substitute another actual physical epoch or original start',()=>{
  const cut=boundary().audience.streams[0];for(const patch of [{physical_incarnation:'f'.repeat(32)},{stream_generation:2},{initial_outer_sequence:4}])assert.throws(()=>nativeMembership(cut,{...observation(4),identity:{...streams[0].native_egress,...patch}}),{code:'protocol'});
  assert.throws(()=>nativeEgressIdentity({...streams[0].native_egress,source:'guessed'}),{code:'protocol'});
+});
+
+test('native local output keeps the exact completed receiver identity and rejects private mixed or unknown membership',()=>{
+ const activation=nativeActivation(root,status(),receivers),binding={connectionId:'new',streamId:'audio',handle:1};
+ assert.equal(currentNativeOutput(activation,binding,observation(4,5)),true);
+ assert.equal(currentNativeOutput(nativeActivation(root,status(),receivers),binding,observation(4,5)),true,'same original cut replay cannot mint a new floor');
+ for(const row of [undefined,{},observation(3),observation(3,4),observation(4,4),observation(0x80000000),{...observation(4),identity:{...streams[0].native_egress,connection_generation:3}},{...observation(4),identity:{...streams[0].native_egress,physical_incarnation:'f'.repeat(32)}}])
+  assert.equal(currentNativeOutput(activation,binding,row),false);
+ for(const wrong of [{connectionId:'other'},{streamId:'video'},{handle:2}])assert.equal(currentNativeOutput(activation,{...binding,...wrong},observation(4)),false);
+ assert.equal(currentNativeOutput(undefined,binding,undefined),true,'ordinary nonreplacement output keeps its existing policy');
+ const privateStatus=status();privateStatus.result.native_activation.audience={scope:'private-consultation',original_operation:'private-parent'};
+ assert.equal(currentNativeOutput(nativeActivation(root,privateStatus,receivers),binding,observation(3)),true,'the signed private audience remains private playback');
 });

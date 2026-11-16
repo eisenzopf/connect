@@ -245,7 +245,9 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
                 return result;
             }
             identity.last = presentation.presentedFrames;
-            video(connectionId, Math.round(current.detail.mediaTime * 1000000), performance.now(), source,
+            // Borrow the actual just-rendered bitmap. Rereading a live video
+            // element can pair body/marker pixels from a newer presentation.
+            video(connectionId, Math.round(current.detail.mediaTime * 1000000), performance.now(), this.canvas,
                 source.videoWidth, source.videoHeight, presentation);
         }
         return result;

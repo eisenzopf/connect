@@ -148,6 +148,7 @@ export declare class BrowserMediaPeer {
     private install;
     private drain;
     private receive;
+    private currentNativeOutput;
     private deliverRtp;
     private deliverVideoFrames;
     /** Start one original offer. `accepted` means validated current physical

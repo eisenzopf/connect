@@ -71,3 +71,28 @@ test('video-only renderer retirement identifies the exact original owner without
   const receipt=await renderer.retirement;await renderer.finished;
   assert.equal(receipt.connectionId,connection.id);assert.equal(receipt.audioGraph,'not-created');assert.equal(receipt.outputsDetached,true);
 }));
+
+test('renderer rechecks original queued private outputs at the public cut without replacing its audio graph',()=>environment(undefined,async contexts=>{
+ const {nativeActivation}=await import('../typescript/dist/browser_native_activation.js'),{nativeBoundary,bindNativeStreams}=await import('./native_activation_fixture.mjs');
+ const connection=owner(),streams=bindNativeStreams([{strm_id:'audio',kind:'audio',direction:'sendrecv',stream_local_id:1},{strm_id:'video',kind:'video',direction:'sendonly',stream_local_id:2}],1);
+ const root={recordId:'record',operationId:'move',sourceConnectionId:'old',targetConnectionId:'connection'};
+ const status={state:'completed',record_id:'record',operation_id:'move',result:{activation_state:'ready',connection_id:'connection',replaces:'old',generation:1,readiness:{stream_revision:3},native_activation:nativeBoundary(root,streams,1,3,{audio:4,video:4})}};
+ let boundary;Object.defineProperty(connection,'nativeActivationBoundary',{get:()=>boundary});
+ const observation=(n,sequence)=>({profile:'connect/native-decoded-sequence/1',identity:streams[n].native_egress,datagramSequences:[sequence],ssrc:7,rtpTimestamp:sequence*3000});
+ const drawn=[],canvas={getContext:()=>({drawImage(frame){drawn.push(frame.label);}})},renderer=await BrowserMediaRenderer.open(connection,{video:{video:canvas}}),context=contexts[0];
+ const audio=timestamp=>({sampleRate:48000,numberOfChannels:1,numberOfFrames:960,timestamp,copyTo(){}}),video=(timestamp,label)=>({timestamp,clone:()=>({timestamp,label,close(){}})});
+ try{
+  assert.equal(renderer.audio(connection.streams[0],audio(0),observation(0,3)),true);
+  assert.equal(renderer.video(connection.streams[1],video(0,'private'),observation(1,3)),true);
+  boundary=nativeActivation(root,status,streams.map(s=>({streamId:s.strm_id,handle:s.stream_local_id,identity:s.native_egress})));
+  context.currentTime=.121;await new Promise(resolve=>setTimeout(resolve,15));
+  assert.deepEqual(drawn,[]);assert.equal(context.sources[0].stopped,true);assert.equal(context.state,'running');assert.equal(contexts.length,1);
+  assert.equal(renderer.audio(connection.streams[0],audio(20000),observation(0,4)),true);
+  assert.equal(renderer.video(connection.streams[1],video(40000,'public'),observation(1,4)),true);
+  assert.equal(renderer.video(connection.streams[1],video(50000,'unknown')),false);
+  assert.equal(renderer.video(connection.streams[1],video(50000,'mixed'),{...observation(1,4),datagramSequences:[3,4]}),false);
+  context.currentTime=.161;await new Promise(resolve=>setTimeout(resolve,15));assert.deepEqual(drawn,['public']);
+  assert.equal(contexts.length,1);assert.equal(context.state,'running');
+ }finally{renderer.close();await renderer.finished;await renderer.retirement;}
+ assert.equal(connection.closed.size,0);assert.equal(context.state,'closed');
+}));

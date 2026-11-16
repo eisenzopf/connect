@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-16T02:02:25.014510+00:00",
-  "revision": 98,
+  "updated_at": "2026-11-16T03:00:57.725458+00:00",
+  "revision": 99,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 166,
-    "verified_at": "2026-11-16T02:02:25.014510+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-normal3-g458.json",
-    "readback_evidence_sha256": "4e5435c39f0a7471b24c1c5993316e8023a5d5690a3883337d497cbdbfd52e7a",
+    "content_revision": 167,
+    "verified_at": "2026-11-16T03:00:57.725458+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-native-rtc123.json",
+    "readback_evidence_sha256": "2c6bcdaaae56f1041086e1efb452f8785a5d94972f933c7ddfa964f8790c0987",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2269,10 +2269,11 @@
       "owner_agent": "/root/fixture_blockers",
       "independent_reviewer": "/root/v198_resources",
       "coordinator": "/root",
-      "status": "implemented-unverified",
-      "implementation_state": "Old actual-render counter source accepted; fixed4TS/4tests review pending, unapplied/unrun.",
+      "status": "component-verified",
+      "implementation_state": "Native/WT completion decoder boundary, rendered RTC canvas observation and bounded unknown-marker diagnostics pass123/123 fresh whole-module tests. Actual old Native/RTC/Audio counters qualified; audio fix reviewed but not yet applied. No physical-media or matrix promotion.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+      "updated_at": "2026-11-16T03:00:57.725458+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-native-rtc123-component.json"
     },
     {
       "id": "V219-AUDIO-REVISION-ISOLATION",
@@ -2280,10 +2281,11 @@
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
-      "status": "cause-confirmed",
-      "implementation_state": "Source-only opportunistic global revision coupling confirmed; real public-videoHold Some/None old counter reviewed/unrun; scoped subscription fix authoring.",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Actual free-model capture loses original Audio on unrelated publicVideoHold while busy-model capture succeeds. Both owners cleaned before desired old failure. Scoped subscription fix and current-policy/privacy negatives independently reviewed; applying in batch, not yet tested.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+      "updated_at": "2026-11-16T03:00:57.725458+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-native-rtc123-component.json"
     },
     {
       "id": "V219-RTC-RENDER-SNAPSHOT",
@@ -2291,10 +2293,11 @@
       "owner_agent": "/root",
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
-      "status": "independent-source-reviewed",
-      "implementation_state": "One-line observer fix/old actual-callback counter reviewed, unrun. Original unknown marker cause unproved.",
+      "status": "component-verified",
+      "implementation_state": "Native/WT completion decoder boundary, rendered RTC canvas observation and bounded unknown-marker diagnostics pass123/123 fresh whole-module tests. Actual old Native/RTC/Audio counters qualified; audio fix reviewed but not yet applied. No physical-media or matrix promotion.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+      "updated_at": "2026-11-16T03:00:57.725458+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-native-rtc123-component.json"
     },
     {
       "id": "V219-PUBLIC-RESERVATION-INTENT",
@@ -4775,6 +4778,12 @@
       "updated_at": "2026-11-16T02:02:25.014510+00:00",
       "summary": "Closed g458 normal3 FAILED: raw audio18/18, AV18/18, video14/18, collections17/18, resources3/3. One unidentified pixel source-frame marker blocks exact witness;16 same-owner draw aliases have distinct receiver RTP. Independent owner/source/binary/PCAP audit accepted; no media/matrix promotion.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-g458-failed.json"
+    },
+    {
+      "revision": 99,
+      "updated_at": "2026-11-16T03:00:57.725458+00:00",
+      "summary": "Native/WT completion decoder boundary, rendered RTC canvas observation and bounded unknown-marker diagnostics pass123/123 fresh whole-module tests. Actual old Native/RTC/Audio counters qualified; audio fix reviewed but not yet applied. No physical-media or matrix promotion.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-native-rtc123-component.json"
     }
   ],
   "tracking_review": {
@@ -6404,8 +6413,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Closed g458 normal3 FAILED: raw audio18/18, AV18/18, video14/18, collections17/18, resources3/3. One unidentified pixel source-frame marker blocks exact witness;16 same-owner draw aliases have distinct receiver RTP. Independent owner/source/binary/PCAP audit accepted; no media/matrix promotion. Remaining audio fence, native receiver boundary and strict WebRTC B/root lifecycle need implementation/verification; not ready32.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-g458-failed.json",
-    "sha256": "d40305facc158fa5dba70a837f64de1c433efc3517c5b1e6a6edba987895e8ab"
+    "status": "Native/WT completion decoder boundary, rendered RTC canvas observation and bounded unknown-marker diagnostics pass123/123 fresh whole-module tests. Actual old Native/RTC/Audio counters qualified; audio fix reviewed but not yet applied. No physical-media or matrix promotion.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-native-rtc123-component.json",
+    "sha256": "530ccb581e73ef1aabd2c9b11e50f80e74cc03cb617d22fc78f1f147c7fe059e"
   }
 }

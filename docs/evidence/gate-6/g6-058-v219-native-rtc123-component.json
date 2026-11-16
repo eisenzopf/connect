@@ -1,0 +1,130 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "updated_at": "2026-11-16T03:00:57.725458+00:00",
+  "status": "component-verified",
+  "summary": "Native/WT completion decoder boundary, rendered RTC canvas observation and bounded unknown-marker diagnostics pass123/123 fresh whole-module tests. Actual old Native/RTC/Audio counters qualified; audio fix reviewed but not yet applied. No physical-media or matrix promotion.",
+  "result": {
+    "format": "connect/root-native-receiver-and-rtc-observation-units/2",
+    "passed": true,
+    "error": null,
+    "owners": {
+      "prepare": {
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh",
+          "--cache",
+          "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.local/gate-6/dependency-rotation-v203-combined/host/cache"
+        ],
+        "pid": 9585,
+        "pgid": 9585,
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "group_observation": {
+          "group_absent": true,
+          "method": "killpg-ESRCH",
+          "permission_refused": false
+        },
+        "elapsed_seconds": 0.20007366700019702
+      },
+      "sdk-build": {
+        "command": [
+          "npm",
+          "run",
+          "build",
+          "--prefix",
+          "sdk/typescript"
+        ],
+        "pid": 9598,
+        "pgid": 9598,
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "group_observation": {
+          "group_absent": true,
+          "method": "killpg-ESRCH",
+          "permission_refused": false
+        },
+        "elapsed_seconds": 0.3311764999998559
+      },
+      "format": {
+        "command": [
+          "bash",
+          "scripts/format.sh"
+        ],
+        "pid": 9618,
+        "pgid": 9618,
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "group_observation": {
+          "group_absent": true,
+          "method": "killpg-ESRCH",
+          "permission_refused": false
+        },
+        "elapsed_seconds": 3.314928624999993
+      },
+      "node-runtime": {
+        "command": [
+          "node",
+          "--test",
+          "--test-reporter=tap",
+          "sdk/tests/browser_replacement.test.mjs",
+          "sdk/tests/browser_codecs.test.mjs",
+          "sdk/tests/browser_renderer.test.mjs",
+          "sdk/tests/browser_native_activation.test.mjs",
+          "scripts/tests/browser_matrix_rtc_observation.test.mjs",
+          "scripts/tests/browser_matrix_frame_identity.test.mjs",
+          "scripts/tests/browser_matrix_observation.test.mjs",
+          "scripts/tests/browser_matrix_source_frame_witness.test.mjs"
+        ],
+        "pid": 9646,
+        "pgid": 9646,
+        "exit_code": 0,
+        "wait_returned": true,
+        "naturally_exited": true,
+        "group_absent": true,
+        "group_observation": {
+          "group_absent": true,
+          "method": "killpg-ESRCH",
+          "permission_refused": false
+        },
+        "elapsed_seconds": 4.352777624999817
+      }
+    },
+    "summary": {
+      "tests": 123,
+      "pass": 123,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "source_inputs_unchanged": true,
+    "runtime_source_and_dist_unchanged": true,
+    "scope": "Eight whole Node modules + actual SDK build/format/prepare; no new physical-media/ARM/full32 credit"
+  },
+  "original_evidence": {
+    ".local/gate-6/v219-native-and-rtc-fixed-units-root-r2/result.json": "0c19c1b5a5bcd87b9c8d1fb5c00d98e8e2fe03fba69b7b4f8ab8fdfb92b0329b",
+    ".local/gate-6/v219-native-and-rtc-fixed-units-root-r2/root-original-join.json": "c48b3df3f51c6fd05fcf86191fff27e1103978963aa773fe6185a90b5c810066",
+    ".local/gate-6/v219-native-and-rtc-fixed-independent-v198-review-r2/receipt.json": "91c66bc10f2ef0f2622ce636f2ba94d1b0b2d024360110d043aaadb8169cd359",
+    ".local/gate-6/v219-three-old-counters-root/result.json": "1ecadcfb5af87026aeb17af00a9ef7ef51304f4fe93a5ead8a7b20cf24a3f129",
+    ".local/gate-6/v219-audio-old-counter-root-r2/result.json": "d970e83cd0c639cd8f89b81a4232a9332be49587be86e17ad854aedad1dd4bd3",
+    ".local/gate-6/v219-audio-old-counter-independent-v198-review/receipt.json": "8c443116856d32186bb29fcdd1718c3b0b2cf2bad702e313625e67b3a5921ed5"
+  },
+  "latest_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "limitations": [
+    "No new physical-media, ARM or full32 run.",
+    "Original unknown marker cause was not archived; observer hazard is proved but historical causal attribution remains unproved.",
+    "Audio scoped fix, source custody/tracking and raw sealing next; original server B/root lifecycle incomplete."
+  ]
+}

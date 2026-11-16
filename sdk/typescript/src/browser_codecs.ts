@@ -376,7 +376,7 @@ export class BrowserVp8Codec {
         observe?: (frame: VideoFrame) => void;
     }[] = [];
     private readonly encoder: VideoEncoder;
-    private readonly decoder: VideoDecoder;
+    private decoder: VideoDecoder;
     private stopped = false;
     private readonly encodeCounts = {
         inputCalls: 0,
@@ -495,33 +495,7 @@ export class BrowserVp8Codec {
             error: (e) => this.fail(e),
         });
         try {
-            this.decoder = new VideoDecoder({
-                output: (frame) => {
-                    try {
-                        if (!this.stopped) {
-                            const original = this.pendingDecode.shift();
-                            if (
-                                !original ||
-                                original.timestampUs !== frame.timestamp
-                            )
-                                throw new ConnectError(
-                                    "media",
-                                    "Unmatched original VP8 decoder output",
-                                );
-                            original.observe?.(frame);
-                            this.decodeCounts.decodedFrames++;
-                            this.decodeCounts.lastDecodedTimestampUs =
-                                frame.timestamp;
-                            callbacks.decoded(frame);
-                        }
-                    } catch (e) {
-                        this.fail(e);
-                    } finally {
-                        frame.close();
-                    }
-                },
-                error: (e) => this.fail(e),
-            });
+            this.decoder = this.createDecoder();
         } catch (cause) {
             // The constructor has not returned an owner to the caller. Retire
             // the first codec even when allocating the second codec fails.
@@ -542,6 +516,56 @@ export class BrowserVp8Codec {
                 "VP8 profile configuration failed",
             );
         }
+    }
+    private createDecoder(): VideoDecoder {
+        const decoder = new VideoDecoder({
+            output: (frame) => {
+                try {
+                    // A retired native decoder may still deliver an already
+                    // queued callback. It never consumes the new owner's queue.
+                    if (!this.stopped && this.decoder === decoder) {
+                        const original = this.pendingDecode.shift();
+                        if (!original || original.timestampUs !== frame.timestamp)
+                            throw new ConnectError(
+                                "media",
+                                "Unmatched original VP8 decoder output",
+                            );
+                        original.observe?.(frame);
+                        this.decodeCounts.decodedFrames++;
+                        this.decodeCounts.lastDecodedTimestampUs = frame.timestamp;
+                        this.callbacks.decoded(frame);
+                    }
+                } catch (e) {
+                    this.fail(e);
+                } finally {
+                    frame.close();
+                }
+            },
+            error: (e) => {
+                if (this.decoder === decoder) this.fail(e);
+            },
+        });
+        return decoder;
+    }
+    /** Same original completed public activation; no preview references cross
+     * into this fresh receive generation. Camera encoder ownership is unchanged. */
+    beginPublicReceive(): void {
+        if (this.stopped)
+            throw new ConnectError("closed", "VP8 receiver is closed");
+        const decoder = this.createDecoder();
+        try {
+            decoder.configure({ codec: "vp8", optimizeForLatency: true });
+        } catch (error) {
+            decoder.close();
+            throw error;
+        }
+        const previous = this.decoder;
+        this.decoder = decoder;
+        this.pendingDecode.length = 0;
+        this.needsKey = true;
+        this.ssrc = undefined;
+        this.lastSequence = this.lastTimestamp = undefined;
+        if (previous.state !== "closed") previous.close();
     }
     /** Consumes and closes the caller's VideoFrame on every path. */
     encode(frame: VideoFrame, currentFeedback = false): boolean {

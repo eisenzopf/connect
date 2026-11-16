@@ -1,3 +1,4 @@
+import { currentNativeOutput } from "./browser_native_activation.js";
 import { ConnectError } from "./errors.js";
 /** Borrowed decoded frames use the Connection's local monotonic receive timeline. */
 export class BrowserMediaRenderer {
@@ -172,8 +173,9 @@ export class BrowserMediaRenderer {
     get nativeActivationBoundary() {
         return this.connection.nativeActivationBoundary;
     }
-    audio(binding, frame, _native) {
+    audio(binding, frame, native) {
         if (!this.current(binding) ||
+            !currentNativeOutput(this.nativeActivationBoundary, binding, native) ||
             binding.kind !== "audio" ||
             !this.context ||
             this.context.state !== "running") {
@@ -216,6 +218,7 @@ export class BrowserMediaRenderer {
         this.sources.set(source, {
             binding: Object.freeze({ ...binding }),
             admittedAt: performance.now(),
+            native,
         });
         source.onended = () => {
             source.onended = null;
@@ -257,8 +260,9 @@ export class BrowserMediaRenderer {
         return this.clock.local + (timestamp - this.clock.source) / 1000000;
     }
     /** Copy borrowed frames into a bounded owned presentation queue. */
-    video(binding, frame, _native) {
+    video(binding, frame, native) {
         if (!this.current(binding) ||
+            !currentNativeOutput(this.nativeActivationBoundary, binding, native) ||
             (binding.kind !== "video" && binding.kind !== "screen") ||
             !this.canvases.has(binding.streamId)) {
             this.counts.droppedVideo++;
@@ -293,6 +297,7 @@ export class BrowserMediaRenderer {
             binding: Object.freeze({ ...binding }),
             frame: owned,
             admittedAt: performance.now(),
+            native,
         });
         this.lastVideo.set(binding.streamId, {
             handle: binding.handle,
@@ -312,7 +317,9 @@ export class BrowserMediaRenderer {
             return;
         const now = this.now(), wall = performance.now();
         for (const [source, owned] of this.sources) {
-            if (this.current(owned.binding) && wall - owned.admittedAt <= 200)
+            if (this.current(owned.binding) &&
+                currentNativeOutput(this.nativeActivationBoundary, owned.binding, owned.native) &&
+                wall - owned.admittedAt <= 200)
                 continue;
             source.onended = null;
             try {
@@ -329,6 +336,7 @@ export class BrowserMediaRenderer {
             const owned = this.videos[i];
             const due = this.presentationTime(owned.frame.timestamp);
             if (!this.current(owned.binding) ||
+                !currentNativeOutput(this.nativeActivationBoundary, owned.binding, owned.native) ||
                 wall - owned.admittedAt > 200 ||
                 due < now - 0.2) {
                 this.discardVideo(i);

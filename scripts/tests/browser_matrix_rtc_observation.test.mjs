@@ -86,6 +86,7 @@ test('only the actual RTC renderer is tapped and frame metadata stays bound to i
         element.callback(100,{mediaTime:1.25,presentedFrames:1});
         assert.equal(video.length,1);assert.equal(video[0][0],'original');assert.equal(video[0][1],1250000);
         assert.equal(video[0][4],640);assert.equal(video[0][5],360);
+        assert.equal(video[0][3],canvas,'Readback must borrow the actual completed public render, not the mutable video element');
         context.drawImage(element,0,0);assert.equal(video.length,1,'painting outside actual video callback is not decoded-frame evidence');
         assert.deepEqual(errors,[]);
     }finally{

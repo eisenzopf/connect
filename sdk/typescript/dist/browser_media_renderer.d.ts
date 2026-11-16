@@ -50,11 +50,11 @@ export declare class BrowserMediaRenderer {
     /** Copy synchronously; the decoder retains ownership of this AudioData. */
     /** Historical metadata only; no render/capture permission. */
     get nativeActivationBoundary(): NativeActivationBoundary | undefined;
-    audio(binding: Readonly<MediaBinding>, frame: AudioData, _native?: NativeDecodedObservation): boolean;
+    audio(binding: Readonly<MediaBinding>, frame: AudioData, native?: NativeDecodedObservation): boolean;
     private now;
     private presentationTime;
     /** Copy borrowed frames into a bounded owned presentation queue. */
-    video(binding: Readonly<MediaBinding>, frame: VideoFrame, _native?: NativeDecodedObservation): boolean;
+    video(binding: Readonly<MediaBinding>, frame: VideoFrame, native?: NativeDecodedObservation): boolean;
     private discardVideo;
     private pumpPresentation;
     private schedulePresentation;

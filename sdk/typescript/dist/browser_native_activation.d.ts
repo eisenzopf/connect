@@ -61,3 +61,10 @@ export declare function nativeActivation(root: BrowserReplacementRoot, status: J
  * never silently rebased. Every fragment of one decoded frame must agree. */
 export declare function nativeMembership(cut: NativeSequenceCut, observation: NativeDecodedObservation): "private" | "public";
 export declare function sameNativeIdentity(a: NativeEgressIdentity | undefined, b: NativeEgressIdentity | undefined): boolean;
+/** Local output membership only. The boundary was verified against the original
+ * completed Root; this check neither creates a boundary nor grants permission. */
+export declare function currentNativeOutput(boundary: NativeActivationBoundary | undefined, binding: Readonly<{
+    connectionId: string;
+    streamId: string;
+    handle: number;
+}>, observation: NativeDecodedObservation | undefined): boolean;

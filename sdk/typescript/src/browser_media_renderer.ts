@@ -1,4 +1,5 @@
 import type { BrowserRenderRetirement } from "./browser_render_retirement.js";
+import { currentNativeOutput } from "./browser_native_activation.js";
 import type {
     NativeDecodedObservation,
     NativeActivationBoundary,
@@ -26,12 +27,14 @@ export class BrowserMediaRenderer {
         {
             binding: Readonly<MediaBinding>;
             admittedAt: number;
+            native?: NativeDecodedObservation;
         }
     >();
     private readonly videos: {
         binding: Readonly<MediaBinding>;
         frame: VideoFrame;
         admittedAt: number;
+        native?: NativeDecodedObservation;
     }[] = [];
     private readonly lastVideo = new Map<
         string,
@@ -252,10 +255,11 @@ export class BrowserMediaRenderer {
     audio(
         binding: Readonly<MediaBinding>,
         frame: AudioData,
-        _native?: NativeDecodedObservation,
+        native?: NativeDecodedObservation,
     ): boolean {
         if (
             !this.current(binding) ||
+            !currentNativeOutput(this.nativeActivationBoundary, binding, native) ||
             binding.kind !== "audio" ||
             !this.context ||
             this.context.state !== "running"
@@ -305,6 +309,7 @@ export class BrowserMediaRenderer {
         this.sources.set(source, {
             binding: Object.freeze({ ...binding }),
             admittedAt: performance.now(),
+            native,
         });
         source.onended = () => {
             source.onended = null;
@@ -348,10 +353,11 @@ export class BrowserMediaRenderer {
     video(
         binding: Readonly<MediaBinding>,
         frame: VideoFrame,
-        _native?: NativeDecodedObservation,
+        native?: NativeDecodedObservation,
     ): boolean {
         if (
             !this.current(binding) ||
+            !currentNativeOutput(this.nativeActivationBoundary, binding, native) ||
             (binding.kind !== "video" && binding.kind !== "screen") ||
             !this.canvases.has(binding.streamId)
         ) {
@@ -400,6 +406,7 @@ export class BrowserMediaRenderer {
             binding: Object.freeze({ ...binding }),
             frame: owned,
             admittedAt: performance.now(),
+            native,
         });
         this.lastVideo.set(binding.streamId, {
             handle: binding.handle,
@@ -419,7 +426,11 @@ export class BrowserMediaRenderer {
         const now = this.now(),
             wall = performance.now();
         for (const [source, owned] of this.sources) {
-            if (this.current(owned.binding) && wall - owned.admittedAt <= 200)
+            if (
+                this.current(owned.binding) &&
+                currentNativeOutput(this.nativeActivationBoundary, owned.binding, owned.native) &&
+                wall - owned.admittedAt <= 200
+            )
                 continue;
             source.onended = null;
             try {
@@ -435,6 +446,7 @@ export class BrowserMediaRenderer {
             const due = this.presentationTime(owned.frame.timestamp);
             if (
                 !this.current(owned.binding) ||
+                !currentNativeOutput(this.nativeActivationBoundary, owned.binding, owned.native) ||
                 wall - owned.admittedAt > 200 ||
                 due < now - 0.2
             ) {

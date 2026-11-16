@@ -1,0 +1,13 @@
+{
+  "format": "connect/mobile-checkpoint-readback/1",
+  "content_revision": 167,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMS2ewVH8O458moqWTovKmjA64juFmkDTjOmMswKx5yAOSWtImtNNnNLNMMJ7TU7hPj5mCuXrMo9vvu7db_ULQwwfyGVJvJqGsaLzBo",
+  "verified": true,
+  "paragraphs": [
+    "Revision 167 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+    "Current verification — Generation458 normal3 remains CLOSED FAILED: raw audio18/18, A/V18/18 and resource/cleanup3/3 pass; raw video14/18 pass. Three raw failures contain16 same-owner authored-image repeats with distinct receiver RTP timestamps; another route has one unidentified pixel marker, leaving collection17/18. No row is dropped or waived. The actual observer hazard is now fixed: measurement reads the canvas that just received the public draw, rather than rereading mutable video twice. Bounded missing-marker diagnostics preserve the first16 original refusal rows without changing grades. The native/WT completion boundary now gates the real decoder and queued renderer output. Fresh complete media and exact source association remain pending; historical failure causality is not inferred.\n",
+    "5. Parallel execution — Media owns server B reservation/queue custody, Fixture owns exact-B browser readiness, and Resource owns original-plan freeze/drain/F. Root alone integrates and runs builds/tests; authors do not approve their own fixes. Root's actual SDK/observer batch passes123/123 tests across eight whole modules with unchanged runtime source/dist and all original owners joined; independent review91c66bc1 accepted this component scope. All three actual OLD counters are qualified: Native rendered a private6000 frame after completion, RTC sampled mutable video instead of its rendered canvas, and Audio dropped an original packet on an unrelated video Hold only when capture acquired the model lock. A reviewed audio scope fix retains current authorization and relevant subscription/privacy fences. Realm/native custody, writer tracking, audio and raw-access sealing are being integrated together; B setup, original-root lifecycle, fresh complete media, combined regression, ARM, releases and preflight remain required before32. No matrix promotion or acceptance change.\n"
+  ],
+  "scope": "123 component tests; qualified OLD counters; no full32 promotion"
+}

@@ -170,3 +170,23 @@ export function sameNativeIdentity(a, b) {
     return (canonicalJson((a ?? null)) ===
         canonicalJson((b ?? null)));
 }
+/** Local output membership only. The boundary was verified against the original
+ * completed Root; this check neither creates a boundary nor grants permission. */
+export function currentNativeOutput(boundary, binding, observation) {
+    if (!boundary || boundary.audience.scope === "private-consultation")
+        return true;
+    const cut = boundary.audience.streams.find((value) => value.stream_id === binding.streamId);
+    if (boundary.target_connection_id !== binding.connectionId ||
+        !cut ||
+        cut.stream_local_id !== binding.handle ||
+        !observation ||
+        !observation.identity ||
+        observation.identity.connection_generation !== boundary.target_generation)
+        return false;
+    try {
+        return nativeMembership(cut, observation) === "public";
+    }
+    catch {
+        return false;
+    }
+}

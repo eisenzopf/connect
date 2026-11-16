@@ -49,3 +49,26 @@ test('VP8 refuses deltas after a completely missing RTP frame and resumes only a
     assert.equal(codec.decode(wrapped(false,2,6000),266667),false,'a gap after wrap still requires a keyframe');
   }finally{codec?.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
 });
+
+test('fresh public VP8 generation retires original queued callbacks without changing the camera encoder',()=>{
+ const names=['VideoEncoder','VideoDecoder','EncodedVideoChunk'],saved=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]),encoders=[],decoders=[],decoded=[],observed=[],errors=[],closed=[];
+ class Encoder{state='unconfigured';encodeQueueSize=0;constructor(c){this.callbacks=c;encoders.push(this);}configure(){this.state='configured';}close(){this.state='closed';}}
+ class Decoder{state='unconfigured';decodeQueueSize=0;chunks=[];constructor(c){this.callbacks=c;decoders.push(this);}configure(){this.state='configured';}reset(){}close(){this.state='closed';}decode(chunk){this.chunks.push(chunk);}}
+ const values=[Encoder,Decoder,class{constructor(value){Object.assign(this,value);}}];names.forEach((n,i)=>Object.defineProperty(globalThis,n,{configurable:true,value:values[i]}));
+ let codec;try{
+  codec=new BrowserVp8Codec({encoded(){},decoded(frame){decoded.push(frame.timestamp);},error(e){errors.push(e);}});
+  const frame=(n,key=true)=>({bytes:new Uint8Array([key?0:1,2,3]),key,ssrc:7,timestamp:n*3000,firstSequence:n,lastSequence:n,datagramSequences:[n],arrived:0});
+  assert.equal(codec.decode(frame(1),100,()=>observed.push('private')),true);
+  const original=decoders[0],encoder=encoders[0];codec.beginPublicReceive();
+  assert.equal(original.state,'closed');assert.equal(encoders.length,1);assert.equal(encoder.state,'configured');
+  assert.equal(codec.decode(frame(2,false),200),false,'private decoder reference history cannot decode a public delta');
+  assert.equal(codec.decode(frame(3),300,()=>observed.push('public')),true);
+  original.callbacks.output({timestamp:100,close(){closed.push('old');}});original.callbacks.error(Error('late original decoder error'));
+  assert.deepEqual(decoded,[]);assert.deepEqual(observed,[]);assert.equal(errors.length,0);
+  decoders[1].callbacks.output({timestamp:300,close(){closed.push('new');}});
+  assert.deepEqual(decoded,[300]);assert.deepEqual(observed,['public']);assert.deepEqual(closed,['old','new']);
+  codec.close();decoders[1].callbacks.output({timestamp:400,close(){closed.push('cancelled');}});
+  assert.deepEqual(decoded,[300]);assert.deepEqual(closed,['old','new','cancelled']);assert.equal(errors.length,0);
+  assert.ok(decoders.every(d=>d.state==='closed'));assert.equal(encoder.state,'closed');assert.throws(()=>codec.beginPublicReceive(),{code:'closed'});
+ }finally{codec?.close();for(const[n,d]of saved)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
+});

@@ -103,3 +103,35 @@ test('report-derived duplicate snapshots retain original presentation scalars be
  const saved=JSON.stringify(events);r.retireWorkingState();
  assert.equal(r.workingState().video_rows,0);assert.equal(JSON.stringify(events),saved);
 });
+
+
+test('unavailable source marker diagnostics retain exact included rows and stay bounded hard failures',()=>{
+ const r=route(),p=footer(pixels(),0),offset=(71*128+3)*4;
+ p[offset]=p[offset+1]=p[offset+2]=127;
+ for(let i=0;i<20;i++)r.videoFrame('public',i*33000,1500+i*33,gray(0),p,640,360,null,
+  {profile:'connect/rtc-video-presentation/1',element_id:1,presentedFrames:i+1,
+   rtpTimestamp:7000+i*3000,connection_id:'public',stream_id:'video',track_id:'actual-track'});
+ const report=r.report(),v=report.video,d=v.source_frame_identity.unavailable_diagnostics;
+ assert.equal(v.source_frame_identity.unavailable_frames,20);assert.equal(v.decoded_frames,20);
+ assert.equal(v.source_frame_identity.identified_frames,0);assert.equal(v.passed,false);
+ assert.equal(d.events.length,16);assert.equal(d.omitted,4);assert.equal(d.events[0].row_index,0);
+ assert.equal(d.events[0].owner,'public');assert.equal(d.events[0].callback_seconds,1.5);
+ assert.equal(d.events[0].presentation.rtpTimestamp,7000);assert.equal(d.events[0].presentation.track_id,'actual-track');
+ assert.equal(d.events[0].source_frame_identity.ordinal,null);
+ assert.match(d.events[0].source_frame_identity.reason,/Footer contrast/);
+ assert.ok(Object.isFrozen(d)&&Object.isFrozen(d.events)&&Object.isFrozen(d.events[0])&&Object.isFrozen(d.events[0].source_frame_identity));
+ const saved=JSON.stringify(d);r.retireWorkingState();assert.equal(r.workingState().video_rows,0);
+ assert.equal(JSON.stringify(d),saved,'Original refusal metadata survives working-state retirement');
+});
+
+test('pulse marker disagreement remains unavailable and reports its original reason without time inference',()=>{
+ const r=route();r.videoFrame('public',0,1500,Array(64).fill(255),footer(pixels(),0),640,360);
+ const v=r.report().video,d=v.source_frame_identity.unavailable_diagnostics;
+ assert.equal(v.passed,false);assert.equal(v.source_frame_identity.unavailable_frames,1);
+ assert.equal(d.events[0].kind,'pulse');assert.equal(d.events[0].source_frame_identity.ordinal,null);
+ assert.match(d.events[0].source_frame_identity.reason,/white pulse disagrees/);
+ assert.equal(d.events[0].presentation,null,'Unavailable native presentation is never synthesized');
+ const filtered=r.report(()=>false).video.source_frame_identity;
+ assert.equal(filtered.unavailable_frames,0);assert.equal(filtered.unavailable_diagnostics.events.length,0);
+ assert.equal(d.events.length,1,'A later public-membership projection cannot alter the first snapshot');
+});

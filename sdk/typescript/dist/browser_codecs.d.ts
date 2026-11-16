@@ -39,7 +39,7 @@ export declare class BrowserVp8Codec {
     private readonly callbacks;
     private readonly pendingDecode;
     private readonly encoder;
-    private readonly decoder;
+    private decoder;
     private stopped;
     private readonly encodeCounts;
     get encodeDiagnostics(): Readonly<typeof this.encodeCounts>;
@@ -60,6 +60,10 @@ export declare class BrowserVp8Codec {
         waitingForKey: boolean;
     }>;
     constructor(callbacks: CodecCallbacks<VideoFrame>);
+    private createDecoder;
+    /** Same original completed public activation; no preview references cross
+     * into this fresh receive generation. Camera encoder ownership is unchanged. */
+    beginPublicReceive(): void;
     /** Consumes and closes the caller's VideoFrame on every path. */
     encode(frame: VideoFrame, currentFeedback?: boolean): boolean;
     /** Call after loss/expired assembly; delta frames cannot establish readiness. */

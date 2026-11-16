@@ -251,3 +251,35 @@ export function sameNativeIdentity(
         canonicalJson((b ?? null) as unknown as JsonObject)
     );
 }
+
+/** Local output membership only. The boundary was verified against the original
+ * completed Root; this check neither creates a boundary nor grants permission. */
+export function currentNativeOutput(
+    boundary: NativeActivationBoundary | undefined,
+    binding: Readonly<{
+        connectionId: string;
+        streamId: string;
+        handle: number;
+    }>,
+    observation: NativeDecodedObservation | undefined,
+): boolean {
+    if (!boundary || boundary.audience.scope === "private-consultation")
+        return true;
+    const cut = boundary.audience.streams.find(
+        (value) => value.stream_id === binding.streamId,
+    );
+    if (
+        boundary.target_connection_id !== binding.connectionId ||
+        !cut ||
+        cut.stream_local_id !== binding.handle ||
+        !observation ||
+        !observation.identity ||
+        observation.identity.connection_generation !== boundary.target_generation
+    )
+        return false;
+    try {
+        return nativeMembership(cut, observation) === "public";
+    } catch {
+        return false;
+    }
+}
