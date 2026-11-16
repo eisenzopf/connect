@@ -267,6 +267,7 @@ fn target_facts_for_profile(
             }
         }
     }
+    super::public_video::check_offer(c, prepared, saved, &intent.offer)?;
     // Reuse this exact admitted fence. Never acquire a nested original-source
     // reader behind a queued writer, nor fall back from an insufficient proof.
     let member = crate::audience::member(c, &actor.identity_id, &context.conversation_id, true)?;

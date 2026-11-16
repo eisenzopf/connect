@@ -359,6 +359,42 @@ pub(super) struct Capture {
     rows: Vec<Transition>,
     until: Option<i64>,
 }
+// Only the sealed live NotSubmitted receipt can derive this exact nongrant
+// mutation. This is separate from movement/retirement Plan purposes.
+pub(crate) struct NotSubmittedMutation {
+    pub(crate) key: Key,
+    pub(crate) required: Vec<AuthorityScope>,
+    pub(crate) transitions: Vec<Transition>,
+}
+pub(super) fn original_not_submitted_capture(
+    store: &Store,
+    c: &Connection,
+    proof: &Arc<AuthorityGuardSet>,
+    captured: &crate::NativeReplacementCommitNotSubmitted,
+    recorded_at: i64,
+) -> Result<(Key, Capture)> {
+    let mutation = captured.scoped_metadata_mutation(store, c, recorded_at)?;
+    if !store.authority_covers(proof, &mutation.required)
+        || mutation.transitions.len() != 3
+        || mutation
+            .transitions
+            .iter()
+            .map(|t| t.table)
+            .collect::<Vec<_>>()
+            != vec![Table::ReplacementSteps, Table::Effects, Table::Operations]
+        || mutation.transitions.iter().any(|t| t.action != "update")
+    {
+        return Err(Error::forbidden());
+    }
+    Ok((
+        mutation.key,
+        Capture {
+            rows: mutation.transitions,
+            until: None,
+        },
+    ))
+}
+
 pub(super) fn matches(
     active: &Active,
     action: &str,

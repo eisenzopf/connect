@@ -2,6 +2,55 @@
 use super::*;
 use connect_protocol::transitions::{OperationAction, TransitionCommand, TransitionIntent};
 
+// Explicitly adversarial file-owner access only. Ordinary fixture setup uses
+// Fixture::change_fixture and the real coordinated Writer. This private test
+// helper keeps production SQL functions, immutable triggers and foreign keys;
+// only coordination admission is bypassed to test an out-of-protocol writer.
+fn uncooperative_file_owner_at(f: &Fixture, database: &std::path::Path) -> rusqlite::Connection {
+    // Prove the ordinary registered Store still refuses uncoordinated DML.
+    let rejected = {
+        let mut c = f.store.connection().unwrap();
+        let tx = c.transaction().unwrap();
+        // A same-value UPDATE may be a legitimate no-op. Exercise an actual
+        // changed row, then roll back even if this negative assertion fails.
+        let result = tx.execute(
+            "UPDATE sessions SET topology_revision=topology_revision+1 WHERE conversation_id=?1",
+            [&f.cid],
+        );
+        tx.rollback().unwrap();
+        result.unwrap_err()
+    };
+    assert!(
+        matches!(rejected, rusqlite::Error::SqliteFailure(_, Some(ref message))
+        if message == "Coordinated Store mutation required")
+    );
+    let external = rusqlite::Connection::open(database).unwrap();
+    Store::configure(&external).unwrap();
+    // A distinct inactive boundary state prevents any external handle from
+    // borrowing the primary SQL Unit's proof or same-transaction phase permit.
+    let state = crate::authority_writer_boundary::State::new(&f.store.media_authorization);
+    state.register(&external).unwrap();
+    external
+        .create_scalar_function(
+            crate::authority_writer_boundary::FUNCTION,
+            2,
+            rusqlite::functions::FunctionFlags::SQLITE_UTF8,
+            |context| {
+                let _: String = context.get(0)?;
+                let _: Option<String> = context.get(1)?;
+                Ok(1_i64)
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        external
+            .query_row("PRAGMA foreign_keys", [], |row| row.get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    external
+}
+
 fn key(f: &Fixture) -> String {
     let owner = f.store.revalidate(&f.keys[0]).unwrap().identity_id;
     let mut scope = Scope::collaboration(vec!["*".into()]);
@@ -194,9 +243,7 @@ fn replacement_source_rechecks_endpoint_device_membership_generation_topology_ca
             .unwrap();
         match change {
             "endpoint-revision" => {
-                f.store
-                    .connection()
-                    .unwrap()
+                f.change_fixture()
                     .execute(
                         "UPDATE endpoints SET revision=revision+1 WHERE id=?1",
                         [&target],
@@ -204,9 +251,7 @@ fn replacement_source_rechecks_endpoint_device_membership_generation_topology_ca
                     .unwrap();
             }
             "device-revoked" => {
-                f.store
-                    .connection()
-                    .unwrap()
+                f.change_fixture()
                     .execute(
                         "UPDATE devices SET revoked=1 WHERE id='device-replacement'",
                         [],
@@ -214,9 +259,7 @@ fn replacement_source_rechecks_endpoint_device_membership_generation_topology_ca
                     .unwrap();
             }
             "source-generation" => {
-                f.store
-                    .connection()
-                    .unwrap()
+                f.change_fixture()
                     .execute(
                         "UPDATE connections SET generation=generation+1 WHERE id=?1",
                         [command.connection_id.as_ref().unwrap()],
@@ -224,9 +267,7 @@ fn replacement_source_rechecks_endpoint_device_membership_generation_topology_ca
                     .unwrap();
             }
             "remote-retired" => {
-                f.store
-                    .connection()
-                    .unwrap()
+                f.change_fixture()
                     .execute(
                         "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
                         [command.intent.retained()],
@@ -234,9 +275,7 @@ fn replacement_source_rechecks_endpoint_device_membership_generation_topology_ca
                     .unwrap();
             }
             "membership" => {
-                f.store
-                    .connection()
-                    .unwrap()
+                f.change_fixture()
                     .execute(
                         "UPDATE participants SET active=0 WHERE participant_id=?1",
                         [&f.pids[0]],
@@ -244,7 +283,7 @@ fn replacement_source_rechecks_endpoint_device_membership_generation_topology_ca
                     .unwrap();
             }
             "topology" => {
-                f.store.connection().unwrap().execute("UPDATE sessions SET topology_revision=topology_revision+1 WHERE id='session'",[]).unwrap();
+                f.change_fixture().execute("UPDATE sessions SET topology_revision=topology_revision+1 WHERE id='session'",[]).unwrap();
             }
             "cancel" => {
                 f.store
@@ -313,9 +352,7 @@ fn replacement_source_refuses_same_foreign_unverified_and_non_audio_endpoint_sel
                 "same" => *endpoint_id = Some(f.endpoints[0].clone()),
                 "foreign" => *endpoint_id = Some(f.endpoints[1].clone()),
                 "unverified" => {
-                    f.store
-                        .connection()
-                        .unwrap()
+                    f.change_fixture()
                         .execute(
                             "UPDATE endpoints SET verification_state='unverified' WHERE id=?1",
                             [&target],
@@ -343,9 +380,7 @@ fn replacement_candidate_metadata_is_pinned_to_its_original_endpoint_and_does_no
     f.apply(0, request.clone()).unwrap();
     // Controlled local observation for durable admission only. No native
     // candidate allocation, Core reservation, answer or duplex IO exists.
-    f.store
-        .connection()
-        .unwrap()
+    f.change_fixture()
         .execute(
             "UPDATE connections SET observed_runtime_id=?2 WHERE id=?1",
             params![request.intent.connection_id, f.store.runtime_epoch()],
@@ -410,7 +445,7 @@ fn replacement_metadata_preserves_an_observer_role_without_promoting_or_changing
             |r| r.get(0),
         )
         .unwrap();
-    f.store.connection().unwrap().execute("UPDATE session_participants SET role='observer' WHERE session_id='session' AND participant_id=?1",[&f.pids[0]]).unwrap();
+    f.change_fixture().execute("UPDATE session_participants SET role='observer' WHERE session_id='session' AND participant_id=?1",[&f.pids[0]]).unwrap();
     f.store
         .admit_transition_command(&key, command.clone())
         .unwrap();
@@ -611,3 +646,45 @@ mod start;
 mod commit;
 
 mod telephone;
+
+mod public_video_ledger;
+
+#[test]
+fn unreserved_endpoint_replacement_worker_claim_is_a_real_writer_and_cannot_borrow_media_custody() {
+    let (f, key, _, command, sources) = fixture_with_sources();
+    f.store
+        .admit_transition_command(&key, command.clone())
+        .unwrap();
+    let original = f
+        .store
+        .native_replacement_origin(&key, command.clone())
+        .unwrap();
+    let packet = f.store.try_native_media_read(&sources[0], None).unwrap();
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let refused = f
+        .store
+        .claim_transition(&key, &command.operation_id, 30)
+        .unwrap_err();
+    assert_eq!(
+        refused.code, "authority-busy",
+        "claim must acquire its real Writer before changing the worker lease"
+    );
+    assert!(packet.current());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    assert!(f.store.native_replacement_context(&original).is_ok());
+    drop(packet);
+    let claimed = f
+        .store
+        .claim_transition(&key, &command.operation_id, 30)
+        .unwrap()
+        .expect("same unreserved original must claim after the Reader leaves");
+    assert_eq!(
+        claimed.1.state,
+        connect_protocol::transitions::OperationState::Preparing
+    );
+    assert!(
+        f.store.native_replacement_context(&original).is_err(),
+        "an actual generic worker claim invalidates the original unreserved preparation"
+    );
+    assert!(f.store.native_replacement_origin(&key, command).is_err());
+}

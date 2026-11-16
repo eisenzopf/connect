@@ -74,21 +74,22 @@ pub use transitions::{
     NativeReplacementCommitted, NativeReplacementContext, NativeReplacementMediaAttempt,
     NativeReplacementMediaCapture, NativeReplacementMediaOrigin, NativeReplacementMediaPhase,
     NativeReplacementMediaRead, NativeReplacementOrigin, NativeReplacementPreparationAttempt,
-    NativeReplacementPreparationLease, NativeReplacementPrepared, NativeReplacementSceneRead,
+    NativeReplacementPreparationLease, NativeReplacementPrepared,
+    NativeReplacementPublicVideoReservation, NativeReplacementSceneRead,
     NativeReplacementStartAttempt, NativeReplacementStartOrigin, NativeReplacementStartRead,
-    NativeReplacementStartUncertain, NativeReplacementStarted, NativeStreamCommitted,
-    NativeStreamLease, NativeStreamNoEffect, PrivateInitialTelephonePhase,
-    PrivateInitialTelephoneRuntimeObservation, ReceivedDtmfBatch, ReceivedDtmfPreparation,
-    ReceivedDtmfRead, ReceivedDtmfTarget, ReplacementConfirmation, ReplacementPreparationRequest,
-    SessionCodecTarget, SipNativeSignalRead, SipSignalOrigin, SipSignalRead,
-    TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
-    TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
-    TelephoneReplacementAllocated, TelephoneReplacementAttempt,
-    TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
-    TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
-    TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead, TelephoneReplacementPhase,
-    TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture, TelephoneReplacementPolicy,
-    TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
+    NativeReplacementStartUncertain, NativeReplacementStarted, NativeReplacementUnpublishedRead,
+    NativeStreamCommitted, NativeStreamLease, NativeStreamNoEffect, PrivateInitialTelephonePhase,
+    PrivateInitialTelephoneRuntimeObservation, PublicVideoOperationSnapshot, ReceivedDtmfBatch,
+    ReceivedDtmfPreparation, ReceivedDtmfRead, ReceivedDtmfTarget, ReplacementConfirmation,
+    ReplacementPreparationRequest, SessionCodecTarget, SipNativeSignalRead, SipSignalOrigin,
+    SipSignalRead, TelephoneAudioResources, TelephoneConnectionRuntimeObservation,
+    TelephoneConnectionSnapshot, TelephoneMediaOrigin, TelephoneMediaRead,
+    TelephoneNativeMediaRead, TelephoneNativeSignalRead, TelephoneReplacementAllocated,
+    TelephoneReplacementAttempt, TelephoneReplacementAudienceCapture,
+    TelephoneReplacementCommitAttempt, TelephoneReplacementCommitUncertain,
+    TelephoneReplacementCommitted, TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead,
+    TelephoneReplacementPhase, TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture,
+    TelephoneReplacementPolicy, TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
     TelephoneReplacementResourcesCapture, TelephoneReplacementSceneRead,
     TelephoneReplacementSubmitted, TelephoneReplacementUncertain, TelephoneReplacementWriteRead,
     TelephoneSignalDirection, TelephoneSignalRead, TransitionLease,
@@ -205,7 +206,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 131;
+pub const SCHEMA_VERSION: u32 = 132;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 // Compiled operation/source SQL only; never a row, transaction or grant cache.
 const OPERATION_SQL_CACHE_CAPACITY: usize = 32;
@@ -673,6 +674,10 @@ impl Store {
         .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!("../migrations/131_captured_data_control.sql"))
             .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/132_public_video_phase_ledger.sql"
+        ))
+        .map_err(|_| Error::storage())?;
         authority_writer_boundary::schema::install(&tx)?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;

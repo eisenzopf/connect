@@ -1,0 +1,386 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/native_activation.rs b/crates/foundation/rvoip-core/src/staged_streams/native_activation.rs
+index 304604f7..9ff4f19f 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/native_activation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/native_activation.rs
+@@ -29,10 +29,66 @@ pub(super) struct Cursor {
+     pub(super) ordinal: AtomicU64,
+     live: AtomicBool,
+     feedback_issued:AtomicBool,
++    video:Option<NativeVideoPotential>,
++}
++struct NativeVideoPotential {
++    exposure:Arc<physical_video_exposure::PhysicalVideoExposure>,
++    expected:std::sync::OnceLock<u128>,
++    unknown:AtomicBool,
++}
++impl NativeVideoPotential {
++    fn unknown(&self) {
++        if !self.unknown.load(Ordering::Relaxed) {self.unknown.store(true,Ordering::Release);}
++        self.exposure.mark_untracked();
++    }
++}
++/// Partial original native writer history only. Raw native transport/factory
++/// capabilities are not sealed by this slice; physical coverage is ALWAYS false.
++#[derive(Clone,Debug,PartialEq,Eq)]
++pub struct NativeVideoPotentialObservation {
++    pub identity:NativeEgressIdentity,
++    pub exposure:physical_video_exposure::PhysicalVideoExposureSnapshot,
++    pub guarded_source_points_known:bool,
++    pub physical_io_coverage_complete:bool,
+ }
+ /// The adapter's sole original sequence allocator. Deliberately not Clone.
+ /// Installation can happen only before the original egress reader is taken.
+ pub struct NativeEgressWriter(Arc<Cursor>);
++impl NativeEgressWriter {
++    /// Configure the SAME original target runtime metadata once, before its
++    /// egress worker starts. Unknown/mixed setup never adopts a later realm.
++    pub fn configure_video_realm(&mut self,realm:Option<&SourceFrameRealm>) {
++        let Some(video)=&self.0.video else {return;};
++        if video.unknown.load(Ordering::Acquire) {return;}
++        let expected=realm.and_then(SourceFrameRealm::incarnation);
++        video.exposure.configure_expected_realm(expected);
++        let Some(expected)=expected else {video.unknown();return;};
++        if video.expected.get().is_some_and(|old|*old!=expected) {video.unknown();return;}
++        if let Err(other)=video.expected.set(expected) {
++            if video.expected.get()!=Some(&other) {video.unknown();}
++        }
++    }
++    /// Trusted adapter metadata, called inside original guarded send BEFORE
++    /// possible native IO. Never allocates/rebases a source point or grants IO.
++    pub fn observe_video_potential(&mut self,original:Option<&OriginalVideoFrame>) {
++        let Some(video)=&self.0.video else {return;};
++        let point=original.and_then(OriginalVideoFrame::frame_realm);
++        if point.is_none_or(|point|video.expected.get()!=Some(&point.incarnation())) {video.unknown();}
++        video.exposure.record_potential(point);
++    }
++    pub fn video_potential_observation(&self)->Option<NativeVideoPotentialObservation> {
++        self.0.video_potential_observation()
++    }
++}
++impl Cursor {
++    fn video_potential_observation(&self)->Option<NativeVideoPotentialObservation> {
++        let video=self.video.as_ref()?;
++        Some(NativeVideoPotentialObservation {identity:self.identity.clone(),
++            exposure:video.exposure.observer().snapshot()?,
++            guarded_source_points_known:video.expected.get().is_some()&&!video.unknown.load(Ordering::Acquire),
++            physical_io_coverage_complete:false})
++    }
++}
+ impl NativeEgressWriter {
+     /// Reserve exactly one original outer sequence before any RTP/RTCP write.
+     /// Failed/partial writes keep that reservation; it is not an IO receipt.
+@@ -64,6 +120,10 @@ impl Drop for NativeEgressWriter {
+     fn drop(&mut self) { self.0.live.store(false, Ordering::Release); }
+ }
+ impl AdapterMediaPort {
++    /// Historical partial writer metadata only; no raw transport or F proof.
++    pub fn native_video_potential_observation(&self)->Option<NativeVideoPotentialObservation> {
++        self.0.native_egress.get()?.video_potential_observation()
++    }
+     pub fn install_native_egress_cursor(&self) -> ControlResult<NativeEgressWriter> {
+         let output = self.0.output.lock().map_err(|_| StreamControlError::Authority)?;
+         let state = self.0.state.lock().map_err(|_| StreamControlError::Authority)?;
+@@ -78,13 +138,29 @@ impl AdapterMediaPort {
+     }
+ }
+ fn install(port: &Arc<Port>) -> ControlResult<NativeEgressWriter> {
++    if port.native_egress.get().is_some() {return Err(StreamControlError::Authority);}
+     let owner=port.owner.upgrade().ok_or(StreamControlError::Cancelled)?;
+     let b=&port.binding;
++    let video=matches!(b.negotiated.requested.medium,Medium::Video|Medium::Screen).then(||{
++        let exposure=Arc::new(physical_video_exposure::PhysicalVideoExposure::default());
++        // Existing Native raw transport/router/factory surfaces remain outside
++        // this partial observer. Never advertise a complete F-capable family.
++        exposure.bind_coverage(Arc::new(physical_video_exposure::PhysicalVideoExposureCoverage::new(true)));
++        let video=NativeVideoPotential {exposure,expected:std::sync::OnceLock::new(),unknown:AtomicBool::new(false)};
++        let observer=video.exposure.observer();
++        // Caller already owns the original output lock; do not recursively
++        // call AdapterMediaPort::observe_physical_video_exposure here.
++        if let Some(old)=port.video_exposure.get() {
++            if !old.same_family(&observer) {old.mark_untracked();video.unknown();}
++        } else if port.video_exposure.set(observer).is_err() {video.unknown();}
++        video
++    });
+     let cursor=Arc::new(Cursor {
+         identity:NativeEgressIdentity { incarnation:uuid::Uuid::new_v4().as_u128(), connection:owner.connection.clone(),
+             logical:b.negotiated.requested.logical_id.clone(),transport:b.transport_id.clone(),handle:b.stream_local_id,
+             generation:b.generation,connection_generation:b.connection_generation },
+         owner:Arc::downgrade(port),ordinal:AtomicU64::new(0),live:AtomicBool::new(true),feedback_issued:AtomicBool::new(false),
++        video,
+     });
+     port.native_egress.set(cursor.clone()).map_err(|_|StreamControlError::Authority)?;
+     Ok(NativeEgressWriter(cursor))
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media.rs b/crates/uctp/rvoip-uctp/src/staged_media.rs
+index d2852d30..1973b536 100644
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -113,18 +113,18 @@ struct RouterHandle {
+     cancellation: CancellationToken,
+ }
+ impl RouterHandle {
+-    fn commit(&self, registration: PeerMediaRegistration) -> ControlResult<()> {
++    fn commit(&self, registration: PeerMediaRegistration) -> ControlResult<Arc<crate::substrate::PeerMediaBinding>> {
+         let reservation = self
+             .reservation
+             .lock()
+             .unwrap_or_else(|p| p.into_inner())
+             .take()
+             .ok_or(StreamControlError::NotReady)?;
+-        reservation
++        let binding=reservation
+             .commit(registration)
+             .map_err(|_| StreamControlError::NotReady)?;
+         *self.committed.lock().unwrap_or_else(|p| p.into_inner()) = true;
+-        Ok(())
++        Ok(binding)
+     }
+     fn remove(&self) -> ControlResult<()> {
+         self.feedback
+@@ -922,6 +922,9 @@ struct VideoOrigin {
+ struct Packetizer {
+     // Only the original owned egress task can move/reserve this writer.
+     cursor: Option<NativeEgressWriter>,
++    // Exact original native transport owner, without another strong lifetime.
++    // This is partial IO metadata only; it is not a raw-capability seal.
++    video_transport:Option<Weak<dyn StagedDatagramTransport>>,
+     feedback_epoch: Option<u128>,
+     outer: u32,
+     rtp: u16,
+@@ -980,6 +983,14 @@ impl Packetizer {
+         counters: Option<&StagedRtpCounters>,
+         submitted: impl FnMut(usize),
+     ) -> ControlResult<usize> {
++        self.send_original_observed(frame,origin,audio_stamp,binding,pt,transport,None,counters,submitted)
++    }
++    fn send_original_observed(
++        &mut self,frame:MediaFrame,origin:Option<MediaDeliveryOrigin>,
++        audio_stamp:Option<audio_egress_clock::AudioEgressStamp>,binding:&ReadyMediaBinding,
++        pt:u8,transport:&dyn StagedDatagramTransport,original:Option<&OriginalVideoFrame>,
++        counters:Option<&StagedRtpCounters>,submitted:impl FnMut(usize),
++    )->ControlResult<usize> {
+         let io = counters.map(|counters| counters.io_for(frame.kind));
+         if let Some(io) = io {
+             io_add(&io.inputs, 1);
+@@ -992,6 +1003,7 @@ impl Packetizer {
+             binding,
+             pt,
+             transport,
++            original,
+             io,
+             &mut primary_attempts,
+             submitted,
+@@ -1023,6 +1035,7 @@ impl Packetizer {
+         binding: &ReadyMediaBinding,
+         pt: u8,
+         transport: &dyn StagedDatagramTransport,
++        original:Option<&OriginalVideoFrame>,
+         io: Option<&RtpIoCounters>,
+         primary_attempts: &mut u64,
+         mut submitted: impl FnMut(usize),
+@@ -1085,9 +1098,18 @@ impl Packetizer {
+         let maximum = transport
+             .maximum_datagram_bytes()
+             .ok_or(StreamControlError::NotReady)?;
+-        let packets = if frame.kind == StreamKind::Video {
++        let mut original_video=None;
++        let is_video=frame.kind==StreamKind::Video;
++        let packets = if is_video {
+             let source_packet = rvoip_rtp_core::RtpPacket::parse(&frame.payload)
+                 .map_err(|_| StreamControlError::NotReady)?;
++            // Read the SAME pre-fanout capsule, never infer a new source point
++            // from output RTP/clock/publication. Contradiction only poisons this
++            // optional metadata; original packet admission/results are intact.
++            original_video=original.filter(|point|point.ssrc()==source_packet.header.ssrc
++                && point.timestamp()==source_packet.header.timestamp
++                && point.timestamp()==frame.timestamp_rtp
++                && point.extended_timestamp() as u32==point.timestamp());
+             let source = VideoOrigin {
+                 route: origin,
+                 ssrc: source_packet.header.ssrc,
+@@ -1171,6 +1193,13 @@ impl Packetizer {
+             if let Some(io) = io {
+                 io_add(&io.primary_attempts, 1);
+             }
++            if is_video {
++                let same_transport=self.video_transport.as_ref().is_some_and(|original|
++                    std::ptr::addr_eq(original.as_ptr(),transport as *const dyn StagedDatagramTransport));
++                if let Some(cursor)=self.cursor.as_mut() {
++                    cursor.observe_video_potential(if same_transport {original_video} else {None});
++                }
++            }
+             let transport_result = transport.send_datagram(packet);
+             if let Some(io) = io {
+                 match &transport_result {
+@@ -1426,7 +1455,10 @@ impl StagedMediaAdapter for StagedRtpMedia {
+                     counters: self.counters.clone(),
+                 }),
+             );
+-            resources.handle.commit(registration)?;
++            let original_registration=resources.handle.commit(registration)?;
++            if let Some(writer)=cursor.as_mut() {
++                writer.configure_video_realm(original_registration.original_frame_realm().as_ref());
++            }
+             *resources.stream.lock().unwrap_or_else(|p| p.into_inner()) =
+                 Some(Arc::downgrade(&stream));
+             self.streams
+@@ -1466,6 +1498,7 @@ impl StagedMediaAdapter for StagedRtpMedia {
+                         0,
+                     ),
+                     cursor,
++                    video_transport:matches!(binding.negotiated.requested.medium,Medium::Video|Medium::Screen).then(||Arc::downgrade(&transport)),
+                     feedback_epoch: None,
+                     outer: 0,
+                     rtp: 0,
+@@ -1495,6 +1528,7 @@ impl StagedMediaAdapter for StagedRtpMedia {
+                     };
+                     let queued = tokio::select! {biased;_=cancel.cancelled()=>break,_=lifetime.cancelled()=>break,next=next=>match next {Some(value)=>value,None=>break}};
+                     queued.observe_private_video_adapter_dequeue();
++                    let original_video=queued.original_video_frame().cloned();
+                     #[cfg(feature = "test-support")]
+                     let video_stamp = video_diagnostic
+                         .as_ref()
+@@ -1548,13 +1582,14 @@ impl StagedMediaAdapter for StagedRtpMedia {
+                             let result = packetizer
+                                 .as_mut()
+                                 .expect("owned packetizer")
+-                                .send_observed(
++                                .send_original_observed(
+                                     frame,
+                                     origin,
+                                     audio_stamp,
+                                     &binding,
+                                     pt,
+                                     transport.as_ref(),
++                                    original_video.as_deref(),
+                                     Some(counters.as_ref()),
+                                     |bytes| {
+                                         counters.local_sends.fetch_add(1, Ordering::AcqRel);
+@@ -1757,6 +1792,7 @@ mod tests {
+                 0,
+             ),
+             cursor: None,
++            video_transport:None,
+             feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+@@ -1838,6 +1874,7 @@ mod tests {
+                 0,
+             ),
+             cursor: None,
++            video_transport:None,
+             feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+@@ -1943,6 +1980,7 @@ mod tests {
+                 0,
+             ),
+             cursor: None,
++            video_transport:None,
+             feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+@@ -2145,6 +2183,7 @@ mod delivery_counter_tests {
+                 0,
+             ),
+             cursor: None,
++            video_transport:None,
+             feedback_epoch: None,
+             outer: 0,
+             rtp: 0,
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs b/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs
+index de5d9f3f..d88e1c73 100644
+--- a/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/audio_egress_clock_tests.rs
+@@ -46,6 +46,7 @@ fn fixture() -> (ReadyMediaBinding, Packetizer, Wire) {
+         #[cfg(feature = "memory-diagnostics")]
+         _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
+         cursor: None,
++        video_transport:None,
+         feedback_epoch: None,
+         outer: 0,
+         rtp: 0,
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs b/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
+index 7016bd81..f6f3bc53 100644
+--- a/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/clock_acquisition_tests.rs
+@@ -42,6 +42,7 @@ fn acquiring_first_clock_keeps_in_progress_vp8_ssrc_sequence_and_sender_counts()
+         #[cfg(feature = "memory-diagnostics")]
+         _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard::new("native.packetizer", 0),
+         cursor: None,
++        video_transport:None,
+         feedback_epoch: None,
+         outer: 0,
+         rtp: 0,
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
+index f755cc43..434f7cbe 100644
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
+@@ -217,6 +217,7 @@ fn packetizer() -> Packetizer {
+             0,
+         ),
+         cursor: None,
++        video_transport:None,
+         feedback_epoch: None,
+         outer: 0,
+         rtp: 0,
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs
+index 18675f62..12fb12d3 100644
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs
+@@ -117,6 +117,8 @@ async fn exercise<T>(mode:usize,inspect:impl FnOnce(Context<'_>)->T)->T {
+     match work {Ok(value)=>value,Err(error)=>std::panic::resume_unwind(error)}
+ }
+ 
++#[cfg(test)]
++mod tracking;
+ 
+ #[tokio::test]
+ async fn native_original_guarded_io_tracks_same_source_point_before_every_fragment() {
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure/tracking.rs b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure/tracking.rs
+new file mode 100644
+index 00000000..9096a039
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure/tracking.rs
+@@ -0,0 +1,42 @@
++use super::*;
++
++#[tokio::test]
++async fn native_video_partial_failed_io_keeps_original_potential_and_never_claims_complete_coverage() {
++    let (observed,point,calls,errors,before)=exercise(3,|c|(c.target.native_video_potential_observation().unwrap(),c.point.frame_realm().unwrap(),c.wire.calls.load(Ordering::Acquire),c.send_errors,c.wire.snapshots.lock().unwrap().clone())).await;
++    assert_eq!(calls,2);assert_eq!(errors,1,"failed original native prefix is still a real error");
++    assert_eq!(observed.exposure.maximum_potential_ordinal,point.ordinal());assert!(observed.guarded_source_points_known);
++    assert!(!observed.physical_io_coverage_complete&&!observed.exposure.coverage_complete);
++    assert!(before.iter().all(|snapshot|snapshot.is_some_and(|value|value.maximum_potential_ordinal==point.ordinal())));
++}
++
++#[tokio::test]
++async fn native_video_unknown_foreign_or_mismatched_capsule_never_changes_native_io_or_adopts_a_realm() {
++    for mode in [1,2,5,7] {
++        let (observed,calls,binding,expected)=exercise(mode,|c|(c.target.native_video_potential_observation().unwrap(),c.wire.calls.load(Ordering::Acquire),c.target.binding().clone(),c.realm.handle().incarnation().unwrap())).await;
++        assert!(calls>=3,"optional unavailable provenance cannot change normal IO");
++        assert!(!observed.guarded_source_points_known&&!observed.physical_io_coverage_complete&&!observed.exposure.coverage_complete);
++        assert_eq!(observed.exposure.maximum_potential_ordinal,0);
++        assert_eq!(observed.identity.logical(),&binding.negotiated.requested.logical_id);
++        assert_eq!(observed.identity.transport(),&binding.transport_id);assert_eq!(observed.identity.handle(),binding.stream_local_id);
++        assert_eq!((observed.identity.generation(),observed.identity.connection_generation()),(binding.generation,binding.connection_generation));
++        assert_eq!(observed.exposure.realm_incarnation,if mode==5 {None}else{Some(expected)},"foreign source never establishes target realm");
++    }
++}
++
++#[tokio::test]
++async fn native_video_unknown_is_sticky_across_a_later_real_original_group_on_same_writer() {
++    let (observed,point,calls)=exercise(6,|c|(c.target.native_video_potential_observation().unwrap(),c.point.frame_realm().unwrap(),c.wire.calls.load(Ordering::Acquire))).await;
++    assert!(calls>=6);assert_eq!(point.ordinal(),2);assert_eq!(observed.exposure.maximum_potential_ordinal,2);
++    assert!(!observed.guarded_source_points_known&&!observed.physical_io_coverage_complete&&!observed.exposure.coverage_complete);
++}
++
++#[tokio::test]
++async fn native_video_tracking_never_substitutes_for_current_core_authority_or_allocates_a_point_after_refusal() {
++    let (observed,authority,calls,source_identity)=exercise(4,|c|(c.target.native_video_potential_observation().unwrap(),matches!(c.publish,Err(StreamControlError::Authority)),c.wire.calls.load(Ordering::Acquire),c.source.native_egress_identity().unwrap())).await;
++    assert!(authority);assert_eq!(calls,0);assert_eq!(observed.exposure.maximum_potential_ordinal,0);
++    assert_ne!(observed.identity.connection(),source_identity.connection());
++    assert!(!observed.physical_io_coverage_complete&&!observed.exposure.coverage_complete);
++    let (video,ordinary_audio)=exercise(8,|c|(c.target.native_video_potential_observation().unwrap(),c.audio.as_ref().is_some_and(|audio|audio.native_egress_identity().is_some()&&audio.native_video_potential_observation().is_none()&&audio.physical_video_exposure().is_none()))).await;
++    assert!(ordinary_audio,"original audio writer/cursor never acquires a video exposure role");
++    assert_eq!(video.exposure.maximum_potential_ordinal,1);assert!(video.guarded_source_points_known);
++}

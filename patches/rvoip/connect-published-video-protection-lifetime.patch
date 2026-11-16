@@ -1,0 +1,473 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1437,6 +1437,7 @@
+ pub mod physical_video_exposure;
+ pub mod adapter_owner;
+ pub mod old_video_freeze;
++mod published_video_protection;
+ 
+ impl QueuedMedia {
+     /// Original source RTP-frame capsule paired with this queued contribution.
+@@ -2285,6 +2286,7 @@
+ pub struct StreamController {
+     // Process-local incarnation only; historical observers retain Weak<()> and no controller.
+     subscription_commit_identity: Arc<()>,
++    published_video_protection: std::sync::OnceLock<Arc<published_video_protection::ProtectionSlot>>,
+     conversation: ConversationId,
+     session: SessionId,
+     connection: ConnectionId,
+@@ -2735,6 +2737,7 @@
+         drop(lease);
+         Ok(Arc::new(Self {
+             subscription_commit_identity: Arc::new(()),
++            published_video_protection: std::sync::OnceLock::new(),
+             conversation,
+             session,
+             connection,
+@@ -4902,6 +4905,7 @@
+     /// controller and call shutdown to confirm asynchronous resource cleanup.
+     pub fn retire(&self) {
+         self.shutdown.cancel();
++        if let Some(protection)=self.published_video_protection.get() {protection.retire();}
+         {
+             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+             state.closed = true;
+@@ -4929,6 +4933,7 @@
+ }
+ impl Drop for StreamController {
+     fn drop(&mut self) {
++        if let Some(protection)=self.published_video_protection.get() {protection.retire();}
+         for port in self
+             .state
+             .get_mut()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs b/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs
+@@ -3,7 +3,8 @@
+ //! The only failure cleanup is fail-closed retirement. A future resume API must
+ //! FIRST consume real SAME-reservation B discard plus current old authority.
+ use super::*;
+-use super::physical_video_exposure::{PhysicalVideoExposureSeal,PhysicalVideoExposureSnapshot};
++use super::physical_video_exposure::PhysicalVideoExposureSnapshot;
++use super::published_video_protection::FrozenProtection;
+ use rvoip_core_traits::peer_switch::PeerQuiescenceGuard;
+ 
+ /// Opaque SAME-realm conservative potential-exposure ceiling. No public ctor,
+@@ -48,7 +49,7 @@
+ struct HeldOldVideo {
+     ports:Vec<FrozenPort>,
+     guards:Vec<PeerQuiescenceGuard>,
+-    seal:Option<PhysicalVideoExposureSeal>,
++    seal:Option<FrozenProtection>,
+     _flight:OwnedSemaphorePermit,
+ }
+ impl Drop for HeldOldVideo {
+@@ -103,7 +104,7 @@
+         let seal=held.seal.as_ref().ok_or(StreamControlError::Cancelled)?;
+         for old in &held.ports {
+             validate_port(&old.port,&old.ticket)?;
+-            let snapshot=AdapterMediaPort(old.port.clone()).physical_video_exposure_sealed(seal)
++            let snapshot=AdapterMediaPort(old.port.clone()).physical_video_exposure_sealed(seal.as_seal())
+                 .ok_or(StreamControlError::Unsupported)?;
+             if !snapshot.coverage_complete || snapshot.physical_family!=old.family ||
+                 snapshot.realm_incarnation!=Some(self.frontier.realm) ||
+@@ -239,15 +240,15 @@
+             if ports.is_empty() {return Err(StreamControlError::Unsupported);}
+             (state.model.revision(),ports)
+         };
+-        let seal=ports[0].video_exposure.get().and_then(|observer|observer.try_seal_coverage())
+-            .ok_or(StreamControlError::Unsupported)?;
++        let observer=ports[0].video_exposure.get().ok_or(StreamControlError::Unsupported)?;
++        let seal=old.preflight_old_video_protection(observer)?;
+         // Known capability failures are effect-free: provisional raw seal and
+         // setup flight drop without ever pausing OLD. Racing unknown metadata
+         // is checked again AFTER drain, where failure must remain fail-closed.
+         let mut checked_ports=Vec::new();
+         for port in ports {
+             let ticket=port.ticket(TicketSide::Egress);validate_port(&port,&ticket)?;
+-            let snapshot=AdapterMediaPort(port.clone()).physical_video_exposure_sealed(&seal)
++            let snapshot=AdapterMediaPort(port.clone()).physical_video_exposure_sealed(seal.as_seal())
+                 .ok_or(StreamControlError::Unsupported)?;
+             if !snapshot.coverage_complete || snapshot.realm_incarnation!=Some(realm) {return Err(StreamControlError::Unsupported);}
+             checked_ports.push(FrozenPort {port,ticket,family:snapshot.physical_family});
+@@ -259,7 +260,7 @@
+         // Effect-free setup/capability collisions never consume the one-shot
+         // slot. The already-held old flight prevents publication/rebind here.
+         let attempt=intent.video_freeze.begin()?;
+-        let mut owned=HeldOldVideo {ports:checked_ports,guards:vec![],seal:Some(seal),_flight:flight};
++        let mut owned=HeldOldVideo {ports:checked_ports,guards:vec![],seal:Some(seal.freeze()),_flight:flight};
+         for old_port in &owned.ports {
+             validate_port(&old_port.port,&old_port.ticket)?;
+             owned.guards.push(tokio::select! {biased;
+@@ -283,7 +284,7 @@
+         for old_port in &mut owned.ports {
+             validate_port(&old_port.port,&old_port.ticket)?;
+             let snapshot:PhysicalVideoExposureSnapshot=AdapterMediaPort(old_port.port.clone())
+-                .physical_video_exposure_sealed(owned.seal.as_ref().ok_or(StreamControlError::Authority)?)
++                .physical_video_exposure_sealed(owned.seal.as_ref().ok_or(StreamControlError::Authority)?.as_seal())
+                 .ok_or(StreamControlError::Unsupported)?;
+             if !snapshot.coverage_complete || snapshot.realm_incarnation!=Some(realm) {return Err(StreamControlError::Unsupported);}
+             if old_port.family!=snapshot.physical_family {return Err(StreamControlError::Authority);}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+@@ -18,6 +18,12 @@
+     coverage: Arc<PhysicalVideoExposureCoverage>,
+     token: u64,
+ }
++/// Non-owning exact-token observation, not seal ownership/drain/permission.
++#[derive(Clone)]
++pub(crate) struct PhysicalVideoSealWitness {coverage:Weak<PhysicalVideoExposureCoverage>,token:u64}
++impl PhysicalVideoSealWitness {
++    pub(crate) fn is_current(&self)->bool {self.coverage.upgrade().is_some_and(|root|root.state.load(Ordering::Acquire)==self.token)}
++}
+ impl PhysicalVideoExposureCoverage {
+     pub fn new(already_exposed: bool) -> Self {
+         Self { state: AtomicU64::new(u64::from(already_exposed)), next_token: AtomicU64::new(5) }
+@@ -52,6 +58,7 @@
+     }
+ }
+ impl PhysicalVideoExposureSeal {
++    pub(crate) fn witness(&self)->PhysicalVideoSealWitness {PhysicalVideoSealWitness {coverage:Arc::downgrade(&self.coverage),token:self.token}}
+     pub fn is_current(&self) -> bool { self.coverage.state.load(Ordering::Acquire) == self.token }
+     pub fn covers(&self, coverage: &Arc<PhysicalVideoExposureCoverage>) -> bool {
+         Arc::ptr_eq(&self.coverage, coverage) && self.is_current()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/published_video_protection.rs b/crates/foundation/rvoip-core/src/staged_streams/published_video_protection.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/published_video_protection.rs
+@@ -0,0 +1,207 @@
++//! Continuous no-escape ownership after public admission. This is NOT an IO
++//! permission, source cut, physical drain or authorization to restore OLD.
++use super::*;
++use super::old_video_freeze::FrozenOldVideoFrontier;
++use super::physical_video_exposure::{PhysicalVideoExposureSeal,PhysicalVideoSealWitness};
++use std::sync::atomic::AtomicBool;
++
++enum State {
++    Empty,
++    Staging(Weak<()>),
++    Published(PhysicalVideoExposureSeal),
++    Loaned(Weak<()>),
++    Retired,
++}
++/// One original Controller owns this slot. Its fields own no Controller, Port,
++/// plan, Root, policy Reader, warm deadline/cancel token or ancestor chain.
++pub(super) struct ProtectionSlot {
++    owner:Weak<()>,
++    live:AtomicBool,
++    floor:std::sync::OnceLock<(u128,u64)>,
++    state:Mutex<State>,
++}
++impl ProtectionSlot {
++    fn new(owner:Weak<()>)->Arc<Self> {
++        Arc::new(Self {owner,live:AtomicBool::new(true),floor:std::sync::OnceLock::new(),state:Mutex::new(State::Empty)})
++    }
++    fn same_owner(&self,controller:&StreamController)->bool {
++        self.owner.strong_count()!=0 && Weak::ptr_eq(&self.owner,&Arc::downgrade(&controller.subscription_commit_identity))
++    }
++    pub(super) fn retire(&self) {
++        self.live.store(false,Ordering::Release);
++        let previous=std::mem::replace(&mut *self.state.lock().unwrap_or_else(|p|p.into_inner()),State::Retired);
++        if let State::Published(seal)=previous {seal.retire();}
++        // A staged/loan owner still owns the SAME token. Its Drop retires it;
++        // this live=false invalidates every observation immediately meanwhile.
++    }
++    fn stage(self:&Arc<Self>,seal:PhysicalVideoExposureSeal,realm:u128,floor:u64)->ControlResult<PendingProtection> {
++        let mut seal=Some(seal);
++        let result=(||{
++            if realm==0 || !self.live.load(Ordering::Acquire) || self.owner.strong_count()==0
++                || !seal.as_ref().unwrap().is_current() {return Err(StreamControlError::Cancelled);}
++            let mut state=self.state.lock().map_err(|_|StreamControlError::Authority)?;
++            if !matches!(*state,State::Empty) {return Err(StreamControlError::NotReady);}
++            self.floor.set((realm,floor)).map_err(|_|StreamControlError::Authority)?;
++            let claim=Arc::new(());
++            *state=State::Staging(Arc::downgrade(&claim));
++            Ok(PendingProtection{slot:Arc::downgrade(self),claim,seal:seal.take()})
++        })();
++        // Transfer failures never use the raw seal's default abort-to-unexposed
++        // semantics after possibly warmed B. This wrapper is explicitly terminal.
++        if let Some(seal)=seal {seal.retire();}
++        result
++    }
++    fn loan(self:&Arc<Self>,observer:&PhysicalVideoExposureObserver)->ControlResult<PreflightProtection> {
++        if !self.live.load(Ordering::Acquire) || self.owner.strong_count()==0 {return Err(StreamControlError::Cancelled);}
++        let mut state=self.state.lock().map_err(|_|StreamControlError::Authority)?;
++        let State::Published(seal)=&*state else {return Err(StreamControlError::NotReady);};
++        if !seal.is_current() || observer.snapshot_sealed(seal).is_none() {return Err(StreamControlError::Unsupported);}
++        let State::Published(seal)=std::mem::replace(&mut *state,State::Retired) else {unreachable!()};
++        let claim=Arc::new(());
++        *state=State::Loaned(Arc::downgrade(&claim));
++        Ok(PreflightProtection {seal:Some(seal),loan:Some(LoanKey{slot:Arc::downgrade(self),claim})})
++    }
++}
++impl Drop for ProtectionSlot {fn drop(&mut self){self.retire();}}
++
++/// A control-only pending move. The original final commit must install this
++/// before its infallible model publication, after all authority validation.
++/// Failed/dropped staging never reopens raw access.
++pub(super) struct PendingProtection {slot:Weak<ProtectionSlot>,claim:Arc<()>,seal:Option<PhysicalVideoExposureSeal>}
++impl PendingProtection {
++    pub(super) fn current(&self)->bool {
++        self.slot.upgrade().is_some_and(|slot|slot.live.load(Ordering::Acquire))
++            && self.seal.as_ref().is_some_and(PhysicalVideoExposureSeal::is_current)
++    }
++    pub(super) fn publish(mut self,controller:&StreamController)->ControlResult<PublishedVideoFloor> {
++        let slot=self.slot.upgrade().ok_or(StreamControlError::Cancelled)?;
++        if !slot.same_owner(controller) || controller.shutdown.is_cancelled() || !self.current() {return Err(StreamControlError::Cancelled);}
++        let mut state=slot.state.lock().map_err(|_|StreamControlError::Authority)?;
++        if !matches!(&*state,State::Staging(key) if Weak::ptr_eq(key,&Arc::downgrade(&self.claim))) {return Err(StreamControlError::Authority);}
++        let seal=self.seal.take().ok_or(StreamControlError::Authority)?;
++        let witness=seal.witness();
++        *state=State::Published(seal);
++        let (realm,floor)=slot.floor.get().copied().ok_or(StreamControlError::Authority)?;
++        Ok(PublishedVideoFloor{slot:Arc::downgrade(&slot),seal:witness,realm,floor})
++    }
++}
++impl Drop for PendingProtection {
++    fn drop(&mut self) {
++        if let Some(seal)=self.seal.take(){seal.retire();
++            if let Some(slot)=self.slot.upgrade(){
++                let mut state=slot.state.lock().unwrap_or_else(|p|p.into_inner());
++                if matches!(&*state,State::Staging(key) if Weak::ptr_eq(key,&Arc::downgrade(&self.claim))) {
++                    slot.live.store(false,Ordering::Release);*state=State::Retired;
++                }
++            }
++        }
++    }
++}
++/// Immutable lifetime floor, independent of the OLD Root/preparation deadline.
++/// The ordinary public route must ALSO own its original current policy/IO guards.
++/// This weak metadata cannot retain the Controller or resurrect a retired peer.
++#[derive(Clone)]
++pub(super) struct PublishedVideoFloor {slot:Weak<ProtectionSlot>,seal:PhysicalVideoSealWitness,realm:u128,floor:u64}
++impl PublishedVideoFloor {
++    pub(super) fn current(&self)->bool {
++        self.slot.upgrade().is_some_and(|slot|slot.live.load(Ordering::Acquire) && slot.owner.strong_count()!=0)
++            && self.seal.is_current()
++    }
++    pub(super) fn realm(&self)->u128 {self.realm}
++    pub(super) fn ordinal(&self)->u64 {self.floor}
++    pub(super) fn require_original_frame(&self,frame:Option<&Arc<OriginalVideoFrame>>)->ControlResult<()> {
++        if !self.current(){return Err(StreamControlError::Cancelled);}
++        let point=frame.and_then(|frame|frame.frame_realm()).ok_or(StreamControlError::Unsupported)?;
++        if point.incarnation()!=self.realm || point.ordinal()<=self.floor {return Err(StreamControlError::Authority);}
++        Ok(())
++    }
++}
++struct LoanKey {slot:Weak<ProtectionSlot>,claim:Arc<()>}
++impl LoanKey {
++    fn return_exact(&self,seal:PhysicalVideoExposureSeal)->ControlResult<()> {
++        let mut seal=Some(seal);
++        let result=(||{
++            let slot=self.slot.upgrade().ok_or(StreamControlError::Cancelled)?;
++            if !slot.live.load(Ordering::Acquire) || slot.owner.strong_count()==0 || !seal.as_ref().unwrap().is_current(){return Err(StreamControlError::Cancelled);}
++            let mut state=slot.state.lock().map_err(|_|StreamControlError::Authority)?;
++            if !matches!(&*state,State::Loaned(key) if Weak::ptr_eq(key,&Arc::downgrade(&self.claim))){return Err(StreamControlError::Authority);}
++            *state=State::Published(seal.take().unwrap());Ok(())
++        })();
++        if let Some(seal)=seal {seal.retire();self.terminal();}
++        result
++    }
++    fn terminal(&self) {
++        if let Some(slot)=self.slot.upgrade(){
++            let mut state=slot.state.lock().unwrap_or_else(|p|p.into_inner());
++            if matches!(&*state,State::Loaned(key) if Weak::ptr_eq(key,&Arc::downgrade(&self.claim))){
++                slot.live.store(false,Ordering::Release);*state=State::Retired;
++            }
++        }
++    }
++}
++/// No IO quiescence has begun. A failed preflight returns an already-public
++/// seal to the same owner; it does not resume any IO or release raw exclusion.
++pub(super) struct PreflightProtection {seal:Option<PhysicalVideoExposureSeal>,loan:Option<LoanKey>}
++impl PreflightProtection {
++    pub(super) fn as_seal(&self)->&PhysicalVideoExposureSeal {self.seal.as_ref().expect("owned preflight seal")}
++    pub(super) fn freeze(mut self)->FrozenProtection {
++        FrozenProtection{seal:self.seal.take(),loan:self.loan.take()}
++    }
++}
++impl Drop for PreflightProtection {
++    fn drop(&mut self){
++        if let Some(seal)=self.seal.take(){if let Some(key)=&self.loan {let _=key.return_exact(seal);}else{drop(seal);}}
++    }
++}
++/// Nonclone exact token loan while OLD is frozen. Drop is fail-closed. Returning
++/// this metadata alone NEVER resumes a PeerQuiescenceGuard or grants OLD media.
++pub(super) struct FrozenProtection {seal:Option<PhysicalVideoExposureSeal>,loan:Option<LoanKey>}
++impl FrozenProtection {
++    pub(super) fn as_seal(&self)->&PhysicalVideoExposureSeal {self.seal.as_ref().expect("owned frozen seal")}
++    pub(super) fn is_current(&self)->bool {self.seal.as_ref().is_some_and(PhysicalVideoExposureSeal::is_current) && self.loan.as_ref().is_none_or(|key|key.slot.upgrade().is_some_and(|slot|slot.live.load(Ordering::Acquire)))}
++    pub(super) fn witness(&self)->PhysicalVideoSealWitness {self.as_seal().witness()}
++    pub(super) fn retire(self){drop(self);}
++    /// Core-internal ownership move ONLY, for the future exact-discard + fresh
++    /// OLD-authority restore transaction. There is intentionally no public
++    /// restore entrypoint or caller bool. Existing HeldOldVideo Drop still
++    /// retires all IO tickets unless that separate protocol consumes its guards.
++    pub(super) fn return_after_validated_restore(mut self,controller:&StreamController)->ControlResult<()> {
++        let key=self.loan.as_ref().ok_or(StreamControlError::Unsupported)?;
++        let slot=key.slot.upgrade().ok_or(StreamControlError::Cancelled)?;
++        if !slot.same_owner(controller) || controller.shutdown.is_cancelled(){return Err(StreamControlError::Authority);}
++        let seal=self.seal.take().ok_or(StreamControlError::Cancelled)?;
++        self.loan.take().ok_or(StreamControlError::Unsupported)?.return_exact(seal)
++    }
++}
++impl Drop for FrozenProtection {
++    fn drop(&mut self){if let Some(seal)=self.seal.take(){seal.retire();if let Some(key)=&self.loan{key.terminal();}}}
++}
++impl StreamController {
++    /// Original control-plane publication only. The caller owns the actual
++    /// target State guard; no policy/model lock is acquired by this helper.
++    pub(super) fn stage_published_video_protection(&self,state:&super::State,port:&Arc<Port>,seal:PhysicalVideoExposureSeal,frontier:&FrozenOldVideoFrontier)->ControlResult<PendingProtection> {
++        let mut seal=Some(seal);
++        let result=(||{
++            if self.shutdown.is_cancelled() || state.closed
++                || !port.owner.upgrade().is_some_and(|owner|std::ptr::eq(owner.as_ref(),self))
++                || !state.active.values().any(|actual|Arc::ptr_eq(actual,port))
++                || port.binding.negotiated.requested.medium!=Medium::Video
++                || !matches!(port.binding.negotiated.requested.direction,StreamDirection::Send|StreamDirection::Both) {return Err(StreamControlError::Authority);}
++            let snapshot=AdapterMediaPort(port.clone()).physical_video_exposure_sealed(seal.as_ref().unwrap()).ok_or(StreamControlError::Unsupported)?;
++            if !snapshot.coverage_complete || snapshot.realm_incarnation!=Some(frontier.realm_incarnation())
++                || snapshot.inherited_potential_ordinal<frontier.ordinal(){return Err(StreamControlError::Unsupported);}
++            let slot=self.published_video_protection.get_or_init(||ProtectionSlot::new(Arc::downgrade(&self.subscription_commit_identity)));
++            slot.stage(seal.take().unwrap(),frontier.realm_incarnation(),frontier.ordinal())
++        })();
++        if let Some(seal)=seal {seal.retire();}result
++    }
++    pub(super) fn preflight_old_video_protection(&self,observer:&PhysicalVideoExposureObserver)->ControlResult<PreflightProtection> {
++        if self.shutdown.is_cancelled(){return Err(StreamControlError::Cancelled);}
++        if let Some(slot)=self.published_video_protection.get(){
++            if !slot.same_owner(self){return Err(StreamControlError::Authority);}
++            return slot.loan(observer); // never drop/reseal or downgrade a protected peer
++        }
++        let seal=observer.try_seal_coverage().ok_or(StreamControlError::Unsupported)?;
++        Ok(PreflightProtection{seal:Some(seal),loan:None})
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs
+@@ -222,3 +222,122 @@
+     drop(grant);drop(plan);finish(&f).await;
+     if let Err(error)=result {std::panic::resume_unwind(error)}
+ }
++
++// These controls use the actual Core publication/controller/queued IO, with the
++// existing explicit optional-adapter metadata recorder. They do not manufacture
++// native peer closure, B decoded readiness or a public media grant from a floor.
++#[tokio::test]
++async fn published_video_protection_survives_original_cutoff_after_actual_controller_publication() {
++    for mode in ["published","dropped","foreign","retired"] {
++    let (realm,old_exposure,old_coverage)=namespace();
++    let mut f=Preroll::new_with_physical_exposure(false,Some(old_exposure.clone())).await;
++    let target=f.movement.room.nodes["device"].controller.clone();
++    let target_port=f.movement.room.nodes["device"].adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++    let exposure=Arc::new(PhysicalVideoExposure::default());
++    let coverage=Arc::new(PhysicalVideoExposureCoverage::new(false));
++    exposure.configure_expected_realm(realm.handle().incarnation());exposure.bind_coverage(coverage.clone());
++    target_port.observe_physical_video_exposure(exposure.observer());
++    let plan=f.movement.plan_with_video(Some(request())).unwrap();
++    let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++    let result=caught(async {
++        let old_frame=OriginalVideoFrame::observed_in_realm(9,11,81,81,Some(&realm.handle()));
++        let before=old_frame.frame_realm().unwrap();
++        f.publish_video("bob",81);let original=outgoing(&mut f.old_output).await;
++        original.deliver(|_|async {old_exposure.record_potential(Some(before));Ok(())}).await.unwrap();
++        let cutoff=deadline();let check=||Ok(());
++        let frozen=f.movement.room.scene.freeze_old_video(&plan,before.incarnation(),cutoff,CancellationToken::new(),&grant,&check).await.unwrap();
++        exposure.inherit_frontier(frozen.frontier());
++        let seal=coverage.try_seal().unwrap();
++        let pending={let state=target.state.lock().unwrap();target.stage_published_video_protection(&state,&target_port.0,seal,frozen.frontier()).unwrap()};
++        assert!(pending.current());assert!(!coverage.mark_escaped());
++        match mode {
++            "dropped"=>{drop(pending);assert!(!coverage.mark_escaped());return None;},
++            "foreign"=>{assert!(pending.publish(&f.movement.room.nodes["bob"].controller).is_err());assert!(!coverage.mark_escaped());return None;},
++            "retired"=>{target.retire();assert!(!pending.current());assert!(pending.publish(&target).is_err());assert!(!coverage.mark_escaped());return None;},
++            _=>{},
++        }
++        let floor=pending.publish(&target).unwrap();
++        let committed=f.movement.commit(plan.clone()).await.unwrap();
++        assert_eq!(committed.1.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
++        assert_eq!(floor.ordinal(),before.ordinal());
++        assert_eq!(floor.realm(),before.incarnation());
++        // No original plan/FrozenOwner deadline, control Reader or WarmOwner is
++        // stored by the published lifetime. The original cutoff really expires.
++        tokio::time::sleep_until(cutoff).await;
++        assert!(floor.current());assert!(!coverage.mark_escaped());
++        assert!(matches!(floor.require_original_frame(Some(&old_frame)),Err(StreamControlError::Authority)));
++        // Controlled original producer grouping occurs once BEFORE publication/
++        // fanout; the optional adapter records this SAME point before target IO.
++        let original=OriginalVideoFrame::observed_in_realm(9,11,82,82,Some(&realm.handle()));
++        floor.require_original_frame(Some(&original)).unwrap();
++        assert!(floor.require_original_frame(None).is_err());
++        f.publish_video("bob",82);let queued=outgoing(&mut f.target_output).await;
++        queued.deliver(|_|async {exposure.record_potential(original.frame_realm());Ok(())}).await.unwrap();
++        assert_eq!(exposure.observer().snapshot().unwrap().maximum_potential_ordinal,original.frame_realm().unwrap().ordinal());
++        Some(floor)
++    }).await;
++    drop(grant);drop(plan);finish(&f).await;
++    if let Ok(Some(floor))=&result {assert!(!floor.current());}
++    assert!(!coverage.mark_escaped());assert!(!old_coverage.mark_escaped());
++    let weak=Arc::downgrade(&target);drop(target);drop(f);
++    assert!(weak.upgrade().is_none(),"published metadata must not retain its original Controller");
++    if let Err(error)=result {std::panic::resume_unwind(error)}
++    }
++}
++
++#[tokio::test]
++async fn published_video_protection_later_actual_port_drain_loans_same_seal_and_returns_floor_without_resuming_io() {
++    let (realm,old_exposure,_)=namespace();
++    let mut f=Preroll::new_with_physical_exposure(false,Some(old_exposure.clone())).await;
++    let target=f.movement.room.nodes["device"].controller.clone();
++    let target_port=f.movement.room.nodes["device"].adapter.ports.lock().unwrap()[&request().receivers[0].replacement].clone();
++    let exposure=Arc::new(PhysicalVideoExposure::default());let coverage=Arc::new(PhysicalVideoExposureCoverage::new(false));
++    exposure.configure_expected_realm(realm.handle().incarnation());exposure.bind_coverage(coverage.clone());target_port.observe_physical_video_exposure(exposure.observer());
++    let plan=f.movement.plan_with_video(Some(request())).unwrap();let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++    let result=caught(async {
++        let old_frame=OriginalVideoFrame::observed_in_realm(9,11,90,90,Some(&realm.handle()));let initial=old_frame.frame_realm().unwrap();f.publish_video("bob",90);let q=outgoing(&mut f.old_output).await;
++        q.deliver(|_|async {old_exposure.record_potential(Some(initial));Ok(())}).await.unwrap();
++        let check=||Ok(());let frozen=f.movement.room.scene.freeze_old_video(&plan,initial.incarnation(),deadline(),CancellationToken::new(),&grant,&check).await.unwrap();
++        exposure.inherit_frontier(frozen.frontier());
++        let pending={let state=target.state.lock().unwrap();target.stage_published_video_protection(&state,&target_port.0,coverage.try_seal().unwrap(),frozen.frontier()).unwrap()};
++        let floor=pending.publish(&target).unwrap();let committed=f.movement.commit(plan.clone()).await.unwrap();
++        assert_eq!(committed.1.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
++        let observer=exposure.observer();
++        // Actual one-controller published lifetime: repeated loan/return races
++        // raw escape. Moving ownership never exposes an intermediate state0.
++        std::thread::scope(|threads| {
++            let racing=coverage.clone();
++            let escaping=threads.spawn(move||{for _ in 0..128 {assert!(!racing.mark_escaped());}});
++            let target=target.clone();let observer=observer.clone();
++            let loans=threads.spawn(move||{for _ in 0..128 {drop(target.preflight_old_video_protection(&observer).unwrap());}});
++            escaping.join().unwrap();loans.join().unwrap();
++        });
++        // A preflight capability refusal changes no IO admission. Its exact
++        // borrowed seal returns into the SAME public lifetime, never via0/reseal.
++        let preflight=target.preflight_old_video_protection(&observer).unwrap();assert!(!coverage.mark_escaped());drop(preflight);assert!(floor.current());
++        let foreign=&f.movement.room.nodes["bob"].controller;
++        assert!(foreign.preflight_old_video_protection(&observer).is_err());assert!(floor.current());
++        let point=realm.handle().next_point().unwrap();
++        f.publish_video("bob",91);let q=outgoing(&mut f.target_output).await;
++        let(release,wait)=tokio::sync::oneshot::channel::<()>();
++        let mut writing=Box::pin(q.deliver(|_|async {exposure.record_potential(Some(point));wait.await.unwrap();Ok(())}));poll_pending(writing.as_mut()).await;
++        let loan=target.preflight_old_video_protection(&observer).unwrap().freeze();
++        let ticket=target_port.0.ticket(TicketSide::Egress);
++        let mut draining=Box::pin(ticket.quiesce());poll_pending(draining.as_mut()).await;assert!(!ticket.is_active());assert!(!coverage.mark_escaped());
++        release.send(()).unwrap();writing.await.unwrap();let guard=draining.await.unwrap();
++        let next=target_port.physical_video_exposure_sealed(loan.as_seal()).unwrap();
++        assert_eq!(next.maximum_potential_ordinal,point.ordinal());assert_eq!(next.inherited_potential_ordinal,initial.ordinal());
++        // This is ONLY the private ownership primitive, not a simulated native
++        // discard/authorized OLD restore. It MUST NOT release the IO guard.
++        loan.return_after_validated_restore(&target).unwrap();
++        assert!(!ticket.is_active());assert!(floor.current());assert_eq!(floor.ordinal(),initial.ordinal());assert!(!coverage.mark_escaped());
++        assert!(matches!(floor.require_original_frame(Some(&old_frame)),Err(StreamControlError::Authority)));
++        ticket.retire_if_current();drop(guard);assert!(!ticket.is_current());
++        // A later uncertain/cancelled owned loan retires the same token; it
++        // cannot abort raw access open or affect another Controller's coverage.
++        let late=target.preflight_old_video_protection(&observer).unwrap().freeze();drop(late);
++        assert!(!floor.current());assert!(!coverage.mark_escaped());
++    }).await;
++    drop(grant);drop(plan);finish(&f).await;
++    if let Err(error)=result {std::panic::resume_unwind(error)}
++}

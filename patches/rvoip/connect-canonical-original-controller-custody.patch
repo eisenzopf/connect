@@ -1,0 +1,141 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/adapter_owner.rs b/crates/foundation/rvoip-core/src/staged_streams/adapter_owner.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/adapter_owner.rs
+@@ -0,0 +1,20 @@
++//! Cold adapter identity only, never a permission, generation or IO grant.
++//! Reuses the SAME existing once-per-controller subscription identity root.
++use super::*;
++#[derive(Clone)]
++pub struct AdapterMediaOwner(Weak<()>);
++impl AdapterMediaOwner {
++    pub fn same_original(&self,other:&Self)->bool {
++        self.0.strong_count()!=0 && other.0.strong_count()!=0 && Weak::ptr_eq(&self.0,&other.0)
++    }
++}
++impl StreamController {
++    pub fn adapter_media_owner(&self)->AdapterMediaOwner {
++        AdapterMediaOwner(Arc::downgrade(&self.subscription_commit_identity))
++    }
++}
++impl AdapterMediaPort {
++    pub fn matches_adapter_media_owner(&self,original:&AdapterMediaOwner)->bool {
++        self.0.owner.upgrade().is_some_and(|owner|owner.adapter_media_owner().same_original(original))
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1430,6 +1430,7 @@
+ 
+ pub mod audio_egress_clock;
+ pub mod physical_video_exposure;
++pub mod adapter_owner;
+ 
+ impl QueuedMedia {
+     /// Original source RTP-frame capsule paired with this queued contribution.
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+@@ -634,7 +634,7 @@
+             member: facts.member,
+             endpoint: facts.endpoint,
+             installation: Mutex::new(Some(Installation {
+-                activation: RtcMediaActivation::new(&controller, &backend),
++                activation: RtcMediaActivation::new(&controller, &backend).unwrap(),
+                 controller: controller.clone(),
+                 backend,
+             })),
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -288,6 +288,7 @@
+ }
+ pub(super) struct Backend {
+     id: ConnectionId,
++    original_controller: OnceLock<rvoip_core::staged_streams::adapter_owner::AdapterMediaOwner>,
+     frame_realm: Option<SourceFrameRealm>,
+     physical: Arc<WebRtcPhysicalBinding>,
+     lifetime: CancellationToken,
+@@ -305,6 +306,21 @@
+     }
+ }
+ impl Backend {
++    /// Called only by trusted cold configure_media before installation and
++    /// before any public staged_media factory can escape. No first-port or
++    /// caller-ID adoption, no permission/model/packet-path operation.
++    fn bind_original_controller(&self,controller:&Arc<StreamController>)->ControlResult<()> {
++        let identity=controller.adapter_media_owner();
++        if let Some(old)=self.original_controller.get() {
++            return if old.same_original(&identity) {Ok(())} else {Err(StreamControlError::Authority)};
++        }
++        match self.original_controller.set(identity) {
++            Ok(())=>Ok(()),
++            Err(identity)=>if self.original_controller.get().is_some_and(|old|old.same_original(&identity)) {
++                Ok(())
++            } else {Err(StreamControlError::Authority)},
++        }
++    }
+     pub(super) fn reserved_video_port_binding(&self, native:&ReservedVideoBinding, peer:&Arc<RvoipPeerConnection>) -> ControlResult<super::ReservedVideoPortBinding> {
+         if !self.current() {return Err(StreamControlError::NotReady);}
+         let profile=self.physical.reserved_video.as_ref().ok_or(StreamControlError::Unsupported)?;
+@@ -339,6 +355,7 @@
+     ) -> Arc<Self> {
+         Arc::new(Self {
+             id,
++            original_controller: OnceLock::new(),
+             frame_realm,
+             physical,
+             lifetime,
+@@ -697,6 +714,10 @@
+         deadline: tokio::time::Instant,
+         cancel: CancellationToken,
+     ) -> ControlResult<()> {
++        let original=self.original_controller.get().ok_or(StreamControlError::Authority)?;
++        if ports.iter().any(|prepared|!prepared.port.matches_adapter_media_owner(original)) {
++            return Err(StreamControlError::Authority);
++        }
+         if ports.is_empty() || ports.len() > 3 {
+             return Err(StreamControlError::Unsupported);
+         }
+@@ -725,6 +746,9 @@
+             return Err(StreamControlError::Cancelled);
+         }
+ 
++        if !self.original_controller.get().is_some_and(|original|prepared.port.matches_adapter_media_owner(original)) {
++            return Err(StreamControlError::Authority);
++        }
+         let b = prepared.port.binding();
+         if !prepared.is_new {
+             return if self.confirms(std::slice::from_ref(b)) {
+@@ -1529,13 +1553,14 @@
+     publication: Mutex<()>,
+ }
+ impl RtcMediaActivation {
+-    pub(super) fn new(controller: &Arc<StreamController>, backend: &Arc<Backend>) -> Arc<Self> {
+-        Arc::new(Self {
++    pub(super) fn new(controller: &Arc<StreamController>, backend: &Arc<Backend>) -> ControlResult<Arc<Self>> {
++        backend.bind_original_controller(controller)?;
++        Ok(Arc::new(Self {
+             controller: Arc::downgrade(controller),
+             backend: Arc::downgrade(backend),
+             prepared: arc_swap::ArcSwapOption::empty(),
+             publication: Mutex::new(()),
+-        })
++        }))
+     }
+     fn current_prepared(&self) -> ControlResult<Arc<PreparedMediaObservation>> {
+         if self.publication.is_poisoned() {
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -700,7 +700,8 @@
+         if !controller.is_bound_to(&route.member, &route.endpoint) {
+             return Err(RvoipError::AdmissionRejected("RTC media owner changed"));
+         }
+-        let activation = RtcMediaActivation::new(&controller, &backend);
++        let activation = RtcMediaActivation::new(&controller, &backend)
++            .map_err(|_|RvoipError::AdmissionRejected("RTC backend original controller differs"))?;
+         *installation = Some(Installation {
+             controller: controller.clone(),
+             backend,

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-16T09:31:08.944549+00:00",
-  "revision": 108,
+  "updated_at": "2026-11-16T09:42:22.564718+00:00",
+  "revision": 109,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 175,
-    "verified_at": "2026-11-16T09:31:08.881Z",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components483.json",
-    "readback_evidence_sha256": "210c438fae551a3bcd020cc2ddf37ae2c2d161aecf951e1ac5e215b68f143ec5",
+    "content_revision": 176,
+    "verified_at": "2026-11-16T09:42:22.508Z",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components484.json",
+    "readback_evidence_sha256": "30a6fab26b20a94daaf4e6cca8d5db9c9445eea93ae2f7681358dd764e96b665",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1017,6 +1017,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
           "result": "store413pass-3fail-service90pass",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
+          "result": "focused-exact-three-store-regressions-pass",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
@@ -1138,6 +1143,11 @@
         {
           "evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
           "result": "store413pass-3fail-service90pass",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
+          "result": "focused-exact-three-store-regressions-pass",
           "matrix_result": false
         }
       ],
@@ -1473,6 +1483,11 @@
         {
           "evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
           "result": "store413pass-3fail-service90pass",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
+          "result": "focused-exact-three-store-regressions-pass",
           "matrix_result": false
         }
       ],
@@ -2511,10 +2526,10 @@
       "coordinator": "/root",
       "status": "implemented-unverified",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
       "matrix_verified": false,
-      "implementation_state": "g483 Store413/416 and Service90/90. Both real production scope defects clear exact retained/new regressions. Three failed fixture assertions preserved; independently reviewed test-only followups applied, focused runtime pending.",
-      "updated_at": "2026-11-16T09:31:08.944549+00:00"
+      "implementation_state": "g483 Store413/416+Service90/90; g484 focused original3 failures pass all3/0ignored. Exact source/binaries/owners independently audited. No failed historical result regrade and no new complete coherent affected-suite run yet.",
+      "updated_at": "2026-11-16T09:42:22.564718+00:00"
     }
   ],
   "failure_mapping": [
@@ -5046,6 +5061,12 @@
       "revision": 108,
       "checkpoint": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
       "summary": "Audited g483 Store413/416 and Service90/90, both production authority scope fixes pass. Three test corrections applied for focused retest. Host pipeline/native keyframe/Closed+restore integration under review. Mobile175 verified; no full32."
+    },
+    {
+      "updated_at": "2026-11-16T09:42:22.564718+00:00",
+      "revision": 109,
+      "checkpoint": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
+      "summary": "Audited g484 focused exact3 Store failures PASS/0ignored; previous full416 failure preserved. Pipeline/source clone identity +native preflight/OLD restore integration pending. Mobile176 verified; no full32."
     }
   ],
   "tracking_review": {
@@ -6675,8 +6696,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "g483 actual Store413/416 (3failed) and Service90/90, independently audited. Both identified production authority-scope fixes pass exact regressions. Three fixture-only followups applied, focused retest pending. Actual publicB Host/feedback/restore integration still under review; full32 held, last matrix1/32 unchanged.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
-    "sha256": "cf325de753ad21dfc966201282ee90752352acbabf44871080d0189fa8cfdcca"
+    "status": "g484 focused exact3 Store regressions PASS/0ignored, independently audited; g483 full416 originalFAILED preserved (413pass3fail), Service90pass. Both production scope defects and all previously failed selectors now have focused passing evidence; whole coherent handoff integration/actual media/ARM/preflight pending. Last full32 stays1/32.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
+    "sha256": "48e43f35ec273d91da94956bd8eabd3f46fffd836c2f87db48f5c62ddbbc7c9c"
   }
 }

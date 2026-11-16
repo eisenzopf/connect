@@ -1,0 +1,807 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/old_video_freeze.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/old_video_freeze.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/old_video_freeze.rs
+@@ -0,0 +1,28 @@
++//! Explicit optional freeze under the SAME current original read-only FreezeVideo authority.
++//! No replacement publication, B feeding/readiness, fresh nonce or resume API.
++use super::*;
++impl Orchestrator {
++    pub async fn freeze_staged_device_replacement_video_with_held(
++        self:&Arc<Self>,plan:&ManagedAudioDeviceReplacementPlan,held:&(dyn Any+Send+Sync),
++    )->ControlResult<Arc<crate::staged_streams::old_video_freeze::FrozenOldVideoFrontier>> {
++        let p=&plan.preparation;
++        self.owns_replacement(p)?;p.check()?;
++        let _flight=p.flight.clone().try_acquire_owned().map_err(|_|ParticipantTransitionError::Conflict)?;
++        let request=scope(p,ReplacementPhase::FreezeVideo,Some(&plan.media));
++        let control=p.runtime.policy.current_replacement_control(&request,held)?;
++        let validate=||->std::result::Result<(),StreamControlError> {
++            self.owns_replacement(p).map_err(handoff::media_error)?;
++            p.check().map_err(handoff::media_error)?;
++            let authority=control.current(&request).map_err(handoff::media_error)?;
++            check_authority(&request,&authority).map_err(handoff::media_error)?;
++            if plan.media.old_may_speak() && !authority.may_send_audio {return Err(StreamControlError::Authority);}
++            Ok(())
++        };
++        validate()?;
++        let realm=p.runtime.frame_realm.as_ref().map(|realm|realm.handle()).and_then(|realm|realm.incarnation())
++            .ok_or(ParticipantControlError::Unsupported)?;
++        let deadline=deadline_for(&p.principal,p.deadline.min(control.deadline));
++        Ok(p.runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?
++            .freeze_old_video(&plan.media,realm,deadline,p.cancellation.clone(),held,&validate).await?.frontier_metadata())
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -19,6 +19,7 @@
+ use std::sync::atomic::{AtomicU8, Ordering};
+ pub(crate) mod metadata_retry;
+ pub(super) mod publication;
++mod old_video_freeze;
+ pub use publication::CurrentReplacementPublication;
+ const PREPARING: u8 = 0;
+ const ATTACHED: u8 = 1;
+@@ -32,6 +33,10 @@
+     Attach,
+     Activate,
+     Preroll,
++    /// Read-only original-plan control. Domain implementations must use only
++    /// custody compatible with existing/fresh packet Readers during drains;
++    /// no Commit Writer or durable mutation may be derived from this phase.
++    FreezeVideo,
+     Commit,
+     Replay,
+ }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audience.rs b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1,6 +1,8 @@
+ //! Closed audio audiences in the retained managed Session.
+ //!
+-//! Plans and restore handles contain pinned metadata, never a policy lease.
++//! Ordinary plans/restore handles contain pinned metadata. An explicitly
++//! frozen public replacement additionally owns one shared original-resource
++//! quiescence slot; plan cloning never clones its guards or a policy lease.
+ //! A host must authorize the complete audience operation under its current
+ //! domain grant. These local outcomes are not durable operation receipts.
+ use super::audio_subscriptions::AudioPlan;
+@@ -1201,6 +1203,7 @@
+                 .collect::<BTreeMap<_, _>>();
+             let flights = controllers
+                 .values()
++                .filter(|c| !plan.replacement.as_ref().is_some_and(|r| r.video_freeze.holds_controller(c)))
+                 .map(|c| {
+                     c.inflight
+                         .clone()
+@@ -1220,6 +1223,12 @@
+         };
+         let mut controls = BTreeMap::new();
+         let mut deadline = deadline.min(managed.as_ref().map_or(deadline, |m| m.deadline()));
++        // Fresh publication authority cannot extend the original owned freeze.
++        // The same minimum is checked immediately before infallible effects.
++        if let Some(original)=plan.replacement.as_ref().and_then(|r|r.video_freeze.original_deadline()) {
++            deadline=deadline.min(original);
++        }
++        if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
+         if let Some(managed) = &managed {
+             managed.check(&plan)?;
+         }
+@@ -1638,6 +1647,7 @@
+         }
+         let mut drained = Vec::new();
+         for ticket in tickets {
++            if plan.replacement.as_ref().is_some_and(|r| r.video_freeze.holds_ticket(&ticket)) { continue; }
+             drained.push(tokio::select!{biased;
+             _=audio_consumer::any_cancelled(tokens.clone())=>return Err(StreamControlError::Cancelled),
+             result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(MediaTransitionError::Conflict)?,
+@@ -1889,6 +1899,9 @@
+                     }
+                     state.active.clear();
+                 }
++            }
++            if let Some(replacement) = &plan.replacement {
++                replacement.video_freeze.committed();
+             }
+             let observations = logical
+                 .as_mut()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -35,6 +35,7 @@
+     pub(super) video: Option<video::VideoPlan>,
+     pub(super) pending: PreparedParticipantReplacement,
+     pub(super) restoration: Option<super::consultation::PrivateConsultationHandle>,
++    pub(super) video_freeze: Arc<super::old_video_freeze::OldVideoFreezeSlot>,
+ }
+ impl ReplacementIntent {
+     pub(super) fn private_consultation_parent(&self) -> Option<&str> {
+@@ -46,6 +47,12 @@
+         &self,
+         controller: &StreamController,
+         state: &State,
++    ) -> ControlResult<()> {
++        self.validate_target_without_video_freeze(controller,state)?;
++        self.video_freeze.validate_target(self,controller,state)
++    }
++    pub(super) fn validate_target_without_video_freeze(
++        &self, controller: &StreamController, state: &State,
+     ) -> ControlResult<()> {
+         if self
+             .origins
+@@ -72,6 +79,8 @@
+         Ok(())
+     }
+ }
++/// Cloning shares the exact optional freeze slot; it never reacquires or
++/// clones an IO guard. Dropping the final opted-in plan fails closed.
+ #[derive(Clone)]
+ pub struct AudioDeviceReplacementPlan {
+     audience: AudioAudiencePlan,
+@@ -485,6 +494,7 @@
+             video,
+             pending: pending.clone(),
+             restoration: None,
++            video_freeze: Arc::new(super::old_video_freeze::OldVideoFreezeSlot::default()),
+         });
+         Ok(AudioDeviceReplacementPlan {
+             audience: AudioAudiencePlan {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs b/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/old_video_freeze.rs
+@@ -0,0 +1,310 @@
++//! Optional original-plan-owned OLD video EGRESS freeze. No public gate/model
++//! mutation, new authority, target feeding, B readiness or publication occurs.
++//! The only failure cleanup is fail-closed retirement. A future resume API must
++//! FIRST consume real SAME-reservation B discard plus current old authority.
++use super::*;
++use super::physical_video_exposure::{PhysicalVideoExposureSeal,PhysicalVideoExposureSnapshot};
++use rvoip_core_traits::peer_switch::PeerQuiescenceGuard;
++
++/// Opaque SAME-realm conservative potential-exposure ceiling. No public ctor,
++/// Deserialize or Clone. Scalars alone are not a current freeze/IO grant.
++pub struct FrozenOldVideoFrontier {
++    operation:String,source:ConnectionId,target:ConnectionId,realm:u128,ordinal:u64,
++}
++impl FrozenOldVideoFrontier {
++    pub fn operation_id(&self)->&str {&self.operation}
++    pub fn source_connection(&self)->&ConnectionId {&self.source}
++    pub fn target_connection(&self)->&ConnectionId {&self.target}
++    pub fn realm_incarnation(&self)->u128 {self.realm}
++    pub fn ordinal(&self)->u64 {self.ordinal}
++}
++struct FrozenPort {port:Arc<Port>,ticket:PeerRouteTicket,family:u128}
++/// Generic quiesce restores admission when its pending future is dropped. In
++/// THIS strict path retire first, including select/timeout cancellation while
++/// the inner future still owns its not-yet-returned pause guard.
++struct FailClosedQuiescence<F> {
++    ticket:PeerRouteTicket,future:std::pin::Pin<Box<F>>,transferred:bool,
++}
++impl<F:Future<Output=Option<PeerQuiescenceGuard>>> Future for FailClosedQuiescence<F> {
++    type Output=Option<PeerQuiescenceGuard>;
++    fn poll(self:std::pin::Pin<&mut Self>,cx:&mut std::task::Context<'_>)->std::task::Poll<Self::Output> {
++        let this=self.get_mut();
++        match this.future.as_mut().poll(cx) {
++            std::task::Poll::Ready(guard)=>{this.transferred=guard.is_some();std::task::Poll::Ready(guard)}
++            std::task::Poll::Pending=>std::task::Poll::Pending,
++        }
++    }
++}
++impl<F> Drop for FailClosedQuiescence<F> {
++    fn drop(&mut self) {if !self.transferred {self.ticket.retire_if_current();}}
++}
++fn fail_closed_quiescence(ticket:&PeerRouteTicket)->impl Future<Output=Option<PeerQuiescenceGuard>> {
++    let original=ticket.clone();
++    FailClosedQuiescence {ticket:ticket.clone(),future:Box::pin(async move {original.quiesce().await}),transferred:false}
++}
++
++/// Actual nonclone held resources live once in this object, never in a cloned
++/// metadata receipt. Plan clones share only ONE owner/slot.
++struct HeldOldVideo {
++    ports:Vec<FrozenPort>,
++    guards:Vec<PeerQuiescenceGuard>,
++    seal:Option<PhysicalVideoExposureSeal>,
++    _flight:OwnedSemaphorePermit,
++}
++impl Drop for HeldOldVideo {
++    fn drop(&mut self) {
++        // Do NOT let ordinary PeerQuiescenceGuard::Drop resume an uncertain B
++        // handoff. Exact ticket retirement cannot touch a successor generation.
++        for old in &self.ports {old.ticket.retire_if_current();}
++        if let Some(seal)=self.seal.take() {seal.retire();}
++        // guards and original controller flight release only after retirement.
++    }
++}
++pub(crate) struct FrozenOldVideo {
++    intent:Weak<device_replacement::ReplacementIntent>,
++    old:Weak<StreamController>,
++    revision:u64,
++    credential:CredentialSnapshot,
++    deadline:tokio::time::Instant,
++    cancellation:CancellationToken,
++    frontier:Arc<FrozenOldVideoFrontier>,
++    held:Mutex<Option<HeldOldVideo>>,
++}
++impl FrozenOldVideo {
++    /// Historical metadata only. Future B APIs must separately validate this
++    /// same current plan owner and exact target reservation before using it.
++    pub(super) fn frontier(&self)->&FrozenOldVideoFrontier {&self.frontier}
++    pub(crate) fn frontier_metadata(&self)->Arc<FrozenOldVideoFrontier> {self.frontier.clone()}
++    fn current(&self,intent:&device_replacement::ReplacementIntent)->ControlResult<()> {
++        if self.intent.upgrade().is_none_or(|original|!std::ptr::eq(original.as_ref(),intent)) {
++            return Err(StreamControlError::Authority);
++        }
++        if self.cancellation.is_cancelled() {return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=self.deadline {return Err(StreamControlError::Deadline);}
++        let old=self.old.upgrade().ok_or(StreamControlError::Cancelled)?;
++        old.check_credential_snapshot(&self.credential)?;
++        if old.shutdown.is_cancelled() {return Err(StreamControlError::Cancelled);}
++        let held=self.held.lock().map_err(|_|StreamControlError::Authority)?;
++        let held=held.as_ref().ok_or(StreamControlError::Cancelled)?;
++        let seal=held.seal.as_ref().ok_or(StreamControlError::Cancelled)?;
++        if !seal.is_current() || held.ports.iter().any(|p|!p.ticket.is_current()) {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(())
++    }
++    fn validate_old_state(&self,state:&State)->ControlResult<()> {
++        if state.closed || state.model.revision()!=self.revision {return Err(MediaTransitionError::Conflict.into());}
++        let held=self.held.lock().map_err(|_|StreamControlError::Authority)?;
++        let held=held.as_ref().ok_or(StreamControlError::Cancelled)?;
++        let active=visual_sinks(state)?;
++        if active.len()!=held.ports.len() || active.iter().any(|port|!held.ports.iter().any(|p|Arc::ptr_eq(port,&p.port))) {
++            return Err(StreamControlError::Authority);
++        }
++        let seal=held.seal.as_ref().ok_or(StreamControlError::Cancelled)?;
++        for old in &held.ports {
++            validate_port(&old.port,&old.ticket)?;
++            let snapshot=AdapterMediaPort(old.port.clone()).physical_video_exposure_sealed(seal)
++                .ok_or(StreamControlError::Unsupported)?;
++            if !snapshot.coverage_complete || snapshot.physical_family!=old.family ||
++                snapshot.realm_incarnation!=Some(self.frontier.realm) ||
++                snapshot.maximum_potential_ordinal>self.frontier.ordinal ||
++                snapshot.inherited_potential_ordinal>self.frontier.ordinal {
++                return Err(StreamControlError::Authority);
++            }
++        }
++        Ok(())
++    }
++}
++enum FreezeState {Unstarted,Acquiring,Frozen(Arc<FrozenOldVideo>),Terminal}
++pub(super) struct OldVideoFreezeSlot {state:Mutex<FreezeState>}
++impl Default for OldVideoFreezeSlot {fn default()->Self {Self {state:Mutex::new(FreezeState::Unstarted)}}}
++struct FreezeAttempt {slot:Arc<OldVideoFreezeSlot>,published:bool}
++impl Drop for FreezeAttempt {
++    fn drop(&mut self) {
++        if !self.published {
++            *self.slot.state.lock().unwrap_or_else(|p|p.into_inner())=FreezeState::Terminal;
++        }
++    }
++}
++impl OldVideoFreezeSlot {
++    fn begin(self:&Arc<Self>)->ControlResult<FreezeAttempt> {
++        let mut state=self.state.lock().map_err(|_|StreamControlError::Authority)?;
++        if !matches!(*state,FreezeState::Unstarted) {return Err(StreamControlError::NotReady);}
++        *state=FreezeState::Acquiring;
++        Ok(FreezeAttempt {slot:self.clone(),published:false})
++    }
++    fn owner(&self)->Option<Arc<FrozenOldVideo>> {
++        match &*self.state.lock().unwrap_or_else(|p|p.into_inner()) {FreezeState::Frozen(owner)=>Some(owner.clone()),_=>None}
++    }
++    pub(super) fn validate_target(&self,intent:&device_replacement::ReplacementIntent,controller:&StreamController,state:&State)->ControlResult<()> {
++        match &*self.state.lock().map_err(|_|StreamControlError::Authority)? {
++            FreezeState::Unstarted=>Ok(()),
++            FreezeState::Frozen(owner)=>{
++                owner.current(intent)?;
++                if controller.connection==intent.request.source {owner.validate_old_state(state)?;}
++                Ok(())
++            }
++            _=>Err(StreamControlError::NotReady),
++        }
++    }
++    pub(super) fn holds_controller(&self,controller:&Arc<StreamController>)->bool {
++        let Some(owner)=self.owner() else {return false;};
++        if owner.old.upgrade().is_none_or(|old|!Arc::ptr_eq(&old,controller)) {return false;}
++        let Ok(held)=owner.held.lock() else {return false;};
++        held.is_some()
++    }
++    pub(super) fn holds_ticket(&self,ticket:&PeerRouteTicket)->bool {
++        let Some(owner)=self.owner() else {return false;};
++        let Ok(held)=owner.held.lock() else {return false;};
++        held.as_ref().is_some_and(|held|held.ports.iter().any(|old|old.ticket.same_generation(ticket)))
++    }
++    pub(super) fn original_deadline(&self)->Option<tokio::time::Instant> {
++        self.owner().map(|owner|owner.deadline)
++    }
++    pub(super) fn committed(&self) {
++        if let Some(owner)=self.owner() {
++            // Called only AFTER infallible original old model/port retirement.
++            let held=owner.held.lock().unwrap_or_else(|p|p.into_inner()).take();
++            drop(held);
++        }
++    }
++}
++fn visual_sinks(state:&State)->ControlResult<Vec<Arc<Port>>> {
++    let mut ports=Vec::new();
++    for port in state.active.values().filter(|port|port.binding.sink_ready &&
++        matches!(port.binding.negotiated.requested.medium,Medium::Video|Medium::Screen)) {
++        let binding=&port.binding;
++        let logical=state.model.streams().get(&binding.negotiated.requested.logical_id)
++            .ok_or(StreamControlError::Authority)?;
++        if logical.state==LogicalStreamState::Ended || logical.negotiated!=binding.negotiated ||
++            logical.transport_id!=binding.transport_id || logical.stream_local_id!=binding.stream_local_id ||
++            logical.generation!=binding.generation {
++            return Err(StreamControlError::Authority);
++        }
++        ports.push(port.clone());
++    }
++    Ok(ports)
++}
++fn validate_port(port:&Arc<Port>,ticket:&PeerRouteTicket)->ControlResult<()> {
++    let state=port.state.lock().map_err(|_|StreamControlError::Authority)?;
++    if !state.ready || !matches!(state.status,PortStatus::Active|PortStatus::Paused) ||
++        !ticket.is_current() || !port.ticket(TicketSide::Egress).same_generation(ticket) {
++        return Err(StreamControlError::NotReady);
++    }
++    Ok(())
++}
++impl media_scene::GuardedMediaScene {
++    fn validate_freeze_plan(&self,plan:&device_replacement::AudioDeviceReplacementPlan,intent:&device_replacement::ReplacementIntent)->ControlResult<Arc<StreamController>> {
++        let plan=plan.audience();
++        let members=self.members.lock().map_err(|_|StreamControlError::Authority)?;
++        let registry=self.audiences.lock().map_err(|_|StreamControlError::Authority)?;
++        if plan.scene!=self.id || registry.revision!=plan.request.expected_revision ||
++            members.len()!=plan.controllers.len() || !members.iter().all(|(id,member)|plan.controllers.get(id)
++                .is_some_and(|original|Weak::ptr_eq(original,&Arc::downgrade(&member.controller)))) {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        for (id,member) in members.iter() {
++            let state=member.controller.state.lock().map_err(|_|StreamControlError::Authority)?;
++            if state.closed || state.model.revision()!=plan.expected[id] {return Err(MediaTransitionError::Conflict.into());}
++            intent.validate_target_without_video_freeze(&member.controller,&state)?;
++        }
++        Ok(members.get(&intent.request.source).ok_or(StreamControlError::NotReady)?.controller.clone())
++    }
++    pub(crate) async fn freeze_old_video(
++        &self,plan:&device_replacement::AudioDeviceReplacementPlan,realm:u128,
++        deadline:tokio::time::Instant,cancel:CancellationToken,held:&(dyn Any+Send+Sync),
++        original_control:&(dyn Fn()->ControlResult<()>+Send+Sync),
++    )->ControlResult<Arc<FrozenOldVideo>> {
++        original_control()?;
++        let intent=plan.audience().replacement.as_ref().ok_or(StreamControlError::Authority)?.clone();
++        if realm==0 || intent.private_consultation_parent().is_some() || !plan.audience().group.origins.is_empty() || intent.video.is_none() {
++            return Err(StreamControlError::Unsupported);
++        }
++        let old=self.validate_freeze_plan(plan,&intent)?;
++        let credential=old.credential_snapshot();
++        let control=old.policy.current_control(&old.scope(&credential.principal,MediaPurpose::Control),
++            &MediaControlIntent::DeviceReplacement {plan:plan.audience()},held)?;
++        let deadline=deadline.min(control.deadline).min(StreamController::command_deadline(&credential.principal,deadline));
++        control.valid()?;
++        // Excludes all ordinary old controller rebind/setup/gate writers while
++        // held. Activation skips only THIS exact plan-owned original flight.
++        let flight=old.inflight.clone().try_acquire_owned().map_err(|_|MediaTransitionError::Conflict)?;
++        let (revision,ports)={
++            let state=old.state.lock().map_err(|_|StreamControlError::Authority)?;
++            let scope=old.scope(&credential.principal,MediaPurpose::Control);
++            let authority=control.authority()?;StreamController::check(&scope,&authority)?;
++            state.model.authorize_binding(&authority.current())?;
++            if !authority.may_control {return Err(StreamControlError::Authority);}
++            let ports=visual_sinks(&state)?;
++            if ports.is_empty() {return Err(StreamControlError::Unsupported);}
++            (state.model.revision(),ports)
++        };
++        let seal=ports[0].video_exposure.get().and_then(|observer|observer.try_seal_coverage())
++            .ok_or(StreamControlError::Unsupported)?;
++        // Known capability failures are effect-free: provisional raw seal and
++        // setup flight drop without ever pausing OLD. Racing unknown metadata
++        // is checked again AFTER drain, where failure must remain fail-closed.
++        let mut checked_ports=Vec::new();
++        for port in ports {
++            let ticket=port.ticket(TicketSide::Egress);validate_port(&port,&ticket)?;
++            let snapshot=AdapterMediaPort(port.clone()).physical_video_exposure_sealed(&seal)
++                .ok_or(StreamControlError::Unsupported)?;
++            if !snapshot.coverage_complete || snapshot.realm_incarnation!=Some(realm) {return Err(StreamControlError::Unsupported);}
++            checked_ports.push(FrozenPort {port,ticket,family:snapshot.physical_family});
++        }
++        original_control()?;control.valid()?;old.check_credential_snapshot(&credential)?;
++        self.validate_freeze_plan(plan,&intent)?;
++        if cancel.is_cancelled() || old.shutdown.is_cancelled() {return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++        // Effect-free setup/capability collisions never consume the one-shot
++        // slot. The already-held old flight prevents publication/rebind here.
++        let attempt=intent.video_freeze.begin()?;
++        let mut owned=HeldOldVideo {ports:checked_ports,guards:vec![],seal:Some(seal),_flight:flight};
++        for old_port in &owned.ports {
++            validate_port(&old_port.port,&old_port.ticket)?;
++            owned.guards.push(tokio::select! {biased;
++                _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++                _=control.cancellation.cancelled()=>return Err(StreamControlError::Cancelled),
++                _=old.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),
++                result=tokio::time::timeout_at(deadline,fail_closed_quiescence(&old_port.ticket))=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?,
++            });
++        }
++        // No model/PortState/Timeline lock or temporary current-authority read
++        // crossed an await. The domain's owned FreezeVideo control MUST retain
++        // only drain-compatible READ custody (Connect's exact scene Reader),
++        // never a Commit Writer. It is not generically policy-lock-free.
++        // Every primary/repair Core guard is now drained on each old sink.
++        original_control()?;control.valid()?;old.check_credential_snapshot(&credential)?;
++        let same=self.validate_freeze_plan(plan,&intent)?;
++        if !Arc::ptr_eq(&same,&old) || cancel.is_cancelled() || tokio::time::Instant::now()>=deadline {
++            return Err(StreamControlError::Cancelled);
++        }
++        let mut maximum=0;
++        for old_port in &mut owned.ports {
++            validate_port(&old_port.port,&old_port.ticket)?;
++            let snapshot:PhysicalVideoExposureSnapshot=AdapterMediaPort(old_port.port.clone())
++                .physical_video_exposure_sealed(owned.seal.as_ref().ok_or(StreamControlError::Authority)?)
++                .ok_or(StreamControlError::Unsupported)?;
++            if !snapshot.coverage_complete || snapshot.realm_incarnation!=Some(realm) {return Err(StreamControlError::Unsupported);}
++            if old_port.family!=snapshot.physical_family {return Err(StreamControlError::Authority);}
++            maximum=maximum.max(snapshot.maximum_potential_ordinal).max(snapshot.inherited_potential_ordinal);
++        }
++        original_control()?;control.valid()?;
++        let owner=Arc::new(FrozenOldVideo {intent:Arc::downgrade(&intent),old:Arc::downgrade(&old),revision,credential,
++            deadline,cancellation:cancel,frontier:Arc::new(FrozenOldVideoFrontier {operation:intent.request.operation_id.clone(),
++                source:intent.request.source.clone(),target:intent.request.admitted.clone(),realm,ordinal:maximum}),held:Mutex::new(Some(owned))});
++        owner.current(&intent)?;
++        {
++            let state=old.state.lock().map_err(|_|StreamControlError::Authority)?;
++            let scope=old.scope(&owner.credential.principal,MediaPurpose::Control);
++            let authority=control.authority()?;StreamController::check(&scope,&authority)?;
++            state.model.authorize_binding(&authority.current())?;
++            if !authority.may_control {return Err(StreamControlError::Authority);}
++            owner.validate_old_state(&state)?;
++        }
++        original_control()?;
++        *attempt.slot.state.lock().map_err(|_|StreamControlError::Authority)?=FreezeState::Frozen(owner.clone());
++        let mut attempt=attempt;attempt.published=true;
++        Ok(owner)
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+@@ -78,12 +78,13 @@
+     attempted: AtomicBool,
+     untracked: AtomicBool,
+     maximum: AtomicU64,
++    inherited: AtomicU64,
+ }
+ impl Default for PhysicalVideoExposure {
+     fn default() -> Self {
+         Self { identity: uuid::Uuid::new_v4().as_u128(), expected: OnceLock::new(),
+             coverage: OnceLock::new(), attempted: AtomicBool::new(false),
+-            untracked: AtomicBool::new(false), maximum: AtomicU64::new(0) }
++            untracked: AtomicBool::new(false), maximum: AtomicU64::new(0), inherited: AtomicU64::new(0) }
+     }
+ }
+ impl PhysicalVideoExposure {
+@@ -133,6 +134,14 @@
+             self.maximum.fetch_max(point.ordinal(), Ordering::AcqRel);
+         }
+     }
++    /// Historical lineage only. Cannot feed/start B, grant IO, or mint a cut.
++    /// This is flattened per SAME realm; no parent owners/history are retained.
++    pub fn inherit_frontier(&self, frontier: &super::old_video_freeze::FrozenOldVideoFrontier) {
++        if self.expected.get() != Some(&frontier.realm_incarnation()) {
++            self.mark_untracked(); return;
++        }
++        self.inherited.fetch_max(frontier.ordinal(), Ordering::AcqRel);
++    }
+     fn snapshot(&self) -> PhysicalVideoExposureSnapshot {
+         let expected = self.expected.get().copied();
+         let coverage = self.coverage.get();
+@@ -140,6 +149,7 @@
+             physical_family: self.identity,
+             realm_incarnation: expected,
+             maximum_potential_ordinal: self.maximum.load(Ordering::Acquire),
++            inherited_potential_ordinal: self.inherited.load(Ordering::Acquire),
+             coverage_complete: expected.is_some() && coverage.is_some_and(|c| !c.escaped())
+                 && !self.untracked.load(Ordering::Acquire),
+         }
+@@ -152,6 +162,12 @@
+     pub fn same_family(&self, other: &Self) -> bool { Weak::ptr_eq(&self.0, &other.0) }
+     pub fn mark_untracked(&self) { if let Some(family)=self.0.upgrade() { family.mark_untracked(); } }
+     pub fn snapshot(&self) -> Option<PhysicalVideoExposureSnapshot> { Some(self.0.upgrade()?.snapshot()) }
++    /// Trusted setup-bound original family; callers supply no peer/root/ID.
++    /// Only the Core original-plan freeze uses this to acquire its no-escape
++    /// lease. The returned lease still establishes no IO drain or authority.
++    pub(super) fn try_seal_coverage(&self) -> Option<PhysicalVideoExposureSeal> {
++        self.0.upgrade()?.coverage.get()?.try_seal().ok()
++    }
+     /// Exact peer no-escape association only. The caller still must obtain the
+     /// original physical writer quiescence/drain before treating any max as F.
+     pub fn snapshot_sealed(&self, seal: &PhysicalVideoExposureSeal) -> Option<PhysicalVideoExposureSnapshot> {
+@@ -166,6 +182,7 @@
+     pub physical_family: u128,
+     pub realm_incarnation: Option<u128>,
+     pub maximum_potential_ordinal: u64,
++    pub inherited_potential_ordinal: u64,
+     /// Past tracking coverage only. A caller must separately quiesce/drain the
+     /// exact writer family; this is NOT future exclusion or a no-escape seal.
+     pub coverage_complete: bool,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs
+@@ -0,0 +1,224 @@
++//! Real engine plan/policy/queued primary+repair guards. The adapter's optional
++//! metadata recorder is modeled explicitly; no native UDP/B grant is claimed.
++use super::*;
++use crate::staged_streams::physical_video_exposure::{PhysicalVideoExposure,PhysicalVideoExposureCoverage};
++use crate::staged_streams::frame_realm::FrameRealmTestOwner;
++use std::future::{Future,poll_fn};
++use std::task::Poll;
++async fn caught<T>(future:impl Future<Output=T>)->Result<T,Box<dyn std::any::Any+Send>> {
++    let mut future=Box::pin(future);
++    poll_fn(|cx|match std::panic::catch_unwind(std::panic::AssertUnwindSafe(||future.as_mut().poll(cx))) {
++        Ok(Poll::Pending)=>Poll::Pending,Ok(Poll::Ready(value))=>Poll::Ready(Ok(value)),Err(error)=>Poll::Ready(Err(error)),
++    }).await
++}
++async fn poll_pending(future:std::pin::Pin<&mut impl Future>){
++    let mut future=future;
++    poll_fn(|cx|{assert!(future.as_mut().poll(cx).is_pending());Poll::Ready(())}).await;
++}
++fn namespace()->(FrameRealmTestOwner,Arc<PhysicalVideoExposure>,Arc<PhysicalVideoExposureCoverage>) {
++    let realm=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"));
++    let exposure=Arc::new(PhysicalVideoExposure::default());
++    let coverage=Arc::new(PhysicalVideoExposureCoverage::new(false));
++    exposure.configure_expected_realm(realm.handle().incarnation());exposure.bind_coverage(coverage.clone());
++    (realm,exposure,coverage)
++}
++async fn finish(f:&Preroll) {
++    // Independently attempt EVERY original controller, then all adapter counts.
++    let controllers=f.movement.room.nodes.values().map(|n|n.controller.clone()).collect::<Vec<_>>();
++    let mut joins=Vec::new();
++    for controller in controllers {joins.push(controller.shutdown(deadline()).await);}
++    let counts=f.movement.room.nodes.values().map(|n|n.adapter.outstanding.load(Ordering::Acquire)).collect::<Vec<_>>();
++    assert!(joins.iter().all(|remaining|*remaining==0),"all original engine cleanup joins");
++    assert!(counts.iter().all(|count|*count==0),"all original adapter cleanup counts: {counts:?}");
++}
++#[tokio::test]
++async fn original_plan_video_freeze_drains_actual_primary_and_repair_without_stopping_camera_audio() {
++    let (realm,exposure,coverage)=namespace();
++    let mut f=Preroll::new_with_physical_exposure(false,Some(exposure.clone())).await;
++    f.movement.io().await;f.movement.confirm().await;
++    let plan=f.movement.plan_with_video(Some(request())).unwrap();
++    let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++    let old=f.movement.room.nodes["alice"].controller.clone();
++    let old_port=f.movement.room.nodes["alice"].adapter.port(Medium::Video);
++    let input_ticket=old_port.0.ticket(TicketSide::Ingress);
++    let output_ticket=old_port.0.ticket(TicketSide::Egress);
++    let original_revision=old.revision();
++    let result=caught(async {
++        f.publish_video("bob",40);
++        let first=outgoing(&mut f.old_output).await;
++        let p1=realm.handle().next_point().unwrap();
++        let repair=first.deliver_video_with_repair(|_|async {exposure.record_potential(Some(p1));Ok(())}).await.unwrap();
++        f.publish_video("bob",41);
++        let primary=outgoing(&mut f.old_output).await;
++        let p2=realm.handle().next_point().unwrap();
++        let (primary_release,primary_wait)=tokio::sync::oneshot::channel::<()>();
++        let (repair_release,repair_wait)=tokio::sync::oneshot::channel::<()>();
++        let mut primary=Box::pin(primary.deliver(|_|async {exposure.record_potential(Some(p2));primary_wait.await.unwrap();Ok(())}));
++        let mut repairing=Box::pin(repair.repair(|_,_|async {exposure.record_potential(Some(p1));repair_wait.await.unwrap();Ok(())}));
++        poll_pending(primary.as_mut()).await;poll_pending(repairing.as_mut()).await;
++        let scene=f.movement.room.scene.clone();let check=||Ok(());
++        let mut freezing=Box::pin(scene.freeze_old_video(&plan,realm.handle().incarnation().unwrap(),deadline(),CancellationToken::new(),&grant,&check));
++        poll_pending(freezing.as_mut()).await;
++        assert!(!output_ticket.is_active());assert!(output_ticket.is_current());
++        assert!(input_ticket.is_active());assert_eq!(old.revision(),original_revision);
++        assert!(!coverage.mark_escaped(),"same original raw peer stays sealed while IO drains");
++        primary_release.send(()).unwrap();primary.await.unwrap();
++        poll_pending(freezing.as_mut()).await; // original repair guard still held
++        repair_release.send(()).unwrap();repairing.await.unwrap();
++        let frozen=freezing.await.unwrap();
++        assert_eq!(frozen.frontier().ordinal(),p2.ordinal());
++        assert_eq!(frozen.frontier().realm_incarnation(),p2.incarnation());
++        assert_eq!(frozen.frontier().source_connection(),&old.connection);
++        assert_eq!(frozen.frontier().target_connection(),&f.movement.room.nodes["device"].controller.connection);
++        assert!(!output_ticket.is_active());assert!(input_ticket.is_active());
++        assert_eq!(old.revision(),original_revision);
++        assert!(old.change(old.revision(),&[desired(Medium::Audio),desired(Medium::Video)],&BTreeSet::new(),deadline(),CancellationToken::new()).await.is_err(),
++            "the same held setup flight must exclude a future rebind writer");
++        // Existing media admission is unaffected on microphone/camera INGRESS.
++        f.movement.room.publish("alice",900).unwrap();
++        f.publish_video("alice",42);delivered(&mut f.bob_output,42).await;
++        assert!(input_ticket.is_active());
++        // Flat inherited ceiling is opaque, same realm, no parent owner chain.
++        let inherited=Arc::new(PhysicalVideoExposure::default());
++        inherited.configure_expected_realm(realm.handle().incarnation());inherited.bind_coverage(Arc::new(PhysicalVideoExposureCoverage::new(false)));
++        inherited.inherit_frontier(frozen.frontier());
++        assert_eq!(inherited.observer().snapshot().unwrap().inherited_potential_ordinal,p2.ordinal());
++        let clone=plan.clone();assert!(scene.freeze_old_video(&clone,p2.incarnation(),deadline(),CancellationToken::new(),&grant,&check).await.is_err());
++        frozen.frontier_metadata() // metadata survives cleanup without owning the guard/flight
++    }).await;
++    drop(grant);drop(plan); // drop last same-plan owner before bounded shutdown
++    finish(&f).await;
++    assert!(!output_ticket.is_current(),"unconsumed freeze fails closed, never resumes OLD");
++    assert!(!coverage.mark_escaped());
++    if let Ok(metadata)=&result {assert_eq!(metadata.ordinal(),2);}
++    if let Err(error)=result {std::panic::resume_unwind(error)}
++}
++#[tokio::test]
++async fn original_plan_video_freeze_activation_consumes_same_flight_and_egress_guards_once() {
++    for expired in [false,true] {
++    let (realm,exposure,coverage)=namespace();
++    let mut f=Preroll::new_with_physical_exposure(false,Some(exposure.clone())).await;
++    f.movement.io().await;f.movement.confirm().await;
++    let plan=f.movement.plan_with_video(Some(request())).unwrap();
++    let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++    let result=caught(async {
++        f.publish_video("bob",45);let original=outgoing(&mut f.old_output).await;
++        let point=realm.handle().next_point().unwrap();
++        original.deliver(|_|async {exposure.record_potential(Some(point));Ok(())}).await.unwrap();
++        let check=||Ok(());
++        let original_cutoff=deadline();
++        let frozen=f.movement.room.scene.freeze_old_video(&plan,point.incarnation(),original_cutoff,CancellationToken::new(),&grant,&check).await.unwrap();
++        if expired {
++            tokio::time::sleep_until(original_cutoff).await;
++            let revision=f.movement.room.nodes["device"].controller.revision();
++            let refused=f.movement.commit(plan.clone()).await;
++            assert!(matches!(refused,Err(StreamControlError::Deadline)),"new Commit authority extended original freeze cutoff");
++            assert_eq!(f.movement.room.nodes["device"].controller.revision(),revision);
++            assert!(!f.movement.room.nodes["alice"].controller.shutdown.is_cancelled());
++            assert_eq!(frozen.frontier().ordinal(),point.ordinal());
++            return;
++        }
++        let duplicate=plan.clone();
++        let committed=f.movement.commit(plan.clone()).await.unwrap();
++        assert_eq!(frozen.frontier().ordinal(),point.ordinal());
++        assert!(f.movement.room.nodes["alice"].controller.shutdown.is_cancelled());
++        assert!(f.movement.commit(duplicate).await.is_err(),"same original plan cannot republish");
++        assert_eq!(committed.1.finish_local_media_cleanup(deadline()).await,ReplacementCleanupOutcome::LocalMediaClosed);
++    }).await;
++    drop(grant);drop(plan);finish(&f).await;
++    assert!(!coverage.mark_escaped());
++    if let Err(error)=result {std::panic::resume_unwind(error)}
++}
++}
++
++#[tokio::test]
++async fn original_plan_video_freeze_missing_or_foreign_tracking_or_current_authority_refuses() {
++    for mode in 0..7 {
++        let (realm,exposure,coverage)=namespace();
++        if mode==1 {exposure.mark_untracked();}
++        if mode==2 {assert!(coverage.mark_escaped());}
++        let mut f=Preroll::new_with_physical_exposure(false,(mode!=0).then(||exposure.clone())).await;
++        f.movement.io().await;f.movement.confirm().await;
++        let plan=f.movement.plan_with_video(Some(request())).unwrap();
++        let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++        let old=f.movement.room.nodes["alice"].controller.clone();
++        let result=caught(async {
++            if mode==5 {f.movement.room.domain.deny_replacement.store(true,Ordering::Release);}
++            if mode==6 {
++                old.change_direct_subscriptions(old.revision(),DirectSubscriptionChange::Clear,deadline(),CancellationToken::new(),None).await.unwrap();
++                assert_ne!(old.revision(),plan.audience().expected_receiver_revisions()[&old.connection]);
++            }
++            let check=||if mode==3 {Err(StreamControlError::Authority)} else {Ok(())};
++            let expected=if mode==4 {realm.handle().incarnation().unwrap().wrapping_add(1)} else {realm.handle().incarnation().unwrap()};
++            let frozen=f.movement.room.scene.freeze_old_video(&plan,expected,deadline(),CancellationToken::new(),&grant,&check).await;
++            assert!(frozen.is_err());
++            assert!(!old.shutdown.is_cancelled(),"failure does not claim participant retirement");
++            if matches!(mode,3|5|6) {assert!(f.movement.room.nodes["alice"].adapter.port(Medium::Video).0.ticket(TicketSide::Egress).is_active(),
++                "definite authority refusal before freeze has no IO effect");}
++        }).await;
++        drop(grant);drop(plan);finish(&f).await;
++        if let Err(error)=result {std::panic::resume_unwind(error)}
++    }
++}
++#[tokio::test]
++async fn original_plan_video_freeze_cancellation_during_actual_io_drain_never_reopens_old_ticket() {
++    for mode in 0..4 {
++    let (realm,exposure,coverage)=namespace();
++    let mut f=Preroll::new_with_physical_exposure(false,Some(exposure.clone())).await;
++    f.movement.io().await;f.movement.confirm().await;
++    let plan=f.movement.plan_with_video(Some(request())).unwrap();
++    let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++    let old=f.movement.room.nodes["alice"].controller.clone();
++    let output=f.movement.room.nodes["alice"].adapter.port(Medium::Video).0.ticket(TicketSide::Egress);
++    let result=caught(async {
++        f.publish_video("bob",49);let queued=outgoing(&mut f.old_output).await;
++        let point=realm.handle().next_point().unwrap();
++        let mut writing=Box::pin(queued.deliver(|_|async {exposure.record_potential(Some(point));std::future::pending::<()>().await;Ok(())}));
++        poll_pending(writing.as_mut()).await;
++        let cancel=CancellationToken::new();let current=AtomicBool::new(true);
++        let check=||if current.load(Ordering::Acquire) {Ok(())} else {Err(StreamControlError::Authority)};
++        let mut freezing=Box::pin(f.movement.room.scene.freeze_old_video(&plan,point.incarnation(),deadline(),cancel.clone(),&grant,&check));
++        poll_pending(freezing.as_mut()).await;assert!(!output.is_active());
++        match mode {
++            0=>cancel.cancel(),
++            1=>current.store(false,Ordering::Release),
++            2=>old.retire(),
++            _=>exposure.mark_untracked(),
++        }
++        if matches!(mode,1|3) {drop(writing);assert!(freezing.await.is_err());}
++        else {assert!(freezing.await.is_err());drop(writing);}
++        // Unknown/cancelled original IO is dropped before its original reader
++        // guard, matching Core's existing callback contract. No repair retry.
++        assert!(!output.is_current());assert!(!coverage.mark_escaped());
++    }).await;
++    drop(grant);drop(plan);finish(&f).await;
++    if let Err(error)=result {std::panic::resume_unwind(error)}
++}
++}
++
++#[tokio::test]
++async fn original_plan_video_freeze_refuses_foreign_physical_peer_among_actual_old_sink_ports() {
++    let (realm,exposure,_)=namespace();
++    let mut f=Preroll::new_with_physical_exposure(false,Some(exposure.clone())).await;
++    let old=f.movement.room.nodes["alice"].controller.clone();
++    old.change(old.revision(),&[desired(Medium::Audio),desired(Medium::Video),desired(Medium::Screen)],
++        &BTreeSet::new(),deadline(),CancellationToken::new()).await.unwrap();
++    let extra=f.movement.room.nodes["alice"].adapter.port(Medium::Screen);
++    let foreign=Arc::new(PhysicalVideoExposure::default());
++    foreign.configure_expected_realm(realm.handle().incarnation());
++    foreign.bind_coverage(Arc::new(PhysicalVideoExposureCoverage::new(false)));
++    extra.observe_physical_video_exposure(foreign.observer());
++    f.movement.io().await;f.movement.confirm().await;
++    let plan=f.movement.plan_with_video(Some(request())).unwrap();
++    let grant=f.movement.room.grant(Approval::Audience(plan.audience().clone())).await;
++    let result=caught(async {
++        let check=||Ok(());
++        assert!(f.movement.room.scene.freeze_old_video(&plan,realm.handle().incarnation().unwrap(),deadline(),CancellationToken::new(),&grant,&check).await.is_err(),
++            "same realm scalars cannot replace exact physical peer coverage");
++        assert!(extra.0.ticket(TicketSide::Egress).is_active(),"known foreign metadata refuses before stopping OLD");
++        assert!(f.movement.room.nodes["alice"].adapter.port(Medium::Video).0.ticket(TicketSide::Egress).is_active());
++        assert!(extra.0.ticket(TicketSide::Ingress).is_current());
++    }).await;
++    drop(grant);drop(plan);finish(&f).await;
++    if let Err(error)=result {std::panic::resume_unwind(error)}
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll.rs
+@@ -17,6 +17,9 @@
+     }
+ 
+     async fn new_with_endpoint_preparation(muted_preroll: bool) -> Self {
++        Self::new_with_physical_exposure(muted_preroll,None).await
++    }
++    async fn new_with_physical_exposure(muted_preroll: bool,exposure:Option<Arc<crate::staged_streams::physical_video_exposure::PhysicalVideoExposure>>) -> Self {
+         let mut camera = desired(Medium::Video);
+         camera.direction = StreamDirection::Receive;
+         let mut receiver = desired(Medium::Video);
+@@ -63,6 +66,10 @@
+                 )
+                 .await
+                 .unwrap();
++        }
++        if let Some(exposure)=exposure {
++            movement.room.nodes["alice"].adapter.port(Medium::Video)
++                .observe_physical_video_exposure(exposure.observer());
+         }
+         let old_output = movement.room.nodes["alice"]
+             .adapter
+@@ -1649,3 +1656,5 @@
+ mod publisher_exclusion;
+ 
+ mod metadata_boundaries;
++
++mod old_video_freeze;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -996,6 +996,11 @@
+     pub fn physical_video_exposure(&self) -> Option<physical_video_exposure::PhysicalVideoExposureSnapshot> {
+         self.0.video_exposure.get()?.snapshot()
+     }
++    /// Exact original family/peer association only; not a drain or F grant.
++    pub fn physical_video_exposure_sealed(&self, seal: &physical_video_exposure::PhysicalVideoExposureSeal)
++        -> Option<physical_video_exposure::PhysicalVideoExposureSnapshot> {
++        self.0.video_exposure.get()?.snapshot_sealed(seal)
++    }
+     pub fn take_egress(&self) -> ControlResult<mpsc::Receiver<QueuedMedia>> {
+         self.0
+             .output
+@@ -1431,6 +1436,7 @@
+ pub mod audio_egress_clock;
+ pub mod physical_video_exposure;
+ pub mod adapter_owner;
++pub mod old_video_freeze;
+ 
+ impl QueuedMedia {
+     /// Original source RTP-frame capsule paired with this queued contribution.

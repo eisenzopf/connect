@@ -1396,8 +1396,30 @@ fn stale_lease_and_membership_readmission_cannot_restore_old_execution_authority
     let f = Fixture::new();
     f.admit("one");
     let old = f.claim("one");
+    // Ordinary setup DML is still a real coordinated mutation. Include every
+    // original principal so membership restoration cannot borrow a new identity
+    // or silently escape the current Conversation Writer after withdrawal.
+    let change = || {
+        let scopes = {
+            let c = f.store.connection().unwrap();
+            let mut scopes = crate::authority_admission::conversation_scopes(
+                &c,
+                &f.cid,
+                crate::AuthorityMode::Write,
+            )
+            .unwrap();
+            for identity in &f.ids {
+                scopes.push(
+                    crate::AuthorityScope::identity(identity, crate::AuthorityMode::Write).unwrap(),
+                );
+            }
+            scopes
+        };
+        let writer = f.store.try_acquire_authority(&scopes).unwrap();
+        f.store.connection_with_authority(&writer).unwrap()
+    };
     {
-        let c = f.store.connection().unwrap();
+        let c = change();
         c.execute(
             "UPDATE operations SET lease_expires_at=?1 WHERE operation_id='one'",
             [crate::now() - 1],
@@ -1414,7 +1436,7 @@ fn stale_lease_and_membership_readmission_cannot_restore_old_execution_authority
         "forbidden"
     );
     {
-        let c = f.store.connection().unwrap();
+        let c = change();
         c.execute(
             "UPDATE participants SET active=0 WHERE participant_id=?1",
             [&f.parts[2]],

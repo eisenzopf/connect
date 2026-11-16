@@ -1,0 +1,47 @@
+{
+  "format": "connect/g6-058-focused-component-checkpoint/1",
+  "updated_at": "2026-11-16T09:42:22.564718+00:00",
+  "source_generation": 484,
+  "original_result": {
+    "path": ".local/gate-6/v219-g484-three-regressions-root/result.json",
+    "sha256": "2c8d84bd704f0ebf8209e86f85f30a4df840048925da6706030ec24bc46b4c51",
+    "passed": true,
+    "join_sha256": "6bfdc4283490693ba0938e21a2238360cee75d6477503854d38f8d892e3a9aa7"
+  },
+  "independent_review": {
+    "path": ".local/gate-6/v219-g484-focused-three-independent-fixture-review/receipt.json",
+    "sha256": "8e0d83d2fc9ab72624b1691f82890b09092a95528636461feeb63a8a9a2a643e"
+  },
+  "observed": {
+    "connect-store": {
+      "status": "ok",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "scope": "Exact three original g483 failures only; normal prepare/format/build, actual original binary, exact inventory and all5 child owners+Root65351/tool47903 naturally joined. Service compile only, no other component/media runtime.",
+  "selected": [
+    "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_four_plus_two_scene_reuses_exact_live_packet_interval_behind_actual_writer_without_effects",
+    "connection_control::tests::replacement_sources::public_video_ledger::public_video_intent_rejects_actual_private_preparation_before_missing_video_mapping",
+    "transitions::tests::stale_lease_and_membership_readmission_cannot_restore_old_execution_authority"
+  ],
+  "preserved_full_affected_result": {
+    "generation": 483,
+    "store_passed": 413,
+    "store_failed": 3,
+    "store_total": 416,
+    "service_passed": 90,
+    "historical_regrade": false
+  },
+  "new_pipeline_source_status": "DRAFT_NOT_APPLIED_NOT_RUNTIME_VERIFIED: Root same F/Warm/Ready/installed/Closed+current OLD wiring; reviewed Core/native preflight/hints and Store current OLD Read sources; pending coherent original-capture clone identity/typed NotSubmitted cleanup/units/integration.",
+  "full_matrix": {
+    "new_run": false,
+    "latest_complete": "v218",
+    "passed": 1,
+    "total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "ready_for_32": false
+}

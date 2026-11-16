@@ -17,6 +17,7 @@ pub mod received_dtmf;
 pub mod record_mutations;
 pub mod replacement_readiness;
 pub mod replacement_video;
+pub mod webrtc_video_receive_reservation;
 pub use conversations::Conversation;
 
 pub mod attachments;
@@ -1187,3 +1188,5 @@ mod tests {
 
 pub mod record_retention;
 pub mod replacement_activation;
+
+pub mod webrtc_public_video_phase;

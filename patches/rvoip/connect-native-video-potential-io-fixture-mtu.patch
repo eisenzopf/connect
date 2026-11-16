@@ -1,0 +1,31 @@
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs
+index 9b891232..18675f62 100644
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs
+@@ -37,7 +37,7 @@ struct NativeWire {
+     observe:Mutex<Option<Arc<dyn Fn()->Option<PhysicalVideoExposureSnapshot>+Send+Sync>>>,
+ }
+ impl StagedDatagramTransport for NativeWire {
+-    fn maximum_datagram_bytes(&self)->Option<usize> {Some(1200)}
++    fn maximum_datagram_bytes(&self)->Option<usize> {Some(400)}
+     fn is_closed(&self)->bool {false}
+     fn send_datagram(&self,_:Bytes)->ControlResult<()> {
+         let snapshot=self.observe.lock().unwrap().as_ref().and_then(|observe|observe());
+@@ -84,7 +84,7 @@ async fn exercise<T>(mode:usize,inspect:impl FnOnce(Context<'_>)->T)->T {
+         let weak=target.downgrade();*wire.observe.lock().unwrap()=Some(Arc::new(move||weak.upgrade().and_then(|port|port.physical_video_exposure())));
+         let mut ingress=controllers[0].take_ingress(&video_desired().logical_id).unwrap();
+         let mut header=rvoip_rtp_core::RtpHeader::new(96,1,3000,777);header.marker=true;
+-        let mut payload=vec![0u8;2500];payload[0]=0x10;
++        let mut payload=vec![0u8;1000];payload[0]=0x10;
+         let packet=rvoip_rtp_core::RtpPacket::new(header,Bytes::from(payload));
+         let frame=MediaFrame {stream_id:source.binding().transport_id.clone(),kind:StreamKind::Video,payload:packet.serialize().unwrap(),timestamp_rtp:3000,captured_at:chrono::Utc::now(),payload_type:Some(96),source_clock:None};
+         let mut point=OriginalVideoFrame::observed_in_realm(77,if mode==7 {778}else{777},3000,3000,Some(&if mode==2 {foreign.handle()}else{realm.handle()}));
+@@ -97,7 +97,7 @@ async fn exercise<T>(mode:usize,inspect:impl FnOnce(Context<'_>)->T)->T {
+             queued.try_forward_to(&controllers[1],&video_desired().logical_id).unwrap();wire.wait(if mode==3 {2}else{3}).await;
+             if mode==6 {
+                 let mut header=rvoip_rtp_core::RtpHeader::new(96,2,6000,777);header.marker=true;
+-                let mut payload=vec![0u8;2500];payload[0]=0x10;
++                let mut payload=vec![0u8;1000];payload[0]=0x10;
+                 let packet=rvoip_rtp_core::RtpPacket::new(header,Bytes::from(payload));
+                 point=OriginalVideoFrame::observed_in_realm(77,777,6000,6000,Some(&realm.handle()));
+                 let mut original=source.retain_original_video_ingress(MediaFrame {stream_id:source.binding().transport_id.clone(),kind:StreamKind::Video,payload:packet.serialize().unwrap(),timestamp_rtp:6000,captured_at:chrono::Utc::now(),payload_type:Some(96),source_clock:None},std::time::Instant::now(),Some(point.clone())).unwrap().unwrap();

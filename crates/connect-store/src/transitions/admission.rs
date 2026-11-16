@@ -216,7 +216,15 @@ impl Store {
                     }
                     return Ok(scopes);
                 }
+                // A generic worker can claim an accepted endpoint replacement
+                // only BEFORE its typed native reservation exists. Claiming is
+                // a real lease/state mutation, unlike native-owned no-op claims.
+                let unreserved_replacement_execution = required.contains(&"operation.execute")
+                    && replacement_row(&row)?
+                    && !row.native_replacement
+                    && !candidate_row(&row)?;
                 if mutation
+                    || unreserved_replacement_execution
                     || required
                         .iter()
                         .any(|scope| matches!(*scope, "operation.cancel" | "operation.reconcile"))

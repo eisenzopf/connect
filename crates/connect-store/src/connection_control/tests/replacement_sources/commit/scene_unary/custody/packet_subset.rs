@@ -20,10 +20,7 @@ fn one_private_packet_keeps_original_owners_and_actual_third_source_under_queued
             .unwrap();
     let target = full.media().target().runtime_connection_id.clone();
     assert!(full.permits_receive(&target, m.sources[2].runtime_connection_id()));
-    let held =
-        m.f.store
-            .try_native_media_read(&m.sources[2], None)
-            .unwrap();
+    let held = held_scene_source(&full, &m.sources[2]);
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let stable = counts(&m);
     let scope = AuthorityScope::conversation(&m.f.cid, AuthorityMode::Write).unwrap();
@@ -97,10 +94,12 @@ fn one_private_packet_ignores_only_unrelated_origin_and_rechecks_selected_operat
     ] {
         let (m, _) = four_plus_two();
         let subset = selected(&m);
-        let held =
+        let captured =
             m.f.store
-                .try_native_media_read(&m.sources[2], None)
+                .try_native_replacement_scene_read(&m.origin, &subset)
                 .unwrap();
+        let held = held_scene_source(&captured, &m.sources[2]);
+        drop(captured);
         let initial =
             m.f.store
                 .try_native_replacement_scene_read_under(&m.origin, &subset, &m.sources[2], &held)
@@ -109,9 +108,10 @@ fn one_private_packet_ignores_only_unrelated_origin_and_rechecks_selected_operat
         assert!(initial.permits_receive(&target, m.sources[2].runtime_connection_id()));
         drop(initial);
         {
-            // Controlled direct SQL changes expose fresh-read validation under
-            // the still-owned original interval, just as the existing controls.
-            let c = m.f.store.connection().unwrap();
+            // Explicitly adversarial file-owner changes expose fresh-read
+            // validation under the SAME still-owned original scene interval.
+            // A supported coordinated Writer must remain excluded by it.
+            let c = uncooperative_file_owner_at(&m.f, m.f.store.path());
             match mutation {
                 "unrelated-credential" | "selected-credential" | "operator-credential" => {
                     let credential = match mutation {

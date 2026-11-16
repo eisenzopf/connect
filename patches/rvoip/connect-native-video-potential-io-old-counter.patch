@@ -1,0 +1,145 @@
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
+index ae2e54f0..f755cc43 100644
+--- a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests.rs
+@@ -459,3 +459,5 @@ async fn actual_native_ready_loop_keeps_expiry_revocation_and_submitted_metadata
+         exercise(mode).await;
+     }
+ }
++
++mod native_video_exposure;
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs
+new file mode 100644
+index 00000000..9b891232
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/ready_audio/metadata_busy_tests/native_video_exposure.rs
+@@ -0,0 +1,129 @@
++//! Real original Core admission/fanout and canonical native egress task.
++//! The carrier is a controlled synchronous native IO endpoint, not a socket.
++use super::*;
++use rvoip_core::staged_streams::frame_realm::FrameRealmTestOwner;
++use rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureSnapshot;
++use tokio::sync::Notify;
++
++fn video_desired()->DesiredStream {DesiredStream {logical_id:StreamId::from_string("video"),medium:Medium::Video,direction:StreamDirection::Both}}
++fn video_owner(name:&str)->MediaOwner {
++    let mut value=owner(name);
++    let capability=MediaCapability {medium:Medium::Video,formats:vec![MediaFormat::Encoded {name:"vp8".into(),clock_rate_hz:90000,channels:0,fmtp:None}]};
++    value.local.send.push(capability.clone());value.local.receive.push(capability.clone());
++    value.remote.send.push(capability.clone());value.remote.receive.push(capability);
++    value.send_media.insert(Medium::Video);value.receive_media.insert(Medium::Video);value
++}
++struct Negotiator;
++#[async_trait]
++impl StagedRtpNegotiator for Negotiator {
++    async fn prepare(&self,_:&StagedRtpScope,offers:&[ReadyMediaBinding],_:tokio::time::Instant,_:CancellationToken)->ControlResult<Vec<PreparedRtpAnswer>> {
++        Ok(offers.iter().cloned().map(|binding|{let payload_type=if binding.negotiated.requested.medium==Medium::Audio {0}else{96};PreparedRtpAnswer {binding,payload_type}}).collect())
++    }
++    async fn confirm(&self,_:&StagedRtpScope,_:&[PreparedRtpAnswer],_:tokio::time::Instant,_:CancellationToken)->ControlResult<()> {Ok(())}
++}
++struct RecordingAdapter {backend:Arc<StagedRtpMedia>,ports:Mutex<Vec<AdapterMediaPort>>}
++#[async_trait]
++impl StagedMediaAdapter for RecordingAdapter {
++    fn native_sequence_cursors(&self)->bool {true}
++    async fn prepare(&self,ports:Vec<PortPreparation>,until:tokio::time::Instant,cancel:CancellationToken)->ControlResult<()> {
++        self.ports.lock().unwrap().extend(ports.iter().map(|p|p.port.clone()));
++        self.backend.prepare(ports,until,cancel).await
++    }
++}
++#[derive(Default)]
++struct NativeWire {
++    calls:AtomicUsize,refuse_at:AtomicUsize,changed:Notify,
++    snapshots:Mutex<Vec<Option<PhysicalVideoExposureSnapshot>>>,
++    observe:Mutex<Option<Arc<dyn Fn()->Option<PhysicalVideoExposureSnapshot>+Send+Sync>>>,
++}
++impl StagedDatagramTransport for NativeWire {
++    fn maximum_datagram_bytes(&self)->Option<usize> {Some(1200)}
++    fn is_closed(&self)->bool {false}
++    fn send_datagram(&self,_:Bytes)->ControlResult<()> {
++        let snapshot=self.observe.lock().unwrap().as_ref().and_then(|observe|observe());
++        self.snapshots.lock().unwrap().push(snapshot);
++        let call=self.calls.fetch_add(1,Ordering::AcqRel)+1;self.changed.notify_one();
++        if self.refuse_at.load(Ordering::Acquire)==call {Err(StreamControlError::Backpressure)} else {Ok(())}
++    }
++}
++impl NativeWire {
++    async fn wait(&self,minimum:usize) {
++        tokio::time::timeout(Duration::from_secs(2),async {
++            while self.calls.load(Ordering::Acquire)<minimum {self.changed.notified().await;}
++        }).await.expect("actual original guarded native IO did not occur");
++    }
++}
++fn command_deadline()->tokio::time::Instant {tokio::time::Instant::now()+Duration::from_secs(2)}
++struct Context<'a> {target:&'a AdapterMediaPort,source:&'a AdapterMediaPort,wire:&'a Arc<NativeWire>,point:&'a Arc<OriginalVideoFrame>,publish:&'a ControlResult<()>,realm:&'a FrameRealmTestOwner,send_errors:u64,audio:Option<AdapterMediaPort>}
++
++// mode0 known capsule;1 missing;2 foreign realm;3 failed second fragment;
++// mode4 actual current policy revocation;5 target setup missing realm;
++// mode6 unknown first then later known original;7 mismatched capsule/header.
++async fn exercise<T>(mode:usize,inspect:impl FnOnce(Context<'_>)->T)->T {
++    let realm=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"));
++    let foreign=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"));
++    let policy=Arc::new(Policy {owners:Arc::new(RwLock::new(BTreeMap::from([("alice".into(),video_owner("alice")),("bob".into(),video_owner("bob"))]))),busy:AtomicUsize::new(0),refused:AtomicUsize::new(0),revoked:AtomicBool::new(false)});
++    let lifetime=CancellationToken::new();let mut controllers=Vec::new();let mut adapters=Vec::new();
++    let wire=Arc::new(NativeWire::default());if mode==3 {wire.refuse_at.store(2,Ordering::Release);}
++    let work=std::panic::AssertUnwindSafe(async {
++        for name in ["alice","bob"] {
++            let p=principal(name);let router=PeerMediaRouter::new();
++            router.freeze_original_frame_realm(crate::substrate::PeerMediaConnectionKey::new(SessionId::from_string("session"),ConnectionId::from_string(name)),if mode==5 {None}else{Some(realm.handle())});
++            let transport:Arc<dyn StagedDatagramTransport>=if name=="bob" {wire.clone()}else{Arc::new(NativeWire::default())};
++            let backend=StagedRtpMedia::new(StagedRtpScope {session:SessionId::from_string("session"),connection:ConnectionId::from_string(name),owner:p.ownership_key(),wire_conversation:None,wire_session:"session".into(),wire_connection:name.into()},router,Arc::new(DashMap::new()),Arc::new(Negotiator),transport,lifetime.child_token());
++            let adapter=Arc::new(RecordingAdapter {backend:backend.clone(),ports:Mutex::new(Vec::new())});
++            let controller=StreamController::new(ConversationId::from_string("conversation"),SessionId::from_string("session"),ConnectionId::from_string(name),p,policy.clone(),adapter.clone(),backend.handle_allocator(),8).unwrap();
++            controllers.push(controller.clone());adapters.push(adapter);
++            let requested=if mode==8 {vec![video_desired(),desired()]}else{vec![video_desired()]};
++            controller.change(0,&requested,&BTreeSet::new(),command_deadline(),CancellationToken::new()).await.unwrap();
++        }
++        controllers[1].change_direct_subscriptions(controllers[1].revision(),direct_subscriptions::DirectSubscriptionChange::Subscribe(vec![direct_subscriptions::DirectSubscription::new(&controllers[0],video_desired().logical_id.clone(),video_desired().logical_id.clone())]),command_deadline(),CancellationToken::new(),None).await.unwrap();
++        let source=adapters[0].ports.lock().unwrap().iter().find(|port|port.binding().negotiated.requested.medium==Medium::Video).unwrap().clone();
++        let target=adapters[1].ports.lock().unwrap().iter().find(|port|port.binding().negotiated.requested.medium==Medium::Video).unwrap().clone();
++        let audio=adapters[1].ports.lock().unwrap().iter().find(|port|port.binding().negotiated.requested.medium==Medium::Audio).cloned();
++        let weak=target.downgrade();*wire.observe.lock().unwrap()=Some(Arc::new(move||weak.upgrade().and_then(|port|port.physical_video_exposure())));
++        let mut ingress=controllers[0].take_ingress(&video_desired().logical_id).unwrap();
++        let mut header=rvoip_rtp_core::RtpHeader::new(96,1,3000,777);header.marker=true;
++        let mut payload=vec![0u8;2500];payload[0]=0x10;
++        let packet=rvoip_rtp_core::RtpPacket::new(header,Bytes::from(payload));
++        let frame=MediaFrame {stream_id:source.binding().transport_id.clone(),kind:StreamKind::Video,payload:packet.serialize().unwrap(),timestamp_rtp:3000,captured_at:chrono::Utc::now(),payload_type:Some(96),source_clock:None};
++        let mut point=OriginalVideoFrame::observed_in_realm(77,if mode==7 {778}else{777},3000,3000,Some(&if mode==2 {foreign.handle()}else{realm.handle()}));
++        let mut original=source.retain_original_video_ingress(frame,std::time::Instant::now(),if matches!(mode,1|6) {None}else{Some(point.clone())}).unwrap().unwrap();
++        if mode==4 {policy.revoked.store(true,Ordering::Release);}
++        let publish=original.try_publish_clocked(|_|None);
++        if mode!=4 {
++            assert!(publish.is_ok());let queued=ingress.try_recv().unwrap();
++            if !matches!(mode,1|6|7) {assert!(Arc::ptr_eq(queued.original_video_frame().unwrap(),&point));}
++            queued.try_forward_to(&controllers[1],&video_desired().logical_id).unwrap();wire.wait(if mode==3 {2}else{3}).await;
++            if mode==6 {
++                let mut header=rvoip_rtp_core::RtpHeader::new(96,2,6000,777);header.marker=true;
++                let mut payload=vec![0u8;2500];payload[0]=0x10;
++                let packet=rvoip_rtp_core::RtpPacket::new(header,Bytes::from(payload));
++                point=OriginalVideoFrame::observed_in_realm(77,777,6000,6000,Some(&realm.handle()));
++                let mut original=source.retain_original_video_ingress(MediaFrame {stream_id:source.binding().transport_id.clone(),kind:StreamKind::Video,payload:packet.serialize().unwrap(),timestamp_rtp:6000,captured_at:chrono::Utc::now(),payload_type:Some(96),source_clock:None},std::time::Instant::now(),Some(point.clone())).unwrap().unwrap();
++                original.try_publish_clocked(|_|None).unwrap();ingress.try_recv().unwrap().try_forward_to(&controllers[1],&video_desired().logical_id).unwrap();wire.wait(6).await;
++            }
++        }
++        inspect(Context {target:&target,source:&source,wire:&wire,point:&point,publish:&publish,realm:&realm,send_errors:adapters[1].backend.counters.send_errors.load(Ordering::Acquire),audio})
++    }).catch_unwind().await;
++    // Every real Core/backend egress task is joined before final test oracles.
++    let mut cleanup=Vec::new();for controller in &controllers {cleanup.push(controller.shutdown(command_deadline()).await);}
++    lifetime.cancel();
++    let remaining=adapters.iter().map(|adapter|adapter.backend.streams.len()).collect::<Vec<_>>();
++    let bindings=adapters.iter().map(|adapter|adapter.backend.router.snapshot().bindings.len()).collect::<Vec<_>>();
++    *wire.observe.lock().unwrap()=None;
++    assert!(cleanup.iter().all(|count|*count==0),"all original Core owners joined: {cleanup:?}");
++    assert!(remaining.iter().all(|count|*count==0)&&bindings.iter().all(|count|*count==0),"original native stream/router cleanup: {remaining:?}/{bindings:?}");
++    match work {Ok(value)=>value,Err(error)=>std::panic::resume_unwind(error)}
++}
++
++
++#[tokio::test]
++async fn native_original_guarded_io_tracks_same_source_point_before_every_fragment() {
++    let (observed,before_io,ordinal,expected,identity,calls)=exercise(0,|c|(c.target.physical_video_exposure(),c.wire.snapshots.lock().unwrap().clone(),c.point.frame_realm().unwrap().ordinal(),c.realm.handle().incarnation().unwrap(),c.target.native_egress_identity().unwrap(),c.wire.calls.load(Ordering::Acquire))).await;
++    assert!(calls>=3);assert_eq!(identity.handle(),1);assert_eq!(identity.logical(),&video_desired().logical_id);
++    let observed=observed.expect("actual native guarded IO omitted its original source-point exposure");
++    assert_eq!(observed.maximum_potential_ordinal,ordinal);assert_eq!(observed.realm_incarnation,Some(expected));
++    assert!(!observed.coverage_complete,"raw native capabilities remain unsupported, never a full F");
++    assert!(before_io.iter().all(|snapshot|snapshot.is_some_and(|value|value.maximum_potential_ordinal==ordinal)),"source point must be visible BEFORE every actual native fragment call");
++}

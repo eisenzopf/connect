@@ -2511,6 +2511,86 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-physical-video-raw-access-seal.patch",
       "sha256": "93d130af2976ea9925f93c8aaa601b1e573098c9810663e4f4ee034c180255b6"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-canonical-reserved-public-video-b.patch",
+      "sha256": "bee9ce4e0eea2f5313e2991739c84b167437b4a9320f5354953a9c34b033199e"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-canonical-owned-public-video-b-metadata.patch",
+      "sha256": "e2cc50ac0bfb05f7aa9c945fbfa744d2bc925b9c9dbd2a0475c5d38949b1640a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-canonical-backend-controller-old-counter.patch",
+      "sha256": "82fba74f94565ca556205927aa312c8eec6ca295d27355dd73fb44ef737c9ae8"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-video-potential-io-old-counter.patch",
+      "sha256": "e68df36ca398aec9a312de3a0e9038c8029110fdb5f24beac8a6bdef1f249606"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-video-potential-io-fixture-mtu.patch",
+      "sha256": "25f176df4cbd8307ca0f728700bf84c1f40c0f62d711645aea0878a343d4225f"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-canonical-original-controller-custody.patch",
+      "sha256": "e2d2cf040b463259bd5c6d50417d7804e28745480e87bc6c2f32df39c3fd088a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-original-plan-old-video-freeze.patch",
+      "sha256": "59652648e89e75dcfdfb81a259b180789785f7de50de8166fffdaca098cd2ce7"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-published-video-protection-lifetime.patch",
+      "sha256": "e8d112574be9ad08a8ef0904bb488d2aa9fc503d77bc4748d44f6a91f149de89"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-video-potential-io.patch",
+      "sha256": "2d21a4cc5ca62e69d58f3a1ce3652cd8541b9c7a0dd757dd692dbd741ad8da08"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-published-video-observer-type-import.patch",
+      "sha256": "5b8687783141deff68a8b8cf15fa7dcffaa83230839283946aa5503a766374e5"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-old-video-freeze-test-repair-arity.patch",
+      "sha256": "80e37a8eabe0b428f9fd95519a6ec449e6f498aa65b1d29a5be63813d679aae8"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-cold-physical-video-test-profiles.patch",
+      "sha256": "fd896ddaef7def20beaf4f2519d2b1d624b613d7c477de4680b2585bfcaae1f8"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-reserved-video-valid-sdp-test.patch",
+      "sha256": "97a8c7158450e2ff3f22049471d97bd713cc28fe9f62d32ae637d6b16b91311a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-original-candidate-discard-retry-custody.patch",
+      "sha256": "85b8f3852723614bf2f1e6106675fc362a943e6a24de6d19879a3ac79ba73918"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-original-discard-fixture-module-path.patch",
+      "sha256": "7aff9b5c4fa44b7a0b0534e9afb7fbb8d0a45fb32f89982aa09d3c93cbd94075"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-discard-expired-original-activation-plan-test.patch",
+      "sha256": "acc2d6af97c0213bd4237591ae7a9a79239862bbf513f98a92d8680f26a7e4b6"
     }
   ]
 }

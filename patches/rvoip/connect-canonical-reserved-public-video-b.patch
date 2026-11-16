@@ -1,0 +1,865 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -6,6 +6,8 @@
+ };
+ mod allocation_publication;
+ mod media;
++pub(crate) mod reserved_video;
++pub use reserved_video::{ReservedVideoProfile, ReservedVideoBinding};
+ use dashmap::DashMap;
+ use futures::{
+     future::{BoxFuture, Shared},
+@@ -43,6 +45,12 @@
+ pub struct OriginalWebRtcIceControl { peer: Arc<RvoipPeerConnection> }
+ impl OriginalWebRtcIceControl {
+     pub fn same_physical(&self, other: &Self) -> bool { Arc::ptr_eq(&self.peer, &other.peer) }
++    /// Same original native B observation without exposing a writer/peer.
++    /// Not current permission, a cut, a no-feed certificate or decoded ready.
++    pub async fn reserved_video_binding(&self) -> rvoip_core::staged_streams::ControlResult<ReservedVideoBinding> {
++        self.peer.reserved_video_descriptor().await
++    }
++
+     /// Metadata-only exclusive raw-access seal on this SAME original peer.
+     /// This is not current authorization, writer drain, or a publication cut.
+     pub fn try_seal_raw_access(&self) -> std::result::Result<
+@@ -90,6 +98,7 @@
+     allocation: allocation_publication::AllocationPublication,
+     completion: OnceLock<Completion>,
+     terminal: Mutex<Option<TerminalDeliveryReceipt>>,
++    reserved_video: Option<ReservedVideoProfile>,
+ }
+ impl WebRtcPhysicalBinding {
+     pub fn new(peer: &Arc<PeerAdmission>, physical: CancellationToken) -> Arc<Self> {
+@@ -101,7 +110,20 @@
+             allocation: allocation_publication::AllocationPublication::new(),
+             completion: OnceLock::new(),
+             terminal: Mutex::new(None),
++            reserved_video: None,
+         })
++    }
++    /// Explicit setup-only A/B profile, selected by the trusted original Root
++    /// before Core reservation. This does not enable B media or readiness.
++    pub fn with_reserved_video(peer: &Arc<PeerAdmission>, physical: CancellationToken, profile: ReservedVideoProfile) -> Arc<Self> {
++        let mut binding=Self::new(peer,physical);
++        Arc::get_mut(&mut binding).expect("new unshared physical binding").reserved_video=Some(profile);
++        binding
++    }
++    pub fn with_capacity_and_reserved_video(peer: &Arc<PeerAdmission>, physical: CancellationToken, permit: tokio::sync::OwnedSemaphorePermit, profile: ReservedVideoProfile) -> Arc<Self> {
++        let value=Self::with_reserved_video(peer,physical,profile);
++        *value.capacity.lock().unwrap_or_else(|p|p.into_inner())=Some(permit);
++        value
+     }
+     /// The deployment slot is retained by the original close worker and route,
+     /// never released by a failed allocation/observation worker.
+@@ -187,10 +209,17 @@
+             .map_err(|_| RvoipError::InvalidState("WebRTC allocation runtime unavailable"))?;
+         let lifetime = self.lifetime.clone();
+         let route_cancel = owner.as_ref().unwrap().cancel.clone();
++        let reserved_video=self.reserved_video.clone();
+         let task = runtime.spawn(async move {
+             let peer = RvoipPeerConnection::new_canonical(&config, role)
+                 .await
+                 .map_err(|_| AllocationError::Construction)?;
++            if let Some(profile)=reserved_video {
++                if peer.install_reserved_video(profile).is_err() {
++                    peer.close().await.map_err(|_|AllocationError::Worker)?;
++                    return Err(AllocationError::Construction);
++                }
++            }
+             if lifetime.is_cancelled() || route_cancel.is_cancelled() {
+                 peer.close().await.map_err(|_| AllocationError::Worker)?;
+                 return Err(AllocationError::Construction);
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -144,6 +144,21 @@
+         self.stop.cancel();
+     }
+ }
++// Only Backend owns these strong reservation roots. A queued original owns
++// its target Port, whose cleanup owns PortIo; PortIo MUST hold only Weak here.
++struct ReservedVideoOutput {
++    video: Mutex<Option<CoreVideoEgress>>,
++    stream: StreamId,
++    owners: Weak<DashMap<StreamId,Arc<ReservedVideoOutput>>>,
++}
++impl ReservedVideoOutput {
++    fn close(&self) {
++        self.video.lock().unwrap_or_else(|p|p.into_inner()).take();
++        if let Some(owners)=self.owners.upgrade() {
++            owners.remove_if(&self.stream,|_,owner|std::ptr::eq(self,Arc::as_ptr(owner)));
++        }
++    }
++}
+ struct PortIo {
+     port: WeakAdapterMediaPort,
+     binding: ReadyMediaBinding,
+@@ -152,9 +167,34 @@
+     input: mpsc::Sender<Received>,
+     input_refused: AtomicU64,
+     close: OnceLock<Done>,
++    // Weak cleanup access to Backend's original B queue. Future arming must
++    // fence/discard every pre-cut queued original; this slice has no arm API.
++    reserved_video: Option<Weak<ReservedVideoOutput>>,
+     map: Weak<DashMap<StreamId, Arc<PortIo>>>,
+ }
+ impl PortIo {
++    fn reserve_video(&self, video:CoreVideoEgress) -> ControlResult<()> {
++        let setup=self.health.setup.lock().unwrap_or_else(|p|p.into_inner());
++        if setup.closing || self.health.stop.is_cancelled() { return Err(StreamControlError::Cancelled); }
++        if !setup.tasks.is_empty() { return Err(StreamControlError::Authority); }
++        let owner=self.reserved_video.as_ref().and_then(Weak::upgrade).ok_or(StreamControlError::Cancelled)?;
++        let mut slot=owner.video.lock().unwrap_or_else(|p|p.into_inner());
++        if slot.is_some() { return Err(StreamControlError::Authority); }
++        *slot=Some(video);
++        Ok(())
++    }
++    fn activate_prepared(&self, setup:&worker_health::Setup) -> ControlResult<()> {
++        if let Some(owner)=self.reserved_video.as_ref() {
++            let owner=owner.upgrade().ok_or(StreamControlError::Cancelled)?;
++            if owner.video.lock().unwrap_or_else(|p|p.into_inner()).is_none() { return Err(StreamControlError::NotReady); }
++            if setup.closing || self.health.stop.is_cancelled() { return Err(StreamControlError::Cancelled); }
++            if !setup.tasks.is_empty() { return Err(StreamControlError::Authority); }
++            // Setup readiness only: an exact owned output queue exists but no
++            // native writer or decoder readiness is asserted or started.
++            self.health.ready.store(true,Ordering::Release);
++            Ok(())
++        } else { self.health.activate(setup) }
++    }
+     fn start(
+         &self,
+         f: impl std::future::Future<Output = ControlResult<()>> + Send + 'static,
+@@ -207,6 +247,7 @@
+ impl MediaPortCleanup for PortIo {
+     async fn close(&self) -> ControlResult<()> {
+         self.health.retire();
++        if let Some(owner)=self.reserved_video.as_ref().and_then(Weak::upgrade) { owner.close(); }
+         let done = self.close.get_or_init(|| {
+             let tasks = {
+                 let mut setup = self.health.setup.lock().unwrap_or_else(|p| p.into_inner());
+@@ -251,6 +292,7 @@
+     physical: Arc<WebRtcPhysicalBinding>,
+     lifetime: CancellationToken,
+     ports: Arc<DashMap<StreamId, Arc<PortIo>>>,
++    reserved_video_outputs: Arc<DashMap<StreamId,Arc<ReservedVideoOutput>>>,
+     sources: [OnceLock<SourceJob>; 2],
+     close: OnceLock<Done>,
+     source_lock: Mutex<()>,
+@@ -276,6 +318,7 @@
+             physical,
+             lifetime,
+             ports: Arc::new(DashMap::new()),
++            reserved_video_outputs: Arc::new(DashMap::new()),
+             sources: Default::default(),
+             close: OnceLock::new(),
+             source_lock: Mutex::new(()),
+@@ -604,6 +647,23 @@
+     }
+     Ok((format, pt, lr && rs, ls && rr))
+ }
++async fn shape_for_port(peer:&RvoipPeerConnection, request:&DesiredStream) -> ControlResult<(MediaFormat,u8,bool,bool)> {
++    let Some(profile)=peer.reserved_video_profile() else { return shape(peer,request.medium).await; };
++    let role=profile.role(request)?;
++    if role.is_none() { return shape(peer,Medium::Audio).await; }
++    if !peer.core_transport_current() || !peer.signaling_is_stable().await { return Err(StreamControlError::NotReady); }
++    let pc=peer.peer_connection_internal();
++    let local=pc.local_description().await.ok_or(StreamControlError::NotReady)?;
++    let remote=pc.remote_description().await.ok_or(StreamControlError::NotReady)?;
++    if local.sdp_type!=webrtc::peer_connection::RTCSdpType::Answer || remote.sdp_type!=webrtc::peer_connection::RTCSdpType::Offer { return Err(StreamControlError::Unsupported); }
++    let slots=super::reserved_video::slots(&remote.sdp,false)?;
++    slots.validate_answer(&remote.sdp,&local.sdp)?;
++    let role=role.unwrap();
++    let mapping=slots.negotiated(&remote.sdp,&local.sdp,role)?;
++    peer.reserved_video_track_for_role(role).await?;
++    if !peer.core_transport_current() || !peer.signaling_is_stable().await { return Err(StreamControlError::NotReady); }
++    Ok((MediaFormat::Encoded{name:"vp8".into(),clock_rate_hz:90000,channels:0,fmtp:None},mapping.payload_type,role==super::reserved_video::VideoRole::Preview,true))
++}
+ #[async_trait::async_trait]
+ impl StagedMediaAdapter for Backend {
+     async fn prepare(
+@@ -615,10 +675,14 @@
+         if ports.is_empty() || ports.len() > 3 {
+             return Err(StreamControlError::Unsupported);
+         }
++        if let Some(profile)=self.physical.reserved_video.as_ref() {
++            profile.validate_ports(ports.iter().map(|p|&p.port.binding().negotiated.requested))?;
++        } else {
+         validate_rtp_slots(ports.iter().map(|prepared| {
+             let request = &prepared.port.binding().negotiated.requested;
+             (request.medium, request.direction)
+         }))?;
++        }
+         for prepared in &ports {
+             self.prepare_port(prepared, deadline, &cancel).await?;
+         }
+@@ -663,6 +727,16 @@
+         if connection != self.id {
+             return Err(StreamControlError::Authority);
+         }
++        let reserved_public=self.physical.reserved_video.as_ref().map(|p|p.role(&b.negotiated.requested)).transpose()?.flatten()==Some(super::reserved_video::VideoRole::PublicReserved);
++        let reserved_video=if reserved_public {
++            let owner=Arc::new(ReservedVideoOutput {video:Mutex::new(None),stream:b.transport_id.clone(),owners:Arc::downgrade(&self.reserved_video_outputs)});
++            let weak=Arc::downgrade(&owner);
++            match self.reserved_video_outputs.entry(b.transport_id.clone()) {
++                dashmap::mapref::entry::Entry::Vacant(slot)=>{slot.insert(owner);},
++                _=>return Err(StreamControlError::Authority),
++            }
++            Some(weak)
++        } else {None};
+         let (tx, rx) = input_channel(b.negotiated.requested.medium);
+         let io = Arc::new(PortIo {
+             port: prepared.port.downgrade(),
+@@ -672,6 +746,7 @@
+             input: tx,
+             input_refused: AtomicU64::new(0),
+             close: OnceLock::new(),
++            reserved_video,
+             map: Arc::downgrade(&self.ports),
+         });
+         prepared.port.install_cleanup(io.clone())?;
+@@ -694,7 +769,7 @@
+             r=peer.wait_connected(deadline.saturating_duration_since(tokio::time::Instant::now()))=>r.map_err(|_|StreamControlError::NotReady)?,
+         }
+         let (format, pt, can_receive, can_send) =
+-            tokio::time::timeout_at(deadline, shape(&peer, b.negotiated.requested.medium))
++            tokio::time::timeout_at(deadline, shape_for_port(&peer, &b.negotiated.requested))
+                 .await
+                 .map_err(|_| StreamControlError::Deadline)??;
+         if b.negotiated.format != format
+@@ -737,6 +812,10 @@
+             io.start(ingress(io.port.clone(), io.health.stop.clone(), rx, source))?;
+         }
+         if let Some(egress) = egress {
++            if reserved_public {
++                let Egress::Video(video)=egress else { return Err(StreamControlError::Unsupported); };
++                io.reserve_video(video)?;
++            } else {
+             if let Egress::Video(video) = &egress {
+                 io.start(picture_feedback(
+                     video.picture_requests(),
+@@ -752,6 +831,7 @@
+                 io.health.stop.clone(),
+                 b.negotiated.requested.medium,
+             ))?;
++            }
+         }
+         if !self.current() || cancel.is_cancelled() || io.health.stop.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+@@ -766,7 +846,7 @@
+             b.sink_ready && can_send,
+             Some(pt),
+         )?;
+-        io.health.activate(&setup)?;
++        io.activate_prepared(&setup)?;
+         drop(setup);
+         Ok(())
+     }
+@@ -1574,6 +1654,14 @@
+             _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
+             r=peer.wait_connected(deadline.saturating_duration_since(tokio::time::Instant::now()))=>r.map_err(|_|StreamControlError::NotReady)?,
+         }
++        if let Some(profile)=peer.reserved_video_profile() {
++            for request in profile.streams() {
++                let (format,pt,receive,_)=tokio::time::timeout_at(deadline,shape_for_port(&peer,&request)).await.map_err(|_|StreamControlError::Deadline)??;
++                if receive { self.source_ready(peer.clone(),pt,&format,request.medium,deadline,&cancel).await?; }
++            }
++            if !self.current() || cancel.is_cancelled() || tokio::time::Instant::now()>=deadline { return Err(StreamControlError::Cancelled); }
++            return Ok(());
++        }
+         let local=peer.peer_connection_internal().local_description().await.ok_or(StreamControlError::NotReady)?;
+         let parsed=local.sdp.parse::<rvoip_sip_core::types::sdp::SdpSession>().map_err(|_|StreamControlError::Unsupported)?;
+         let mut media=std::collections::BTreeSet::new();
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+@@ -255,6 +255,7 @@
+     a: Arc<StreamController>,
+     b: Arc<StreamController>,
+     port: AdapterMediaPort,
++    opposite_port: AdapterMediaPort,
+     input: mpsc::Receiver<MediaPacket>,
+     output: mpsc::Receiver<QueuedMedia>,
+     medium: Medium,
+@@ -356,6 +357,7 @@
+             a,
+             b,
+             port,
++            opposite_port: ba.port(medium),
+             input,
+             output,
+             medium,
+@@ -808,6 +810,7 @@
+         input,
+         input_refused: AtomicU64::new(0),
+         close: OnceLock::new(),
++        reserved_video: None,
+         map: Arc::downgrade(&ports),
+     });
+     io.start(ingress(
+@@ -979,6 +982,7 @@
+             input,
+             input_refused: AtomicU64::new(0),
+             close: OnceLock::new(),
++        reserved_video: None,
+             map: Arc::downgrade(ports),
+         });
+         io.start(ingress(
+@@ -1497,3 +1501,63 @@
+         std::panic::resume_unwind(error)
+     }
+ }
++
++// Actual Core queue ownership. No complete canonical-B transport/F assertion.
++#[tokio::test]
++async fn reserved_video_queue_has_no_native_worker_and_original_close_releases_it() {
++    use futures::FutureExt as _;
++    use rvoip_core::peer_admission::PeerAdmissionOwner;
++    use rvoip_core::staged_streams::direct_subscriptions::*;
++    for backend_drop in [false,true] {
++        let f=Fixture::new(Medium::Video).await;
++        let lifetime=CancellationToken::new();
++        let mut accepted=principal("reserved-output");
++        accepted.assurance=IdentityAssurance::Identified {credential_kind:rvoip_core::identity::CredentialKind::Oidc};
++        let owner=PeerAdmissionOwner::new(&accepted,IdentityId::new(),DeviceId::new(),lifetime.child_token(),Default::default()).unwrap();
++        let physical=WebRtcPhysicalBinding::new(&owner.peer(),lifetime.child_token());
++        let peer=match RvoipPeerConnection::new_canonical(&WebRtcConfig::loopback(),PeerRole::Answerer).await {
++            Ok(peer)=>peer,Err(error)=>{let a=f.a.shutdown(deadline()).await;let b=f.b.shutdown(deadline()).await;assert_eq!((a,b),(0,0));panic!("native reservation setup: {error}")}
++        };
++        let owners=Arc::new(DashMap::new());
++        let queue=Arc::new(ReservedVideoOutput {video:Mutex::new(None),stream:f.port.binding().transport_id.clone(),owners:Arc::downgrade(&owners)});
++        let weak=Arc::downgrade(&queue);owners.insert(queue.stream.clone(),queue); // sole strong queue root
++        let (input,_receive)=input_channel(Medium::Video);
++        let io=Arc::new(PortIo {
++            port:f.port.downgrade(),binding:f.port.binding().clone(),physical,
++            health:WorkerHealth::new(lifetime.child_token()),input,input_refused:AtomicU64::new(0),
++            close:OnceLock::new(),reserved_video:Some(weak.clone()),map:Weak::new(),
++        });
++        let work=std::panic::AssertUnwindSafe(async {
++            f.a.change_direct_subscriptions(f.a.revision(),DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&f.b,desired(Medium::Video).logical_id.clone(),desired(Medium::Video).logical_id)]),deadline(),CancellationToken::new(),None).await.unwrap();
++            let mut original=f.b.take_ingress(&desired(Medium::Video).logical_id).unwrap();
++            peer.add_local_video_track().await.unwrap();
++            let track=peer.local_video_track_internal().unwrap();let ssrc=peer.local_video_ssrc().unwrap();
++            let video=CoreVideoEgress::bind(&f.port,track,ssrc,96,peer.sender_clock.clone(),deadline().into_std()).await.unwrap();
++            assert!(f.port.take_egress().is_err());io.reserve_video(video).unwrap();
++            {
++                let setup=io.health.setup.lock().unwrap();
++                assert!(setup.tasks.is_empty());assert!(io.health.activate(&setup).is_err());
++                io.activate_prepared(&setup).unwrap();assert!(setup.tasks.is_empty());
++            }
++            assert!(io.health.confirmed());
++            let packet=f.packet(1,9000);
++            f.opposite_port.try_publish(&MediaFrame {stream_id:f.opposite_port.binding().transport_id.clone(),kind:StreamKind::Video,payload:packet.packet.marshal().unwrap().freeze(),timestamp_rtp:9000,captured_at:Utc::now(),payload_type:Some(96),source_clock:None}).unwrap();
++            original.try_recv().unwrap().try_forward_to(&f.a,&desired(Medium::Video).logical_id).unwrap();
++            let (limit,remaining)=f.port.egress_capacity();assert_eq!(remaining,limit-1,"real QueuedMedia retains target while unpolled");
++        }).catch_unwind().await;
++        let (io_close,released)=if backend_drop {
++            // Backend's own cancellation+registry drop must break the queued
++            // target chain even while the Port's cleanup/other view retains io.
++            lifetime.cancel();drop(owners);let released=weak.upgrade().is_none();(io.close().await,released)
++        } else {
++            let closed=io.close().await;let released=owners.is_empty();drop(owners);(closed,released)
++        };
++        let native_close=peer.close().await;
++        let a=f.a.shutdown(deadline()).await;let b=f.b.shutdown(deadline()).await;
++        let retired=!io.health.confirmed()&&weak.upgrade().is_none();
++        lifetime.cancel();drop(owner);
++        assert!(io_close.is_ok()&&native_close.is_ok());assert_eq!((a,b),(0,0));assert!(released&&retired);
++        assert!(io.activate_prepared(&io.health.setup.lock().unwrap()).is_err());
++        if let Err(e)=work {std::panic::resume_unwind(e)}
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video.rs b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video.rs
+@@ -0,0 +1,122 @@
++//! Explicit initial A/B negotiation, not permission to feed or publish B.
++use rvoip_core::{
++    ids::StreamId,
++    staged_streams::{ControlResult, StreamControlError as E},
++    stream_lifecycle::{DesiredStream, Medium, StreamDirection},
++};
++use rvoip_sip_core::types::sdp::{MediaDescription, ParsedAttribute, SdpSession};
++
++/// Trusted setup intent for audio Both, camera/preview A Both and public B
++/// client-recvonly (Core Send). The Root owns reservation/authentication; this
++/// value names slots and cannot enable a writer, perform a cut or prove ready.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct ReservedVideoProfile {
++    pub(crate) audio_stream_id: StreamId,
++    pub(crate) preview_stream_id: StreamId,
++    pub(crate) public_stream_id: StreamId,
++}
++/// Negotiated scalar observation only; the original Root must separately bind
++/// Core generations/family, reservation, cut and decoded readiness.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct ReservedVideoBinding {
++    pub logical_stream_id: StreamId,
++    pub mid: String,
++    pub primary_ssrc: u32,
++    pub payload_type: u8,
++    pub clock_rate_hz: u32,
++}
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub(crate) struct OfferedSlots {
++    pub(crate) audio_mid: String,
++    pub(crate) preview_mid: String,
++    pub(crate) public_mid: String,
++}
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(crate) enum VideoRole { Preview, PublicReserved }
++impl ReservedVideoProfile {
++    pub fn new(audio_stream_id: StreamId, preview_stream_id: StreamId, public_stream_id: StreamId) -> ControlResult<Self> {
++        if audio_stream_id == preview_stream_id || audio_stream_id == public_stream_id || preview_stream_id == public_stream_id {
++            return Err(E::Unsupported);
++        }
++        Ok(Self { audio_stream_id, preview_stream_id, public_stream_id })
++    }
++    pub(crate) fn streams(&self) -> [DesiredStream;3] {
++        [DesiredStream{logical_id:self.audio_stream_id.clone(),medium:Medium::Audio,direction:StreamDirection::Both},DesiredStream{logical_id:self.preview_stream_id.clone(),medium:Medium::Video,direction:StreamDirection::Both},DesiredStream{logical_id:self.public_stream_id.clone(),medium:Medium::Video,direction:StreamDirection::Send}]
++    }
++    pub(crate) fn role(&self, stream: &DesiredStream) -> ControlResult<Option<VideoRole>> {
++        match (&stream.logical_id, stream.medium, stream.direction) {
++            (id, Medium::Audio, StreamDirection::Both) if *id == self.audio_stream_id => Ok(None),
++            (id, Medium::Video, StreamDirection::Both) if *id == self.preview_stream_id => Ok(Some(VideoRole::Preview)),
++            (id, Medium::Video, StreamDirection::Send) if *id == self.public_stream_id => Ok(Some(VideoRole::PublicReserved)),
++            _ => Err(E::Unsupported),
++        }
++    }
++    pub(crate) fn validate_ports<'a>(&self, streams: impl IntoIterator<Item=&'a DesiredStream>) -> ControlResult<()> {
++        let mut roles = [false; 3];
++        for stream in streams {
++            let index = match self.role(stream)? { None => 0, Some(VideoRole::Preview) => 1, Some(VideoRole::PublicReserved) => 2 };
++            if std::mem::replace(&mut roles[index], true) { return Err(E::Unsupported); }
++        }
++        if roles != [true; 3] { return Err(E::Unsupported); }
++        Ok(())
++    }
++}
++fn one_mid(media: &MediaDescription) -> ControlResult<String> {
++    let mut mids = media.generic_attributes.iter().filter_map(|a| if let ParsedAttribute::Mid(mid)=a { Some(mid) } else { None });
++    let mid = mids.next().ok_or(E::Unsupported)?;
++    // The existing canonical one-byte MID writer supports at most 16 bytes.
++    if mids.next().is_some() || mid.is_empty() || mid.len()>16 || !mid.bytes().all(|b| b.is_ascii_graphic()) { return Err(E::Unsupported); }
++    Ok(mid.clone())
++}
++fn direction(session: &SdpSession, media: &MediaDescription) -> String {
++    media.direction.as_ref().or(session.direction.as_ref()).map(ToString::to_string).unwrap_or_else(|| "sendrecv".into())
++}
++pub(crate) fn slots(sdp: &str, answer: bool) -> ControlResult<OfferedSlots> {
++    let session: SdpSession = sdp.parse().map_err(|_| E::Unsupported)?;
++    let media = &session.media_descriptions;
++    if media.len()!=3 || media.iter().any(|m|m.port==0) || media[0].media!="audio" || media[1].media!="video" || media[2].media!="video" {
++        return Err(E::Unsupported);
++    }
++    let expected = if answer { ["sendrecv", "sendrecv", "sendonly"] } else { ["sendrecv", "sendrecv", "recvonly"] };
++    for (m, expected) in media.iter().zip(expected) {
++        if direction(&session,m) != expected { return Err(E::Unsupported); }
++    }
++    let out = OfferedSlots { audio_mid: one_mid(&media[0])?, preview_mid: one_mid(&media[1])?, public_mid: one_mid(&media[2])? };
++    if out.audio_mid==out.preview_mid || out.audio_mid==out.public_mid || out.preview_mid==out.public_mid { return Err(E::Unsupported); }
++    Ok(out)
++}
++impl OfferedSlots {
++    pub(crate) fn mid(&self, role: VideoRole) -> &str {
++        match role { VideoRole::Preview => &self.preview_mid, VideoRole::PublicReserved => &self.public_mid }
++    }
++    pub(crate) fn validate_answer(&self, offer: &str, answer: &str) -> ControlResult<()> {
++        if slots(offer,false)? != *self || slots(answer,true)? != *self { return Err(E::Unsupported); }
++        for role in [VideoRole::Preview, VideoRole::PublicReserved] {
++            self.negotiated(offer,answer,role)?;
++        }
++        Ok(())
++    }
++    pub(crate) fn negotiated(&self, offer: &str, answer: &str, role: VideoRole) -> ControlResult<crate::media::core_video_profile::NegotiatedVideo> {
++        crate::media::core_video_profile::negotiated_profile(&project_video(offer,self.mid(role))?, &project_video(answer,self.mid(role))?)
++    }
++    pub(crate) fn outbound_mid(&self, offer: &str, answer: &str, role: VideoRole) -> ControlResult<Option<(u8,String)>> {
++        crate::media::core_video_profile::outbound_mid(&project_video(offer,self.mid(role))?, &project_video(answer,self.mid(role))?, false)
++    }
++}
++/// Projection is only for existing exact codec/extmap validators. Full shape,
++/// original m-section position, direction and all role MIDs are checked first.
++pub(crate) fn project_video(sdp: &str, expected_mid: &str) -> ControlResult<String> {
++    let parsed: SdpSession = sdp.parse().map_err(|_| E::Unsupported)?;
++    let selected: Vec<_> = parsed.media_descriptions.iter().enumerate().filter(|(_,m)|m.media=="video" && one_mid(m).ok().as_deref()==Some(expected_mid)).map(|(i,_)|i).collect();
++    let [selected] = selected.as_slice() else { return Err(E::Unsupported); };
++    let mut index=None;
++    let mut out=String::new();
++    for line in sdp.lines() {
++        if line.starts_with("m=") { index=Some(index.map_or(0,|i|i+1)); }
++        if index.is_none() || index==Some(*selected) { out.push_str(line.trim_end_matches('\r')); out.push_str("\r\n"); }
++    }
++    Ok(out)
++}
++
++#[cfg(test)]
++mod tests;
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video/tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video/tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video/tests.rs
+@@ -0,0 +1,40 @@
++use super::*;
++fn profile() -> ReservedVideoProfile {
++    ReservedVideoProfile::new(StreamId::from_string("audio"),StreamId::from_string("camera-preview"),StreamId::from_string("public-b")).unwrap()
++}
++fn sdp(answer:bool)->String {
++    let b=if answer {"sendonly"} else {"recvonly"};
++    format!("v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE au camera fresh\r\nm=audio 9 UDP/TLS/RTP/SAVPF 0\r\na=mid:au\r\na=sendrecv\r\na=rtpmap:0 PCMU/8000\r\nm=video 9 UDP/TLS/RTP/SAVPF 120 124\r\na=mid:camera\r\na=sendrecv\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=rtpmap:120 VP8/90000\r\na=rtpmap:124 rtx/90000\r\na=fmtp:124 apt=120\r\nm=video 9 UDP/TLS/RTP/SAVPF 121 125\r\na=mid:fresh\r\na={b}\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=rtpmap:121 VP8/90000\r\na=rtpmap:125 rtx/90000\r\na=fmtp:125 apt=121\r\n")
++}
++#[test]
++fn reserved_b_profile_requires_exact_three_logical_roles_and_preserves_default_singleton() {
++    let p=profile();
++    assert!(p.validate_ports(p.streams().iter()).is_ok());
++    let mut wrong=p.streams();wrong[2].direction=StreamDirection::Both;
++    assert!(p.validate_ports(wrong.iter()).is_err());
++    wrong=p.streams();wrong[1].direction=StreamDirection::Receive;
++    assert!(p.validate_ports(wrong.iter()).is_err());
++    wrong=p.streams();wrong[2].logical_id=wrong[1].logical_id.clone();
++    assert!(p.validate_ports(wrong.iter()).is_err());
++    assert!(p.validate_ports(p.streams()[..2].iter()).is_err());
++    assert!(ReservedVideoProfile::new(p.audio_stream_id.clone(),p.preview_stream_id.clone(),p.preview_stream_id.clone()).is_err());
++    let ordinary=project_video(&sdp(false),"camera").unwrap();
++    assert!(crate::media::core_video_profile::negotiated_profile(&ordinary,&ordinary).is_ok());
++    assert!(crate::media::core_video_profile::negotiated_profile(&sdp(false),&sdp(true)).is_err(),"extra B remains opt-in, not a relaxed default");
++}
++#[test]
++fn reserved_b_negotiates_exact_mid_codec_direction_without_aliasing_preview() {
++    let offer=sdp(false);let answer=sdp(true);let roles=slots(&offer,false).unwrap();
++    roles.validate_answer(&offer,&answer).unwrap();
++    let a=roles.negotiated(&offer,&answer,VideoRole::Preview).unwrap();
++    let b=roles.negotiated(&offer,&answer,VideoRole::PublicReserved).unwrap();
++    assert_eq!(a.mid.as_deref(),Some("camera"));assert_eq!(b.mid.as_deref(),Some("fresh"));
++    assert_eq!((a.payload_type,a.rtx_payload_type),(120,Some(124)));
++    assert_eq!((b.payload_type,b.rtx_payload_type),(121,Some(125)));
++    assert_eq!(roles.outbound_mid(&offer,&answer,VideoRole::PublicReserved).unwrap(),Some((4,"fresh".into())));
++    for bad in [answer.replace("a=mid:fresh","a=mid:camera"),answer.replace("a=mid:fresh","a=mid:other"),answer.replace("a=sendonly","a=sendrecv"),answer.replace("a=fmtp:125 apt=121","a=fmtp:125 apt=120"),answer.replace("121 VP8/90000","121 VP8/8000"),answer+"m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n"] {
++        assert!(roles.validate_answer(&offer,&bad).is_err());
++    }
++    assert!(slots(&offer.replace("a=recvonly","a=sendrecv"),false).is_err());
++    assert!(slots(&offer.replace("a=mid:fresh","a=mid:camera"),false).is_err());
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -88,6 +88,9 @@
+     outbound_dtmf_send_capable: AtomicBool,
+     local_video: SyncMutex<Option<Arc<TrackLocalStaticRTP>>>,
+     local_video_ssrc: Arc<SyncMutex<Option<u32>>>,
++    reserved_video: std::sync::OnceLock<crate::canonical::ReservedVideoProfile>,
++    reserved_video_slots: std::sync::OnceLock<crate::canonical::reserved_video::OfferedSlots>,
++    reserved_video_track: SyncMutex<Option<reserved_video::ReservedVideoTrack>>,
+     video_feedback: Arc<tokio::sync::Notify>,
+     video_repair_requests: Arc<super::handler::VideoRepairRequests>,
+     gather_timeout: Duration,
+@@ -175,6 +178,9 @@
+             outbound_dtmf_send_capable: AtomicBool::new(true),
+             local_video: SyncMutex::new(None),
+             local_video_ssrc,
++            reserved_video: std::sync::OnceLock::new(),
++            reserved_video_slots: std::sync::OnceLock::new(),
++            reserved_video_track: SyncMutex::new(None),
+             video_feedback,
+             video_repair_requests,
+             gather_timeout,
+@@ -238,6 +244,7 @@
+         self: &Arc<Self>,
+         remote_sdp: &str,
+     ) -> Result<()> {
++        if self.reserved_video.get().is_some() { return self.prepare_reserved_video_offer(remote_sdp).await; }
+         let offered_dtmf = preferred_telephone_event_codec_in_sdp(remote_sdp);
+         if sdp_has_media_line(remote_sdp, "audio") {
+             self.add_local_audio_track_with_dtmf(offered_dtmf.into_iter().collect())
+@@ -638,10 +645,16 @@
+                 (RTCSdpType::Answer, RTCSdpType::Offer) => (&remote.sdp, &local.sdp, false),
+                 _ => return Err(E::NotReady),
+             };
+-            let mapping = crate::media::core_video_profile::negotiated_profile(offer, answer)?;
+-            let mid = crate::media::core_video_profile::outbound_mid(offer, answer, local_offer)?;
+-            let track = self.local_video_track_internal().ok_or(E::NotReady)?;
+-            let ssrc = self.local_video_ssrc().ok_or(E::NotReady)?;
++            let (mapping,mid,track,ssrc)=if let Some(profile)=self.reserved_video.get() {
++                if local_offer { return Err(E::Unsupported); }
++                let slots=self.reserved_video_slots.get().ok_or(E::NotReady)?;
++                slots.validate_answer(offer,answer)?;
++                let role=profile.role(&port.binding().negotiated.requested)?.ok_or(E::Unsupported)?;
++                let (track,ssrc)=self.reserved_video_track_for_role(role).await?;
++                (slots.negotiated(offer,answer,role)?,slots.outbound_mid(offer,answer,role)?,track,ssrc)
++            } else {
++                (crate::media::core_video_profile::negotiated_profile(offer,answer)?,crate::media::core_video_profile::outbound_mid(offer,answer,local_offer)?,self.local_video_track_internal().ok_or(E::NotReady)?,self.local_video_ssrc().ok_or(E::NotReady)?)
++            };
+             let egress = crate::media::core_video::CoreVideoEgress::bind(
+                 port,
+                 track,
+@@ -1192,6 +1205,7 @@
+         // Validate track binding against the actual offer/answer intersection
+         // before mutating local signaling state.
+         self.final_outbound_dtmf_state(&offer_sdp, &provisional_answer_sdp, false)?;
++        if self.reserved_video.get().is_some() { self.validate_reserved_video_answer(&offer_sdp,&provisional_answer_sdp).await?; }
+         self.pc.set_local_description(answer).await?;
+         self.wait_gather().await?;
+ 
+@@ -1202,6 +1216,7 @@
+             .ok_or_else(|| WebRtcError::Sdp("no local description after gather".into()))?;
+         let answer_sdp = sdp_to_string(&desc)?;
+         let final_dtmf = self.final_outbound_dtmf_state(&offer_sdp, &answer_sdp, false)?;
++        if self.reserved_video.get().is_some() { self.validate_reserved_video_answer(&offer_sdp,&answer_sdp).await?; }
+         let audio_mid = negotiated_sdes_mid_for_outbound_audio(&offer_sdp, &answer_sdp, false);
+         self.commit_outbound_dtmf_state(final_dtmf, audio_mid);
+         Ok(answer_sdp)
+@@ -1449,6 +1464,9 @@
+ 
+     /// Discover a remote track of `kind` from transceivers.
+     pub async fn discover_remote_track(&self, kind: RtpCodecKind) -> Option<Arc<dyn TrackRemote>> {
++        if kind==RtpCodecKind::Video && self.reserved_video.get().is_some() {
++            return self.reserved_camera_track().await;
++        }
+         for tx in self.pc.get_transceivers().await {
+             let Ok(Some(receiver)) = tx.receiver().await else {
+                 continue;
+@@ -1955,3 +1973,5 @@
+ impl Drop for RvoipPeerConnection {
+     fn drop(&mut self) { self.video_exposure.retire(); }
+ }
++
++mod reserved_video;
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video.rs b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video.rs
+@@ -0,0 +1,136 @@
++//! Setup-only second server video output. No public raw B writer capability.
++use super::*;
++use crate::canonical::reserved_video::{OfferedSlots, ReservedVideoProfile, VideoRole};
++use webrtc::rtp_transceiver::{RtpTransceiver, RTCRtpTransceiverInit};
++
++pub(super) struct ReservedVideoTrack {
++    pub(super) track: Arc<TrackLocalStaticRTP>,
++    pub(super) ssrc: u32,
++    transceiver: Arc<dyn RtpTransceiver>,
++}
++impl RvoipPeerConnection {
++    pub(crate) fn install_reserved_video(&self, profile: ReservedVideoProfile) -> Result<()> {
++        if !self.guarded_video_io || self.role != PeerRole::Answerer || self.local_audio.lock().is_some() || self.local_video.lock().is_some() {
++            return Err(WebRtcError::IncompatibleCapabilities);
++        }
++        self.reserved_video.set(profile).map_err(|_| WebRtcError::IncompatibleCapabilities)
++    }
++    pub(crate) fn reserved_video_profile(&self) -> Option<&ReservedVideoProfile> { self.reserved_video.get() }
++    pub(super) async fn prepare_reserved_video_offer(self: &Arc<Self>, offer: &str) -> Result<()> {
++        let slots = crate::canonical::reserved_video::slots(offer,false).map_err(|_|WebRtcError::IncompatibleCapabilities)?;
++        if let Some(old)=self.reserved_video_slots.get() {
++            if old != &slots { return Err(WebRtcError::IncompatibleCapabilities); }
++        } else {
++            self.reserved_video_slots.set(slots).map_err(|_|WebRtcError::IncompatibleCapabilities)?;
++        }
++        self.add_local_audio_track_with_dtmf(preferred_telephone_event_codec_in_sdp(offer).into_iter().collect()).await?;
++        self.add_local_video_track().await?;
++        if self.reserved_video_track.lock().is_some() { return Ok(()); }
++        let mut occupied=std::collections::BTreeSet::new();
++        for sender in self.pc.get_senders().await {
++            for encoding in sender.track().codings().await {
++                let coding=encoding.rtp_coding_parameters;
++                if let Some(ssrc)=coding.ssrc { occupied.insert(ssrc); }
++                if let Some(rtx)=coding.rtx { occupied.insert(rtx.ssrc); }
++                if let Some(fec)=coding.fec { occupied.insert(fec.ssrc); }
++            }
++        }
++        let mut ssrc=rand::random::<u32>();
++        // At most this finite existing coding census can collide. Zero remains
++        // a legal SSRC. No reuse of another bundled sender/RTX/FEC identity.
++        for _ in 0..=occupied.len() {
++            if !occupied.contains(&ssrc) { break; }
++            ssrc=ssrc.wrapping_add(1);
++        }
++        if occupied.contains(&ssrc) { return Err(WebRtcError::IncompatibleCapabilities); }
++        let track=Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
++            self.local_stream_id.clone(), format!("rvoip-public-b-{ssrc}"), "rvoip-reserved-public-video".into(), RtpCodecKind::Video,
++            vec![RTCRtpEncodingParameters { rtp_coding_parameters: RTCRtpCodingParameters { ssrc:Some(ssrc), ..Default::default() }, codec:RTCRtpCodec {
++                mime_type:MIME_TYPE_VP8.to_owned(), clock_rate:90000, channels:0, sdp_fmtp_line:String::new(), rtcp_feedback:video_track_rtcp_feedback(),
++            }, ..Default::default() }],
++        )));
++        let transceiver=self.pc.add_transceiver_from_track(track.clone() as Arc<dyn TrackLocal>,Some(RTCRtpTransceiverInit {
++            direction:RTCRtpTransceiverDirection::Sendonly, ..Default::default()
++        })).await?;
++        *self.reserved_video_track.lock()=Some(ReservedVideoTrack { track,ssrc,transceiver });
++        Ok(())
++    }
++    pub(super) async fn validate_reserved_video_answer(&self, offer:&str, answer:&str) -> Result<()> {
++        let slots=self.reserved_video_slots.get().ok_or(WebRtcError::IncompatibleCapabilities)?;
++        slots.validate_answer(offer,answer).map_err(|_|WebRtcError::IncompatibleCapabilities)?;
++        for role in [VideoRole::Preview,VideoRole::PublicReserved] {
++            self.reserved_video_track_for_role(role).await.map_err(|_|WebRtcError::IncompatibleCapabilities)?;
++        }
++        Ok(())
++    }
++    // A is the sole browser publication. Never choose B's dummy receive side
++    // by HashMap order or media kind when a second native video MID exists.
++    pub(super) async fn reserved_camera_track(&self) -> Option<Arc<dyn TrackRemote>> {
++        let slots=self.reserved_video_slots.get()?;
++        let original=self.local_video_track_internal()? as Arc<dyn TrackLocal>;
++        let mut found=None;
++        for tx in self.pc.get_transceivers().await {
++            let Some(sender)=tx.sender().await.ok()? else {continue};
++            if !Arc::ptr_eq(sender.track(),&original) {continue;}
++            if found.is_some() || tx.mid().await.ok()?.as_deref()!=Some(slots.preview_mid.as_str()) || tx.direction().await.ok()?!=RTCRtpTransceiverDirection::Sendrecv {return None;}
++            let receiver=tx.receiver().await.ok()??;
++            let track=receiver.track().clone();
++            if track.kind().await!=RtpCodecKind::Video || track.ssrcs().await.len()!=1 {return None;}
++            found=Some(track);
++        }
++        found
++    }
++    pub(crate) async fn reserved_video_descriptor(&self) -> rvoip_core::staged_streams::ControlResult<crate::canonical::ReservedVideoBinding> {
++        use rvoip_core::staged_streams::StreamControlError as E;
++        if !self.core_transport_current() || !self.signaling_is_stable().await { return Err(E::NotReady); }
++        let profile=self.reserved_video.get().ok_or(E::Unsupported)?;
++        let slots=self.reserved_video_slots.get().ok_or(E::NotReady)?;
++        let local=self.pc.local_description().await.ok_or(E::NotReady)?;
++        let remote=self.pc.remote_description().await.ok_or(E::NotReady)?;
++        if local.sdp_type!=RTCSdpType::Answer || remote.sdp_type!=RTCSdpType::Offer { return Err(E::Unsupported); }
++        slots.validate_answer(&remote.sdp,&local.sdp)?;
++        let mapping=slots.negotiated(&remote.sdp,&local.sdp,VideoRole::PublicReserved)?;
++        let (_,ssrc)=self.reserved_video_track_for_role(VideoRole::PublicReserved).await?;
++        if !self.core_transport_current() || !self.signaling_is_stable().await { return Err(E::NotReady); }
++        Ok(crate::canonical::ReservedVideoBinding { logical_stream_id:profile.public_stream_id.clone(),mid:slots.public_mid.clone(),primary_ssrc:ssrc,payload_type:mapping.payload_type,clock_rate_hz:90000 })
++    }
++    pub(crate) async fn reserved_video_track_for_role(&self, role:VideoRole) -> rvoip_core::staged_streams::ControlResult<(Arc<TrackLocalStaticRTP>,u32)> {
++        use rvoip_core::staged_streams::StreamControlError as E;
++        let slots=self.reserved_video_slots.get().ok_or(E::NotReady)?;
++        let (track,ssrc,expected_tx)= match role {
++            VideoRole::Preview => (self.local_video_track_internal().ok_or(E::NotReady)?,self.local_video_ssrc().ok_or(E::NotReady)?,None),
++            VideoRole::PublicReserved => {
++                let reserved=self.reserved_video_track.lock();
++                let b=reserved.as_ref().ok_or(E::NotReady)?;
++                (b.track.clone(),b.ssrc,Some(b.transceiver.id()))
++            }
++        };
++        let erased=track.clone() as Arc<dyn TrackLocal>;
++        let mut matched=None;
++        for tx in self.pc.get_transceivers().await {
++            let Some(sender)=tx.sender().await.map_err(|_|E::NotReady)? else { continue; };
++            if !Arc::ptr_eq(sender.track(),&erased) { continue; }
++            if matched.is_some() || expected_tx.is_some_and(|id|id!=tx.id()) || tx.mid().await.map_err(|_|E::NotReady)?.as_deref()!=Some(slots.mid(role)) {
++                return Err(E::Unsupported);
++            }
++            let expected=match role { VideoRole::Preview=>RTCRtpTransceiverDirection::Sendrecv,VideoRole::PublicReserved=>RTCRtpTransceiverDirection::Sendonly };
++            if tx.direction().await.map_err(|_|E::NotReady)?!=expected { return Err(E::Unsupported); }
++            let parameters=sender.get_parameters().await.map_err(|_|E::NotReady)?;
++            if parameters.encodings.len()!=1 || parameters.encodings[0].rtp_coding_parameters.ssrc!=Some(ssrc) { return Err(E::Unsupported); }
++            for other in self.pc.get_senders().await {
++                if other.id()==sender.id() { continue; }
++                let parameters=other.get_parameters().await.map_err(|_|E::NotReady)?;
++                if parameters.encodings.iter().any(|e| {
++                    let c=&e.rtp_coding_parameters;
++                    c.ssrc==Some(ssrc) || c.rtx.as_ref().is_some_and(|v|v.ssrc==ssrc) || c.fec.as_ref().is_some_and(|v|v.ssrc==ssrc)
++                }) { return Err(E::Unsupported); }
++            }
++            matched=Some(());
++        }
++        if matched.is_none() { return Err(E::NotReady); }
++        Ok((track,ssrc))
++    }
++}
++
++#[cfg(test)]
++mod tests;
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session/reserved_video/tests.rs
+@@ -0,0 +1,92 @@
++use super::*;
++use futures::FutureExt as _;
++use rvoip_core::ids::StreamId;
++fn profile()->ReservedVideoProfile {
++    ReservedVideoProfile::new(StreamId::from_string("audio"),StreamId::from_string("a"),StreamId::from_string("b")).unwrap()
++}
++#[tokio::test]
++async fn reserved_b_actual_native_answer_has_distinct_tracks_mids_ssrcs_and_default_stays_single_video() {
++    for reserve in [false,true] {
++        let mut config=WebRtcConfig::loopback();config.require_vp8_audio_video_profile=true;
++        let client=RvoipPeerConnection::new(&config,PeerRole::Offerer).await.unwrap();
++        let server=match RvoipPeerConnection::new_canonical(&config,PeerRole::Answerer).await {
++            Ok(p)=>p,Err(e)=>{client.close().await.unwrap();panic!("server setup: {e}")}
++        };
++        let work=std::panic::AssertUnwindSafe(async {
++            if reserve { server.install_reserved_video(profile()).unwrap(); }
++            client.add_local_audio_track().await.unwrap();client.add_local_video_track().await.unwrap();
++            let original_camera=client.local_video_track_internal().unwrap();
++            if reserve {
++                client.pc.add_transceiver_from_kind(RtpCodecKind::Video,Some(RTCRtpTransceiverInit {direction:RTCRtpTransceiverDirection::Recvonly,..Default::default()})).await.unwrap();
++            }
++            let offered=client.create_offer_and_gather().await.unwrap();
++            server.apply_remote_offer(&offered).await.unwrap();
++            let original_preview=server.local_video_track_internal().unwrap();
++            let answered=server.create_answer_and_gather().await.unwrap();
++            client.set_remote_answer(&answered).await.unwrap();
++            client.wait_connected(Duration::from_secs(5)).await.unwrap();
++            server.wait_connected(Duration::from_secs(5)).await.unwrap();
++            let parsed:rvoip_sip_core::types::sdp::SdpSession=answered.parse().unwrap();
++            assert_eq!(parsed.media_descriptions.len(),if reserve {3} else {2});
++            if reserve {
++                server.validate_reserved_video_answer(&offered,&answered).await.unwrap();
++                let (a,assrc)=server.reserved_video_track_for_role(VideoRole::Preview).await.unwrap();
++                let (b,bssrc)=server.reserved_video_track_for_role(VideoRole::PublicReserved).await.unwrap();
++                assert!(Arc::ptr_eq(&a,&original_preview));assert!(!Arc::ptr_eq(&a,&b));assert_ne!(assrc,bssrc);
++                assert_ne!(Some(bssrc),server.local_audio_ssrc());
++                let descriptor=server.reserved_video_descriptor().await.unwrap();
++                assert_eq!(descriptor.logical_stream_id,profile().public_stream_id);
++                assert_eq!(descriptor.primary_ssrc,bssrc);assert_eq!(descriptor.clock_rate_hz,90000);
++                assert_eq!(Some(descriptor.mid.as_str()),server.reserved_video_slots.get().map(|s|s.public_mid.as_str()));
++                let roles=server.reserved_video_slots.get().unwrap();assert_ne!(roles.preview_mid,roles.public_mid);
++                server.prepare_answerer_media_for_offer(&offered).await.unwrap();
++                assert!(Arc::ptr_eq(&b,&server.reserved_video_track_for_role(VideoRole::PublicReserved).await.unwrap().0));
++                // Real sender pointer/MID/coding mismatch cannot silently bind A.
++                let tx=server.reserved_video_track.lock().as_ref().unwrap().transceiver.clone();
++                tx.set_direction(RTCRtpTransceiverDirection::Sendrecv).await.unwrap();
++                assert!(server.reserved_video_track_for_role(VideoRole::PublicReserved).await.is_err());
++                tx.set_direction(RTCRtpTransceiverDirection::Sendonly).await.unwrap();
++                server.validate_reserved_video_answer(&offered,&answered).await.unwrap();
++            } else {
++                assert!(server.reserved_video_track.lock().is_none());assert!(server.reserved_video_slots.get().is_none());
++                assert!(crate::media::core_video_profile::negotiated_profile(&offered,&answered).is_ok());
++            }
++            // Existing camera ingress still reaches the SAME native receiver
++            // while no server B writer exists. Synthetic RTP, not codec quality.
++            let camera_ssrc=client.local_video_ssrc().unwrap();
++            original_camera.write_rtp(crate::media::vp8_rtp_packet_for_ssrc(camera_ssrc,1,9000)).await.unwrap();
++            let remote=server.wait_remote_video_track(Duration::from_secs(2)).await.unwrap();
++            let canonical_input=server.discover_remote_video_track().await.unwrap();
++            assert!(Arc::ptr_eq(&remote,&canonical_input),"canonical camera SourceJob must select exact A, never B dummy receiver");
++            let observed=tokio::time::timeout(Duration::from_secs(2),async {
++                loop { match remote.poll().await {
++                    Some(webrtc::media_stream::track_remote::TrackRemoteEvent::OnRtpPacket(packet,_))=>break packet,
++                    Some(_)=>continue,None=>panic!("original camera receiver ended"),
++                }}
++            }).await.unwrap();
++            assert_eq!((observed.header.ssrc,observed.header.timestamp),(camera_ssrc,9000));
++            assert!(Arc::ptr_eq(&original_camera,&client.local_video_track_internal().unwrap()),"B cannot replace the original camera sender");
++            assert!(Arc::ptr_eq(&original_preview,&server.local_video_track_internal().unwrap()));
++        }).catch_unwind().await;
++        let a=client.close().await;let b=server.close().await;
++        assert!(a.is_ok()&&b.is_ok(),"both actual native owners close before work outcome");
++        if let Err(e)=work { std::panic::resume_unwind(e); }
++    }
++}
++#[tokio::test]
++async fn reserved_b_intent_cannot_be_late_rebound_or_accept_foreign_offer_roles() {
++    let mut config=WebRtcConfig::loopback();config.require_vp8_audio_video_profile=true;
++    let peer=RvoipPeerConnection::new_canonical(&config,PeerRole::Answerer).await.unwrap();
++    let work=std::panic::AssertUnwindSafe(async {
++        peer.install_reserved_video(profile()).unwrap();
++        assert!(peer.reserved_video_descriptor().await.is_err(),"pre-transport reservation is not a negotiated/current binding");
++        assert!(peer.install_reserved_video(profile()).is_err());
++        let bad="v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=mid:one\r\na=sendrecv\r\na=rtpmap:96 VP8/90000\r\n";
++        assert!(peer.prepare_answerer_media_for_offer(bad).await.is_err());
++        assert!(peer.local_video_track_internal().is_none());assert!(peer.reserved_video_track.lock().is_none());
++        peer.add_local_audio_track().await.unwrap();
++        assert!(peer.install_reserved_video(profile()).is_err());
++    }).catch_unwind().await;
++    let closed=peer.close().await;assert!(closed.is_ok());
++    if let Err(e)=work {std::panic::resume_unwind(e)}
++}

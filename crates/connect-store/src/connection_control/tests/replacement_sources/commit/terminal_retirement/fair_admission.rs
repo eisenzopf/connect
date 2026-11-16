@@ -8,11 +8,15 @@ fn replacement_cleanup_fair_admission_drains_continuously_overlapping_short_read
     let m = fixture(true);
     let (_, origin) = installed(&m);
     let absent = Gone(origin.runtime_connection_id().into(), origin.generation());
-    let read_scopes = {
-        let sql = m.f.store.connection().unwrap();
-        crate::authority_admission::conversation_scopes(&sql, &m.f.cid, crate::AuthorityMode::Read)
-            .unwrap()
-    };
+    // Retirement writes only this original candidate and its record. An
+    // unrelated Conversation/retained-reader need not block that scoped writer.
+    // Hold its ACTUAL affected file scopes to test the same admission drain.
+    let read_scopes = vec![
+        crate::AuthorityScope::connection(origin.connection_id(), crate::AuthorityMode::Read)
+            .unwrap(),
+        crate::AuthorityScope::record(origin.offer_record_id(), crate::AuthorityMode::Read)
+            .unwrap(),
+    ];
     // Each successor read is acquired BEFORE its predecessor is released. An
     // immediate writer therefore has no gap, including at its original200ms retry.
     // These are real exclusion guards; they do not supply a packet/IO permission.
@@ -113,10 +117,7 @@ fn replacement_cleanup_long_reader_releases_short_reservation_without_changing_f
     let m = fixture(true);
     let (_, origin) = installed(&m);
     let absent = Gone(origin.runtime_connection_id().into(), origin.generation());
-    let held =
-        m.f.store
-            .try_native_media_read(&m.sources[1], None)
-            .unwrap();
+    let held = m.f.store.try_native_media_read(&origin, None).unwrap();
     let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
     let began = Instant::now();
     let result =

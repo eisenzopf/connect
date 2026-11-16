@@ -3,6 +3,7 @@ mod allocation;
 mod capture_recording;
 pub(crate) mod continuation;
 mod diagnostics;
+pub(crate) mod discard;
 mod media;
 #[cfg(feature = "test-support")]
 pub(crate) use media::probe_held_start_control_for_test;
@@ -51,6 +52,8 @@ pub(crate) struct PreparedReplacement {
     pub(crate) telephone:
         std::sync::Mutex<Option<Arc<crate::telephone_replacement::allocation::Allocated>>>,
     allocated: std::sync::Mutex<Option<Arc<allocation::AllocatedReplacement>>>,
+    original_cleanup_facts: discard::OriginalPreparationFacts,
+    public_discard: Arc<tokio::sync::Mutex<discard::OwnedDiscard>>,
     failed_allocation:
         std::sync::OnceLock<Arc<connect_store::NativeReplacementAllocationUncertain>>,
 }
@@ -468,18 +471,25 @@ impl Runtime {
         // Only this successful original begin may invoke Core, once. Core owns
         // only a capacity/binding ticket here;
         // all allocation/target IO phases remain independently default-denied.
-        let actual = self.core.prepare_staged_device_replacement_with_held(
-            &sid,
-            principal.clone(),
-            invocation.intent.clone(),
-            deadline,
-            invocation.cancel.clone(),
-            &invocation,
-        );
+        let actual = (|| {
+            // Historical cleanup metadata comes from this SAME original held
+            // preparation. It grants no later admission or media permission.
+            let facts = discard::OriginalPreparationFacts::capture(&invocation)?;
+            self.core
+                .prepare_staged_device_replacement_with_held(
+                    &sid,
+                    principal.clone(),
+                    invocation.intent.clone(),
+                    deadline,
+                    invocation.cancel.clone(),
+                    &invocation,
+                )
+                .map(|handle| (handle, facts))
+        })();
         drop(roles);
         drop(invocation);
-        let handle = match actual {
-            Ok(handle) => handle,
+        let (handle, original_cleanup_facts) = match actual {
+            Ok(value) => value,
             Err(error) => {
                 tracing::debug!(target:"connect_service::canonical_replacement",?error,"Actual managed Core preparation refused");
                 let store = self.media.store.clone();
@@ -511,6 +521,8 @@ impl Runtime {
             telephone: std::sync::Mutex::new(None),
             allocated: std::sync::Mutex::new(None),
             failed_allocation: Default::default(),
+            original_cleanup_facts,
+            public_discard: Arc::new(tokio::sync::Mutex::new(discard::OwnedDiscard::Empty)),
         });
         self.replacements
             .lock()

@@ -80,10 +80,28 @@ fn pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup(
         m.f.store
             .try_native_media_read(&m.sources[1], None)
             .unwrap();
-    let recorded =
-        m.f.store
+    let metadata_deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);
+    let recorded = loop {
+        match m
+            .f
+            .store
             .record_native_replacement_commit_not_submitted(&refusal)
-            .unwrap();
+        {
+            Ok(recorded) => break recorded,
+            Err(error)
+                if error.code == "authority-busy"
+                    && std::time::Instant::now() < metadata_deadline =>
+            {
+                assert!(packet_reader.current());
+                assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+                assert_eq!(m.f.count("operation_effects"), effects);
+                std::thread::yield_now();
+            }
+            Err(error) => {
+                panic!("same negative capture did not record within fixture budget: {error:?}")
+            }
+        }
+    };
     assert!(
         packet_reader.current(),
         "historical refusal recording must not invalidate retained media"
@@ -255,7 +273,7 @@ fn live_negative_capture_resolves_unknown_metadata_without_crossing_runtime_owne
     // original process still owns its definite negative capture. This is not
     // a captured Core error and does not simulate a physical process crash.
     {
-        let mut c = m.f.store.connection().unwrap();
+        let mut c = m.f.change_fixture();
         let tx = c.transaction().unwrap();
         tx.execute("UPDATE operation_effects SET state='unknown' WHERE operation_record_id=?1 AND provider='native-replacement-commit'",[&record_id]).unwrap();
         tx.execute(
@@ -300,4 +318,150 @@ fn live_negative_capture_resolves_unknown_metadata_without_crossing_runtime_owne
         "forbidden"
     );
     assert_eq!(Store::inspect_snapshot(&path).unwrap(), before);
+}
+
+#[test]
+fn original_not_submitted_scoped_metadata_refuses_wrong_row_deltas_while_retained_media_remains_live(
+) {
+    let m = fixture(true);
+    let read =
+        m.f.store
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &read)
+            .unwrap();
+    let record = attempt.activation().origin().offer_record_id().to_owned();
+    let refusal = attempt.not_submitted();
+    drop(read);
+    let packet =
+        m.f.store
+            .try_native_media_read(&m.sources[1], None)
+            .unwrap();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let observed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let until = std::time::Instant::now() + std::time::Duration::from_secs(1);
+    let recorded = loop {
+        let called = observed.clone();
+        let root = record.clone();
+        let credential = m.f.keys[1].clone();
+        let result = Store::with_native_replacement_not_submitted_probe_for_test(
+            move |c| {
+                assert_eq!(called.fetch_add(1, std::sync::atomic::Ordering::SeqCst), 0);
+                // The actual permit is live, but only its three exact OLD/NEW tuples
+                // may cross the boundary. It cannot cancel, confirm, change intent,
+                // revoke a source or write another original resource/phase.
+                for (sql, id) in [
+                ("UPDATE credentials SET revoked=1 WHERE id=?1", credential.as_str()),
+                ("UPDATE operations SET cancel_requested=1 WHERE record_id=?1", root.as_str()),
+                ("UPDATE operations SET revision=revision+2 WHERE record_id=?1", root.as_str()),
+                ("UPDATE operation_effects SET state='confirmed' WHERE operation_record_id=?1 AND provider='native-replacement-commit'", root.as_str()),
+                ("UPDATE operation_effects SET state='failed' WHERE operation_record_id=?1 AND provider='native-replacement-start'", root.as_str()),
+                ("UPDATE native_replacement_steps SET observation_json='{}' WHERE operation_record_id=?1 AND phase='commit'", root.as_str()),
+            ] {
+                assert!(c.execute(sql, [id]).is_err(), "scoped negative capture admitted {sql}");
+            }
+            },
+            || {
+                m.f.store
+                    .record_native_replacement_commit_not_submitted(&refusal)
+            },
+        );
+        match result {
+            Ok(record) => break record,
+            Err(error) if error.code == "authority-busy" && std::time::Instant::now() < until => {
+                assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+                assert!(packet.current());
+                std::thread::yield_now();
+            }
+            Err(error) => panic!("original scoped refusal did not record: {error:?}"),
+        }
+    };
+    assert_eq!(observed.load(std::sync::atomic::Ordering::SeqCst), 1);
+    assert_eq!(recorded.state, OperationState::Preparing);
+    assert!(packet.current());
+    assert!(m.f.store.revalidate(&m.f.keys[1]).is_ok());
+    let after = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let replay_until = std::time::Instant::now() + std::time::Duration::from_secs(1);
+    let replayed = loop {
+        match m
+            .f
+            .store
+            .record_native_replacement_commit_not_submitted(&refusal)
+        {
+            Ok(replayed) => break replayed,
+            Err(error)
+                if error.code == "authority-busy" && std::time::Instant::now() < replay_until =>
+            {
+                assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), after);
+                assert!(packet.current());
+                std::thread::yield_now();
+            }
+            Err(error) => panic!("original negative metadata replay failed: {error:?}"),
+        }
+    };
+    assert_eq!(replayed, recorded);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), after);
+}
+
+#[test]
+fn original_not_submitted_requires_its_own_record_writer_without_fencing_unrelated_media() {
+    let m = fixture(true);
+    let read =
+        m.f.store
+            .try_native_replacement_scene_write(&m.origin, &m.sources)
+            .unwrap();
+    let attempt =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &read)
+            .unwrap();
+    let record = attempt.activation().origin().offer_record_id().to_owned();
+    let refusal = attempt.not_submitted();
+    drop(read);
+    let packet =
+        m.f.store
+            .try_native_media_read(&m.sources[1], None)
+            .unwrap();
+    let record_reader =
+        m.f.store
+            .try_acquire_authority(&[crate::AuthorityScope::record(
+                &record,
+                crate::AuthorityMode::Read,
+            )
+            .unwrap()])
+            .unwrap();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    assert_eq!(
+        m.f.store
+            .record_native_replacement_commit_not_submitted(&refusal)
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    assert!(packet.current());
+    drop(record_reader);
+    let until = std::time::Instant::now() + std::time::Duration::from_secs(1);
+    loop {
+        match m
+            .f
+            .store
+            .record_native_replacement_commit_not_submitted(&refusal)
+        {
+            Ok(recorded) => {
+                assert_eq!(recorded.state, OperationState::Preparing);
+                break;
+            }
+            Err(error) if error.code == "authority-busy" && std::time::Instant::now() < until => {
+                assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+                assert!(packet.current());
+                std::thread::yield_now();
+            }
+            Err(error) => panic!(
+                "same original refusal could not proceed after its record Reader left: {error:?}"
+            ),
+        }
+    }
+    assert!(packet.current());
 }

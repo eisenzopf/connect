@@ -84,6 +84,8 @@ impl Drop for NativeReplayCustody {
                     plan: root.plan.clone(),
                     recorded: AtomicBool::new(root.recorded.load(Ordering::Acquire)),
                     failed_allocation: root.failed_allocation.clone(),
+                    original_cleanup_facts: root.original_cleanup_facts.clone(),
+                    public_discard: root.public_discard.clone(),
                     deadline: root.deadline,
                     telephone: std::sync::Mutex::new(
                         root.telephone
@@ -228,6 +230,9 @@ impl Runtime {
         let mutation = match &phase {
             Phase::Activate(plan) => !plan.is_muted_endpoint_preparation(),
             Phase::Commit(_) => true,
+            // Freeze owns no durable/publication mutation; retain compatible
+            // Readers, never OLD+NEW Writer over physical drain.
+            Phase::FreezeVideo(_) => false,
             _ => false,
         };
         self.continuation_read_with_custody(root, started, phase, mutation)

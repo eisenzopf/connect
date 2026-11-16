@@ -57,6 +57,11 @@ macro_rules! redacted {($($name:ident),*)=>{$(impl std::fmt::Debug for $name {fn
 pub(super) mod candidate;
 pub use candidate::{NativeReplacementCandidate, NativeReplacementCandidateRetirement};
 mod allocation;
+mod public_video;
+pub use public_video::{
+    NativeReplacementPublicVideoReservation, NativeReplacementUnpublishedRead,
+    PublicVideoOperationSnapshot,
+};
 mod presence;
 pub(crate) use presence::preserves_joined_presence;
 mod telephone;

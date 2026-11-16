@@ -1,0 +1,516 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -2469,7 +2469,7 @@
+     DeviceReplacementEndpointEvent, DeviceReplacementEvent, DeviceReplacementPreparation,
+     DeviceReplacementSignalScope, DeviceReplacementSignalSource, ManagedAudioDeviceReplacementPlan,
+     ParticipantReplacementAuthority, ParticipantReplacementControl, ParticipantReplacementLease,
+-    ParticipantReplacementScope, ReplacementPhase,
++    ParticipantReplacementScope, ReplacementPhase, UnpublishedCandidateDiscardContext,
+ };
+ 
+ #[cfg(test)]
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -20,6 +20,8 @@
+ pub(crate) mod metadata_retry;
+ pub(super) mod publication;
+ mod old_video_freeze;
++mod candidate_discard;
++pub use candidate_discard::UnpublishedCandidateDiscardContext;
+ pub use publication::CurrentReplacementPublication;
+ const PREPARING: u8 = 0;
+ const ATTACHED: u8 = 1;
+@@ -39,6 +41,8 @@
+     FreezeVideo,
+     Commit,
+     Replay,
++    /// Host-owned Store Reader proves known precommit abort, never Commit/replay.
++    Discard,
+ }
+ pub struct ParticipantReplacementScope<'a> {
+     pub conversation: &'a ConversationId,
+@@ -248,6 +252,8 @@
+     resource_lifetime: CancellationToken,
+     source_lifecycles: Vec<ConnectionLifecycleTicket>,
+     candidate: ConnectionLifecycleTicket,
++    // Historical cleanup context is issued once, independent of target expiry.
++    discard_context_issued: std::sync::OnceLock<()>,
+ }
+ /// Lifetime of structural private route intent, minted only from the exact
+ /// owned Core preparation. It contains no MediaControl or authorization read.
+@@ -583,6 +589,7 @@
+                 .insert(intent.replacement.clone(), Arc::downgrade(&runtime));
+             Arc::new(DeviceReplacementPreparation {
+                 owner: Arc::downgrade(self),
++                discard_context_issued: std::sync::OnceLock::new(),
+                 runtime: runtime.clone(),
+                 candidate: ConnectionLifecycleTicket {
+                     connection_id: intent.replacement.clone(),
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/candidate_discard.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/candidate_discard.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/candidate_discard.rs
+@@ -0,0 +1,97 @@
++//! Known-precommit cancellation custody, NOT native close or OLD restoration proof.
++//! The Host Discard policy must own a compatible Store Reader over the original
++//! preparing operation/reservation and reject ANY Commit-start/unknown/public state.
++use super::*;
++
++/// Nonclone original cancellation context. Only the actual Core cancellation
++/// transition can create it. An adapter must still join its original physical
++/// owner and Core terminal cleanup before issuing any close attestation.
++pub struct UnpublishedCandidateDiscardContext {
++    preparation: Arc<DeviceReplacementPreparation>,
++    peer_origin: Option<crate::peer_admission::PeerAdmissionOrigin>,
++}
++impl UnpublishedCandidateDiscardContext {
++    pub fn intent(&self) -> &ParticipantReplacementMutation { &self.preparation.intent }
++    pub fn session(&self) -> &SessionId { &self.preparation.runtime.session }
++    pub fn conversation(&self) -> &ConversationId { &self.preparation.runtime.conversation }
++    pub fn matches_preparation(&self, original: &Arc<DeviceReplacementPreparation>) -> bool {
++        Arc::ptr_eq(&self.preparation, original) && self.cancelled_original()
++    }
++    /// Historical native incarnation, not current permission/liveness.
++    pub fn matches_original_peer(&self, original: &Arc<PeerAdmission>) -> bool {
++        self.matches_original_origin(&original.original_origin())
++    }
++    /// Historical equality remains usable after the original last strong peer
++    /// and route permit are released. It is not current admission.
++    pub fn matches_original_origin(&self,original:&crate::peer_admission::PeerAdmissionOrigin)->bool {
++        self.peer_origin.as_ref()==Some(original) && self.cancelled_original()
++    }
++    pub fn cancelled_original(&self) -> bool {
++        self.preparation.phase.load(Ordering::Acquire)==CANCELLED
++            && self.preparation.cancellation.is_cancelled()
++            && self.preparation.resource_lifetime.is_cancelled()
++    }
++}
++impl Orchestrator {
++    /// Capture SAME unpublished preparation under distinct Host Discard authority,
++    /// including after target expiry/cancel, then permanently cancel it BEFORE releasing the original publication locks.
++    /// This provides no native-close, OLD-resume, media grant or fresh operation.
++    pub fn discard_staged_device_replacement_with_held(
++        self: &Arc<Self>, p: &Arc<DeviceReplacementPreparation>, held: &(dyn Any+Send+Sync),
++    ) -> ControlResult<UnpublishedCandidateDiscardContext> {
++        self.owns_replacement(p)?;
++        let _flight=p.flight.clone().try_acquire_owned().map_err(|_|ParticipantTransitionError::Conflict)?;
++        let request=scope(p,ReplacementPhase::Discard,None);
++        let control=p.runtime.policy.current_replacement_control(&request,held)?;
++        check_discard_scope(&request,&control.current(&request)?)?;
++        let peer={
++            // SAME ordering as actual attach/final managed publication. No await,
++            // physical join or adapter callback occurs under these locks.
++            let state=p.runtime.state.lock().unwrap_or_else(|v|v.into_inner());
++            let _registry=self.connection_registry_lock.lock().unwrap_or_else(|v|v.into_inner());
++            let life=p.candidate.state.lock().unwrap_or_else(|v|v.into_inner());
++            let mut pending=p.state.lock().unwrap_or_else(|v|v.into_inner());
++            self.owns_replacement(p)?;
++            check_discard_scope(&request,&control.current(&request)?)?;
++            let phase=p.phase.load(Ordering::Acquire);
++            if phase==COMMITTED || !matches!(phase,PREPARING|ATTACHED|CANCELLED)
++                || self.sessions_by_connection.contains_key(&p.intent.replacement)
++                || self.connection_lifecycles.get(&p.intent.replacement).is_some_and(|actual|!Arc::ptr_eq(actual.value(),&p.candidate.state))
++                || (phase!=CANCELLED && (life.retired || life.replacement_reservation!=Some(p.nonce)
++                    || !state.pending.get(&p.intent.replacement).is_some_and(|entry|entry.replacement_nonce==Some(p.nonce))))
++                || (phase==CANCELLED && !life.retired)
++            { return Err(ParticipantTransitionError::Conflict.into()); }
++            // A fresh cleanup lease is NOT target admission. Expired/revoked
++            // target state can be closed, including after original cancellation.
++            // No later failure occurs after claiming this one original context.
++            p.discard_context_issued.set(()).map_err(|_|ParticipantTransitionError::Conflict)?;
++            let peer=life.peer_origin.map(crate::peer_admission::PeerAdmissionOrigin::from_lifecycle);
++            // Final Commit also holds pending state through its publication.
++            // Never release that fence and then call a later best-effort cancel.
++            p.phase.store(CANCELLED,Ordering::Release);
++            p.cancellation.cancel();
++            p.resource_lifetime.cancel();
++            pending.slot.take();
++            pending.cleanup_started=true;
++            peer
++        };
++        // Actual exact lifecycle tombstone/scene removal after publication locks
++        // are dropped. Existing cleanup is idempotent; original joins stay owned.
++        p.abort_candidate();
++        Ok(UnpublishedCandidateDiscardContext {preparation:p.clone(),peer_origin:peer})
++    }
++}
++
++// Cleanup deliberately does not require a currently usable target endpoint,
++// target media permissions or the original expired principal. Exact historical
++// custody and fresh Host known-precommit Reader are required instead.
++fn check_discard_scope(scope:&ParticipantReplacementScope<'_>,authority:&ParticipantReplacementAuthority)->ControlResult<()> {
++    if scope.phase!=ReplacementPhase::Discard
++        || authority.actor.conversation()!=scope.conversation
++        || authority.target.conversation()!=scope.conversation
++        || authority.target.participant()!=&scope.intent.participant
++        || authority.endpoint.endpoint()!=&scope.intent.endpoint
++        || authority.endpoint.device()!=&scope.intent.device
++    {return Err(ParticipantControlError::Authority);}
++    Ok(())
++}
+diff --git a/crates/foundation/rvoip-core/src/peer_admission.rs b/crates/foundation/rvoip-core/src/peer_admission.rs
+--- a/crates/foundation/rvoip-core/src/peer_admission.rs
++++ b/crates/foundation/rvoip-core/src/peer_admission.rs
+@@ -57,6 +57,13 @@
+     routes: HashMap<ConnectionId, Record>,
+     sessions: HashMap<SessionId, Uuid>,
+ }
++/// Immutable original native resource incarnation. Historical equality only:
++/// no current grant, liveness, wire constructor or resource ownership.
++#[derive(Clone,Copy,PartialEq,Eq)]
++pub struct PeerAdmissionOrigin(Uuid);
++impl PeerAdmissionOrigin {
++    pub(crate) fn from_lifecycle(original:Uuid)->Self {Self(original)}
++}
+ pub struct PeerAdmission {
+     id: Uuid,
+     owner: PrincipalOwnershipKey,
+@@ -158,6 +165,8 @@
+     Ok(())
+ }
+ impl PeerAdmission {
++    /// Cold original binding metadata; copying it never retains this peer.
++    pub fn original_origin(&self)->PeerAdmissionOrigin {PeerAdmissionOrigin(self.id)}
+     pub(crate) fn incarnation(&self) -> Uuid {
+         self.id
+     }
+@@ -394,3 +403,6 @@
+         }
+     }
+ }
++
++#[cfg(test)]
++mod original_origin_tests;
+diff --git a/crates/foundation/rvoip-core/src/peer_admission/original_origin_tests.rs b/crates/foundation/rvoip-core/src/peer_admission/original_origin_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/peer_admission/original_origin_tests.rs
+@@ -0,0 +1,17 @@
++use super::*;
++#[test]
++fn original_peer_origin_survives_last_strong_without_becoming_current_admission() {
++    let principal=AuthenticatedPrincipal {subject:"original-origin".into(),tenant:Some("tenant".into()),scopes:vec![],issuer:Some("fixture".into()),expires_at:Some(chrono::Utc::now()+chrono::Duration::minutes(5)),method:AuthenticationMethod::Bearer,assurance:IdentityAssurance::Identified {credential_kind:crate::identity::CredentialKind::Oidc}};
++    let identity=IdentityId::from_string("original-identity");let device=DeviceId::from_string("original-device");
++    let owner=PeerAdmissionOwner::new(&principal,identity.clone(),device.clone(),CancellationToken::new(),Default::default()).unwrap();
++    let other=PeerAdmissionOwner::new(&principal,identity,device,CancellationToken::new(),Default::default()).unwrap();
++    let original=owner.peer();let weak=Arc::downgrade(&original);
++    let origin=original.original_origin();let from_lifecycle=PeerAdmissionOrigin::from_lifecycle(original.incarnation());
++    let other_origin=other.peer().original_origin();
++    drop(owner);
++    let denied=original.validate_principal(&principal).is_err();
++    drop(original);drop(other);
++    // All actual resource owners are retired before the behavior oracles.
++    assert!(weak.upgrade().is_none());assert!(denied);
++    assert!(origin==from_lifecycle);assert!(origin!=other_origin);
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -309,6 +309,9 @@
+         s: &ParticipantReplacementScope<'_>,
+         held: &(dyn Any + Send + Sync),
+     ) -> std::result::Result<ParticipantReplacementControl, ParticipantControlError> {
++        if let Some(cleanup)=held.downcast_ref::<candidate_discard::CleanupGrant>() {
++            return cleanup.control(self,s);
++        }
+         let g = replacement_grant(held).ok_or(ParticipantControlError::Authority)?;
+         if !std::ptr::eq(self, g.world.as_ref()) {
+             return Err(ParticipantControlError::Authority);
+@@ -1446,6 +1449,12 @@
+                 .await
+                 .unwrap();
+             assert!(root.is_committed());
++            // Even a cleanup-policy fixture accepting this exact historical
++            // Root cannot turn an ACTUAL Core publication into precommit abort.
++            let cleanup=candidate_discard::CleanupGrant::known(&grant);
++            assert!(room.orch.discard_staged_device_replacement_with_held(&root,&cleanup).is_err());
++            assert!(root.is_committed());
++
+             assert_eq!(outcome.replaced, source);
+             assert_eq!(outcome.admitted, candidate);
+             assert_eq!(outcome.retained, retained);
+@@ -1613,3 +1622,5 @@
+         "managed replacement published private prestart PCM without fresh ordinary input"
+     );
+ }
++
++mod candidate_discard;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/candidate_discard.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/candidate_discard.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/candidate_discard.rs
+@@ -0,0 +1,111 @@
++//! Real Core preparations, controlled Host cleanup lease. No native close token
++//! is fabricated: this managed SIP fixture only exercises cancellation custody.
++use super::*;
++#[derive(Clone,Copy)]
++enum HostCommit { KnownPrecommit, Started, Unknown, Confirmed }
++#[derive(Clone)]
++pub(super) struct CleanupGrant { original:ReplacementGrant,until:tokio::time::Instant,commit:HostCommit }
++impl CleanupGrant {
++    pub(super) fn known(original:&ReplacementGrant)->Self {Self {original:original.clone(),until:deadline(),commit:HostCommit::KnownPrecommit}}
++    pub(super) fn control(&self,world:&World,scope:&ParticipantReplacementScope<'_>)->std::result::Result<ParticipantReplacementControl,ParticipantControlError> {
++        if !std::ptr::eq(world,self.original.world.as_ref()) {return Err(ParticipantControlError::Authority);}
++        self.current(scope)?;
++        ParticipantReplacementControl::new(Box::new(self.clone()),CancellationToken::new(),self.until)
++    }
++}
++impl ParticipantReplacementLease for CleanupGrant {
++    fn current(&self,scope:&ParticipantReplacementScope<'_>)->std::result::Result<ParticipantReplacementAuthority,ParticipantControlError> {
++        let g=&self.original;
++        if scope.phase!=ReplacementPhase::Discard || !matches!(self.commit,HostCommit::KnownPrecommit)
++            || scope.intent!=&g.intent || scope.session!=&g.domain.session
++            || scope.conversation!=g.domain.member.conversation()
++            || scope.principal.ownership_key()!=g.domain.principal.ownership_key()
++            || tokio::time::Instant::now()>=self.until
++        {return Err(ParticipantControlError::Authority);}
++        // Historical exact custody: target expired/revoked admission is NOT
++        // renewed. Actual Store Reader/known-precommit integration is Host work.
++        Ok(ParticipantReplacementAuthority {actor:g.domain.member.clone(),target:g.domain.member.clone(),endpoint:g.domain.endpoint.clone(),may_send_audio:false,may_receive_audio:false})
++    }
++}
++async fn original_pair(room:&mut ManagedRoom)->(Arc<Domain>,ConnectionId,ConnectionId) {
++    let alice=domain(&room.conversation,&room.session,"discard-alice","alice");
++    let bob=domain(&room.conversation,&room.session,"discard-bob","bob");
++    let source=room.initial(alice.clone()).await;
++    let retained=room.initial(bob).await;
++    room.select(&retained,vec![AudioSubscription::Connection(source.clone())]).await;
++    (alice,source,retained)
++}
++fn replacement_domain(room:&ManagedRoom,alice:&Arc<Domain>)->Arc<Domain> {
++    let mut next=domain(&room.conversation,&room.session,"discard-next","alice");
++    let value=Arc::get_mut(&mut next).unwrap();value.principal=alice.principal.clone();value.member=alice.member.clone();next
++}
++#[tokio::test]
++async fn original_candidate_discard_is_once_and_old_public_audio_continues() {
++    let mut room=ManagedRoom::new().await;
++    let result=catch_original(async {
++        let(alice,source,retained)=original_pair(&mut room).await;
++        let next=replacement_domain(&room,&alice);
++        let(root,grant,_,_,_)=room.prepare_move(&source,&retained,next).await;
++        let cleanup=CleanupGrant::known(&grant);
++        let context=room.orch.discard_staged_device_replacement_with_held(&root,&cleanup).unwrap();
++        assert!(context.matches_preparation(&root)&&context.cancelled_original());
++        assert!(context.intent()==&grant.intent);
++        assert_eq!(context.session(),&room.session);
++        assert!(room.orch.discard_staged_device_replacement_with_held(&root,&cleanup).is_err());
++        assert!(room.orch.plan_staged_device_replacement_activation(&root).is_err());
++        room.nodes.get_mut(&source).unwrap().publish(800).unwrap();
++        room.nodes.get_mut(&retained).unwrap().hear(800).await;
++        assert_eq!(room.orch.session_of(&source),Some(room.session.clone()));
++        assert!(!room.nodes[&source].controller.shutdown.is_cancelled());
++    }).await;
++    let cleanup=room.close_originals().await;
++    assert!(cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
++#[tokio::test]
++async fn original_candidate_expired_cancelled_cleanup_does_not_renew_target_admission() {
++    let mut room=ManagedRoom::new().await;
++    let result=catch_original(async {
++        let(alice,source,retained)=original_pair(&mut room).await;
++        let next=replacement_domain(&room,&alice);
++        let(root,grant,_,_,_)=room.prepare_move(&source,&retained,next).await;
++        tokio::time::sleep_until(grant.until).await;
++        // Actual original expiry/cancel, not changed clock fields or reset age.
++        assert!(root.cancel());
++        let cleanup=CleanupGrant::known(&grant);
++        let context=room.orch.discard_staged_device_replacement_with_held(&root,&cleanup).unwrap();
++        assert!(context.matches_preparation(&root));
++        assert!(room.orch.activate_staged_device_replacement_with_held(&root,&grant).await.is_err());
++        assert!(room.orch.plan_staged_device_replacement_activation(&root).is_err());
++        room.nodes.get_mut(&source).unwrap().publish(800).unwrap();
++        room.nodes.get_mut(&retained).unwrap().hear(800).await;
++        assert!(!room.nodes[&source].controller.shutdown.is_cancelled());
++    }).await;
++    let cleanup=room.close_originals().await;
++    assert!(cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
++#[tokio::test]
++async fn original_candidate_discard_foreign_started_unknown_and_expired_cleanup_refuse_without_cancel() {
++    let mut room=ManagedRoom::new().await;
++    let result=catch_original(async {
++        let(alice,source,retained)=original_pair(&mut room).await;
++        let next=replacement_domain(&room,&alice);
++        let(root,grant,_,_,_)=room.prepare_move(&source,&retained,next).await;
++        for state in [HostCommit::Started,HostCommit::Unknown,HostCommit::Confirmed] {
++            let mut cleanup=CleanupGrant::known(&grant);cleanup.commit=state;
++            assert!(room.orch.discard_staged_device_replacement_with_held(&root,&cleanup).is_err());
++            assert!(!root.cancellation().is_cancelled());
++        }
++        let mut foreign=CleanupGrant::known(&grant);foreign.original.intent.operation_id.push_str("-foreign");
++        assert!(room.orch.discard_staged_device_replacement_with_held(&root,&foreign).is_err());
++        let mut expired=CleanupGrant::known(&grant);expired.until=tokio::time::Instant::now();
++        assert!(room.orch.discard_staged_device_replacement_with_held(&root,&expired).is_err());
++        assert!(!root.cancellation().is_cancelled());
++        let context=room.orch.discard_staged_device_replacement_with_held(&root,&CleanupGrant::known(&grant)).unwrap();
++        assert!(context.cancelled_original());
++    }).await;
++    let cleanup=room.close_originals().await;
++    assert!(cleanup.into_iter().all(|done|done));
++    if let Err(error)=result {resume_unwind(error)}
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -9,6 +9,8 @@
+ pub(crate) mod reserved_video;
+ pub use reserved_video::{ReservedVideoProfile, ReservedVideoBinding};
+ mod reserved_video_metadata;
++mod candidate_discard;
++pub use candidate_discard::{ClosedOriginalCandidate,OriginalCandidateDiscard,OriginalCandidateDiscardRefusal};
+ pub use reserved_video_metadata::ReservedVideoPortBinding;
+ use dashmap::DashMap;
+ use futures::{
+@@ -85,6 +87,7 @@
+     Shared<BoxFuture<'static, std::result::Result<Arc<RvoipPeerConnection>, AllocationError>>>;
+ type Completion = Shared<BoxFuture<'static, std::result::Result<(), String>>>;
+ struct Owner {
++    peer_origin:rvoip_core::peer_admission::PeerAdmissionOrigin,
+     adapter: Weak<()>,
+     peer: Weak<PeerAdmission>,
+     connection: ConnectionId,
+@@ -166,6 +169,7 @@
+         }
+         self.owner
+             .set(Owner {
++                peer_origin:peer.original_origin(),
+                 adapter: Arc::downgrade(adapter),
+                 peer: Arc::downgrade(peer),
+                 connection: id.clone(),
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/candidate_discard.rs b/crates/webrtc/rvoip-webrtc/src/canonical/candidate_discard.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/candidate_discard.rs
+@@ -0,0 +1,86 @@
++//! Actual whole original candidate close, not cancellation/absence-as-proof.
++use super::*;
++use rvoip_core::orchestrator::participant_control::{DeviceReplacementPreparation,UnpublishedCandidateDiscardContext};
++
++/// Historical nonclone join attestation. No public constructor, wire conversion,
++/// media permission or OLD restoration method. The original Root must separately
++/// obtain fresh OLD-source authorization under a future restoration contract.
++pub struct ClosedOriginalCandidate {
++    context: UnpublishedCandidateDiscardContext,
++    physical: Weak<WebRtcPhysicalBinding>,
++    adapter: Weak<()>,
++}
++impl ClosedOriginalCandidate {
++    pub fn intent(&self) -> &rvoip_core::participant_transitions::ParticipantReplacementMutation {self.context.intent()}
++    pub fn session(&self) -> &SessionId {self.context.session()}
++    pub fn conversation(&self) -> &ConversationId {self.context.conversation()}
++    pub fn matches_preparation(&self, original:&Arc<DeviceReplacementPreparation>) -> bool {self.context.matches_preparation(original)}
++    /// Only historical same-owner identity. This does not reauthorize old work.
++    pub fn matches_original_binding(&self, adapter:&CanonicalWebRtcAdapter, original:&Arc<WebRtcPhysicalBinding>) -> bool {
++        Weak::ptr_eq(&self.adapter,&Arc::downgrade(&adapter.identity))
++            && Weak::ptr_eq(&self.physical,&Arc::downgrade(original))
++            && original.actual_close_confirmed()
++            && self.context.cancelled_original()
++    }
++}
++/// Constructor refusal preserves the SAME nonclone Core context. A trusted
++/// caller may correct its original binding lookup without minting new custody.
++pub struct OriginalCandidateDiscardRefusal {context:UnpublishedCandidateDiscardContext,error:RvoipError}
++impl std::fmt::Debug for OriginalCandidateDiscardRefusal {
++    fn fmt(&self,f:&mut std::fmt::Formatter<'_>)->std::fmt::Result {f.write_str("OriginalCandidateDiscardRefusal(original context retained)")}
++}
++impl OriginalCandidateDiscardRefusal {
++    pub fn error(&self)->&RvoipError {&self.error}
++    pub fn into_parts(self)->(UnpublishedCandidateDiscardContext,RvoipError) {(self.context,self.error)}
++}
++/// Root must own this object BEFORE awaiting cleanup. Cancelling one observer
++/// or a refused join leaves exact original custody here. There is no Clone,
++/// concurrent join, new admission, new reason, or replacement physical lookup.
++pub struct OriginalCandidateDiscard {
++    context:Option<UnpublishedCandidateDiscardContext>,physical:Arc<WebRtcPhysicalBinding>,
++    adapter:Weak<()>,reason:EndReason,
++}
++impl OriginalCandidateDiscard {
++    /// Rejoins existing original completions only. Error/observer cancellation
++    /// retains context; only fully successful joins move it into the attestation.
++    pub async fn join(&mut self,adapter:&CanonicalWebRtcAdapter)->Result<ClosedOriginalCandidate> {
++        if !Weak::ptr_eq(&self.adapter,&Arc::downgrade(&adapter.identity)) {
++            return Err(RvoipError::AdmissionRejected("Original discard adapter differs"));
++        }
++        let context=self.context.as_ref().ok_or(RvoipError::InvalidState("Original discard already joined"))?;
++        if !context.cancelled_original() {return Err(RvoipError::AdmissionRejected("Original cancellation differs"));}
++        let id=context.intent().replacement.clone();
++        // Route absence is not proof. This API retains/rejoins the actual
++        // original native, Backend/controller and Core terminal owners.
++        adapter.end_original_binding(id,&self.physical,self.reason.clone()).await?;
++        self.physical.shutdown().await?;
++        if !self.physical.actual_close_confirmed() || !context.cancelled_original() {
++            return Err(RvoipError::InvalidState("Original candidate join unconfirmed"));
++        }
++        let terminal=self.physical.terminal.lock().unwrap_or_else(|v|v.into_inner()).clone()
++            .ok_or(RvoipError::InvalidState("Original candidate Core terminal unavailable"))?;
++        terminal.wait().await.map_err(|error|terminal_error(&context.intent().replacement,error))?;
++        // No await/failure follows consumption. Cancelled/failed observations
++        // above cannot destroy the sole context or falsely mint a closed token.
++        let context=self.context.take().expect("same exclusive original join");
++        Ok(ClosedOriginalCandidate {context,physical:Arc::downgrade(&self.physical),adapter:self.adapter.clone()})
++    }
++}
++impl CanonicalWebRtcAdapter {
++    /// Synchronous validation returns the actual owned join handle before any
++    /// await. A refused binding lookup returns SAME context in owned error.
++    pub fn prepare_original_candidate_discard(
++        &self,context:UnpublishedCandidateDiscardContext,original:&Arc<WebRtcPhysicalBinding>,reason:EndReason,
++    )->std::result::Result<OriginalCandidateDiscard,OriginalCandidateDiscardRefusal> {
++        let id=&context.intent().replacement;
++        let matches=context.cancelled_original() && original.reserved_video.is_some()
++            && original.owner.get().is_some_and(|owner|&owner.connection==id
++                && Weak::ptr_eq(&owner.adapter,&Arc::downgrade(&self.identity))
++                && context.matches_original_origin(&owner.peer_origin));
++        if !matches {return Err(OriginalCandidateDiscardRefusal {context,error:RvoipError::AdmissionRejected("Original unpublished candidate differs")});}
++        Ok(OriginalCandidateDiscard {context:Some(context),physical:original.clone(),adapter:Arc::downgrade(&self.identity),reason})
++    }
++}
++
++#[cfg(test)]
++mod original_origin_tests;
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/candidate_discard/original_origin_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/candidate_discard/original_origin_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/candidate_discard/original_origin_tests.rs
+@@ -0,0 +1,37 @@
++//! Actual cold bind + native driver close after the last admission Arc is gone.
++//! This intentionally does NOT forge Core cancellation or a terminal receipt.
++use super::*;
++use rvoip_core::identity::{AuthenticatedPrincipal,AuthenticationMethod,IdentityAssurance,CredentialKind};
++use rvoip_core::peer_admission::PeerAdmissionOwner;
++use futures::FutureExt as _;
++#[tokio::test]
++async fn original_native_cleanup_preserves_bound_origin_after_last_admission_strong() {
++    let principal=AuthenticatedPrincipal {subject:"historical-origin".into(),tenant:Some("tenant".into()),scopes:vec![],issuer:Some("fixture".into()),expires_at:Some(chrono::Utc::now()+chrono::Duration::minutes(5)),method:AuthenticationMethod::Bearer,assurance:IdentityAssurance::Identified {credential_kind:CredentialKind::Oidc}};
++    let life=CancellationToken::new();
++    let mut owner=Some(PeerAdmissionOwner::new(&principal,IdentityId::from_string("same-identity"),DeviceId::from_string("same-device"),life.child_token(),Default::default()).unwrap());
++    let mut accepted=Some(owner.as_ref().unwrap().peer());
++    let weak=Arc::downgrade(accepted.as_ref().unwrap());let origin=accepted.as_ref().unwrap().original_origin();
++    let foreign=PeerAdmissionOwner::new(&principal,IdentityId::from_string("same-identity"),DeviceId::from_string("same-device"),CancellationToken::new(),Default::default()).unwrap();
++    let foreign_origin=foreign.peer().original_origin();
++    let adapter=Arc::new(());let id=ConnectionId::from_string("original-native-cleanup");
++    let physical=WebRtcPhysicalBinding::new(accepted.as_ref().unwrap(),life.child_token());
++    physical.bind(accepted.as_ref().unwrap(),&id,life.child_token(),&adapter).unwrap();
++    let mut native=None;
++    let result=std::panic::AssertUnwindSafe(async {
++        physical.start_peer(WebRtcConfig::loopback(),PeerRole::Offerer).unwrap();
++        native=Some(physical.peer_internal(tokio::time::Instant::now()+std::time::Duration::from_secs(5)).await.unwrap());
++        drop(owner.take());drop(accepted.take());
++        assert!(weak.upgrade().is_none());
++        let bound=physical.owner.get().unwrap();
++        assert!(bound.peer.upgrade().is_none(),"historical match must not require renewed peer liveness");
++        assert!(bound.peer_origin==origin);assert!(bound.peer_origin!=foreign_origin);
++        assert!(!physical.owner_current());
++    }).catch_unwind().await;
++    // SAME original native shared completion joins even with no admission Arc.
++    let closed=physical.shutdown().await;
++    let native_closed=match native {Some(native)=>native.close().await.is_ok(),None=>true};
++    drop(owner);drop(accepted);drop(foreign);
++    assert!(closed.is_ok()&&native_closed);assert!(physical.actual_close_confirmed());
++    assert!(physical.terminal.lock().unwrap().is_none(),"native close alone must not pretend a Core terminal join/token");
++    if let Err(error)=result {std::panic::resume_unwind(error)}
++}

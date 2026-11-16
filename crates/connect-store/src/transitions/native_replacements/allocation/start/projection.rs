@@ -168,6 +168,14 @@ fn replacement_capture_wait() -> crate::AuthorityWait {
 }
 
 impl Store {
+    /// The same bounded metadata-only admission without exposing private
+    /// timing counters to sibling replacement modules. No native IO or Writer.
+    pub(in crate::transitions::native_replacements) fn try_replacement_metadata_projection<'a>(
+        &'a self,
+        derive: impl Fn(&Connection) -> Result<Vec<AuthorityScope>>,
+    ) -> Result<(Arc<AuthorityGuardSet>, ConnectionGuard<'a>)> {
+        self.try_replacement_capture_projection(None, derive)
+    }
     /// Conformance composition uses the exact production admission budget and
     /// cadence. This supplies no scope, reader, writer or authorization grant.
     #[cfg(feature = "test-support")]

@@ -71,6 +71,34 @@ fn counts(m: &Movement) -> (u64, u64, u64, u64) {
         m.f.count("journal"),
     )
 }
+// Retain this SAME actual source appearance from the complete requested scene,
+// including the candidate Connection dependency. This clones owned custody;
+// it neither re-enters admission nor constructs or widens an authority guard.
+fn held_scene_source(
+    scene: &crate::NativeReplacementSceneRead,
+    source: &NativeMediaOrigin,
+) -> crate::NativeMediaRead {
+    assert!(scene.current());
+    let held = scene
+        .existing(source.runtime_connection_id(), None)
+        .unwrap()
+        .clone();
+    assert_eq!(
+        held.target().connection.connection_id,
+        source.connection_id()
+    );
+    assert_eq!(
+        held.target().runtime_connection_id,
+        source.runtime_connection_id()
+    );
+    assert!(Arc::ptr_eq(scene.snapshot_interval(), held.interval()));
+    assert!(held.interval().covers(&[crate::AuthorityScope::connection(
+        &scene.media().target().connection.connection_id,
+        crate::AuthorityMode::Read,
+    )
+    .unwrap()]));
+    held
+}
 #[test]
 fn three_source_scene_reads_preserve_exact_bindings_pairs_on_repeated_same_root_capture() {
     let m = scene();
@@ -148,9 +176,7 @@ fn next_scene_call_observes_target_permission_withdrawal_and_restoration_without
     };
     let credential = &m.target_request.credentials[0];
     let original: String =
-        m.f.store
-            .connection()
-            .unwrap()
+        m.f.change_fixture()
             .query_row(
                 "SELECT operations FROM credentials WHERE id=?1",
                 [credential],
@@ -159,9 +185,7 @@ fn next_scene_call_observes_target_permission_withdrawal_and_restoration_without
             .unwrap();
     let mut operations: Vec<String> = serde_json::from_str(&original).unwrap();
     operations.retain(|operation| operation != "stream.subscribe");
-    m.f.store
-        .connection()
-        .unwrap()
+    m.f.change_fixture()
         .execute(
             "UPDATE credentials SET operations=?2 WHERE id=?1",
             params![credential, serde_json::to_string(&operations).unwrap()],
@@ -176,9 +200,7 @@ fn next_scene_call_observes_target_permission_withdrawal_and_restoration_without
         assert!(!read.permits_receive(&candidate, m.sources[2].runtime_connection_id()));
     }
     assert_eq!(counts(&m), before);
-    m.f.store
-        .connection()
-        .unwrap()
+    m.f.change_fixture()
         .execute(
             "UPDATE credentials SET operations=?2 WHERE id=?1",
             params![credential, original],
@@ -205,7 +227,7 @@ fn three_source_scene_rechecks_nonretained_generation_revocation_and_original_ca
                 .try_native_replacement_scene_read(&m.origin, &m.sources)
                 .unwrap(),
         );
-        let c = m.f.store.connection().unwrap();
+        let c = m.f.change_fixture();
         match change {
             "third-generation" => {
                 c.execute(
@@ -362,7 +384,7 @@ fn completed_packet_capture_does_not_reuse_operator_endpoint_key_or_cancel_autho
         if mutation == "original-cancel" {
             cancel(&m.f, &m.key, &m.command);
         } else {
-            let c = m.f.store.connection().unwrap();
+            let c = m.f.change_fixture();
             match mutation {
                 "operator-scope" => {
                     let raw: String = c
@@ -446,9 +468,7 @@ fn packet_capture_retained_receiver_permission_changes_are_fresh_without_replayi
     let retained = m.sources[1].runtime_connection_id();
     let third = m.sources[2].runtime_connection_id();
     let original: String =
-        m.f.store
-            .connection()
-            .unwrap()
+        m.f.change_fixture()
             .query_row(
                 "SELECT operations FROM credentials WHERE id=?1",
                 [&m.f.keys[1]],
@@ -463,9 +483,7 @@ fn packet_capture_retained_receiver_permission_changes_are_fresh_without_replayi
         (serde_json::to_string(&operations).unwrap(), false),
         (original, true),
     ] {
-        m.f.store
-            .connection()
-            .unwrap()
+        m.f.change_fixture()
             .execute(
                 "UPDATE credentials SET operations=?2 WHERE id=?1",
                 params![m.f.keys[1], encoded],
@@ -523,7 +541,7 @@ fn packet_plan_context_matches_independent_resolution_and_refuses_another_origin
 #[test]
 fn packet_scene_actor_reuse_cannot_publish_facts_across_external_recipient_change() {
     let m = scene();
-    let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+    let external = uncooperative_file_owner_at(&m.f, m.f.store.path());
     let before = counts(&m);
     let finishes = std::cell::Cell::new(0);
     let result = m.f.store.try_current_packet_projection(
@@ -568,9 +586,7 @@ fn packet_scene_actor_reuse_cannot_publish_facts_across_external_recipient_chang
 fn packet_scene_actor_reuse_cannot_outlive_original_credential_expiry_at_clock_reseal() {
     let m = scene();
     let expires = crate::now() + 2;
-    m.f.store
-        .connection()
-        .unwrap()
+    m.f.change_fixture()
         .execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",
             params![m.f.keys[2], expires],
@@ -724,7 +740,7 @@ fn current_replacement_memo_hit_rechecks_independent_commit_revocation_expiry_an
         if writer.is_none() {
             // Independent SQL handle advances this original observer's
             // data_version. Current positive facts may never survive it.
-            let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+            let external = uncooperative_file_owner_at(&m.f, m.f.store.path());
             match change {
                 "revoke" => {
                     external
@@ -806,12 +822,10 @@ fn current_replacement_memos_separate_purpose_order_source_subset_and_actual_hel
             .unwrap();
     let candidate = full.media().target().runtime_connection_id.clone();
     assert!(full.permits_receive(&candidate, m.sources[2].runtime_connection_id()));
+    let held = held_scene_source(&full, &m.sources[2]);
+    let held_first = held_scene_source(&full, &m.sources[0]);
     drop(full);
     assert_eq!(m.origin.packet_scene_memo_keys_for_test(), 1);
-    let held =
-        m.f.store
-            .try_native_media_read(&m.sources[2], None)
-            .unwrap();
     let packet =
         m.f.store
             .try_native_replacement_scene_read_under(&m.origin, &m.sources, &m.sources[2], &held)
@@ -833,10 +847,6 @@ fn current_replacement_memos_separate_purpose_order_source_subset_and_actual_hel
         2,
         "fresh source sets and actual packet custody need distinct keys"
     );
-    let held_first =
-        m.f.store
-            .try_native_media_read(&m.sources[0], None)
-            .unwrap();
     drop(
         m.f.store
             .try_native_replacement_scene_read_under(
@@ -913,8 +923,9 @@ fn current_replacement_memos_separate_purpose_order_source_subset_and_actual_hel
     assert!(original.source().source().expires_at() > short_expiry);
     assert!(original.source().retained().expires_at() > short_expiry);
     drop(original);
-    let external = rusqlite::Connection::open(earlier.f.store.path()).unwrap();
-    external
+    earlier
+        .f
+        .change_fixture()
         .execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",
             params![earlier.f.keys[2], short_expiry],
@@ -1190,7 +1201,7 @@ fn invocation_local_scene_owner_keeps_current_credentials_and_earliest_nested_ex
             let occupied = memo_observer_except(&m, 0);
             actual_scene_memo_hit(&m, &m.sources);
             let before = counts(&m);
-            let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+            let external = uncooperative_file_owner_at(&m.f, m.f.store.path());
             if change == "revoke" {
                 external
                     .execute(
@@ -1233,7 +1244,7 @@ fn invocation_local_scene_owner_keeps_current_credentials_and_earliest_nested_ex
         - 1;
     assert!(earlier > crate::now());
     drop(original);
-    let external = rusqlite::Connection::open(m.f.store.path()).unwrap();
+    let external = uncooperative_file_owner_at(&m.f, m.f.store.path());
     external
         .execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",

@@ -1,0 +1,168 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -8,6 +8,8 @@
+ mod media;
+ pub(crate) mod reserved_video;
+ pub use reserved_video::{ReservedVideoProfile, ReservedVideoBinding};
++mod reserved_video_metadata;
++pub use reserved_video_metadata::ReservedVideoPortBinding;
+ use dashmap::DashMap;
+ use futures::{
+     future::{BoxFuture, Shared},
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -305,6 +305,31 @@
+     }
+ }
+ impl Backend {
++    pub(super) fn reserved_video_port_binding(&self, native:&ReservedVideoBinding, peer:&Arc<RvoipPeerConnection>) -> ControlResult<super::ReservedVideoPortBinding> {
++        if !self.current() {return Err(StreamControlError::NotReady);}
++        let profile=self.physical.reserved_video.as_ref().ok_or(StreamControlError::Unsupported)?;
++        if native.logical_stream_id!=profile.public_stream_id {return Err(StreamControlError::Authority);}
++        let expected=self.frame_realm.as_ref().and_then(|realm|realm.incarnation()).ok_or(StreamControlError::Unsupported)?;
++        let mut found=None;
++        for entry in self.ports.iter() {
++            let io=entry.value();
++            if io.binding.negotiated.requested.logical_id!=profile.public_stream_id {continue;}
++            let Some(port)=io.port.upgrade() else {continue;};
++            if !matches!(port.status(),PortStatus::Active|PortStatus::Paused) {continue;}
++            if found.is_some() || profile.role(&io.binding.negotiated.requested)?!=Some(super::reserved_video::VideoRole::PublicReserved) {return Err(StreamControlError::Authority);}
++            let setup=io.health.setup.try_lock().map_err(|_|StreamControlError::MetadataBusy)?;
++            if setup.closing || !setup.tasks.is_empty() || !io.health.confirmed() {return Err(StreamControlError::NotReady);}
++            let owner=io.reserved_video.as_ref().and_then(Weak::upgrade).ok_or(StreamControlError::NotReady)?;
++            let queue=owner.video.try_lock().map_err(|_|StreamControlError::MetadataBusy)?;
++            let video=queue.as_ref().ok_or(StreamControlError::NotReady)?;
++            let owned=video.owned_binding_metadata(peer).ok_or(StreamControlError::Authority)?;
++            let observed=super::reserved_video_metadata::from_owned_binding(&port,native,owned,expected)?;
++            if observed.connection_id!=self.id || !same_binding(port.binding(),&io.binding) {return Err(StreamControlError::Authority);}
++            found=Some(observed);
++        }
++        if !self.current() {return Err(StreamControlError::NotReady);}
++        found.ok_or(StreamControlError::NotReady)
++    }
+     pub(super) fn new(
+         id: ConnectionId,
+         physical: Arc<WebRtcPhysicalBinding>,
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+@@ -1561,3 +1561,50 @@
+         if let Err(e)=work {std::panic::resume_unwind(e)}
+     }
+ }
++
++
++// Actual held egress/Port metadata primitive. Native MID validation is covered
++// separately by the real reserved-B offer/answer test; this is not a Root grant.
++#[tokio::test]
++async fn reserved_b_metadata_uses_owned_port_family_and_generations_and_refuses_mismatch() {
++    use futures::FutureExt as _;
++    use rvoip_core::staged_streams::frame_realm::FrameRealmTestOwner;
++    let f=Fixture::new(Medium::Video).await;
++    let config=WebRtcConfig::loopback();
++    let peer=match RvoipPeerConnection::new_canonical(&config,PeerRole::Answerer).await {
++        Ok(p)=>p,Err(e)=>{let a=f.a.shutdown(deadline()).await;let b=f.b.shutdown(deadline()).await;assert_eq!((a,b),(0,0));panic!("metadata native setup: {e}")}
++    };
++    let other=match RvoipPeerConnection::new_canonical(&config,PeerRole::Answerer).await {
++        Ok(p)=>p,Err(e)=>{let closed=peer.close().await;let a=f.a.shutdown(deadline()).await;let b=f.b.shutdown(deadline()).await;assert!(closed.is_ok());assert_eq!((a,b),(0,0));panic!("second native setup: {e}")}
++    };
++    let work=std::panic::AssertUnwindSafe(async {
++        let realm=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"));
++        let foreign=FrameRealmTestOwner::new(ConversationId::from_string("conversation"),SessionId::from_string("session"));
++        peer.add_local_video_track().await.unwrap();
++        let track=peer.local_video_track_internal().unwrap();let ssrc=peer.local_video_ssrc().unwrap();
++        let video=CoreVideoEgress::bind(&f.port,track,ssrc,96,peer.sender_clock.clone(),deadline().into_std()).await.unwrap().bind_peer(peer.clone(),None).with_frame_realm(Some(&realm.handle()));
++        assert!(video.owned_binding_metadata(&other).is_none(),"equal media kind cannot borrow another native owner");
++        let owned=video.owned_binding_metadata(&peer).unwrap();
++        let native=ReservedVideoBinding {logical_stream_id:f.port.binding().negotiated.requested.logical_id.clone(),mid:"metadata-primitive".into(),primary_ssrc:ssrc,payload_type:96,clock_rate_hz:90000};
++        let expected=realm.handle().incarnation().unwrap();
++        let read=|native:&ReservedVideoBinding,owned|super::super::reserved_video_metadata::from_owned_binding(&f.port,native,owned,expected);
++        let binding=read(&native,owned).unwrap();
++        assert_eq!(binding.transport_stream_id,f.port.binding().transport_id);
++        assert_eq!((binding.stream_generation,binding.connection_generation),(f.port.binding().generation,f.port.binding().connection_generation));
++        assert_eq!(binding.physical_writer_incarnation,f.port.physical_video_exposure().unwrap().physical_family);
++        assert_eq!(binding.realm_incarnation,expected);
++        assert_eq!(binding.connection_id,ConnectionId::from_string("alice"));
++        let mut wrong=native.clone();wrong.primary_ssrc=ssrc.wrapping_add(1);assert!(read(&wrong,owned).is_err());
++        wrong=native.clone();wrong.payload_type=97;assert!(read(&wrong,owned).is_err());
++        wrong=native.clone();wrong.logical_stream_id=StreamId::from_string("foreign");assert!(read(&wrong,owned).is_err());
++        let mut family=owned.2;family.physical_family^=1;assert!(read(&native,(owned.0,owned.1,family)).is_err());
++        assert!(super::super::reserved_video_metadata::from_owned_binding(&f.port,&native,owned,foreign.handle().incarnation().unwrap()).is_err());
++        let _raw=peer.peer_connection();
++        assert!(read(&native,video.owned_binding_metadata(&peer).unwrap()).is_err(),"raw escape removes complete coverage, never borrows an SDP UUID");
++        f.port.report_terminal().unwrap();assert!(read(&native,owned).is_err(),"historical family cannot stand for a retired current Port");
++    }).catch_unwind().await;
++    let a_native=peer.close().await;let b_native=other.close().await;
++    let a=f.a.shutdown(deadline()).await;let b=f.b.shutdown(deadline()).await;
++    assert!(a_native.is_ok()&&b_native.is_ok());assert_eq!((a,b),(0,0));
++    if let Err(e)=work {std::panic::resume_unwind(e)}
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video_metadata.rs b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video_metadata.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video_metadata.rs
+@@ -0,0 +1,46 @@
++//! Original Route/Backend/Port-owned negotiation metadata; never a grant/F.
++use super::*;
++use rvoip_core::staged_streams::{AdapterMediaPort,ControlResult,PortStatus,StreamControlError as E};
++use rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureSnapshot;
++#[derive(Clone,Debug,PartialEq,Eq)]
++pub struct ReservedVideoPortBinding {
++    pub native: ReservedVideoBinding,
++    pub conversation_id: ConversationId,
++    pub session_id: SessionId,
++    pub connection_id: ConnectionId,
++    pub transport_stream_id: StreamId,
++    pub stream_generation: u64,
++    pub connection_generation: u64,
++    pub physical_writer_incarnation: u128,
++    pub realm_incarnation: u128,
++}
++// Inputs only come from the original held queue and exact Core Port. No
++// wire-to-operation path exists; returned scalars themselves are not proof.
++pub(super) fn from_owned_binding(port:&AdapterMediaPort,native:&ReservedVideoBinding,owned:(u32,u8,PhysicalVideoExposureSnapshot),expected:u128)->ControlResult<ReservedVideoPortBinding> {
++    let (ssrc,pt,queue)=owned;
++    let binding=port.binding();
++    if !matches!(port.status(),PortStatus::Active|PortStatus::Paused) || !binding.sink_ready || binding.generation==0 || binding.connection_generation==0 {return Err(E::NotReady);}
++    if native.logical_stream_id!=binding.negotiated.requested.logical_id || native.primary_ssrc!=ssrc || native.payload_type!=pt || native.clock_rate_hz!=90000 || pt>=128 {return Err(E::Authority);}
++    let observed=port.physical_video_exposure().ok_or(E::Unsupported)?;
++    if observed.physical_family!=queue.physical_family {return Err(E::Authority);}
++    if expected==0 || !observed.coverage_complete || !queue.coverage_complete || observed.realm_incarnation!=Some(expected) || queue.realm_incarnation!=Some(expected) || observed.maximum_potential_ordinal!=0 || queue.maximum_potential_ordinal!=0 {return Err(E::Unsupported);}
++    let (conversation_id,session_id,connection_id)=port.context_ids()?;
++    Ok(ReservedVideoPortBinding {native:native.clone(),conversation_id,session_id,connection_id,transport_stream_id:binding.transport_id.clone(),stream_generation:binding.generation,connection_generation:binding.connection_generation,physical_writer_incarnation:observed.physical_family,realm_incarnation:expected})
++}
++impl CanonicalWebRtcAdapter {
++    /// Read the same original unstarted B queue's actual Core generations and
++    /// physical family. No SDP-generated writer UUID, authority, F or future
++    /// no-escape guarantee. Root must retain its original owned control/seal.
++    pub async fn reserved_video_port_binding(&self,id:&ConnectionId,peer:&Arc<PeerAdmission>,deadline:tokio::time::Instant)->ControlResult<ReservedVideoPortBinding> {
++        let route=self.routes.get(id).map(|r|r.value().clone()).ok_or(E::NotReady)?;
++        let current=|| !route.cancel.is_cancelled() && Weak::ptr_eq(&route.peer,&Arc::downgrade(peer)) && route.binding.current(peer,id) && self.routes.get(id).is_some_and(|r|Arc::ptr_eq(r.value(),&route));
++        if !current() {return Err(E::Cancelled);}
++        let (controller,backend)=route.installation.lock().map_err(|_|E::Authority)?.as_ref().map(|i|(i.controller.clone(),i.backend.clone())).ok_or(E::NotReady)?;
++        let original=route.binding.peer_internal(deadline).await.map_err(|_|E::NotReady)?;
++        if !current() {return Err(E::Cancelled);}
++        let native=tokio::time::timeout_at(deadline,original.reserved_video_descriptor()).await.map_err(|_|E::Deadline)??;
++        let binding=backend.reserved_video_port_binding(&native,&original)?;
++        if !current() || route.session!=binding.session_id || !controller.active_bindings().iter().any(|b|b.transport_id==binding.transport_stream_id && b.generation==binding.stream_generation && b.connection_generation==binding.connection_generation && b.negotiated.requested.logical_id==native.logical_stream_id) {return Err(E::NotReady);}
++        Ok(binding)
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_video.rs
+@@ -47,6 +47,12 @@
+     mapping_target: Option<Arc<Target>>,
+ }
+ impl CoreVideoEgress {
++    /// Scalar custody observation for the exact retained physical peer. No
++    /// payload, writer, permission, future cut or new ownership is exposed.
++    pub(crate) fn owned_binding_metadata(&self, peer:&Arc<crate::peer::RvoipPeerConnection>) -> Option<(u32,u8,rvoip_core::staged_streams::physical_video_exposure::PhysicalVideoExposureSnapshot)> {
++        if self.physical_peer.as_ref().is_none_or(|original|!Arc::ptr_eq(original,peer)) { return None; }
++        Some((self.ssrc,self.payload_type,self.exposure.observer().snapshot()?))
++    }
+     /// Check the exact format and physical track before taking the port queue.
+     /// Actual negotiated direction/encoding and fresh permission are repeated
+     /// inside each driver callback. Metadata alone grants no media authority.

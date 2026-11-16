@@ -235,7 +235,7 @@ fn private_successor_requires_current_target_key_device_membership_generation_an
         let (m, parent) = private_scene();
         let target = complete(&m, &parent);
         assert_private(&m, &target);
-        let c = m.f.store.connection().unwrap();
+        let c = m.f.change_fixture();
         match mutation {
             "key" => {
                 c.execute(
@@ -339,9 +339,7 @@ fn private_successor_original_private_expiry_is_not_renewed_by_longer_target_gra
     // A short original current grant followed by a longer target grant must not
     // extend the private context. The deadline becomes immutable at capture.
     let original_until = crate::now() + 2;
-    m.f.store
-        .connection()
-        .unwrap()
+    m.f.change_fixture()
         .execute(
             "UPDATE credentials SET expires_at=?2 WHERE id=?1",
             params![m.f.keys[0], original_until],
@@ -355,7 +353,7 @@ fn private_successor_original_private_expiry_is_not_renewed_by_longer_target_gra
         m.f.store
             .project_native_replacement_committed(&captured, &MetadataOnlyInstalled)
             .unwrap();
-    let c = m.f.store.connection().unwrap();
+    let c = m.f.change_fixture();
     let original = original_selection_unlocked(&c, &parent);
     let resolved = replacement_lineage::resolve(
         &c,
@@ -611,7 +609,7 @@ fn private_successor_changed_or_missing_predecessor_root_and_physical_tuple_are_
         // The production trigger rejects edits. For this isolated corruption
         // control only, remove that protection to exercise the reader's exact
         // ancestry checks against still-retained real committed predecessor rows.
-        let c = m.f.store.connection().unwrap();
+        let c = m.f.change_fixture();
         let raw:String=c.query_row("SELECT observation_json FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit'",[second.offer_record_id()],|r|r.get(0)).unwrap();
         let mut value: Value = serde_json::from_str(&raw).unwrap();
         let lineage = &mut value["projection"]["private_successor"];
@@ -691,9 +689,7 @@ fn private_successor_new_target_still_requires_original_private_recipient_and_su
             "recipient" => scope.recipients.clear(),
             _ => unreachable!(),
         }
-        m.f.store
-            .connection()
-            .unwrap()
+        m.f.change_fixture()
             .execute(
                 "UPDATE credentials SET operations=?2,recipients=?3 WHERE id=?1",
                 params![
@@ -797,7 +793,7 @@ fn private_successor_cached_ancestry_observes_changed_floors_and_current_revocat
             .unwrap();
     let pending = read.media().target().connection.connection_id.clone();
     drop(read);
-    let c = m.f.store.connection().unwrap();
+    let c = m.f.change_fixture();
     let floor = replacement_lineage::floor(&c, m.sources[0].connection_id())
         .unwrap()
         .unwrap();
@@ -834,7 +830,7 @@ fn private_successor_cached_ancestry_observes_changed_floors_and_current_revocat
     drop(c);
     let target = complete(&m, &parent);
     assert_private(&m, &target);
-    let c = m.f.store.connection().unwrap();
+    let c = m.f.change_fixture();
     assert_eq!(
         replacement_lineage::floor(&c, target.connection_id())
             .unwrap()
@@ -887,7 +883,7 @@ fn private_successor_cached_ancestry_terminates_corrupt_cycle_without_private_fa
     let pending = read.media().target().connection.connection_id.clone();
     drop(read);
     let before = lineage_cache_counts(&m);
-    let c = m.f.store.connection().unwrap();
+    let c = m.f.change_fixture();
     assert_eq!(
         replacement_lineage::floor(&c, &pending).err().unwrap().code,
         "forbidden"

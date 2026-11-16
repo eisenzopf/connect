@@ -1,0 +1,102 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests/backend_owner.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests/backend_owner.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests/backend_owner.rs
+@@ -0,0 +1,88 @@
++//! Actual Core constructors/reconfigure -> original canonical native Backend.
++//! The fixture deliberately supplies the same private original handle allocator
++//! to the second controller; strings alone must not make it the original owner.
++//! This is structural ownership, not a public attack/network-quality theorem.
++use super::*;
++use rvoip_core::peer_admission::PeerAdmissionOwner;
++use crate::peer::{PeerRole,RvoipPeerConnection};
++use futures::FutureExt as _;
++
++#[tokio::test]
++async fn canonical_backend_rejects_second_controller_same_ids_without_lending_native_writer() {
++    let mut config=crate::WebRtcConfig::loopback();config.require_vp8_audio_video_profile=true;
++    let client=RvoipPeerConnection::new(&config,PeerRole::Offerer).await.unwrap();
++    let life=CancellationToken::new();
++    let mut accepted=principal("alice");
++    accepted.assurance=IdentityAssurance::Identified {credential_kind:rvoip_core::identity::CredentialKind::Oidc};
++    let peer_owner=match PeerAdmissionOwner::new(&accepted,IdentityId::new(),DeviceId::new(),life.child_token(),Default::default()) {
++        Ok(owner)=>owner,Err(error)=>{client.close().await.unwrap();panic!("original admission setup: {error}")}
++    };
++    let accepted_peer=peer_owner.peer();let adapter_identity=Arc::new(());
++    let physical=WebRtcPhysicalBinding::new(&accepted_peer,life.child_token());
++    let id=ConnectionId::from_string("alice");
++    let bound=physical.bind(&accepted_peer,&id,life.child_token(),&adapter_identity);
++    if let Err(error)=bound {client.close().await.unwrap();panic!("original physical bind: {error}");}
++    let backend=Backend::new(id.clone(),physical.clone(),life.child_token(),Weak::new(),None);
++    let policy=Arc::new(Policy {owners:[("alice".into(),owner("alice"))].into(),guard:Arc::new(RwLock::new(())),
++        mode:AtomicUsize::new(0),attempts:AtomicUsize::new(0),original_attempts:AtomicUsize::new(0),grant_until:Mutex::new(None)});
++    // Deliberate friend-fixture access to the REAL original allocation owner,
++    // not a fabricated Any handle. A generic new allocator would fail earlier.
++    let handles=handles(&accepted_peer);
++    let mut controllers=Vec::new();
++    let work=std::panic::AssertUnwindSafe(async {
++        physical.start_peer(config.clone(),PeerRole::Answerer).unwrap();
++        let server=physical.peer_internal(tokio::time::Instant::now()+Duration::from_secs(5)).await.unwrap();
++        client.add_local_audio_track().await.unwrap();client.add_local_video_track().await.unwrap();
++        let offered=client.create_offer_and_gather().await.unwrap();
++        let answer=server.accept_offer_and_gather(&offered).await.unwrap();client.set_remote_answer(&answer).await.unwrap();
++        client.wait_connected(Duration::from_secs(5)).await.unwrap();server.wait_connected(Duration::from_secs(5)).await.unwrap();
++        let original=StreamController::new(ConversationId::from_string("conversation"),SessionId::from_string("session"),id.clone(),
++            principal("alice"),policy.clone(),backend.clone(),handles.clone(),8).unwrap();
++        controllers.push(original.clone());
++        // Existing trusted cold factory boundary. OLD returns Arc; fixed
++        // returns typed Result. The next actual prepare proves setup succeeded
++        // on BOTH, without a new test-only constructor or owner bypass.
++        let activation=RtcMediaActivation::new(&original,&backend);
++        let mut receive=desired(Medium::Video);receive.direction=StreamDirection::Send;
++        original.change(original.revision(),std::slice::from_ref(&receive),&BTreeSet::new(),deadline(),CancellationToken::new()).await.unwrap();
++        let repeated_activation=RtcMediaActivation::new(&original,&backend);
++        let original_binding=original.active_bindings()[0].clone();
++        assert_eq!(backend.ports.len(),1);
++        original.change(original.revision(),std::slice::from_ref(&receive),&BTreeSet::from([receive.logical_id.clone()]),deadline(),CancellationToken::new()).await.unwrap();
++        assert_eq!(original.reconcile_cleanup(deadline()).await,0);
++        let rebound=original.active_bindings()[0].clone();
++        assert_eq!(rebound.generation,original_binding.generation+1);
++        assert_ne!(rebound.transport_id,original_binding.transport_id);
++        assert_eq!(backend.ports.len(),1,"same original controller reconfiguration remains supported");
++        let foreign=StreamController::new(ConversationId::from_string("conversation"),SessionId::from_string("session"),id,
++            principal("alice"),policy.clone(),backend.clone(),handles.clone(),8).unwrap();
++        controllers.push(foreign.clone());
++        let foreign_activation=RtcMediaActivation::new(&foreign,&backend);
++        let foreign_result=foreign.change(foreign.revision(),std::slice::from_ref(&receive),&BTreeSet::new(),deadline(),CancellationToken::new()).await;
++        let current=original.active_bindings();
++        let unchanged=current.len()==1 && same_binding(&current[0],&rebound);
++        // A wrong-owner cold-binding attempt cannot poison the original.
++        let original_reconfigure=original.change(original.revision(),std::slice::from_ref(&receive),&BTreeSet::from([receive.logical_id.clone()]),deadline(),CancellationToken::new()).await;
++        drop(foreign_activation);drop(repeated_activation);drop(activation);
++        (foreign_result,unchanged,original_reconfigure)
++    }).catch_unwind().await;
++    // ALL actual original owners settle BEFORE the unique desired OLD leaf.
++    let mut remaining=Vec::new();for controller in &controllers {remaining.push(controller.shutdown(deadline()).await);}
++    let backend_join=backend.close().await;
++    let physical_join=physical.shutdown().await;
++    let client_join=client.close().await;
++    life.cancel();
++    let closed=physical.actual_close_confirmed();let ports_remaining=backend.ports.len();
++    assert!(remaining.iter().all(|count|*count==0),"original Core cleanup: {remaining:?}");
++    assert!(backend_join.is_ok() && physical_join.is_ok() && client_join.is_ok(),"every original native/backend owner joined");
++    assert!(closed && ports_remaining==0 && accepted_peer.is_closed(),"no original driver/port/admission remains");
++    match work {
++        Ok((foreign,unchanged,reconfigured))=>{
++            assert!(reconfigured.is_ok(),"foreign bind refusal poisoned original controller: {reconfigured:?}");
++            assert!(unchanged,"foreign controller must not replace the original controller's binding");
++            assert!(matches!(&foreign,Err(StreamControlError::Authority)),
++                "same-ID second controller borrowed the original canonical native writer: {foreign:?}");
++        }
++        Err(error)=>std::panic::resume_unwind(error),
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/original_ingress_tests.rs
+@@ -1608,3 +1608,5 @@
+     assert!(a_native.is_ok()&&b_native.is_ok());assert_eq!((a,b),(0,0));
+     if let Err(e)=work {std::panic::resume_unwind(e)}
+ }
++
++mod backend_owner;

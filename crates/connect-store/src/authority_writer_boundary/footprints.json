@@ -1572,6 +1572,36 @@
         "observation_json"
       ]
     },
+    "native_replacement_public_video_phases": {
+      "columns": [
+        "operation_record_id",
+        "phase",
+        "ordinal",
+        "private_readiness_nonce",
+        "phase_json"
+      ]
+    },
+    "native_replacement_public_video_reservations": {
+      "columns": [
+        "operation_record_id",
+        "parent_reservation_id",
+        "runtime_epoch",
+        "plan_digest",
+        "candidate_connection_id",
+        "candidate_runtime_id",
+        "target_generation",
+        "expires_at",
+        "reservation_id",
+        "nonce",
+        "intent_json"
+      ]
+    },
+    "native_replacement_public_video_terminals": {
+      "columns": [
+        "operation_record_id",
+        "reason"
+      ]
+    },
     "native_replacement_steps": {
       "columns": [
         "operation_record_id",

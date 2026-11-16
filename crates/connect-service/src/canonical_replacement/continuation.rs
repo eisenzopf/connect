@@ -23,6 +23,9 @@ pub(crate) enum Phase {
         u64,
     ),
     Signal(DeviceReplacementEndpointEvent),
+    // Compatible scene Readers only: original old-video drain must not hold
+    // publication Writer custody across physical IO or public B warmup.
+    FreezeVideo(ManagedAudioDeviceReplacementPlan),
     Commit(ManagedAudioDeviceReplacementPlan),
 }
 #[derive(Clone)]
@@ -48,6 +51,7 @@ impl Invocation {
             Phase::Preroll(_, _) => "preroll",
             Phase::AudioPreroll(_) => "audio-preroll",
             Phase::Signal(_) => "signal",
+            Phase::FreezeVideo(_) => "freeze-video",
             Phase::Commit(_) => "commit",
         };
         tracing::debug!(target: "connect_service::canonical_replacement",
@@ -221,9 +225,10 @@ impl Invocation {
                     && revision == original_revision
                     && *request == expected
             }
-            (Phase::Commit(expected), MediaControlIntent::DeviceReplacement { plan }) => {
-                expected.media().audience().same_intent(plan)
-            }
+            (
+                Phase::Commit(expected) | Phase::FreezeVideo(expected),
+                MediaControlIntent::DeviceReplacement { plan },
+            ) => expected.media().audience().same_intent(plan),
             _ => false,
         };
         if !valid {
@@ -320,7 +325,7 @@ impl ParticipantReplacementLease for Invocation {
         self.check().map_err(|_| deny())?;
         if scope.intent != self.root.handle.intent()
             || !match (&self.phase, scope.plan) {
-                (Phase::Commit(expected), Some(plan)) => {
+                (Phase::Commit(expected) | Phase::FreezeVideo(expected), Some(plan)) => {
                     expected.media().audience().same_intent(plan.audience())
                 }
                 (
@@ -339,6 +344,7 @@ impl ParticipantReplacementLease for Invocation {
                     | (Phase::Attach, ReplacementPhase::Attach)
                     | (Phase::Activate(_), ReplacementPhase::Activate)
                     | (Phase::Commit(_), ReplacementPhase::Commit)
+                    | (Phase::FreezeVideo(_), ReplacementPhase::FreezeVideo)
             )
             || !rvoip_core::staged_streams::reliable_data::same_credential(
                 scope.principal,

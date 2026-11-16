@@ -797,7 +797,7 @@ fn replacement_unknown_commit_cannot_be_cancelled_into_candidate_cleanup_or_work
     let backup = m.f._dir.path().join("commit-custody.sqlite3");
     let before = m.f.store.backup(&backup).unwrap();
     assert_eq!(Store::inspect_snapshot(&backup).unwrap(), before);
-    let copy = rusqlite::Connection::open(&backup).unwrap();
+    let copy = uncooperative_file_owner_at(&m.f, &backup);
     copy.execute_batch("DROP TRIGGER native_replacement_step_immutable;UPDATE native_replacement_steps SET observation_json='{}' WHERE phase='commit'").unwrap();
     assert_ne!(
         Store::inspect_snapshot(&backup).unwrap().digest,
@@ -867,7 +867,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
             .record_native_replacement_committed(&capture)
             .unwrap();
         if old_cleanup_first {
-            let c = m.f.store.connection().unwrap();
+            let c = m.f.change_fixture();
             c.execute(
                 "UPDATE native_connection_lifetimes SET retired=1 WHERE connection_id=?1",
                 [m.sources[0].connection_id()],
@@ -875,7 +875,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
             .unwrap();
             c.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1",[m.sources[0].connection_id()]).unwrap();
         }
-        m.f.store.connection().unwrap().execute_batch("CREATE TRIGGER fixture_projection_failure BEFORE INSERT ON native_replacement_lifetimes BEGIN SELECT RAISE(ABORT,'isolated projection failure'); END;").unwrap();
+        m.f.change_fixture().execute_batch("CREATE TRIGGER fixture_projection_failure BEFORE INSERT ON native_replacement_lifetimes BEGIN SELECT RAISE(ABORT,'isolated projection failure'); END;").unwrap();
         assert!(m
             .f
             .store
@@ -884,9 +884,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
         assert_eq!(m.f.count("connections"), 2);
         assert_eq!(m.f.count("native_replacement_lifetimes"), 0);
         let topology: u64 =
-            m.f.store
-                .connection()
-                .unwrap()
+            m.f.change_fixture()
                 .query_row(
                     "SELECT topology_revision FROM sessions WHERE id='session'",
                     [],
@@ -894,9 +892,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
                 )
                 .unwrap();
         assert_eq!(topology, 3);
-        m.f.store
-            .connection()
-            .unwrap()
+        m.f.change_fixture()
             .execute_batch("DROP TRIGGER fixture_projection_failure")
             .unwrap();
         let origin =
@@ -908,9 +904,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
         assert_eq!(origin.membership_epoch(), m.sources[0].membership_epoch());
         assert_eq!(
             origin.offer_record_id(),
-            m.f.store
-                .connection()
-                .unwrap()
+            m.f.change_fixture()
                 .query_row(
                     "SELECT operation_record_id FROM native_replacements",
                     [],
@@ -966,9 +960,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
         // A later replacement plans generation three from the actual immutable
         // generation-two admission, even though the old source row is retired.
         let old_endpoint: String =
-            m.f.store
-                .connection()
-                .unwrap()
+            m.f.change_fixture()
                 .query_row(
                     "SELECT endpoint_id FROM connections WHERE id=?1",
                     [m.sources[0].connection_id()],
@@ -1024,9 +1016,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
         assert_eq!(next_plan["source_generation"], 2);
         // The actual target credential remains authoritative after movement.
         let target: String =
-            m.f.store
-                .connection()
-                .unwrap()
+            m.f.change_fixture()
                 .query_row(
                     "SELECT credential_id FROM native_replacement_lifetimes",
                     [],
@@ -1035,7 +1025,7 @@ fn replacement_established_projection_keeps_target_generation_and_survives_old_k
                 .unwrap();
         m.f.store.revoke(&admin, &target).unwrap();
         assert!(m.f.store.try_native_media_read(&origin, None).is_err());
-        let c = m.f.store.connection().unwrap();
+        let c = m.f.change_fixture();
         assert!(c
             .execute("UPDATE native_replacement_lifetimes SET generation=3", [])
             .is_err());
@@ -1411,9 +1401,7 @@ fn replacement_known_commit_projection_preserves_later_topology_without_replayin
     m.f.store
         .record_native_replacement_committed(&captured)
         .unwrap();
-    m.f.store
-        .connection()
-        .unwrap()
+    m.f.change_fixture()
         .execute(
             "UPDATE sessions SET topology_revision=topology_revision+1 WHERE id='session'",
             [],

@@ -136,7 +136,7 @@ fn probe(
         .unwrap()
         .remove("operation_id");
     let (digest, intent) = crate::transitions::digest(&request_value).unwrap();
-    let c = m.f.store.connection().unwrap();
+    let c = m.f.change_fixture();
     c.execute_batch("SAVEPOINT private_return_trigger_probe")
         .unwrap();
     assert_eq!(
@@ -354,9 +354,7 @@ fn private_successor_return_keeps_current_actor_and_physical_authority() {
         let before_effects = m.f.count("operation_effects");
         if revoke == "actor" {
             let before_operations = m.f.count("operations");
-            m.f.store
-                .connection()
-                .unwrap()
+            m.f.change_fixture()
                 .execute("UPDATE credentials SET revoked=1 WHERE id=?1", [&key])
                 .unwrap();
             assert!(m.f.store.admit_transition_command(&key, command).is_err());
@@ -378,9 +376,7 @@ fn private_successor_return_keeps_current_actor_and_physical_authority() {
                 .try_native_return_read(&origin, &actual, &[])
                 .unwrap()
                 .current());
-            m.f.store
-                .connection()
-                .unwrap()
+            m.f.change_fixture()
                 .execute(
                     "UPDATE peer_signing_keys SET revoked=1 WHERE key_id=?1",
                     [&m.target_request.key_id],
@@ -404,7 +400,7 @@ fn private_successor_return_requires_recorded_departure_of_the_latest_physical_o
         let target = complete(&m, &parent);
         let saved = history(&m, &parent);
         let (key, command) = return_command(&m, &parent, &target);
-        let c = m.f.store.connection().unwrap();
+        let c = m.f.change_fixture();
         c.execute(
             "UPDATE connections SET state='retired',generation=generation+1 WHERE id=?1",
             [target.connection_id()],
@@ -424,7 +420,7 @@ fn private_successor_return_requires_recorded_departure_of_the_latest_physical_o
             let accepted = outcome.unwrap();
             assert_eq!(accepted.state, OperationState::Accepted);
             assert!(accepted.effects.is_empty() && accepted.result.is_none());
-            let selected: String = m.f.store.connection().unwrap().query_row(
+            let selected: String = m.f.change_fixture().query_row(
                 "SELECT context_selection_json FROM native_consultation_returns WHERE operation_record_id=?1",
                 [&accepted.record_id], |r| r.get(0),
             ).unwrap();

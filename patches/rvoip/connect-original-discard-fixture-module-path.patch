@@ -1,0 +1,20 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/metadata_busy_audio.rs
+@@ -63,6 +63,7 @@
+         scene,
+         nodes: BTreeMap::new(),
+         kinds: BTreeMap::new(),
++        physical_video: BTreeMap::new(),
+     };
+     for name in ["alice", "bob", "public"] {
+         let mut authority = owner(name);
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -1623,4 +1623,5 @@
+     );
+ }
+ 
++#[path = "managed_adoption_quantum/candidate_discard.rs"]
+ mod candidate_discard;

@@ -1,0 +1,12 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_consult/replacement/video/preroll/old_video_freeze.rs
+@@ -47,7 +47,7 @@
+         f.publish_video("bob",40);
+         let first=outgoing(&mut f.old_output).await;
+         let p1=realm.handle().next_point().unwrap();
+-        let repair=first.deliver_video_with_repair(|_|async {exposure.record_potential(Some(p1));Ok(())}).await.unwrap();
++        let repair=first.deliver_video_with_repair(|_,_|async {exposure.record_potential(Some(p1));Ok(())}).await.unwrap();
+         f.publish_video("bob",41);
+         let primary=outgoing(&mut f.old_output).await;
+         let p2=realm.handle().next_point().unwrap();

@@ -1,0 +1,12 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video/tests.rs b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video/tests.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video/tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/reserved_video/tests.rs
+@@ -4,7 +4,7 @@
+ }
+ fn sdp(answer:bool)->String {
+     let b=if answer {"sendonly"} else {"recvonly"};
+-    format!("v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE au camera fresh\r\nm=audio 9 UDP/TLS/RTP/SAVPF 0\r\na=mid:au\r\na=sendrecv\r\na=rtpmap:0 PCMU/8000\r\nm=video 9 UDP/TLS/RTP/SAVPF 120 124\r\na=mid:camera\r\na=sendrecv\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=rtpmap:120 VP8/90000\r\na=rtpmap:124 rtx/90000\r\na=fmtp:124 apt=120\r\nm=video 9 UDP/TLS/RTP/SAVPF 121 125\r\na=mid:fresh\r\na={b}\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=rtpmap:121 VP8/90000\r\na=rtpmap:125 rtx/90000\r\na=fmtp:125 apt=121\r\n")
++    format!("v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\na=group:BUNDLE au camera fresh\r\nm=audio 9 UDP/TLS/RTP/SAVPF 0\r\na=mid:au\r\na=sendrecv\r\na=rtpmap:0 PCMU/8000\r\nm=video 9 UDP/TLS/RTP/SAVPF 120 124\r\na=mid:camera\r\na=sendrecv\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=rtpmap:120 VP8/90000\r\na=rtpmap:124 rtx/90000\r\na=fmtp:124 apt=120\r\nm=video 9 UDP/TLS/RTP/SAVPF 121 125\r\na=mid:fresh\r\na={b}\r\na=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=rtpmap:121 VP8/90000\r\na=rtpmap:125 rtx/90000\r\na=fmtp:125 apt=121\r\n")
+ }
+ #[test]
+ fn reserved_b_profile_requires_exact_three_logical_roles_and_preserves_default_singleton() {

@@ -110,7 +110,7 @@ fn scene_topology_with_timeout(
         else {
             panic!()
         };
-        f.store.connection().unwrap().execute("UPDATE endpoints SET verification_state='verified',verification_evidence='controlled-fixture',verified_at=?2 WHERE id=?1",params![endpoint_id,crate::now()]).unwrap();
+        f.change_fixture().execute("UPDATE endpoints SET verification_state='verified',verification_evidence='controlled-fixture',verified_at=?2 WHERE id=?1",params![endpoint_id,crate::now()]).unwrap();
         f.keys.push(key);
         f.pids.push(participant.participant_id);
         f.endpoints.push(endpoint_id);
@@ -343,10 +343,23 @@ fn full_four_plus_two_scene_reuses_exact_live_packet_interval_behind_actual_writ
             m.f.store
                 .try_native_replacement_scene_read(&m.origin, &m.sources)
                 .unwrap();
-        let held =
+        let unary =
             m.f.store
                 .try_native_media_read(&m.sources[2], None)
                 .unwrap();
+        let candidate = AuthorityScope::connection(
+            &expected.media().target().connection.connection_id,
+            AuthorityMode::Read,
+        )
+        .unwrap();
+        assert!(!m.f.store.authority_covers(unary.interval(), &[candidate]));
+        assert_eq!(
+            under(&m, 2, &unary).err().unwrap().code,
+            "forbidden",
+            "a unary source cannot supply missing candidate/scene custody"
+        );
+        drop(unary);
+        let held = held_scene_source(&expected, &m.sources[2]);
         let stable = counts(&m);
         let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
         let scope = AuthorityScope::conversation(&m.f.cid, AuthorityMode::Write).unwrap();
@@ -376,19 +389,42 @@ fn full_four_plus_two_scene_reuses_exact_live_packet_interval_behind_actual_writ
         assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
         let mut wrong_scene = m.sources.clone();
         wrong_scene.extend(side);
+        // A refused multi-query projection can honestly cross a SQL/policy
+        // snapshot edge before sealing its permanent refusal. Retry ONLY that
+        // effect-free observation on these SAME original objects. Never enter
+        // fresh admission, release custody, change the scene or accept busy.
+        let until = std::time::Instant::now() + Duration::from_secs(1);
+        let refused = loop {
+            let error =
+                m.f.store
+                    .try_native_replacement_scene_read_under(
+                        &m.origin,
+                        &wrong_scene,
+                        &m.sources[2],
+                        &held,
+                    )
+                    .err()
+                    .expect("foreign-session scene must never acquire a current scene");
+            if error.code == "authority-busy" && std::time::Instant::now() < until {
+                assert!(expected.current() && held.current() && actual.current());
+                assert!(!writer.0.as_ref().unwrap().is_finished());
+                assert_eq!(m.f.store.authority.test_admission_attempts(), admissions);
+                assert_eq!(counts(&m), stable);
+                assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+                std::thread::yield_now();
+                continue;
+            }
+            break error;
+        };
+        assert!(expected.current() && held.current() && actual.current());
+        assert!(!writer.0.as_ref().unwrap().is_finished());
         assert_eq!(
-            m.f.store
-                .try_native_replacement_scene_read_under(
-                    &m.origin,
-                    &wrong_scene,
-                    &m.sources[2],
-                    &held
-                )
-                .err()
-                .unwrap()
-                .code,
-            "forbidden"
+            refused.code, "forbidden",
+            "exact refused observation: {refused:?}"
         );
+        assert_eq!(m.f.store.authority.test_admission_attempts(), admissions);
+        assert_eq!(counts(&m), stable);
+        assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
         drop(expected);
         drop(held);
         assert!(!writer.0.as_ref().unwrap().is_finished());
@@ -410,16 +446,20 @@ fn full_scene_under_rechecks_selected_unrelated_operator_and_target_permission_w
         ("root-expiry", "forbidden"),
     ] {
         let (m, _) = scene_topology_with_timeout(true, (mutation == "root-expiry").then_some(2));
-        let held =
+        let captured =
             m.f.store
-                .try_native_media_read(&m.sources[2], None)
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
                 .unwrap();
+        let held = held_scene_source(&captured, &m.sources[2]);
+        drop(captured);
         let initial = under(&m, 2, &held).unwrap();
         let candidate = initial.media().target().runtime_connection_id.clone();
         assert!(initial.permits_receive(&candidate, m.sources[2].runtime_connection_id()));
         drop(initial);
         {
-            let c = m.f.store.connection().unwrap();
+            // Deliberately adversarial row changes while the SAME original
+            // scene interval is live. A supported Writer must stay excluded.
+            let c = uncooperative_file_owner_at(&m.f, m.f.store.path());
             match mutation {
                 "selected-credential" | "unrelated-credential" | "operator-credential" => {
                     let key = match mutation {
@@ -525,16 +565,18 @@ fn full_scene_under_refuses_foreign_wrong_source_and_new_uncovered_scope_without
     else {
         panic!()
     };
-    let held =
+    let captured =
         m.f.store
-            .try_native_media_read(&m.sources[2], None)
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
             .unwrap();
+    let held = held_scene_source(&captured, &m.sources[2]);
+    drop(captured);
     let missing = AuthorityScope::identity(&identity_id, AuthorityMode::Read).unwrap();
     assert!(!m.f.store.authority_covers(held.interval(), &[missing]));
     // Supported membership writers remain excluded by the held Conversation
     // reader. This disposable SQL insert models a writer outside that protocol,
     // while respecting every schema ownership/epoch/binding trigger.
-    m.f.store.connection().unwrap().execute(
+    uncooperative_file_owner_at(&m.f, m.f.store.path()).execute(
         "INSERT INTO participants(conversation_id,identity_id,tenant_id) SELECT ?1,id,tenant_id FROM identities WHERE id=?2",
         params![m.f.cid, identity_id],
     ).unwrap();
@@ -569,7 +611,7 @@ fn full_scene_under_preserves_actual_original_source_expiry_and_refuses_renewed_
             "capture must precede actual original expiry"
         );
         {
-            let c = m.f.store.connection().unwrap();
+            let c = m.f.change_fixture();
             if boundary == "source" {
                 c.execute(
                     "UPDATE credentials SET expires_at=?2 WHERE id=?1",
@@ -578,10 +620,12 @@ fn full_scene_under_preserves_actual_original_source_expiry_and_refuses_renewed_
                 .unwrap();
             }
         }
-        let held =
+        let captured =
             m.f.store
-                .try_native_media_read(&m.sources[2], None)
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
                 .unwrap();
+        let held = held_scene_source(&captured, &m.sources[2]);
+        drop(captured);
         let read = under(&m, 2, &held).unwrap();
         assert!(read.media().source().expires_at() <= cap);
         assert!(read.media().source().expires_at() <= held.expires_at());
@@ -595,9 +639,10 @@ fn full_scene_under_preserves_actual_original_source_expiry_and_refuses_renewed_
         assert!(!read.current());
         if boundary == "source" {
             assert!(!held.current());
-            m.f.store
-                .connection()
-                .unwrap()
+            // An explicitly uncooperative file owner renews the row while
+            // BOTH original expired Read aliases remain alive. The supported
+            // Writer cannot cross those locks; they must never gain new life.
+            uncooperative_file_owner_at(&m.f, m.f.store.path())
                 .execute(
                     "UPDATE credentials SET expires_at=?2 WHERE id=?1",
                     params![m.f.keys[2], crate::now() + 600],

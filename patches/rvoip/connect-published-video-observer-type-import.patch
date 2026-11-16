@@ -1,0 +1,11 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/published_video_protection.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/published_video_protection.rs
+@@ -2,7 +2,7 @@
+ //! permission, source cut, physical drain or authorization to restore OLD.
+ use super::*;
+ use super::old_video_freeze::FrozenOldVideoFrontier;
+-use super::physical_video_exposure::{PhysicalVideoExposureSeal,PhysicalVideoSealWitness};
++use super::physical_video_exposure::{PhysicalVideoExposureObserver,PhysicalVideoExposureSeal,PhysicalVideoSealWitness};
+ use std::sync::atomic::AtomicBool;
+ 
+ enum State {

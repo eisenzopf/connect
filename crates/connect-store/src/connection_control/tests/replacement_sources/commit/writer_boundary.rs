@@ -263,3 +263,46 @@ fn public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene() {
     drop(write);
     assert_eq!(code.as_deref(), Some("forbidden"));
 }
+
+#[test]
+fn freeze_scene_read_preserves_original_and_fresh_packet_readers_but_cannot_commit() {
+    let m = fixture(true);
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let original =
+        m.f.store
+            .try_native_media_read(&m.sources[0], None)
+            .unwrap();
+    let scene =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    assert!(scene.current() && original.current());
+    // Both original owners continue admitting new packet work while the
+    // prospective video-freeze phase retains the exact compatible scene Read.
+    let mut packets = Vec::new();
+    for source in &m.sources {
+        let fresh = m.f.store.try_native_media_read(source, None).unwrap();
+        assert!(fresh.current());
+        packets.push(fresh);
+    }
+    let attempted =
+        m.f.store
+            .begin_native_replacement_commit(m.origin.clone(), &scene);
+    let refused = attempted.as_ref().err().map(|error| error.code.clone());
+    drop(attempted);
+    let retained_current =
+        original.current() && scene.current() && packets.iter().all(|read| read.current());
+    drop(packets);
+    drop(scene);
+    drop(original);
+    assert_eq!(refused.as_deref(), Some("forbidden"));
+    assert!(
+        retained_current,
+        "non-mutating freeze phase interrupted packet reader custody"
+    );
+    assert_eq!(
+        Store::inspect_snapshot(m.f.store.path()).unwrap(),
+        before,
+        "read-only freeze began or recorded a movement effect"
+    );
+}

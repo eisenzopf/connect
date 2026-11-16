@@ -109,6 +109,12 @@ impl ParticipantPolicy for Policy {
             }
             return i.role_control(scope);
         }
+        if let Some(i) = held.downcast_ref::<crate::canonical_replacement::discard::Invocation>() {
+            if !std::ptr::eq(self, Arc::as_ptr(&i.policy)) {
+                return Err(ParticipantControlError::Authority);
+            }
+            return i.control(scope);
+        }
         if let Some(i) =
             held.downcast_ref::<crate::canonical_replacement::continuation::Invocation>()
         {

@@ -4,6 +4,8 @@ use rusqlite::OptionalExtension;
 pub(crate) mod commit;
 pub(crate) mod data_control;
 mod intent;
+mod not_submitted;
+mod public_video;
 pub(crate) mod queued;
 pub(crate) mod reservation;
 pub(crate) mod scoped;
@@ -116,6 +118,11 @@ impl State {
                 );
             }
             let key = &active.key;
+            if key.phase == "public-video" {
+                return public_video::matches(
+                    active, action, record, effect, phase, expected, attempt, revision,
+                );
+            }
             if active.scoped_capture.is_some() {
                 return scoped::matches(
                     active, action, record, effect, phase, expected, attempt, revision,

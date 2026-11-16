@@ -1,0 +1,70 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/candidate_discard.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/candidate_discard.rs
+index 17d3d77c..32bc7f88 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/candidate_discard.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/candidate_discard.rs
+@@ -68,14 +68,14 @@ async fn original_candidate_expired_cancelled_cleanup_does_not_renew_target_admi
+     let result=catch_original(async {
+         let(alice,source,retained)=original_pair(&mut room).await;
+         let next=replacement_domain(&room,&alice);
+-        let(root,grant,_,_,_)=room.prepare_move(&source,&retained,next).await;
++        let(root,grant,_,_,_,original_plan)=room.prepare_move_with_activation_plan(&source,&retained,next).await;
+         tokio::time::sleep_until(grant.until).await;
+         // Actual original expiry/cancel, not changed clock fields or reset age.
+         assert!(root.cancel());
+         let cleanup=CleanupGrant::known(&grant);
+         let context=room.orch.discard_staged_device_replacement_with_held(&root,&cleanup).unwrap();
+         assert!(context.matches_preparation(&root));
+-        assert!(room.orch.activate_staged_device_replacement_with_held(&root,&grant).await.is_err());
++        assert!(room.orch.activate_staged_device_replacement_with_held(&root,original_plan,&grant).await.is_err());
+         assert!(room.orch.plan_staged_device_replacement_activation(&root).is_err());
+         room.nodes.get_mut(&source).unwrap().publish(800).unwrap();
+         room.nodes.get_mut(&retained).unwrap().hear(800).await;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+index 5418f51d..6a5643f2 100644
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -998,6 +998,26 @@ impl ManagedRoom {
+         Arc<SignalContext>,
+         crate::staged_streams::audience::AudioAudienceHandle,
+         crate::staged_streams::endpoint_preparation::AudioEndpointPreparation,
++    ) {
++        let (root, grant, context, handle, probe, _original_plan) = self
++            .prepare_move_with_activation_plan(source, retained, d)
++            .await;
++        (root, grant, context, handle, probe)
++    }
++    // The discard expiry control must retain the actual original pre-expiry
++    // activation plan; it cannot construct a new plan after cancellation.
++    async fn prepare_move_with_activation_plan(
++        &mut self,
++        source: &ConnectionId,
++        retained: &ConnectionId,
++        d: Arc<Domain>,
++    ) -> (
++        Arc<DeviceReplacementPreparation>,
++        ReplacementGrant,
++        Arc<SignalContext>,
++        crate::staged_streams::audience::AudioAudienceHandle,
++        crate::staged_streams::endpoint_preparation::AudioEndpointPreparation,
++        crate::staged_streams::audience::AudioAudiencePlan,
+     ) {
+         let id = ConnectionId::new();
+         let intent = ParticipantReplacementMutation {
+@@ -1170,7 +1190,7 @@ impl ManagedRoom {
+         };
+         let context_handle = self
+             .orch
+-            .activate_staged_device_replacement_with_held(&root, plan, &held)
++            .activate_staged_device_replacement_with_held(&root, plan.clone(), &held)
+             .await
+             .unwrap();
+         self.world
+@@ -1184,7 +1204,7 @@ impl ManagedRoom {
+             .orch
+             .prepare_staged_audio_endpoint(&self.session, &id, context_handle.operation_id())
+             .unwrap();
+-        (root, grant, context, context_handle, probe)
++        (root, grant, context, context_handle, probe, plan)
+     }
+     async fn prepare_audio(
+         &self,

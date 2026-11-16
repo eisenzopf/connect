@@ -20350,7 +20350,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-16T09:31:08.944549+00:00",
+  "updated_at": "2026-11-16T09:42:22.564718+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20377,6 +20377,13 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
     "sha256": "cf325de753ad21dfc966201282ee90752352acbabf44871080d0189fa8cfdcca",
     "status": "STORE413_OF416_SERVICE90_PASS_THREE_FIXTURE_FAILURES",
+    "ready_for_32": false
+  },
+  "v219_g484_component_checkpoint": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
+    "sha256": "48e43f35ec273d91da94956bd8eabd3f46fffd836c2f87db48f5c62ddbbc7c9c",
+    "status": "FOCUSED_ORIGINAL_THREE_STORE_REGRESSIONS_PASS",
+    "historical_regrade": false,
     "ready_for_32": false
   }
 }
