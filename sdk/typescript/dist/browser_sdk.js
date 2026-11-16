@@ -1,5 +1,6 @@
 import { createBrowserRaw, } from "./browser_sdk_raw.js";
 import { BrowserTasks } from "./browser_tasks.js";
+import { WebRtcReceiveReservationIntentOwner } from "./browser_webrtc_receive_reservation.js";
 import { preserveRenderRetirement, } from "./browser_render_retirement.js";
 import { handoffIntent, moveIntent, movementCompletion, } from "./browser_sdk_movements.js";
 import { transitionCommand, transitionContinuation, transitionObservation, consultationCompletion, consultBody, } from "./browser_sdk_consultations.js";
@@ -754,12 +755,16 @@ function current(client) {
     return s;
 }
 const operationRetirements = new WeakMap();
+// Only the original authenticated operation observation populates this map.
+// A caller-created snapshot/options object cannot select the additional MID.
+const preparingReceiveReservations = new WeakMap();
 export class BrowserOperation {
     client;
     kind;
     reference;
     #record;
     #revision = -1;
+    #receiveReservation;
     /** @internal Instances are supplied by SDK-owned mutation kinds. */
     constructor(client, ref, kind) {
         this.client = client;
@@ -816,21 +821,38 @@ export class BrowserOperation {
         else if (["failed", "cancelled"].includes(value.state)) {
             operationRetirements.delete(this);
         }
+        const snapshot = freeze({
+            key: this.reference,
+            state: value.state,
+            revision: Number(value.revision),
+            recordId: value.record_id,
+            ...(value.native_replacement_prepared === undefined
+                ? {}
+                : {
+                    replacementPrepared: value.native_replacement_prepared,
+                }),
+            ...(value.problem === undefined
+                ? {}
+                : { problem: copy(value.problem) }),
+        });
+        if (value.state === "preparing" && this.#receiveReservation !== undefined &&
+            value.webrtc_video_receive_reservation === undefined)
+            s.malformed(this.reference);
+        if (value.webrtc_video_receive_reservation !== undefined) {
+            if (this.reference.command !== "connection.replace")
+                s.malformed(this.reference);
+            const reservation = copy(value.webrtc_video_receive_reservation);
+            if (this.#receiveReservation !== undefined &&
+                canonicalJson(this.#receiveReservation) !== canonicalJson(reservation))
+                s.malformed(this.reference);
+            this.#receiveReservation ??= reservation;
+            // A completed phase may retain its immutable historical intent.
+            // Only a verified PREPARING snapshot can enable a fresh physical.
+            if (value.state === "preparing")
+                preparingReceiveReservations.set(snapshot, copy(reservation));
+        }
         return {
-            snapshot: freeze({
-                key: this.reference,
-                state: value.state,
-                revision: Number(value.revision),
-                recordId: value.record_id,
-                ...(value.native_replacement_prepared === undefined
-                    ? {}
-                    : {
-                        replacementPrepared: value.native_replacement_prepared,
-                    }),
-                ...(value.problem === undefined
-                    ? {}
-                    : { problem: copy(value.problem) }),
-            }),
+            snapshot,
             ...(value.result === undefined
                 ? {}
                 : { result: copy(value.result) }),
@@ -1600,9 +1622,39 @@ export class BrowserSession {
                         appearance.membership_epoch !==
                             participant.membershipEpoch)
                         throw new BrowserSdkError("application", "not-submitted", key);
-                    begun = BrowserRtcConnection.beginReplacement(peer, low, participant.id, s.rtcConfiguration, root, budget.options());
+                    const reservation = preparingReceiveReservations.get(snapshot);
+                    let receiveReservation;
+                    if (reservation !== undefined) {
+                        if (!low.video || !low.receiveVideo)
+                            throw new BrowserSdkError("protocol", "not-submitted", key);
+                        const owner = new WebRtcReceiveReservationIntentOwner({
+                            recordId: root.recordId, operationId: root.operationId,
+                            targetConnectionId: root.targetConnectionId,
+                            audioStreamId: low.audio, previewStreamId: low.video,
+                            publicStreamId: low.receiveVideo,
+                        });
+                        try {
+                            const intent = owner.observe(reservation, root);
+                            if (!intent)
+                                throw new BrowserSdkError("protocol", "not-submitted", key);
+                            receiveReservation = Object.freeze({ owner, intent });
+                        }
+                        catch (error) {
+                            owner.close();
+                            throw error;
+                        }
+                    }
+                    try {
+                        begun = BrowserRtcConnection.beginReplacement(peer, low, participant.id, s.rtcConfiguration, root, budget.options(), receiveReservation);
+                    }
+                    catch (error) {
+                        receiveReservation?.owner.close();
+                        throw error;
+                    }
                 }
                 else {
+                    if (preparingReceiveReservations.has(snapshot))
+                        throw new BrowserSdkError("protocol", "not-submitted", key);
                     begun = s
                         .nativePeer()
                         .beginReplacementConnection(low, root, budget.options());

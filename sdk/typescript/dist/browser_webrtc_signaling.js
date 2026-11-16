@@ -112,7 +112,22 @@ export class CanonicalWebRtcSignaling {
         if (options.replacement) {
             if (options.purpose !== undefined)
                 throw new ConnectError("invalid-request", "Replacement cannot change the original purpose");
-            this.replacement = new BrowserWebRtcReplacement(client, options.replacement);
+            this.replacement = new BrowserWebRtcReplacement(client, options.replacement, options.receiveReservation);
+        }
+        if (options.receiveReservation) {
+            const root = options.replacement, intent = options.receiveReservation.intent;
+            const audio = options.streams.filter(stream => stream.kind === "audio");
+            if (!root || audio.length !== 1 || audio[0].direction !== "sendrecv" ||
+                options.streams.length !== 3 ||
+                !options.streams.some(stream => stream.id === intent.preview_stream_id && stream.kind === "video" && stream.direction === "sendrecv") ||
+                !options.streams.some(stream => stream.id === intent.public_stream_id && stream.kind === "video" && stream.direction === "recvonly") ||
+                !options.receiveReservation.owner.owns(intent, {
+                    recordId: root.recordId, operationId: root.operationId,
+                    targetConnectionId: root.targetConnectionId,
+                    audioStreamId: audio[0].id, previewStreamId: intent.preview_stream_id,
+                    publicStreamId: intent.public_stream_id,
+                }))
+                throw protocol("Foreign original receive reservation offer");
         }
         this.scope = {
             cid: options.conversationId,
@@ -132,6 +147,9 @@ export class CanonicalWebRtcSignaling {
                 }
                 : {}),
             capabilities: options.capabilities,
+            ...(options.receiveReservation ? {
+                webrtc_video_receive_reservation: snapshot(options.receiveReservation.intent),
+            } : {}),
             streams_offered: options.streams.map((s) => ({
                 ...s,
                 codec_preferences: [...s.codec_preferences],
@@ -219,7 +237,7 @@ export class CanonicalWebRtcSignaling {
         return this.tasks.track(this.draining);
     }
     /** One complete-ICE offer. No automatic retry, fallback, redial or message send. */
-    async offer(options = {}) {
+    async offer(options = {}, originalBudget) {
         this.check();
         if (this.attempted)
             throw new ConnectError("conflict", "WebRTC original offer already attempted; inspect its original status");
@@ -227,7 +245,7 @@ export class CanonicalWebRtcSignaling {
         if (!Number.isFinite(timeout) || timeout < 1 || timeout > 60000)
             throw new ConnectError("invalid-request", "WebRTC deadline must be 1–60000 ms");
         this.attempted = true;
-        const until = performance.now() + timeout;
+        const until = performance.now() + (originalBudget?.remaining() ?? timeout);
         const aborted = () => this.die(new ConnectError("cancelled", "WebRTC wait cancelled; retain original operation ID"));
         const timer = setTimeout(() => this.die(new ConnectError("timeout", "WebRTC signaling deadline; retain original operation ID")), timeout);
         const stopped = new Promise((_, reject) => {
@@ -243,7 +261,7 @@ export class CanonicalWebRtcSignaling {
             return result;
         };
         const remaining = () => ({
-            timeoutMs: Math.max(1, until - performance.now()),
+            timeoutMs: originalBudget?.remaining() ?? Math.max(1, until - performance.now()),
             signal: options.signal,
         });
         options.signal?.addEventListener("abort", aborted, { once: true });
@@ -286,7 +304,7 @@ export class CanonicalWebRtcSignaling {
             if (this.replacement) {
                 await bound(this.replacement.allocate(snapshot(this.original), { ...this.scope }, remaining(), () => {
                     this.submitted = true;
-                }));
+                }, originalBudget));
                 this.original = this.replacement.mediaOffer(this.original);
             }
             // Set before handing bytes to the shared client; failure can be uncertain.
@@ -357,6 +375,14 @@ export class CanonicalWebRtcSignaling {
     }
     get replacementChallenge() {
         return this.replacement?.challenge;
+    }
+    /** Exact owned original context only. No unsigned readiness/phase selector. */
+    originalPublicVideoReplacement() {
+        this.check();
+        if (!this.replacement || !this.remoteApplied)
+            throw new ConnectError("unsupported-media-profile", "Original reserved B media answer is unavailable");
+        this.replacement.reservedContext();
+        return this.replacement;
     }
     completeReplacement(evidence, options) {
         this.check();

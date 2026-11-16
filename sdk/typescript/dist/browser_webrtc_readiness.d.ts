@@ -1,5 +1,6 @@
 import { BrowserDeadline } from "./browser_deadline.js";
 import type { WebRtcDecodedReadiness } from "./browser_webrtc_replacement.js";
+import type { WebRtcReceiveRoles } from "./browser_webrtc_receive_roles.js";
 /** Internal, one-shot transfer between this peer's readiness and renderer. */
 export interface WebRtcPreparedAudio {
     readonly context: AudioContext;
@@ -26,4 +27,4 @@ export declare function observeWebRtcDecodedReadiness(peer: RTCPeerConnection, a
 }, video: {
     id: string;
     track: MediaStreamTrack;
-} | undefined, budget: BrowserDeadline, signal: AbortSignal, trackTask: <T>(work: Promise<T>, cleanup?: boolean) => Promise<T>, retainMutedDecoderSinks?: (decoder: WebRtcPreparedDecoder) => void): Promise<WebRtcDecodedReadiness>;
+} | undefined, budget: BrowserDeadline, signal: AbortSignal, trackTask: <T>(work: Promise<T>, cleanup?: boolean) => Promise<T>, retainMutedDecoderSinks?: (decoder: WebRtcPreparedDecoder) => void, roleOwner?: WebRtcReceiveRoles): Promise<WebRtcDecodedReadiness>;

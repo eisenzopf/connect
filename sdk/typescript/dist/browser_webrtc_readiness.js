@@ -2,13 +2,33 @@ import { ConnectError } from "./errors.js";
 /** Readiness comes from this new RTC receiver's decoded PCM and video output.
  * ICE, DTLS, RTP counters, and an SDP answer cannot satisfy it on their own.
  * The private outputs remain muted; an application owns audible rendering. */
-export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, signal, trackTask, retainMutedDecoderSinks) {
+export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, signal, trackTask, retainMutedDecoderSinks, roleOwner) {
     const unsupported = () => new ConnectError("unsupported-media-profile", "WebRTC decoded replacement observation is unavailable");
     if (typeof AudioContext !== "function" ||
         typeof AudioWorkletNode !== "function" ||
         audio.track.kind !== "audio" ||
         (video && video.track.kind !== "video"))
         throw unsupported();
+    let originalRoles;
+    if (roleOwner) {
+        const a = roleOwner.binding("audio"), v = roleOwner.binding("preview");
+        if (!a || !v || !video || a.streamId !== audio.id || a.track !== audio.track || v.streamId !== video.id || v.track !== video.track)
+            throw unsupported();
+        originalRoles = [a, v];
+    }
+    const checkRoles = () => {
+        if (!roleOwner || !originalRoles)
+            return;
+        const actual = peer.getTransceivers();
+        for (const [index, role] of ["audio", "preview"].entries()) {
+            const current = roleOwner.binding(role), original = originalRoles[index];
+            if (!current || current.mid !== original.mid || current.receiver !== original.receiver || current.transceiver !== original.transceiver ||
+                current.track !== original.track || actual.filter(tx => tx === current.transceiver).length !== 1 ||
+                current.transceiver.receiver !== current.receiver || current.receiver.track !== current.track)
+                throw unsupported();
+        }
+    };
+    checkRoles();
     let context, source, worklet, gain, playout, picture, frameCallback, stopped = false, decoderSinksStopped = false, decoderSinksRetained = false, audioAdopted = false, videoAdopted = false, sampleCount = 0, frameCount = 0, presented = 0, failed;
     const run = (work) => budget.run(() => trackTask(work()), signal);
     const check = () => {
@@ -240,13 +260,32 @@ export async function observeWebRtcDecodedReadiness(peer, audio, video, budget, 
         }
         for (;;) {
             check();
+            checkRoles();
             const report = await run(() => peer.getStats());
             check();
+            checkRoles();
+            const actualRoles = originalRoles ? peer.getTransceivers() : undefined;
             let decodedAudio = 0, decodedVideo = 0, decodedKeyframes = null;
             report.forEach((value) => {
                 if (value.type !== "inbound-rtp" || value.isRemote === true)
                     return;
                 const kind = value.kind ?? value.mediaType;
+                if (originalRoles && actualRoles) {
+                    const matches = actualRoles.filter(tx => tx.mid === value.mid);
+                    if (typeof value.mid !== "string" || matches.length !== 1 || matches[0].receiver.track.kind !== kind ||
+                        (value.trackIdentifier !== undefined && value.trackIdentifier !== matches[0].receiver.track.id))
+                        throw unsupported();
+                    if (kind === "video" && value.mid !== originalRoles[1].mid) {
+                        // This B is explicitly never-fed before private A/audio
+                        // readiness. Another receiver's counters never prove A.
+                        if ((Number.isFinite(value.framesDecoded) && value.framesDecoded > 0) ||
+                            (Number.isFinite(value.packetsReceived) && value.packetsReceived > 0))
+                            throw unsupported();
+                        return;
+                    }
+                    if (kind === "audio" && value.mid !== originalRoles[0].mid)
+                        throw unsupported();
+                }
                 if (kind === "audio" &&
                     (!value.trackIdentifier ||
                         value.trackIdentifier === audio.track.id) &&

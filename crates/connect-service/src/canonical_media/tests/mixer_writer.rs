@@ -153,11 +153,12 @@ struct Probe {
     reads: Vec<AuthorityScope>,
     active: Active,
     armed: AtomicBool,
-    legacy: bool,
+    fresh: bool,
     start: Mutex<Option<(SyncSender<()>, Receiver<()>)>>,
     triggered: AtomicBool,
     callback_us: AtomicU64,
     contended: AtomicUsize,
+    published_absence: AtomicBool,
 }
 impl Probe {
     fn grant(
@@ -238,14 +239,20 @@ impl MediaPolicy for Probe {
             start.send(()).unwrap();
             started.recv_timeout(Duration::from_secs(1)).unwrap();
             let began = std::time::Instant::now();
-            let result = if self.legacy {
+            let result = if self.fresh {
                 self.service.current(scope)
             } else {
                 self.service.current_queued(scope)
             };
             self.callback_us
                 .store(began.elapsed().as_micros() as u64, Ordering::Release);
-            assert!(matches!(result, Err(StreamControlError::NotReady)));
+            // The actual Service registry has no such peer. Its published
+            // absence remains definitive while the writer is held; contention
+            // must not manufacture permission or force an old retry budget.
+            self.published_absence.store(
+                matches!(&result, Err(StreamControlError::Authority)),
+                Ordering::Release,
+            );
             self.contended.fetch_add(1, Ordering::AcqRel);
             return result;
         }
@@ -269,7 +276,7 @@ fn publish(adapter: &Adapter, timestamp: u32) {
 #[tokio::test(flavor = "current_thread")]
 async fn actual_mixer_releases_store_reader_before_writer_budget_when_retained_service_callback_is_queued(
 ) {
-    for legacy in [true, false] {
+    for fresh in [true, false] {
         let dir = tempfile::tempdir().unwrap();
         let store = Arc::new(
             Store::initialize(&dir.path().join("state.sqlite3"), Default::default()).unwrap(),
@@ -324,11 +331,12 @@ async fn actual_mixer_releases_store_reader_before_writer_budget_when_retained_s
             reads: scopes(AuthorityMode::Read),
             active: Arc::new(Mutex::new(BTreeMap::new())),
             armed: AtomicBool::new(false),
-            legacy,
+            fresh,
             start: Mutex::new(Some((start, ready))),
             triggered: AtomicBool::new(false),
             callback_us: AtomicU64::new(0),
             contended: AtomicUsize::new(0),
+            published_absence: AtomicBool::new(false),
         });
         let scene = ControlledAudioScene::new(cid.clone(), sid.clone(), probe.clone());
         let handles = Arc::new(StreamHandleAllocator::default());
@@ -432,46 +440,57 @@ async fn actual_mixer_releases_store_reader_before_writer_budget_when_retained_s
         scene.tick();
         let tick = began.elapsed();
         probe.armed.store(false, Ordering::Release);
-        assert!(
-            probe.triggered.load(Ordering::Acquire),
-            "tick did not own a reader while admitting another source"
-        );
-        assert_eq!(probe.contended.load(Ordering::Acquire), 1);
-        assert!(
-            probe.active.lock().unwrap().is_empty(),
-            "mixer retained an authority reader after its tick"
-        );
-        let (outcome, elapsed) = result.recv_timeout(Duration::from_secs(1)).unwrap();
-        writer.join().unwrap();
+        let triggered = probe.triggered.load(Ordering::Acquire);
+        let contended = probe.contended.load(Ordering::Acquire);
+        let readers_empty = probe.active.lock().unwrap().is_empty();
+        // Even a missing callback is a bounded failure: join the original
+        // writer before any causal assertion or final resource retirement.
+        let report = result.recv_timeout(Duration::from_secs(6));
+        let joined = writer.join();
         let callback = probe.callback_us.load(Ordering::Acquire);
-        if legacy {
-            assert_eq!(outcome.unwrap_err(), "authority-busy");
-            assert!(
-                callback >= 8000,
-                "fresh ingress no longer exercised its retry budget"
-            );
-        } else {
-            outcome.expect("queued callback prevented the actual Store writer from draining within its original5ms budget");
-            assert!(callback < 5000);
-            assert!(tick < Duration::from_millis(50));
-        }
-        eprintln!(
-            "mixer_writer_drain legacy={legacy} callback_us={callback} tick_us={} writer_us={}",
-            tick.as_micros(),
-            elapsed.as_micros()
-        );
+        let published_absence = probe.published_absence.load(Ordering::Acquire);
         drop(scene);
         drop(outputs);
+        let mut shutdown_counts = Vec::with_capacity(controllers.len());
         for controller in controllers {
-            assert_eq!(
+            shutdown_counts.push(
                 controller
                     .shutdown(tokio::time::Instant::now() + Duration::from_secs(2))
                     .await,
-                0
             );
         }
         store
             .try_acquire_authority(&scopes(AuthorityMode::Write))
             .expect("fixture leaked Store custody");
+        assert!(
+            shutdown_counts.iter().all(|count| *count == 0),
+            "original controller cleanup failed: {shutdown_counts:?}"
+        );
+        joined.expect("original fixture writer panicked");
+        let (outcome, elapsed) =
+            report.expect("original writer did not return its bounded outcome");
+        assert!(
+            triggered,
+            "tick did not own a reader while admitting another source"
+        );
+        assert_eq!(contended, 1);
+        assert!(
+            readers_empty,
+            "mixer retained an authority reader after its tick"
+        );
+        assert!(
+            published_absence,
+            "unregistered Service peer did not preserve published absence"
+        );
+        // Both current APIs now use immutable published metadata. The old
+        // artificial expectation of a slow fresh callback is historical only.
+        outcome.expect("Service callback prevented the Store writer from draining within its original5ms budget");
+        assert!(callback < 5000);
+        assert!(tick < Duration::from_millis(50));
+        eprintln!(
+            "mixer_writer_drain fresh={fresh} callback_us={callback} tick_us={} writer_us={}",
+            tick.as_micros(),
+            elapsed.as_micros()
+        );
     }
 }

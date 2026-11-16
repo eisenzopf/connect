@@ -4,6 +4,7 @@ import {BrowserSdkClient,BrowserMediaPeer} from '../typescript/dist/browser.js';
 import {fixture} from './fixtures/browser_control_peer.mjs';
 import {BrowserRtcConnection} from '../typescript/dist/browser_sdk_webrtc.js';
 import {nativeIdentity,nativeBoundary} from './native_activation_fixture.mjs';
+import {originalWebRtcReceiveIntent} from '../typescript/dist/browser_webrtc_receive_reservation.js';
 const reference={operationId:'original',command:'connection.replace',scope:{conversationId:'room',sessionId:'session',connectionId:'source'},
     continuation:{kind:'replacement',retained_connection_id:'remote',target:{kind:'endpoint',id:'endpoint'}}};
 // Signed current-root recovery plus an intercepted physical-preparation boundary.
@@ -16,7 +17,7 @@ async function scenario(run,{path='webtransport',mode}={}) {
         return {prepared:Promise.resolve({id:input.connectionId,onClose(){return()=>{};}}),
             completed:new Promise(resolve=>{finish=()=>{complete=true;resolve({generation:2,recordId:'record',streamRevision:6});};}),submissionAttempted:true};
     };
-    BrowserRtcConnection.beginReplacement=function(client,input,participant,configuration,root,options){return BrowserMediaPeer.prototype.beginReplacementConnection.call({},input,root,options);};
+    BrowserRtcConnection.beginReplacement=function(client,input,participant,configuration,root,options,receiveReservation){const result=BrowserMediaPeer.prototype.beginReplacementConnection.call({},input,root,options);captured.receiveReservation=receiveReservation;return result;};
     try{await fixture(async f=>{
         const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,
             endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},
@@ -24,7 +25,7 @@ async function scenario(run,{path='webtransport',mode}={}) {
         if(path==='webtransport')f.transports.at(-1).datagrams.maxDatagramSize=1200;
         try{await run({client,f,session:client.conversations.byId('room').sessions.byId('session'),
             captured:()=>captured,finish:()=>finish?.()});}
-        finally{finish?.();await client.close({timeoutMs:500});}
+        finally{finish?.();captured?.receiveReservation?.owner.close();await client.close({timeoutMs:500});}
     },{wtMode:path==='webtransport'?'ok':undefined,handler:async({peer,frame})=>{
         if(frame.type==='conversation.get'){
             await peer.emit('conversation.snapshot',{revision:7,cursor:'current',has_more:false,items:[
@@ -37,6 +38,7 @@ async function scenario(run,{path='webtransport',mode}={}) {
         const readiness={stream_revision:6,streams:['audio','out','in'],participant_revision:2};
         const value={operation_id:'original',record_id:'record',command_type:'connection.replace',expected_revision:7,
             revision:reads,state:complete?'completed':'preparing',native_replacement_prepared:mode==='bad-flag'?'true':reads>=2};
+        if((!complete||mode==='intent-retained-completed')&&mode?.startsWith('intent')&&!(mode==='intent-disappears'&&reads>1))value.webrtc_video_receive_reservation={profile:'connect/webrtc-public-video-reservation/1',phase:'intent',reservation_id:'reservation',nonce:mode==='intent-changes'&&reads>1?'changed-nonce':'reservation-nonce',preview_stream_id:'out',preview_role:'receive',public_stream_id:mode==='intent-wrong-public'?'foreign':'in',...(mode==='intent-cut-smuggled'?{source_cut_id:'not-yet'}:{})};
         if(complete){
             // Parser/model metadata only: this fixture intercepts preparation;
             // these synthetic cuts never stand in for live decoder evidence.
@@ -78,3 +80,31 @@ for(const mode of ['bad-flag','foreign-scope'])test(`typed replacement ${mode} c
     await assert.rejects(()=>f.session.connections.prepareReplacement({operation:reference,audio:'audio'}, {timeoutMs:200}),{kind:'protocol'});
     assert.equal(f.captured(),undefined);
 },{mode}));
+
+test('typed target derives optional B only from the original verified preparing snapshot and exact frozen mapping',()=>scenario(async f=>{
+ const target=await f.session.connections.prepareReplacement({operation:reference,audio:'audio',video:{send:'out',receive:'in'}},{timeoutMs:500});
+ const original=f.captured(),reservation=original.receiveReservation,scope={recordId:'record',operationId:'original',targetConnectionId:'replacement_record',audioStreamId:'audio',previewStreamId:'out',publicStreamId:'in'};
+ try{
+  assert.ok(reservation);assert.equal(Object.isFrozen(reservation),true);assert.equal(Object.isFrozen(reservation.intent),true);
+  assert.equal(originalWebRtcReceiveIntent(reservation.intent,scope),true);assert.equal(reservation.owner.owns(reservation.intent,scope),true);
+  assert.equal(reservation.intent.nonce,'reservation-nonce');assert.equal(reservation.intent.preview_role,'receive');
+  assert.equal(originalWebRtcReceiveIntent({...reservation.intent},scope),false);
+  assert.equal(f.f.sent.filter(frame=>frame.type==='connection.replace'||frame.type==='connection.offer').length,0,'this intercepted boundary cannot claim native construction/negotiation');
+ }finally{f.finish();await target.completion;}
+},{path:'wss-webrtc',mode:'intent'}));
+
+test('typed reserved B refuses foreign IDs premature cut fields and non-RTC propagation before target allocation',async()=>{
+ for(const [path,mode]of [['wss-webrtc','intent-wrong-public'],['wss-webrtc','intent-cut-smuggled'],['wss-webrtc','intent-changes'],['wss-webrtc','intent-disappears'],['webtransport','intent']])await scenario(async f=>{
+  await assert.rejects(()=>f.session.connections.prepareReplacement({operation:reference,audio:'audio',video:{send:'out',receive:'in'}},{timeoutMs:500}),{kind:'protocol'});
+  assert.equal(f.captured(),undefined);
+ },{path,mode});
+});
+
+test('completed original snapshot may retain immutable reservation history without enabling a fresh B constructor',()=>scenario(async f=>{
+ const input={operation:reference,audio:'audio',video:{send:'out',receive:'in'}};
+ const target=await f.session.connections.prepareReplacement(input,{timeoutMs:500});
+ const original=f.captured();assert.ok(original.receiveReservation);f.finish();
+ const completed=await target.completion;assert.equal(completed.snapshot.state,'completed');
+ await assert.rejects(()=>f.session.connections.prepareReplacement(input,{timeoutMs:500}),{kind:'conflict'});
+ assert.equal(f.captured(),original,'Historical intent never creates another physical reservation');
+},{path:'wss-webrtc',mode:'intent-retained-completed'}));

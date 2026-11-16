@@ -15,6 +15,9 @@ import {
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { BrowserTasks } from "./browser_tasks.js";
+import { WebRtcReceiveRoles } from "./browser_webrtc_receive_roles.js";
+import { BrowserWebRtcPublicVideoLifecycle, type WebRtcPublicVideoLoan } from "./browser_webrtc_public_video_lifecycle.js";
+import { type OriginalWebRtcReceiveReservation } from "./browser_webrtc_receive_reservation.js";
 import { CanonicalWebRtcSignaling } from "./browser_webrtc_signaling.js";
 import { browserIceConfiguration } from "./browser_ice.js";
 import { captureDevices, validateBrowserAnswer } from "./browser_capture.js";
@@ -74,6 +77,9 @@ export class BrowserRtcConnection {
     private replacementCompletion?: Promise<unknown>;
     private replacementVideoSource?: MediaStreamTrack;
     private replacementVideoPresented = false;
+    private receiveRoles?: WebRtcReceiveRoles;
+    private receiveReservation?: OriginalWebRtcReceiveReservation;
+    private publicVideoLifecycle?: BrowserWebRtcPublicVideoLifecycle;
     private readonly peer: RTCPeerConnection;
     private constructor(
         private readonly client: BrowserClient,
@@ -81,6 +87,7 @@ export class BrowserRtcConnection {
         participantId: string,
         configuration: BrowserRtcConfiguration,
         replacement?: BrowserReplacementRoot,
+        receiveReservation?: OriginalWebRtcReceiveReservation,
     ) {
         const video = input.video ?? input.screen;
         if (client.closed) throw closed();
@@ -99,12 +106,31 @@ export class BrowserRtcConnection {
                     input.receiveVideo === input.audio))
         )
             throw unsupported();
+        if (receiveReservation && (!replacement || !input.video || !input.receiveVideo ||
+            !receiveReservation.owner.owns(receiveReservation.intent, {
+                recordId: replacement.recordId, operationId: replacement.operationId,
+                targetConnectionId: replacement.targetConnectionId,
+                audioStreamId: input.audio, previewStreamId: input.video,
+                publicStreamId: input.receiveVideo,
+            })))
+            throw new ConnectError("protocol", "Foreign original WebRTC receive reservation");
         const ice = browserIceConfiguration(
             configuration.iceServers,
             configuration.iceTransportPolicy,
         );
         this.peer = new RTCPeerConnection(ice);
         try {
+            if (receiveReservation) {
+                // Refusing a duplicate physical must not retire the original
+                // reservation owner. Transfer custody only after this claim.
+                receiveReservation.owner.claimPhysical(this.peer, receiveReservation.intent, {
+                    recordId: replacement!.recordId, operationId: replacement!.operationId,
+                    targetConnectionId: replacement!.targetConnectionId,
+                    audioStreamId: input.audio, previewStreamId: input.video!,
+                    publicStreamId: input.receiveVideo!,
+                });
+                this.receiveReservation = receiveReservation;
+            }
             if (
                 ice?.iceTransportPolicy === "relay" &&
                 this.peer.getConfiguration().iceTransportPolicy !== "relay"
@@ -144,9 +170,38 @@ export class BrowserRtcConnection {
                 this.worker.onerror = () => this.close(unsupported());
                 this.worker.onmessage = () => this.close(unsupported());
             }
+            if (receiveReservation) {
+                const preview = this.senders.get(input.video!)!;
+                const publicVideo = this.peer.addTransceiver("video", {direction: "recvonly"});
+                const codecs = RTCRtpSender.getCapabilities("video")?.codecs.filter(
+                    (codec) => ["video/vp8", "video/rtx"].includes(codec.mimeType.toLowerCase()),
+                );
+                if (publicVideo.sender.track !== null || !codecs?.some(codec => codec.mimeType.toLowerCase() === "video/vp8"))
+                    throw unsupported();
+                publicVideo.setCodecPreferences(codecs);
+                this.receiveRoles = new WebRtcReceiveRoles(this.peer, {
+                    recordId: replacement!.recordId, operationId: replacement!.operationId,
+                    targetConnectionId: replacement!.targetConnectionId,
+                    audioStreamId: input.audio, previewStreamId: input.video!,
+                    publicStreamId: input.receiveVideo!,
+                }, receiveReservation.intent, {audio, preview, public: publicVideo});
+            }
             configureReceiverBuffer(this.peer);
             this.peer.ontrack = (event) => {
                 if (this.stopped) return;
+                if (this.receiveRoles) {
+                    try {
+                        const role = this.receiveRoles.accept(event);
+                        const id = role === "audio" ? input.audio! :
+                            role === "preview" ? receiveReservation!.intent.preview_stream_id :
+                            receiveReservation!.intent.public_stream_id;
+                        const previous = this.remote.get(id);
+                        if (previous && previous !== event.track)
+                            throw new ConnectError("protocol", "Reserved receive track changed");
+                        this.remote.set(id, event.track);
+                    } catch (error) { this.close(error instanceof Error ? error : unsupported()); }
+                    return;
+                }
                 const selected = [...this.senders].find(
                     ([, v]) => v === event.transceiver,
                 );
@@ -191,6 +246,7 @@ export class BrowserRtcConnection {
                 expectedRevision: 0,
                 purpose: input.purpose,
                 replacement,
+                receiveReservation,
                 participantId,
                 capabilities: {
                     audio_codecs: [
@@ -228,7 +284,7 @@ export class BrowserRtcConnection {
                                   kind: input.screen
                                       ? ("screen" as const)
                                       : ("video" as const),
-                                  direction: input.receiveVideo
+                                  direction: input.receiveVideo && !receiveReservation
                                       ? ("sendonly" as const)
                                       : ("sendrecv" as const),
                                   codec_preferences: ["vp8"],
@@ -334,6 +390,7 @@ export class BrowserRtcConnection {
         configuration: BrowserRtcConfiguration,
         original: BrowserReplacementRoot,
         options: RequestOptions,
+        receiveReservation?: OriginalWebRtcReceiveReservation,
     ) {
         const root = replacementRoot(original);
         if (
@@ -363,6 +420,7 @@ export class BrowserRtcConnection {
             participantId,
             configuration,
             root,
+            receiveReservation,
         );
         const signal = AbortSignal.any([
             owner.stop.signal,
@@ -370,12 +428,13 @@ export class BrowserRtcConnection {
         ]);
         const prepared = owner.tasks.track(
             owner
-                .signaling!.offer({ timeoutMs: budget.remaining(), signal })
+                .signaling!.offer({ timeoutMs: budget.remaining(), signal },owner.receiveReservation?budget:undefined)
                 .then(async () => {
                     owner.check();
-                    validateBrowserAnswer(
-                        owner.peer.remoteDescription?.sdp ?? "",
-                        !!input.video,
+                    if (owner.receiveRoles)
+                        owner.receiveRoles.validateAnswer(owner.peer.remoteDescription?.sdp ?? "");
+                    else validateBrowserAnswer(
+                        owner.peer.remoteDescription?.sdp ?? "", !!input.video,
                     );
                     await owner.connected(budget, signal);
                     owner.check();
@@ -389,6 +448,33 @@ export class BrowserRtcConnection {
         const completed = owner.tasks.track(
             prepared
                 .then(async () => {
+                    if (owner.receiveReservation) {
+                        const original=owner.signaling!.originalPublicVideoReplacement(),roles=owner.receiveRoles;
+                        const audio=roles?.binding("audio"),preview=roles?.binding("preview");
+                        if (!roles || !audio || !preview || owner.remote.get(input.audio!)!==audio.track ||
+                            owner.remote.get(owner.receiveReservation.intent.preview_stream_id)!==preview.track)
+                            throw unsupported();
+                        const lifecycle=new BrowserWebRtcPublicVideoLifecycle(original,owner.peer,roles,{
+                            recordId:root.recordId,operationId:root.operationId,targetConnectionId:root.targetConnectionId,
+                            audioStreamId:input.audio!,previewStreamId:owner.receiveReservation.intent.preview_stream_id,
+                            publicStreamId:owner.receiveReservation.intent.public_stream_id,
+                        },budget,signal,(work,cleanup)=>owner.tasks.track(work,cleanup));
+                        owner.publicVideoLifecycle=lifecycle;
+                        return lifecycle.complete(
+                            ()=>observeWebRtcDecodedReadiness(owner.peer,{id:audio.streamId,track:audio.track},
+                                {id:preview.streamId,track:preview.track},budget,signal,
+                                (work,cleanup)=>owner.tasks.track(work,cleanup),
+                                decoder=>owner.retainMutedDecoderSinks(decoder),roles),
+                            ()=>{
+                                try{
+                                    owner.check();const a=roles.binding("audio"),v=roles.binding("preview");
+                                    return !!a&&!!v&&a.track===audio.track&&a.receiver===audio.receiver&&v.track===preview.track&&v.receiver===preview.receiver
+                                        &&owner.remote.get(audio.streamId)===audio.track&&owner.remote.get(preview.streamId)===preview.track
+                                        &&owner.preparedDecoder?.canTakeVideo(preview.track)===true;
+                                }catch{return false;}
+                            },
+                        );
+                    }
                     const audio = owner.remote.get(input.audio!);
                     const video = input.receiveVideo
                         ? owner.remote.get(input.receiveVideo)
@@ -846,11 +932,18 @@ export class BrowserRtcConnection {
                 "cancelled",
                 "Playback cancelled before startup",
             );
+        const reservedVideo=this.receiveReservation;
+        if (reservedVideo) {
+            if (!this.publicVideoLifecycle) throw new ConnectError("unsupported-media-profile", "Reserved public B has no typed activated decoder lease");
+            this.publicVideoLifecycle.assertActivated();
+        }
         if (this.renderOwner && !this.renderOwner.diagnostics.closed)
             throw new ConnectError("conflict", "Renderer already owned");
         const volume = input.volume ?? 1,
             audio = input.audio !== false,
             video = { ...input.video };
+        if (reservedVideo && Object.keys(video).some(id=>id!==reservedVideo.intent.public_stream_id))
+            throw unsupported();
         if (
             !Number.isFinite(volume) ||
             volume < 0 ||
@@ -883,7 +976,9 @@ export class BrowserRtcConnection {
             callback?: number;
             rejectFirst?: (error: Error) => void;
             canvas: CanvasRenderingContext2D;
+            publicLoan?: WebRtcPublicVideoLoan;
         }[] = [];
+        let pendingPublicLoan:WebRtcPublicVideoLoan|undefined;
         let finish!: () => void, fail!: (error: Error) => void;
         let retired!: (receipt: BrowserRenderRetirement) => void,
             retirementFailed!: (error: unknown) => void;
@@ -921,9 +1016,14 @@ export class BrowserRtcConnection {
                 output.rejectFirst = undefined;
                 if (output.callback !== undefined)
                     output.element.cancelVideoFrameCallback(output.callback);
-                output.element.pause();
-                output.element.srcObject = null;
+                if(output.publicLoan){
+                    try{output.element.pause();}finally{output.publicLoan.release();}
+                }else{
+                    output.element.pause();
+                    output.element.srcObject = null;
+                }
             }
+            pendingPublicLoan?.release();pendingPublicLoan=undefined;
             source?.disconnect();
             gain?.disconnect();
             if (this.renderOwner === handle) this.renderOwner = undefined;
@@ -1080,6 +1180,7 @@ export class BrowserRtcConnection {
                     try {
                         await this.replacementCompletion!;
                     } catch (error) {
+                        if (reservedVideo) throw error;
                         if (!this.signaling) throw error;
                         // Read the SAME original Root after uncertainty. This
                         // cannot resubmit readiness or adopt a foreign result.
@@ -1118,7 +1219,13 @@ export class BrowserRtcConnection {
                 canvas.height = 360;
                 const out = canvas.getContext("2d");
                 if (!out) throw unsupported();
-                const adopted = this.preparedDecoder?.takeVideo(track);
+                let publicLoan:WebRtcPublicVideoLoan|undefined;
+                if(reservedVideo){
+                    const current=this.receiveRoles?.binding("public");
+                    if(current?.track!==track||current.streamId!==id)throw unsupported();
+                    publicLoan=this.publicVideoLifecycle!.borrow(track);pendingPublicLoan=publicLoan;
+                }
+                const adopted = reservedVideo?publicLoan:this.preparedDecoder?.takeVideo(track);
                 const replacement = !!this.replacementCompletion;
                 if (replacement && !adopted && this.replacementVideoSource !== track) throw unsupported();
                 // Consuming a valid lease establishes only exact-track retry
@@ -1149,8 +1256,10 @@ export class BrowserRtcConnection {
                     canvas: out,
                     callback: undefined as number | undefined,
                     rejectFirst: firstReject,
+                    publicLoan,
                 };
                 outputs.push(output);
+                pendingPublicLoan=undefined;
                 // The exact adopted element is already in this renderer's
                 // cleanup inventory before any boundary-clock refusal.
                 if (requirePresentationFloor &&
@@ -1196,6 +1305,7 @@ export class BrowserRtcConnection {
                     }
                     if (!paused && element.readyState >= 2) {
                         out.drawImage(element, 0, 0, 640, 360);
+                        output.publicLoan?.presented(metadata.presentedFrames);
                         count++;
                         firstPainted = true;
                         if (replacement) this.replacementVideoPresented = true;
@@ -1246,6 +1356,12 @@ export class BrowserRtcConnection {
     close(error?: Error): void {
         if (this.stopped) return;
         this.stopped = true;
+        const publicVideo=this.publicVideoLifecycle;this.publicVideoLifecycle=undefined;
+        if(publicVideo)void this.tasks.track(publicVideo.close(),true).catch(()=>{});
+        this.receiveRoles?.close();
+        this.receiveRoles = undefined;
+        this.receiveReservation?.owner.close();
+        this.receiveReservation = undefined;
         this.replacementVideoSource = undefined;
         this.replacementVideoPresented = false;
         this.replacementCompletion = undefined;
@@ -1269,7 +1385,7 @@ export class BrowserRtcConnection {
             ...this.remote.values(),
             ...this.peer.getTransceivers().map((value) => value.receiver.track),
         ]);
-        this.peer.close();
+        if (this.peer.connectionState !== "closed") this.peer.close();
         if (this.worker) stopVideoWorker(this.worker);
         for (const track of remoteTracks) track.stop();
         this.remote.clear();

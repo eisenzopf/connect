@@ -1,5 +1,6 @@
 import { type BrowserReplacementRoot } from "./browser_replacement.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
+import { type OriginalWebRtcReceiveReservation } from "./browser_webrtc_receive_reservation.js";
 import type { BrowserConnectionOptions } from "./browser_media.js";
 import type { BrowserCaptureHandle, BrowserCaptureInput, BrowserRenderHandle } from "./browser_sdk.js";
 export interface BrowserRtcConfiguration {
@@ -27,6 +28,9 @@ export declare class BrowserRtcConnection {
     private replacementCompletion?;
     private replacementVideoSource?;
     private replacementVideoPresented;
+    private receiveRoles?;
+    private receiveReservation?;
+    private publicVideoLifecycle?;
     private readonly peer;
     private constructor();
     static begin(client: BrowserClient, input: BrowserConnectionOptions, participantId: string, configuration: BrowserRtcConfiguration, options: RequestOptions): {
@@ -37,7 +41,7 @@ export declare class BrowserRtcConnection {
     };
     /** Prepare a second physical without retiring the source. Completion needs
      * this fresh decoder's evidence and the original committed movement receipt. */
-    static beginReplacement(client: BrowserClient, input: BrowserConnectionOptions, participantId: string, configuration: BrowserRtcConfiguration, original: BrowserReplacementRoot, options: RequestOptions): {
+    static beginReplacement(client: BrowserClient, input: BrowserConnectionOptions, participantId: string, configuration: BrowserRtcConfiguration, original: BrowserReplacementRoot, options: RequestOptions, receiveReservation?: OriginalWebRtcReceiveReservation): {
         prepared: Promise<BrowserRtcConnection>;
         completed: Promise<import("./browser_replacement.js").BrowserReplacementReceipt>;
         owner: BrowserRtcConnection;

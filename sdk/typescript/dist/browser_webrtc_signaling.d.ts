@@ -1,5 +1,7 @@
-import { type WebRtcDecodedReadiness } from "./browser_webrtc_replacement.js";
+import { BrowserWebRtcReplacement, type WebRtcDecodedReadiness } from "./browser_webrtc_replacement.js";
 import type { BrowserReplacementRoot } from "./browser_replacement.js";
+import { type OriginalWebRtcReceiveReservation } from "./browser_webrtc_receive_reservation.js";
+import { BrowserDeadline } from "./browser_deadline.js";
 import { type WebRtcIceRestartReceipt } from "./browser_webrtc_restart.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { type JsonObject } from "./uctp_json.js";
@@ -14,6 +16,7 @@ export interface WebRtcSignalingOptions {
     capabilities: JsonObject;
     purpose?: "handoff-preparation";
     replacement?: BrowserReplacementRoot;
+    receiveReservation?: OriginalWebRtcReceiveReservation;
     streams: ReadonlyArray<{
         id: string;
         kind: "audio" | "video" | "screen" | "data";
@@ -73,9 +76,11 @@ export declare class CanonicalWebRtcSignaling {
     private receive;
     private drain;
     /** One complete-ICE offer. No automatic retry, fallback, redial or message send. */
-    offer(options?: RequestOptions): Promise<void>;
+    offer(options?: RequestOptions, originalBudget?: BrowserDeadline): Promise<void>;
     get replacementMayHaveCommitted(): boolean;
     get replacementChallenge(): import("./browser_webrtc_replacement.js").WebRtcReplacementChallenge | undefined;
+    /** Exact owned original context only. No unsigned readiness/phase selector. */
+    originalPublicVideoReplacement(): BrowserWebRtcReplacement;
     completeReplacement(evidence: WebRtcDecodedReadiness, options: RequestOptions): Promise<import("./browser_replacement.js").BrowserReplacementReceipt>;
     recoverReplacementCompletion(error: unknown, options: RequestOptions): Promise<import("./browser_replacement.js").BrowserReplacementReceipt | undefined>;
     private gatheringCleanup?;

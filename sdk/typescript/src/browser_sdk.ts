@@ -3,6 +3,7 @@ import {
     type BrowserRawCanonical,
 } from "./browser_sdk_raw.js";
 import { BrowserTasks } from "./browser_tasks.js";
+import { WebRtcReceiveReservationIntentOwner, type OriginalWebRtcReceiveReservation } from "./browser_webrtc_receive_reservation.js";
 import {
     preserveRenderRetirement,
     type BrowserRenderRetirement,
@@ -1281,10 +1282,14 @@ function current(client: BrowserSdkClient): State {
     return s;
 }
 const operationRetirements = new WeakMap<object, (result: Json) => void>();
+// Only the original authenticated operation observation populates this map.
+// A caller-created snapshot/options object cannot select the additional MID.
+const preparingReceiveReservations = new WeakMap<BrowserOperationSnapshot, Json>();
 export class BrowserOperation<T> {
     readonly reference: BrowserSdkOperationReference<T>;
     #record?: string;
     #revision = -1;
+    #receiveReservation?: Json;
     /** @internal Instances are supplied by SDK-owned mutation kinds. */
     constructor(
         private readonly client: BrowserSdkClient,
@@ -1365,8 +1370,7 @@ export class BrowserOperation<T> {
         } else if (["failed", "cancelled"].includes(value.state as string)) {
             operationRetirements.delete(this);
         }
-        return {
-            snapshot: freeze({
+        const snapshot: BrowserOperationSnapshot = freeze({
                 key: this.reference,
                 state: value.state as BrowserOperationState,
                 revision: Number(value.revision),
@@ -1380,7 +1384,24 @@ export class BrowserOperation<T> {
                 ...(value.problem === undefined
                     ? {}
                     : { problem: copy(value.problem) }),
-            }),
+            });
+        if (value.state === "preparing" && this.#receiveReservation !== undefined &&
+            value.webrtc_video_receive_reservation === undefined)
+            s.malformed(this.reference);
+        if (value.webrtc_video_receive_reservation !== undefined) {
+            if (this.reference.command !== "connection.replace")
+                s.malformed(this.reference);
+            const reservation = copy(value.webrtc_video_receive_reservation);
+            if (this.#receiveReservation !== undefined &&
+                canonicalJson(this.#receiveReservation) !== canonicalJson(reservation))
+                s.malformed(this.reference);
+            this.#receiveReservation ??= reservation;
+            // A completed phase may retain its immutable historical intent.
+            // Only a verified PREPARING snapshot can enable a fresh physical.
+            if (value.state === "preparing") preparingReceiveReservations.set(snapshot, copy(reservation));
+        }
+        return {
+            snapshot,
             ...(value.result === undefined
                 ? {}
                 : { result: copy(value.result) }),
@@ -2558,6 +2579,24 @@ export class BrowserSession {
                             "not-submitted",
                             key,
                         );
+                    const reservation = preparingReceiveReservations.get(snapshot);
+                    let receiveReservation: OriginalWebRtcReceiveReservation | undefined;
+                    if (reservation !== undefined) {
+                        if (!low.video || !low.receiveVideo)
+                            throw new BrowserSdkError("protocol", "not-submitted", key);
+                        const owner = new WebRtcReceiveReservationIntentOwner({
+                            recordId: root.recordId, operationId: root.operationId,
+                            targetConnectionId: root.targetConnectionId,
+                            audioStreamId: low.audio, previewStreamId: low.video,
+                            publicStreamId: low.receiveVideo,
+                        });
+                        try {
+                            const intent = owner.observe(reservation, root);
+                            if (!intent) throw new BrowserSdkError("protocol", "not-submitted", key);
+                            receiveReservation = Object.freeze({owner, intent});
+                        } catch (error) { owner.close(); throw error; }
+                    }
+                    try {
                     begun = BrowserRtcConnection.beginReplacement(
                         peer,
                         low,
@@ -2565,8 +2604,12 @@ export class BrowserSession {
                         s.rtcConfiguration,
                         root,
                         budget.options(),
+                        receiveReservation,
                     );
+                    } catch (error) { receiveReservation?.owner.close(); throw error; }
                 } else {
+                    if (preparingReceiveReservations.has(snapshot))
+                        throw new BrowserSdkError("protocol", "not-submitted", key);
                     begun = s
                         .nativePeer()
                         .beginReplacementConnection(

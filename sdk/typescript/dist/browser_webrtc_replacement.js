@@ -5,8 +5,22 @@ import { canonicalJson, jsonObject, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
 const protocol = (message) => new ConnectError("protocol", message);
 const copy = (value) => parseCanonicalJson(new TextEncoder().encode(canonicalJson(value)));
+const originalStatusSnapshot = (value) => {
+    // The brand belongs to these immutable original bytes, never to a mutable
+    // payload retained by a caller or the transport response owner.
+    const snapshot = copy(value);
+    const freeze = (item) => {
+        if (item !== null && typeof item === "object") {
+            for (const child of Object.values(item))
+                freeze(child);
+            Object.freeze(item);
+        }
+    };
+    freeze(snapshot);
+    return snapshot;
+};
 const positive = (value) => typeof value === "number" && Number.isSafeInteger(value) && value > 0;
-const recoverableReadinessFailure = (error) => {
+export const recoverableReadinessFailure = (error) => {
     if (!(error instanceof ConnectError))
         return false;
     if (error.code === "timeout" || error.code === "transport")
@@ -23,6 +37,7 @@ const recoverableReadinessFailure = (error) => {
  * observation of this fresh decoder, never a new replacement mutation. */
 export class BrowserWebRtcReplacement {
     client;
+    receiveReservation;
     root;
     allocated = false;
     readyAttempted = false;
@@ -32,15 +47,18 @@ export class BrowserWebRtcReplacement {
     observedRevision = -1;
     selected;
     readyOffer;
-    constructor(client, root) {
+    publicReadyOffer;
+    originalObservations = new WeakSet();
+    constructor(client, root, receiveReservation) {
         this.client = client;
+        this.receiveReservation = receiveReservation;
         this.root = replacementRoot(root);
         if (client.controlTransport !== "websocket" ||
             client.deviceId !== root.deviceId)
             throw new ConnectError("invalid-request", "Replacement belongs to the current signed target Device");
     }
     get mayHaveCommitted() {
-        return this.readyAttempted && !this.refused;
+        return (this.receiveReservation ? !!this.publicReadyOffer : this.readyAttempted) && !this.refused;
     }
     get challenge() {
         if (!this.selected)
@@ -63,9 +81,12 @@ export class BrowserWebRtcReplacement {
             sid: root.sessionId,
             connid: root.sourceConnectionId,
         }, options);
-        return this.observe(replacementFrame(root, frames, root.sourceConnectionId));
+        const value = this.observe(replacementFrame(root, frames, root.sourceConnectionId));
+        const observed = this.receiveReservation ? originalStatusSnapshot(value) : value;
+        this.originalObservations.add(observed);
+        return observed;
     }
-    async allocate(payload, scope, options, attempted) {
+    async allocate(payload, scope, options, attempted, originalBudget) {
         const root = this.root;
         if (this.allocated ||
             this.original ||
@@ -75,7 +96,7 @@ export class BrowserWebRtcReplacement {
             scope.operation_id !== root.operationId ||
             scope.expected_revision !== 0)
             throw new ConnectError("conflict", "Use the original WebRTC replacement allocation once");
-        const budget = new BrowserDeadline(options.timeoutMs ?? 10000);
+        const budget = originalBudget ?? new BrowserDeadline(options.timeoutMs ?? 10000);
         const observed = await this.status({
             ...options,
             timeoutMs: budget.remaining(),
@@ -152,8 +173,92 @@ export class BrowserWebRtcReplacement {
             throw protocol("Replacement receipt changed the prepared generation or streams");
         return receipt;
     }
+    /** Internal reserved-profile context. The caller still owns the exact native
+     * peer/roles; no plain option or caller boolean enables the workflow. */
+    reservedContext() {
+        if (this.client.closed)
+            throw new ConnectError("closed", "Original reserved control client retired");
+        if (!this.receiveReservation || !this.allocated || !this.original || !this.originalScope || !this.selected)
+            throw new ConnectError("unsupported-media-profile", "Original reserved B challenge is unavailable");
+        return Object.freeze({ root: this.root, reservation: this.receiveReservation, challenge: this.challenge });
+    }
+    checkReservedStatus(value, phase) {
+        this.reservedContext();
+        const observed = value.webrtc_public_video_phase;
+        if (!this.originalObservations.has(value) || value.state !== "preparing" || value.native_replacement_prepared !== true ||
+            !jsonObject(observed) || observed.phase !== phase)
+            throw protocol("Original public video continuation is not current");
+    }
+    async reservedStatus(options) {
+        const context = this.reservedContext(), value = await this.status(options);
+        const intent = value.webrtc_video_receive_reservation;
+        if (intent !== undefined && canonicalJson(intent) !== canonicalJson(context.reservation.intent))
+            throw protocol("Original public video reservation changed");
+        if (value.state === "preparing" && intent === undefined)
+            throw protocol("Original public video reservation disappeared");
+        if (["failed", "cancelled"].includes(String(value.state)))
+            this.refused = true;
+        return value;
+    }
+    reservedCompleted(value) {
+        this.reservedContext();
+        if (!this.originalObservations.has(value) || value.state !== "completed" || !this.publicReadyOffer)
+            throw protocol("Original public video completion is unproved");
+        return this.completedReceipt(value);
+    }
+    /** Same frozen private A/audio observation. Only an original signed
+     * pre-cut read can permit replay; no decoder is observed again. */
+    async reservedPrivateReady(evidence, options, original) {
+        const context = this.reservedContext(), challenge = this.challenge;
+        if (this.readyAttempted) {
+            if (!original || !this.readyOffer)
+                throw protocol("Original private readiness already attempted");
+            this.checkReservedStatus(original, "negotiated-never-fed");
+        }
+        else {
+            const streams = this.original.streams_offered;
+            if (!Array.isArray(streams))
+                throw protocol("Replacement has no frozen stream offer");
+            const audio = streams.filter(s => jsonObject(s) && s.kind === "audio" && s.direction === "sendrecv");
+            const preview = streams.filter(s => jsonObject(s) && s.id === context.reservation.intent.preview_stream_id && s.kind === "video" && s.direction === "sendrecv");
+            if (audio.length !== 1 || !jsonObject(audio[0]) || evidence.audio.stream_id !== audio[0].id || !positive(evidence.audio.decoded_samples) ||
+                preview.length !== 1 || !evidence.video || evidence.video.stream_id !== context.reservation.intent.preview_stream_id ||
+                !positive(evidence.video.decoded_frames) || evidence.video.decoder_startup !== "fresh-peer-first-decoded-frame" ||
+                (evidence.video.decoded_keyframes !== null && (!positive(evidence.video.decoded_keyframes) || evidence.video.decoded_keyframes > evidence.video.decoded_frames)))
+                throw protocol("Private readiness does not name original audio and A preview");
+            this.readyOffer = { ...copy(this.original), replacement_preparation: { profile: "connect-replacement-ready-v1", operation_record_id: this.root.recordId,
+                    readiness: { ...challenge, audio: { ...evidence.audio }, video: { ...evidence.video } } } };
+            this.readyAttempted = true;
+        }
+        const frames = await this.client.requestReplacementContinuation("connection.offer", copy(this.readyOffer), { ...this.originalScope }, options);
+        this.observe(replacementFrame(this.root, frames, this.root.targetConnectionId));
+    }
+    /** Frozen B marker uses the original signed offer continuation, never a new
+     * business operation, challenge, private readiness or media observation. */
+    async reservedPublicReady(marker, options, original) {
+        const context = this.reservedContext();
+        const value = { profile: marker.profile, operation_record_id: marker.operation_record_id,
+            public_video_readiness: { reservation_id: marker.public_video_readiness.reservation_id,
+                source_cut_id: marker.public_video_readiness.source_cut_id, nonce: marker.public_video_readiness.nonce,
+                binding: { ...marker.public_video_readiness.binding }, decoded_frames: marker.public_video_readiness.decoded_frames,
+                decoded_keyframes: marker.public_video_readiness.decoded_keyframes, decoder_startup: marker.public_video_readiness.decoder_startup } };
+        if (!this.readyAttempted || marker.profile !== "connect-replacement-public-video-ready-v1" || marker.operation_record_id !== this.root.recordId ||
+            marker.public_video_readiness.reservation_id !== context.reservation.intent.reservation_id)
+            throw protocol("Original public video marker differs");
+        if (this.publicReadyOffer) {
+            if (!original || canonicalJson(this.publicReadyOffer.replacement_preparation) !== canonicalJson(value))
+                throw protocol("Original public video readiness already attempted");
+            this.checkReservedStatus(original, "cut-bound-post-f");
+        }
+        else
+            this.publicReadyOffer = { ...copy(this.original), replacement_preparation: value };
+        const frames = await this.client.requestReplacementContinuation("connection.offer", copy(this.publicReadyOffer), { ...this.originalScope }, options);
+        this.observe(replacementFrame(this.root, frames, this.root.targetConnectionId));
+    }
     /** Internal read-only recovery: never repeat decoded readiness or mutation. */
     async recoverCompletion(error, options) {
+        if (this.receiveReservation)
+            throw new ConnectError("unsupported-media-profile", "Reserved B recovery requires its original activated decoded lease");
         if (!this.mayHaveCommitted || !this.original || !this.selected ||
             !(recoverableReadinessFailure(error) ||
                 (error instanceof ConnectError && error.code === "cancelled")))
@@ -174,6 +279,8 @@ export class BrowserWebRtcReplacement {
         return this.completedReceipt(value);
     }
     async complete(evidence, options) {
+        if (this.receiveReservation)
+            throw new ConnectError("unsupported-media-profile", "Reserved B cannot complete through private A readiness alone");
         const root = this.root, challenge = this.challenge;
         if (this.readyAttempted || !this.original || !this.originalScope)
             throw new ConnectError("conflict", "Use the original decoder readiness continuation once");
