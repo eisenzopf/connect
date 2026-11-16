@@ -1,0 +1,92 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "updated_at": "2026-11-16T07:03:16.914328+00:00",
+  "source_generation": 480,
+  "source_lock_sha256": "5e94d5c91833b6a0e976cbb26dd660f27494c0b67b6f1d065d45f234b6785c83",
+  "original_main_result": {
+    "path": ".local/gate-6/v219-g480-reviewed-components-root/result.json",
+    "sha256": "311f42bfd7504d707209b7d52ea5a15242de50b9ceb54f317e05d6622eb3eb81",
+    "passed": false,
+    "original_join_sha256": "cd6b88472d19a3bd337bc70703a380775e8faa02af9a71cfd17ec2c2f726d20d"
+  },
+  "available_artifacts_result": {
+    "path": ".local/gate-6/v219-g480-reviewed-components-root/available-artifact-runtime/result.json",
+    "sha256": "bdf1ef4ffac6addd46b271e0080fb6dd1f637def65161712dc3d2d9da719c266",
+    "passed": true,
+    "original_join_sha256": "0bdb48263bbb63a7427e3463d4928af964eb6c609e455b52af12086128748009"
+  },
+  "independent_review": {
+    "path": ".local/gate-6/v219-g480-components-independent-v198-review/receipt.json",
+    "sha256": "819c034fc7b5407e61f83a75ef1ad182c5dc4e4f87d9e382d3df4ee13ec6cead"
+  },
+  "observed": {
+    "rvoip-webrtc": {
+      "status": "ok",
+      "passed": 78,
+      "failed": 0,
+      "ignored": 0
+    },
+    "rvoip-uctp": {
+      "status": "ok",
+      "passed": 204,
+      "failed": 0,
+      "ignored": 0
+    },
+    "connect-protocol": {
+      "status": "ok",
+      "passed": 85,
+      "failed": 0,
+      "ignored": 0
+    },
+    "native_real_retry_integration": {
+      "status": "ok",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    "node": {
+      "tests": 195,
+      "pass": 195,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "python": {
+      "passed": 55,
+      "failed": 0,
+      "suites": 4,
+      "counts": [
+        33,
+        3,
+        11,
+        8
+      ]
+    }
+  },
+  "not_qualified": [
+    "Core: new discard expiry fixture omitted required original activation plan, so no Core tests ran",
+    "Store: new negative fixture missing qualified OperationState, so no Store tests ran",
+    "Service: no successful test binary in failed workspace build",
+    "No enclosing build success or new physical decoded media, ARM, full32 or release qualification"
+  ],
+  "next_corrections": [
+    {
+      "path": ".local/gate-6/candidate-discard-original-plan-fixture-v219-candidate/manifest.json",
+      "sha256": "96c172d306c40a398ec314c426ddb120e7ad5a61a0fb4ba5d92216725cef0083",
+      "review_sha256": "8484b641ba43290d28c1ad75f4add79adb2ddd9233d8e7c60a4c4419187aa288"
+    },
+    {
+      "path": ".local/gate-6/public-video-ledger-state-test-import-v219-root-candidate/manifest.json",
+      "sha256": "ee385b126ed2f5e72f99dca2efb008d99f9adb460f8ad7af902f06a2ec816fb2",
+      "review_sha256": "ae27091f9691f89fc987f00149253befa1ab99130d931d6222c21ac1ac8f5467"
+    }
+  ],
+  "full_matrix": {
+    "new_run": false,
+    "latest_complete": "v218",
+    "passed": 1,
+    "total": 32
+  },
+  "remaining": "Core B warm/publication/SDK lifecycle source reviewed or under review; actual Host warm/phase producer, Native full writer-domain coverage, OLD restore, native/browser decoded overlap, local ARM/regression/preflight incomplete."
+}

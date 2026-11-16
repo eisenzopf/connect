@@ -1,0 +1,44 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "updated_at": "2026-11-16T06:39:55.800929+00:00",
+  "source_generation": 479,
+  "result": ".local/gate-6/v219-g479-reviewed-components-root/result.json",
+  "result_sha256": "a2ae1f91712a75669005de69afe19f149f25fcdce7a5bce0628a5e77315f31b7",
+  "original_join": ".local/gate-6/v219-g479-reviewed-components-root/root-original-join.json",
+  "original_join_sha256": "c7f17ff1cc6975231b87b8f95cfe9c7fc30f9f7ce3fedc3c2762239a192e9d3a",
+  "source_unchanged": true,
+  "node": {
+    "tests": 195,
+    "pass": 195,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "python": {
+    "passed": 55,
+    "suites": 4,
+    "individual_counts": [
+      33,
+      3,
+      11,
+      8
+    ]
+  },
+  "rust": "NOT RUN: upstream/workspace compilation failed; original diagnostic JSON and stderr preserved",
+  "compile_causes": [
+    "New Core test child lacks explicit path under a path-overridden parent",
+    "Existing Opus Room literal missing empty cold physical_video field",
+    "Store public-video sibling cannot access private bounded capture helper; two type diagnostics are cascading until corrected",
+    "Integration command selects WebRTC features without selecting that package; correct runner uses prior proven UCTP test-support selection"
+  ],
+  "correction_candidate": ".local/gate-6/g479-compile-integration-corrections-v219-root-candidate/manifest.json",
+  "correction_candidate_sha256": "2825b9c307a8f71e35792573dc6956b219684d05a798d742c4b86373ac3686fe",
+  "corrections_status": "source-only awaiting independent review; generation480 not prepared or tested",
+  "full_matrix": {
+    "new_run": false,
+    "latest_passed": 1,
+    "total": 32
+  },
+  "remaining": "W1/W2 source reviewed; W3 Core/SDK and Native physical owner work source-only. Host warm/phase producer, actual B decoded adoption/overlap, abort OLD restore, full native coverage, actual ARM/representative media verification incomplete."
+}

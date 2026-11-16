@@ -1,0 +1,13 @@
+{
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision": "AHj4eMSIs8331mPPVUrA-rnbEKTrkVHXIVaCO61VKvTkfhTeaQC2nhU9UnpH-doY1yacby3TkZKROmXcSaoLBAtrRwD3QS6lW480dczjxMA",
+  "logical_content_revision": 172,
+  "paragraph_count": 421,
+  "updated_paragraphs": [
+    "Revision 172 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+    "Current verification \u2014 Current g480 scoped results are independently audited: WebRTC78/78, Native204 library checks plus the real65-packet retry integration1/1, Protocol85/85, SDK/script195/195 and four Python suites55/55 pass. Both original supervisors and all19 child owners ended naturally; exact source and binaries are verified. The enclosing builds remain FAILED: Core's new expiry test omitted its original activation plan; Store's new negative test omitted an enum qualification. Neither Core nor Store tests ran. Both fixture-only corrections are reviewed and next for generation481; Service is also unqualified in this attempt. Generation458 normal3 remains CLOSED FAILED (audio18/18, A/V18/18, cleanup3/3, video14/18, collection17/18). No fresh decoded-media, ARM or matrix promotion.\n",
+    "3. V219-FRESH-B-RECEIVER \u2014 Core W1 route and W2 actual worker are sealed and independently source-reviewed; W3 publication V2 now also has production and modeled-control source review, but these are not applied or run. Review caught and corrected a repeat-handoff bug: a published B1 stamp was incorrectly rejected as the source for B2. SDK review caught mutable signed-status branding; its V3 successor clones and deeply freezes the reserved snapshot before branding. SDK peer review continues. Actual Host phase/readiness producers, same-B native decoded overlap/repair and repeat-handoff behavior remain unproved. Component passes do not replace those integration checks.\n"
+  ],
+  "verified": true,
+  "verified_at": "2026-11-16T07:04:07.749459+00:00"
+}

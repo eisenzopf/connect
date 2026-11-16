@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-16T05:56:07.651328+00:00",
-  "revision": 103,
+  "updated_at": "2026-11-16T07:03:16.914328+00:00",
+  "revision": 105,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 170,
-    "verified_at": "2026-11-16T05:56:07.651328+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components476.json",
-    "readback_evidence_sha256": "85ae6ac10cd7e2cabbe19a615e1bf8837a533935485897d6da921b88a96e1903",
+    "content_revision": 172,
+    "verified_at": "2026-11-16T07:04:07.749459+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components480.json",
+    "readback_evidence_sha256": "5de7384c5af7c385071793badfe3db1c4cc77574c7bbe4ddd39692ba8ae39f54",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2418,11 +2418,11 @@
       "owner_agent": "/root/fixture_blockers",
       "independent_reviewer": "/root/v198_resources",
       "coordinator": "/root",
-      "status": "independent-source-reviewed",
-      "implementation_state": "V3 b78bed0f sourceaccepted6cdbb0; exactnativeMID/receiver andactualdrawtrack, immutableBroleindex, unknown/contradictionretention acrossallcallers. Unapplied/unrun; V1/V2 held, originalrules unchanged.",
+      "status": "component-verified",
+      "implementation_state": "V3 role measurement applied; g479 affected195 Node/55 Python batch passes. No actual A+B MID/decoder/media or matrix qualification.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T05:56:07.651328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json"
+      "updated_at": "2026-11-16T06:39:55.800929+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json"
     },
     {
       "id": "V219-PUBLIC-VIDEO-LEDGER",
@@ -2431,10 +2431,10 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "status": "independent-source-reviewed",
-      "implementation_state": "StoreV396840 sourceacceptedb506c; append-onlysameSQLtuple/closedphasekernel, public source+retained guard beforemint/replay, exactsigned offer echo andhistoricalneverCommitcleanupRead. Seven testsdeclaredbutunrun; physicalissuers/APIprojection notwired.",
+      "implementation_state": "StoreV3 production library compiles after bounded helper fix. Store tests still blocked by one missing test enum qualification, reviewed correction awaits481. Protocol85 including phase/reservation DTOs pass. Physical issuers/actual signed projection not yet applied.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T05:56:07.651328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json"
+      "updated_at": "2026-11-16T07:03:16.914328+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g480-component-progress.json"
     },
     {
       "id": "V219-OWNED-CANDIDATE-DISCARD",
@@ -2443,10 +2443,10 @@
       "independent_reviewer": "/root/v198_resources",
       "coordinator": "/root",
       "status": "independent-source-reviewed",
-      "implementation_state": "Core/canonicalDiscardV3 a394 accepted; Host696e accepted a870. Root-ownedContext/Joining/Closed andfreshhistoricalReader onlythroughatomicCorecancel, droppedbeforephysicaljoin. Unapplied/unrun; actualnativeCoretoken/retry/CommitUnknown andfreshOLDrestoration controlsrequired.",
+      "implementation_state": "Core/Host/sharedRoot source applied; RTC original-origin cleanup control passes in78/78. Actual Core tests still blocked by fixture activation arity, reviewed original plan retention awaits481. Native full-close/retry/OLD restore unqualified.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T05:56:07.651328+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json"
+      "updated_at": "2026-11-16T07:03:16.914328+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g480-component-progress.json"
     }
   ],
   "failure_mapping": [
@@ -4946,6 +4946,20 @@
       "updated_at": "2026-11-16T05:56:07.651328+00:00",
       "summary": "g476 components: SDK167 pass (separate accepted cohort), Native204lib+1real integration205pass audit28a835c6; Core670/675 andRTC75/77 retain all prior668/70 but7newfixturefails remain failed. Cold physical profile+validSDP corrections source-reviewed pendingrerun. Factoryfixedcontrol/partialNative5pass; full Bworker/adoption/Hostphase/nativeF unfinished. No fullmatrix, media, ARM or release promotion.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json"
+    },
+    {
+      "updated_at": "2026-11-16T06:39:55.800929+00:00",
+      "revision": 104,
+      "event": "g479-component-attempt",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
+      "result": "195 Node and55 Python pass; Rust compile errors retained, corrections pending review; full32 remains held."
+    },
+    {
+      "revision": 105,
+      "updated_at": "2026-11-16T07:03:16.914328+00:00",
+      "event": "g480-individually-compiled-component-verification",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g480-component-progress.json",
+      "result": "RTC78 Native205 Protocol85 Node195 Python55; Core/Store compilation failed, reviewed fixture corrections pending. Full32 held."
     }
   ],
   "tracking_review": {
@@ -6575,8 +6589,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "g476 components: SDK167 pass (separate accepted cohort), Native204lib+1real integration205pass audit28a835c6; Core670/675 andRTC75/77 retain all prior668/70 but7newfixturefails remain failed. Cold physical profile+validSDP corrections source-reviewed pendingrerun. Factoryfixedcontrol/partialNative5pass; full Bworker/adoption/Hostphase/nativeF unfinished. No fullmatrix, media, ARM or release promotion.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
-    "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
+    "status": "g480 scoped audit819c: RTC78/78, Native204lib+real retry1, Protocol85/85, Node195/195, Python55/55 pass. Core and Store test compile errors retained as failed; reviewed fixture-only original-plan and enum corrections await generation481. No enclosing build/media/ARM/full32 promotion.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g480-component-progress.json",
+    "sha256": "f20f576151b19d5385eebd78581af99415309ccedc87b0e91deb0405d37f70f9"
   }
 }
