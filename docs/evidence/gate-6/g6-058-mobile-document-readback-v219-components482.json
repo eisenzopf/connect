@@ -1,0 +1,20 @@
+{
+  "format": "connect/mobile-scoped-update-readback/1",
+  "status": "VERIFIED",
+  "verified_at": "2026-11-16T08:53:52.230Z",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "logical_revision": 174,
+  "document_revision": "AHj4eMTIy18xoXUXpdYBbEcKBPp2iP9MR6NL2_MA2HZ0IU7B6zwNP4vfHrD3yTKyh1t8xbSpO2glFSDsdgPLupxx04CfPbKuiLI3hRJ5LKc",
+  "preserved_unrelated_document_content": true,
+  "exact_changes": [
+    {
+      "old": "Revision 173 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+      "next": "Revision 174 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n"
+    },
+    {
+      "old": "Current verification — Generation481 builds successfully and its actual results are independently audited: Core679/679, WebRTC78/78, UCTP204/204 plus real65-packet retry integration1/1, Protocol85/85, Node195/195 and Python55/55 pass. Store remains FAILED (366/404 passed,38 failed); Service remains FAILED (89/90 passed,1 failed). All25 original child owners and the original supervisor ended naturally; source and binary identities are verified. Store failures separate ordinary raw-SQL setup rejected by writer guards, incomplete held scene custody, bounded metadata admission, scoped retirement fixtures and a real private-source classification gap. Reviewed fixes are being integrated; none is credited before execution. Service's obsolete registry-contention expectation is being corrected while keeping actual mixer/writer budgets and complete cleanup. Next proof is the corrected affected regressions and the actual integrated publicB handoff, followed by local ARM and complete32. Generation458 normal3 remains CLOSED FAILED (audio18/18, A/V18/18, cleanup3/3, video14/18, collection17/18). No fresh decoded-media, ARM or matrix promotion.\n",
+      "next": "Current verification — Generation482 builds successfully and its actual results are independently audited: SDK/Node206/206 and Service90/90 pass; Store395/409 pass with14 failures preserved. All9 original child owners and the original supervisor ended naturally; source and binaries are verified. The remaining failures separate six adversarial tests stopped by a mistaken no-op guard self-test, six fixture/setup/metadata-admission failures, and two real production authority-scope defects. Independently reviewed fixes now applied for definite NotSubmitted metadata without a Conversation writer, a real writer for the unreserved generic worker claim, and the exact fixture corrections; the next affected Store/Service run is pending. A new actual Firefox and Chrome probe also passes native audio/A/B negotiation, exact receiver Stats and decoded A+B callbacks with normal local TLS. This proves browser API capability only; actual Connect B/F/warm/decoded adoption remains unverified. Earlier Core679/679, WebRTC78/78, UCTP204/204 plus real65-packet retry1/1, Protocol85/85 and Python55/55 remain their recorded component scopes. Generation458 normal3 remains CLOSED FAILED (audio18/18, A/V18/18, cleanup3/3, video14/18, collection17/18). Complete Host integration, Native writer-domain custody, original OLD restore and fresh decoded handoff, local ARM/release/preflight still precede full32. No new matrix credit.\n"
+    }
+  ],
+  "scope": "g482 actual component results and r3 actual native browser capability only; no matrix qualification"
+}

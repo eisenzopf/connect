@@ -20350,7 +20350,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-16T08:02:59.678892+00:00",
+  "updated_at": "2026-11-16T08:54:41.133757+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20365,6 +20365,12 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g481-component-progress.json",
     "sha256": "9686ca6917959bffc39303e7e1ffcae2b6942604041dbddd175b1adfc9155b73",
     "status": "PARTIAL_COMPONENT_PASS_STORE38_SERVICE1_FAILED",
+    "ready_for_32": false
+  },
+  "v219_g482_component_checkpoint": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g482-component-progress.json",
+    "sha256": "9d87c0354ac06eb74cf86ecc3672469a49d770c4bf9fb79a600067fdcdb2cc49",
+    "status": "SDK_SERVICE_PASS_STORE14_FAILED_ACTUAL_BROWSER_API_CAPABILITY_PASS",
     "ready_for_32": false
   }
 }

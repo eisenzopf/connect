@@ -1,0 +1,133 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "updated_at": "2026-11-16T08:54:41.133757+00:00",
+  "source_generation": 482,
+  "original_result": {
+    "path": ".local/gate-6/v219-g482-reviewed-workspace-batch-root/result.json",
+    "sha256": "2660a899a89f600216c03c982c65e1a8f95fb73fde94c7d7a62ed7c8bca7356b",
+    "passed": false,
+    "join_sha256": "7759329bdce084e7a7d3e06c041aa630ebbbd63be1578115d96480d02e4afee6"
+  },
+  "independent_review": {
+    "path": ".local/gate-6/v219-g482-components-independent-fixture-review/receipt.json",
+    "sha256": "0059f907859c5a77484f75c39470c20388767daf60ccc540f1c1382c4f763fb9"
+  },
+  "observed": {
+    "node": {
+      "tests": 206,
+      "pass": 206,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "connect-store": {
+      "status": "FAILED",
+      "passed": 395,
+      "failed": 14,
+      "ignored": 0
+    },
+    "connect-service": {
+      "status": "ok",
+      "passed": 90,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "all_original_child_owners_joined": true,
+  "original_child_owner_count": 9,
+  "builds_passed": true,
+  "failures": {
+    "store": 14,
+    "service": 0,
+    "original_store_failed_selectors": [
+      "connection_control::tests::replacement_sources::commit::not_submitted::pre_core_refusal_retains_one_attempt_and_allows_only_exact_candidate_cleanup",
+      "connection_control::tests::replacement_sources::commit::replacement_unknown_commit_cannot_be_cancelled_into_candidate_cleanup_or_worker_retry",
+      "connection_control::tests::replacement_sources::commit::scene_unary::current_replacement_memo_hit_rechecks_independent_commit_revocation_expiry_and_writer",
+      "connection_control::tests::replacement_sources::commit::scene_unary::current_replacement_memos_separate_purpose_order_source_subset_and_actual_held_packet",
+      "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_four_plus_two_scene_reuses_exact_live_packet_interval_behind_actual_writer_without_effects",
+      "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_scene_under_preserves_actual_original_source_expiry_and_refuses_renewed_source_after_it",
+      "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_scene_under_rechecks_selected_unrelated_operator_and_target_permission_without_cached_facts",
+      "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_scene_under_refuses_foreign_wrong_source_and_new_uncovered_scope_without_fresh_fallback",
+      "connection_control::tests::replacement_sources::commit::scene_unary::custody::packet_subset::one_private_packet_ignores_only_unrelated_origin_and_rechecks_selected_operator_and_root",
+      "connection_control::tests::replacement_sources::commit::scene_unary::invocation_local_scene_owner_keeps_current_credentials_and_earliest_nested_expiry",
+      "connection_control::tests::replacement_sources::commit::scene_unary::packet_scene_actor_reuse_cannot_publish_facts_across_external_recipient_change",
+      "connection_control::tests::replacement_sources::public_video_ledger::atomic_prepare::public_video_atomic_optin_refuses_legacy_confirmation_cancelled_unknown_expiry_and_ambiguous_mapping_without_mint",
+      "connection_control::tests::replacement_sources::public_video_ledger::public_video_intent_rejects_actual_private_preparation_before_missing_video_mapping",
+      "connection_control::tests::replacement_sources::replacement_source_rechecks_endpoint_device_membership_generation_topology_cancel_and_worker"
+    ],
+    "root_cause_groups": {
+      "actual_noop_guard_test_was_not_a_mutation": 6,
+      "fixture_setup_custody_or_bounded_metadata_admission": 6,
+      "real_production_authority_scope_defects": 2
+    },
+    "reviewed_followup_applied": {
+      "candidates": [
+        {
+          "manifest": ".local/gate-6/uncooperative-fixture-actual-refusal-v219-root-candidate/manifest.json",
+          "sha256": "872b25ac3735902c97d3c70c516f1bf136f0dba6b9e44dc20d5df7130915a272",
+          "patch": ".local/gate-6/uncooperative-fixture-actual-refusal-v219-root-candidate/helper.patch",
+          "patch_sha256": "8888975ccb37ce57a9c63426af4cb93ac114a7b36bc6b4a8660c350268a5acac"
+        },
+        {
+          "manifest": ".local/gate-6/g482-retained-scene-and-ledger-fixtures-v219-candidate/manifest.json",
+          "sha256": "ed513a1c440cc2c7113bacc6714c430d8356a48778f1bc3f575902b24048c566",
+          "patch": ".local/gate-6/g482-retained-scene-and-ledger-fixtures-v219-candidate/fixture.patch",
+          "patch_sha256": "60ee54daf73fd02c0af99de3ceffec9d97f080474dc353e412ee652095d926c1"
+        },
+        {
+          "manifest": ".local/gate-6/original-not-submitted-scoped-metadata-v219-v2-root-candidate/manifest.json",
+          "sha256": "912c9f11c033a210f1b3ca4456d4ca28a3a98d54477ddf5ec5452b9e1727651a",
+          "patch": ".local/gate-6/original-not-submitted-scoped-metadata-v219-v2-root-candidate/negative.patch",
+          "patch_sha256": "eb5bdf5656f402cf574a3ee6ef6c0faea1c48646b2e8761dd60a68d5022366c6"
+        },
+        {
+          "manifest": ".local/gate-6/unreserved-replacement-worker-authority-v219-root-candidate/manifest.json",
+          "sha256": "c07f07f81e64b97c34d02afc65c2db2a251762ecde67b5ed671836b5bb115698",
+          "patch": ".local/gate-6/unreserved-replacement-worker-authority-v219-root-candidate/worker.patch",
+          "patch_sha256": "8ac5761b6db6ea87d31a8c378fac7775567388ff39f65dae269afa2d941c37c7"
+        }
+      ],
+      "files": {
+        "crates/connect-store/src/connection_control/tests/replacement_sources.rs": "5c58eb00028c3ca8f948699eb51890592022e855bf968ee3e53ee86b7225fe77",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary.rs": "e83248b666e83433a434fac6d351f589fd1952807305af4efe99ffbf5031cdd4",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary/custody.rs": "e9dacd290fa96359c996832b1ea6b4af3b9bb774cbe87a2ca09a9e36a8da290b",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary/custody/packet_subset.rs": "794cf43b44564b5167c2d430557a0658960e574d833e19d5238fd7bf626f8008",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/public_video_ledger.rs": "ed95a6f14c7730ca990e89ae03dc86f475a081ac7f21f210a031c3b260262959",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/public_video_ledger/atomic_prepare.rs": "fd9cac739908aa98ccd0f04e39b77308075b377cbbe88772cc29deb196e43403",
+        "crates/connect-store/src/authority_writer_boundary/phase_ledger/not_submitted.rs": "fa7a01501e2f214df70ca9acbec400531f452accd9e00bd45ee1e51940ea5ea5",
+        "crates/connect-store/src/authority_writer_boundary/phase_ledger/scoped.rs": "70fabf94c1338f84431e6ae26b0b39a7e9ddfac0c2ce3677ff10fd1b053e4b03",
+        "crates/connect-store/src/authority_writer_boundary/phase_ledger.rs": "fd5b026438569eb00f1d3976aee6092486a971af822fd26d27a79870c060837f",
+        "crates/connect-store/src/connection_control/tests/replacement_sources/commit/not_submitted.rs": "22059fd043f4e6c2ae0df0179c2832e7daa9e3e4e1a5c06bd46cb161b4972e25",
+        "crates/connect-store/src/transitions/native_replacements/allocation/start/commit/not_submitted.rs": "fbd46b807cf7dce6aae2b792611b31b99a271c644e17ae01f7fcf5341008bd74",
+        "crates/connect-store/src/transitions/admission.rs": "6cbb573d785c1f0476609f493483c943b28be869939f4a01308addb221d57580"
+      },
+      "shared_parent_composed_with_disjoint_hunks": true
+    },
+    "followup_runtime": "NOT_RUN_YET"
+  },
+  "actual_browser_api_capability": {
+    "result_path": ".local/gate-6/v219-browser-ab-mid-native-root-r3/result.json",
+    "result_sha256": "34e51c08ef7efcd8460d0141037c0752170cc62a202ccaf5ed3089f71d986153",
+    "independent_review_path": ".local/gate-6/browser-ab-native-mid-independent-fixture-review/receipt-actual-r3.json",
+    "independent_review_sha256": "bc9e9f44f3b5785f2c82effa7a4527d27f5f278adfe848a576c04e49a3540345",
+    "status": "PASS_CAPABILITY_ONLY",
+    "browsers": [
+      "Firefox158.0.1",
+      "Chrome157.0.8103.52"
+    ],
+    "verified": "Actual audio/A/B native MIDs, exact original receivers, Opus/VP8 inbound packets, A+B decoded callbacks and normal trusted local TLS; all original owners close naturally.",
+    "not_qualified": "Connect original server handoff, same-B warm/F/adoption, continuous media quality, ARM or matrix",
+    "prior_failed_probes_preserved": true
+  },
+  "full_matrix": {
+    "new_run": false,
+    "latest_complete": "v218",
+    "passed": 1,
+    "total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "remaining": "Actual Host B reservation/phase/F/warm/decoded adoption and original Closed discard/restore; Native writer-domain closure; affected Store regression rerun; actual native/browser decoded handoff; local ARM/releases/preflight.",
+  "ready_for_32": false
+}
