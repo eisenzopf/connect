@@ -1775,6 +1775,86 @@
       "change": "Independent ArcSwap ingress/egress ticket lineages; output-only hold preserves original camera ticket. Input no-op mute/unmute barriers, both-direction retirement and current authorization retained. Cached audio target uses exact original cached egress lineage.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-directional-tickets-verified.json",
       "next": "Fresh normalthree-cycle Firefox/Core/wire media proof; current fullregression/localARM/releases/preflight. Conservative audio revision fence and strict global image rule unchanged."
+    },
+    {
+      "id": "V219-FACTORY-CONTROLLER-CUSTODY",
+      "title": "Bind staged backend to the original controller incarnation",
+      "status": "component-verified",
+      "change": "Qualified OLD same-ID controller escape followed by actual fixed canonical native control passing withinRTC75/77. All retainedRTC70 pass; other2fail are syntheticSDP missingc= and not thiscontrol. No matrix/media qualification.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
+    },
+    {
+      "id": "V219-ROOT-FREEZE-PHASE",
+      "title": "Freeze and drain original old video under compatible current Readers",
+      "status": "implemented-unverified",
+      "change": "Core675 run670pass5fail: all retained668 pass,2newnegativefreezecontrols pass;3positivefreeze+2published lifetime fail because controlled metadata was installed after Native cursor/queue custody. Reviewed test-only cold setup correction pending actualrerun; productionUnsupported safeguard retained. Compatible scene Reader Store test and newService default compile remain required.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
+    },
+    {
+      "id": "V219-FRESH-B-RECEIVER",
+      "title": "Prepare and verify exact separate public B receiver",
+      "status": "implemented-unverified",
+      "change": "ActualSDK167/167 verifies reservedconstructor/phase/readiness helpers, realRTC native B queue+metadata controls pass within75/77. Full publicB workflow NOT wired: CoreW1sealed/unrun, W2 worker missing, SDKW3beingimplemented. Two pureSDPfixturefails reviewedc= correction pendingrerun. SamewarmedB publicadoption/actualphase/abort/restore missing.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
+    },
+    {
+      "id": "V219-NATIVE-POTENTIAL-IO",
+      "title": "Record exact original native source point before every possible fragment",
+      "status": "component-verified",
+      "change": "Qualified OLD failed at missing exposure leaf aftercleanup; fixed5 controls pass inside204native libchecks, plusreal65packet retainedintegration. Unknown/foreign/failedprefix remain conservative; coverageALWAYSfalse, noF.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
+    },
+    {
+      "id": "V219-NATIVE-PHYSICAL-COVERAGE",
+      "title": "Close accepted native driver/raw capabilities and retain complete video writer history",
+      "status": "assigned",
+      "change": "N1-N4 sourceplanc90edaa reviewed: coldALPN accepteddriver provenance, escape-aware raw getters, exactcontrollerfactory, retired in-flight joins/history and egress-only drain. Implementationstarting; Native/WTfullF remainsunsupported.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
+    },
+    {
+      "id": "V219-PUBLIC-B-WARM-WRITER",
+      "title": "Start same reserved B queue on post-F fresh keyframe",
+      "status": "implemented-unverified",
+      "change": "W1 sourcee79sealed includescompatiblewarm policy/initialhint, pendingindependentreview and runtime. W2 actual Bworker unimplemented atcheckpoint; nopublicB IO claim.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
+    },
+    {
+      "id": "V219-PUBLIC-B-SDK-WORKFLOW",
+      "title": "Adopt same warmed B decoder only after original completed and Activated phase",
+      "status": "assigned",
+      "change": "Sourceplanbae0 approved: exactAprivate readiness, sameoriginal signed phase/publicReady payload, bounded frozenreplay, sameBlease transfer beforeoriginalcutoff and independentcompletedpubliclifetime. Implementationunderway; helpers167pass do not proveworkflow.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
+    },
+    {
+      "id": "V219-PUBLIC-B-ROLE-MEASUREMENT",
+      "title": "Associate all A/B/RTX raw observations with their actual original native role",
+      "status": "independent-source-reviewed",
+      "change": "V3 b78bed0f sourceaccepted6cdbb0; exactnativeMID/receiver andactualdrawtrack, immutableBroleindex, unknown/contradictionretention acrossallcallers. Unapplied/unrun; V1/V2 held, originalrules unchanged.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
+    },
+    {
+      "id": "V219-PUBLIC-VIDEO-LEDGER",
+      "title": "Persist public-only original B intent and exact monotonic phase observations",
+      "status": "independent-source-reviewed",
+      "change": "StoreV396840 sourceacceptedb506c; append-onlysameSQLtuple/closedphasekernel, public source+retained guard beforemint/replay, exactsigned offer echo andhistoricalneverCommitcleanupRead. Seven testsdeclaredbutunrun; physicalissuers/APIprojection notwired.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
+    },
+    {
+      "id": "V219-OWNED-CANDIDATE-DISCARD",
+      "title": "Retain exact cancelled candidate context across native cleanup refusal or observer cancellation",
+      "status": "independent-source-reviewed",
+      "change": "Core/canonicalDiscardV3 a394 accepted; Host696e accepted a870. Root-ownedContext/Joining/Closed andfreshhistoricalReader onlythroughatomicCorecancel, droppedbeforephysicaljoin. Unapplied/unrun; actualnativeCoretoken/retry/CommitUnknown andfreshOLDrestoration controlsrequired.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+      "next": "Complete actual fixed controls and end-to-end B/native lifecycle, then coherent media/ARM/release preflight; no matrix qualification yet."
     }
   ],
   "workplan_tasks": [
@@ -20264,5 +20344,11 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g465-default-check.json",
     "sha256": "1c61bb3c6027224279c489c0cb2bff02b28011992af73f26397cbf2eb8e8df86",
     "summary": "Normal shipping-default Service/client libraries compile successfully on612f0a74/g465; source unchanged and2original owners joined0, auditb9f89fd4. Rust749 remainsverifiedcomponent scope. FactoryOLD/fixed counter, strictfreeze, post-F publicB flow andNative/WT frontier are stillpending; no media/ARM/release/matrix promotion."
-  }
+  },
+  "v219_g476_component_checkpoint": {
+    "summary": "g476 components: SDK167 pass (separate accepted cohort), Native204lib+1real integration205pass audit28a835c6; Core670/675 andRTC75/77 retain all prior668/70 but7newfixturefails remain failed. Cold physical profile+validSDP corrections source-reviewed pendingrerun. Factoryfixedcontrol/partialNative5pass; full Bworker/adoption/Hostphase/nativeF unfinished. No fullmatrix, media, ARM or release promotion.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
+    "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
+  },
+  "updated_at": "2026-11-16T05:56:07.651328+00:00"
 }

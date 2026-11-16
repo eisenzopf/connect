@@ -1,0 +1,150 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "updated_at": "2026-11-16T05:54:52.770967+00:00",
+  "source_generation": 476,
+  "source_lock_sha256": "e4cc540f8513937e284ef47571fa52ac0dde433a6d7074fd96f4c7c2316c383e",
+  "base_revision": "e666d3831e51e93e886df3390a5fda782f7adaa7",
+  "working_changes_not_yet_batch_committed": true,
+  "components": {
+    "core": {
+      "path": ".local/gate-6/v219-g476-reviewed-rust-components-root/result.json",
+      "sha256": "ede694cbde51467ef1cb192a0baac404a132fb0e56d315f5e74c5964e23bd077",
+      "original_join": ".local/gate-6/v219-g476-reviewed-rust-components-root/root-original-join.json",
+      "original_join_sha256": "9ed02c7d38ab0f8632326bd2cc1bcd8d9c85119b2a4e603e3b02fab3b1994c1d",
+      "observed": {
+        "rvoip-core": {
+          "status": "FAILED",
+          "passed": 670,
+          "failed": 5,
+          "ignored": 0
+        }
+      },
+      "whole_result_passed": false,
+      "scope": "Current g476 Rust components only, unified explicit features: retain Core668/RTC70/UCTP10 and real native integration; expanded new freeze/lifetime/B/factory controls and ALL UCTP lib tests. SDK167 prior accepted component REUSED ONLY after exact all sdk/scripts (including230dist) equality and original owners; no Node run here. No physical-media/ARM/full32 claim.",
+      "source_unchanged": true
+    },
+    "rtc": {
+      "path": ".local/gate-6/v219-g476-remaining-rust-components-root/result.json",
+      "sha256": "2abecb309b8be98f695cba86547f5be45d778e1c3521528460d13c5a6cf321f6",
+      "original_join": ".local/gate-6/v219-g476-remaining-rust-components-root/root-original-join.json",
+      "original_join_sha256": "703fac567bccfac60d994d8d65e84f39e761a52c4b881dce0aded11d02296330",
+      "observed": {
+        "rvoip-webrtc": {
+          "status": "FAILED",
+          "passed": 75,
+          "failed": 2,
+          "ignored": 0
+        }
+      },
+      "whole_result_passed": false,
+      "scope": "Remaining g476 RTC/UCTP component tests after Core675 actual670pass5fail; reuse exact ORIGINAL successful unifiedbuild and unchanged complete source, no Core rerun/no historical regrade. All remaining explicit new B/native cases plus retained RTC70 and all UCTP library tests +original native integration. PriorSDK167 reusedbyexacthashes. No media/ARM/full32.",
+      "source_unchanged": true
+    },
+    "native": {
+      "path": ".local/gate-6/v219-g476-uctp-components-root/result.json",
+      "sha256": "21e4b4fad15a96ce830ff7b8cf859aaad6d93beb33a47cdafd46fe471d27e9b5",
+      "original_join": ".local/gate-6/v219-g476-uctp-components-root/root-original-join.json",
+      "original_join_sha256": "af2afe3c60f68b5a1e71e935b6b129a9a032cd3da097b1c96ff5f2c36e8b0e63",
+      "observed": {
+        "rvoip-uctp": {
+          "status": "ok",
+          "passed": 204,
+          "failed": 0,
+          "ignored": 0
+        },
+        "rvoip-uctp-v2-peer-admission": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      },
+      "whole_result_passed": true,
+      "scope": "Current g476 ALL UCTP library tests +retained exact original native integration; reuse original successful unified build/source, no Core or RTC rerun/regrade. Original Core670/675 andRTC75/77 failures separatelypreserved; SDK167 previouslyaccepted componentreusedonlybyexacthashes. No physicalmedia/ARM/full32.",
+      "source_unchanged": true
+    },
+    "sdk": {
+      "path": ".local/gate-6/v219-g474-reviewed-components-root-r3/result.json",
+      "sha256": "c5731ea9ed78e7219fe42954fabbc400d8fd85dc022f4bddf65e648a9b4ad6ff",
+      "original_join": ".local/gate-6/v219-g474-reviewed-components-root-r3/root-original-join.json",
+      "original_join_sha256": "dcf766a4a8490424623d379dc7dc257ae482fe5d5af3a96d121571d5065775e8",
+      "observed": {
+        "node": {
+          "tests": 167,
+          "pass": 167,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        }
+      },
+      "whole_result_passed": false,
+      "scope": "Reviewed g474 factory/freeze/published protection/native potential IO +Protocol/SDK component controls; feature-unified upstream build, Core668/RTC70/UCTP10 and real native retry retained, all current UCTP lib tests. No media/ARM/full32 claim. Retry after explicit actual142/144 Node cleanup failure; exact once-close assertions unchanged and whole signaling module added. Test-only canonical dictionary comparison fixed after actual166/167; no production JSON semantics or assertion fields changed.",
+      "source_unchanged": true
+    }
+  },
+  "independent_receipts": {
+    "native205": {
+      "path": ".local/gate-6/v219-g476-native205-independent-v198-review/receipt.json",
+      "sha256": "28a835c62146b1993c8f415a7e5a4f2d93c696f86dd286fecdcae3bca573b138"
+    },
+    "sdk167": {
+      "path": ".local/gate-6/v219-g474-sdk167-independent-fixture-review/receipt.json",
+      "sha256": "8c09696d2e8e8765abab6553ddc5ede92c9db8e6c82bb348cb16e9f5a04ab67c"
+    },
+    "cold_fixture": {
+      "path": ".local/gate-6/cold-physical-video-fixtures-independent-fixture-review/receipt.json",
+      "sha256": "bc9c584b1186c48b7e8bf95918cd10c919bfb56f3638920bcc6181f5d6a539e5"
+    },
+    "sdp_fixture": {
+      "path": ".local/gate-6/reserved-video-valid-sdp-independent-media-review/receipt.json",
+      "sha256": "e524aa17c87e9085acde4dd7c7293a5f0281d3ac47b5515548551f31b52dd68f"
+    },
+    "store_v3": {
+      "path": ".local/gate-6/public-video-phase-ledger-independent-fixture-review/receipt-v3.json",
+      "sha256": "b506c1e2bdb07147005a309ee76c442d76a3798dd6230d375bccbeb04e57a023"
+    },
+    "host_discard": {
+      "path": ".local/gate-6/public-video-historical-discard-host-independent-v198-review/receipt.json",
+      "sha256": "a87032f293c3fe1d19bffd3d91f3e7ae3fe5267ee912278d7ec781b98ad55460"
+    },
+    "measurement_v3": {
+      "path": ".local/gate-6/rtc-native-row-role-binding-independent-v198-review/receipt-v3.json",
+      "sha256": "6cdbb0aec41f88e1a5ad81e5eeffff884b16ace15f5a42c9aeb6486b7d08b775"
+    }
+  },
+  "retained_scope": {
+    "core_all_668_pass": true,
+    "rtc_all_70_pass": true,
+    "native_all_204_pass": true,
+    "native_original_65packet_integration_pass": true,
+    "sdk_167_component_pass": true
+  },
+  "new_failures": {
+    "core": {
+      "failed": 5,
+      "classification": "Explicit physical metadata fixture installed after fake native cursor/queue ownership; correct Unsupported, positive drain/lifetime controls not qualified.",
+      "correction_source": ".local/gate-6/cold-physical-video-fixtures-v219-candidate/manifest.json",
+      "correction_source_sha256": "2c4ae6b7a3f3dcd3bb2f929fbf02d153c63fcd35239b1147ab5472cf42fa1699"
+    },
+    "rtc": {
+      "failed": 2,
+      "classification": "Synthetic SDP lacks required session/media connection information; real native-generated B controls pass.",
+      "correction_source": ".local/gate-6/reserved-video-valid-sdp-v219-root-candidate/manifest.json",
+      "correction_source_sha256": "458192020eeb85f4dbb5cb41373a5cc6d43568b1dd49cece3301b4f8e36962c8"
+    }
+  },
+  "scope_limits": [
+    "Do not sum differently bound SDK/Rust feature cohorts into a whole regression pass",
+    "No fresh physical media/proper3, ARM, release, native full physicalF, B warm writer/public activation or matrix qualification",
+    "Core675 andRTC77 original failed grades remain failed; reviewed fixture corrections require actual rerun",
+    "Store ledger/Host discard/role measurement source reviewed but unapplied/unrun; W1/W2/W3/native full coverage unfinished"
+  ],
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "new_full_matrix_started": false
+  }
+}
