@@ -1,0 +1,67 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "updated_at": "2026-11-16T09:31:08.944549+00:00",
+  "source_generation": 483,
+  "original_result": {
+    "path": ".local/gate-6/v219-g483-store-corrections-root/result.json",
+    "sha256": "631fb37395992837e9bf3e1ed9a37a8b835c4f4ceb6596b599aa96953dd593fb",
+    "passed": false,
+    "join_sha256": "8cae8eb8d3dd21d8caf5ed874966dce0f2c5a027d241884ff141f80a176fb127"
+  },
+  "independent_review": {
+    "path": ".local/gate-6/v219-g483-components-independent-fixture-review/receipt.json",
+    "sha256": "969eea90595430f2ef91c315055329e0b68d8a8c7f3d676c7663d11e011df50d"
+  },
+  "observed": {
+    "connect-store": {
+      "status": "FAILED",
+      "passed": 413,
+      "failed": 3,
+      "ignored": 0
+    },
+    "connect-service": {
+      "status": "ok",
+      "passed": 90,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "original_owners": {
+    "all_naturally_joined": true,
+    "child_count": 7,
+    "root_pid": 61028,
+    "tool_session_id": 15213
+  },
+  "scope": "All prior409 Store+3new exact NotSubmitted/worker controls+4generic worker regressions =416; Service90 retained. No SDK/Core/RTC/Python/media rerun.",
+  "failed_selectors": [
+    "connection_control::tests::replacement_sources::commit::scene_unary::custody::full_four_plus_two_scene_reuses_exact_live_packet_interval_behind_actual_writer_without_effects",
+    "connection_control::tests::replacement_sources::public_video_ledger::public_video_intent_rejects_actual_private_preparation_before_missing_video_mapping",
+    "transitions::tests::stale_lease_and_membership_readmission_cannot_restore_old_execution_authority"
+  ],
+  "cleared_actual_production_defects": [
+    "Original definite NotSubmitted ledger metadata completes with retained unrelated media Readers; wrong DML and same-record-reader conflicts still refuse.",
+    "Unreserved generic endpoint replacement worker must acquire actual mutation Writer; held media custody cannot lend lease write."
+  ],
+  "followup_applied": {
+    "manifest": ".local/gate-6/g483-store-fixture-currentness-v219-candidate/manifest.json",
+    "sha256": "b7ba9a6dc4daf9e56381069be5ff380b32e4c2d4adc3b0a6b593f70d0bbbe9aa",
+    "review_sha256": "fd23dd7a608664bdf78de8eac3cc73b9515f242afd4460bba445c737fd987580",
+    "scope": "Three test-only fixture/custody corrections, all exact final refusal/generation/ABA assertions preserved; original transient busy subtype unknown.",
+    "focused_runtime": "NOT_RUN_YET"
+  },
+  "handoff_source_progress": {
+    "status": "DRAFT_UNREVIEWED_NOT_APPLIED",
+    "root": "Same-original F/Warm/public Ready/atomic installed guard and Closed/fresh selected-source OLD restore wiring drafted.",
+    "review_found_gap": "Native initial-picture request lacked production implementation; actual matrix negotiates feedback, Native hook and pre-freeze preflight now staged.",
+    "remaining": "Production review, exact integration/control tests, actual native/browser decoded handoff, local ARM/releases/preflight."
+  },
+  "full_matrix": {
+    "new_run": false,
+    "latest_complete": "v218",
+    "passed": 1,
+    "total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "ready_for_32": false
+}

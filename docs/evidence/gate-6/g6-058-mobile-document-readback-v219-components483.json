@@ -1,0 +1,20 @@
+{
+  "format": "connect/mobile-scoped-update-readback/1",
+  "status": "VERIFIED",
+  "verified_at": "2026-11-16T09:31:08.881Z",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "logical_revision": 175,
+  "document_revision": "AHj4eMQ0CLnvLdJU7JMjj0Y8ifoGFAiKD2JcqVfLliXVDlHjzEd8eZwyy0bNkSUBjXe2-AWqlxmTsmTL93kASkuy5CT1DpoJJBvDcv_Xvf8",
+  "exact_changes": [
+    {
+      "old": "Revision 174 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+      "next": "Revision 175 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n"
+    },
+    {
+      "old": "Current verification — Generation482 builds successfully and its actual results are independently audited: SDK/Node206/206 and Service90/90 pass; Store395/409 pass with14 failures preserved. All9 original child owners and the original supervisor ended naturally; source and binaries are verified. The remaining failures separate six adversarial tests stopped by a mistaken no-op guard self-test, six fixture/setup/metadata-admission failures, and two real production authority-scope defects. Independently reviewed fixes now applied for definite NotSubmitted metadata without a Conversation writer, a real writer for the unreserved generic worker claim, and the exact fixture corrections; the next affected Store/Service run is pending. A new actual Firefox and Chrome probe also passes native audio/A/B negotiation, exact receiver Stats and decoded A+B callbacks with normal local TLS. This proves browser API capability only; actual Connect B/F/warm/decoded adoption remains unverified. Earlier Core679/679, WebRTC78/78, UCTP204/204 plus real65-packet retry1/1, Protocol85/85 and Python55/55 remain their recorded component scopes. Generation458 normal3 remains CLOSED FAILED (audio18/18, A/V18/18, cleanup3/3, video14/18, collection17/18). Complete Host integration, Native writer-domain custody, original OLD restore and fresh decoded handoff, local ARM/release/preflight still precede full32. No new matrix credit.\n",
+      "next": "Current verification — Generation483 is independently audited: Store413/416 and Service90/90 pass;3 Store failures remain FAILED. The definite NotSubmitted metadata and unreserved-worker Writer fixes pass their actual regression/negative controls, clearing the two identified production authority-scope defects. All7 original child owners and original supervisor ended naturally; source and binary identities are verified. Remaining3 assertions are the wrong-scene snapshot-boundary refusal, a cfg(test)-only late private reservation wrapper's five-ms footprint, and uncoordinated lease/membership-ABA setup in a newly included generic worker test. Exact final refusal/generation/ABA oracles are retained; reviewed test-only corrections are applied and a focused3 retest is next. SDK/Node206/206 and actual Firefox/Chrome native audio/A/B API capability remain their recorded scopes. Actual Connect handoff remains incomplete: Root has drafted same-original F/B warm/public Ready/atomic installed guard plus actual Closed/fresh OLD restoration wiring; peer review has identified and is fixing missing native source keyframe feedback and pre-freeze capability checks. These are source changes, not decoded-media qualification. Original full media generation458 remains failed; Native full writer domain, actual representative decoded handoff, local ARM/releases/preflight still precede full32. Last complete matrix remains1/32; no new matrix credit.\n"
+    }
+  ],
+  "preserved_unrelated_content": true,
+  "matrix_credit": false
+}

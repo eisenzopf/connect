@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-16T08:54:41.133757+00:00",
-  "revision": 107,
+  "updated_at": "2026-11-16T09:31:08.944549+00:00",
+  "revision": 108,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 174,
-    "verified_at": "2026-11-16T08:53:52.230Z",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components482.json",
-    "readback_evidence_sha256": "731bc2f700d2faf8070879b92c61d183fb837ac8607cc5dfb64e2dca42564ec5",
+    "content_revision": 175,
+    "verified_at": "2026-11-16T09:31:08.881Z",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components483.json",
+    "readback_evidence_sha256": "210c438fae551a3bcd020cc2ddf37ae2c2d161aecf951e1ac5e215b68f143ec5",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1012,6 +1012,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v219-g482-component-progress.json",
           "result": "sdk-service-pass-store14-failed-browser-api-capability-pass",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
+          "result": "store413pass-3fail-service90pass",
+          "matrix_result": false
         }
       ],
       "commit_ids": [],
@@ -1128,6 +1133,11 @@
         {
           "evidence": "docs/evidence/gate-6/g6-058-v219-g482-component-progress.json",
           "result": "sdk-service-pass-store14-failed-browser-api-capability-pass",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
+          "result": "store413pass-3fail-service90pass",
           "matrix_result": false
         }
       ],
@@ -1458,6 +1468,11 @@
         {
           "evidence": "docs/evidence/gate-6/g6-058-v219-g482-component-progress.json",
           "result": "sdk-service-pass-store14-failed-browser-api-capability-pass",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
+          "result": "store413pass-3fail-service90pass",
           "matrix_result": false
         }
       ],
@@ -2496,10 +2511,10 @@
       "coordinator": "/root",
       "status": "implemented-unverified",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g482-component-progress.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
       "matrix_verified": false,
-      "implementation_state": "g482 Service90/90 and SDK206/206 pass; Store395/409 leaves14. Two production authority-scope corrections and exact test fixture fixes applied with independent review; followup runtime pending. Original failed results retained.",
-      "updated_at": "2026-11-16T08:54:41.133757+00:00"
+      "implementation_state": "g483 Store413/416 and Service90/90. Both real production scope defects clear exact retained/new regressions. Three failed fixture assertions preserved; independently reviewed test-only followups applied, focused runtime pending.",
+      "updated_at": "2026-11-16T09:31:08.944549+00:00"
     }
   ],
   "failure_mapping": [
@@ -5025,6 +5040,12 @@
       "revision": 107,
       "checkpoint": "docs/evidence/gate-6/g6-058-v219-g482-component-progress.json",
       "summary": "Audited actual g482 SDK206/Service90 pass; Store14 failures retained and reviewed followup applied. Actual r3 Firefox/Chrome A+B native capability passes, no Connect media qualification. Mobile174 verified; no full32."
+    },
+    {
+      "updated_at": "2026-11-16T09:31:08.944549+00:00",
+      "revision": 108,
+      "checkpoint": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
+      "summary": "Audited g483 Store413/416 and Service90/90, both production authority scope fixes pass. Three test corrections applied for focused retest. Host pipeline/native keyframe/Closed+restore integration under review. Mobile175 verified; no full32."
     }
   ],
   "tracking_review": {
@@ -6654,8 +6675,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "g482 actual SDK206/206 and Service90/90 pass, Store395/409 with14 failures preserved. Actual Firefox/Chrome native audio/A/B capability passes; Connect handoff remains unverified. Reviewed fixes for remaining14 applied, affected runtime pending; full32 held. Last matrix1/32 unchanged.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g482-component-progress.json",
-    "sha256": "9d87c0354ac06eb74cf86ecc3672469a49d770c4bf9fb79a600067fdcdb2cc49"
+    "status": "g483 actual Store413/416 (3failed) and Service90/90, independently audited. Both identified production authority-scope fixes pass exact regressions. Three fixture-only followups applied, focused retest pending. Actual publicB Host/feedback/restore integration still under review; full32 held, last matrix1/32 unchanged.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g483-component-progress.json",
+    "sha256": "cf325de753ad21dfc966201282ee90752352acbabf44871080d0189fa8cfdcca"
   }
 }
