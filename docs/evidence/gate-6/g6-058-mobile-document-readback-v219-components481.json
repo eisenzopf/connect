@@ -1,0 +1,30 @@
+{
+  "format": "connect/mobile-scoped-readback/1",
+  "content_revision": 173,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "native_revision": "AHj4eMRp7SkGzYWg2irBQ4j5es7WH6qQokXNBDnsA_Xm3Wg0tXZEW6YDCLOgG8IdqGuMYI0arbOTnT5Nu41keUQIHQlCc8A5BT9abIDzWyE",
+  "tab_id": "t.0",
+  "verified_at": "2026-11-16T08:01:53.933Z",
+  "replacements": [
+    {
+      "previous": "Revision 172 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+      "current": "Revision 173 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+      "current_occurrences": 1,
+      "previous_occurrences": 0
+    },
+    {
+      "previous": "Current verification \u2014 Current g480 scoped results are independently audited: WebRTC78/78, Native204 library checks plus the real65-packet retry integration1/1, Protocol85/85, SDK/script195/195 and four Python suites55/55 pass. Both original supervisors and all19 child owners ended naturally; exact source and binaries are verified. The enclosing builds remain FAILED: Core's new expiry test omitted its original activation plan; Store's new negative test omitted an enum qualification. Neither Core nor Store tests ran. Both fixture-only corrections are reviewed and next for generation481; Service is also unqualified in this attempt. Generation458 normal3 remains CLOSED FAILED (audio18/18, A/V18/18, cleanup3/3, video14/18, collection17/18). No fresh decoded-media, ARM or matrix promotion.\n",
+      "current": "Current verification \u2014 Generation481 builds successfully and its actual results are independently audited: Core679/679, WebRTC78/78, UCTP204/204 plus real65-packet retry integration1/1, Protocol85/85, Node195/195 and Python55/55 pass. Store remains FAILED (366/404 passed,38 failed); Service remains FAILED (89/90 passed,1 failed). All25 original child owners and the original supervisor ended naturally; source and binary identities are verified. Store failures separate ordinary raw-SQL setup rejected by writer guards, incomplete held scene custody, bounded metadata admission, scoped retirement fixtures and a real private-source classification gap. Reviewed fixes are being integrated; none is credited before execution. Service's obsolete registry-contention expectation is being corrected while keeping actual mixer/writer budgets and complete cleanup. Next proof is the corrected affected regressions and the actual integrated publicB handoff, followed by local ARM and complete32. Generation458 normal3 remains CLOSED FAILED (audio18/18, A/V18/18, cleanup3/3, video14/18, collection17/18). No fresh decoded-media, ARM or matrix promotion.\n",
+      "current_occurrences": 1,
+      "previous_occurrences": 0
+    },
+    {
+      "previous": "V219-PUBLIC-FRAME-REPLAY \u2014 Owners: media_blockers (Core/adapter), Root (Protocol/Service/Store/OpenAPI), fixture_blockers (SDK); independent reviewer: v198_resources; coordinator: Root. HELD FOR OWNER REVIEW, not ready. The committed compositor chronology fix passes 66 checks. The stronger signed frame-cut prototype separately passes SDK250, Protocol7 and Store4; all are tested-snapshot component scopes, not a joint Core/Service build or media proof. The SDK compiler mismatch and three fixture mistakes were corrected and independently reviewed; initial failed attempts remain failed. All 27 prototype afterimages are preserved and independently hash-verified. Shipping source is restored clean to pushed 3dc7d702 and dependency generation452; no bounded Core frame-cut was applied. Current live shipping scope retains the verified queue, compositor and logging fixes.\n",
+      "current": "V219-PUBLIC-FRAME-REPLAY \u2014 Owners: media_blockers (Core/adapter), Root (Protocol/Service/Store/OpenAPI), fixture_blockers (SDK); independent reviewer: v198_resources; coordinator: Root. IN PROGRESS, not ready for matrix. The original compositor chronology66 and historical prototype scopes remain separate evidence. Current replacement work reserves the actual public B receiver before pausing OLD, binds the same reservation to the real source cut, warms and verifies B, then publishes that same receiver and retires OLD. Core warm/adoption and SDK lifecycle successors have independent source reviews but remain unrun. Atomic Prepare+intent now has a reviewed authoritative private-floor classifier; Host cold classification, durable phase producers, native complete writer-domain coverage and graceful OLD restore are still being integrated. The earlier held prototype was not promoted or relabeled as a working handoff.\n",
+      "current_occurrences": 1,
+      "previous_occurrences": 0
+    }
+  ],
+  "status": "VERIFIED",
+  "owner_edits_preserved": true
+}

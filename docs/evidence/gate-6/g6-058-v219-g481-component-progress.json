@@ -1,0 +1,171 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "updated_at": "2026-11-16T08:02:59.678892+00:00",
+  "source_generation": 481,
+  "source_lock_sha256": "2cde2a68b1c82febdee04f675cf349391d55856511f516962c0f55516af386ae",
+  "original_result": {
+    "path": ".local/gate-6/v219-g481-reviewed-components-root/result.json",
+    "sha256": "b525643ec401adf502324393d04cb1d76802c72887221590221e02d9a4e392f4",
+    "passed": false,
+    "join_sha256": "2ce0d4dcfbc403d124476c5b5dd24b0d00a3e18649ee59e5fcb343a4ed524b9d"
+  },
+  "independent_review": {
+    "path": ".local/gate-6/v219-g481-components-independent-fixture-review/receipt.json",
+    "sha256": "54d619b507535716c3363cf9c4cd12f980af664840e9364cb0e4f1d29eeff257"
+  },
+  "observed": {
+    "rvoip-core": {
+      "argv_exact_selectors": 679,
+      "unique": 679,
+      "missing_from_original_inventory": [],
+      "logged": {
+        "status": "ok",
+        "passed": 679,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "rvoip-webrtc": {
+      "argv_exact_selectors": 78,
+      "unique": 78,
+      "missing_from_original_inventory": [],
+      "logged": {
+        "status": "ok",
+        "passed": 78,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "rvoip-uctp": {
+      "argv_exact_selectors": 204,
+      "unique": 204,
+      "missing_from_original_inventory": [],
+      "logged": {
+        "status": "ok",
+        "passed": 204,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "rvoip-uctp-v2-peer-admission": {
+      "argv_exact_selectors": 1,
+      "unique": 1,
+      "missing_from_original_inventory": [],
+      "logged": {
+        "status": "ok",
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "connect-protocol": {
+      "argv_exact_selectors": 85,
+      "unique": 85,
+      "missing_from_original_inventory": [],
+      "logged": {
+        "status": "ok",
+        "passed": 85,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "connect-store": {
+      "argv_exact_selectors": 404,
+      "unique": 404,
+      "missing_from_original_inventory": [],
+      "logged": {
+        "status": "FAILED",
+        "passed": 366,
+        "failed": 38,
+        "ignored": 0
+      }
+    },
+    "connect-service": {
+      "argv_exact_selectors": 90,
+      "unique": 90,
+      "missing_from_original_inventory": [],
+      "logged": {
+        "status": "FAILED",
+        "passed": 89,
+        "failed": 1,
+        "ignored": 0
+      }
+    }
+  },
+  "node": {
+    "tests": 195,
+    "pass": 195,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "python": {
+    "passed": 55,
+    "modules": {
+      "scripts/tests/test_rtc_source_frame_witness.py": 33,
+      "scripts/tests/test_rtc_source_frame_witness_wiring.py": 3,
+      "scripts/tests/test_transport_matrix_full.py": 11,
+      "scripts/tests/test_transport_matrix_execution.py": 8
+    }
+  },
+  "all_original_owners_joined": true,
+  "original_child_owner_count": 25,
+  "builds_passed": true,
+  "failures": {
+    "store": 38,
+    "service": 1,
+    "classification_status": "Preliminary causal grouping, not retested",
+    "store_categories": {
+      "raw-sql-boundary-setup": 27,
+      "metadata-admission-deadline": 2,
+      "immutable-guard-order": 1,
+      "incomplete-held-scene-or-currentness": 5,
+      "unaffected-reader-does-not-block-scoped-retirement": 2,
+      "private-classification": 1
+    },
+    "original_classification_sha256": "b7f74d3fa64a1bf374dbd8e4798c30945fd521384ccca8d3909016e0360cd9a2"
+  },
+  "fixes_in_progress": [
+    {
+      "family": "raw-sql-boundary-setup",
+      "owner": "/root",
+      "reviewer": "/root/v198_resources",
+      "action": "Use actual Writer ordinary setup; explicit private external corruption helper retains production SQL funcs/FK/immutability."
+    },
+    {
+      "family": "held-scene-custody",
+      "owner": "/root/fixture_blockers",
+      "reviewer": "/root/v198_resources",
+      "action": "Acquire actual complete scene-source interval before queued Writer; retain unary refusal and no-fresh-admission controls."
+    },
+    {
+      "family": "scoped-retirement",
+      "owner": "/root",
+      "reviewer": "/root/v198_resources",
+      "action": "Correct test to hold affected candidate Connection/record Readers, not unrelated sources."
+    },
+    {
+      "family": "private-source-classifier",
+      "owner": "/root/fixture_blockers",
+      "reviewer": "/root/v198_resources",
+      "action": "Authoritative current private floor/partner cold classifier and atomic Prepare+intent."
+    },
+    {
+      "family": "service-mixer-regression",
+      "owner": "/root",
+      "reviewer": "/root/media_blockers",
+      "action": "Actual immutable published-absence control, original mixer/Writer budgets and all-owner cleanup."
+    }
+  ],
+  "full_matrix": {
+    "new_run": false,
+    "latest_complete": "v218",
+    "passed": 1,
+    "total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "remaining": "Actual Host reservedB/phase/F/warm/BReady/activation producer, Native full writer-domain custody, graceful OLD restore, affected regressions, real native/browser decoded handoff, local ARM/release/preflight incomplete.",
+  "ready_for_32": false
+}

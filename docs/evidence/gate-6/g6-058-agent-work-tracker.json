@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-16T07:03:16.914328+00:00",
-  "revision": 105,
+  "updated_at": "2026-11-16T08:02:59.678892+00:00",
+  "revision": 106,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 172,
-    "verified_at": "2026-11-16T07:04:07.749459+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components480.json",
-    "readback_evidence_sha256": "5de7384c5af7c385071793badfe3db1c4cc77574c7bbe4ddd39692ba8ae39f54",
+    "content_revision": 173,
+    "verified_at": "2026-11-16T08:01:53.933Z",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components481.json",
+    "readback_evidence_sha256": "3feb1a36f99a4d237cee94c52217268d07c42091b0a6af08edaa7e9be05defcd",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -1001,6 +1001,12 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-diagnostics31.json",
           "result": "ES256 wholefull62passes; EdDSA route0 replacementstart0downlink fails beforecleanup; rootcause under investigation.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g481-component-progress.json",
+          "result": "partial-component-pass-store-service-failed",
+          "matrix_result": false,
+          "scope": "Core679/RTC78/UCTP204+retry1/Protocol85/Node195/Python55 pass; Store38 and Service1 fail, no media or matrix credit."
         }
       ],
       "commit_ids": [],
@@ -1107,6 +1113,12 @@
           "evidence": "docs/evidence/gate-6/g6-058-v216-data-control-focused253.json",
           "result": "ActualStore214+Core39 PASS on identical143/generation414; all original owners/guards; decoded full programme and matrix pending",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g481-component-progress.json",
+          "result": "partial-component-pass-store-service-failed",
+          "matrix_result": false,
+          "scope": "Core679/RTC78/UCTP204+retry1/Protocol85/Node195/Python55 pass; Store38 and Service1 fail, no media or matrix credit."
         }
       ],
       "commit_ids": [],
@@ -1426,6 +1438,12 @@
           "evidence": "docs/evidence/gate-6/g6-058-v217-shipping-browser.json",
           "result": "Both corrected normalshipping1fc actualPASS; Mac52 isolatedCAcases2/2 and profileunits16/16; finalwhole-source42 pending",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g481-component-progress.json",
+          "result": "partial-component-pass-store-service-failed",
+          "matrix_result": false,
+          "scope": "Core679/RTC78/UCTP204+retry1/Protocol85/Node195/Python55 pass; Store38 and Service1 fail, no media or matrix credit."
         }
       ],
       "commit_ids": [
@@ -2165,15 +2183,19 @@
       "owner_agent": "/root/fixture_blockers",
       "independent_reviewer": "/root/media_blockers",
       "coordinator": "/root",
-      "status": "held-for-owner-review",
-      "implementation_state": "Committed compositor chronology66 verified. SDK250/Protocol7/Store4 pass on preserved prototype only; shipping source restored clean to 3dc7d702/g452. Core never applied; bounded lifetime/source limits unapproved. Long-lived design and prospective hold/measurement reviews pending.",
+      "status": "implemented-unverified",
+      "implementation_state": "Current actual reservedB handoff integration proceeds under approved plan. Earlier held prototype remains historical, not promoted. Independent source reviews cover Core pre-cut reservation/warm/same-writer adoption, SDK lifecycle, atomic Store Prepare+intent/classifier and graceful restore in progress. Actual full Host phase producer, Native complete writer-domain closure and real decoded representative evidence still required.",
       "depends_on": [],
       "verification_evidence": "docs/evidence/gate-6/g6-058-v219-held-frame-cut-checkpoint.json",
       "matrix_verified": false,
       "contributing_agents": [
         "/root/media_blockers",
         "/root"
-      ]
+      ],
+      "previous_implementation_states": [
+        "Committed compositor chronology66 verified. SDK250/Protocol7/Store4 pass on preserved prototype only; shipping source restored clean to 3dc7d702/g452. Core never applied; bounded lifetime/source limits unapproved. Long-lived design and prospective hold/measurement reviews pending."
+      ],
+      "updated_at": "2026-11-16T08:02:59.678892+00:00"
     },
     {
       "id": "V219-NATIVE-RECEIVER-TAIL",
@@ -2447,6 +2469,22 @@
       "matrix_verified": false,
       "updated_at": "2026-11-16T07:03:16.914328+00:00",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g480-component-progress.json"
+    },
+    {
+      "id": "V219-G481-AFFECTED-REGRESSIONS",
+      "title": "Resolve g481 Store38 and Service1 failures without weakening authority or media checks",
+      "owner_agent": "/root",
+      "contributing_agents": [
+        "/root/fixture_blockers"
+      ],
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "status": "cause-confirmed",
+      "depends_on": [],
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g481-component-progress.json",
+      "matrix_verified": false,
+      "implementation_state": "Exact failures preserved; raw DML, incomplete scene custody, metadata admission, scoped retirement controls and actual private classifier separated. Corrections source-reviewed or in review; no fresh runtime yet.",
+      "updated_at": "2026-11-16T08:02:59.678892+00:00"
     }
   ],
   "failure_mapping": [
@@ -4960,6 +4998,12 @@
       "event": "g480-individually-compiled-component-verification",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g480-component-progress.json",
       "result": "RTC78 Native205 Protocol85 Node195 Python55; Core/Store compilation failed, reviewed fixture corrections pending. Full32 held."
+    },
+    {
+      "updated_at": "2026-11-16T08:02:59.678892+00:00",
+      "revision": 106,
+      "checkpoint": "docs/evidence/gate-6/g6-058-v219-g481-component-progress.json",
+      "summary": "Audited g481 actual Core679 green; Store38/Service1 failures preserved and assigned. Mobile173 readback verified; no full32."
     }
   ],
   "tracking_review": {
@@ -6589,8 +6633,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "g480 scoped audit819c: RTC78/78, Native204lib+real retry1, Protocol85/85, Node195/195, Python55/55 pass. Core and Store test compile errors retained as failed; reviewed fixture-only original-plan and enum corrections await generation481. No enclosing build/media/ARM/full32 promotion.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g480-component-progress.json",
-    "sha256": "f20f576151b19d5385eebd78581af99415309ccedc87b0e91deb0405d37f70f9"
+    "status": "g481 actual component results independently audited: Core679, RTC78, UCTP204+retry1, Protocol85, Node195, Python55 pass. Store366/404 and Service89/90 remain FAILED. Actual39 failures mapped to reviewed/in-progress corrections; full Host/Native/OLD restore/media qualification incomplete. Last matrix1/32 unchanged.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g481-component-progress.json",
+    "sha256": "9686ca6917959bffc39303e7e1ffcae2b6942604041dbddd175b1adfc9155b73"
   }
 }
