@@ -1,0 +1,289 @@
+{
+  "format": "connect/g6-058-normal3-g458-closed-failure/1",
+  "recorded_at": "2026-11-16T02:02:25.014510+00:00",
+  "source_revision": "3726cbb02b3cfdc2893016c8520550e429693916",
+  "source_generation": 458,
+  "passed": false,
+  "root_session": 66760,
+  "completion_chunk": "b38cbe",
+  "outer_exit": 0,
+  "original_component_exit": 1,
+  "source_executable_and_dist_unchanged": true,
+  "all_original_owners_joined": true,
+  "raw_quality": {
+    "audio_passed": 18,
+    "audio_required": 18,
+    "video_passed": 14,
+    "video_required": 18,
+    "av_passed": 18,
+    "av_required": 18,
+    "route_collections_complete": 17,
+    "route_collections_required": 18,
+    "resource_cycles_passed": 3,
+    "resource_cycles_required": 3
+  },
+  "route_rows": [
+    {
+      "cycle": 1,
+      "route": 0,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 1,
+      "route": 1,
+      "audio_passed": true,
+      "video_raw_passed": false,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 7,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 1,
+      "route": 2,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 1,
+      "route": 3,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 1,
+      "route": 4,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 1,
+      "route": 5,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 2,
+      "route": 0,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 2,
+      "route": 1,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 2,
+      "route": 2,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 2,
+      "route": 3,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 2,
+      "route": 4,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 2,
+      "route": 5,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 3,
+      "route": 0,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 3,
+      "route": 1,
+      "audio_passed": true,
+      "video_raw_passed": false,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 8,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 3,
+      "route": 2,
+      "audio_passed": true,
+      "video_raw_passed": false,
+      "sync_passed": true,
+      "collection_passed": false,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 1,
+      "witness_missing_row_count": 1
+    },
+    {
+      "cycle": 3,
+      "route": 3,
+      "audio_passed": true,
+      "video_raw_passed": false,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 1,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 3,
+      "route": 4,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    },
+    {
+      "cycle": 3,
+      "route": 5,
+      "audio_passed": true,
+      "video_raw_passed": true,
+      "sync_passed": true,
+      "collection_passed": true,
+      "draw_repeats": 0,
+      "receiver_rtp_repeats": 0,
+      "unavailable_pixel_identity_frames": 0,
+      "witness_missing_row_count": 0
+    }
+  ],
+  "capture": {
+    "original_packets": 292251,
+    "kernel_drops": 0,
+    "bytes": 168014631,
+    "sha256": "264adcb0d6b9b90aa457e2eda025f6e216f33a11c572a16a4dd0bb294c279071"
+  },
+  "source_adjudication": {
+    "profile": "connect/native-rtc-original-source-frame/2",
+    "complete": false,
+    "passed": false,
+    "failure": "WitnessError",
+    "reason": "original-browser-collection-not-joined0"
+  },
+  "findings": [
+    "Cycle3 route2 (zero-based) has one unavailable pixel source-frame ordinal; missing_presentation_rows is a broad candidate predicate, not proof that native presentation was absent. Exact original reason was not archived.",
+    "Three other raw video failures contain sixteen same-owner authored-draw repeats, all with distinct receiver RTP timestamps. Full native/Core/wire association remains unqualified.",
+    "No rows are dropped or regraded; original failed component and all original ownership records remain unchanged.",
+    "Reviewed observer hazard: measurement rereads mutable video after actual public draw, separately for marker and footer; prospective actual-canvas borrowing fix and failing-old counter staged. Causality for the original unavailable marker remains unproved."
+  ],
+  "matrix": {
+    "last_complete": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "new_full32_started": false,
+    "ready": false
+  },
+  "references": {
+    "independent_qa": {
+      "path": ".local/gate-6/v219-native-epoch-firefox3-independent-v198-review/receipt.json",
+      "sha256": "70892eaf07d91445272a723051e945f96d52516855dba02ce735bc7e1920ace4"
+    },
+    "component": {
+      "path": ".local/gate-6/v219-native-epoch-firefox3-root-r3/component.json",
+      "sha256": "94ef386a7fb182cbc2c205133b78654d4ed462e448ccf699ee2e4d0eb533244e"
+    },
+    "owner_result": {
+      "path": ".local/gate-6/v219-native-epoch-firefox3-owner-root-r3/result.json",
+      "sha256": "3a63dd3be682d7145178c11a3c62d0aa80d00ccdcb24471f94021ef845f36903"
+    },
+    "root_original_join": {
+      "path": ".local/gate-6/v219-native-epoch-firefox3-owner-root-r3/root-original-join.json",
+      "sha256": "d876cfffaf5f0158195a0a03ee2373fd22a36e6c6b58451cdedac59924f05428"
+    }
+  }
+}

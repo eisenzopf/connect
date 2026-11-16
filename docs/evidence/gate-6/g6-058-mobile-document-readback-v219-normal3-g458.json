@@ -1,0 +1,12 @@
+{
+  "format": "connect/g6-058-mobile-document-readback/1",
+  "content_revision": 166,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMSFpqFHGRk1PUpsYhvc6tORHAsYP6xebv2TGbj2Z0k5rkYyFBTgi_x5a9Zg_pcq_0xeEbjsDVuGib6eoPvwakZBca3M7rtQX1CdBJ8",
+  "verified": true,
+  "paragraphs": [
+    "Revision 166 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.",
+    "Current verification — Generation458 normal3 CLOSED FAILED: raw audio18/18, A/V18/18 and resource/cleanup3/3 pass; raw video14/18 pass. Three raw failures contain16 same-owner authored-image repeats with distinct receiver RTP timestamps. One further route contains one unidentified pixel source-frame marker; collection17/18 is insufficient and final source association correctly refuses. No row is dropped or waived. Independent audit70892eaf accepted source/executable stability, all original owner joins and zero packet-capture drops. The complete witness and media component remain failed; no cell/matrix credit. Root is fixing a source-proved observer hazard: after drawing the actual public frame, the observer rereads a mutable video element separately for body and footer. The candidate borrows the already-rendered canvas instead. That hazard is compatible with the marker failure, whose exact original reason was not archived; causality is not claimed.",
+    "5. Runtime coordinator: Root alone applies, builds and runs workloads. The failed generation458 media run has an accepted independent audit70892eaf. Next: genuine old counters, then integration and unit tests for the reviewed realm/native producer/physical tracking/native decoder/observer batch. Media also owns the remaining opportunistic whole-model AUDIO revision fence: narrow it to relevant original subscription state while retaining fresh current authorization and all privacy/gate/credential negatives. WebRTC public B and durable original-root phases remain the largest integration gap. Fresh complete media, combined regression, ARM, releases and preflight are still required before32; no acceptance change or matrix promotion."
+  ]
+}

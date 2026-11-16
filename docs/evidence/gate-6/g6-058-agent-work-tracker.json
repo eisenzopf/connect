@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-15T09:04:22.575065+00:00",
-  "revision": 97,
+  "updated_at": "2026-11-16T02:02:25.014510+00:00",
+  "revision": 98,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 162,
-    "verified_at": "2026-11-15T09:04:22.575065+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-directional-tickets.json",
-    "readback_evidence_sha256": "5186e4dc095c28d867475482e9e039601a644f241388c3160f35c7afce9ca81c",
+    "content_revision": 166,
+    "verified_at": "2026-11-16T02:02:25.014510+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-normal3-g458.json",
+    "readback_evidence_sha256": "4e5435c39f0a7471b24c1c5993316e8023a5d5690a3883337d497cbdbfd52e7a",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2145,7 +2145,15 @@
       "implementation_state": "Actual queue-loss oldcounter reproduced; fixedwhole45 pass. Historicalpacket1048 exactinternaldrop remainsunproved; freshmedia workload required.",
       "depends_on": [],
       "verification_evidence": "docs/evidence/gate-6/g6-058-v219-realtime-queue-and-rtc-presentation.json",
-      "matrix_verified": false
+      "matrix_verified": false,
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-g458-failed.json",
+          "result": "failed",
+          "matrix_result": false,
+          "scope": "Closed g458 normal3 FAILED: raw audio18/18, AV18/18, video14/18, collections17/18, resources3/3. One unidentified pixel source-frame marker blocks exact witness;16 same-owner draw aliases have distinct receiver RTP. Independent owner/source/binary/PCAP audit accepted; no media/matrix promotion."
+        }
+      ]
     },
     {
       "id": "V219-PUBLIC-FRAME-REPLAY",
@@ -2173,7 +2181,15 @@
       "implementation_state": "Actual separate scope: receiver-tail73 on recordedg452; chronologyCore45+WebRTC42 inclnew7+normalservice/clientcheck on g453. Independent actual source/binary/original joins accepted. No combined/media/matrix promotion.",
       "depends_on": [],
       "verification_evidence": "docs/evidence/gate-6/g6-058-v219-tail-and-chronology-verified.json",
-      "matrix_verified": false
+      "matrix_verified": false,
+      "verification_runs": [
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-g458-failed.json",
+          "result": "failed",
+          "matrix_result": false,
+          "scope": "Closed g458 normal3 FAILED: raw audio18/18, AV18/18, video14/18, collections17/18, resources3/3. One unidentified pixel source-frame marker blocks exact witness;16 same-owner draw aliases have distinct receiver RTP. Independent owner/source/binary/PCAP audit accepted; no media/matrix promotion."
+        }
+      ]
     },
     {
       "id": "V219-SOURCE-FRAME-CHRONOLOGY",
@@ -2216,8 +2232,80 @@
           "required": 682,
           "matrix_result": false,
           "scope": "Core640/WebRTC42 plus normal service/client compile; original failures preserved"
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-g458-failed.json",
+          "result": "failed",
+          "matrix_result": false,
+          "scope": "Closed g458 normal3 FAILED: raw audio18/18, AV18/18, video14/18, collections17/18, resources3/3. One unidentified pixel source-frame marker blocks exact witness;16 same-owner draw aliases have distinct receiver RTP. Independent owner/source/binary/PCAP audit accepted; no media/matrix promotion."
         }
       ]
+    },
+    {
+      "id": "V219-SESSION-FRAME-REALM",
+      "title": "Retained session source-frame realm",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Canonical realm5 and native producer6 controls authored/source-reviewed, unapplied/unrun.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+    },
+    {
+      "id": "V219-PHYSICAL-FRAME-FRONTIER",
+      "title": "Track potential source-frame exposure on each physical writer",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/media_blockers",
+      "coordinator": "/root",
+      "status": "independent-source-reviewed",
+      "implementation_state": "Source batch and6 controls accepted; no future seal/F exclusion or B claim, unapplied/unrun.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+    },
+    {
+      "id": "V219-NATIVE-DECODER-BOUNDARY",
+      "title": "Enforce verified native public cursor in actual receiver/render path",
+      "owner_agent": "/root/fixture_blockers",
+      "independent_reviewer": "/root/v198_resources",
+      "coordinator": "/root",
+      "status": "implemented-unverified",
+      "implementation_state": "Old actual-render counter source accepted; fixed4TS/4tests review pending, unapplied/unrun.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+    },
+    {
+      "id": "V219-AUDIO-REVISION-ISOLATION",
+      "title": "Preserve original audio across unrelated model changes",
+      "owner_agent": "/root/media_blockers",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "status": "cause-confirmed",
+      "implementation_state": "Source-only opportunistic global revision coupling confirmed; real public-videoHold Some/None old counter reviewed/unrun; scoped subscription fix authoring.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+    },
+    {
+      "id": "V219-RTC-RENDER-SNAPSHOT",
+      "title": "Observe same completed public bitmap once",
+      "owner_agent": "/root",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "status": "independent-source-reviewed",
+      "implementation_state": "One-line observer fix/old actual-callback counter reviewed, unrun. Original unknown marker cause unproved.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+    },
+    {
+      "id": "V219-PUBLIC-RESERVATION-INTENT",
+      "title": "Reserve fresh public WebRTC B under original root",
+      "owner_agent": "/root",
+      "independent_reviewer": "/root/fixture_blockers",
+      "coordinator": "/root",
+      "status": "independent-source-reviewed",
+      "implementation_state": "DTO3 controls and inertSDK7 source reviewed, unrun. Actual producer, B construction/readiness and durableRootphases remain unimplemented.",
+      "matrix_verified": false,
+      "updated_at": "2026-11-16T02:02:25.014510+00:00"
     }
   ],
   "failure_mapping": [
@@ -4681,6 +4769,12 @@
       "updated_at": "2026-11-15T09:04:22.575065+00:00",
       "summary": "Generation458: Core640/WebRTC42 pass, zero failed/ignored; normal service/client check passes. OLD455 camera failure reproduced and fixed; all12 prior failed selectors retained and pass. Independent source/binary/original-owner audit accepted. No fresh media, ARM, release or matrix qualification.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-directional-tickets-verified.json"
+    },
+    {
+      "revision": 98,
+      "updated_at": "2026-11-16T02:02:25.014510+00:00",
+      "summary": "Closed g458 normal3 FAILED: raw audio18/18, AV18/18, video14/18, collections17/18, resources3/3. One unidentified pixel source-frame marker blocks exact witness;16 same-owner draw aliases have distinct receiver RTP. Independent owner/source/binary/PCAP audit accepted; no media/matrix promotion.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-g458-failed.json"
     }
   ],
   "tracking_review": {
@@ -6310,8 +6404,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Generation458: Core640/WebRTC42 pass, zero failed/ignored; normal service/client check passes. OLD455 camera failure reproduced and fixed; all12 prior failed selectors retained and pass. Independent source/binary/original-owner audit accepted. No fresh media, ARM, release or matrix qualification. Not ready full32; fresh normal3, complete current regression, local ARM, releases and preflight remain. Strict B-generation library work pending.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-directional-tickets-verified.json",
-    "sha256": "19f82bbd380953115d3cd33a0a3b6bea5bc2d9e49fa9d206f5fecb21ea37e63e"
+    "status": "Closed g458 normal3 FAILED: raw audio18/18, AV18/18, video14/18, collections17/18, resources3/3. One unidentified pixel source-frame marker blocks exact witness;16 same-owner draw aliases have distinct receiver RTP. Independent owner/source/binary/PCAP audit accepted; no media/matrix promotion. Remaining audio fence, native receiver boundary and strict WebRTC B/root lifecycle need implementation/verification; not ready32.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-normal3-g458-failed.json",
+    "sha256": "d40305facc158fa5dba70a837f64de1c433efc3517c5b1e6a6edba987895e8ab"
   }
 }
