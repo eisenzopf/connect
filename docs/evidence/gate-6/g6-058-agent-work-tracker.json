@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-19T18:31:01.636997+00:00",
-  "revision": 134,
+  "updated_at": "2026-11-19T19:09:11.939501+00:00",
+  "revision": 135,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 204,
-    "verified_at": "2026-11-19T18:37:51.804Z",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-verified568.json",
-    "readback_evidence_sha256": "c63460ef39045ed7d5aae2ce29dd1f1683f4bd34230662ad4abb6e6bed1e0d99",
+    "content_revision": 205,
+    "verified_at": "2026-11-19T19:13:55.546Z",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-clock573.json",
+    "readback_evidence_sha256": "ce1f2bd47d7d1e1dbc60dd6f751df6b5ce3dd76489b8110e020d7eb8c3354b24",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2926,6 +2926,20 @@
       "updated_at": "2026-11-19T18:31:01.636997+00:00",
       "matrix_verified": false,
       "mapping_scope": "Fixture contract correction only; all original failure mappings/grades retained."
+    },
+    {
+      "id": "V219-G570-EXACT-CLOCK",
+      "title": "Use an exactly representable clock for strict BrowserVideoOrder fixture boundaries",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/epoch_cause",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "implementation_state": "Reviewed test-only synthetic1000 clock copy passes4/4; controlled63 copy3/4 with expected1!==2 failure. Root applied the exact reviewed bd72228c afterimage after G570 audited freeze release; full retest pending. G570 remains3251/3252 failed; original clock scalar unobserved.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
+      "updated_at": "2026-11-19T19:09:11.939501+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Component fixture only; all original failure mappings and grades preserved."
     }
   ],
   "failure_mapping": [
@@ -5632,6 +5646,13 @@
       "event": "G566 focused1434/1434 and G567 all3 strict early actual-media cases PASS with original cleanup; five fixes verified in these scopes. Full1818Rust/current379/originalV8/Firefox/ARM/release remain; no matrix regrade. Mobile204 text only.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
       "by": "/root"
+    },
+    {
+      "at": "2026-11-19T19:09:11.939501+00:00",
+      "revision": 135,
+      "event": "G5703251/3252 (Rust1951/Python55 allPASS; Node1245/1246). Exact-clock component copies old3/4 expectedFAIL vs candidate4/4; failed-cohort audit accepted; exact reviewed test-only correction applied, full retest pending. G567diagnostic3/3 unchanged; no fullunit/originalV8/matrix promotion. Mobile205 proposal only.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
+      "by": "/root"
     }
   ],
   "tracking_review": {
@@ -7261,9 +7282,24 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Prepared source509 passed all 1,434 focused checks: 133 Rust, 1,246 Node and 55 Python; all six build groups, default shipping and ten current inventories passed. The separate G567 real-media diagnostic now passes all three original cases with their cleanup assertions: roundtrip completed four handoff/return Roots, Native-to-WebRTC completed one Root, and abort proved fresh OLD and unrelated decoded AV after Discarded plus strict absence across eight effect families for the fresh unpublished candidate. Roundtrip and Native reached all four required phases. Two queued callbacks from the closed replacement were recorded as retired with no live frame credit; no observation or ownership failures occurred. The five fixes have focused unit and real-media evidence in these scopes. These are early diagnostic passes, not full regression or original V8 qualification: 1,818 full Rust checks remain unrun. Next: commit this verified batch, run all 3,252 current regression checks and current shared379/generator prerequisites, then the original V8 three-media gate on the same final source, strict Firefox NORMAL3, original qualification, local ARM11 and release/preflight gates. G563 retains its historical two-pass/one-SQL-failure result; G560 remains ENOSPC with no unit passes. Last full matrix remains v218: 1/32 cells and 399/432 checks. Not ready for32; G6-054 stays parked and execution stays on the local Mac/native ARM resources.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
-    "sha256": "d8a66ff082594127395ab486f1e758ff362811e6daa250a29afc9a837407caf1"
+    "status": "G570 on committed 0e421655 / prepared source509 completed 3,251/3,252 checks: all 1,951 Rust and 55 Python passed; Node passed 1,245/1,246, with one exact-20ms BrowserVideoOrder fixture failure. The full run remains failed; its independent actual audit accepted complete failed-cohort custody and released the freeze. A sufficient binary64 mechanism is source-proven: for a controlled arrival of 63.00000000000001, adding 20 rounds to 83 and subtraction yields 19.999999999999993, retaining the strict <20 hold. G570 did not log its clock scalar, so that historical value is unproven. Two isolated read-only copies using the same current SDK reproduced the expected old-clock failure (3/4 pass) and passed the reviewed exact-1000 clock fixture (4/4); original assertions and 19/20/190/200 boundaries are unchanged. The test-only correction is component-verified in those copies; Root applied the exact reviewed bd72228c afterimage after freeze release; the current full retest remains pending. G567 remains the latest real-media evidence: all three early diagnostic cases passed on identical production program bytes, with no original V8 or cell credit. Next: commit the applied test-only correction, then current shared379/generator prerequisites, full3,252 and original V8 on one final exact seal, followed by strict Firefox NORMAL3, original qualification, local ARM11 and release/preflight gates. Last full matrix remains v218: 1/32 cells and 399/432 checks. Not ready for32; G6-054 remains parked and execution stays local Mac/native ARM.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
+    "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef"
   },
-  "updated": "2026-11-19T18:31:01.636997+00:00"
+  "updated": "2026-11-19T19:09:11.939501+00:00",
+  "v219_g570_exact_clock_component": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
+    "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
+    "G570_passed": 3251,
+    "G570_failed": 1,
+    "component_copy_passed": 4,
+    "application": "APPLIED_REVIEWED_BD72228C_G573",
+    "ready_for_32": false,
+    "matrix_credit": false
+  },
+  "mobile205_proposal": {
+    "content_revision": 205,
+    "sync_status": "proposed-not-published",
+    "source": "mobile205-three-paragraph-proposal.txt"
+  }
 }

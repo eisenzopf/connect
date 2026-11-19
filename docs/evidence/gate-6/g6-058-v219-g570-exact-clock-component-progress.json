@@ -1,0 +1,92 @@
+{
+  "format": "connect/g6-058-g570-exact-clock-component-progress/1",
+  "updated": "2026-11-19T19:09:11.939501+00:00",
+  "tracker_revision": 135,
+  "summary": "G570 on committed 0e421655 / prepared source509 completed 3,251/3,252 checks: all 1,951 Rust and 55 Python passed; Node passed 1,245/1,246, with one exact-20ms BrowserVideoOrder fixture failure. The full run remains failed; its independent actual audit accepted complete failed-cohort custody and released the freeze. A sufficient binary64 mechanism is source-proven: for a controlled arrival of 63.00000000000001, adding 20 rounds to 83 and subtraction yields 19.999999999999993, retaining the strict <20 hold. G570 did not log its clock scalar, so that historical value is unproven. Two isolated read-only copies using the same current SDK reproduced the expected old-clock failure (3/4 pass) and passed the reviewed exact-1000 clock fixture (4/4); original assertions and 19/20/190/200 boundaries are unchanged. The test-only correction is component-verified in those copies; Root applied the exact reviewed bd72228c afterimage after freeze release; the current full retest remains pending. G567 remains the latest real-media evidence: all three early diagnostic cases passed on identical production program bytes, with no original V8 or cell credit. Next: commit the applied test-only correction, then current shared379/generator prerequisites, full3,252 and original V8 on one final exact seal, followed by strict Firefox NORMAL3, original qualification, local ARM11 and release/preflight gates. Last full matrix remains v218: 1/32 cells and 399/432 checks. Not ready for32; G6-054 remains parked and execution stays local Mac/native ARM.",
+  "scope": "Component-only exact-clock fixture evidence; full G570 failed, no full-unit/original-V8/matrix qualification.",
+  "source_generation": 509,
+  "G570": {
+    "HEAD": "0e421655ba46a30114544a6f768c873d58ab6efd",
+    "source_sha256": "5a068bf1ef323a353f551a885eaa08a3a3269b02ab42df77b566e865928c8f29",
+    "executed": 3252,
+    "passed": 3251,
+    "failed": 1,
+    "Rust_passed": 1951,
+    "Rust_failed": 0,
+    "Node_passed": 1245,
+    "Node_failed": 1,
+    "Python_passed": 55,
+    "Python_failed": 0,
+    "full_unit_passed": false,
+    "independent_actual_audit": ".local/gate-6/v219-g570-actual-full3252-failure-independent-audit/receipt.json",
+    "historical_failure_regraded": false
+  },
+  "exact_clock_component": {
+    "task_id": "V219-G570-EXACT-CLOCK",
+    "owner": "/root/batch_build_review",
+    "independent_reviewer": "/root/epoch_cause",
+    "status": "component-verified",
+    "application": "APPLIED_REVIEWED_BD72228C_G573",
+    "file": "sdk/tests/browser_video_order.test.mjs",
+    "before_sha256": "266f9436a7f9eeec6a84d961234721d2233285c3f3235122c90136244b87302d",
+    "reviewed_after_sha256": "bd72228c9a1b93df9859e1d32eee5734450dbf198b1baf22349841adc07a429c",
+    "change": "Only the existing exact-boundary test uses synthetic clock1000 with a comment; all four test functions and assertions unchanged.",
+    "old_control": {
+      "passed": 3,
+      "expected_failed": 1
+    },
+    "candidate_copy": {
+      "passed": 4,
+      "failed": 0
+    },
+    "production_or_dist_changed": false,
+    "all_original_owners_natural_unforced_fresh_absent": true,
+    "first_SPEC_TAP_parser_failure_preserved_without_credit": true,
+    "historical_G570_scalar_observed": false,
+    "threshold_or_tolerance_changed": false
+  },
+  "latest_real_media": {
+    "run": "G567",
+    "diagnostic_cases_passed": 3,
+    "diagnostic_cases_failed": 0,
+    "same_production_program_bytes": true,
+    "original_V8_qualified": false,
+    "new_cell_credit": false
+  },
+  "proofs": {
+    ".local/gate-6/v219-g570-complete-committed-source509-root/component-result.json": "e9e3f9bc9e3763c4f541fb99c9e1251a5ff27a54f1bc33776affa9d795cf080c",
+    ".local/gate-6/v219-g570-complete-committed-source509-root/root-original-join.json": "b71c7023508518ed61582d4560ddad8f1ddb836111d74c4968185fd23cac3a39",
+    ".local/gate-6/v219-g570-complete-committed-source509-root/artifact-snapshots.json": "4fd863fe7b5e9183054dd6e60c4c1316b818f6ed31fad3dcf965981233210ac1",
+    ".local/gate-6/g570-video-reorder-exact-clock-fixture-candidate/manifest.json": "26b31ce8b3158ce9bd699643a54cf087e4ec5e8f32c9a474e5f9049c31f0fe4b",
+    ".local/gate-6/g570-video-reorder-exact-clock-independent-epoch-source-review/receipt.json": "60693aa2625f9a332b216bfe4c8fc65cca4f934636b22b7f66bd26fd851cf9d1",
+    ".local/gate-6/g572-exact-clock-isolated-readonly-controls-v2-root/result.json": "825be6ddae71dfa95ee0ec943b76d03cf741220884b6356b8f35b91888e7fdbc",
+    ".local/gate-6/g572-exact-clock-isolated-readonly-controls-v2-root/root-original-join.json": "2e0368cfb65e1275e66748aed36a144f8555ee09980a5b1c26ff9f6a8d4b42b0",
+    ".local/gate-6/g572-exact-clock-actual-readonly-controls-independent-epoch-audit/receipt.json": "dfb8f2e9ed3fec02d2db265985dd7f6faba3d04c7423005e3c01a27c32f66fd4",
+    ".local/gate-6/v219-g567-actual-all-three509-independent-audit/receipt.json": "ce2d32bb12d6e07d638d5aceb991fe1c5b2e70b39f768bb81b251a14d02895fb",
+    ".local/gate-6/actual-committed509-prerequisites-independent-audit/receipt.json": "d32fa2352b693d8b159235faae66a71a21282c987acbed0e8b09114dae252203",
+    ".local/gate-6/v219-g570-actual-full3252-failure-independent-audit/receipt.json": "165c5b7616df2130f5956752397b65e42275ca7c82be364ad8fa9211b9d18e41",
+    ".local/gate-6/g573-reviewed-clock-fixture-application-root/application.json": "2a4ff6bdcd0555a46f02ed9e2b03d0765c4aee14993eb3ef1489ada7e0740f24"
+  },
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "unchanged": true
+  },
+  "mobile205": {
+    "status": "VERIFIED_SCOPED_PUBLICATION_AND_READBACK",
+    "content_revision": 205,
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-clock573.json",
+    "readback_evidence_sha256": "ce1f2bd47d7d1e1dbc60dd6f751df6b5ce3dd76489b8110e020d7eb8c3354b24",
+    "unrelated_paragraphs_preserved": 419
+  },
+  "ready_for_32": false,
+  "full_unit_passed": false,
+  "actual3_qualified": false,
+  "matrix_credit": false,
+  "historical_regrade": false,
+  "G6_054": "parked",
+  "local_only": true
+}

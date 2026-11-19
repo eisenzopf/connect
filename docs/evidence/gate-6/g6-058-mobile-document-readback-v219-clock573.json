@@ -1,0 +1,43 @@
+{
+  "format": "connect/g573-mobile205-scoped-readback/1",
+  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "content_revision": 205,
+  "google_revision": "AHj4eMR-zhr6dIhC-On68jLziLiVdITBE4wAQfxUhGx22nMyR1jM6gIUxAK3yPEglhVagmGb9QysCBCQ7q4C6gUWxoD3ISEEiLG7Xh_en78",
+  "verified_at": "2026-11-19T19:13:55.546Z",
+  "verified": true,
+  "unrelated_paragraphs_preserved": true,
+  "changed_paragraphs": 3,
+  "paragraphs": [
+    "Revision 205 | Coordinator: /root | G570 on committed 0e421655 / prepared source509 completed 3,251/3,252 checks: all 1,951 Rust and 55 Python passed; Node passed 1,245/1,246, with one exact-20ms BrowserVideoOrder fixture failure. The full run remains failed; its independent audit accepted custody and released the freeze. G567 remains the latest real-media evidence: 3/3 early diagnostic cases passed on identical production program bytes. This grants no original V8 or new matrix cell credit.\n",
+    "The clock fixture has reviewed component evidence: binary64 can round arrival 63.00000000000001 + 20 to 83, producing elapsed 19.999999999999993. A controlled old copy gives 3/4 with the expected failure; the exact-1000 clock copy passes 4/4 against the same current SDK. All 19/20/190/200ms assertions remain unchanged. G570 did not log its clock scalar, so the historical value is unproven. Root applied the exact reviewed bd72228c afterimage after audited freeze release; full current retest remains pending. Production timing and tolerances are unchanged.\n",
+    "Next: commit the applied test-only correction, then current shared379/generator prerequisites, full 3,252 and original V8 on one final exact seal. Strict Firefox NORMAL3, original qualification, local ARM11 and normal release/preflight gates remain. Matrix stays v218: 1/32 cells and 399/432 checks; not ready for32. G6-054 remains parked; execution remains local Mac/native ARM.\n"
+  ],
+  "update": {
+    "documentId": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "revisionId": "AHj4eMR-zhr6dIhC-On68jLziLiVdITBE4wAQfxUhGx22nMyR1jM6gIUxAK3yPEglhVagmGb9QysCBCQ7q4C6gUWxoD3ISEEiLG7Xh_en78",
+    "replies": [
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      }
+    ],
+    "writeControl": {
+      "requiredRevisionId": "AHj4eMR-zhr6dIhC-On68jLziLiVdITBE4wAQfxUhGx22nMyR1jM6gIUxAK3yPEglhVagmGb9QysCBCQ7q4C6gUWxoD3ISEEiLG7Xh_en78",
+      "targetRevisionId": null
+    },
+    "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y"
+  },
+  "qualification": false,
+  "matrix_credit": false
+}

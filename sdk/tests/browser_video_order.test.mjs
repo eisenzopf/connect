@@ -20,7 +20,8 @@ test('complete video reordering preserves original clocks and avoids a false los
 test('a real video gap waits only the bounded reorder interval and never renews original age',()=>{
  const delivered=[],expired=[],owner=new BrowserVideoOrder((frames,n)=>{delivered.push(...frames);expired.push(n);});
  try {
-  const now=performance.now();owner.push(frame(10,30000,now),1000,now);
+  // Explicit synthetic clock keeps the exact 19/20/190/200ms boundaries representable.
+  const now=1000;owner.push(frame(10,30000,now),1000,now);
   owner.push(frame(12,36000,now),3000,now);owner.flush(now+19);assert.equal(delivered.length,1);
   owner.flush(now+20);assert.equal(delivered.length,2);assert.equal(owner.diagnostics.gaps,1);
   owner.push(frame(14,42000,now-190),5000,now);assert.equal(delivered.length,3,'assembly already consumed the reorder window');
