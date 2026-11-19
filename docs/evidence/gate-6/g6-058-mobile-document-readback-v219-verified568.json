@@ -1,0 +1,43 @@
+{
+  "format": "connect/g568-mobile204-scoped-readback/1",
+  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "content_revision": 204,
+  "google_revision": "AHj4eMQWy0w_bREQhc5_b8UUzTBG-eaunhzxNAb5B6Xvfr7WjbYgPJxfYmwTN1UeL8gz9mz3Hd0-JJhiXVT11KzdCQdXS3buSQ30qaAd1R0",
+  "verified_at": "2026-11-19T18:37:51.804Z",
+  "verified": true,
+  "unrelated_paragraphs_preserved": true,
+  "changed_paragraphs": 3,
+  "paragraphs": [
+    "Revision 204 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+    "Latest verification: prepared source509 passed 1,434/1,434 focused checks and all three actual media scenarios. Handoff-and-return, aborted-handoff recovery and native-to-WebRTC replacement all passed their original assertions and cleanup checks. This is representative verification; full regression and matrix qualification remain pending.\n",
+    "Current verification — November 19. G566 passed 133 Rust controls, 1,246 Node tests and 55 Python tests, with all six build groups and ten inventories passing. Another 1,818 full Rust checks remain unrun. G567 then passed all three original real-media scenarios on the same source and artifacts: four handoff/return operations, one native-to-WebRTC replacement, and aborted-handoff recovery with fresh original and unrelated audio/video. The abort case also passed all eight strict absence checks for the never-published candidate and its original final acknowledgement and cleanup assertions. All original test, browser, encoder and decoder owners closed naturally. The tested batch repairs confirmed-activation composition during restoration, missing native source-video callbacks, short-block PCM measurement and sample accounting, queued callback ownership after close, and the unpublished-candidate fixture expectation. No ownership, authorization, source identity, gap or cleanup limit was waived. Historical failed runs remain failed. Next: checkpoint and push this tested batch, then run current shared379 prerequisites, the full3,252 regression scope and original V8 three-media qualification on one committed source. Remaining readiness work also includes strict Firefox NORMAL3, original469 Rust identities and408 script occurrences, full62-second media obligations, local ARM11, normal Mac/ARM release builds and capture/storage/process preflight. Last full matrix remains 1/32 cells and399/432 checks. Not ready for32. Root coordinates and checks evidence; named task owners and independent reviewers remain in the tracked plan.\n"
+  ],
+  "update": {
+    "documentId": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "revisionId": "AHj4eMQWy0w_bREQhc5_b8UUzTBG-eaunhzxNAb5B6Xvfr7WjbYgPJxfYmwTN1UeL8gz9mz3Hd0-JJhiXVT11KzdCQdXS3buSQ30qaAd1R0",
+    "replies": [
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      }
+    ],
+    "writeControl": {
+      "requiredRevisionId": "AHj4eMQWy0w_bREQhc5_b8UUzTBG-eaunhzxNAb5B6Xvfr7WjbYgPJxfYmwTN1UeL8gz9mz3Hd0-JJhiXVT11KzdCQdXS3buSQ30qaAd1R0",
+      "targetRevisionId": null
+    },
+    "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y"
+  },
+  "qualification": false,
+  "matrix_credit": false
+}

@@ -72,7 +72,8 @@ try{
   const {BrowserRtcConnection}=await import('/sdk/browser_sdk_webrtc.js');
   const {CanonicalWebRtcSignaling}=await import('/sdk/browser_webrtc_signaling.js');
   const {browserMatrixRtcObservation}=await import('/rtc-observer.mjs');
-  const {pcmIdentity}=await import('/pcm-identity.mjs');
+  const {strictPcmIdentity:pcmIdentity,PcmSampleLedger}=await import('/pcm-identity.mjs');
+  const pcmLedger=new PcmSampleLedger();
   const {pcmBoundary}=await import('/pcm-boundary.mjs');
   const check=(value,message)=>{if(!value)throw Error(message);};
   const opts=()=>({timeoutMs:8000}),mutation=operationId=>({...opts(),operationId});
@@ -93,7 +94,7 @@ try{
    ready.set(evidence.audio.stream_id,structuredClone(evidence));return complete.call(this,evidence,...args);
   };
   const invalid=message=>{if(measuring&&observationFailures.length<16)observationFailures.push(String(message).slice(0,160));};
-  const retainPcm=async stage=>{try{const at=performance.now();await globalThis.retainPublicPcmDiagnostics(stage,{format:'connect/owned-public-pcm-diagnostics/1',fixture:'browser-replacement-roundtrip',operation_id:spec.operationId,at,render_origins:[...renderTimes].map(([connection_id,value])=>({connection_id,...value})),audio_failures:audioFailures,observation_failures:observationFailures,receivers:[...progress].map(([connection_id,p])=>({connection_id,i:byConnection.get(connection_id),selected:active.get(byConnection.get(connection_id))===connection_id,audio:p.audio,video:p.video,changing:p.changing,lastAudio:p.lastAudio,lastVideo:p.lastVideo,audio_age_ms:p.lastAudio===null?null:at-p.lastAudio,video_age_ms:p.lastVideo===null?null:at-p.lastVideo})),current:current.map((value,i)=>({i,connection_id:value.connection.id})),moves:moves.map(value=>({operation_id:value.operation_id,record_id:value.record_id,source:value.source,target:value.target,generation:value.generation})),audio_diagnostics:observer?.report()??null});}catch{}};
+  const retainPcm=async stage=>{try{const at=performance.now();await globalThis.retainPublicPcmDiagnostics(stage,{format:'connect/owned-public-pcm-diagnostics/1',pcm_measurement:pcmLedger.report(),fixture:'browser-replacement-roundtrip',operation_id:spec.operationId,at,render_origins:[...renderTimes].map(([connection_id,value])=>({connection_id,...value})),audio_failures:audioFailures,observation_failures:observationFailures,receivers:[...progress].map(([connection_id,p])=>({connection_id,i:byConnection.get(connection_id),selected:active.get(byConnection.get(connection_id))===connection_id,audio:p.audio,video:p.video,changing:p.changing,lastAudio:p.lastAudio,lastVideo:p.lastVideo,audio_age_ms:p.lastAudio===null?null:at-p.lastAudio,video_age_ms:p.lastVideo===null?null:at-p.lastVideo})),current:current.map((value,i)=>({i,connection_id:value.connection.id})),moves:moves.map(value=>({operation_id:value.operation_id,record_id:value.record_id,source:value.source,target:value.target,generation:value.generation})),audio_diagnostics:observer?.report()??null});}catch{}};
   try{
    for(const actor of spec.actors){
     const algorithm=actor.signing.algorithm==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
@@ -131,13 +132,15 @@ try{
      const i=byConnection.get(id);if(i===undefined||active.get(i)!==id)return;
      if(samples.length!==960){invalid('actual20ms decoded PCM');return;}
      const identity=pcmIdentity(samples,expected[i]);
+     pcmLedger.push({owner:id,clock,timestamp,at,identity,usable:identity.identified&&identity.rms>.03});
+     const p=progress.get(id);p.audio=pcmLedger.availableSamples(id)/960;
      if(!(identity.rms>.03))return identity.source_identified;
      if(!identity.identified){
       if(audioFailures.length<8)audioFailures.push({id,timestamp,at,clock,expected_hz:sourceHz[expected[i]],render:renderTimes.get(id),
        receivedAudio:progress.get(id)?.audio,identity,boundary:pcmBoundary(samples)});
       invalid(`actual selected source tone id=${id.slice(0,32)} hz=${sourceHz[expected[i]]} rms=${identity.rms.toFixed(3)} powers=${identity.powers.map(power=>power.toExponential(3)).join('/')}`);return identity.source_identified;
      }
-     const p=progress.get(id);p.audio++;p.lastAudio=at;return identity.source_identified;
+     p.lastAudio=at;return identity.source_identified;
     },
     video(id,timestamp,at,frame,width,height){
      const i=byConnection.get(id);if(i===undefined||active.get(i)!==id)return;

@@ -1,0 +1,34 @@
+--- a/crates/uctp/rvoip-uctp/src/staged_data.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_data.rs
+@@ -753,6 +753,15 @@
+     pub(crate) data: Option<Arc<StagedNativeData>>,
+ }
+ impl NativeMedia {
++    // Core supplies this exact borrowed original source Port. The composite
++    // owns the same controller that installed it; IDs alone cannot select a
++    // different RTP backend or bypass that backend's original allocation,
++    // announced publisher, feedback and current-lifetime checks.
++    fn original_video_source_backend(&self,source:&AdapterMediaPort)->ControlResult<&Arc<StagedRtpMedia>> {
++        let original=self.original_controller.get().ok_or(StreamControlError::Authority)?;
++        if !source.matches_adapter_media_owner(original) {return Err(StreamControlError::Authority);}
++        self.rtp.as_ref().ok_or(StreamControlError::Unsupported)
++    }
+     pub(crate) fn bind_original_controller(&self,controller:&Arc<StreamController>)->ControlResult<()> {
+         let original=controller.adapter_media_owner();
+         if let Some(owner)=self.original_controller.get() {
+@@ -766,6 +775,15 @@
+ }
+ #[async_trait]
+ impl StagedMediaAdapter for NativeMedia {
++    fn preflight_initial_video_picture(&self,source:&AdapterMediaPort)->ControlResult<()> {
++        self.original_video_source_backend(source)?.preflight_initial_video_picture(source)
++    }
++    async fn request_initial_video_picture(
++        &self,request:&direct_subscriptions::InitialVideoPictureRequest<'_>,
++    )->ControlResult<()> {
++        self.original_video_source_backend(request.source_port())?
++            .request_initial_video_picture(request).await
++    }
+     fn native_sequence_cursors(&self) -> bool {
+         self.rtp.as_ref().is_some_and(|backend| backend.native_sequence_cursors())
+     }

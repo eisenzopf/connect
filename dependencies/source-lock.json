@@ -2726,6 +2726,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/gate6-rtc-original-event-capture-metadata-busy.patch",
       "sha256": "b7f3cff748796f16255680c203a0829cba8eb24a98002e117c4fd104009dd7ca"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-composite-initial-picture-delegation.patch",
+      "sha256": "1ac0c2fada87b3c7fc792c4efb5636b3a319cd20e744d01dbdcb7dcc2d2b2ba8"
     }
   ]
 }

@@ -1,0 +1,42 @@
+{
+  "format": "connect/g550-mobile-revision201-readback/1",
+  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "content_revision": 201,
+  "google_revision": "AHj4eMSOmMgJT2mp5XLGSKvwEAta_LXJ3H2H1ltdxfRvhexl4op_1p8CySowQOD9XaIM5e-oUQHSgnDJ8pGyuGLFqUvuopZ4-PlxURHt16M",
+  "verified": true,
+  "changed_paragraphs": 3,
+  "unrelated_paragraphs_preserved": true,
+  "paragraphs": [
+    "Revision 201 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+    "Latest focused verification: 1,372/1,372 checks passed on source508: Store17, Service98, Node1,202 and Python55. All six build groups and ten current inventories passed. This diagnostic scope does not replace the complete regression or qualify matrix cells.\n",
+    "Current verification — November 19. Latest complete regression G545 passed3,207/3,208; one original-cleanup fixture failed before its Writer checkpoint. Its reviewed fix now passes the focused17 Store checks; all98 selected Service checks,1,202 Node tests and55 Python tests also passed in G550, with all26 child processes naturally joined. All six build groups and ten current inventories passed. Other1,836 Rust checks were explicitly unrun in this focused diagnostic scope. All three actual media cases were attempted on the prior committed source508 and failed: G547 completed all four handoff/return operations, then rejected an audio block containing832 zero samples and128 samples of the expected660Hz source. The proposed detector identifies that actual short tone while debiting the832 missing samples, but its separate gap accounting still needs correction and review; it is not applied. G548 isolates the abort failure to original OLD0 video while its audio and other tracks continue. G549 confirms the allocation-fixture fix, then reaches a new refusal before activation; its exact reason was hidden. Seven reviewed fixture/diagnostic files are applied, and the focused verification passed. Next: run all three original media cases with the new cold diagnostics to identify the exact restoration/refusal paths, then complete the media fixes and remaining qualification. Last full matrix remainsv218:1/32cells and399/432checks. Not ready for32. Owners: Root coordinates integration; epoch_cause owns the scoped cleanup fixture; batch_build_review owns the prospective PCM method; independent_batch_review reviews source and measurement changes. No matrix failures are closed by component results.\n"
+  ],
+  "update": {
+    "documentId": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "revisionId": "AHj4eMSOmMgJT2mp5XLGSKvwEAta_LXJ3H2H1ltdxfRvhexl4op_1p8CySowQOD9XaIM5e-oUQHSgnDJ8pGyuGLFqUvuopZ4-PlxURHt16M",
+    "replies": [
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      }
+    ],
+    "writeControl": {
+      "requiredRevisionId": "AHj4eMSOmMgJT2mp5XLGSKvwEAta_LXJ3H2H1ltdxfRvhexl4op_1p8CySowQOD9XaIM5e-oUQHSgnDJ8pGyuGLFqUvuopZ4-PlxURHt16M",
+      "targetRevisionId": null
+    },
+    "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y"
+  },
+  "qualification": false,
+  "matrix_credit": false
+}

@@ -1,0 +1,184 @@
+{
+  "format": "connect/g6-058-g567-five-fixes-focused-and-real-media-progress/1",
+  "updated": "2026-11-19T18:31:01.636997+00:00",
+  "summary": "Prepared source509 passed all 1,434 focused checks: 133 Rust, 1,246 Node and 55 Python; all six build groups, default shipping and ten current inventories passed. The separate G567 real-media diagnostic now passes all three original cases with their cleanup assertions: roundtrip completed four handoff/return Roots, Native-to-WebRTC completed one Root, and abort proved fresh OLD and unrelated decoded AV after Discarded plus strict absence across eight effect families for the fresh unpublished candidate. Roundtrip and Native reached all four required phases. Two queued callbacks from the closed replacement were recorded as retired with no live frame credit; no observation or ownership failures occurred. The five fixes have focused unit and real-media evidence in these scopes. These are early diagnostic passes, not full regression or original V8 qualification: 1,818 full Rust checks remain unrun. Next: commit this verified batch, run all 3,252 current regression checks and current shared379/generator prerequisites, then the original V8 three-media gate on the same final source, strict Firefox NORMAL3, original qualification, local ARM11 and release/preflight gates. G563 retains its historical two-pass/one-SQL-failure result; G560 remains ENOSPC with no unit passes. Last full matrix remains v218: 1/32 cells and 399/432 checks. Not ready for32; G6-054 stays parked and execution stays on the local Mac/native ARM resources.",
+  "tracker_revision": 134,
+  "prepared_generation": 509,
+  "source_lock_sha256": "0a3c2071d543def1d2458666f41df3e17e8a85aff2618103a47964de526b07a8",
+  "last_tested_source": {
+    "base_revision": "ae33c8de09598eeb3375ad7c09cbffe91ef8fb84",
+    "workspace_sha256": "4e573368d0560ce07ac43722959763f670ffee6fe6e1094c7514c431361f1ae6",
+    "source_sidecar_sha256": "e35fd7ba130e32ac12109634d5f4573de3a0ceecce792701bf9137b241df6015",
+    "frozen_source_sha256": "e35fd7ba130e32ac12109634d5f4573de3a0ceecce792701bf9137b241df6015",
+    "clean_final_commit": "TBD_ROOT_FUTURE_COMMIT_NOT_TESTED_HEAD_SUBSTITUTION",
+    "prepared": {
+      "rvoip": "4f3c80800f9f70f21aecf584c417be61b154deaf240cde767085d26d5ed43cc2",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    }
+  },
+  "scope": "Focused units and strict early three-case real-media diagnostic only; no full regression/original V8/Firefox/matrix qualification.",
+  "focused_G566": {
+    "passed": 1434,
+    "failed": 0,
+    "ignored_or_skipped": 0,
+    "Rust_passed": 133,
+    "Node_passed": 1246,
+    "Python_passed": 55,
+    "all_six_build_groups_default_shipping_and_ten_current_profiles_inventories_passed": true,
+    "full_Rust_unrun": 1818,
+    "full_unit_passed": false,
+    "original_owners_natural_joined": true,
+    "original_children_natural_closed": 29
+  },
+  "actual_G567": {
+    "functional_passed": 3,
+    "functional_failed": 0,
+    "cases": {
+      "rtc-roundtrip": {
+        "passed": true,
+        "original_cleanup_assertions_passed": true,
+        "phases_by_original_record": {
+          "opr_4eaaeb26-7fe4-46fc-a03f-33e69c77df9e": [
+            "negotiated-never-fed",
+            "cut-bound-post-f",
+            "decoded-ready",
+            "activated"
+          ],
+          "opr_784acf77-5549-4895-b814-a98775a22003": [
+            "negotiated-never-fed",
+            "cut-bound-post-f",
+            "decoded-ready",
+            "activated"
+          ],
+          "opr_7f24cb68-a8bf-4427-ab9d-1a5f3dd4ca3b": [
+            "negotiated-never-fed",
+            "cut-bound-post-f",
+            "decoded-ready",
+            "activated"
+          ],
+          "opr_8a9f8e56-6568-420b-8ffe-b77d473c8df9": [
+            "negotiated-never-fed",
+            "cut-bound-post-f",
+            "decoded-ready",
+            "activated"
+          ]
+        }
+      },
+      "rtc-abort": {
+        "passed": true,
+        "original_cleanup_assertions_passed": true,
+        "phases_by_original_record": {
+          "opr_6bd5ae41-eee0-4ff5-9ab7-b05ccb29a1c0": [
+            "negotiated-never-fed",
+            "cut-bound-post-f",
+            "discarded"
+          ]
+        }
+      },
+      "native-pooled": {
+        "passed": true,
+        "original_cleanup_assertions_passed": true,
+        "phases_by_original_record": {
+          "opr_480d425b-3662-4a2b-8e0e-f0fd434ced41": [
+            "negotiated-never-fed",
+            "cut-bound-post-f",
+            "decoded-ready",
+            "activated"
+          ]
+        }
+      }
+    },
+    "roundtrip_original_Roots_completed": 4,
+    "native_original_Roots_completed": 1,
+    "abort_strict_fresh_OLD_and_unrelated_AV_after_Discarded": true,
+    "abort_fresh_unpublished_candidate_strict_eight_effect_absence": true,
+    "Core_old_restored": true,
+    "retired_callbacks": 2,
+    "retired_callback_live_frame_credit": 0,
+    "observation_failures": 0,
+    "callback_ownership_failures": 0,
+    "source_and_ten_binaries_unchanged": true,
+    "root_three_Rust_and_three_browser_owners_naturally_closed_and_fresh_absent": true,
+    "independent_actual_audit": {
+      "path": ".local/gate-6/v219-g567-actual-all-three509-independent-audit/receipt.json",
+      "sha256": "ce2d32bb12d6e07d638d5aceb991fe1c5b2e70b39f768bb81b251a14d02895fb",
+      "verdict": "ACCEPT_ACTUAL_ALL_THREE_DIAGNOSTIC_PASSED_SOURCE_FREEZE_RELEASED"
+    },
+    "original_V8_qualified": false,
+    "all_three_early_diagnostic_cases_passed": true
+  },
+  "five_fix_evidence": {
+    "finite_support_PCM": "Current focused controls and G567 four complete roundtrip Roots/returns pass the reviewed strict finite-support method, exact-zero sample debit and original identity criteria. No historical regrade or unresolved energetic unknown waiver.",
+    "OLD_restore_authority": "G566 focused controls plus G567 full abort case prove actual fresh OLD/unrelated decoded AV after Discarded and unchanged cleanup assertions.",
+    "Native_composite_source_callbacks": "Prepared509 original source callbacks pass UCTP focused controls and G567 actual Native-to-RTC Root through negotiated-never-fed/cut-bound-post-f/decoded-ready/activated.",
+    "closed_queued_callback_proof": "G566 ownership controls and G567 two actual same-owner closed callbacks record retired, zero public frame credit, no owner-observation failure.",
+    "fresh_unpublished_candidate_oracle": "G566 five additional strict Store controls plus G567 full abort case pass original candidate/reservation binding and eight strict zero-effect assertions; no retired-OR/optional-NoRows or production change."
+  },
+  "historical_results_retained": {
+    "G563": {
+      "functional_passed": 2,
+      "functional_failed": 1,
+      "failure": "Rust SQL220 QueryReturnedNoRows from prior unpublished-candidate fixture expectation",
+      "regraded": false
+    },
+    "G560": {
+      "status": "ENOSPC_FAILED",
+      "focused_runtime": "NOT_RUN",
+      "unit_pass_credit": 0
+    },
+    "G561": {
+      "G560": "ENOSPC latebuild/logwrite, originalterminal1, focusedruntime NOTRUN; failure retained.",
+      "G561": "Three obsolete object-only compressed caches discarded with explicit loss of oldobject-cache restoreability. Warm incremental caches, published current/historical executables/rlibs/rmeta, source, DBs, logs and evidence preserved.",
+      "actual_recovered_bytes": 14627823616,
+      "approx_recovered_GiB": 13.623,
+      "old_cache_deletion_is_not_unit_or_matrix_pass": true
+    }
+  },
+  "proofs": {
+    ".local/gate-6/v219-g566-focused1434-source509-root/diagnostic-focused-result.json": "02d9de8c7e4ba8ae56bb6745c4b6f9e9172a6c299b0dbdd52b53ee07383dcad3",
+    ".local/gate-6/v219-g566-focused1434-source509-root/root-original-join.json": "92686648843ebc8b3aab253068aa841f66f735560d4de99405c7ba1b552a6b34",
+    ".local/gate-6/v219-g566-focused1434-source509-root/component-source.json": "e35fd7ba130e32ac12109634d5f4573de3a0ceecce792701bf9137b241df6015",
+    ".local/gate-6/v219-g566-actual-focused1434-independent-audit/receipt.json": "b3b4e3c64e88d8c4cd44bea7a548530977e68081f604dbcc61aa9ee050a9cc94",
+    ".local/gate-6/v219-g567-all-three-actual-media-source509-root/result.json": "300899f8a825b5cd7fa48ca8ba3bb81edeec5c6af2dee3b04a7251671ab0911a",
+    ".local/gate-6/v219-g567-all-three-actual-media-source509-root/root-original-join.json": "89ecb6cd9c77f1bf96f70d1ec34c86898398fbdf9792374b14414e2bbd171467",
+    ".local/gate-6/v219-g567-all-three-actual-media-source509-root/rtc-abort/fixture/abort-complete.json": "de6ca019db19302eb4ac0b852e757aeb10343b801f809748f46fae9d20ced32f",
+    ".local/gate-6/v219-g567-all-three-actual-media-source509-root/rtc-abort/fixture/rtc-audio-closed.json": "019091c03a3be9be423eb86918d125c9384f2eedcf61af477ae27fa11e14860f",
+    ".local/gate-6/v219-g558-normal509-preparation-root/normal509-runtime/receipt.json": "07999ff5caf7aee2c4d6deb1f7553f26d1b31503b4b0a3c54c9bb9cd2fc240eb",
+    ".local/gate-6/v219-g558-actual-normal509-independent-audit/receipt.json": "178979825e3df2d6ff6e082f54f135713d9ccee94c479b851e4a7b38c6450ca2",
+    ".local/gate-6/g563-fresh-unpublished-candidate-terminal-oracle-candidate/manifest.json": "200b75d01a2ef166d87c79f65d697c310db1f40d59cd70cefed064d2e7c1da62",
+    ".local/gate-6/g563-fresh-unpublished-candidate-independent-source-review/receipt.json": "905a820ddb55f95c58415ce9b6d2303847b071d78f0042f7ac5aa25336469744",
+    ".local/gate-6/g564-strict-unpublished-fixture-application-root/application.json": "ba849476ce0ebe5c8ada3574421bf2a08cf11a30baf4e85a54db8f86b5aceb8a",
+    ".local/gate-6/g564-strict-unpublished-fixture-application-root/format-result.json": "642b956977b472010cae0ac1ebc6e60af1f38946d68bd1e1b5bf5541003c487b",
+    ".local/gate-6/v219-g567-actual-all-three509-independent-audit/receipt.json": "ce2d32bb12d6e07d638d5aceb991fe1c5b2e70b39f768bb81b251a14d02895fb"
+  },
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "unchanged": true
+  },
+  "remaining": [
+    "Root checkpoint/commit/push on final exact source after actual audit and reviewed progress application",
+    "Current complete3252 regression; current default-client shared379/generators/contracts with original provenance and joins",
+    "Original V8 three-media gate on exact same final committed source/binaries/SDK; G567 diagnostics do not substitute",
+    "Strict Firefox NORMAL3 original duplicates/source-frame witness/automatic owned capture; permission answer and fresh capture access pending",
+    "Original final qualification command/identity scopes; local native ARM11 and normal Mac/ARM shipping/release/preflight"
+  ],
+  "mobile204": {
+    "status": "verified",
+    "content_revision": 204,
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-verified568.json",
+    "readback_evidence_sha256": "c63460ef39045ed7d5aae2ce29dd1f1683f4bd34230662ad4abb6e6bed1e0d99",
+    "unrelated_paragraphs_preserved": true
+  },
+  "ready_for_32": false,
+  "full_unit_passed": false,
+  "actual3_qualified": false,
+  "normal_Firefox3_credit": false,
+  "matrix_credit": false,
+  "historical_regrade": false,
+  "G6_054": "parked",
+  "local_only": true
+}

@@ -416,6 +416,32 @@ async fn actual_native_old_and_announced_publisher_to_webrtc_b_use_original_sdk_
         .join("../..")
         .canonicalize()
         .unwrap();
+    // Shared targets also have packet sites; admit only these exact cold
+    // modules. Missing module metadata fails closed for this diagnostic.
+    use tracing_subscriber::prelude::*;
+    let control_trace_installed =
+        tracing_subscriber::registry()
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .with_ansi(false)
+                    .with_writer(std::io::stderr)
+                    .with_filter(tracing_subscriber::filter::filter_fn(|meta| {
+                        matches!(
+                        meta.module_path(),
+                        Some("connect_service::canonical_replacement::preparation")
+                            | Some("connect_service::canonical_replacement::public_video::pipeline")
+                    ) && matches!(
+                            meta.target(),
+                            "connect_service::canonical_replacement"
+                                | "connect_service::replacement_phase_trace"
+                        ) && meta.level() == &tracing::Level::DEBUG
+                    })),
+            )
+            .try_init()
+            .is_ok();
+    eprintln!(
+        "native-replacement-control-diagnostic subscriber_installed={control_trace_installed}"
+    );
     let mut f =
         Fixture::with_extra_scopes("EdDSA", 12, true, true, true, &["connection.replace"]).await;
     let mut retained_artifacts = public_video_artifacts::Capture::new(

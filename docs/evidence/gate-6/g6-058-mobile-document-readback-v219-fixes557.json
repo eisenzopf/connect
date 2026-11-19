@@ -1,0 +1,42 @@
+{
+  "format": "connect/g557-mobile202-scoped-readback/1",
+  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "content_revision": 202,
+  "google_revision": "AHj4eMRlGlTPhJ6FN1x1UCv9H_Kk7-BD4S94UhAZSRrvoeNlK9yZGCxQULfyKJCwVgPpaxmzPwL_l9Rs_gY8l9ovzXSQ7nKH7pycdtBfwCs",
+  "verified": true,
+  "unrelated_paragraphs_preserved": true,
+  "changed_paragraphs": 3,
+  "paragraphs": [
+    "Revision 202 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+    "Latest verification: source508 passed 1,372/1,372 focused checks. The latest diagnostic run attempted all three real media cases and all three failed. Four reviewed repairs are now applied; source509 preparation and the complete fix-batch retest are next. Isolated audio controls passed 121/121; callback controls passed 33/33. These results do not qualify matrix cells.\n",
+    "Current verification — November 19. G552 completed all three original media cases with natural test/browser cleanup and unchanged source. Its new logs identified the remaining paths: video restoration had current permission but Core returned a media-model error; source review found that the restore lease omitted the confirmed Active binding used by ordinary controls. Native replacement reached default Unsupported because its composite adapter omitted two existing source-video callbacks. The audio detector also rejected a valid short tone after startup silence. The abort observer falsely rejected queued callbacks after Chrome cleared MID on the original closed connection. Four independently reviewed repairs are now applied, with the original authorization, ownership, source identity, gap and cleanup limits retained. Retired callbacks earn no decoded or public frame credit. The audio method passed 121 isolated controls; the callback correction passed 33, including eight new ownership cases. Dependencies are last prepared508 and declared509; normal509 preparation precedes compilation. Next: compile and unit-test the entire batch, run complete regressions and all three original media cases, then finish the original Firefox, ARM and qualification prerequisites for the full32-cell matrix. Last complete regression remains G545 at 3,207/3,208; its cleanup fixture passed the later focused run. The last full matrix remains v218 at 1/32 cells and 399/432 checks. Not ready for32. Root coordinates; epoch_cause owns restore authority, batch_build_review owns native delegation and the measurement/observer repairs, and independent_batch_review reviews the changes. Historical failures remain failed.\n"
+  ],
+  "update": {
+    "documentId": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "revisionId": "AHj4eMRlGlTPhJ6FN1x1UCv9H_Kk7-BD4S94UhAZSRrvoeNlK9yZGCxQULfyKJCwVgPpaxmzPwL_l9Rs_gY8l9ovzXSQ7nKH7pycdtBfwCs",
+    "replies": [
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      }
+    ],
+    "writeControl": {
+      "requiredRevisionId": "AHj4eMRlGlTPhJ6FN1x1UCv9H_Kk7-BD4S94UhAZSRrvoeNlK9yZGCxQULfyKJCwVgPpaxmzPwL_l9Rs_gY8l9ovzXSQ7nKH7pycdtBfwCs",
+      "targetRevisionId": null
+    },
+    "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y"
+  },
+  "qualification": false,
+  "matrix_credit": false
+}

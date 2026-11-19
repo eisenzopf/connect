@@ -30,6 +30,36 @@ fn private_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
         .and_then(|mut file| file.write_all(bytes))
         .map_err(|e| e.to_string())
 }
+// Private diagnostic metadata only. Never retain free-form problem messages.
+fn operation_problem(raw: Option<&str>) -> Value {
+    let Some(raw) = raw else {
+        return Value::Null;
+    };
+    if raw.len() > 4096 {
+        return json!({"present":true,"raw_bytes":raw.len(),"omitted":"over-bound"});
+    }
+    let Ok(problem) = serde_json::from_str::<Value>(raw) else {
+        return json!({"present":true,"raw_bytes":raw.len(),"omitted":"invalid-json"});
+    };
+    let token = |name: &str| {
+        problem[name]
+            .as_str()
+            .filter(|value| {
+                !value.is_empty()
+                    && value.len() <= 96
+                    && value
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || b"_.:-".contains(&byte))
+            })
+            .map(str::to_owned)
+    };
+    let code = problem["code"]
+        .as_u64()
+        .map(Value::from)
+        .or_else(|| token("code").map(Value::String));
+    json!({"present":true,"raw_bytes":raw.len(),"code":code,
+        "category":token("category"),"reason":token("reason"),"source":token("source")})
+}
 impl Capture {
     pub(super) fn new(root: &Path, source: PathBuf, database: PathBuf) -> Self {
         let destination =
@@ -169,7 +199,7 @@ impl Capture {
                 phases.push(json!({"operation_record_id":record,"phase":phase,"ordinal":ordinal,"value":actual}));
             }
             drop(statement);
-            let mut statement = connection.prepare("SELECT o.record_id,o.operation_id,o.state,o.revision FROM operations o JOIN native_replacement_public_video_reservations r ON r.operation_record_id=o.record_id ORDER BY o.record_id LIMIT 17").map_err(|e| e.to_string())?;
+            let mut statement = connection.prepare("SELECT o.record_id,o.operation_id,o.state,o.revision,o.problem_json FROM operations o JOIN native_replacement_public_video_reservations r ON r.operation_record_id=o.record_id ORDER BY o.record_id LIMIT 17").map_err(|e| e.to_string())?;
             let rows = statement
                 .query_map([], |row| {
                     Ok((
@@ -177,17 +207,19 @@ impl Capture {
                         row.get::<_, String>(1)?,
                         row.get::<_, String>(2)?,
                         row.get::<_, u64>(3)?,
+                        row.get::<_, Option<String>>(4)?,
                     ))
                 })
                 .map_err(|e| e.to_string())?;
             let mut operations = Vec::new();
             for row in rows {
-                let (record, id, state, revision) = row.map_err(|e| e.to_string())?;
+                let (record, id, state, revision, problem) = row.map_err(|e| e.to_string())?;
                 if operations.len() >= 16 {
                     return Err("bounded operation evidence".into());
                 }
                 operations.push(
-                    json!({"record_id":record,"operation_id":id,"state":state,"revision":revision}),
+                    json!({"record_id":record,"operation_id":id,"state":state,"revision":revision,
+                        "problem":operation_problem(problem.as_deref())}),
                 );
             }
             drop(statement);

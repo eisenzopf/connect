@@ -19,6 +19,17 @@ async fn canonical_chromium_public_b_actual_post_cut_native_close_discards_then_
         .join("../..")
         .canonicalize()
         .unwrap();
+    // This exact ignored test owns its process in the media diagnostic lane.
+    // Limit global cross-task capture to cold OLD restore events, never media packets.
+    let restore_trace_installed = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::new(
+            "off,connect_service::canonical_replacement::old_video_restore=debug",
+        ))
+        .with_ansi(false)
+        .with_writer(std::io::stderr)
+        .try_init()
+        .is_ok();
+    eprintln!("old-video-restore-diagnostic subscriber_installed={restore_trace_installed}");
     let mut f =
         Fixture::with_extra_scopes("EdDSA", 12, true, true, true, &["connection.replace"]).await;
     let mut retained_artifacts = public_video_artifacts::Capture::new(
@@ -206,7 +217,16 @@ async fn canonical_chromium_public_b_actual_post_cut_native_close_discards_then_
         assert_eq!(phases,vec!["negotiated-never-fed","cut-bound-post-f","discarded"]);
         let commits:u64=db.query_row("SELECT count(*) FROM native_replacement_steps s JOIN operations o ON o.record_id=s.operation_record_id WHERE o.operation_id=?1 AND s.phase='commit'",[&operation_id],|row|row.get(0)).unwrap();assert_eq!(commits,0);
         let ended:u64=db.query_row("SELECT count(*) FROM operations WHERE command_type='connection.end'",[],|row|row.get(0)).unwrap();assert_eq!(ended,0,"no application end substitutes for actual native close");
-        let state:String=db.query_row("SELECT state FROM connections WHERE id=?1",[report["candidate"].as_str().unwrap()],|row|row.get(0)).unwrap();assert_eq!(state,"retired");
+        // Fresh reservation metadata owns this candidate ID; a never-published
+        // replacement has no logical Connection to retire. Bind absence to the
+        // SAME retained operation/reservation, never an arbitrary missing ID.
+        let (record,candidate):(String,String)=db.query_row("SELECT n.operation_record_id,n.candidate_connection_id FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id WHERE o.operation_id=?1 AND o.command_type='connection.replace'",[&operation_id],|row|Ok((row.get(0)?,row.get(1)?))).unwrap();
+        assert_eq!(report["record_id"].as_str(),Some(record.as_str()));
+        assert_eq!(report["candidate"].as_str(),Some(candidate.as_str()));
+        assert_eq!(report["close"]["record_id"].as_str(),Some(record.as_str()));
+        assert_eq!(report["close"]["connection_id"].as_str(),Some(candidate.as_str()));
+        let unpublished:[u64;8]=db.query_row("SELECT (SELECT count(*) FROM connections WHERE id=?2),(SELECT count(*) FROM connection_offers WHERE connection_id=?2),(SELECT count(*) FROM native_connection_lifetimes WHERE connection_id=?2 OR operation_record_id=?1),(SELECT count(*) FROM native_replacement_lifetimes WHERE operation_record_id=?1),(SELECT count(*) FROM native_replacement_candidates WHERE operation_record_id=?1 OR candidate_connection_id=?2),(SELECT count(*) FROM native_replacement_audiences WHERE operation_record_id=?1 AND phase='commit'),(SELECT count(*) FROM operation_effects WHERE operation_record_id=?1 AND provider='native-replacement-commit'),(SELECT count(*) FROM journal WHERE operation_record_id=?1 AND kind IN ('connection_ready','connection_retired') AND json_extract(data_json,'$.connection_id')=?2)",rusqlite::params![record,candidate],|row|Ok([row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?,row.get(5)?,row.get(6)?,row.get(7)?])).unwrap();
+        assert_eq!(unpublished,[0;8],"fresh discarded candidate must remain unmaterialized without offer, lifetime, claimed-slot, commit or lifecycle publication");
         for sid in &sessions {let state:String=db.query_row("SELECT state FROM sessions WHERE id=?1",[sid],|row|row.get(0)).unwrap();assert_eq!(state,"accepted");}
         assert_eq!(host.adapter().route_count(),4);assert_eq!(host.available_slots(),2);drop(db);
         let stage="abort-complete";let pending=directory.join(format!("{stage}.ack.pending"));init::private_write(&pending,&serde_json::to_vec(&json!({"stage":stage,"operation_id":operation_id})).unwrap()).unwrap();std::fs::rename(pending,directory.join(format!("{stage}.ack.json"))).unwrap();

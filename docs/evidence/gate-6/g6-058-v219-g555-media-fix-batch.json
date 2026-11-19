@@ -1,0 +1,229 @@
+{
+  "format": "connect/g6-058-g555-verified-diagnostic-and-applied-fix-batch/1",
+  "updated": "2026-11-19T17:12:14.643437+00:00",
+  "summary": "The latest G552 diagnostic run attempted all three actual media cases; all three failed and all original test/browser owners closed naturally. The new logs localized two implementation gaps: OLD video restoration reached Core with current permission but a media-model refusal; source review found its authority lease omitted the ordinary confirmed-activation composition. Native replacement reached the source-video preflight through a composite adapter that omitted two already-implemented RTP callbacks, returning Unsupported. Both narrow production fixes and the corrected finite-support audio measurement are independently reviewed and applied, awaiting integration tests on declared source509. The audio proposal passed121 isolated controls, including all36 new controls; historical failed runs remain failed. The additional abort-observer repair is also reviewed and applied: queued callbacks retain their original registration and close proof, earn no live frame credit, and passed33 isolated controls including8 new ownership cases. G550 passed1,372/1,372 focused controls; its other1,836 Rust checks were explicitly unrun. G545 remains the last complete regression at3,207/3,208; its one cleanup fixture now passes focused verification. Prepared dependencies remain508 until normal509 preparation. Next: prepare509 normally, verify the complete fix batch with unit tests and full regressions, then rerun all three original actual media cases. Last full matrix remainsv218:1/32 cells and399/432 checks. Not ready for32.",
+  "prepared_generation": 508,
+  "source_lock_sha256": "0a3c2071d543def1d2458666f41df3e17e8a85aff2618103a47964de526b07a8",
+  "tested_head": "ae33c8de09598eeb3375ad7c09cbffe91ef8fb84",
+  "tracker_revision": 132,
+  "scope": "Actual focused regression and failed all-three-media evidence; three reviewed fixes applied pending normal509 and integration; separate callback observer repair in progress.",
+  "G545": {
+    "passed": 3207,
+    "failed": 1,
+    "total": 3208,
+    "Rust_passed": 1950,
+    "Rust_failed": 1,
+    "Node_passed": 1202,
+    "Python_passed": 55,
+    "all_six_builds_and_shipping_passed": true,
+    "all_ten_inventories_passed": true,
+    "sole_failure": "connection_control::tests::replacement_sources::commit::scoped_handoff::original_custodian_cleanup_preserves_current_pending_handoff_presence_and_unaffected_av_epoch",
+    "first_code": "authority-busy",
+    "stage": "OriginalCleanup before full Writer checkpoint",
+    "historical_busy_leaf_proven": false,
+    "all_original_owners_natural_joined": true,
+    "aggregate_passed": false
+  },
+  "G547": {
+    "all_four_handoff_and_return_operations_completed": true,
+    "final_case_passed": false,
+    "asserted_audio_failures": 1,
+    "observed_block": {
+      "samples": 960,
+      "leading_exact_zeros": 832,
+      "remaining_samples": 128,
+      "expected_hz": 660,
+      "legacy_source_identified": false,
+      "arrived_during_original_renderer_start": true
+    },
+    "frontier": "Original finite-window identity measurement; descriptive fit supports660Hz on the nonzero support, but prospective classifier/accounting correction still requires source/method/control review.",
+    "later_historical_G533_880_block": "Not reproduced by G547; cause remains open.",
+    "all_original_owners_natural_joined": true
+  },
+  "G548": {
+    "case_passed": false,
+    "observed": "OLD0 video ceased; OLD0 audio and receivers1/2/3 audio/video remained fresh.",
+    "durable_Discarded": "Observed, not proof of completed physical OLD restore.",
+    "callback_ownership_observations": 2,
+    "exact_Core_restore_branch": "Not captured in original attempt; cold stage diagnostics applied for next attempt.",
+    "all_original_owners_natural_joined": true
+  },
+  "G549": {
+    "case_passed": false,
+    "allocation_observation_verified": "Same original record: accepted revision0/NoRows, then preparing revision1 and original allocation row; structural fixture fix actually exercised.",
+    "new_failure": "BrowserOperation.wait application(recorded) before public-ready/Cut; original problem hidden.",
+    "postcleanup_record": "Failed revision14; negotiated-never-fed then discarded/refused, source_cut_id null. This does not identify the earlier refusal cause.",
+    "original_browser_cleanup": "Natural0 within unchanged5s cutoff; no timeout renewal/forced join.",
+    "all_original_owners_natural_joined": true
+  },
+  "applied_current_batch": {
+    "status": "implemented-unverified",
+    "items": [
+      "Finite-support source identity and strict original PCM sample accounting",
+      "Fresh OLD authority composed with same confirmed activation",
+      "Native composite source callbacks delegated through exact original-controller guard",
+      "Queued closed-candidate callback ownership retained only by original registration and close proof"
+    ],
+    "application_receipt": ".local/gate-6/g555-three-reviewed-media-fixes-application-root/application.json",
+    "source_lock_declared": 509,
+    "prepared_generation_still": 508,
+    "normal_prepare_required_before_build": true,
+    "no_runtime_media_pass_for_changed_batch": true
+  },
+  "prospective_PCM": {
+    "candidate_sha256": "f1ead978b5995a291fc82114f00665b8d947f412f98b4ba60a0782a388347f2d",
+    "applied": true,
+    "status": "independent-source-reviewed and isolated controls passed; live integration pending",
+    "isolated_selected_controls_passed": 121,
+    "new_controls": 36,
+    "retained_selected_controls": 85,
+    "old_V2_isolated_result": "11/12 retained as failed; wrong interior-dropout oracle corrected without forcing legacy-recognized tone refusal; old128-sample availability exemption replaced by strict crossing-aware debit.",
+    "unchanged_criteria": "Overall quality profile3, eightfold identity/energy floor, every eligible row, duplicates, literal-zero failures, original gaps/onset and Native330/440 competitors retained."
+  },
+  "assigned_followup": [
+    {
+      "task_id": "V219-G545-ORIGINAL-CLEANUP",
+      "owner": "/root/epoch_cause",
+      "reviewer": "/root/batch_build_review",
+      "next": "Focused17 pass; full current regressions remain required."
+    },
+    {
+      "task_id": "V219-G533-AUDIO-IDENTITY",
+      "owner": "/root/batch_build_review",
+      "reviewer": "/root/independent_batch_review",
+      "next": "Applied reviewed V4; verify live workspace controls and actual handoff output."
+    },
+    {
+      "task_id": "V219-G552-RESTORE-AUTHORITY",
+      "owner": "/root/epoch_cause",
+      "reviewer": "/root/independent_batch_review",
+      "next": "Applied activation composition; verify existing refusal guards and actual decoded OLD recovery."
+    },
+    {
+      "task_id": "V219-G552-NATIVE-FREEZE",
+      "owner": "/root/batch_build_review",
+      "reviewer": "/root/independent_batch_review",
+      "next": "Prepare509 normally, verify existing feedback guards and mandatory actual composite Native representative."
+    },
+    {
+      "task_id": "V219-G552-CLOSED-CALLBACK-PROOF",
+      "owner": "/root/batch_build_review",
+      "reviewer": "/root/independent_batch_review",
+      "next": "Reviewed callback repair applied; verify current live-workspace controls and actual abort recovery."
+    }
+  ],
+  "proofs": {
+    ".local/gate-6/v219-g545-actual-complete-components-independent-audit/receipt.json": "c36629c022d28f4e28edbf9633c3a4435151f9109a462a5080f60f29a270a62a",
+    ".local/gate-6/v219-g545-complete-source508-root/root-original-join.json": "ef99ecd2607ab707348e2b9568d7f0254e49feb3e87ffcf583925721bd88bea5",
+    ".local/gate-6/v219-g547-actual-three-source508-root/result.json": "005b2426853aacfde01c50a6e986f3b477e55ef0a075aa6c7ad82bc8b21fd087",
+    ".local/gate-6/v219-g547-actual-media-independent-audit/receipt.json": "85f81c1e7704a258693e3bf09dcc04cfc8e6b65ca052864a002dbe28395bc3b4",
+    ".local/gate-6/v219-g548-remaining-two-source508-root/result.json": "88fa57fa1c54fb24035b0d55a6cec784f6429cb21b93eaa2922c1f5e3cc7e446",
+    ".local/gate-6/v219-g548-actual-media-independent-audit/receipt.json": "e81306e8b86126dcc723e30c1780fcc8703888cd634e2c0a817b5f1687762ce2",
+    ".local/gate-6/v219-g549-last-native-source508-root/result.json": "e209731c00ec4f35d3f968e21694943af82b2a371eae5d7a795e4130ee3ba9cd",
+    ".local/gate-6/v219-g549-actual-media-independent-audit/receipt.json": "2f30b550291d504575dcbd4e29ab92c4afde0e3ee8bbb6db9527e88fca53dc22",
+    ".local/gate-6/g550-reviewed-diagnostics-and-scoped-cleanup-application-root/application.json": "518fca33dd57e535e2d454785cfd66129811dfe16f676186052a5dc7700b8f17",
+    ".local/gate-6/g550-native-existing-control-trace-candidate-v2/manifest.json": "39fe928bb6f6c53f54926be932ec1f86d7e1b25b50b35e007ffe12bebec0e137",
+    ".local/gate-6/g550-native-existing-control-trace-v2-independent-review/receipt.json": "a88df9a642a99306dbe5f736991bebeaff6ca3beb830b999fecb1983e75dac41",
+    ".local/gate-6/g545-original-cleanup-scoped-writer-v2-independent-batch-source-review/receipt.json": "b1b9a57a89ba36b9ba56be8e66e93ec5bae57dcd0fbea7cde715b25c2c8c89d9",
+    ".local/gate-6/g548-old-restore-cold-path-and-callback-diagnostics-independent-batch-source-review/receipt.json": "9bc69856d81948198186e3a51e81183c31dc4590fdbfe79327e7cc02c61120af",
+    ".local/gate-6/g549-bounded-terminal-operation-problem-independent-review/receipt.json": "2304461f7db0dd569a4273a4e8193cbde37ef752f6d6539f05d0512c1c5203b3",
+    ".local/gate-6/g547-strict-finite-pcm-integrated-prospective-candidate-v2/manifest.json": "96338df95ff87ef90855257e5fbb54bc00f3efcd6e217f8d344803eb7d122541",
+    ".local/gate-6/v219-g551-isolated-pcm-pure-controls-root/result.json": "634edd26e8ecfde5d44e93d8219fb5b677eb9557162e3f1c7ab44c9d6bd42fbf",
+    ".local/gate-6/v219-g550-focused-diagnostics-source508-root/diagnostic-focused-result.json": "0c0a148bc349345ae30d4bb472e98939674efaaf5b01af310333b851a0ac79f6",
+    ".local/gate-6/v219-g550-focused-diagnostics-source508-root/root-original-join.json": "cf5c8b71dc1ef708580b9fdfb7ce703a8b092f38344d8390c8bc2ac54c9d2cb5",
+    ".local/gate-6/g550-actual-focused-diagnostic-epoch-audit/receipt.json": "15100fdec77efd0e4774c3475ed2284e1889e3d28cbab5fad94ed37d20160f3d",
+    ".local/gate-6/v219-g552-all-three-media-diagnostics-source508-root/result.json": "53ced5386a217aa8db68e08b96f616cab2057032b49e0ce81aad96ed9c7f6db0",
+    ".local/gate-6/v219-g552-all-three-media-diagnostics-source508-root/root-original-join.json": "6464b818a9eee1776c5b832ab87f2f3df8ca72f10b3baff0d2b0861a952d2dfa",
+    ".local/gate-6/v219-g552-actual-three-diagnostic-independent-audit/receipt.json": "cc8f0396d48552820c8f4c6ca6712fec547b84a85c0aacb39f420d9bc3e47bb4",
+    ".local/gate-6/g547-strict-finite-pcm-integrated-prospective-candidate-v4/manifest.json": "f1ead978b5995a291fc82114f00665b8d947f412f98b4ba60a0782a388347f2d",
+    ".local/gate-6/g547-strict-finite-pcm-v4-independent-method-and-isolated-evidence-review/receipt.json": "ca5b1294843946b1001a14f2d152a7cf8b756e38b47d66de0647731f1a574ddd",
+    ".local/gate-6/v219-g553-broader-isolated-pcm-root/result.json": "475824b6c003b7b71985c797f5e8245145546b8ba7bfb4fc48f5f2bcb8dfc436",
+    ".local/gate-6/g552-old-restore-current-activation-composition-candidate/manifest.json": "a526fa11f4de6c87318b5af9130feab692e07094954a581b750c80f5d16bb394",
+    ".local/gate-6/g552-old-restore-current-activation-independent-source-review/receipt.json": "1a5fa1ca73fd47b4bdab2dd0655a3a4107e61a97f40a880b8e5b8225ddfee470",
+    ".local/gate-6/g552-native-composite-initial-picture-delegation-candidate/manifest.json": "5f15ef1bfa0fd715d97d9e1d29b283dbf384c978a455767ad412b113d4ab7f56",
+    ".local/gate-6/g552-native-composite-initial-picture-independent-source-review/receipt.json": "3c098cc32cfcb8f4a6afd28fd91e882200f345599ed7136e2c6b130568cfd4bd",
+    ".local/gate-6/g555-three-reviewed-media-fixes-application-root/application.json": "05d81cb559ca6da6334c82f214283028d0841bbcbb675e108e2d7b31c1bbd7ab",
+    ".local/gate-6/g550-mobile-revision201-root/readback.json": "4c1dbae640a4f42a38115d3df8efc834ce926970666b771ced016a403278840b",
+    ".local/gate-6/g552-abort-original-queued-video-callback-ownership-candidate/manifest.json": "7de1a91af0f27f6af6ce79103376554e20e89a7fce56159bcee67a5f77c2f07b",
+    ".local/gate-6/g552-abort-original-queued-callback-independent-source-review/receipt.json": "c8994d60f6050f79e50ef5033c4b0c0011fe35aaa7b77086b5cbc51cdd3fe737",
+    ".local/gate-6/v219-g556-isolated-queued-callback-controls-root-v2/result.json": "dfe0deba713818797f7c2296213958d7f4ff7a3812e678a523679b745ac9a7e4",
+    ".local/gate-6/g556-reviewed-queued-callback-application-root/application.json": "5ffc757072d9b55c8a85479da015bdc99f3eb7df3eb52a52f1ca7a83916d2aac",
+    ".local/gate-6/g557-four-fix-batch-format-root/result.json": "ea9143c07fa1060236ab4b8cbbf78386093151df03954effb1daedee55563c60",
+    "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-fixes557.json": "45afe126287f0d1f166c42c70bbbfdd4476660fe943d663637c3c36cee726ec0"
+  },
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "unchanged": true
+  },
+  "remaining": [
+    "Current complete regressions/all three actual decoded-media representatives",
+    "Strict Firefox NORMAL3 with original duplicate/source/capture controls",
+    "Original final qualification command and identity scopes",
+    "Local ARM11 source/preparation checks, normal Mac/ARM shipping releases and capture preflight"
+  ],
+  "mobile_revision201": "Verified earlier scoped revision; retained historical readback; superseded by verified revision202.",
+  "ready_for_32": false,
+  "matrix_qualified": false,
+  "historical_regrade": false,
+  "G6_054": "parked",
+  "local_only": true,
+  "declared_generation": 509,
+  "last_tested_source_lock_sha256": "52154fde79033eb937b5d0bdffc4b9e8ab29727b45affac22340bcb68227d40c",
+  "G550": {
+    "focused_passed": 1372,
+    "failed": 0,
+    "Rust_passed": 115,
+    "Node_passed": 1202,
+    "Python_passed": 55,
+    "full_Rust_unrun": 1836,
+    "full_regression_executed": false,
+    "six_builds_ten_inventories": true,
+    "all26_original_children_naturally_joined": true
+  },
+  "G552": {
+    "cases_attempted": 3,
+    "passed": 0,
+    "failed": 3,
+    "not_run": [],
+    "all_original_owners_naturally_joined": true,
+    "source_and_ten_binaries_unchanged": true,
+    "abort_restore": {
+      "readiness": "ready; one selected source; source not paused",
+      "current_permission": true,
+      "Core_result": "media-model; restoration false",
+      "cleanup_function_result": "Ok while old_restored false; not a successful restoration",
+      "specific_Model_Authority_subtype": "Inferred from raw Preparing binding and unchanged Core Active guard, not printed by actual trace"
+    },
+    "native": {
+      "result": "Media(Unsupported) from original public freeze",
+      "source_cause": "Composite NativeMedia omits source preflight/request initial picture delegation; Core preflight precedes physical freeze. Native-target warm remains unsupported and is not needed for this RTC-target path."
+    },
+    "callback_observation": {
+      "failures": 2,
+      "actual": "Both queued callbacks reference the same replacement PC/transceiver/ended track; Chrome has cleared MID after original PC close.",
+      "repair": "Reviewed and applied; isolated33/33 controls passed. Strict actual ownership and zero retired-frame credit retained; actual media retest pending."
+    },
+    "qualification": false
+  },
+  "G556": {
+    "candidate_applied": true,
+    "isolated_controls": {
+      "passed": 33,
+      "failed": 0,
+      "new": 8,
+      "retained": 25
+    },
+    "all_original_child_groups_naturally_closed": true,
+    "retired_callbacks_grant_no_decoded_public_count": true,
+    "actual_media_retest_pending": true
+  },
+  "mobile_revision202": {
+    "verified": true,
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-fixes557.json",
+    "sha256": "45afe126287f0d1f166c42c70bbbfdd4476660fe943d663637c3c36cee726ec0"
+  }
+}

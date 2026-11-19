@@ -69,7 +69,8 @@ try{
   const {BrowserSdkClient}=await import('/sdk/browser_sdk.js');
   const {BrowserRtcConnection}=await import('/sdk/browser_sdk_webrtc.js');
   const {browserMatrixRtcObservation}=await import('/rtc-observer.mjs');
-  const {pcmIdentity}=await import('/pcm-identity.mjs');
+  const {strictPcmIdentity:pcmIdentity,PcmSampleLedger}=await import('/pcm-identity.mjs');
+  const pcmLedger=new PcmSampleLedger();
   globalThis.connectRtcAudioFacts=true;
   const pcmOrigins=new Map(),pcmFailures=[];
   const check=(value,message)=>{if(!value)throw Error(message);};
@@ -117,7 +118,7 @@ try{
    };
   }
   let functionalFailure,cleanupFailures=[];
-  const retainPcm=async stage=>{try{const at=performance.now();await globalThis.retainPublicPcmDiagnostics(stage,{format:'connect/owned-public-pcm-diagnostics/1',fixture:'browser-replacement-terminal',operation_id:spec.operationId,at,render_origins:[...pcmOrigins].map(([connection_id,value])=>({connection_id,...value})),audio_failures:pcmFailures,observation_failures:observationFailures,receivers:progress.map((p,i)=>({i,audio:p.audio,video:p.video,changing:p.changing,lastAudio:p.lastAudio,lastVideo:p.lastVideo})),audio_diagnostics:observer?.report()??null});}catch{}};
+  const retainPcm=async stage=>{try{const at=performance.now();await globalThis.retainPublicPcmDiagnostics(stage,{format:'connect/owned-public-pcm-diagnostics/1',pcm_measurement:pcmLedger.report(),fixture:'browser-replacement-terminal',operation_id:spec.operationId,at,render_origins:[...pcmOrigins].map(([connection_id,value])=>({connection_id,...value})),audio_failures:pcmFailures,observation_failures:observationFailures,receivers:progress.map((p,i)=>({i,audio:p.audio,video:p.video,changing:p.changing,lastAudio:p.lastAudio,lastVideo:p.lastVideo})),audio_diagnostics:observer?.report()??null});}catch{}};
   try{
    for(const actor of spec.actors){
     const algorithm=actor.signing.algorithm==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
@@ -154,12 +155,13 @@ try{
      const i=bindingById.get(id);if(i===undefined)return;
      if(samples.length!==960){invalid('actual20ms decoded PCM');return;}
      const identity=pcmIdentity(samples,expected[i]);
+     pcmLedger.push({owner:id,clock,timestamp,at,identity,usable:identity.identified&&identity.rms>.03});progress[i].audio=pcmLedger.availableSamples(id)/960;
      if(!(identity.rms>.03)){invalid('old receiver actual audible decoded PCM');return identity.source_identified;}
      if(!identity.identified){
       if(pcmFailures.length<8)pcmFailures.push({id,timestamp,at,clock,expected_hz:sourceHz[expected[i]],identity});
       invalid(`actual selected source tone id=${id.slice(0,32)} hz=${sourceHz[expected[i]]} rms=${identity.rms.toFixed(3)} powers=${identity.powers.map(power=>power.toExponential(3)).join('/')}`);return identity.source_identified;
      }
-     progress[i].audio++;progress[i].lastAudio=at;return identity.source_identified;
+     progress[i].lastAudio=at;return identity.source_identified;
     },
     video(id,timestamp,at,frame,width,height){
      const i=bindingById.get(id);if(i===undefined)return;

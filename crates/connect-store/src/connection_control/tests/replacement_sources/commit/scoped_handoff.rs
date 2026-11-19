@@ -413,6 +413,9 @@ fn prepare(kind: Kind) -> (Setup, Call, Arc<NativeMediaOrigin>) {
 struct Rendezvous {
     calls: AtomicUsize,
     publications: AtomicUsize,
+    original_last_observations: AtomicUsize,
+    original_retry_seen: std::sync::atomic::AtomicBool,
+    original_retry_first_unheld: std::sync::atomic::AtomicBool,
     emitted: std::sync::atomic::AtomicBool,
     entered: mpsc::SyncSender<bool>,
     release: Mutex<mpsc::Receiver<()>>,
@@ -443,6 +446,35 @@ impl crate::NativeOfferRuntimeObservation for Absent<'_> {
             if probe.calls.fetch_add(1, Ordering::SeqCst) == 1 {
                 probe.held()?;
             }
+        }
+        Ok(crate::NativeOfferObservation::Retired {
+            runtime_connection_id: self.origin.runtime_connection_id().into(),
+            generation: self.origin.generation(),
+        })
+    }
+}
+// One cleanup invocation owns its own observation sequence. A pre-Writer
+// refusal must not lend its first observation to the next invocation's final
+// Writer-held checkpoint. Absent remains unchanged for all other controls.
+struct OriginalAbsent<'a> {
+    origin: &'a NativeMediaOrigin,
+    probe: &'a Rendezvous,
+    calls: AtomicUsize,
+}
+impl crate::NativeOfferRuntimeObservation for OriginalAbsent<'_> {
+    fn observe(&self) -> crate::Result<crate::NativeOfferObservation> {
+        let ordinal = self.calls.fetch_add(1, Ordering::SeqCst);
+        if ordinal == 0 && self.probe.original_retry_seen.load(Ordering::SeqCst) {
+            assert!(
+                !self.probe.emitted.load(Ordering::SeqCst),
+                "retry's first absence observation must precede the Writer-held checkpoint"
+            );
+            self.probe
+                .original_retry_first_unheld
+                .store(true, Ordering::SeqCst);
+        }
+        if ordinal == 1 {
+            self.probe.held()?;
         }
         Ok(crate::NativeOfferObservation::Retired {
             runtime_connection_id: self.origin.runtime_connection_id().into(),
@@ -500,13 +532,18 @@ impl Call {
                     },
                 )
                 .map(drop),
-            Self::Original(lease) => store.try_settle_native_offer_cleanup(
-                lease,
-                &Absent {
+            Self::Original(lease) => {
+                let absence = OriginalAbsent {
                     origin: affected,
-                    probe: Some(probe),
-                },
-            ),
+                    probe,
+                    calls: AtomicUsize::new(0),
+                };
+                let result = store.try_settle_native_offer_cleanup(lease, &absence);
+                probe
+                    .original_last_observations
+                    .store(absence.calls.load(Ordering::SeqCst), Ordering::SeqCst);
+                result
+            }
             Self::Adopted(origin) => store.settle_native_replacement_cleanup(
                 origin,
                 &Absent {
@@ -657,7 +694,9 @@ fn run(kind: Kind) {
     // Establish the REAL affected-source resource exclusion BEFORE watcher
     // startup or live IO admission, so a setup refusal has no owner to leak.
     // This guard has no NativeMediaRead grant and does not alter healthy1/2.
-    let first_public_reader = if matches!(kind, Kind::PublicReady) {
+    // The OriginalCleanup control also forces a real affected-Connection
+    // Reader exclusion before testing recovery with the SAME healthy AV IO.
+    let first_public_reader = if matches!(kind, Kind::PublicReady | Kind::OriginalCleanup) {
         let scope =
             crate::AuthorityScope::connection(affected.connection_id(), crate::AuthorityMode::Read)
                 .unwrap();
@@ -726,6 +765,9 @@ fn run(kind: Kind) {
     let probe = Rendezvous {
         calls: AtomicUsize::new(0),
         publications: AtomicUsize::new(0),
+        original_last_observations: AtomicUsize::new(0),
+        original_retry_seen: std::sync::atomic::AtomicBool::new(false),
+        original_retry_first_unheld: std::sync::atomic::AtomicBool::new(false),
         emitted: std::sync::atomic::AtomicBool::new(false),
         entered: entered.clone(),
         release: Mutex::new(resume),
@@ -749,12 +791,17 @@ fn run(kind: Kind) {
             let result = loop {
                 // The same original absolute cutoff applies before EVERY API
                 // invocation, including after a bounded metadata-only pause.
-                if matches!(kind, Kind::PublicReady) && Instant::now() >= until {
+                if matches!(kind, Kind::PublicReady | Kind::OriginalCleanup)
+                    && Instant::now() >= until
+                {
                     break Err(previous_refusal.take().unwrap_or_else(|| {
-                        Error::new("authority-busy", "Original public Ready counter cutoff expired")
+                        Error::new("authority-busy", "Original scoped metadata counter cutoff expired")
                     }));
                 }
                 if previous_refusal.is_some() {
+                    if matches!(kind, Kind::OriginalCleanup) {
+                        probe.original_retry_seen.store(true, Ordering::SeqCst);
+                    }
                     let same = snapshot.admit_original(stamp);
                     let still_current = original.current()
                         && epoch.current()
@@ -798,8 +845,10 @@ fn run(kind: Kind) {
                     // Writer reached its real exclusion. Keep pressure through
                     // only safe pre-admission retries; after the first actual
                     // authority-wait failure, drain before any final retry.
-                    if reached_authority_wait || !result.as_ref().err()
-                        .is_some_and(|e| e.code == "authority-busy") {
+                    if matches!(kind, Kind::PublicReady)
+                        && (reached_authority_wait || !result.as_ref().err()
+                            .is_some_and(|e| e.code == "authority-busy"))
+                    {
                         drop(first_public_reader.take());
                         forced_reader_released.store(true, Ordering::SeqCst);
                     }
@@ -824,12 +873,14 @@ fn run(kind: Kind) {
                             }
                         })
                     });
-                let unchanged = if matches!(kind, Kind::PublicReady) && result.is_err() {
+                let unchanged = if matches!(kind, Kind::PublicReady | Kind::OriginalCleanup)
+                    && result.is_err()
+                {
                     Some(Store::inspect_snapshot(store.path()).map(|snapshot| snapshot == before_database))
                 } else {
                     None
                 };
-                let same_current = if matches!(kind, Kind::PublicReady) {
+                let same_current = if matches!(kind, Kind::PublicReady | Kind::OriginalCleanup) {
                     let same = snapshot.admit_original(stamp);
                     let current = same.as_ref().is_ok_and(|r| r.current());
                     drop(same);
@@ -838,34 +889,61 @@ fn run(kind: Kind) {
                     false
                 };
                 let healthy_current = original.current() && epoch.current() && same_current;
-                let retry_safe = matches!(kind, Kind::PublicReady)
+                // Original cleanup is the same metadata-only opaque absence
+                // settlement. Its full logical DB digest (including all rows
+                // and counts) must be unchanged; no projection counter is
+                // substituted for that witness. Never retry past checkpoint.
+                let retry_safe = (matches!(kind, Kind::PublicReady) && no_commit
+                        || matches!(kind, Kind::OriginalCleanup))
                     && result.as_ref().err().is_some_and(|e| e.code == "authority-busy")
                     && before_checkpoint
                     && no_publisher
-                    && no_commit
                     && unchanged.as_ref().is_some_and(|r| r.as_ref().is_ok_and(|same| *same))
                     && healthy_current
                     && Instant::now() < until;
                 if forced_reader_held_for_call && reached_authority_wait {
                     forced_first_refusal.store(retry_safe, Ordering::SeqCst);
                 }
-                if let (Call::Public(_), Err(error)) = (&call, &result) {
-                    let mut attempts = refused_attempts.lock().unwrap();
-                    if attempts.len() < 32 {
-                        attempts.push(json!({
-                            "code":error.code, "message":error.message,
-                            "before":before_admission, "after":after_admission,
-                            "final_installed_checkpoint":!before_checkpoint,
-                            "publisher_callbacks":probe.publications.load(Ordering::SeqCst),
-                            "committed_counters_unchanged":no_commit,
-                            "durable_snapshot_unchanged":unchanged.as_ref().and_then(|r|r.as_ref().ok()),
-                            "snapshot_error":unchanged.as_ref().and_then(|r|r.as_ref().err()).map(|e|(&e.code,&e.message)),
-                            "same_original_io_epoch_stamp_current":healthy_current,
-                            "retry_safe_prepublication":retry_safe,
-                            "forced_affected_connection_reader_held_for_call":forced_reader_held_for_call,
-                            "forced_reader_released_before_final_retry":forced_reader_released.load(Ordering::SeqCst),
-                            "actual_authority_wait_failure_observed":reached_authority_wait
-                        }));
+                if matches!(kind, Kind::OriginalCleanup) && forced_reader_held_for_call {
+                    // Keep the actual affected Reader through early SQL/map
+                    // deferrals. This exact message proves authority admission
+                    // was attempted, without guessing its kernel/metadata leaf.
+                    let attempted_authority = result.as_ref().err().is_some_and(|e|
+                        e.code == "authority-busy" && e.message == "Current authority is busy");
+                    if retry_safe && attempted_authority {
+                        assert_eq!(probe.original_last_observations.load(Ordering::SeqCst), 1,
+                            "forced Reader refusal must stop before the final Writer observation");
+                        assert!(!probe.emitted.load(Ordering::SeqCst));
+                        forced_first_refusal.store(true, Ordering::SeqCst);
+                        // Require a NEW first-observation witness AFTER this
+                        // actual forced authority refusal, not an earlier SQL retry.
+                        probe.original_retry_first_unheld.store(false, Ordering::SeqCst);
+                        drop(first_public_reader.take());
+                        forced_reader_released.store(true, Ordering::SeqCst);
+                    }
+                }
+                if let Err(error) = &result {
+                    if matches!(kind, Kind::PublicReady | Kind::OriginalCleanup) {
+                        let mut attempts = refused_attempts.lock().unwrap();
+                        if attempts.len() < 32 {
+                            attempts.push(json!({
+                                "code":error.code, "message":error.message,
+                                "before":before_admission, "after":after_admission,
+                                "final_installed_checkpoint":!before_checkpoint,
+                                "publisher_callbacks":probe.publications.load(Ordering::SeqCst),
+                                "committed_counters_unchanged":no_commit,
+                                "original_cleanup_snapshot_witness":matches!(kind, Kind::OriginalCleanup)
+                                    && unchanged.as_ref().is_some_and(|r|r.as_ref().is_ok_and(|same| *same)),
+                                "original_observation_calls":probe.original_last_observations.load(Ordering::SeqCst),
+                                "durable_snapshot_unchanged":unchanged.as_ref().and_then(|r|r.as_ref().ok()),
+                                "snapshot_error":unchanged.as_ref().and_then(|r|r.as_ref().err()).map(|e|(&e.code,&e.message)),
+                                "same_original_io_epoch_stamp_current":healthy_current,
+                                "retry_safe_prepublication":retry_safe,
+                                "forced_affected_connection_reader_held_for_call":forced_reader_held_for_call,
+                                "forced_reader_released_before_final_retry":forced_reader_released.load(Ordering::SeqCst),
+                                "actual_authority_wait_failure_observed":reached_authority_wait
+                            }));
+                        }
                     }
                 }
                 if retry_safe {
@@ -945,11 +1023,16 @@ fn run(kind: Kind) {
     settlement.unwrap();
     let old_epoch_never_restored =
         !old_epoch.current() && affected_snapshot.admit_original(old_stamp).is_err();
-    if matches!(kind, Kind::PublicReady) {
+    if matches!(kind, Kind::PublicReady | Kind::OriginalCleanup) {
         // All original worker/IO/watcher owners have joined before formatting
         // these bounded scalar events. Decisions above remain prepublication only.
         eprintln!(
-            "scoped-public-admission events={:?} refused_attempts={} publisher_callbacks={}",
+            "{} events={:?} refused_attempts={} publisher_callbacks={}",
+            if matches!(kind, Kind::PublicReady) {
+                "scoped-public-admission"
+            } else {
+                "scoped-original-admission"
+            },
             admission_trace::snapshot(&admission_trace),
             serde_json::to_string(&*refused_attempts.lock().unwrap()).unwrap(),
             probe.publications.load(Ordering::SeqCst)
@@ -960,6 +1043,12 @@ fn run(kind: Kind) {
         pre_effect_metadata_retries.load(Ordering::SeqCst)
     );
     eprintln!("scoped-handoff phase={kind:?} full_writer_checkpoint={held_checkpoint} first_error={:?} original_current={survived} original_stamp_current={same_stamp} fresh_pair_current={fresh_pair} queued_epoch_current={queued_survived} affected_fenced={affected_fenced} old_epoch_never_restored={old_epoch_never_restored} affected_still_fenced_before_shutdown={affected_still_fenced_before_shutdown} within_original_cutoff={within_original_cutoff} lifecycle_unchanged={} controlled_store_flow_facts=true cleanup_joined=true",first_result.as_ref().err().map(|e|(&e.code,&e.message)),before_lifecycle==after_lifecycle);
+    if matches!(kind, Kind::OriginalCleanup) {
+        eprintln!("scoped-original-forced-exclusion calls={} safe_authority_refusal={} reader_released_before_final_retry={} retry_first_observation_unheld={} final_observation_calls={}",
+            forced_first_calls.load(Ordering::SeqCst), forced_first_refusal.load(Ordering::SeqCst),
+            forced_reader_released.load(Ordering::SeqCst), probe.original_retry_first_unheld.load(Ordering::SeqCst),
+            probe.original_last_observations.load(Ordering::SeqCst));
+    }
     if matches!(kind, Kind::PublicReady) {
         eprintln!(
             "scoped-public-forced-exclusion calls={} safe_actual_authority_refusal={} reader_released_before_final_retry={} metadata_retries={}",
@@ -996,6 +1085,15 @@ fn run(kind: Kind) {
     );
     if matches!(kind, Kind::OriginalCleanup | Kind::AdoptedCleanup) {
         assert_eq!(before_lifecycle,after_lifecycle,"valid current bounded handoff must preserve existing joined appearance until its real successor publishes or the claim expires/cancels");
+    }
+    if matches!(kind, Kind::OriginalCleanup) {
+        assert!(forced_first_calls.load(Ordering::SeqCst) >= 1
+            && forced_first_refusal.load(Ordering::SeqCst)
+            && forced_reader_released.load(Ordering::SeqCst)
+            && probe.original_retry_first_unheld.load(Ordering::SeqCst)
+            && probe.original_last_observations.load(Ordering::SeqCst) == 2
+            && pre_effect_metadata_retries.load(Ordering::SeqCst) >= 1,
+            "forced affected Reader/refusal/retry did not preserve per-invocation first/final Writer observations");
     }
     if matches!(kind, Kind::PublicReady) {
         assert!(forced_first_calls.load(Ordering::SeqCst) >= 1

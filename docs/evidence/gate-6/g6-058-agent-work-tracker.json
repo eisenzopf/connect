@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-19T13:51:25.307332+00:00",
-  "revision": 131,
+  "updated_at": "2026-11-19T18:31:01.636997+00:00",
+  "revision": 134,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 200,
-    "verified_at": "2026-11-19T15:10:56.583231+00:00",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components542.json",
-    "readback_evidence_sha256": "a5cf33c24b10fe1495bb8274e91f00b549853ded2ee6f62be79961941a9dadcc",
+    "content_revision": 204,
+    "verified_at": "2026-11-19T18:37:51.804Z",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-verified568.json",
+    "readback_evidence_sha256": "c63460ef39045ed7d5aae2ce29dd1f1683f4bd34230662ad4abb6e6bed1e0d99",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -49,17 +49,17 @@
     {
       "id": "/root/batch_build_review",
       "role": "Compile-first runner author",
-      "current_work": "Compile-first runner author"
+      "current_work": "Finite-support PCM method/accounting proposal and actual evidence/diagnostic source reviews"
     },
     {
       "id": "/root/independent_batch_review",
       "role": "Independent runner and binding reviewer",
-      "current_work": "Independent runner and binding reviewer"
+      "current_work": "OLD0 restore/pre-Cut refusal diagnostics, actual custody and independent source/method review"
     },
     {
       "id": "/root/epoch_cause",
       "role": "Store epoch diagnostic owner",
-      "current_work": "Store epoch diagnostic owner"
+      "current_work": "Scoped original-cleanup fixture and bounded diagnostic-lane source preparation"
     }
   ],
   "state_machine": [
@@ -2806,11 +2806,11 @@
       "owner_agent": "/root/batch_build_review",
       "independent_reviewer": "/root/independent_batch_review",
       "coordinator": "/root",
-      "status": "in-progress",
+      "status": "component-verified",
       "depends_on": [],
-      "implementation_state": "Bounded original PCM diagnostics implemented;19/19 pure checks pass. Real-codec causal control pending; contributor-change encoder reset is explicit history-isolation policy, so no production/criterion change yet.",
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
-      "updated_at": "2026-11-19T15:10:21.130120+00:00",
+      "implementation_state": "G566 focused controls and G567 full four-Root actual roundtrip pass strict finite-support identity/sample-debit criteria. Historical G533 later880 cause remains unproved; no matrix quality regrade.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+      "updated_at": "2026-11-19T18:31:01.636997+00:00",
       "matrix_verified": false,
       "mapping_scope": "Prerequisite regression or actual representative evidence only; historical matrix grades unchanged.",
       "matrix_affected_checks": [
@@ -2825,11 +2825,11 @@
       "owner_agent": "/root/independent_batch_review",
       "independent_reviewer": "/root/batch_build_review",
       "coordinator": "/root",
-      "status": "in-progress",
+      "status": "component-verified",
       "depends_on": [],
-      "implementation_state": "Durable Discarded observed; actual restoration/fresh-media predicate failed. Capture receiver counters and fresh-authority restore outcome.",
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g536-regression-and-media-frontiers.json",
-      "updated_at": "2026-11-19T14:44:21.087297+00:00",
+      "implementation_state": "G567 complete abort case now passes strict fresh OLD/unrelated decoded AV after Discarded, Core OLD restore and all original outer cleanup assertions. G563 prior SQL failure remains historical.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+      "updated_at": "2026-11-19T18:31:01.636997+00:00",
       "matrix_verified": false,
       "mapping_scope": "Prerequisite regression or actual representative evidence only; historical matrix grades unchanged.",
       "matrix_affected_checks": [
@@ -2844,11 +2844,11 @@
       "owner_agent": "/root/independent_batch_review",
       "independent_reviewer": "/root/batch_build_review",
       "coordinator": "/root",
-      "status": "implemented-unverified",
+      "status": "component-verified",
       "depends_on": [],
-      "implementation_state": "Source-proven async observation gap fixed: SAMErecord/status, bounded original8s, NoRows-only retry, terminal refusals fatal; compiled in G541 original-profile integration target. Actual media run still pending; original failed-browser cleanup not regraded.",
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
-      "updated_at": "2026-11-19T15:10:21.130120+00:00",
+      "implementation_state": "G567 complete actual Native-to-RTC case passes original same-record Root/all four phases, source/candidate/cut/readiness/activation and cleanup. No matrix credit.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+      "updated_at": "2026-11-19T18:31:01.636997+00:00",
       "matrix_verified": false,
       "mapping_scope": "Prerequisite regression or actual representative evidence only; historical matrix grades unchanged.",
       "matrix_affected_checks": [
@@ -2856,6 +2856,76 @@
         "independently-decoded-duplex-media-and-profile-budgets",
         "owned-drain-and-resource-reclamation"
       ]
+    },
+    {
+      "id": "V219-G545-ORIGINAL-CLEANUP",
+      "title": "Retain actual scoped Writer proof across effect-free original-cleanup busy",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "implementation_state": "G566 focused Store24 passes actual scoped-Writer/current-custody and lifecycle controls; 1,818 other full Rust checks remain unrun.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+      "updated_at": "2026-11-19T18:31:01.636997+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Regression prerequisite only; historical matrix failure maps/grades unchanged."
+    },
+    {
+      "id": "V219-G552-RESTORE-AUTHORITY",
+      "title": "Compose confirmed activation in fresh OLD restore authority",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "implementation_state": "G566 focused controls plus G567 complete abort restore/cleanup pass through current confirmed-activation composition. Original historical failed runs preserved.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+      "updated_at": "2026-11-19T18:31:01.636997+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "G552 diagnostic prerequisite; original matrix mappings and grades preserved."
+    },
+    {
+      "id": "V219-G552-NATIVE-FREEZE",
+      "title": "Expose existing Native source keyframe callbacks through composite",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "implementation_state": "Normal509 prepared original opaque Native composite callback delegation; G566 focused controls and G567 complete original Native Root/all four phases pass, with coverage/native-pin/authority unchanged.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+      "updated_at": "2026-11-19T18:31:01.636997+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "G552 diagnostic prerequisite; original matrix mappings and grades preserved."
+    },
+    {
+      "id": "V219-G552-CLOSED-CALLBACK-PROOF",
+      "title": "Retain actual queued callback identity after original PC closes",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "implementation_state": "G566 owner-negative controls plus G567 two actual closed queued callbacks retain registration proof and zero live frame credit; full abort passes with no ownership/observation failures.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+      "updated_at": "2026-11-19T18:31:01.636997+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "G552 diagnostic prerequisite; original matrix mappings and grades preserved."
+    },
+    {
+      "id": "V219-G563-UNPUBLISHED-ORACLE",
+      "title": "Verify strict absence of a fresh unpublished candidate after Discarded",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "implementation_state": "Accepted and applied strict eight-effect absence oracle now passes five added original-path Store controls in G566 and whole abort/cleanup in G567. Fresh reservation remains unpublished until commit; no production permission or mutation relaxation. Full current regression/originalV8/matrix verification still required.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+      "updated_at": "2026-11-19T18:31:01.636997+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Fixture contract correction only; all original failure mappings/grades retained."
     }
   ],
   "failure_mapping": [
@@ -5541,6 +5611,27 @@
       "revision": 129,
       "event": "Knownfixescurrent506unitverified:Node1201plus3Rustcontrols/shared379/generator/SDK; batchcommit andcompletecurrentregressionsnext.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g530-known-fixes-unit-verified.json"
+    },
+    {
+      "at": "2026-11-19T17:03:24.083695+00:00",
+      "revision": 132,
+      "event": "G5501372/1372 focused pass; G552all3actual failures retained and typed source causes isolated; three reviewed repairs applied pendingnormal509+closed-callback proof fix; mobile201actual verified. Fourth callback-observer fix applied after independent source review and33/33 isolated controls; all four known fixes now batched.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
+      "by": "/root"
+    },
+    {
+      "at": "2026-11-19T18:13:55.760141+00:00",
+      "revision": 133,
+      "event": "Source509 normal+G5621429focusedPASS; G563roundtrip/nativePASS andabortstrictbrowserrestoreprovedbutwholecaseFAILSQLoracle. Fifthstrictabsencecorrectionassigned; full1823Rustunrun/matrixunchanged; G560ENOSPCpreserved/G56113.6GiBcache recovery. Mobile203textonly.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g563-source509-verified-progress.json",
+      "by": "/root"
+    },
+    {
+      "at": "2026-11-19T18:31:01.636997+00:00",
+      "revision": 134,
+      "event": "G566 focused1434/1434 and G567 all3 strict early actual-media cases PASS with original cleanup; five fixes verified in these scopes. Full1818Rust/current379/originalV8/Firefox/ARM/release remain; no matrix regrade. Mobile204 text only.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+      "by": "/root"
     }
   ],
   "tracking_review": {
@@ -7170,9 +7261,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Prepared source508 passed all21 focused Rust controls, all4 original compilation groups and all4 inventories, with zero failed/ignored controls and natural owner joins. This verifies the five previously failing regression checks. The changed native-to-WebRTC allocation fixture compiles; its actual media behavior remains unverified. The PCM diagnostics passed19/19 pure tests; formatting, three generators and the Gate6 contract checker passed. The three actual media representatives last ran on506 and failed; audio identity and post-Discarded restored-media causes remain open. Native allocation now waits for the same asynchronous row within its original8s cutoff. Next: batch commit/push, one complete current regression run and actual media diagnostics. Last full matrix remainsv218:1/32cells and399/432checks. Not ready for32.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
-    "sha256": "a895787e6b911b92231db7ae8e9ff465281d07eea794280196636a2afd4f7d2e"
+    "status": "Prepared source509 passed all 1,434 focused checks: 133 Rust, 1,246 Node and 55 Python; all six build groups, default shipping and ten current inventories passed. The separate G567 real-media diagnostic now passes all three original cases with their cleanup assertions: roundtrip completed four handoff/return Roots, Native-to-WebRTC completed one Root, and abort proved fresh OLD and unrelated decoded AV after Discarded plus strict absence across eight effect families for the fresh unpublished candidate. Roundtrip and Native reached all four required phases. Two queued callbacks from the closed replacement were recorded as retired with no live frame credit; no observation or ownership failures occurred. The five fixes have focused unit and real-media evidence in these scopes. These are early diagnostic passes, not full regression or original V8 qualification: 1,818 full Rust checks remain unrun. Next: commit this verified batch, run all 3,252 current regression checks and current shared379/generator prerequisites, then the original V8 three-media gate on the same final source, strict Firefox NORMAL3, original qualification, local ARM11 and release/preflight gates. G563 retains its historical two-pass/one-SQL-failure result; G560 remains ENOSPC with no unit passes. Last full matrix remains v218: 1/32 cells and 399/432 checks. Not ready for32; G6-054 stays parked and execution stays on the local Mac/native ARM resources.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+    "sha256": "d8a66ff082594127395ab486f1e758ff362811e6daa250a29afc9a837407caf1"
   },
-  "updated": "2026-11-19T15:10:21.130120+00:00"
+  "updated": "2026-11-19T18:31:01.636997+00:00"
 }

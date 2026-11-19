@@ -894,7 +894,7 @@ test('recognized quiet PCM cannot spend more than the original usable coverage b
 });
 test('one quiet foreign source remains a hard failure despite otherwise sufficient coverage',()=>{
     const report=observed({audioSamples:(index,at,original)=>index===1000?tone(440,.0005,index*960):original});
-    assert.equal(report.audio.identified_seconds,2999*.02);
+    assert.equal(report.audio.identified_seconds,2999*960/48000);
     assert.equal(report.audio.bad_identity_frames,1);
     assert.equal(report.audio.recognized_below_energy_floor_frames,0);
     assert.equal(report.audio.passed,false);
@@ -904,7 +904,7 @@ test('recognized quiet duplicates remain hard failures and cannot create usable 
     assert.equal(report.audio.bad_identity_frames,0);
     assert.equal(report.audio.recognized_below_energy_floor_frames,2);
     assert.equal(report.audio.duplicate_frames,1);
-    assert.equal(report.audio.identified_seconds,2999*.02);
+    assert.equal(report.audio.identified_seconds,2999*960/48000);
     assert.equal(report.audio.passed,false);
 });
 
@@ -942,4 +942,38 @@ test('energetic source ambiguity retains the same accepted public PCM without ad
   const closed=await f.observer.close();assert.equal(closed.joined,true);assert.equal(closed.audio_lifetime_observer.retained_taps,0);
   assert.equal(f.nodes[0].port.onmessage,null);assert.equal(f.nodes[1].port.onmessage,null);
  });}finally{if(flag)Object.defineProperty(globalThis,'connectRtcAudioFacts',flag);else delete globalThis.connectRtcAudioFacts;}
+});
+
+
+test('strict partial original tone is identified with sample debit while legacy rejection remains diagnostic',()=>{
+    const report=observed({audioSamples:(index,at,original)=>{
+        if(index!==550)return original;
+        const samples=new Float32Array(960);for(let i=832;i<960;i++)samples[i]=.15*Math.sin(2*Math.PI*660*(i-832)/48000+.3);return samples;
+    }});
+    assert.equal(report.audio.bad_identity_frames,0);
+    assert.equal(report.audio.legacy_method_diagnostics.bad_identity_frames,1);
+    assert.equal(report.audio.original_sample_coverage.unavailable_zero_samples,832);
+    assert.equal(report.audio.identified_seconds,(3000*960-832)/48000);
+    assert.equal(report.audio.passed,true);
+});
+test('six genuine partial supports spend more than the SAME100ms allowance despite correct source identity',()=>{
+    const report=observed({audioSamples:(index,at,original)=>{
+        if(index<550||index>=556)return original;
+        const samples=new Float32Array(960);for(let i=832;i<960;i++)samples[i]=.15*Math.sin(2*Math.PI*660*(i-832)/48000+.3);return samples;
+    }});
+    assert.equal(report.audio.bad_identity_frames,0);assert.equal(report.audio.original_sample_coverage.unavailable_zero_samples,6*832);
+    assert.ok(report.audio.identified_seconds<59.9);assert.equal(report.audio.passed,false);
+});
+test('missing original rows and partial zeros share ONE duration allowance; no debit is forgiven by fit',()=>{
+    const report=observed({omitAudioIndices:[550,551,552,553,554],audioSamples:(index,at,original)=>{
+        if(index!==555)return original;const samples=original.slice();samples.fill(0,0,160);return samples;
+    }});
+    assert.ok(report.audio.identified_seconds<59.9);assert.equal(report.audio.passed,false);
+});
+test('literalzero row stays hard-unidentified even under remaining handoff or whole-window budget',()=>{
+    for(const interrupted of[false,true]){
+        const report=observed({...(interrupted?{interruptionMs:500,cutMs:15200}:{}),audioSamples:(index,at,original)=>index===550?new Float32Array(960):original});
+        assert.equal(report.audio.bad_identity_frames,1);assert.equal(report.audio.passed,false);
+        assert.equal(report.audio.legacy_method_diagnostics.bad_identity_frames,1);
+    }
 });

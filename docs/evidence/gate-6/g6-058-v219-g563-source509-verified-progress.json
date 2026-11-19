@@ -1,0 +1,143 @@
+{
+  "format": "connect/g6-058-g563-source509-focused-and-real-media-progress/1",
+  "updated": "2026-11-19T18:13:55.760141+00:00",
+  "summary": "Prepared source509 passed all1,429 focused checks:128 Rust,1,246 Node and55 Python, with all six builds and ten inventories passing. Another1,823 full Rust checks remain unrun; this is not full regression qualification. In the separate G563 real-media diagnostic, roundtrip passed all four handoff/return Roots and Native-to-WebRTC passed its original Root; both reached all four required phases. The abort browser also proved fresh OLD and unrelated decoded AV after Discarded, Core recorded OLD restored, and two correctly owned retired callbacks earned no live frame credit. The whole abort case still failed afterward at SQL QueryReturnedNoRows: its fixture incorrectly expected a retired canonical row for a fresh candidate that is not published until commit. The accepted strict-absence correction across eight effect families is now applied and formatted; its new unit/media verification is pending, so all three cases are not yet passed. The four prior behavior fixes now have focused unit and real-media evidence in these stated scopes. G560 remains a preserved ENOSPC failure with no unit passes; discarding obsolete object-only caches recovered13.6GiB while keeping warm caches, binaries, libraries, source and evidence. Next: verify the fifth fixture correction, record current progress, then run all3,252 current regression checks, shared379/generator prerequisites and the original three-media gate on the exact final source, followed by remaining Firefox/qualification/ARM/release/preflight gates. Last full matrix remainsv218:1/32 cells and399/432 checks. Not ready for32.",
+  "tracker_revision": 133,
+  "prepared_generation": 509,
+  "prepared_source_receipt_sha256": "07999ff5caf7aee2c4d6deb1f7553f26d1b31503b4b0a3c54c9bb9cd2fc240eb",
+  "normal_preparation_independent_audit_sha256": "178979825e3df2d6ff6e082f54f135713d9ccee94c479b851e4a7b38c6450ca2",
+  "source_lock_sha256": "0a3c2071d543def1d2458666f41df3e17e8a85aff2618103a47964de526b07a8",
+  "tested_source_sha256": "01f272a0b11eae31f34db9464f80d837ad48750d8d5cb143c314af5b11446657",
+  "scope": "Focused units and early actual-media diagnostic only; not full-unit/original-three/fullmatrix qualification.",
+  "focused_G562": {
+    "passed": 1429,
+    "failed": 0,
+    "ignored_or_skipped": 0,
+    "Rust_passed": 128,
+    "Node_passed": 1246,
+    "Python_passed": 55,
+    "all_six_build_groups_and_default_shipping_passed": true,
+    "all_ten_current_artifact_profiles_and_inventories_verified": true,
+    "full_Rust_unrun": 1823,
+    "full_unit_passed": false,
+    "original_owners_natural_joined": true
+  },
+  "actual_G563": {
+    "functional_passed": 2,
+    "functional_failed": 1,
+    "cases": {
+      "rtc_roundtrip": {
+        "passed": true,
+        "original_Roots_completed": 4,
+        "phases": [
+          "negotiated-never-fed",
+          "cut-bound-post-f",
+          "decoded-ready",
+          "activated"
+        ]
+      },
+      "native_to_rtc": {
+        "passed": true,
+        "original_Roots_completed": 1,
+        "phases": [
+          "negotiated-never-fed",
+          "cut-bound-post-f",
+          "decoded-ready",
+          "activated"
+        ]
+      },
+      "rtc_abort": {
+        "passed": false,
+        "browser_strict_fresh_OLD_and_unrelated_AV_after_Discarded": true,
+        "Core_old_restored": true,
+        "observation_failures": 0,
+        "retired_callbacks": 2,
+        "retired_callback_frame_credit": 0,
+        "subsequent_fixture_failure": "Rust SQL220 QueryReturnedNoRows expecting retiredcanonical candidate row",
+        "all_remaining_outer_cleanup_assertions_qualified": false
+      }
+    },
+    "all_original_test_browser_encoder_decoder_owners_closed_naturally": true,
+    "overall_actual3_qualified": false,
+    "original_V8_gate_still_required_after_full_current_regression": true
+  },
+  "four_fix_evidence": {
+    "finite_support_identity_and_sample_coverage": "Focused model/Node controls and complete actual roundtrip passed current strict method; no historical regrade or energeticunknown waiver.",
+    "OLD_restore_authority": "Focused Service controls and actual abort browser/Core confirmed restore; whole abort fixture remainsfailed at later unrelated SQLoracle.",
+    "Native_composite_source_callbacks": "Focused UCTP controls plus actual Native-to-RTC complete Root and allfour phases passed; no nativecoverage/pin/authority guard removed.",
+    "queued_callback_owner_proof": "Focused VM controls and two actual closed same-owner callbacks recorded retired with zero liveframe credit, no ownership failures."
+  },
+  "new_fifth_fixture_oracle": {
+    "task_id": "V219-G563-UNPUBLISHED-ORACLE",
+    "owner_agent": "/root/epoch_cause",
+    "independent_reviewer": "/root/independent_batch_review",
+    "coordinator": "/root",
+    "candidate_manifest_sha256": "200b75d01a2ef166d87c79f65d697c310db1f40d59cd70cefed064d2e7c1da62",
+    "independent_source_review_sha256": "905a820ddb55f95c58415ce9b6d2303847b071d78f0042f7ac5aa25336469744",
+    "source_contract": "Fresh reservation carries immutable candidate identity but creates no canonical Connection/nativeoffer until actualcommit. Reusing a priorretired slot is a separate path.",
+    "correction": "Exact originalreservation/candidate binding plus strictzero counts across eight durable effect/lifetime/journal families; no optionalNoRows/retiredOR/dummyrow/productionpermission change.",
+    "application_status": "APPLIED_FORMATTED_IMPLEMENTED_UNVERIFIED",
+    "application_evidence_sha256": "ba849476ce0ebe5c8ada3574421bf2a08cf11a30baf4e85a54db8f86b5aceb8a",
+    "format_evidence_sha256": "642b956977b472010cae0ac1ebc6e60af1f38946d68bd1e1b5bf5541003c487b",
+    "actual_verification": "NOT_CLAIMED",
+    "next_focused_union_prediction": 1434,
+    "next_focused_Store_union_prediction": 24,
+    "full_scope_prediction_unchanged": 3252,
+    "late_binding": "Root must replacependingapplication andactualunit/media fields if later checks finish beforepublication."
+  },
+  "capacity_history": {
+    "G560": "ENOSPC latebuild/logwrite, originalterminal1, focusedruntime NOTRUN; failure retained.",
+    "G561": "Three obsolete object-only compressed caches discarded with explicit loss of oldobject-cache restoreability. Warm incremental caches, published current/historical executables/rlibs/rmeta, source, DBs, logs and evidence preserved.",
+    "actual_recovered_bytes": 14627823616,
+    "approx_recovered_GiB": 13.623,
+    "old_cache_deletion_is_not_unit_or_matrix_pass": true
+  },
+  "proofs": {
+    ".local/gate-6/v219-g558-normal509-preparation-root/normal509-runtime/receipt.json": "07999ff5caf7aee2c4d6deb1f7553f26d1b31503b4b0a3c54c9bb9cd2fc240eb",
+    ".local/gate-6/v219-g558-actual-normal509-independent-audit/receipt.json": "178979825e3df2d6ff6e082f54f135713d9ccee94c479b851e4a7b38c6450ca2",
+    ".local/gate-6/v219-g562-focused-four-fix-source509-capacity-retry-root/diagnostic-focused-result.json": "ac49c4faa7769d5ba7828492d334630e772553250ee1ae57b02ff49cf6197b21",
+    ".local/gate-6/v219-g562-focused-four-fix-source509-capacity-retry-root/root-original-join.json": "a02ed1f8b2fc373a3f126c4db92eb72d9241d403a6c84ee994df34718c6ff3e3",
+    ".local/gate-6/v219-g562-actual-focused509-independent-audit/receipt.json": "c16dd1612db1e8a3c36d24050c0f4852962502801d57f3502a30d4942929571a",
+    ".local/gate-6/v219-g563-all-three-actual-media-source509-root/result.json": "9e90853ed6aa0785b4c1ef8ae88e0500b47570e7ecc630523181edffeee025ba",
+    ".local/gate-6/v219-g563-all-three-actual-media-source509-root/root-original-join.json": "324f26a4f96a8893dafd65a7824e991da7beff0092f3ffeafb7d4c498aaf9f65",
+    ".local/gate-6/v219-g563-actual-early-three509-independent-audit/receipt.json": "f639a2b2fbfa45a5ef5f3a52c01cb54c96685683fcc61be20a809e445c4be9ea",
+    ".local/gate-6/v219-g563-all-three-actual-media-source509-root/rtc-abort/fixture/abort-complete.json": "08dee70e1cc3fe1ba79255e7a894c762a5fb140eb35e7c605fa63dc4651867dd",
+    ".local/gate-6/v219-g563-all-three-actual-media-source509-root/rtc-abort/fixture/rtc-audio-closed.json": "781e0088511624cd84ac92c38b3b03af65839eded35a3994d9750bd135ac20a6",
+    ".local/gate-6/g563-fresh-unpublished-candidate-terminal-oracle-candidate/manifest.json": "200b75d01a2ef166d87c79f65d697c310db1f40d59cd70cefed064d2e7c1da62",
+    ".local/gate-6/g563-fresh-unpublished-candidate-independent-source-review/receipt.json": "905a820ddb55f95c58415ce9b6d2303847b071d78f0042f7ac5aa25336469744",
+    ".local/gate-6/v219-g561-storage-recovery-root/g560-capacity-failure-root.json": "6239be86d2daae81f47fe492c2a28224054dc84a9e30b69434d7c94b0f58903b",
+    ".local/gate-6/v219-g561-storage-recovery-root/first-object-cache-result.json": "f11293838b8aa9c46b9af73997db190bed016ce1642b3eb98f8650a604802fda",
+    ".local/gate-6/v219-g561-storage-recovery-root/two-object-cache-result.json": "4da550c6065c90340af717793f9886202a1d44caf2b4f0269bd75176fe664e10",
+    ".local/gate-6/g564-strict-unpublished-fixture-application-root/application.json": "ba849476ce0ebe5c8ada3574421bf2a08cf11a30baf4e85a54db8f86b5aceb8a",
+    ".local/gate-6/g564-strict-unpublished-fixture-application-root/format-result.json": "642b956977b472010cae0ac1ebc6e60af1f38946d68bd1e1b5bf5541003c487b",
+    "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-progress565.json": "c6d6efa81a3d54a1b5f13f082afbdfdd15f81aa63e041f225a5c7197ddbceb82"
+  },
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "unchanged": true
+  },
+  "remaining": [
+    "Verify the applied/formatted fifth strict fixture oracle on exact current source and rerun all three early actual cases",
+    "Checkpoint/current-source commit before complete full3252 regressions",
+    "Current shared379-vector/generator prerequisites and original V8 three-media gate on same final source/artifacts",
+    "Strict Firefox NORMAL3 with original source/duplicate/capture controls",
+    "Original finalqualification command/identity scopes, local ARM11/normalMac+ARMshipping/release and capturepreflight"
+  ],
+  "mobile203": {
+    "status": "scoped3paragraphupdateandreadbackVERIFIED",
+    "evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-progress565.json",
+    "sha256": "c6d6efa81a3d54a1b5f13f082afbdfdd15f81aa63e041f225a5c7197ddbceb82",
+    "unrelated_owner_content_preserved": true
+  },
+  "ready_for_32": false,
+  "full_unit_passed": false,
+  "actual3_qualified": false,
+  "matrix_credit": false,
+  "historical_regrade": false,
+  "G6_054": "parked",
+  "local_only": true
+}

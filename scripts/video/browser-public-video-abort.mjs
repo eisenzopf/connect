@@ -72,7 +72,8 @@ try{
   const {BrowserRtcConnection}=await import('/sdk/browser_sdk_webrtc.js');
   const {BrowserClient}=await import('/sdk/browser_client.js');
   const {browserMatrixRtcObservation}=await import('/rtc-observer.mjs');
-  const {pcmIdentity}=await import('/pcm-identity.mjs');
+  const {strictPcmIdentity:pcmIdentity,PcmSampleLedger}=await import('/pcm-identity.mjs');
+  const pcmLedger=new PcmSampleLedger();
   const {pcmBoundary}=await import('/pcm-boundary.mjs');
   const check=(value,message)=>{if(!value)throw Error(message);};
   const opts=()=>({timeoutMs:8000}),mutation=operationId=>({...opts(),operationId});
@@ -80,7 +81,7 @@ try{
   const wait=async(predicate,until,message)=>{while(!predicate()){check(performance.now()<until,message);await new Promise(resolve=>setTimeout(resolve,5));}};
   const clients=[],captures=[],renders=[],timers=[],oscillators=[],surfaces=[];
   const current=[],byConnection=new Map(),active=new Map(),progress=new Map(),ready=new Map(),moves=[];
-  const sourceHz=[440,660,880,1100],expected=[1,0,3,2],observationFailures=[];
+  const sourceHz=[440,660,880,1100],expected=[1,0,3,2],observationFailures=[],callbackOwnershipFailures=[],retiredCallbackObservations=[];
   const renderTimes=new Map(),audioFailures=[];
   globalThis.connectRtcAudioFacts=true;
   const audio=new AudioContext({sampleRate:48000});await audio.resume();
@@ -99,14 +100,53 @@ try{
    try{return original.apply(this,args);}finally{arming=null;}
   };
   HTMLVideoElement.prototype.requestVideoFrameCallback=function(callback){
-   const element=this;return nativeFrame.call(element,function(now,metadata){
+   const element=this;
+   const originalOwner=()=>{
+    const tracks=element.srcObject instanceof MediaStream?element.srcObject.getVideoTracks():[];
+    check(tracks.length===1,'one actual original callback video track');
+    const track=tracks[0],matches=[...peers].flatMap(([id,peer])=>peer.getTransceivers().filter(t=>t.receiver.track===track).map(t=>({id,peer,transceiver:t})));
+    check(matches.length===1,'unique actual original receiver per decoded callback');
+    const {id,peer,transceiver}=matches[0];
+    return {element,track,trackId:track.id,id,peer,transceiver,receiver:transceiver.receiver,mid:transceiver.mid};
+   };
+   // A close-time exception requires this actual registration while the SAME
+   // native owner/track and non-null MID were still live. Missing setup here
+   // can still resolve normally on a later LIVE callback, never after close.
+   let registration=null;
+   try{const value=originalOwner();if(value.peer.connectionState!=='closed'&&value.peer.signalingState!=='closed'&&value.track.readyState==='live'&&typeof value.mid==='string'&&value.mid.length>0)registration=Object.freeze(value);}catch{}
+   return nativeFrame.call(element,function(now,metadata){
     try{const tracks=element.srcObject instanceof MediaStream?element.srcObject.getVideoTracks():[];
-    if(tracks.length===1){const track=tracks[0];const matches=[...peers].flatMap(([id,peer])=>peer.getTransceivers().filter(t=>t.receiver.track===track).map(t=>({id,peer,transceiver:t})));
-     check(matches.length===1&&typeof matches[0].transceiver.mid==='string','actual original receiver/track/MID per decoded callback');
-     let value=decoded.get(track);if(!value){check(decoded.size<16,'bounded original video elements');value={element,track,...matches[0],callbacks:0};decoded.set(track,value);}
-     check(value.element===element&&value.callbacks<50000,'one original decoder element per track and bounded callbacks');value.callbacks++;value.last=performance.now();
+    if(tracks.length||registration||[...decoded.values()].some(value=>value.element===element)){
+     const actual=originalOwner(),same=(proof)=>proof.element===element&&proof.track===actual.track&&proof.trackId===actual.track.id&&proof.id===actual.id&&proof.peer===actual.peer&&peers.get(proof.id)===proof.peer&&proof.transceiver===actual.transceiver&&proof.receiver===actual.receiver&&proof.receiver.track===proof.track;
+     if(registration)check(same(registration),'same registered original decoder owner');
+     const previous=decoded.get(actual.track);if(previous)check(same(previous.ownerProof)&&(!registration||registration.mid===previous.ownerProof.mid),'same previously decoded original owner/MID');
+     const closed=actual.peer.connectionState==='closed'&&actual.peer.signalingState==='closed';
+     if(closed){
+      check(registration&&same(registration)&&actual.track.readyState==='ended'&&
+       (actual.mid===null||actual.mid===registration.mid)&&closeProof?.connection_id===registration.id&&closeProof.only_native_peer_closed===true,
+       'queued callback retains actual registered owner across the original candidate close');
+      // The original callback still runs. This retired callback grants NO
+      // decoded/live/warm/public frame count and never advances value.last.
+      if(retiredCallbackObservations.length<16)retiredCallbackObservations.push({at:performance.now(),connection_id:registration.id.slice(0,256),track_id:registration.trackId.slice(0,128),registered_mid:registration.mid.slice(0,32),mid_cleared:actual.mid===null,public_grade:false});
+     }else{
+      check(actual.peer.connectionState!=='closed'&&actual.peer.signalingState!=='closed'&&actual.track.readyState==='live'&&typeof actual.mid==='string'&&actual.mid.length>0&&(!registration||actual.mid===registration.mid),'actual original receiver/track/MID per decoded callback');
+      let value=decoded.get(actual.track);if(!value){check(decoded.size<16,'bounded original video elements');value={...actual,ownerProof:Object.freeze({...actual}),callbacks:0};decoded.set(actual.track,value);}
+      check(same(value.ownerProof)&&actual.mid===value.ownerProof.mid&&value.callbacks<50000,'one original decoder element/MID per track and bounded callbacks');value.callbacks++;value.last=performance.now();
+     }
     }
-    }catch(error){invalid(`native callback ownership: ${String(error.message).slice(0,120)}`);}
+    }catch(error){
+     // Failure-only native scalar context. A diagnostic refusal cannot change
+     // the original assertion, callback, returned value or callback scheduling.
+     try{if(callbackOwnershipFailures.length<16){
+      const tracks=element.srcObject instanceof MediaStream?element.srcObject.getVideoTracks():[];
+      callbackOwnershipFailures.push({at:performance.now(),tracks:tracks.slice(0,3).map(track=>({id:track.id.slice(0,128),state:track.readyState})),
+       peers:[...peers].slice(0,8).map(([id,peer])=>({id:id.slice(0,128),connection_state:peer.connectionState,signaling_state:peer.signalingState,
+        transceivers:peer.getTransceivers().slice(0,3).map(t=>({mid:typeof t.mid==='string'?t.mid.slice(0,32):null,
+         receiver_track_id:t.receiver.track.id.slice(0,128),receiver_track_state:t.receiver.track.readyState,
+         matches_callback_track:tracks.includes(t.receiver.track)}))}))});
+     }}catch{try{if(callbackOwnershipFailures.length<16)callbackOwnershipFailures.push({at:performance.now(),context_unavailable:true});}catch{}}
+     invalid(`native callback ownership: ${String(error.message).slice(0,120)}`);
+    }
     return callback.call(element,now,metadata);
    });
   };
@@ -153,7 +193,7 @@ try{
    });
   };
   const invalid=message=>{if(measuring&&observationFailures.length<16)observationFailures.push(String(message).slice(0,160));};
-  const retainPcm=async stage=>{try{const at=performance.now();await globalThis.retainPublicPcmDiagnostics(stage,{format:'connect/owned-public-pcm-diagnostics/1',fixture:'browser-public-video-abort',operation_id:spec.operationId,at,render_origins:[...renderTimes].map(([connection_id,value])=>({connection_id,...value})),audio_failures:audioFailures,observation_failures:observationFailures,receivers:[...progress].map(([connection_id,p])=>({connection_id,i:byConnection.get(connection_id),selected:active.get(byConnection.get(connection_id))===connection_id,audio:p.audio,video:p.video,changing:p.changing,lastAudio:p.lastAudio,lastVideo:p.lastVideo,audio_age_ms:p.lastAudio===null?null:at-p.lastAudio,video_age_ms:p.lastVideo===null?null:at-p.lastVideo})),current:current.map((value,i)=>({i,connection_id:value.connection.id})),phases:[...phases.values()].map(value=>({operation_id:value.operation_id,record_id:value.record_id,state:value.state,phase:value.webrtc_public_video_phase?.phase,target_connection_id:value.webrtc_public_video_phase?.target_connection_id,target_generation:value.webrtc_public_video_phase?.target_generation})),audio_diagnostics:observer?.report()??null});}catch{}};
+  const retainPcm=async stage=>{try{const at=performance.now();await globalThis.retainPublicPcmDiagnostics(stage,{format:'connect/owned-public-pcm-diagnostics/1',pcm_measurement:pcmLedger.report(),fixture:'browser-public-video-abort',operation_id:spec.operationId,at,render_origins:[...renderTimes].map(([connection_id,value])=>({connection_id,...value})),audio_failures:audioFailures,observation_failures:observationFailures,callback_ownership_failures:callbackOwnershipFailures,retired_callback_observations:retiredCallbackObservations,receivers:[...progress].map(([connection_id,p])=>({connection_id,i:byConnection.get(connection_id),selected:active.get(byConnection.get(connection_id))===connection_id,audio:p.audio,video:p.video,changing:p.changing,lastAudio:p.lastAudio,lastVideo:p.lastVideo,audio_age_ms:p.lastAudio===null?null:at-p.lastAudio,video_age_ms:p.lastVideo===null?null:at-p.lastVideo})),current:current.map((value,i)=>({i,connection_id:value.connection.id})),phases:[...phases.values()].map(value=>({operation_id:value.operation_id,record_id:value.record_id,state:value.state,phase:value.webrtc_public_video_phase?.phase,target_connection_id:value.webrtc_public_video_phase?.target_connection_id,target_generation:value.webrtc_public_video_phase?.target_generation})),audio_diagnostics:observer?.report()??null});}catch{}};
   try{
    for(const actor of spec.actors){
     const algorithm=actor.signing.algorithm==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
@@ -191,13 +231,15 @@ try{
      const i=byConnection.get(id);if(i===undefined||active.get(i)!==id)return;
      if(samples.length!==960){invalid('actual20ms decoded PCM');return;}
      const identity=pcmIdentity(samples,expected[i]);
+     pcmLedger.push({owner:id,clock,timestamp,at,identity,usable:identity.identified&&identity.rms>.03});
+     const p=progress.get(id);p.audio=pcmLedger.availableSamples(id)/960;
      if(!(identity.rms>.03))return identity.source_identified;
      if(!identity.identified){
       if(audioFailures.length<8)audioFailures.push({id,timestamp,at,clock,expected_hz:sourceHz[expected[i]],render:renderTimes.get(id),
        receivedAudio:progress.get(id)?.audio,identity,boundary:pcmBoundary(samples)});
       invalid(`actual selected source tone id=${id.slice(0,32)} hz=${sourceHz[expected[i]]} rms=${identity.rms.toFixed(3)} powers=${identity.powers.map(power=>power.toExponential(3)).join('/')}`);return identity.source_identified;
      }
-     const p=progress.get(id);p.audio++;p.lastAudio=at;return identity.source_identified;
+     p.lastAudio=at;return identity.source_identified;
     },
     video(id,timestamp,at,frame,width,height){
      const i=byConnection.get(id);if(i===undefined||active.get(i)!==id)return;
@@ -277,7 +319,7 @@ try{
    const target=await completion;check(!target.fulfilled,'cancelled held wait cannot complete or grant B');
    try{
    await wait(()=>current.every((value,i)=>{const p=progress.get(value.connection.id);return fresh(value.connection.id,afterDiscarded)&&p.audio>post[i].audio&&p.video>post[i].video&&p.changing>post[i].changing;}),cutoff,'genuinely new fresh OLD and unrelated AV after actual Discarded/restore');
-   }catch(error){try{await globalThis.retainPublicPcmDiagnostics('restore-wait',{operation_id:operationId,at:performance.now(),after_discarded:afterDiscarded,cutoff,post:post.map(p=>({...p,lastPixels:undefined})),current:current.map((value,i)=>{const p=progress.get(value.connection.id),at=performance.now();return {i,connection_id:value.connection.id,...p,lastPixels:undefined,audio_age_ms:p.lastAudio===null?null:at-p.lastAudio,video_age_ms:p.lastVideo===null?null:at-p.lastVideo};}),audio_failures:audioFailures,observation_failures:observationFailures,audio_diagnostics:observer.report()});}catch{}throw error;}
+   }catch(error){try{await globalThis.retainPublicPcmDiagnostics('restore-wait',{operation_id:operationId,at:performance.now(),after_discarded:afterDiscarded,cutoff,post:post.map(p=>({...p,lastPixels:undefined})),current:current.map((value,i)=>{const p=progress.get(value.connection.id),at=performance.now();return {i,connection_id:value.connection.id,...p,lastPixels:undefined,audio_age_ms:p.lastAudio===null?null:at-p.lastAudio,video_age_ms:p.lastVideo===null?null:at-p.lastVideo};}),audio_failures:audioFailures,observation_failures:observationFailures,callback_ownership_failures:callbackOwnershipFailures,retired_callback_observations:retiredCallbackObservations,audio_diagnostics:observer.report()});}catch{}throw error;}
    for(let i=0;i<4;i++)check(captures.find(value=>value.id===current[i].connection.id)?.owner.closed===false,'all original camera/audio owners remain current after failed target');
    for(let i=0;i<clients.length;i++)check(clients[i].transport.physicalEpoch===epochs[i],'original signed control epochs unchanged');
    const source=await before.connection.refresh(options()),retained=await retain.connection.refresh(options());
@@ -285,7 +327,7 @@ try{
    check(publicSends===0,'no held public Ready was actually transmitted');
    check(observationFailures.length===0,'no malformed/wrong-source actual AV after restore: '+JSON.stringify(observationFailures));
    const report={operation_id:operationId,record_id:status.recordId,candidate:prepared.connection.id,close:closeProof,public_ready_sent:publicSends>0,local_wait_cancel_after_durable_discarded:true,target_failure:target.error,
-    same_original_control_epochs:true,old_decoded_outputs:current.map(value=>({connection_id:value.connection.id,...progress.get(value.connection.id),lastPixels:undefined})),elapsed_ms:8000-(cutoff-performance.now())};
+    same_original_control_epochs:true,retired_callback_observations:retiredCallbackObservations,old_decoded_outputs:current.map(value=>({connection_id:value.connection.id,...progress.get(value.connection.id),lastPixels:undefined})),elapsed_ms:8000-(cutoff-performance.now())};
    await globalThis.terminalCheckpoint('abort-complete',report,options().timeoutMs);
    return {format:spec.format,passed:true,...report};
   }catch(error){functionalFailure=error;await retainPcm('failure');throw error;}

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-19T15:10:21.130120+00:00",
-  "run_status": "All currently identified source fixes are implemented and unit-verified on prepared source506. Current71browser/affectedNode modules pass1201/1201, generator--check and SDKbuild pass; original-profile Rustbuilds pass all3required UCTP schema/golden controls and the shared379-vector Rust/browser integration oracle. No skips, forced processes or acceptance changes. This verifies bounded originaloperation.get503recovery, exact logicalIDs/freshsignedrequests/one deadline/currentdenials, five fixture dependency routes, strict contains/min/max/ASCII validators and synchronized canonicalschema/vectors. The abortfixture now observes the actual read rejection; its paired pending-write negative preserves original transport-retirement semantics. Existing Core/Native/SIP/provider fixes passed historical completeaffectedG5192206/2206. Next is one complete current506 affected regression batch after this checkpoint/batchcommit, followed by all3real decoded-media representatives on that same source. StrictFirefox3, original finalqualification command/identity scopes, localARM11/normalreleases and capturepreflight remain before readiness for32cells. origin/main was freshly fetched:zero commits missing. Underlying internal source of temporaryauthority availability remains unproven; the SDK follows the existing bounded read-recovery policy. Last fullmatrix remainsv218:1/32cells,399/432checks; no unit/diagnostic result regrades a cell. G6-054 remains parked. LocalMac/nativeARM resources only; no GitHub tests or cloud runners.",
+  "updated": "2026-11-19T18:31:01.636997+00:00",
+  "run_status": "Prepared source509 passed all 1,434 focused checks: 133 Rust, 1,246 Node and 55 Python; all six build groups, default shipping and ten current inventories passed. The separate G567 real-media diagnostic now passes all three original cases with their cleanup assertions: roundtrip completed four handoff/return Roots, Native-to-WebRTC completed one Root, and abort proved fresh OLD and unrelated decoded AV after Discarded plus strict absence across eight effect families for the fresh unpublished candidate. Roundtrip and Native reached all four required phases. Two queued callbacks from the closed replacement were recorded as retired with no live frame credit; no observation or ownership failures occurred. The five fixes have focused unit and real-media evidence in these scopes. These are early diagnostic passes, not full regression or original V8 qualification: 1,818 full Rust checks remain unrun. Next: commit this verified batch, run all 3,252 current regression checks and current shared379/generator prerequisites, then the original V8 three-media gate on the same final source, strict Firefox NORMAL3, original qualification, local ARM11 and release/preflight gates. G563 retains its historical two-pass/one-SQL-failure result; G560 remains ENOSPC with no unit passes. Last full matrix remains v218: 1/32 cells and 399/432 checks. Not ready for32; G6-054 stays parked and execution stays on the local Mac/native ARM resources.",
   "blockers": [
     {
       "id": "B01",
@@ -20366,7 +20366,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-19T09:06:51.096314+00:00",
+  "updated_at": "2026-11-19T18:31:01.636997+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20410,8 +20410,32 @@
     "ready_for_32": false
   },
   "current_preparation_checkpoint": {
-    "status": "Prepared source508 passed all21 focused Rust controls, all4 original compilation groups and all4 inventories, with zero failed/ignored controls and natural owner joins. This verifies the five previously failing regression checks. The changed native-to-WebRTC allocation fixture compiles; its actual media behavior remains unverified. The PCM diagnostics passed19/19 pure tests; formatting, three generators and the Gate6 contract checker passed. The three actual media representatives last ran on506 and failed; audio identity and post-Discarded restored-media causes remain open. Native allocation now waits for the same asynchronous row within its original8s cutoff. Next: batch commit/push, one complete current regression run and actual media diagnostics. Last full matrix remainsv218:1/32cells and399/432checks. Not ready for32.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
-    "sha256": "a895787e6b911b92231db7ae8e9ff465281d07eea794280196636a2afd4f7d2e"
+    "status": "Prepared source509 passed all 1,434 focused checks: 133 Rust, 1,246 Node and 55 Python; all six build groups, default shipping and ten current inventories passed. The separate G567 real-media diagnostic now passes all three original cases with their cleanup assertions: roundtrip completed four handoff/return Roots, Native-to-WebRTC completed one Root, and abort proved fresh OLD and unrelated decoded AV after Discarded plus strict absence across eight effect families for the fresh unpublished candidate. Roundtrip and Native reached all four required phases. Two queued callbacks from the closed replacement were recorded as retired with no live frame credit; no observation or ownership failures occurred. The five fixes have focused unit and real-media evidence in these scopes. These are early diagnostic passes, not full regression or original V8 qualification: 1,818 full Rust checks remain unrun. Next: commit this verified batch, run all 3,252 current regression checks and current shared379/generator prerequisites, then the original V8 three-media gate on the same final source, strict Firefox NORMAL3, original qualification, local ARM11 and release/preflight gates. G563 retains its historical two-pass/one-SQL-failure result; G560 remains ENOSPC with no unit passes. Last full matrix remains v218: 1/32 cells and 399/432 checks. Not ready for32; G6-054 stays parked and execution stays on the local Mac/native ARM resources.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+    "sha256": "d8a66ff082594127395ab486f1e758ff362811e6daa250a29afc9a837407caf1"
+  },
+  "v219_g550_current_failure_frontiers": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
+    "sha256": "b3ad3db6139776c2cf145fb8c055fb564ed699e043d81321c8c2e5d71ff8ec4d",
+    "ready_for_32": false,
+    "historical_regrade": false
+  },
+  "v219_g563_source509_verified_progress": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g563-source509-verified-progress.json",
+    "sha256": "ddfdff40218c97de67d737d89778973134c23128627b673cd058151725390d0e",
+    "focused_passed": 1429,
+    "actual_media_passed": 2,
+    "actual_media_failed": 1,
+    "ready_for_32": false,
+    "matrix_credit": false
+  },
+  "v219_g567_five_fixes_verified": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g567-five-fixes-verified.json",
+    "sha256": "d8a66ff082594127395ab486f1e758ff362811e6daa250a29afc9a837407caf1",
+    "focused_passed": 1434,
+    "actual_media_diagnostic_passed": 3,
+    "actual_media_diagnostic_failed": 0,
+    "ready_for_32": false,
+    "matrix_credit": false
   }
 }

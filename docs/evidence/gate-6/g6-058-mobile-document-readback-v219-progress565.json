@@ -1,0 +1,42 @@
+{
+  "format": "connect/g565-mobile203-scoped-readback/1",
+  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "content_revision": 203,
+  "google_revision": "AHj4eMTXWd-QeTEkJVJfys4WN_Ir3nT30wVpCSDfAYcfLkiC3hWwaFlrZFt9P3bfu6Fn8gyz57Iu3qFZj4AyGTEqdNWmQPPM0r05TsoE8Hw",
+  "verified": true,
+  "unrelated_paragraphs_preserved": true,
+  "changed_paragraphs": 3,
+  "paragraphs": [
+    "Revision 203 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+    "Latest verification: prepared source509 passed 1,429/1,429 focused checks, all six builds and ten inventories. Two of three actual media cases passed: handoff-and-return and native-to-WebRTC. Aborted-handoff media also resumed, but its Rust fixture failed a database assertion. That strict fixture correction is applied; its new unit/media verification is next. No full-regression or matrix qualification is claimed.\n",
+    "Current verification — November 19. G562 passed 128 Rust controls, 1,246 Node tests and 55 Python tests on prepared source509, with all original owners naturally closed. Another 1,823 full Rust checks remain unrun. G563 then passed all four actual handoff/return operations and the original native-to-WebRTC operation, reaching their required phases and cleanup checks. The abort browser proved fresh original and unrelated audio/video after Discarded; Core recorded restoration success, and queued closed callbacks earned no live frame credit. The whole abort case remains failed: its Rust fixture expected a retired canonical connection row for a fresh candidate that is materialized only at commit. The independently reviewed correction binds the exact reserved candidate and requires eight categories of admission, lifetime, commit and lifecycle effects to remain absent. It is applied and formatted, awaiting five additional Store controls and the unchanged three media cases. The four prior behavior fixes have unit and actual-media evidence in these stated scopes. The earlier disk-full run remains failed with no unit passes; obsolete object-cache archives were discarded while preserving warm caches, binaries, libraries, source and evidence. Next: verify the fixture correction and all three media cases, commit and push, then run the current shared379 prerequisites, full3,252 regressions and original three-media verification on one committed source, followed by Firefox, ARM, release and capture prerequisites. Last full matrix remains 1/32 cells and 399/432 checks. Not ready for32. Root coordinates; epoch_cause owns the strict fixture correction; independent_batch_review checks the contracts, code and evidence. Historical failed runs remain failed.\n"
+  ],
+  "update": {
+    "documentId": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "revisionId": "AHj4eMTXWd-QeTEkJVJfys4WN_Ir3nT30wVpCSDfAYcfLkiC3hWwaFlrZFt9P3bfu6Fn8gyz57Iu3qFZj4AyGTEqdNWmQPPM0r05TsoE8Hw",
+    "replies": [
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      }
+    ],
+    "writeControl": {
+      "requiredRevisionId": "AHj4eMTXWd-QeTEkJVJfys4WN_Ir3nT30wVpCSDfAYcfLkiC3hWwaFlrZFt9P3bfu6Fn8gyz57Iu3qFZj4AyGTEqdNWmQPPM0r05TsoE8Hw",
+      "targetRevisionId": null
+    },
+    "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y"
+  },
+  "qualification": false,
+  "matrix_credit": false
+}

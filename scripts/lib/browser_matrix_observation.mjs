@@ -7,7 +7,7 @@ import {browserMatrixPipeline} from './browser_matrix_pipeline.mjs';
 import {classifySourceFrame,sourceIdentityReport} from '../video/source_identity.mjs';
 import {ordinalSync} from '../video/marker_calibration.mjs';
 import {AudioEnvelope,combineAudioEnvelopeSync} from '../video/audio_envelope.mjs';
-import {pcmIdentity} from './browser_matrix_pcm.mjs';
+import {strictPcmIdentity,PcmSampleLedger,pcmSampleCoverage,STRICT_PCM_PROFILE,PCM_MEASUREMENT_METHOD} from './browser_matrix_pcm.mjs';
 export {pcmIdentity} from './browser_matrix_pcm.mjs';
 import {pcmBoundary,browserMatrixRtcStages} from './browser_matrix_stages.mjs';
 import {transitionCoverage,cleanBinDurations} from './media_transition_coverage.mjs';
@@ -268,7 +268,7 @@ export class DecodedRoute {
             check(!history || timestamp === history.last || timestamp - history.last >= 20000,
                 'Overlapping or backward decoded PCM timestamp');
         }
-        const identity = pcmIdentity(samples, this.expected);
+        const identity = strictPcmIdentity(samples, this.expected);
         const key = JSON.stringify([owner, 'decoded-pcm', clockKey, pcmPosition]);
         const duplicate = this.seen.has(key);
         if (!history) {
@@ -439,10 +439,31 @@ export class DecodedRoute {
         this.envelope=new AudioEnvelope();for(const row of originalAudio)this.envelope.sample(row.seconds,row.rms);
         this.videoEdges=[];let high=false;for(const row of markerVideo){if(row.kind==='pulse'&&!high)this.videoEdges.push(row.seconds);high=row.kind==='pulse';}
         const audio=originalAudio.filter(inWindow),video=originalVideo.filter(inWindow),identified=audio.filter(row=>row.identified&&!row.duplicate);
+        const sampleLedger=new PcmSampleLedger();
+        // Membership filtering happened ABOVE this reconstruction. Preserve the
+        // original callback anchor and decoded owner/clock for every row.
+        const sampleRows=originalAudio.map(row=>sampleLedger.push({owner:row.owner,clock:row.clock,
+            timestamp:row.timestamp,at:row.seconds*1000,identity:row,position:row.pcm_position,
+            rate:row.pcm_clock_rate,duplicate:row.duplicate,
+            publicInterval:this.audioCuts.filter(cut=>cut.atMs<=row.seconds*1000).length}));
+        const includedSampleRows=sampleRows.filter(row=>row.at>=start*1000&&row.at<end*1000);
         const boundaries=[start,...identified.map(row=>row.seconds),end];
         const maximumGap=Math.max(...boundaries.slice(1).map((at,i)=>Math.max(0,at-boundaries[i]-(i===0?0:.02))));
         const audioCoverage=transitionCoverage(identified.map(row=>row.seconds*1000),this.audioCuts,
             {startMs:start*1000,endMs:end*1000,frameMs:20,minimumGapMs:50});
+        const sampleCoverage=pcmSampleCoverage(includedSampleRows,audioCoverage,{startMs:start*1000,endMs:end*1000});
+        const sampleMeasurement=sampleLedger.report(includedSampleRows);
+        const legacyIdentified=audio.filter(row=>row.legacy.identified&&!row.duplicate);
+        const legacyCoverage=transitionCoverage(legacyIdentified.map(row=>row.seconds*1000),this.audioCuts,
+            {startMs:start*1000,endMs:end*1000,frameMs:20,minimumGapMs:50});
+        const legacyEnvelope=transitionEnvelope(originalAudio,legacyCoverage,start,this.envelope.report(start));
+        const legacyMethod={profile:'connect/decoded-audio-quality/3',source_identity_profile:'connect/decoded-tone-recognition/1',
+            diagnostic_only:true,historical_regrade:false,bad_identity_frames:audio.filter(row=>!row.legacy.source_identified).length,
+            identified_seconds:legacyIdentified.length*.02,transition_coverage:legacyCoverage,
+            passed:legacyIdentified.length*.02>=59.9-legacyCoverage.transition_missing_ms/1000
+                &&legacyCoverage.maximum_clean_gap_ms<=220&&legacyEnvelope.maximum_sample_gap_seconds<=.22
+                &&legacyIdentified.length>0&&legacyIdentified[0].seconds-start<=.2
+                &&audio.every(row=>row.legacy.source_identified&&!row.duplicate)};
         const quantumSeen=new Set(),videoSourceSeen=new Set();let sourceOverlaps=0,videoSourceOverlaps=0,sourceIdentified=0;
         const originNtp=((BigInt(Math.round((performance.timeOrigin+this.begin)*1000))/1000000n+2208988800n)<<32n)+
             ((BigInt(Math.round((performance.timeOrigin+this.begin)*1000))%1000000n)<<32n)/1000000n;
@@ -511,24 +532,28 @@ export class DecodedRoute {
         }
         const sync=combineAudioEnvelopeSync(ordinalSync(this.videoEdges.filter(at=>at>=start&&at<end),
             envelope.accepted_edge_seconds.filter(at=>at<end),seconds),envelope);
-        const audioResult={quality_profile:'connect/decoded-audio-quality/3',
+        const audioResult={quality_profile:'connect/decoded-audio-quality/3',measurement_method_profile:PCM_MEASUREMENT_METHOD,
             source_quantum_scope:'diagnostic-only-source-clock-attribution',
             metric_scope:'measurable-decoded-quality-source-quanta-diagnostic',
             original_source_sample_coverage_proved:false,
             source_quantum_diagnostics:{limit:16, events:sourceQuantumExamples, omitted:omittedSourceQuantumExamples,
                 scope:'Estimated source quanta provide clock attribution. Decoded quality uses the declared measurable scope'},
-            decoded_seconds:audio.length*.02,identified_seconds:identified.length*.02,
-            maximum_gap_ms:maximumGap*1000,maximum_pcm_sample_gap_ms:envelope.maximum_sample_gap_seconds*1000,
-            source_identity_profile:'connect/decoded-tone-recognition/1',
+            decoded_seconds:audio.length*.02,identified_seconds:sampleCoverage.identified_seconds,
+            original_sample_measurement:sampleMeasurement,original_sample_coverage:sampleCoverage,
+            legacy_method_diagnostics:legacyMethod,
+            maximum_gap_ms:Math.max(maximumGap*1000,sampleCoverage.maximum_clean_gap_ms),legacy_maximum_gap_ms:maximumGap*1000,maximum_pcm_sample_gap_ms:envelope.maximum_sample_gap_seconds*1000,
+            source_identity_profile:STRICT_PCM_PROFILE,
             bad_identity_frames:audio.filter(row=>!row.source_identified).length,
             // Retain the original coupled count as an explicit raw diagnostic.
-            // identified_seconds/gaps/onsets still use ONLY original usable rows.
+            // Sample-level zero debits use SAME original callback anchors/budgets;
+            // legacy full-quantum credit remains diagnostic only.
             unusable_or_unidentified_frames:audio.filter(row=>!row.identified).length,
             recognized_below_energy_floor_frames:audio.filter(row=>row.source_identified&&!row.identified).length,
             duplicate_frames:audio.filter(row=>row.duplicate).length,original_source_quantum_overlaps:sourceOverlaps,source_quantum_identity_available:sourceIdentified,source_quantum_identity_unbound_or_ambiguous:sourceUnbound,
             transition_coverage:audioCoverage,
-            passed:identified.length*.02>=59.9-audioCoverage.transition_missing_ms/1000
-                &&audioCoverage.maximum_clean_gap_ms<=220&&envelope.maximum_sample_gap_seconds<=.22&&identified.length>0&&identified[0].seconds-start<=.2
+            passed:sampleCoverage.identified_seconds>=59.9-audioCoverage.transition_missing_ms/1000
+                &&sampleCoverage.maximum_clean_gap_ms<=220&&envelope.maximum_sample_gap_seconds<=.22
+                &&sampleCoverage.first_available_ms!==null&&sampleCoverage.first_available_ms-start*1000<=200
                 &&audio.every(row=>row.source_identified&&!row.duplicate)};
         const decodedPerSecond=Array(60).fill(0);for(const row of video)decodedPerSecond[Math.floor(row.seconds-start)]++;
         const callbackTimes=[start,...video.map(row=>row.seconds),end];
@@ -831,7 +856,7 @@ export function browserMatrixObservation(Renderer,plan,Peer,Rtc,{webTransportSta
             },route.rendered));const nativeVideo=rtc?.decodedVideoReport()??null;
             const decodedVideoComplete=!nativeRtcVideo||(nativeVideo?.owners.length>=6&&nativeVideo.owners.every(owner=>owner.frames>0&&!owner.failed));
             const witnessBytes=rtcSourceFrameWitness?measured.reduce((n,row)=>n+row.video.original_source_frame_witness.encoded_bytes,0):0;
-            return lastReport=structuredClone({format:Rtc?'connect/browser-matrix-decoded-media/1':'connect/browser-matrix-decoded-media/2',
+            return lastReport=structuredClone({measurement_method_profile:PCM_MEASUREMENT_METHOD,format:Rtc?'connect/browser-matrix-decoded-media/1':'connect/browser-matrix-decoded-media/2',
             quality_profile:'connect/decoded-audio-quality/3',
             metric_scope:'measurable-decoded-quality-source-quanta-diagnostic',
             original_source_sample_coverage_proved:false,
