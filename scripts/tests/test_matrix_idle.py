@@ -185,7 +185,7 @@ class MatrixCycleIdleTests(unittest.TestCase):
                     request("terminal", 120); request("retired", 120.1)
                     for at in [121, 127, 128, 130.01]: clock[0] = at; idle.poll()
                     observed = idle.finish()
-                self.assertTrue(observed["passed"])
+                self.assertTrue(observed["passed"], {"focused_capacity": focused, "observation": observed})
                 self.assertEqual(observed["policy"], CYCLE_POLICY)
                 self.assertEqual(observed["baseline"]["monotonic_seconds"], 101)
                 self.assertEqual(observed["persistent_owners"]["server"]["pid"], 101)

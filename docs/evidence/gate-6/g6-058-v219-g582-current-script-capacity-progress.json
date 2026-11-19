@@ -1,0 +1,141 @@
+{
+  "format": "connect/g6-058-g582-current-script-capacity-progress/1",
+  "updated": "2026-11-19T20:14:21.520095+00:00",
+  "tracker_revision": 136,
+  "summary": "Current prepared source509 / dirty seal6e484 on base6eb passes G581 whole idle/plateau controls30/30 and G582 fresh whole original-script commands431/431: Python168 and Node263. The supplemental Node263 reporter run is separate identity evidence, not extra checks. G582 source remained unchanged and all original owners closed naturally; independent actual audit accepted the result and released the freeze. The 30 focused checks overlap the 431 and are not added to them. Three reviewed Python harness/control files refresh the exact current Cargo.lock source binding while retaining main/Tokio/default512 and every capacity, ownership and cleanup rule; actual protected-source mutation negatives pass. Original 408 occurrence accounting is explicit: all 159 legacy Python IDs are literal, and232 literal Node occurrences plus 17 independently source-proven annotation mappings preserve 249 legacy Node IDs; the frozen/current browser-failure file is byte-identical10160. The raw literal flag stays false, and the original qualification has not run. G576 full 3,252/3,252 on committed6eb remains a historical pass; G577 was abandoned without starting after G578 exposed two Python failures. G578 raw collector failure and167 Python cases with two failures remain immutable, with corrected offline inventory preserved. G567 remains the latest three-case real-media diagnostic pass, with no original V8 or matrix credit. Next: commit this verified batch, run current shared379/generator prerequisites and fresh additive full 3,282 (Rust 1,951, Node 1,246, Python 85=retained 55+whole idle/plateau 30), then original V8 on one exact final seal, strict Firefox NORMAL3, original qualification, local ARM11 and normal releases/preflight. Last full matrix remains v218: 1/32 cells and 399/432 checks. Not ready for32; G6-054 remains parked and execution stays local Mac/native ARM.",
+  "scope": "Current capacity/script component evidence only; no current full regression/original V8/Firefox/matrix qualification.",
+  "source": {
+    "base_HEAD": "6eb93de9d07e5a0b7e247a7ac7b1c84ebc4d1445",
+    "prepared_generation": 509,
+    "dirty_working_source_sha256": "6e48471c06fee1547e056c88f2bbdc2c68de2a5040591b99412f2970e6f92714",
+    "future_commit": "PENDING_ROOT_COMMIT_AFTER_ACTUAL_AUDIT_AND_REVIEWED_PROGRESS",
+    "source_lock_sha256": "0a3c2071d543def1d2458666f41df3e17e8a85aff2618103a47964de526b07a8"
+  },
+  "G580_applied": {
+    "changed_files": 3,
+    "scope": "Python harness source-binding and controls only",
+    "Tokio_runtime_and_default512_unchanged": true,
+    "no_budget_availability_or_cleanup_waiver": true
+  },
+  "G581": {
+    "passed": 30,
+    "failed": 0,
+    "strict_source_mutation_negative_passed": true,
+    "independent_actual_audit_sha256": "4ca03cd9887a8f983d07b8acb641e3c0b4b9dc1aa83d4f44013aa59d986ae2ae",
+    "overlaps_G582_not_additional": true
+  },
+  "G582": {
+    "original_whole_commands_passed": 431,
+    "Python_passed": 168,
+    "Node_passed": 263,
+    "failed": 0,
+    "supplemental_Node_passed": 263,
+    "supplemental_counts_as_additional_checks": false,
+    "source_unchanged": true,
+    "original_Root_and_three_children_natural_unforced_closed": true,
+    "independent_actual_audit": ".local/gate-6/g582-actual-whole-original-script-independent-audit/receipt.json",
+    "raw_literal_all408_retained": false,
+    "ordinal_mapping_accepted_by_raw_collector": false,
+    "original_final_qualification_passed": false,
+    "independent_actual_audit_sha256": "81f16656c46418679762e210f3c72e909bad1fde04e3bf53ca92f34c26fc72c7"
+  },
+  "original408_explicit_identity_accounting": {
+    "legacy_Python": 159,
+    "literal_Python_retained": 159,
+    "legacy_Node": 249,
+    "literal_Node_retained": 232,
+    "explicit_fixed_source_proven_Node_annotation_mappings": 17,
+    "frozen_and_current_browser_failure_source_sha256": "10160a8fcf4346d8994c7f40d310b565093217d8f0d86841732ff8d98104ed13",
+    "mapping_review_sha256": "41cd9c0f6a505b345891b84b9ef337ccdd818655a90e332c5f84c975e0c98a9b",
+    "no_generic_name_or_ordinal_waiver": true,
+    "original_qualifier_unchanged": true,
+    "fresh_additive_count_identity_qualifier_still_required": true
+  },
+  "historical": {
+    "G576": {
+      "source": "committed6eb/source5499",
+      "passed": 3252,
+      "failed": 0,
+      "current_dirty_source_substitute": false
+    },
+    "G577": {
+      "status": "ABANDONED_NEVER_STARTED",
+      "after": "G578 failure/custody release audit3956"
+    },
+    "G578": {
+      "Python_cases": 167,
+      "Python_passed": 165,
+      "Python_failed": 2,
+      "raw_collector": "FAILED_Python_actual_occurrence_summary_mismatch",
+      "offline_corrected_inventory_preserved": true,
+      "failure_regraded": false
+    },
+    "G567": {
+      "diagnostic_media_passed": 3,
+      "original_V8_qualified": false,
+      "matrix_credit": false
+    }
+  },
+  "next_full_prediction_not_observed": {
+    "Rust": 1951,
+    "Node": 1246,
+    "Python": 85,
+    "total": 3282,
+    "old_Python55_preserved": true,
+    "two_whole_modules_added30": true,
+    "source_scope_review_sha256": "4f44bfe234875cb3aaf3e4346162eb1e06c2aeefa0436657239ae1b54b6c6205",
+    "future_pass_claimed": false
+  },
+  "proofs": {
+    ".local/gate-6/g580-current-runtime-capacity-application-root/application.json": "347094c850da5a57aa4518c9a9149dc67c14b6cdd7d900bc98db0efb8af2995a",
+    ".local/gate-6/g580-current-runtime-capacity-application-root/source-after.json": "6e48471c06fee1547e056c88f2bbdc2c68de2a5040591b99412f2970e6f92714",
+    ".local/gate-6/g578-current-lock-runtime-capacity-independent-epoch-source-review/receipt.json": "6346643d416aa13f0156c117e78811f61a914e3262ad1032532b13c53697ad52",
+    ".local/gate-6/g581-current-capacity-idle-focused-units-root/result.json": "df6388fd81f4f732e9f0f82c8b138f5d917c127fc5a5f3252993795122f7c94e",
+    ".local/gate-6/g581-current-capacity-idle-focused-units-root/root-original-join.json": "ed012c419a749c9800aa6e6925a8907b035b2b71908be038581694adee44f005",
+    ".local/gate-6/g581-actual-current-capacity-idle-independent-epoch-audit/receipt.json": "4ca03cd9887a8f983d07b8acb641e3c0b4b9dc1aa83d4f44013aa59d986ae2ae",
+    ".local/gate-6/g582-current-whole-original-script-after-capacity-root/result.json": "63a6d194c152c2d710e485250f43dcadf04c93fbc3df09b4c1ac77f0a58e9895",
+    ".local/gate-6/g582-current-whole-original-script-after-capacity-root/root-original-join.json": "47dcc4da1d484bcce777358b1758101ecbe82bf330547a7648b7a7e5d40ad38a",
+    ".local/gate-6/g582-current-whole-original-script-after-capacity-root/actual-current-occurrence-inventory.json": "991fa0e9219df1851d949f50159f419b72c261a7ddcb6a0e9da3fb6939c6b907",
+    ".local/gate-6/g578-explicit17-legacy-occurrence-mapping-independent-epoch-source-review/receipt.json": "41cd9c0f6a505b345891b84b9ef337ccdd818655a90e332c5f84c975e0c98a9b",
+    ".local/gate-6/g578-source-proven-original408-ordinal-and-count-proposal/manifest.json": "0414b2bc0161ac9dc1777882582d9a1809700a62ce9dd126acfe2387e5163174",
+    ".local/gate-6/g578-additive-full-python6-independent-epoch-source-review/receipt.json": "4f44bfe234875cb3aaf3e4346162eb1e06c2aeefa0436657239ae1b54b6c6205",
+    ".local/gate-6/g578-actual-failed-occurrence-diagnostic-independent-audit/receipt.json": "3956de8cbae95061e2363dedcd670e3080a2cb19104cadd80ff9aa2289e2d83c",
+    ".local/gate-6/g578-current6eb-original408-occurrence-diagnostic-root/result.json": "8e95ae128b38e44492e644665a2d864f24ba090202250b31e1175e9f463cdc3a",
+    ".local/gate-6/g578-offline-current-occurrence-inventory-recovery/receipt.json": "7812199f25ac62e3c50a54143113a65664f216e9725868946342ecc040d29f02",
+    ".local/gate-6/g578-parser-v2-independent-source-and-offline-evidence-review/receipt.json": "ce61820f11e9371c39696a737186b1fd6d16f82414b638e7a0903c43f2c4fffb",
+    ".local/gate-6/v219-g576-complete-committed-source509-root/component-result.json": "67fc2a6df7cab79410e97428ce705f7b83337487647062d4d855a825ff95ac15",
+    ".local/gate-6/v219-g576-complete-committed-source509-root/root-original-join.json": "786e6aee0c8d67fee5245afaeedb57f7c3b42010e4cba927d63c2ca1a693411a",
+    ".local/gate-6/v219-g576-actual-full3252-independent-audit/receipt.json": "acb2cb86ec2aa5283d29ed13782a974f6d3a66441a82fffc85c341d4433377e9",
+    ".local/gate-6/v219-g567-actual-all-three509-independent-audit/receipt.json": "ce2d32bb12d6e07d638d5aceb991fe1c5b2e70b39f768bb81b251a14d02895fb",
+    ".local/gate-6/g582-actual-whole-original-script-independent-audit/receipt.json": "81f16656c46418679762e210f3c72e909bad1fde04e3bf53ca92f34c26fc72c7"
+  },
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "unchanged": true
+  },
+  "mobile206": {
+    "status": "VERIFIED_SCOPED_PUBLICATION_AND_READBACK",
+    "content_revision": 206,
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-capacity584.json",
+    "readback_evidence_sha256": "91c6ed39d8878199d73543d85754e165eed37e8fa11d2158fc496f1a030cb29c",
+    "unrelated_paragraphs_preserved": 419
+  },
+  "ready_for_32": false,
+  "current_full_unit_passed": false,
+  "actual3_qualified": false,
+  "Firefox_NORMAL3_credit": false,
+  "matrix_credit": false,
+  "historical_regrade": false,
+  "G6_054": "parked",
+  "local_only": true,
+  "prospective_original_qualification": {
+    "Rust_identities": 469,
+    "current_original_script_occurrences": 431,
+    "total": 900,
+    "status": "NOT_EXECUTED_EXPECTED_ADDITIVE_SUCCESSOR_ONLY"
+  }
+}

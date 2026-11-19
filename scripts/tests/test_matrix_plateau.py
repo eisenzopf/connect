@@ -67,6 +67,31 @@ class MatrixPlateauTests(unittest.TestCase):
         self.assertEqual(actual['original_owner'], owner)
         self.assertEqual(actual['max_blocking_threads'], 512)
         self.assertEqual(actual['connect_main_sha256'], observed['crates/connect-server/src/main.rs'])
+        # The reviewed whole-lock refresh must preserve the actual runtime tuple.
+        import tomllib
+        lock = tomllib.loads((root / 'Cargo.lock').read_text())
+        tokio = [item for item in lock['package'] if item['name'] == 'tokio']
+        self.assertEqual(len(tokio), 1)
+        self.assertEqual(tokio[0]['version'], SERVER_RUNTIME_CONFIGURATION['version'])
+        self.assertEqual(tokio[0]['checksum'], SERVER_RUNTIME_CONFIGURATION['tokio_package_checksum'])
+
+    def test_actual_producer_refuses_changed_main_or_lock_without_capacity_fallback(self):
+        # Exercise the real producer read path, not injected reviewed hashes.
+        from unittest.mock import patch
+        root = Path(__file__).resolve().parents[2]
+        original_read = Path.read_bytes
+        owner = dict(pid=11, start_identity=101)
+        for relative in SERVER_SOURCE_INPUTS:
+            changed = root / relative
+            def read(path):
+                value = original_read(path)
+                return value + b'\nchanged-source-control\n' if path == changed else value
+            with self.subTest(source=relative), patch.object(Path, 'read_bytes', read):
+                refused = runtime_capacity_configuration(owner)
+            self.assertIs(refused.get('available'), False)
+            self.assertEqual(refused['error'], 'ValueError')
+            self.assertNotIn('max_blocking_threads', refused)
+            self.assertNotIn('original_owner', refused)
 
 
     def test_actual_cold_warmup_then_bounded_jitter_uses_fixed_cycle_one_reference(self):

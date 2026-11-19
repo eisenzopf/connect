@@ -1,0 +1,44 @@
+{
+  "format": "connect/g584-mobile206-scoped-readback/1",
+  "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "content_revision": 206,
+  "google_revision": "AHj4eMQa4p5r165IdW4Ol9UceqdLWUK5AIGDz_lbjx08xDN0iCoQr5VI-hhvvjOEuCpztcL0l5ssoGtai5Nfs3hQnZ3url3zkcDHUfjKDfU",
+  "verified_at": "2026-11-19T20:25:11.053Z",
+  "verified": true,
+  "unrelated_paragraphs_preserved": true,
+  "unrelated_paragraphs": 419,
+  "changed_paragraphs": 3,
+  "paragraphs": [
+    "Revision 206 | Coordinator: /root | Current source509 / dirty seal6e484 passes G582’s whole original-script commands: 431/431, comprising 168 Python and 263 Node checks. The separate 263-case Node reporter run provides identity evidence and adds no checks. G581’s 30 passing idle/plateau controls are a subset of the 431, not 461 total. G582’s independent audit accepted source and owner custody and released the freeze. The three-file Python harness/control correction binds the current Cargo.lock while preserving Tokio’s default 512 capacity, ownership, budgets and cleanup rules; strict source-mutation negatives pass.\n",
+    "Original408 identities are accounted for explicitly: all 159 legacy Python IDs match literally;232 literal Node occurrences plus 17 independently source-proven annotation mappings cover 249 legacy Node IDs on the byte-identical frozen/current file. The raw literal flag remains false, and the original qualification is unrun. G576’s full 3,252/3,252 on 6eb remains a historical pass; planned G577 was abandoned without starting. G578 retains its two Python failures and raw collector failure with corrected offline inventory. G567 remains a historical 3/3 media diagnostic pass, with no original V8 or matrix credit.\n",
+    "Next: commit this verified batch, run current shared379/generator prerequisites, then fresh additive full 3,282 (Rust 1,951 + Node 1,246 + Python 85, retaining old 55 and adding whole idle/plateau 30), original V8, strict Firefox NORMAL3, prospective original 900 qualification (469 Rust +431 scripts), local ARM11 and normal releases/preflight. These next gates are unrun. Matrix remains v218: 1/32 cells and 399/432 checks; not ready for32. G6-054 stays parked and execution stays local Mac/native ARM.\n"
+  ],
+  "update": {
+    "documentId": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+    "revisionId": "AHj4eMQa4p5r165IdW4Ol9UceqdLWUK5AIGDz_lbjx08xDN0iCoQr5VI-hhvvjOEuCpztcL0l5ssoGtai5Nfs3hQnZ3url3zkcDHUfjKDfU",
+    "replies": [
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      },
+      {
+        "replaceAllText": {
+          "occurrencesChanged": 1
+        }
+      }
+    ],
+    "writeControl": {
+      "requiredRevisionId": "AHj4eMQa4p5r165IdW4Ol9UceqdLWUK5AIGDz_lbjx08xDN0iCoQr5VI-hhvvjOEuCpztcL0l5ssoGtai5Nfs3hQnZ3url3zkcDHUfjKDfU",
+      "targetRevisionId": null
+    },
+    "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y"
+  },
+  "qualification": false,
+  "matrix_credit": false
+}
