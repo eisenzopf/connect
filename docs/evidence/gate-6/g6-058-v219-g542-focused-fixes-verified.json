@@ -1,0 +1,59 @@
+{
+  "format": "connect/g6-058-focused-fixes-verified/1",
+  "updated": "2026-11-19T15:10:21.130120+00:00",
+  "summary": "Prepared source508 passed all21 focused Rust controls, all4 original compilation groups and all4 inventories, with zero failed/ignored controls and natural owner joins. This verifies the five previously failing regression checks. The changed native-to-WebRTC allocation fixture compiles; its actual media behavior remains unverified. The PCM diagnostics passed19/19 pure tests; formatting, three generators and the Gate6 contract checker passed. The three actual media representatives last ran on506 and failed; audio identity and post-Discarded restored-media causes remain open. Native allocation now waits for the same asynchronous row within its original8s cutoff. Next: batch commit/push, one complete current regression run and actual media diagnostics. Last full matrix remainsv218:1/32cells and399/432checks. Not ready for32.",
+  "prepared_generation": 508,
+  "source_lock_sha256": "52154fde79033eb937b5d0bdffc4b9e8ab29727b45affac22340bcb68227d40c",
+  "tested_base_head": "ff432fa8dbe6827df10f2eb32973ef83e71011da",
+  "scope": "Focused controls and compile/syntax/generator proof; no actual media or matrix qualification.",
+  "rust": {
+    "passed": 21,
+    "failed": 0,
+    "ignored": 0,
+    "build_groups": 4,
+    "artifacts": 9,
+    "inventories": 4,
+    "runtime_groups": 6,
+    "native_allocation": "COMPILE_ONLY"
+  },
+  "node_pcm_diagnostics": {
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0
+  },
+  "source_checks": [
+    "format --check",
+    "browser canonical generator --check",
+    "HTTP/OpenAPI generator --check",
+    "Gate6 schema generator --check",
+    "Gate6 contract checker"
+  ],
+  "proofs": {
+    ".local/gate-6/v219-g538-normal508-preparation-root/normal508-runtime/receipt.json": "605796176c2af6dc4ed163788e7811c9ef20c496bd19ee93716a6989006f92f5",
+    ".local/gate-6/v219-g538-actual-normal508-independent-batch-audit/receipt.json": "ec0be0e0ef8972a262398eeceb7f4068cd4c5999dccf80325a022f4c684c8c88",
+    ".local/gate-6/v219-g541-focused-rust-source508-root/result.json": "f2d5219a6b9958f09f5d46b27b10e8f9fd80a3e56fb033773f1337fc747c306c",
+    ".local/gate-6/v219-g541-focused-rust-source508-root/root-original-join.json": "89ad542e3c57ca0ea4f7392f4cd13546e420221c329d932fe3bf1300926ff7cc",
+    ".local/gate-6/v219-g541-actual-focused21-independent-batch-audit/receipt.json": "1abaa5705d5df81cda55b3b121af53d41c6f6beccdf756a3e2f7f12c3d3645c4",
+    ".local/gate-6/v219-g537-pcm-diagnostics-unit-root/result.json": "4642a2acd09a9db3e682a980088de037f730e9499f137322a6b4d5b464e9cb7e",
+    ".local/gate-6/v219-g537-pcm-diagnostics-unit-independent-epoch-audit/receipt.json": "25659d0a937a0f9d3579cd8b06fca32444169c7b612e7fa725e81f1da844ffe9",
+    ".local/gate-6/v219-g540-source-checks-root/result.json": "2079379e5daaab8905a9f86d609f41a36d79f9a16c9577f9406421bbdcc14b7e",
+    ".local/gate-6/v219-g540-source-checks-root/root-original-join.json": "7b52d7df49b71abd4b9a096f9435ff368f999666c07b4b375c2695da41d4e760",
+    ".local/gate-6/g539-rustfmt-semantic-independent-batch-review/receipt.json": "7d7e9452b6569876c507e70f97020482107330b67eb46a4f3505f24f6c7203ad"
+  },
+  "media_frontiers": {
+    "rtc_roundtrip": "Two unclassified audible PCM blocks; no wrong-source or correct-source proof for those blocks.",
+    "rtc_abort": "Durable Discarded precedes fresh restoration; new OLD and unrelated decoded AV wait failed; new bounded receiver progress/PCM diagnostics implemented.",
+    "native_to_rtc": "Immediate private query raced an async allocation boundary structurally; original run cause still unknown. New SAMErecord bounded observation compiled, actual run pending.",
+    "audio_research": "Encoder reset is explicit contributor-history isolation; retained decoder/SSRC persist. A real-codec control is being prepared; no production or acceptance change."
+  },
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "ready_for_32": false,
+  "g6_054": "parked",
+  "local_only": true
+}

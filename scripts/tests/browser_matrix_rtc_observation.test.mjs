@@ -1,5 +1,5 @@
 import {rtcAudioBoundaryDiagnostics} from '../lib/browser_matrix_rtc_audio_diagnostics.mjs';
-import {DecodedRoute} from '../lib/browser_matrix_observation.mjs';
+import {DecodedRoute,pcmIdentity} from '../lib/browser_matrix_observation.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -577,4 +577,23 @@ test('unidentified public PCM retention keeps the original caps flags discontinu
  gaps.observe({...input,sourceIdentified:true,timestamp:0});gaps.observe({...input,timestamp:60000});gaps.observe({...input,sourceIdentified:true,timestamp:100000});
  const event=gaps.report().suspect_pcm.events[0];assert.equal(event.before,null);assert.equal(event.after,null);assert.equal(event.after_status,'discontinuous');assert.equal(gaps.report().suspect_pcm.complete,false);
  const snapshot=JSON.stringify(gaps.report());samples.fill(7);assert.equal(JSON.stringify(gaps.report()),snapshot);gaps.close();
+});
+
+
+test('owned fixture diagnostic origin and exact source boolean retain ambiguous original PCM without verdict credit',()=>{
+ const samples=new Float32Array(960);for(let i=832;i<960;i++)samples[i]=.15*Math.sin(2*Math.PI*660*(i-832)/48000);
+ const original=samples.slice(),identity=pcmIdentity(samples,1);assert.equal(identity.identified,false);assert.equal(identity.source_identified,false);
+ const diagnostics=rtcAudioBoundaryDiagnostics({retainSuspectPcm:true});
+ diagnostics.observe(boundaryInput(samples,{}, {origin:null,sourceIdentified:false}));
+ diagnostics.observe(boundaryInput(samples,{}, {sourceIdentified:undefined}));
+ assert.equal(diagnostics.report().suspect_pcm.events.length,1,'Exact zero witness remains independent of source boolean');
+ const unknown=Float32Array.from({length:960},(_,i)=>.15*Math.sin(2*Math.PI*770*(i+1)/48000));
+ const decision=pcmIdentity(unknown,1);assert.equal(decision.source_identified,false);
+ for(let i=0;i<12;i++)diagnostics.observe(boundaryInput(unknown,{}, {timestamp:(i+2)*20000,at:1240+i*20,sourceIdentified:decision.source_identified}));
+ const report=diagnostics.report();assert.equal(report.suspect_pcm.event_limit,8);assert.equal(report.suspect_pcm.owner_limit,10);
+ assert.equal(report.suspect_pcm.events.length,8);assert.ok(report.suspect_pcm.omitted>0);assert.equal(report.suspect_pcm.complete,false);
+ const retained=report.suspect_pcm.events.find(row=>row.trigger==='accepted-public-source-unidentified');
+ assert.deepEqual(retained.current.samples,Array.from(unknown));assert.equal(retained.current.callback_performance_ms,1240);
+ assert.deepEqual(samples,original);assert.deepEqual(pcmIdentity(samples,1),identity,'No diagnostic changes classifier or failed verdict');
+ diagnostics.close();assert.deepEqual(diagnostics.report(),report);
 });

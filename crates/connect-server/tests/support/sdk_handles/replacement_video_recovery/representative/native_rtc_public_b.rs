@@ -252,6 +252,30 @@ fn neutralize_selected_mixed_chroma(paths: &[std::path::PathBuf]) {
 fn fresh_until(until: Instant) -> RequestOptions {
     programme::request(until)
 }
+// Cold public observations only; no grant, new request or allocation factory.
+fn retain_original_allocation_status(attempt: u64, snapshot: &sdk::OperationSnapshot) {
+    let diagnostic = sdk::helper::snapshot_json(snapshot);
+    let text = diagnostic.to_string();
+    if text.len() <= 16 * 1024 {
+        eprintln!("NATIVE_ORIGINAL_PRE_ALLOCATION_STATUS attempt={attempt} {text}");
+    } else {
+        let token = |value: &Value| {
+            value
+                .as_str()
+                .filter(|s| {
+                    s.len() <= 96
+                        && s.bytes()
+                            .all(|b| b.is_ascii_alphanumeric() || b"_.:-".contains(&b))
+                })
+                .map(str::to_owned)
+        };
+        let problem = &diagnostic["problem"];
+        eprintln!(
+            "NATIVE_ORIGINAL_PRE_ALLOCATION_STATUS attempt={attempt} {}",
+            json!({"profile":"connect/native-original-status-diagnostic/1","state":snapshot.state,"revision":snapshot.revision,"recordId":snapshot.record_id,"problem":{"code":problem["code"].as_u64(),"category":token(&problem["category"]),"reason":token(&problem["reason"])},"full_snapshot_omitted_bytes":text.len()})
+        );
+    }
+}
 fn three_native_streams(index: usize) -> NonEmpty<sdk::OfferedStream> {
     NonEmpty {
         first: sdk::OfferedStream {
@@ -535,9 +559,37 @@ async fn actual_native_old_and_announced_publisher_to_webrtc_b_use_original_sdk_
         };
         let operation=connections[0].replace_device(sdk::MoveInput {retain:connections[1].id().clone(),target:sdk::MoveTarget::Endpoint(endpoint.parse().unwrap()),expected_topology_revision:topology,
             video:Some(ReplacementVideo {publications:vec![ReplacementVideoStream {previous:"representative-video-0".into(),replacement:"mixed-target-video".into()}],receivers:vec![ReplacementVideoStream {previous:"representative-video-3".into(),replacement:"mixed-target-incoming".into()}]})},programme::mutation_at(MIXED,cutoff)).await.unwrap();
-        let snapshot=operation.status(fresh_until(cutoff)).await.unwrap();let record=snapshot.record_id.unwrap();
-        let db=rusqlite::Connection::open_with_flags(&f.config.database,rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
-        let(reservation,candidate,runtime,generation):(String,String,String,u64)=db.query_row("SELECT reservation_id,candidate_connection_id,candidate_runtime_id,generation FROM native_replacements WHERE operation_record_id=?1",[record.as_str()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();assert_eq!(generation,2);drop(db);
+        // Status observes the accepted original command; its record may precede
+        // the asynchronous worker's private allocation transaction. Observe only
+        // this SAME record under the SAME original8s command cutoff.
+        let (record,reservation,candidate,runtime,generation)=timeout_at(cutoff,async {
+            let mut original_record=None;let mut attempt=0u64;
+            loop {
+                attempt+=1;
+                let observed=operation.status(fresh_until(cutoff)).await;
+                if let Err(error)=&observed {eprintln!("NATIVE_ORIGINAL_ALLOCATION_STATUS_FAILURE attempt={attempt} {}",sdk::helper::error_json(error));}
+                let snapshot=observed.unwrap();retain_original_allocation_status(attempt,&snapshot);
+                let record=snapshot.record_id.clone().expect("same original operation record");
+                if let Some(original)=&original_record {assert_eq!(&record,original,"same original allocation record");} else {original_record=Some(record.clone());}
+                match snapshot.state {
+                    OperationState::Failed|OperationState::Cancelled|OperationState::Completed=>panic!("original replacement cannot allocate before target preparation: state={} revision={} (see same original snapshot)",snapshot.state.as_str(),snapshot.revision),
+                    OperationState::Unknown|OperationState::Interrupted=>{}, // never an allocation/readiness success
+                    OperationState::Accepted|OperationState::Preparing|OperationState::Ready|OperationState::Committing=>{
+                        let allocation:rusqlite::Result<(String,String,String,u64)>={
+                            let db=rusqlite::Connection::open_with_flags(&f.config.database,rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+                            db.query_row("SELECT reservation_id,candidate_connection_id,candidate_runtime_id,generation FROM native_replacements WHERE operation_record_id=?1",[record.as_str()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)))
+                        }; // No SQL handle/statement/Reader remains across the pause.
+                        match allocation {
+                            Ok((reservation,candidate,runtime,generation))=>break (record,reservation,candidate,runtime,generation),
+                            Err(rusqlite::Error::QueryReturnedNoRows)=>eprintln!("NATIVE_ORIGINAL_PRIVATE_ALLOCATION_PENDING attempt={attempt} record={} error=QueryReturnedNoRows",record.as_str()),
+                            Err(error)=>{eprintln!("NATIVE_ORIGINAL_PRIVATE_ALLOCATION_QUERY_FAILURE attempt={attempt} record={} error={error:?}",record.as_str());panic!("same original allocation query failed: {error:?}");}
+                        }
+                    }
+                }
+                tokio::time::sleep_until((Instant::now()+Duration::from_millis(20)).min(cutoff)).await;
+            }
+        }).await.expect("same original8s native allocation observation cutoff");
+        assert_eq!(generation,2);
         *retirements[0].original.lock().unwrap()=Some(RetiredMove {record:record.as_str().into(),reservation,candidate: candidate.clone(),runtime,generation,observed_commit:Arc::new(AtomicBool::new(false))});
         let remaining=cutoff.checked_duration_since(Instant::now()).unwrap();let expires_at_ms=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis()+remaining.as_millis();
         publish_file(&directory,"original-root",&json!({"operation_id":MIXED,"source":connections[0].id(),"conversation_id":conversation.id(),"session_id":session.id(),"reference":operation.reference_json(),"expires_at_ms":u64::try_from(expires_at_ms).unwrap()}));

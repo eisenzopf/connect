@@ -1,0 +1,10 @@
+{
+  "verified": true,
+  "content_revision": 199,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMS1Y0KPjUebVu2UrlgD6MrJ2KcOnHGo6IZFpo2LOZLPhk_PpvKLT7UZrIKKWuK8NApjhchMm7c-HLzCEznXedZXioufG9QxOjTkX6c",
+  "header": "Revision 199 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+  "current": "Current verification \u2014 November 19. Current committed source506 completed the affected regression batch: 3,198/3,203 checks passed, five failed. All three real media representatives were then attempted separately on unchanged source506 and failed: roundtrip completed all four handoff/return operations but rejected two unclassified audio blocks; abort reached durable Discarded but did not establish fresh OLD and unrelated decoded A/V afterward; native-to-WebRTC failed on a missing allocation row before target preparation, and its original browser cleanup exceeded five seconds. The native operation state at the missing-row read was not retained; the post-cleanup Failed ledger cannot establish its cause. Five unit failures have three independently reviewed fixture corrections applied in the workspace; source-lock508 preparation and verification are pending. Bounded raw PCM, restore progress and original operation-state diagnostics are being added without changing media criteria. Last full matrix remains v218: 1/32 cells, 399/432 checks. Not ready for the next matrix. Assigned tasks: G532 Ready fixtures, RTC capture and strict refusal; G533 audio identity; G534 restored media; G535 native allocation. Coordinator Root; authors and independent reviewers are recorded in the tracked workplan. The reviewed fixture fixes await normal508 preparation and tests. New PCM diagnostics passed 19/19 pure checks; they provide evidence only and do not fix media quality.\n",
+  "other_content_preserved": true,
+  "verified_at": "2026-11-19T14:47:56.017713+00:00"
+}

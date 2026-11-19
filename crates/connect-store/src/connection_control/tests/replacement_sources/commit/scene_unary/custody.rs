@@ -507,11 +507,33 @@ fn full_scene_under_rechecks_selected_unrelated_operator_and_target_permission_w
             let read = under(&m, 2, &held).unwrap();
             assert!(!read.permits_receive(&candidate, m.sources[2].runtime_connection_id()));
         } else {
+            // A failed multi-query recheck can cross a SQL/policy-clock edge
+            // before sealing its strict refusal. Retry only that effect-free
+            // busy observation on the SAME original custody and scene. Never
+            // accept busy, renew expiry or enter another file admission.
+            let until = std::time::Instant::now() + Duration::from_secs(1);
+            let admissions = m.f.store.authority.test_admission_attempts();
+            let original_expiry = held.expires_at();
+            let refused = loop {
+                let error = under(&m, 2, &held)
+                    .err()
+                    .expect("withdrawn current authority must never acquire a current scene");
+                if error.code == "authority-busy" && std::time::Instant::now() < until {
+                    assert_eq!(held.expires_at(), original_expiry);
+                    assert_eq!(m.f.store.authority.test_admission_attempts(), admissions);
+                    assert_eq!(counts(&m), before);
+                    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), snapshot);
+                    std::thread::yield_now();
+                    continue;
+                }
+                break error;
+            };
             assert_eq!(
-                under(&m, 2, &held).err().unwrap().code,
-                expected_code,
-                "{mutation}"
+                refused.code, expected_code,
+                "{mutation}: exact refused observation: {refused:?}"
             );
+            assert_eq!(held.expires_at(), original_expiry);
+            assert_eq!(m.f.store.authority.test_admission_attempts(), admissions);
         }
         assert_eq!(counts(&m), before);
         assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), snapshot);

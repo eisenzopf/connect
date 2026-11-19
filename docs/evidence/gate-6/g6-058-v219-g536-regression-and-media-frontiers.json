@@ -1,0 +1,83 @@
+{
+  "format": "connect/g6-058-current-regression-and-media-frontiers/1",
+  "updated": "2026-11-19T14:44:21.087297+00:00",
+  "tested_head": "ff432fa8dbe6827df10f2eb32973ef83e71011da",
+  "tested_generation": 506,
+  "unit_results": {
+    "passed": 3198,
+    "failed": 5,
+    "total": 3203,
+    "rust_passed": 1942,
+    "rust_failed": 5,
+    "node_passed": 1201,
+    "python_passed": 55
+  },
+  "actual_media_cases": {
+    "rtc-roundtrip": {
+      "passed": false,
+      "completed_original_handoff_roots": 4,
+      "failure": "Two actual decoded audio blocks unclassified; expected frequency strongest, but identity confidence failed. One block has832 leading zero samples; retained receiver block cause remains unknown.",
+      "task_id": "V219-G533-AUDIO-IDENTITY"
+    },
+    "rtc-abort": {
+      "passed": false,
+      "failure": "Fresh post-Discarded OLD and unrelated decoded AV predicate did not complete. Durable Discarded precedes attempted restoration and does not prove restored media. Exact receiver/counter deficit not captured.",
+      "task_id": "V219-G534-RESTORE-MEDIA"
+    },
+    "native-pooled": {
+      "passed": false,
+      "failure": "Fixture SQL query found no native_replacements row immediately after one operation.status read. Original status/problem not retained; postcleanup Failed cannot distinguish allocation race from earlier refusal. Browser cleanup forced/unqualified under original5s.",
+      "task_id": "V219-G535-NATIVE-ALLOCATION"
+    }
+  },
+  "independent_audits": {
+    "g532-actual-complete-components": {
+      "path": ".local/gate-6/v219-g532-actual-complete-components-independent-audit/receipt.json",
+      "sha256": "eb7a886fa027ad9d4f6618eefbb33c6b0c4ae65fdd0543cf1dfc41962b133f7f"
+    },
+    "g533-actual-media": {
+      "path": ".local/gate-6/v219-g533-actual-media-independent-audit/receipt.json",
+      "sha256": "9801edd66f6838096e3dca49f4c414de53624520506d806c22f1f3b5f79de824"
+    },
+    "g534-actual-media": {
+      "path": ".local/gate-6/v219-g534-actual-media-independent-audit/receipt.json",
+      "sha256": "fa97bf333639abd766234b90b2aa0e7c162210ae2bc2bfa55a2d2a5bab63a1fa"
+    },
+    "g535-actual-media": {
+      "path": ".local/gate-6/v219-g535-actual-media-independent-audit/receipt.json",
+      "sha256": "d6defcef79edebe30f3f9843adfd6dd57956f23a7aa2bd9da37d812e4e9982dd"
+    }
+  },
+  "workspace_fix_state": {
+    "source_lock_generation": 508,
+    "source_lock_sha256": "52154fde79033eb937b5d0bdffc4b9e8ab29727b45affac22340bcb68227d40c",
+    "prepared": false,
+    "fixture_fix_tasks": [
+      "V219-G532-READY-FIXTURES",
+      "V219-G532-RTC-CAPTURE",
+      "V219-G532-STRICT-REFUSAL"
+    ],
+    "verification": "pending; no failure regrade"
+  },
+  "summary": "Current committed source506 completed the affected regression batch: 3,198/3,203 checks passed, five failed. All three real media representatives were then attempted separately on unchanged source506 and failed: roundtrip completed all four handoff/return operations but rejected two unclassified audio blocks; abort reached durable Discarded but did not establish fresh OLD and unrelated decoded A/V afterward; native-to-WebRTC failed on a missing allocation row before target preparation, and its original browser cleanup exceeded five seconds. The native operation state at the missing-row read was not retained; the post-cleanup Failed ledger cannot establish its cause. Five unit failures have three independently reviewed fixture corrections applied in the workspace; source-lock508 preparation and verification are pending. Bounded raw PCM, restore progress and original operation-state diagnostics are being added without changing media criteria. Last full matrix remains v218: 1/32 cells, 399/432 checks. Not ready for the next matrix.",
+  "remaining_readiness": [
+    "Normal508 preparation and focused fixture controls",
+    "Bounded original PCM/progress/operation-state evidence and causal media fixes",
+    "Current complete affected regressions and all3 actual decoded-media representatives",
+    "Strict Firefox NORMAL3",
+    "Original final qualification scope (retained469 Rust identities,408 script occurrences, full62s last) and current prerequisite checks",
+    "Local ARM source preparation/ARM11, normal Mac12 and ARM6 release builds",
+    "Capture, disk and owned-process preflight"
+  ],
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "local_mac_and_arm_only": true,
+  "g6_054": "parked"
+}

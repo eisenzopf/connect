@@ -1,0 +1,31 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/browser.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/browser.rs
+@@ -205,8 +205,26 @@
+         s.core.orch.activate_staged_device_replacement_with_held(self.pending(), plan, &g).await.unwrap();
+     }
+     async fn event(&self, s: &Scene, event: DeviceReplacementEndpointEvent) -> Observation {
+-        let captured = s.core.orch.capture_device_replacement_event(self.pending(),
+-            DeviceReplacementSignalSource::NativePeer(self.peer()), event.clone()).unwrap();
++        let pending = self.pending();
++        let peer = self.peer();
++        let cancellation = pending.cancellation();
++        let captured = loop {
++            match s.core.orch.capture_device_replacement_event(pending,
++                DeviceReplacementSignalSource::NativePeer(peer.clone()), event.clone()) {
++                Ok(captured) => break captured,
++                Err(ParticipantControlError::Media(StreamControlError::MetadataBusy)) => {
++                    // Capture did not consume the event sequence. All capture
++                    // guards are gone before waiting; no signal grant is held.
++                    // The SAME preparation checks its original deadline on
++                    // every attempt and cancels at that original cutoff.
++                    tokio::select! { biased;
++                        _ = cancellation.cancelled() => panic!("original replacement capture cancelled"),
++                        _ = tokio::time::sleep(Duration::from_millis(1)) => {}
++                    }
++                }
++                Err(error) => panic!("original replacement capture refused: {error:?}"),
++            }
++        };
+         let g = grant(s, self.pending().intent(), &self.operator, Approval::Signal(event)).await;
+         captured.observe_with_held(&g).unwrap()
+     }

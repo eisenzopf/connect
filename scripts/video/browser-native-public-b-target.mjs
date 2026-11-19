@@ -30,10 +30,16 @@ try{
  await page.exposeFunction('mixedReady',()=>emit('browser-ready',{operation_id:spec.operationId}));
  await page.exposeFunction('mixedRoot',async()=>{const value=await read('original-root',performance.now()+30000);assert.equal(value.operation_id,spec.operationId);const remainingMs=Math.floor(value.expires_at_ms-Date.now());assert.ok(remainingMs>0&&remainingMs<=8000);return {...value,remainingMs};});
  await page.exposeFunction('mixedCheckpoint',async(name,value,remainingMs)=>{assert.ok(['before-public-ready','public-rendered'].includes(name));assert.equal(value.operation_id,spec.operationId);assert.ok(remainingMs>0&&remainingMs<=8000);await emit(name,value);const ack=await read(name+'.ack',performance.now()+remainingMs);assert.equal(ack.operation_id,spec.operationId);});
+ await page.exposeFunction('retainPublicPcmDiagnostics',async(stage,value)=>{
+  assert.ok(['failure','closed'].includes(stage));const text=JSON.stringify(value);assert.ok(text.length<=2*1024*1024,'bounded original public PCM diagnostics');
+  await fs.writeFile(path.join(directory,'rtc-audio-'+stage+'.json'),text,{flag:'wx',mode:0o600});
+ });
  await page.goto(`http://127.0.0.1:${spec.assetPort}/`);
  result=await page.evaluate(async spec=>{
   const {BrowserSdkClient}=await import('/sdk/browser_sdk.js');const {BrowserClient}=await import('/sdk/browser_client.js');
   const {BrowserRtcConnection}=await import('/sdk/browser_sdk_webrtc.js');const {browserMatrixRtcObservation}=await import('/observer.mjs');const {pcmIdentity}=await import('/pcm-identity.mjs');
+  globalThis.connectRtcAudioFacts=true;
+  const pcmOrigins=new Map(),pcmFailures=[];
   const check=(v,m)=>{if(!v)throw Error(m);};const NativePeer=RTCPeerConnection,nativeFrame=HTMLVideoElement.prototype.requestVideoFrameCallback,nativeDraw=CanvasRenderingContext2D.prototype.drawImage;
   const begin=BrowserRtcConnection.beginReplacement,continuation=BrowserClient.prototype.requestReplacementContinuation;
   let arming=null,peer,peerId,latest,warmed,publicCanvas,publicDraws=0,callbacks=0,client,capture,renderer,observer,audio,oscillator,timer,primary,measurement;
@@ -59,6 +65,7 @@ try{
    publicMarkerGate=globalThis.mixedCheckpoint('before-public-ready',{operation_id:spec.operationId,record_id:marker.operation_record_id,target:scope.connid,marker,phase,native:{mid:t.mid,track_id:value.track.id,callbacks:value.count}},options.timeoutMs);
    return publicMarkerGate.then(forward);
   };
+  const retainPcm=async stage=>{try{const at=performance.now();await globalThis.retainPublicPcmDiagnostics(stage,{format:'connect/owned-public-pcm-diagnostics/1',fixture:'browser-native-public-b-target',operation_id:spec.operationId,at,render_origins:[...pcmOrigins].map(([connection_id,value])=>({connection_id,...value})),audio_failures:pcmFailures,observation_failures:failures,receivers:[{connection_id:peerId,audio_samples:audioSamples,video:videoFrames,changing:changingVideo,lastAudio,lastVideo}],phase:latest?{operation_id:latest.operation_id,record_id:latest.record_id,state:latest.state,phase:latest.webrtc_public_video_phase?.phase}:null,audio_diagnostics:observer?.report()??null});}catch{}};
   try{
    const a=spec.actor,algorithm=a.signing.algorithm==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
    const key=await crypto.subtle.importKey('jwk',a.signing.jwk,algorithm,false,['sign']),trust=await crypto.subtle.importKey('jwk',a.server.jwk,a.server.algorithm==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
@@ -85,15 +92,15 @@ try{
    const value=receipts[1].value.value;check(value.connection.id===prepared.connection.id&&value.binding.generation===2&&value.retired[0]===input.source,'same original native→RTC replacement completes');
    check(latest?.state==='completed'&&latest.webrtc_public_video_phase?.phase==='activated'&&warmed,'actual Completed+Activated');
    publicCanvas=document.createElement('canvas');publicCanvas.width=640;publicCanvas.height=360;
-   observer=browserMatrixRtcObservation(BrowserRtcConnection,{invalid(...args){if(failures.length<16)failures.push(String(args.at(-1)).slice(0,160));},audio(id,ts,at,samples){if(active&&id===prepared.connection.id){
-    check(samples.length===960,'actual20ms PCM');const identity=pcmIdentity(samples,toneIndex);if(!(identity.rms>.03))return;
+   observer=browserMatrixRtcObservation(BrowserRtcConnection,{invalid(...args){if(failures.length<16)failures.push(String(args.at(-1)).slice(0,160));},measurementOrigin(id){return active&&id===peerId?pcmOrigins.get(id)?.started:null;},audio(id,ts,at,samples,clock){if(active&&id===prepared.connection.id){
+    check(samples.length===960,'actual20ms PCM');const identity=pcmIdentity(samples,toneIndex);if(!(identity.rms>.03))return identity.source_identified;
     const expectedPower=identity.powers[toneIndex],native330Power=measuredPower(samples,330),browser440Power=measuredPower(samples,440);
     // A sinusoid's mean-square contribution is twice its complex-bin power.
     // Require expected660 to explain at least half of TOTAL measured energy,
     // in addition to the unchanged RMS/shared-bank identity and8x dominance.
     const explainedEnergy=2*expectedPower/(identity.rms*identity.rms);
-    if(!identity.identified||!(expectedPower>8*Math.max(native330Power,browser440Power,1e-12))||!(explainedEnergy>=.5)){if(failures.length<16)failures.push('audible public PCM failed actual330/440 competitors or total-energy source3/660Hz identity');return;}
-    minAudioExplainedEnergy=Math.min(minAudioExplainedEnergy,explainedEnergy);audioSamples+=samples.length;lastAudio=at;
+    if(!identity.identified||!(expectedPower>8*Math.max(native330Power,browser440Power,1e-12))||!(explainedEnergy>=.5)){if(pcmFailures.length<8)pcmFailures.push({id,timestamp:ts,at,clock,expected_hz:spec.expectedAudioHz,identity,native330Power,browser440Power,explainedEnergy});if(failures.length<16)failures.push('audible public PCM failed actual330/440 competitors or total-energy source3/660Hz identity');return false;}
+    minAudioExplainedEnergy=Math.min(minAudioExplainedEnergy,explainedEnergy);audioSamples+=samples.length;lastAudio=at;return identity.source_identified;
    }},video(id,ts,at,frame,w,h){if(active&&id===prepared.connection.id){
     check(w===640&&h===360,'actual VP8 size');const ctx=measurement.getContext('2d');
     // SAME already painted public bitmap. Native mixed fixture's selected
@@ -108,20 +115,23 @@ try{
     videoFrames++;lastVideo=at;
    }}});
    observer.attach(prepared.connection.id,publicCanvas);active=true;
+   const timeline={started:performance.now(),returned:null};pcmOrigins.set(prepared.connection.id,timeline);
    renderer=await prepared.connection.render({audio:true,video:[{stream:prepared.connection.streams.byId('mixed-target-incoming'),canvas:publicCanvas}]},opts());
+   timeline.returned=performance.now();
    const adoptedAt=performance.now();while(!(publicDraws>=5&&videoFrames>=5&&changingVideo>=3&&audioSamples>=4800&&lastVideo>=adoptedAt&&lastAudio>=adoptedAt)){check(performance.now()<cutoff,'actual public B and audio advance under SAME Root budget');await new Promise(r=>setTimeout(r,5));}
    check(failures.length===0,'original native ownership errors: '+failures.join(';'));
    check(client.transport.physicalEpoch===originalEpoch,'SAME original target control socket remains current');
    await client.conversations.byId(input.conversation_id).refresh(opts());
    const report={operation_id:spec.operationId,target:prepared.connection.id,source:input.source,activated:latest.webrtc_public_video_phase,same_warmed_element:true,native_mid:warmed.transceiver.mid,decoded_callbacks:callbacks,public_draws:publicDraws,video_frames:videoFrames,changing_video_frames:changingVideo,audio_samples:audioSamples,audio_identity_hz:spec.expectedAudioHz,audio_min_explained_energy_fraction:minAudioExplainedEnergy,video_identity_luma:spec.expectedVideoLuma};
    await globalThis.mixedCheckpoint('public-rendered',report,opts().timeoutMs);return {passed:true,...report};
-  }catch(error){primary=error;throw error;}
+  }catch(error){primary=error;await retainPcm('failure');throw error;}
   finally{
    if(timer)clearInterval(timer);
    try{capture?.close();}catch(e){failures.push(String(e.message));}
    try{renderer?.close();}catch(e){failures.push(String(e.message));}
    if(renderer){try{await renderer.retirement;await renderer.finished;}catch(e){failures.push(String(e.message));}}
    if(observer){try{await observer.close();}catch(e){failures.push(String(e.message));}}
+   await retainPcm('closed');
    if(oscillator){try{oscillator.stop();oscillator.disconnect();}catch(e){failures.push(String(e.message));}}
    if(audio){try{await audio.close();}catch(e){failures.push(String(e.message));}}
    if(client){try{await client.close({timeoutMs:8000});}catch(e){failures.push(String(e.message));}}

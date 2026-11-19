@@ -2716,6 +2716,16 @@
       "target": "rvoip",
       "path": "patches/rvoip/gate6-public-b-fixed-schema-and-vector-sync.patch",
       "sha256": "9772b8c624b27ca0dbc121a171245f3ebdd2e1fcb4fcf3c089167d68bb697b86"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-ready-wait-strict-schema-test-fixtures.patch",
+      "sha256": "81c335b6fa3ede060b1f7005692a0865c1da0f3eb5bcf3aa3be48086d7871f63"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-rtc-original-event-capture-metadata-busy.patch",
+      "sha256": "b7f3cff748796f16255680c203a0829cba8eb24a98002e117c4fd104009dd7ca"
     }
   ]
 }

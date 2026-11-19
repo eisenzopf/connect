@@ -1,0 +1,10 @@
+{
+  "verified": true,
+  "content_revision": 200,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMSN-5kc5-5lnjxSdCZzn2htxaCvB0JHCz4HHMgBJ5rcJ0RAU6yHTmHlfWG1wjy_bftU0eUuRsecjb34C9HepE0nLEGMeoRAlm2u_mQ",
+  "header": "Revision 200 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\nLatest focused verification: 21/21 Rust controls and 19/19 PCM diagnostic tests passed on prepared source508. Complete regression and actual media retests are next. Media remains unresolved.\n",
+  "current": "Current verification \u2014 November 19. Prepared source508 passed all21 focused Rust controls, all4 original compilation groups and all4 inventories, with zero failed/ignored controls and natural owner joins. This verifies the five previously failing regression checks. The changed native-to-WebRTC allocation fixture compiles; its actual media behavior remains unverified. The PCM diagnostics passed19/19 pure tests; formatting, three generators and the Gate6 contract checker passed. The three actual media representatives last ran on506 and failed; audio identity and post-Discarded restored-media causes remain open. Native allocation now waits for the same asynchronous row within its original8s cutoff. Next: batch commit/push, one complete current regression run and actual media diagnostics. Last full matrix remainsv218:1/32cells and399/432checks. Not ready for32. Assigned regression tasks G532 Ready fixtures, RTC capture and strict refusal are now component-verified. G533 audio identity and G534 restored media remain under investigation. G535 native allocation is implemented and compiled; actual media verification is pending. Coordinator Root; the tracked workplan retains named authors and independent reviewers.\n",
+  "other_content_preserved": true,
+  "verified_at": "2026-11-19T15:10:56.583231+00:00"
+}

@@ -1,0 +1,129 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/ready_tests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/resource_preparation/ready_tests.rs
+@@ -97,7 +97,7 @@
+ #[tokio::test]
+ async fn ready_wait_rejects_other_profiles_missing_scope_extra_marker_and_reconverted_owner() {
+     for fault in 0..5 {
+-        let (mut a, _, _, _) = ready_with_policy().await;
++        let (a, _, _, _) = ready_with_policy().await;
+         let mut v = a.envelope.original().clone();
+         match fault {
+             0 => {
+@@ -111,20 +111,21 @@
+             3 => v["payload"]["replacement_preparation"]["readiness"] = json!(null),
+             _ => v["payload"]["replacement_preparation"]["operation_record_id"] = json!(""),
+         }
+-        if fault == 1 {
+-            // connection.offer requires connid in the published wire schema.
+-            // This malformed command cannot become an immutable Envelope and
+-            // must be rejected before the Ready-specific authority boundary.
+-            assert!(matches!(
+-                Envelope::from_value(v),
+-                Err(crate::v2::WireError::InvalidPayload)
+-            ));
+-            continue;
+-        }
+-        // The other four extension-marker variants are valid wire envelopes;
+-        // they must reach, and be refused by, the exact Ready binding checks.
+-        a.envelope = Envelope::from_value(v)
+-            .expect("well-formed invalid Ready marker must reach the authority API");
++        // Closed published marker schemas reject ALL five original malformed
++        // variants before an immutable Envelope can reach authority conversion.
++        assert!(matches!(
++            Envelope::from_value(v),
++            Err(crate::v2::WireError::InvalidPayload)
++        ));
++    }
++    // A canonical closed marker with another profile is valid wire data, but
++    // still cannot borrow the Ready-specific wait/reply authority boundary.
++    for profile in ["connect-replacement-media-v1", "connect-replacement-preparation-v1"] {
++        let (mut a, _, _, _) = ready_with_policy().await;
++        let mut v = a.envelope.original().clone();
++        v["payload"]["replacement_preparation"] =
++            json!({"profile":profile,"operation_record_id":"original-record"});
++        a.envelope = Envelope::from_value(v).expect("canonical other-profile marker");
+         assert!(matches!(
+             a.into_replacement_ready_wait(None),
+             Err(DispatchError::Authority)
+@@ -220,15 +221,33 @@
+         .is_err());
+ }
+ 
++// Only schema-valid request bytes for the control/guard fixture. The frozen
++// metadata/counters do not grant domain readiness or any media permission.
++fn public_ready_value(a: &AuthorizedEnvelope) -> serde_json::Value {
++    let vectors: serde_json::Value =
++        serde_json::from_str(include_str!("../../golden-vectors.json")).unwrap();
++    let payload = vectors["vectors"]
++        .as_array()
++        .unwrap()
++        .iter()
++        .find(|v| v["id"] == "public-video-ready-original-three-roles-null-native-keycounter")
++        .unwrap()["envelope"]["payload"]
++        .clone();
++    // Keep the SAME originally authorized request ID, routing scopes and cutoff.
++    let mut value = a.envelope.original().clone();
++    value["payload"] = payload;
++    value["payload"]["by_participant"] = a.envelope.original()["payload"]["by_participant"].clone();
++    value["payload"]["substrate_setup"] = json!({"kind":"websocket+webrtc"});
++    value["payload"]["replacement_preparation"]["operation_record_id"] = json!("original-record");
++    value["payload"]["replacement_preparation"]["public_video_readiness"]["nonce"] =
++        json!("original-public-nonce");
++    value
++}
++
+ #[tokio::test]
+ async fn public_video_ready_wait_releases_same_original_readers_and_only_fresh_proof_restores_reply() {
+     let(mut a,policy,grants,_replay)=ready_with_policy().await;
+-    let mut v=a.envelope.original().clone();
+-    v["payload"]["substrate"]=json!("websocket+webrtc");
+-    v["payload"]["substrate_setup"]["kind"]=json!("websocket+webrtc");
+-    v["payload"]["replacement_preparation"]=json!({"profile":"connect-replacement-public-video-ready-v1",
+-        "operation_record_id":"original-record","public_video_readiness":{"nonce":"original-public-nonce"}});
+-    a.envelope=Envelope::from_value(v).unwrap();
++    a.envelope=Envelope::from_value(public_ready_value(&a)).unwrap();
+     // The fixture's policy is immutable; create the exact original public
+     // policy/exchange rather than reusing a proof for the private envelope.
+     let policy=Arc::new(OriginalPolicy {expected:a.envelope.original().clone(),grants:grants.clone(),
+@@ -250,26 +269,34 @@
+ }
+ #[tokio::test]
+ async fn public_video_ready_wait_refuses_profile_shape_transport_scope_and_reconversion() {
+-    for fault in 0..6 {
+-        let(mut a,_,_,_)=ready_with_policy().await;let mut v=a.envelope.original().clone();
+-        v["payload"]["substrate"]=json!("websocket+webrtc");
+-    v["payload"]["substrate_setup"]["kind"]=json!("websocket+webrtc");
+-        v["payload"]["replacement_preparation"]=json!({"profile":"connect-replacement-public-video-ready-v1",
+-            "operation_record_id":"original-record","public_video_readiness":{"nonce":"original-public-nonce"}});
++    for fault in 0..8 {
++        let(mut a,_,_,_)=ready_with_policy().await;let mut v=public_ready_value(&a);
+         match fault {
+             0=>v["payload"]["replacement_preparation"]["public_video_readiness"]=json!(null),
+             1=>{let m=v["payload"]["replacement_preparation"].as_object_mut().unwrap();m.remove("public_video_readiness");m.insert("readiness".into(),json!({}));},
+             2=>v["payload"]["replacement_preparation"]["extra"]=json!(true),
+             3=>v["payload"]["substrate_setup"]["kind"]=json!("quic"),
+             4=>v.as_object_mut().unwrap().remove("operation_id").map(|_|()).unwrap_or(()),
++            6=>{v["payload"].as_object_mut().unwrap().remove("webrtc_video_receive_reservation");},
++            7=>v["payload"]["streams_offered"][2]["direction"]=json!("sendrecv"),
+             _=>{},
+         }
+         if fault==4 {
+             assert!(matches!(Envelope::from_value(v),Err(crate::v2::WireError::MissingScope)));
+             continue;
+         }
++        if matches!(fault,0|1|2|6|7) {
++            assert!(matches!(Envelope::from_value(v),Err(crate::v2::WireError::InvalidPayload)));
++            continue;
++        }
++        // Wrong setup transport is schema-valid, so the authority-specific
++        // binding must reject it. The unchanged valid case tests reconversion.
+         a.envelope=Envelope::from_value(v).unwrap();
+         if fault==5 {let(a,_)=a.into_replacement_ready_wait(None).unwrap();assert!(a.into_replacement_ready_wait(None).is_err());}
+         else {assert!(a.into_replacement_ready_wait(None).is_err());}
+     }
+-}
++    let(mut a,_,_,_)=ready_with_policy().await;let mut v=public_ready_value(&a);
++    v["payload"]["replacement_preparation"]=json!({"profile":"connect-replacement-media-v1","operation_record_id":"original-record"});
++    a.envelope=Envelope::from_value(v).expect("canonical public-intent other-profile marker");
++    assert!(matches!(a.into_replacement_ready_wait(None),Err(DispatchError::Authority)));
++}

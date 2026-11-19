@@ -62,6 +62,10 @@ try{
    await new Promise(resolve=>setTimeout(resolve,5));
   }
  });
+ await page.exposeFunction('retainPublicPcmDiagnostics',async(stage,value)=>{
+  assert.ok(['failure','closed'].includes(stage));const text=JSON.stringify(value);assert.ok(text.length<=2*1024*1024,'bounded original public PCM diagnostics');
+  await fs.writeFile(path.join(privateRoot,'rtc-audio-'+stage+'.json'),text,{flag:'wx',mode:0o600});
+ });
  await page.goto(`http://127.0.0.1:${spec.assetPort}/`,{waitUntil:'domcontentloaded'});
  result=await page.evaluate(async spec=>{
   const {BrowserSdkClient}=await import('/sdk/browser_sdk.js');
@@ -78,6 +82,7 @@ try{
   const current=[],byConnection=new Map(),active=new Map(),progress=new Map(),ready=new Map(),moves=[];
   const sourceHz=[440,660,880,1100],expected=[1,0,3,2],observationFailures=[];
   const renderTimes=new Map(),audioFailures=[];
+  globalThis.connectRtcAudioFacts=true;
   const audio=new AudioContext({sampleRate:48000});await audio.resume();
   let observer,functionalFailure,cleanupFailures=[],measuring=false;
   const complete=CanonicalWebRtcSignaling.prototype.completeReplacement;
@@ -88,6 +93,7 @@ try{
    ready.set(evidence.audio.stream_id,structuredClone(evidence));return complete.call(this,evidence,...args);
   };
   const invalid=message=>{if(measuring&&observationFailures.length<16)observationFailures.push(String(message).slice(0,160));};
+  const retainPcm=async stage=>{try{const at=performance.now();await globalThis.retainPublicPcmDiagnostics(stage,{format:'connect/owned-public-pcm-diagnostics/1',fixture:'browser-replacement-roundtrip',operation_id:spec.operationId,at,render_origins:[...renderTimes].map(([connection_id,value])=>({connection_id,...value})),audio_failures:audioFailures,observation_failures:observationFailures,receivers:[...progress].map(([connection_id,p])=>({connection_id,i:byConnection.get(connection_id),selected:active.get(byConnection.get(connection_id))===connection_id,audio:p.audio,video:p.video,changing:p.changing,lastAudio:p.lastAudio,lastVideo:p.lastVideo,audio_age_ms:p.lastAudio===null?null:at-p.lastAudio,video_age_ms:p.lastVideo===null?null:at-p.lastVideo})),current:current.map((value,i)=>({i,connection_id:value.connection.id})),moves:moves.map(value=>({operation_id:value.operation_id,record_id:value.record_id,source:value.source,target:value.target,generation:value.generation})),audio_diagnostics:observer?.report()??null});}catch{}};
   try{
    for(const actor of spec.actors){
     const algorithm=actor.signing.algorithm==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
@@ -120,17 +126,18 @@ try{
    const oldViews=current.map(value=>value.connection);
    observer=browserMatrixRtcObservation(BrowserRtcConnection,{
     invalid(...args){invalid(args.at(-1));},
-    audio(id,timestamp,at,samples){
+    measurementOrigin(id){const i=byConnection.get(id);return i!==undefined&&active.get(i)===id?renderTimes.get(id)?.started:null;},
+    audio(id,timestamp,at,samples,clock){
      const i=byConnection.get(id);if(i===undefined||active.get(i)!==id)return;
      if(samples.length!==960){invalid('actual20ms decoded PCM');return;}
      const identity=pcmIdentity(samples,expected[i]);
-     if(!(identity.rms>.03))return;
+     if(!(identity.rms>.03))return identity.source_identified;
      if(!identity.identified){
-      if(audioFailures.length<8)audioFailures.push({id,at,render:renderTimes.get(id),
+      if(audioFailures.length<8)audioFailures.push({id,timestamp,at,clock,expected_hz:sourceHz[expected[i]],render:renderTimes.get(id),
        receivedAudio:progress.get(id)?.audio,identity,boundary:pcmBoundary(samples)});
-      invalid(`actual selected source tone id=${id.slice(0,32)} hz=${sourceHz[expected[i]]} rms=${identity.rms.toFixed(3)} powers=${identity.powers.map(power=>power.toExponential(3)).join('/')}`);return;
+      invalid(`actual selected source tone id=${id.slice(0,32)} hz=${sourceHz[expected[i]]} rms=${identity.rms.toFixed(3)} powers=${identity.powers.map(power=>power.toExponential(3)).join('/')}`);return identity.source_identified;
      }
-     const p=progress.get(id);p.audio++;p.lastAudio=at;
+     const p=progress.get(id);p.audio++;p.lastAudio=at;return identity.source_identified;
     },
     video(id,timestamp,at,frame,width,height){
      const i=byConnection.get(id);if(i===undefined||active.get(i)!==id)return;
@@ -245,7 +252,7 @@ try{
     active_receivers:current.map(value=>({id:value.connection.id,...progress.get(value.connection.id),lastPixels:undefined}))};
    await globalThis.terminalCheckpoint('roundtrip-complete',report,8000);
    return {format:spec.format,passed:true,...report};
-  }catch(error){functionalFailure=error;throw error;}
+  }catch(error){functionalFailure=error;await retainPcm('failure');throw error;}
   finally{
    for(const timer of timers)clearInterval(timer);
    for(const value of captures){value.owner.close();if(value.owner.closed!==true)cleanupFailures.push('original-capture-close');}
@@ -256,6 +263,7 @@ try{
    for(const oscillator of oscillators){try{oscillator.stop();oscillator.disconnect();}catch{cleanupFailures.push('source-close');}}
    try{await audio.close();}catch{cleanupFailures.push('source-audio-close');}
    if(observer){try{await observer.close();}catch{cleanupFailures.push('observer-close');}}
+   await retainPcm('closed');
    if(!functionalFailure&&clients[0])for(let sid=0;sid<2;sid++){
     try{const session=clients[0].conversations.byId(spec.conversationId).sessions.byId(spec.sessions[sid]),view=await session.refresh(opts());
      await done(session.end({reasonCode:0,reason:'original roundtrip cleanup',expectedTopologyRevision:view.topologyRevision},mutation(`browser-wire-session-end-${sid}`)));}

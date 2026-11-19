@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
   "updated_at": "2026-11-19T13:51:25.307332+00:00",
-  "revision": 129,
+  "revision": 131,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 198,
-    "verified_at": "2026-11-19T13:51:50.865Z",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components530.json",
-    "readback_evidence_sha256": "a751987e5a4e48ec40cb775054fe558353defd7a48aff1420bc32eceab8bd5ba",
+    "content_revision": 200,
+    "verified_at": "2026-11-19T15:10:56.583231+00:00",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components542.json",
+    "readback_evidence_sha256": "a5cf33c24b10fe1495bb8274e91f00b549853ded2ee6f62be79961941a9dadcc",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -2558,10 +2558,10 @@
       "coordinator": "/root",
       "status": "in-progress",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g530-known-fixes-unit-verified.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
       "matrix_verified": false,
-      "implementation_state": "HistoricalcompleteG5192206passed. Current506knownfixes passNode1201 andRustschema/shared379; completecurrentcohort followsbatchcommit, thenactualmedia andremainingqualifiers.",
-      "updated_at": "2026-11-19T13:51:25.307332+00:00",
+      "implementation_state": "Prepared source508 passed all21 focused Rust controls, all4 original compilation groups and all4 inventories, with zero failed/ignored controls and natural owner joins. This verifies the five previously failing regression checks. The changed native-to-WebRTC allocation fixture compiles; its actual media behavior remains unverified. The PCM diagnostics passed19/19 pure tests; formatting, three generators and the Gate6 contract checker passed. The three actual media representatives last ran on506 and failed; audio identity and post-Discarded restored-media causes remain open. Native allocation now waits for the same asynchronous row within its original8s cutoff. Next: batch commit/push, one complete current regression run and actual media diagnostics. Last full matrix remainsv218:1/32cells and399/432checks. Not ready for32.",
+      "updated_at": "2026-11-19T15:10:21.130120+00:00",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g524-complete-regressions-status-refusal.json",
       "previous_independent_reviewer": "/root/v198_resources"
     },
@@ -2742,6 +2742,120 @@
       "updated_at": "2026-11-19T13:51:25.307332+00:00",
       "matrix_verified": false,
       "mapping_scope": "Contract/regression readiness prerequisite; historical matrix cell grades preserved."
+    },
+    {
+      "id": "V219-G532-READY-FIXTURES",
+      "title": "Canonical Ready envelopes in strict-schema authority fixtures",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "implementation_state": "Three parser/authority fixture failures; reviewed registered patch applied, normal508 pending. Exact original failed controls now pass in independently audited G541 focused21; complete current regression batch and media obligations remain.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
+      "updated_at": "2026-11-19T15:10:21.130120+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Prerequisite regression or actual representative evidence only; historical matrix grades unchanged.",
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ]
+    },
+    {
+      "id": "V219-G532-RTC-CAPTURE",
+      "title": "Retry exact non-consuming pre-submission MetadataBusy in native fixture",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "implementation_state": "One native fixture failure; same event/source/preparation/deadline/cancellation, grant observed once. Exact original failed controls now pass in independently audited G541 focused21; complete current regression batch and media obligations remain.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
+      "updated_at": "2026-11-19T15:10:21.130120+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Prerequisite regression or actual representative evidence only; historical matrix grades unchanged.",
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ]
+    },
+    {
+      "id": "V219-G532-STRICT-REFUSAL",
+      "title": "Require eventual exact denial after effect-free busy under original custody",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "implementation_state": "One Store fixture failure; no fresh admission, no expiry renewal, unchanged durable counts, exact unauthorized/forbidden still mandatory. Exact original failed controls now pass in independently audited G541 focused21; complete current regression batch and media obligations remain.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
+      "updated_at": "2026-11-19T15:10:21.130120+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Prerequisite regression or actual representative evidence only; historical matrix grades unchanged.",
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ]
+    },
+    {
+      "id": "V219-G533-AUDIO-IDENTITY",
+      "title": "Diagnose actual decoded audio identity failures without masking unknown blocks",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "in-progress",
+      "depends_on": [],
+      "implementation_state": "Bounded original PCM diagnostics implemented;19/19 pure checks pass. Real-codec causal control pending; contributor-change encoder reset is explicit history-isolation policy, so no production/criterion change yet.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
+      "updated_at": "2026-11-19T15:10:21.130120+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Prerequisite regression or actual representative evidence only; historical matrix grades unchanged.",
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ]
+    },
+    {
+      "id": "V219-G534-RESTORE-MEDIA",
+      "title": "Prove fresh decoded OLD and unrelated AV after discarded replacement",
+      "owner_agent": "/root/independent_batch_review",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "in-progress",
+      "depends_on": [],
+      "implementation_state": "Durable Discarded observed; actual restoration/fresh-media predicate failed. Capture receiver counters and fresh-authority restore outcome.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g536-regression-and-media-frontiers.json",
+      "updated_at": "2026-11-19T14:44:21.087297+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Prerequisite regression or actual representative evidence only; historical matrix grades unchanged.",
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ]
+    },
+    {
+      "id": "V219-G535-NATIVE-ALLOCATION",
+      "title": "Resolve native allocation observation and failed-path browser ownership",
+      "owner_agent": "/root/independent_batch_review",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "implemented-unverified",
+      "depends_on": [],
+      "implementation_state": "Source-proven async observation gap fixed: SAMErecord/status, bounded original8s, NoRows-only retry, terminal refusals fatal; compiled in G541 original-profile integration target. Actual media run still pending; original failed-browser cleanup not regraded.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
+      "updated_at": "2026-11-19T15:10:21.130120+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Prerequisite regression or actual representative evidence only; historical matrix grades unchanged.",
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "owned-drain-and-resource-reclamation"
+      ]
     }
   ],
   "failure_mapping": [
@@ -7056,8 +7170,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "All currently identified source fixes are implemented and unit-verified on prepared source506. Current71browser/affectedNode modules pass1201/1201, generator--check and SDKbuild pass; original-profile Rustbuilds pass all3required UCTP schema/golden controls and the shared379-vector Rust/browser integration oracle. No skips, forced processes or acceptance changes. This verifies bounded originaloperation.get503recovery, exact logicalIDs/freshsignedrequests/one deadline/currentdenials, five fixture dependency routes, strict contains/min/max/ASCII validators and synchronized canonicalschema/vectors. The abortfixture now observes the actual read rejection; its paired pending-write negative preserves original transport-retirement semantics. Existing Core/Native/SIP/provider fixes passed historical completeaffectedG5192206/2206. Next is one complete current506 affected regression batch after this checkpoint/batchcommit, followed by all3real decoded-media representatives on that same source. StrictFirefox3, original finalqualification command/identity scopes, localARM11/normalreleases and capturepreflight remain before readiness for32cells. origin/main was freshly fetched:zero commits missing. Underlying internal source of temporaryauthority availability remains unproven; the SDK follows the existing bounded read-recovery policy. Last fullmatrix remainsv218:1/32cells,399/432checks; no unit/diagnostic result regrades a cell. G6-054 remains parked. LocalMac/nativeARM resources only; no GitHub tests or cloud runners.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g530-known-fixes-unit-verified.json",
-    "sha256": "dc2ca4206b3b4b353e92b78396a37675654afa3d91a92e1ddc53853b19f6b20a"
-  }
+    "status": "Prepared source508 passed all21 focused Rust controls, all4 original compilation groups and all4 inventories, with zero failed/ignored controls and natural owner joins. This verifies the five previously failing regression checks. The changed native-to-WebRTC allocation fixture compiles; its actual media behavior remains unverified. The PCM diagnostics passed19/19 pure tests; formatting, three generators and the Gate6 contract checker passed. The three actual media representatives last ran on506 and failed; audio identity and post-Discarded restored-media causes remain open. Native allocation now waits for the same asynchronous row within its original8s cutoff. Next: batch commit/push, one complete current regression run and actual media diagnostics. Last full matrix remainsv218:1/32cells and399/432checks. Not ready for32.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g542-focused-fixes-verified.json",
+    "sha256": "a895787e6b911b92231db7ae8e9ff465281d07eea794280196636a2afd4f7d2e"
+  },
+  "updated": "2026-11-19T15:10:21.130120+00:00"
 }
