@@ -1,0 +1,2585 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
++++ b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+@@ -420,6 +420,54 @@
+         "substrate_setup": {},
+         "handoff_preparation": {
+           "$ref": "#/$defs/HandoffPreparation"
++        },
++        "webrtc_video_receive_reservation": {
++          "$ref": "#/$defs/WebRtcPublicVideoIntent"
++        },
++        "replacement_preparation": {
++          "oneOf": [
++            {
++              "type": "object",
++              "properties": {
++                "profile": {
++                  "const": "connect-replacement-preparation-v1"
++                },
++                "operation_record_id": {
++                  "$ref": "#/$defs/Identifier"
++                }
++              },
++              "required": [
++                "profile",
++                "operation_record_id"
++              ],
++              "additionalProperties": false
++            },
++            {
++              "type": "object",
++              "properties": {
++                "profile": {
++                  "const": "connect-replacement-media-v1"
++                },
++                "operation_record_id": {
++                  "$ref": "#/$defs/Identifier"
++                }
++              },
++              "required": [
++                "profile",
++                "operation_record_id"
++              ],
++              "additionalProperties": false
++            },
++            {
++              "$ref": "#/$defs/ReplacementReadinessChallengeMarker"
++            },
++            {
++              "$ref": "#/$defs/ReplacementReadinessReadyMarker"
++            },
++            {
++              "$ref": "#/$defs/WebRtcPublicVideoReadyMarker"
++            }
++          ]
+         }
+       },
+       "required": [
+@@ -465,6 +513,110 @@
+                 }
+               }
+             }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "webrtc_video_receive_reservation"
++            ]
++          },
++          "then": {
++            "required": [
++              "replacement_preparation"
++            ],
++            "properties": {
++              "substrate": {
++                "const": "websocket+webrtc"
++              },
++              "streams_offered": {
++                "minItems": 3,
++                "maxItems": 3,
++                "allOf": [
++                  {
++                    "contains": {
++                      "type": "object",
++                      "required": [
++                        "kind",
++                        "direction"
++                      ],
++                      "properties": {
++                        "kind": {
++                          "const": "audio"
++                        },
++                        "direction": {
++                          "const": "sendrecv"
++                        }
++                      }
++                    },
++                    "minContains": 1,
++                    "maxContains": 1
++                  },
++                  {
++                    "contains": {
++                      "type": "object",
++                      "required": [
++                        "kind",
++                        "direction"
++                      ],
++                      "properties": {
++                        "kind": {
++                          "const": "video"
++                        },
++                        "direction": {
++                          "const": "sendrecv"
++                        }
++                      }
++                    },
++                    "minContains": 1,
++                    "maxContains": 1
++                  },
++                  {
++                    "contains": {
++                      "type": "object",
++                      "required": [
++                        "kind",
++                        "direction"
++                      ],
++                      "properties": {
++                        "kind": {
++                          "const": "video"
++                        },
++                        "direction": {
++                          "const": "recvonly"
++                        }
++                      }
++                    },
++                    "minContains": 1,
++                    "maxContains": 1
++                  }
++                ]
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "replacement_preparation"
++            ],
++            "properties": {
++              "replacement_preparation": {
++                "required": [
++                  "profile"
++                ],
++                "properties": {
++                  "profile": {
++                    "const": "connect-replacement-public-video-ready-v1"
++                  }
++                }
++              }
++            }
++          },
++          "then": {
++            "required": [
++              "webrtc_video_receive_reservation"
++            ]
+           }
+         }
+       ]
+@@ -2483,6 +2635,12 @@
+         "result": {},
+         "problem": {
+           "type": "object"
++        },
++        "webrtc_video_receive_reservation": {
++          "$ref": "#/$defs/WebRtcPublicVideoIntent"
++        },
++        "webrtc_public_video_phase": {
++          "$ref": "#/$defs/WebRtcPublicVideoPhase"
+         }
+       },
+       "required": [
+@@ -2568,6 +2726,86 @@
+         },
+         {
+           "if": {
++            "anyOf": [
++              {
++                "required": [
++                  "webrtc_video_receive_reservation"
++                ]
++              },
++              {
++                "required": [
++                  "webrtc_public_video_phase"
++                ]
++              }
++            ]
++          },
++          "then": {
++            "required": [
++              "command_type",
++              "record_id",
++              "expected_revision"
++            ],
++            "properties": {
++              "command_type": {
++                "const": "connection.replace"
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "webrtc_public_video_phase"
++            ]
++          },
++          "then": {
++            "required": [
++              "webrtc_video_receive_reservation"
++            ]
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "webrtc_public_video_phase"
++            ],
++            "properties": {
++              "webrtc_public_video_phase": {
++                "required": [
++                  "phase"
++                ],
++                "properties": {
++                  "phase": {
++                    "const": "activated"
++                  }
++                }
++              }
++            }
++          },
++          "then": {
++            "required": [
++              "result"
++            ],
++            "properties": {
++              "state": {
++                "const": "completed"
++              },
++              "result": {
++                "type": "object",
++                "required": [
++                  "activation_state"
++                ],
++                "properties": {
++                  "activation_state": {
++                    "const": "ready"
++                  }
++                }
++              }
++            }
++          }
++        },
++        {
++          "if": {
+             "required": [
+               "subscription_record_id"
+             ]
+@@ -2599,6 +2837,645 @@
+           }
+         }
+       ]
++    },
++    "WebRtcPublicVideoId": {
++      "type": "string",
++      "minLength": 1,
++      "maxLength": 128,
++      "pattern": "^[A-Za-z0-9._~-]+$"
++    },
++    "WebRtcPublicVideoOpaque": {
++      "type": "string",
++      "minLength": 1,
++      "maxLength": 256,
++      "pattern": "^[!-~]+$"
++    },
++    "WebRtcPublicVideoPositiveCount": {
++      "type": "integer",
++      "minimum": 1,
++      "maximum": 9007199254740991
++    },
++    "WebRtcPublicVideoIntent": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect/webrtc-public-video-reservation/1"
++        },
++        "phase": {
++          "const": "intent"
++        },
++        "reservation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "nonce": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "preview_stream_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "preview_role": {
++          "const": "receive"
++        },
++        "public_stream_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        }
++      },
++      "required": [
++        "profile",
++        "phase",
++        "reservation_id",
++        "nonce",
++        "preview_stream_id",
++        "preview_role",
++        "public_stream_id"
++      ],
++      "additionalProperties": false,
++      "description": "Original server-issued setup only. Runtime requires distinct frozen preview A/public B stream IDs and exact original mapping; no MID, cut, readiness or authority can be added."
++    },
++    "WebRtcPublicVideoBinding": {
++      "type": "object",
++      "properties": {
++        "stream_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "preview_stream_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "mid": {
++          "$ref": "#/$defs/WebRtcPublicVideoOpaque"
++        },
++        "stream_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoPositiveCount"
++        },
++        "physical_writer_incarnation": {
++          "$ref": "#/$defs/WebRtcPublicVideoOpaque"
++        },
++        "connection_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoPositiveCount"
++        },
++        "primary_ssrc": {
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 4294967295
++        },
++        "payload_type": {
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 127
++        },
++        "clock_rate_hz": {
++          "const": 90000
++        },
++        "codec": {
++          "const": "vp8"
++        }
++      },
++      "required": [
++        "stream_id",
++        "preview_stream_id",
++        "mid",
++        "stream_generation",
++        "physical_writer_incarnation",
++        "connection_generation",
++        "primary_ssrc",
++        "payload_type",
++        "clock_rate_hz",
++        "codec"
++      ],
++      "additionalProperties": false,
++      "description": "Actual original B native tuple. SSRC zero is valid. Generations are independent namespaces; runtime matches distinct stream IDs/native pointers/current original owners, never infers identity from these data alone."
++    },
++    "WebRtcPublicVideoChallenge": {
++      "type": "object",
++      "properties": {
++        "nonce": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "decoder_startup": {
++          "const": "fresh-receiver-first-decoded-frame"
++        }
++      },
++      "required": [
++        "nonce",
++        "decoder_startup"
++      ],
++      "additionalProperties": false,
++      "description": "Runtime requires public nonce distinct from both original Intent and private readiness nonces."
++    },
++    "WebRtcPublicVideoNegotiatedNeverFed": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect/webrtc-public-video-phase/1"
++        },
++        "phase": {
++          "const": "negotiated-never-fed"
++        },
++        "reservation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_connection_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoPositiveCount"
++        },
++        "binding": {
++          "$ref": "#/$defs/WebRtcPublicVideoBinding"
++        }
++      },
++      "required": [
++        "profile",
++        "phase",
++        "reservation_id",
++        "operation_record_id",
++        "operation_id",
++        "target_connection_id",
++        "target_generation",
++        "binding"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoCutBoundPostF": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect/webrtc-public-video-phase/1"
++        },
++        "phase": {
++          "const": "cut-bound-post-f"
++        },
++        "reservation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_connection_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoPositiveCount"
++        },
++        "binding": {
++          "$ref": "#/$defs/WebRtcPublicVideoBinding"
++        },
++        "source_cut_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoOpaque"
++        },
++        "public_readiness": {
++          "$ref": "#/$defs/WebRtcPublicVideoChallenge"
++        }
++      },
++      "required": [
++        "profile",
++        "phase",
++        "reservation_id",
++        "operation_record_id",
++        "operation_id",
++        "target_connection_id",
++        "target_generation",
++        "binding",
++        "source_cut_id",
++        "public_readiness"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoDecodedReady": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect/webrtc-public-video-phase/1"
++        },
++        "phase": {
++          "const": "decoded-ready"
++        },
++        "reservation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_connection_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoPositiveCount"
++        },
++        "binding": {
++          "$ref": "#/$defs/WebRtcPublicVideoBinding"
++        },
++        "source_cut_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoOpaque"
++        },
++        "public_readiness": {
++          "$ref": "#/$defs/WebRtcPublicVideoChallenge"
++        }
++      },
++      "required": [
++        "profile",
++        "phase",
++        "reservation_id",
++        "operation_record_id",
++        "operation_id",
++        "target_connection_id",
++        "target_generation",
++        "binding",
++        "source_cut_id",
++        "public_readiness"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoActivated": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect/webrtc-public-video-phase/1"
++        },
++        "phase": {
++          "const": "activated"
++        },
++        "reservation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_connection_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoPositiveCount"
++        },
++        "binding": {
++          "$ref": "#/$defs/WebRtcPublicVideoBinding"
++        },
++        "source_cut_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoOpaque"
++        },
++        "public_readiness": {
++          "$ref": "#/$defs/WebRtcPublicVideoChallenge"
++        }
++      },
++      "required": [
++        "profile",
++        "phase",
++        "reservation_id",
++        "operation_record_id",
++        "operation_id",
++        "target_connection_id",
++        "target_generation",
++        "binding",
++        "source_cut_id",
++        "public_readiness"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoDiscarded": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect/webrtc-public-video-phase/1"
++        },
++        "phase": {
++          "const": "discarded"
++        },
++        "reservation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "operation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_connection_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "target_generation": {
++          "$ref": "#/$defs/WebRtcPublicVideoPositiveCount"
++        },
++        "binding": {
++          "$ref": "#/$defs/WebRtcPublicVideoBinding"
++        },
++        "source_cut_id": {
++          "anyOf": [
++            {
++              "$ref": "#/$defs/WebRtcPublicVideoOpaque"
++            },
++            {
++              "type": "null"
++            }
++          ]
++        },
++        "reason": {
++          "enum": [
++            "cancelled",
++            "expired",
++            "refused",
++            "owner-retired",
++            "binding-changed",
++            "cut-unavailable"
++          ]
++        }
++      },
++      "required": [
++        "profile",
++        "phase",
++        "reservation_id",
++        "operation_record_id",
++        "operation_id",
++        "target_connection_id",
++        "target_generation",
++        "binding",
++        "source_cut_id",
++        "reason"
++      ],
++      "additionalProperties": false
++    },
++    "WebRtcPublicVideoPhase": {
++      "oneOf": [
++        {
++          "$ref": "#/$defs/WebRtcPublicVideoNegotiatedNeverFed"
++        },
++        {
++          "$ref": "#/$defs/WebRtcPublicVideoCutBoundPostF"
++        },
++        {
++          "$ref": "#/$defs/WebRtcPublicVideoDecodedReady"
++        },
++        {
++          "$ref": "#/$defs/WebRtcPublicVideoActivated"
++        },
++        {
++          "$ref": "#/$defs/WebRtcPublicVideoDiscarded"
++        }
++      ],
++      "description": "Current-authorized original journal projection only. Runtime enforces monotonic chain, exact immutable original IDs/binding/cut, actual owned resources and phase-specific custody. Activated is atomic with ready Completed publication. Discarded needs actual original physical/backend/Core joins; before binding only an internal terminal marker exists and no wire Phase is emitted. No F ordinal is serialized."
++    },
++    "WebRtcPublicVideoDecodedObservation": {
++      "type": "object",
++      "properties": {
++        "reservation_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "source_cut_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoOpaque"
++        },
++        "nonce": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "binding": {
++          "$ref": "#/$defs/WebRtcPublicVideoBinding"
++        },
++        "decoded_frames": {
++          "$ref": "#/$defs/WebRtcPublicVideoPositiveCount"
++        },
++        "decoded_keyframes": {
++          "anyOf": [
++            {
++              "$ref": "#/$defs/WebRtcPublicVideoPositiveCount"
++            },
++            {
++              "type": "null"
++            }
++          ]
++        },
++        "decoder_startup": {
++          "const": "fresh-receiver-first-decoded-frame"
++        }
++      },
++      "required": [
++        "reservation_id",
++        "source_cut_id",
++        "nonce",
++        "binding",
++        "decoded_frames",
++        "decoded_keyframes",
++        "decoder_startup"
++      ],
++      "additionalProperties": false,
++      "description": "Actual original B-only observation. Required nullable decoded_keyframes: a missing browser native keyframe counter may be null, a present counter must be positive and at most decoded_frames. Cross-field/keyframe semantics and actual native decoder ownership require runtime validation."
++    },
++    "WebRtcPublicVideoReadyMarker": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect-replacement-public-video-ready-v1"
++        },
++        "operation_record_id": {
++          "$ref": "#/$defs/WebRtcPublicVideoId"
++        },
++        "public_video_readiness": {
++          "$ref": "#/$defs/WebRtcPublicVideoDecodedObservation"
++        }
++      },
++      "required": [
++        "profile",
++        "operation_record_id",
++        "public_video_readiness"
++      ],
++      "additionalProperties": false,
++      "description": "Closed marker inside SAME original signed connection.offer. Preserve every other original offer/credential/key/device field. No audio readiness is supplied here. Host must match whole frozen original marker on replay; shape/signature/counters alone confer no media permission or physical proof."
++    },
++    "ReplacementReadinessChallenge": {
++      "type": "object",
++      "properties": {
++        "nonce": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 128,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        },
++        "source_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "target_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "stream_revision": {
++          "const": 2
++        }
++      },
++      "required": [
++        "nonce",
++        "source_generation",
++        "target_generation",
++        "stream_revision"
++      ],
++      "additionalProperties": false,
++      "description": "Original server-issued challenge. target_generation equals source_generation+1. Stream revision 2 is private preparation; native parameter callback revision 1 is distinct."
++    },
++    "ReplacementReadinessAudioObservation": {
++      "type": "object",
++      "properties": {
++        "stream_id": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 128,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        },
++        "decoded_samples": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        }
++      },
++      "required": [
++        "stream_id",
++        "decoded_samples"
++      ],
++      "additionalProperties": false
++    },
++    "ReplacementReadinessVideoObservation": {
++      "type": "object",
++      "properties": {
++        "stream_id": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 128,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        },
++        "decoded_frames": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "decoded_keyframes": {
++          "anyOf": [
++            {
++              "type": "integer",
++              "minimum": 1,
++              "maximum": 9007199254740991
++            },
++            {
++              "type": "null"
++            }
++          ]
++        },
++        "decoder_startup": {
++          "const": "fresh-peer-first-decoded-frame"
++        }
++      },
++      "required": [
++        "stream_id",
++        "decoded_frames",
++        "decoded_keyframes",
++        "decoder_startup"
++      ],
++      "additionalProperties": false,
++      "description": "Native requires an actual positive decoded-keyframe count no greater than decoded_frames. A browser that omits its keyframe counter may report null only after a fresh decoder outputs an actual frame."
++    },
++    "ReplacementReadinessObservation": {
++      "type": "object",
++      "properties": {
++        "nonce": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 128,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        },
++        "source_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "target_generation": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "stream_revision": {
++          "const": 2
++        },
++        "audio": {
++          "$ref": "#/$defs/ReplacementReadinessAudioObservation"
++        },
++        "video": {
++          "anyOf": [
++            {
++              "$ref": "#/$defs/ReplacementReadinessVideoObservation"
++            },
++            {
++              "type": "null"
++            }
++          ]
++        }
++      },
++      "required": [
++        "nonce",
++        "source_generation",
++        "target_generation",
++        "stream_revision",
++        "audio"
++      ],
++      "additionalProperties": false,
++      "description": "Signed endpoint observation, not independent proof against a malicious endpoint and never a domain grant. Every count comes from actual decoding on the fresh original target; packet receipt, RTP headers, signed answer or Ready row is insufficient."
++    },
++    "ReplacementReadinessChallengeMarker": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect-replacement-media-v1"
++        },
++        "operation_record_id": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 128,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        },
++        "readiness": {
++          "$ref": "#/$defs/ReplacementReadinessChallenge"
++        }
++      },
++      "required": [
++        "profile",
++        "operation_record_id",
++        "readiness"
++      ],
++      "additionalProperties": false
++    },
++    "ReplacementReadinessReadyMarker": {
++      "type": "object",
++      "properties": {
++        "profile": {
++          "const": "connect-replacement-ready-v1"
++        },
++        "operation_record_id": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 128,
++          "pattern": "^[A-Za-z0-9._~-]+$"
++        },
++        "readiness": {
++          "$ref": "#/$defs/ReplacementReadinessObservation"
++        }
++      },
++      "required": [
++        "profile",
++        "operation_record_id",
++        "readiness"
++      ],
++      "additionalProperties": false
+     },
+     "ReconciliationHint": {
+       "type": "object",
+--- a/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
++++ b/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
+@@ -5887,6 +5887,1602 @@
+         "operation_id": "op_vector_25",
+         "expected_revision": 1
+       }
++    },
++    {
++      "id": "public-video-phase-negotiated-never-fed",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "negotiated-never-fed"
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-cut-bound-post-f",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "cut-bound-post-f",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-decoded-ready",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "decoded-ready",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-activated",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "activated",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          },
++          "result": {
++            "activation_state": "ready"
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-discarded",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "cancelled",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "discarded",
++            "source_cut_id": null,
++            "reason": "cancelled"
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-ordinal",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "cut-bound-post-f",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            },
++            "source_frame_ordinal": 9007199254740992
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-numeric-cut",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "cut-bound-post-f",
++            "source_cut_id": 37,
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-unicode-mid",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "\u00e9",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "cut-bound-post-f",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-payload-type",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 128,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "cut-bound-post-f",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-false-activation-state",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "activated",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-missing-intent",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "cut-bound-post-f",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-nonreplacement",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "session.handoff",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "cut-bound-post-f",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-intent-transport-claim",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b",
++            "mid": "2"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "cut-bound-post-f",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-fractional-generation",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 1.5,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "cut-bound-post-f",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-phase-refuses-stopped-activation",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "activated",
++            "source_cut_id": "cut-original",
++            "public_readiness": {
++              "nonce": "public-original",
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          },
++          "result": {
++            "activation_state": "stopped"
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-discard-requires-explicit-cut-or-null",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "connection.replace",
++          "record_id": "record-original",
++          "expected_revision": 3,
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "webrtc_public_video_phase": {
++            "profile": "connect/webrtc-public-video-phase/1",
++            "reservation_id": "original-reservation",
++            "operation_record_id": "record-original",
++            "operation_id": "example",
++            "target_connection_id": "target-original",
++            "target_generation": 2,
++            "binding": {
++              "stream_id": "public-b",
++              "preview_stream_id": "camera-a",
++              "mid": "2",
++              "stream_generation": 3,
++              "physical_writer_incarnation": "writer-original",
++              "connection_generation": 7,
++              "primary_ssrc": 0,
++              "payload_type": 96,
++              "clock_rate_hz": 90000,
++              "codec": "vp8"
++            },
++            "phase": "discarded",
++            "reason": "cancelled"
++          }
++        }
++      }
++    },
++    {
++      "id": "public-video-ready-original-three-roles-null-native-keycounter",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "connection.offer",
++        "id": "env_vector_22",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "substrate": "websocket+webrtc",
++          "capabilities": {},
++          "streams_offered": [
++            {
++              "id": "audio",
++              "kind": "audio",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "pcmu"
++              ]
++            },
++            {
++              "id": "camera-a",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            },
++            {
++              "id": "public-b",
++              "kind": "video",
++              "direction": "recvonly",
++              "codec_preferences": [
++                "vp8"
++              ]
++            }
++          ],
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "replacement_preparation": {
++            "profile": "connect-replacement-public-video-ready-v1",
++            "operation_record_id": "record-original",
++            "public_video_readiness": {
++              "reservation_id": "original-reservation",
++              "source_cut_id": "cut-original",
++              "nonce": "public-original",
++              "binding": {
++                "stream_id": "public-b",
++                "preview_stream_id": "camera-a",
++                "mid": "2",
++                "stream_generation": 3,
++                "physical_writer_incarnation": "writer-original",
++                "connection_generation": 7,
++                "primary_ssrc": 0,
++                "payload_type": 96,
++                "clock_rate_hz": 90000,
++                "codec": "vp8"
++              },
++              "decoded_frames": 1,
++              "decoded_keyframes": null,
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        },
++        "operation_id": "op_vector_22"
++      }
++    },
++    {
++      "id": "public-video-ready-refuses-missing-keycounter",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.offer",
++        "id": "env_vector_22",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "substrate": "websocket+webrtc",
++          "capabilities": {},
++          "streams_offered": [
++            {
++              "id": "audio",
++              "kind": "audio",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "pcmu"
++              ]
++            },
++            {
++              "id": "camera-a",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            },
++            {
++              "id": "public-b",
++              "kind": "video",
++              "direction": "recvonly",
++              "codec_preferences": [
++                "vp8"
++              ]
++            }
++          ],
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "replacement_preparation": {
++            "profile": "connect-replacement-public-video-ready-v1",
++            "operation_record_id": "record-original",
++            "public_video_readiness": {
++              "reservation_id": "original-reservation",
++              "source_cut_id": "cut-original",
++              "nonce": "public-original",
++              "binding": {
++                "stream_id": "public-b",
++                "preview_stream_id": "camera-a",
++                "mid": "2",
++                "stream_generation": 3,
++                "physical_writer_incarnation": "writer-original",
++                "connection_generation": 7,
++                "primary_ssrc": 0,
++                "payload_type": 96,
++                "clock_rate_hz": 90000,
++                "codec": "vp8"
++              },
++              "decoded_frames": 1,
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        },
++        "operation_id": "op_vector_22"
++      }
++    },
++    {
++      "id": "public-video-ready-refuses-zero-frames",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.offer",
++        "id": "env_vector_22",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "substrate": "websocket+webrtc",
++          "capabilities": {},
++          "streams_offered": [
++            {
++              "id": "audio",
++              "kind": "audio",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "pcmu"
++              ]
++            },
++            {
++              "id": "camera-a",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            },
++            {
++              "id": "public-b",
++              "kind": "video",
++              "direction": "recvonly",
++              "codec_preferences": [
++                "vp8"
++              ]
++            }
++          ],
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "replacement_preparation": {
++            "profile": "connect-replacement-public-video-ready-v1",
++            "operation_record_id": "record-original",
++            "public_video_readiness": {
++              "reservation_id": "original-reservation",
++              "source_cut_id": "cut-original",
++              "nonce": "public-original",
++              "binding": {
++                "stream_id": "public-b",
++                "preview_stream_id": "camera-a",
++                "mid": "2",
++                "stream_generation": 3,
++                "physical_writer_incarnation": "writer-original",
++                "connection_generation": 7,
++                "primary_ssrc": 0,
++                "payload_type": 96,
++                "clock_rate_hz": 90000,
++                "codec": "vp8"
++              },
++              "decoded_frames": 0,
++              "decoded_keyframes": null,
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        },
++        "operation_id": "op_vector_22"
++      }
++    },
++    {
++      "id": "public-video-ready-refuses-audio",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.offer",
++        "id": "env_vector_22",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "substrate": "websocket+webrtc",
++          "capabilities": {},
++          "streams_offered": [
++            {
++              "id": "audio",
++              "kind": "audio",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "pcmu"
++              ]
++            },
++            {
++              "id": "camera-a",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            },
++            {
++              "id": "public-b",
++              "kind": "video",
++              "direction": "recvonly",
++              "codec_preferences": [
++                "vp8"
++              ]
++            }
++          ],
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "replacement_preparation": {
++            "profile": "connect-replacement-public-video-ready-v1",
++            "operation_record_id": "record-original",
++            "public_video_readiness": {
++              "reservation_id": "original-reservation",
++              "source_cut_id": "cut-original",
++              "nonce": "public-original",
++              "binding": {
++                "stream_id": "public-b",
++                "preview_stream_id": "camera-a",
++                "mid": "2",
++                "stream_generation": 3,
++                "physical_writer_incarnation": "writer-original",
++                "connection_generation": 7,
++                "primary_ssrc": 0,
++                "payload_type": 96,
++                "clock_rate_hz": 90000,
++                "codec": "vp8"
++              },
++              "decoded_frames": 1,
++              "decoded_keyframes": null,
++              "decoder_startup": "fresh-receiver-first-decoded-frame",
++              "audio": {
++                "decoded_samples": 1
++              }
++            }
++          }
++        },
++        "operation_id": "op_vector_22"
++      }
++    },
++    {
++      "id": "public-video-ready-refuses-authority",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.offer",
++        "id": "env_vector_22",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "substrate": "websocket+webrtc",
++          "capabilities": {},
++          "streams_offered": [
++            {
++              "id": "audio",
++              "kind": "audio",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "pcmu"
++              ]
++            },
++            {
++              "id": "camera-a",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            },
++            {
++              "id": "public-b",
++              "kind": "video",
++              "direction": "recvonly",
++              "codec_preferences": [
++                "vp8"
++              ]
++            }
++          ],
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "replacement_preparation": {
++            "profile": "connect-replacement-public-video-ready-v1",
++            "operation_record_id": "record-original",
++            "public_video_readiness": {
++              "reservation_id": "original-reservation",
++              "source_cut_id": "cut-original",
++              "nonce": "public-original",
++              "binding": {
++                "stream_id": "public-b",
++                "preview_stream_id": "camera-a",
++                "mid": "2",
++                "stream_generation": 3,
++                "physical_writer_incarnation": "writer-original",
++                "connection_generation": 7,
++                "primary_ssrc": 0,
++                "payload_type": 96,
++                "clock_rate_hz": 90000,
++                "codec": "vp8",
++                "source_exclusion_enforced": true
++              },
++              "decoded_frames": 1,
++              "decoded_keyframes": null,
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        },
++        "operation_id": "op_vector_22"
++      }
++    },
++    {
++      "id": "public-video-ready-refuses-extra-marker",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.offer",
++        "id": "env_vector_22",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "substrate": "websocket+webrtc",
++          "capabilities": {},
++          "streams_offered": [
++            {
++              "id": "audio",
++              "kind": "audio",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "pcmu"
++              ]
++            },
++            {
++              "id": "camera-a",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            },
++            {
++              "id": "public-b",
++              "kind": "video",
++              "direction": "recvonly",
++              "codec_preferences": [
++                "vp8"
++              ]
++            }
++          ],
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "replacement_preparation": {
++            "profile": "connect-replacement-public-video-ready-v1",
++            "operation_record_id": "record-original",
++            "public_video_readiness": {
++              "reservation_id": "original-reservation",
++              "source_cut_id": "cut-original",
++              "nonce": "public-original",
++              "binding": {
++                "stream_id": "public-b",
++                "preview_stream_id": "camera-a",
++                "mid": "2",
++                "stream_generation": 3,
++                "physical_writer_incarnation": "writer-original",
++                "connection_generation": 7,
++                "primary_ssrc": 0,
++                "payload_type": 96,
++                "clock_rate_hz": 90000,
++                "codec": "vp8"
++              },
++              "decoded_frames": 1,
++              "decoded_keyframes": null,
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            },
++            "ready": true
++          }
++        },
++        "operation_id": "op_vector_22"
++      }
++    },
++    {
++      "id": "public-video-ready-refuses-missing-intent",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.offer",
++        "id": "env_vector_22",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "substrate": "websocket+webrtc",
++          "capabilities": {},
++          "streams_offered": [
++            {
++              "id": "audio",
++              "kind": "audio",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "pcmu"
++              ]
++            },
++            {
++              "id": "camera-a",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            },
++            {
++              "id": "public-b",
++              "kind": "video",
++              "direction": "recvonly",
++              "codec_preferences": [
++                "vp8"
++              ]
++            }
++          ],
++          "replacement_preparation": {
++            "profile": "connect-replacement-public-video-ready-v1",
++            "operation_record_id": "record-original",
++            "public_video_readiness": {
++              "reservation_id": "original-reservation",
++              "source_cut_id": "cut-original",
++              "nonce": "public-original",
++              "binding": {
++                "stream_id": "public-b",
++                "preview_stream_id": "camera-a",
++                "mid": "2",
++                "stream_generation": 3,
++                "physical_writer_incarnation": "writer-original",
++                "connection_generation": 7,
++                "primary_ssrc": 0,
++                "payload_type": 96,
++                "clock_rate_hz": 90000,
++                "codec": "vp8"
++              },
++              "decoded_frames": 1,
++              "decoded_keyframes": null,
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        },
++        "operation_id": "op_vector_22"
++      }
++    },
++    {
++      "id": "public-video-ready-refuses-wrong-role",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.offer",
++        "id": "env_vector_22",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "substrate": "websocket+webrtc",
++          "capabilities": {},
++          "streams_offered": [
++            {
++              "id": "audio",
++              "kind": "audio",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "pcmu"
++              ]
++            },
++            {
++              "id": "camera-a",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            },
++            {
++              "id": "public-b",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            }
++          ],
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "replacement_preparation": {
++            "profile": "connect-replacement-public-video-ready-v1",
++            "operation_record_id": "record-original",
++            "public_video_readiness": {
++              "reservation_id": "original-reservation",
++              "source_cut_id": "cut-original",
++              "nonce": "public-original",
++              "binding": {
++                "stream_id": "public-b",
++                "preview_stream_id": "camera-a",
++                "mid": "2",
++                "stream_generation": 3,
++                "physical_writer_incarnation": "writer-original",
++                "connection_generation": 7,
++                "primary_ssrc": 0,
++                "payload_type": 96,
++                "clock_rate_hz": 90000,
++                "codec": "vp8"
++              },
++              "decoded_frames": 1,
++              "decoded_keyframes": null,
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        },
++        "operation_id": "op_vector_22"
++      }
++    },
++    {
++      "id": "public-video-ready-refuses-numeric-cut",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "connection.offer",
++        "id": "env_vector_22",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "substrate": "websocket+webrtc",
++          "capabilities": {},
++          "streams_offered": [
++            {
++              "id": "audio",
++              "kind": "audio",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "pcmu"
++              ]
++            },
++            {
++              "id": "camera-a",
++              "kind": "video",
++              "direction": "sendrecv",
++              "codec_preferences": [
++                "vp8"
++              ]
++            },
++            {
++              "id": "public-b",
++              "kind": "video",
++              "direction": "recvonly",
++              "codec_preferences": [
++                "vp8"
++              ]
++            }
++          ],
++          "webrtc_video_receive_reservation": {
++            "profile": "connect/webrtc-public-video-reservation/1",
++            "phase": "intent",
++            "reservation_id": "original-reservation",
++            "nonce": "intent-original",
++            "preview_stream_id": "camera-a",
++            "preview_role": "receive",
++            "public_stream_id": "public-b"
++          },
++          "replacement_preparation": {
++            "profile": "connect-replacement-public-video-ready-v1",
++            "operation_record_id": "record-original",
++            "public_video_readiness": {
++              "reservation_id": "original-reservation",
++              "source_cut_id": 9007199254740992,
++              "nonce": "public-original",
++              "binding": {
++                "stream_id": "public-b",
++                "preview_stream_id": "camera-a",
++                "mid": "2",
++                "stream_generation": 3,
++                "physical_writer_incarnation": "writer-original",
++                "connection_generation": 7,
++                "primary_ssrc": 0,
++                "payload_type": 96,
++                "clock_rate_hz": 90000,
++                "codec": "vp8"
++              },
++              "decoded_frames": 1,
++              "decoded_keyframes": null,
++              "decoder_startup": "fresh-receiver-first-decoded-frame"
++            }
++          }
++        },
++        "operation_id": "op_vector_22"
++      }
+     }
+   ]
+ }
+--- a/crates/uctp/rvoip-uctp/src/v2/validation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/validation.rs
+@@ -146,6 +146,13 @@
+                 }
+             }
+         }
++        if let Some(child) = schema.get("contains") {
++            let count = items.iter().filter(|item| matches_schema(child, item)).count() as u64;
++            let minimum = schema.get("minContains").and_then(Value::as_u64).unwrap_or(1);
++            if count < minimum || above(schema, "maxContains", count) {
++                return false;
++            }
++        }
+         if schema
+             .get("items")
+             .is_some_and(|child| !items.iter().all(|item| matches_schema(child, item)))
+@@ -162,6 +169,7 @@
+             let valid = match pattern {
+                 "^[A-Za-z0-9._~-]+$" => !text.is_empty()
+                     && text.bytes().all(|b| b.is_ascii_alphanumeric() || b"._~-".contains(&b)),
++                "^[!-~]+$" => !text.is_empty() && text.bytes().all(|b| (b'!'..=b'~').contains(&b)),
+                 "^(sip|sips|tel):[!-~]+$" => super::session_target::gateway_syntax(text),
+                 _ => panic!("unrecognized fixed schema pattern"),
+             };
+@@ -277,3 +285,41 @@
+         .map(|value| value.0)
+         .map_err(|_| WireError::InvalidJson)
+ }
++
++#[cfg(test)]
++mod fixed_public_video_schema_tests {
++    use super::matches_schema;
++    use serde_json::json;
++
++    #[test]
++    fn contains_counts_exact_original_roles_without_requiring_array_order() {
++        let schema = json!({"contains":{"type":"object","required":["kind","direction"],
++            "properties":{"kind":{"const":"video"},"direction":{"const":"recvonly"}}},
++            "minContains":1,"maxContains":1});
++        let audio = json!({"kind":"audio","direction":"sendrecv"});
++        let camera = json!({"kind":"video","direction":"sendrecv"});
++        let public = json!({"kind":"video","direction":"recvonly"});
++        assert!(matches_schema(&schema, &json!([audio, camera, public])));
++        assert!(matches_schema(&schema, &json!([public, camera, audio])));
++        assert!(!matches_schema(&schema, &json!([audio, camera])));
++        assert!(!matches_schema(&schema, &json!([public, public])));
++        assert!(!matches_schema(&schema, &json!([])));
++        let default_minimum = json!({"contains":{"const":"public"}});
++        assert!(!matches_schema(&default_minimum, &json!([])));
++        assert!(matches_schema(&default_minimum, &json!(["public"])));
++        let none = json!({"contains":{"const":"public"},"minContains":0,"maxContains":0});
++        assert!(matches_schema(&none, &json!(["camera"])));
++        assert!(!matches_schema(&none, &json!(["public"])));
++    }
++
++    #[test]
++    fn printable_ascii_mid_is_not_a_sip_uri_and_refuses_whitespace_controls_and_unicode() {
++        let schema = json!({"type":"string","pattern":"^[!-~]+$"});
++        for value in ["0", "B!~", "audio-2"] {
++            assert!(matches_schema(&schema, &json!(value)), "{value:?}");
++        }
++        for value in ["", " ", "mid space", "tab\t", "line\n", "\u{7f}", "é"] {
++            assert!(!matches_schema(&schema, &json!(value)), "{value:?}");
++        }
++    }
++}

@@ -6,3 +6,5 @@ export declare class ConnectError extends Error {
     readonly httpStatus?: number | undefined;
     constructor(code: string, message: string, problem?: CanonicalProblem | undefined, httpStatus?: number | undefined);
 }
+/** Exact signed unavailable refusals; private text never selects recovery. */
+export declare function recoverableReadRefusal(error: unknown): boolean;

@@ -68,9 +68,14 @@ impl Runtime {
             until, [&self.stop, &root_cancel], |number| {
             let future: commit_admission::Attempt<'_, CommitEntry<'_>> = Box::pin(async move {
             let (roles, mut i) = super::projection::read(&self.role_projection, &self.stop, until, || async {
-                let plan = self.core.plan_staged_device_replacement(&root.handle, replacement_video(&root.plan)?).map_err(|error| {
+                let plan = (if root.public_video.required() {
+                    root.public_video.commit_plan()
+                } else {
+                    self.core.plan_staged_device_replacement(&root.handle, replacement_video(&root.plan)?)
+                        .map_err(super::projection::core_plan_error)
+                }).map_err(|error| {
                     tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="plan",?error,"Replacement pre-commit refused");
-                    super::projection::core_plan_error(error)
+                    error
                 })?;
                 let plan = if let Some(parent) = plan.media().private_predecessor() {
                     let original = {
@@ -487,6 +492,8 @@ impl Runtime {
             "Replacement commit phase observed");
         let installed = Arc::new(Installed {
             runtime: self.clone(),
+            root: root.clone(),
+            started: started.clone(),
             adoption,
         });
         let projected = super::diagnostics::metadata(
@@ -580,12 +587,29 @@ impl Runtime {
     /// Retain and record a live pre-Core refusal through metadata contention.
     /// Cancel only its prepared candidate; source and retained never moved.
     async fn stop_unsubmitted_replacement(
-        &self,
-        root: &PreparedReplacement,
-        started: &StartedReplacement,
+        self: &Arc<Self>,
+        root: &Arc<PreparedReplacement>,
+        started: &Arc<StartedReplacement>,
         capture: Arc<NativeReplacementCommitNotSubmitted>,
     ) {
         root.handle.cancel();
+        if root.public_video.required() {
+            // Persist the SAME definite no-Core capture before selecting its
+            // typed cleanup lineage. Generic Unknown is never an alternative.
+            let recorded = retry_metadata(&self.stop, || {
+                let store = self.media.store.clone();
+                let captured = capture.clone();
+                store_call(move || store.record_native_replacement_commit_not_submitted(&captured))
+            })
+            .await;
+            if recorded.is_ok() {
+                if let Err(error) = self.finish_original_public_video_abort(root).await {
+                    tracing::debug!(target:"connect_service::canonical_replacement",code=%error.code,
+                        "Original NotSubmitted public candidate cleanup remains owned by watcher");
+                }
+            }
+            return; // watcher retains exact Root/capture through final settlement
+        }
         let id = root.handle.intent().replacement.clone();
         loop {
             if self.native_connection_live(&id) {
@@ -712,6 +736,8 @@ impl Runtime {
 
 struct Installed {
     runtime: Arc<Runtime>,
+    root: Arc<PreparedReplacement>,
+    started: Arc<StartedReplacement>,
     adoption: Arc<crate::canonical_media::replacement::ReplacementAdoption>,
 }
 impl connect_store::NativeReplacementInstallationObservation for Installed {
@@ -728,7 +754,13 @@ impl connect_store::NativeReplacementInstallationObservation for Installed {
         {
             return Err(Error::forbidden());
         }
-        Ok(installed)
+        Ok(installed.map(|inner| {
+            Box::new(super::public_video::installation::Guard {
+                inner,
+                root: &self.root,
+                started: &self.started,
+            }) as Box<dyn connect_store::NativeReplacementInstallationGuard + '_>
+        }))
     }
 }
 

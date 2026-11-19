@@ -34,6 +34,7 @@ const assets=http.createServer(async(request,response)=>{
   if(url.pathname==='/'){response.writeHead(200,{'Content-Type':'text/html'});response.end('<!doctype html><meta charset=utf-8><title>Owned terminal integration</title>');return;}
   let file;
   if(url.pathname==='/rtc-observer.mjs')file=tapFile;
+  else if(url.pathname==='/browser_matrix_rtc_audio_diagnostics.mjs')file=path.join(root,'scripts/lib/browser_matrix_rtc_audio_diagnostics.mjs');
   else if(url.pathname==='/pcm-identity.mjs')file=pcmFile;
   else if(url.pathname==='/pcm-boundary.mjs')file=boundaryFile;
   else {assert.ok(url.pathname.startsWith('/sdk/'));file=await fs.realpath(path.resolve(sdkRoot,'.'+url.pathname.slice(4)));assert.ok(file.startsWith(sdkRoot+path.sep)&&file.endsWith('.js'));}

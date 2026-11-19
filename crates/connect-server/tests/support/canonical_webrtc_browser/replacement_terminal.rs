@@ -133,7 +133,7 @@ pub(super) async fn browser(root: &Path, directory: &Path, ca: &Path) -> (OwnedB
         use std::os::unix::process::CommandExt;
         command.process_group(0);
     }
-    let mut owner = OwnedBrowser(command.spawn().unwrap());
+    let mut owner = OwnedBrowser(command.spawn().unwrap(), false);
     let port = tokio::time::timeout(Duration::from_secs(12), async {
         loop {
             if let Ok(text) = std::fs::read_to_string(profile.join("DevToolsActivePort")) {

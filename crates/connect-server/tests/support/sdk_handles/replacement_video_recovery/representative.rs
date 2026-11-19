@@ -3110,3 +3110,6 @@ fn first_key_diagnostic_partial_error_keeps_original_clock_and_unwind() {
     );
     assert!(interrupted["send"]["fragments"][0]["sdk_error_kind"].is_null());
 }
+
+#[path = "representative/native_rtc_public_b.rs"]
+mod native_rtc_public_b;

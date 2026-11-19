@@ -1,0 +1,10 @@
+{
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision": "AHj4eMQ7JMd3LW-WP6eRT6G7MzgJ-kDESNBxIrFMsxQVltEqK4yWtXPpmBpn0-XPycUGAlcTUImFa0xnA9ah1K3Z0YegI9PQG_wSMjN-sx8",
+  "content_revision": 185,
+  "verified_at": "2026-11-16T15:03:30.643Z",
+  "new_sections_once": true,
+  "old_sections_absent": true,
+  "closed_result": "g500failed Store437/438; all6priorfailures+22newpass; soleoldUTCassertunresolved; allotherRust/media compileblocked",
+  "no_matrix_promotion": true
+}

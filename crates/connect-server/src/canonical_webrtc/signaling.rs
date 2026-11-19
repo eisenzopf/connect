@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use connect_service::canonical_webrtc::{Attempt, Host, Preparation};
 use rvoip_uctp::v2::payloads::ConnectionAnswer;
 use serde_json::json;
+mod reserved_video;
 
 /// Bounded mono audio or mono audio plus one VP8 camera or screen signaling profile.
 /// It is deliberately not installed or advertised by the default server config.
@@ -72,6 +73,27 @@ impl Host for SignalingHost {
             .map_err(|_| Error::new("busy", "Canonical WebRTC peers at capacity"))?;
         Ok(WebRtcPhysicalBinding::with_capacity(peer, physical, permit))
     }
+    fn reserve_replacement_public_video(
+        &self,
+        peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
+        physical: CancellationToken,
+        original: &connect_service::canonical_webrtc::ReservedReplacementVideo,
+    ) -> Result<Arc<WebRtcPhysicalBinding>> {
+        if !self.config.require_vp8_audio_video_profile {
+            return Err(unsupported());
+        }
+        let permit = self
+            .slots
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| Error::new("busy", "Canonical WebRTC peers at capacity"))?;
+        Ok(WebRtcPhysicalBinding::with_capacity_and_reserved_video(
+            peer,
+            physical,
+            permit,
+            original.profile().clone(),
+        ))
+    }
     fn start_replacement(
         &self,
         preparation: connect_service::canonical_webrtc::ReplacementPreparation,
@@ -134,6 +156,9 @@ fn unsupported() -> Error {
 /// Validate the original logical/SDP shape before observing an engine answer.
 /// SDP alone cannot opt an audio-only host into AV or admit extra Core media.
 pub(super) fn validate_offer(offer: &serde_json::Value, av: bool) -> Result<()> {
+    if offer.get("webrtc_video_receive_reservation").is_some() {
+        return Err(unsupported());
+    }
     let streams = offer["streams_offered"]
         .as_array()
         .ok_or_else(unsupported)?;
@@ -409,5 +434,28 @@ mod screen_profile_tests {
         original["streams_offered"][0]["kind"] = json!("audio");
         original["streams_offered"][1]["direction"] = json!("sendonly");
         assert!(validate_offer(&original, true).is_err());
+    }
+}
+
+pub(super) fn validate_offer_with_reserved(
+    offer: &serde_json::Value,
+    av: bool,
+    original: Option<&connect_service::canonical_webrtc::ReservedReplacementVideo>,
+) -> Result<()> {
+    match original {
+        Some(original) => reserved_video::validate_offer(offer, av, original),
+        None => validate_offer(offer, av),
+    }
+}
+pub(super) fn selected_answer_with_reserved(
+    participant: &str,
+    offer: &serde_json::Value,
+    answer: &str,
+    av: bool,
+    original: Option<&connect_service::canonical_webrtc::ReservedReplacementVideo>,
+) -> Result<ConnectionAnswer> {
+    match original {
+        Some(original) => reserved_video::selected_answer(participant, offer, answer, av, original),
+        None => selected_answer(participant, offer, answer, av),
     }
 }

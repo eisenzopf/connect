@@ -5,6 +5,7 @@ use connect_protocol::connection_control::OfferIntent;
 mod positive_capture;
 use positive_capture::PositiveResourceCapture;
 mod start;
+pub(super) use start::NativeReplacementNotSubmittedLineage;
 pub use start::{
     NativeReplacementAudienceCapture, NativeReplacementCommitAttempt,
     NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain,
@@ -189,11 +190,16 @@ fn target_facts_for_profile(
     actor.require("connection.offer")?;
     let context = prepared.selection.context(store, c)?;
     if marker.as_object().map(|v| v.len())
-        != Some(if profile == "connect-replacement-ready-v1" {
-            3
-        } else {
-            2
-        })
+        != Some(
+            if matches!(
+                profile,
+                "connect-replacement-ready-v1" | "connect-replacement-public-video-ready-v1"
+            ) {
+                3
+            } else {
+                2
+            },
+        )
         || marker["profile"] != profile
         || marker["operation_record_id"] != prepared.record
         || intent.offer.get("private_consultation").is_some()

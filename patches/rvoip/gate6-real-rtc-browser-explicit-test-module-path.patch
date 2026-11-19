@@ -1,0 +1,10 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
+@@ -254,6 +254,7 @@
+         ))
+     }
+ }
++#[path = "adapter/browser.rs"]
+ mod browser;
+ 
+ // The generic preparation SPI intentionally excludes peer-owned WebRTC.

@@ -125,15 +125,39 @@ fn private_scene_delivery_uses_real_original_source_without_primary_or_observer_
     while epoch.current() && Instant::now() < expiry {
         std::thread::sleep(Duration::from_millis(1));
     }
+    // assert! evaluates each ORIGINAL predicate first. This borrowed closure
+    // runs only from the message of the first failed assertion, never before
+    // its decision or on a healthy path. No extra IO owner/custody is retained.
+    let diagnostic = || {
+        let sampled = Instant::now();
+        let utc_ns = chrono::Utc::now().timestamp_nanos_opt();
+        let policy_now = crate::now();
+        let fixture_clock = crate::test_clock::current();
+        let scene_parts = epoch.sample_at_for_test(sampled);
+        let source_parts = source_epoch.sample_at_for_test(sampled);
+        format!("scene-epoch-refusal scene_cutoff={} original_source_expiry={} elapsed_since_wait_start_ns={} sampled_utc_ns={:?} sampled_policy_now={} fixture_clock={:?} scene_parts={:?} original_source_parts={:?} original_current={} source_epoch_current={} combined_epoch_current={} independent_post_decision_samples=true",
+            scene_cutoff, original.expires_at(), sampled.saturating_duration_since(expiry - Duration::from_secs(6)).as_nanos(),
+            utc_ns, policy_now, fixture_clock, scene_parts, source_parts,
+            original.current(), source_epoch.current(), epoch.current())
+    };
     assert!(
         !epoch.current(),
-        "queued scene metadata extended the earlier scene expiry"
+        "queued scene metadata extended the earlier scene expiry; {}",
+        diagnostic()
     );
     // Only the short full-scene projection expired. Its rederivation is really
     // excluded by the original SQL owners; that is transient scene absence,
     // not definitive loss of the still-current original ingress permission.
-    assert!(crate::now() >= scene_cutoff);
-    assert!(original.current() && source_epoch.current());
+    assert!(
+        crate::now() >= scene_cutoff,
+        "scene epoch became noncurrent before its declared policy cutoff; {}",
+        diagnostic()
+    );
+    assert!(
+        original.current() && source_epoch.current(),
+        "original source lost currentness; {}",
+        diagnostic()
+    );
     assert_eq!(scene.admit().err().unwrap().code, "authority-busy");
     assert_eq!(
         scene

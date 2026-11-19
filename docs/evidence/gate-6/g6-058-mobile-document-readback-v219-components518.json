@@ -1,0 +1,11 @@
+{
+  "format": "connect/g6-058-mobile-document-readback/1",
+  "verified_at": "2026-11-19T12:22:45.320Z",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "native_revision_id": "AHj4eMR0RZ-8PKc6gekQXkAbm0XA3X2z0Sbp8oKFoWUm-M7UMz2zA0W04EeE3j24CJaO4kegjlyLLR_pdaBZ1OslEl20_3lnsdIvHepcDA4",
+  "content_revision": 195,
+  "tracker_revision": 126,
+  "header": "Revision 195 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+  "current_verification": "Current verification — November 19. Source505 focused verification now passes all three cleanup controls: real RTC negative (no-answer, voicemail and silent adapter loss), real RTC positive replacement/decoded duplex/caller-cancel recovery, and telephone deadline/remote-loss cleanup. All children and the original parent exited naturally. The RTC root cause was fixture shutdown order: terminal global drain rejected later Native cleanup tasks. Removing the premature drain preserves the original zero-peer/zero-route checks and mandatory final drain. Together with earlier component evidence, fixes for 23 of the 24 originally failing controls are now verified; the remaining expiry control passed once in current source but its historical intermittent cause remains unresolved. Codec1, Vapi2, new Provider3 and SIP3 already passed source504; no new expiry instrumentation or acceptance change is applied. The next complete batch retains all original tests and explicitly includes the new SIP/provider controls: expected1945 Rust plus206 Node plus55 Python checks. Actual decoded-media representatives, strict Firefox three cycles, final qualification, ARM11, normal releases and capture preflight remain. Last complete matrix remains v218:1/32 cells and399/432 checks. Component passes do not close matrix cells. Local Mac/native ARM only; G6-054 remains parked.\n",
+  "exact_readback": true
+}

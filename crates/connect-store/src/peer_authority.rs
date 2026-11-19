@@ -32,7 +32,7 @@ pub use connection_media::{
     NativeReplacementInstallationObservation, NativeReplacementPreparationRead,
     NativeReplacementSelection, NativeReplacementSourceOrigin, NativeReplacementSourceRead,
     NativeReturnRead, NativeReturnSelection, NativeSessionCodecRead, NativeSignalRead,
-    SessionRoleMediaRead, SipAudienceOrigin, SipAudienceRead,
+    NativeVideoRestoreRead, SessionRoleMediaRead, SipAudienceOrigin, SipAudienceRead,
 };
 pub use native_data::NativeDataProjection;
 pub use native_streams::{NativeIceOrigin, NativeStreamProjection};
@@ -815,7 +815,7 @@ impl Store {
     ) -> Result<PeerAuthorityGuard> {
         let replacement_resource = matches!(&request.command, PeerCommand::NativeConnectionOffer(intent)
             if matches!(intent.offer["replacement_preparation"]["profile"].as_str(),
-                Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1" | "connect-replacement-ready-v1")));
+                Some("connect-replacement-preparation-v1" | "connect-replacement-media-v1" | "connect-replacement-ready-v1" | "connect-replacement-public-video-ready-v1")));
         #[cfg(feature = "test-support")]
         let observed_wait = self.peer_read_waits.wait(request, wait)?;
         #[cfg(feature = "test-support")]
@@ -836,6 +836,7 @@ impl Store {
                         "connect-replacement-preparation-v1"
                             | "connect-replacement-media-v1"
                             | "connect-replacement-ready-v1"
+                            | "connect-replacement-public-video-ready-v1"
                     )
                 ) || cid != intent.conversation_id
                 {

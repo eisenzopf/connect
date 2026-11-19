@@ -1,0 +1,154 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
+@@ -21,6 +21,16 @@
+     pub logical_id:StreamId,pub transport_id:StreamId,
+     pub stream_generation:u64,pub connection_generation:u64,pub physical_writer_incarnation:u128,
+ }
++// Private auto-trait boundary only. The sole implementation below is the
++// SAME original owner; no external constructor or authority is exposed.
++trait WarmOwnerAuthority:Send+Sync {
++    fn current(&self)->bool;
++    fn cutoff(&self)->tokio::time::Instant;
++    fn cancellation(&self)->CancellationToken;
++    // Cold control paths recover exactly the original Arc, never look up or
++    // adopt another owner, acquire a fresh token or mint a new nonce.
++    fn into_owner(self:Arc<Self>)->Arc<WarmOwner>;
++}
+ struct WarmOwner {
+     original:Weak<device_replacement::ReplacementIntent>,
+     frozen:FrozenVideoWarmWitness,
+@@ -41,6 +51,20 @@
+             && !self.cancel.is_cancelled() && tokio::time::Instant::now()<self.cutoff()
+     }
+ }
++impl WarmOwnerAuthority for WarmOwner {
++    fn current(&self)->bool {WarmOwner::current(self)}
++    fn cutoff(&self)->tokio::time::Instant {WarmOwner::cutoff(self)}
++    fn cancellation(&self)->CancellationToken {self.cancel.clone()}
++    fn into_owner(self:Arc<Self>)->Arc<WarmOwner> {self}
++}
++impl WarmOwner {
++    fn weak_authority(self:&Arc<Self>)->Weak<dyn WarmOwnerAuthority> {
++        // Arc unsizing reuses the same data/control allocation; the temporary
++        // strong clone drops here. Only Weak escapes, with no new allocation.
++        let erased:Arc<dyn WarmOwnerAuthority>=self.clone();
++        Arc::downgrade(&erased)
++    }
++}
+ impl Drop for WarmOwner {
+     fn drop(&mut self) {
+         self.cancel.cancel();
+@@ -56,7 +80,7 @@
+ pub struct PostCutPublicVideoScope {
+     submission_recorder_claimed:AtomicBool,
+     submission:OnceLock<Arc<PublicVideoKeyframeSubmission>>,
+-    owner:Weak<WarmOwner>,
++    owner:Weak<dyn WarmOwnerAuthority>,
+     published:OnceLock<PublishedVideoFloor>,
+     original:ParticipantReplacementMutation,
+     conversation:ConversationId,session:SessionId,
+@@ -95,7 +119,7 @@
+         Ok(())
+     }
+     pub(in crate::staged_streams) fn cancellation(&self)->ControlResult<CancellationToken> {
+-        self.owner.upgrade().map(|owner|owner.cancel.clone()).ok_or(StreamControlError::Cancelled)
++        self.owner.upgrade().map(|owner|owner.cancellation()).ok_or(StreamControlError::Cancelled)
+     }
+ }
+ /// Owns ONLY temporary B routes/raw-access seal. No native writer/readiness or
+@@ -105,6 +129,16 @@
+     initial_picture:InitialPublicVideoPicture,
+ }
+ impl PublicVideoWarmPreparation {
++    // Actual managed test fixture only: retain the SAME opaque scope after
++    // checking cold recovery against the sole original WarmPreparation owner.
++    #[cfg(test)]
++    pub(crate) fn scope_with_original_owner_for_test(&self)->Option<Arc<PostCutPublicVideoScope>> {
++        if self.routes.len()!=1 {return None;}
++        let scope=self.routes.values().next()?.post_cut.as_ref()?.clone();
++        let original=scope.owner.upgrade()?.into_owner();
++        Arc::ptr_eq(&original,&self.owner).then_some(scope)
++    }
++
+     /// At most one original selected-source hint. Refusal before adapter entry
+     /// is retryable only under this SAME owner and original cutoff.
+     /// Start the exact reserved output once under fresh source+Warm admissions.
+@@ -200,7 +234,7 @@
+         let target_descriptor=reservation.target().clone();
+         let witness=reservation.witness();
+         let owner=Arc::new(WarmOwner {phase:AtomicU8::new(0),started:AtomicBool::new(false),witness,original:Arc::downgrade(&intent),frozen,seal:Mutex::new(None),deadline,initial_authority_cutoff:OnceLock::new(),cancel:cancel.child_token(),exposed:AtomicBool::new(false)});
+-        let scope=Arc::new(PostCutPublicVideoScope {submission_recorder_claimed:AtomicBool::new(false),submission:OnceLock::new(),owner:Arc::downgrade(&owner),published:OnceLock::new(),original:original.clone(),conversation:target.conversation.clone(),session:target.session.clone(),source,target:target_descriptor,frontier:owner.frozen.frontier.clone()});
++        let scope=Arc::new(PostCutPublicVideoScope {submission_recorder_claimed:AtomicBool::new(false),submission:OnceLock::new(),owner:owner.weak_authority(),published:OnceLock::new(),original:original.clone(),conversation:target.conversation.clone(),session:target.session.clone(),source,target:target_descriptor,frontier:owner.frozen.frontier.clone()});
+         let media_scope=target.scope(&credential.principal,MediaPurpose::Receive {source:scope.source()});
+         let lease=target.policy.current_public_video_warm(&media_scope,&scope,Some(held))?;
+         StreamController::check(&media_scope,lease.authority())?;
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/adoption.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/adoption.rs
+@@ -43,7 +43,7 @@
+         let routes=plan.changed.iter().filter_map(|id|self.0.preparation.get(id)).filter(|route|route.post_cut.is_some()).collect::<Vec<_>>();
+         if routes.len()!=1 {return Err(StreamControlError::Authority);}
+         let route=routes[0];let scope=route.post_cut.as_ref().ok_or(StreamControlError::Authority)?.clone();
+-        let owner=scope.owner.upgrade().ok_or(StreamControlError::Cancelled)?;
++        let owner=scope.owner.upgrade().ok_or(StreamControlError::Cancelled)?.into_owner();
+         if scope.is_published() || !scope.is_current() || !owner.started.load(Ordering::Acquire)
+             || owner.original.upgrade().is_none_or(|actual|!Arc::ptr_eq(&actual,intent))
+             || plan.old.contains_key(&route.selection.receiver)
+@@ -80,6 +80,7 @@
+         let Some(route)=self.private.get(logical) else{return false;};
+         let Some(scope)=route.post_cut.as_ref() else{return false;};
+         let Some(owner)=scope.owner.upgrade() else{return false;};
++        let owner=owner.into_owner();
+         let Some(port)=state.active.get(logical) else{return false;};
+         let Some(current)=state.model.streams().get(logical) else{return false;};
+         let Some(after)=next.streams().get(logical) else{return false;};
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
+@@ -137,7 +137,7 @@
+                     .map_err(|_|StreamControlError::NotReady)?;
+                 if start {
+                     callback_adapter.start_public_video_warm(&warm).await?;
+-                    scope.owner.upgrade().ok_or(StreamControlError::Cancelled)?.started.store(true,Ordering::Release);
++                    scope.owner.upgrade().ok_or(StreamControlError::Cancelled)?.into_owner().started.store(true,Ordering::Release);
+                     Ok(())
+                 }
+                 else {callback_adapter.request_initial_video_picture(&request).await}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
+@@ -258,3 +258,6 @@
+ 
+ #[path="public_video_warm/preparation_identity_controls.rs"]
+ mod preparation_identity_controls;
++
++#[path="public_video_warm/warm_owner_authority_controls.rs"]
++mod warm_owner_authority_controls;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/warm_owner_authority_controls.rs
+@@ -0,0 +1,28 @@
++//! Actual managed Warm owner and scope; no fake identity, token or Root.
++use super::*;
++
++#[tokio::test]
++async fn opaque_warm_scope_recovers_same_owner_and_preserves_cancel_cutoff_and_weak_drop() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;
++        let ready=prepared(&mut room,&alice,&old,&source).await;
++        let frontier=freeze(&room,&ready.plan,&ready.grant,&ready.reservation).await;
++        room.world.warm_allowed.store(true,Ordering::Release);
++        let warm=warm(&room,&ready.plan,&ready.grant).await.unwrap();
++        let scope=warm.scope_with_original_owner_for_test().expect("same original cold Arc recovery");
++        assert!(warm.is_current()&&scope.is_current());
++        assert!(std::ptr::eq(scope.frontier(),Arc::as_ref(&frontier)));
++        let original_cutoff=scope.deadline().expect("pending original cutoff");
++        let cancel=scope.cancellation().unwrap();assert!(!cancel.is_cancelled());
++        assert!(ready.root.cancel());
++        assert!(!scope.is_current()&&!warm.is_current(),"erased owner cannot bypass original cancellation");
++        assert_eq!(scope.deadline(),Some(original_cutoff),"no fresh cutoff from metadata recovery");
++        warm.close();assert!(cancel.is_cancelled());assert!(scope.cancellation().unwrap().is_cancelled());
++        drop(warm);
++        assert!(!scope.is_current());assert!(scope.deadline().is_none());
++        assert!(matches!(scope.cancellation(),Err(StreamControlError::Cancelled)),"retained scope owns only Weak");
++    }).await;
++    let cleanup=room.close_originals().await;
++    assert!(cleanup.into_iter().all(|done|done));if let Err(error)=result {resume_unwind(error)}
++}

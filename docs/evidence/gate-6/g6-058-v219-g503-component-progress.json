@@ -1,0 +1,59 @@
+{
+  "format": "connect/g6-058-compile-frontier-checkpoint/1",
+  "updated_at": "2026-11-16T15:37:08.554194+00:00",
+  "checkpoint": 503,
+  "status": "SIP_COMPILED_6CORE_TEST_ACCESS_CORRECTIONS_PREPARED493_UNVERIFIED",
+  "summary": "SIP compiles successfully in g502 original upstream feature union; oldE0275 family absent. Actual206Node+55PythonPASS; batchFAILED at6Core TEST access/import errors, so noRust inventory/runtime or later shipping/representative checks run. All9original children andRoot5764 close naturally, exactsource/artifacts independently audited. All6Core test access corrections reviewed and installed normal493:4qualifiedtypepaths, samegenuine publicroute stamp, cfg(test)actualroutingMutex exclusion. No runtime/API/predicate/deadline change. Preparation493 andindependentcustody pass; freshcompile/units pending. LastStoreg500 remains437/438 withall6earliercorrections+22newPASS, oneoldscene-expiryassertunresolved. Lastfullmatrix1/32cells,399/432checks unchanged.",
+  "dependency_patch_generation": 493,
+  "source_lock_sha256": "3c84a58af17e49d63aed21ee3529d341d1940c3f5021268026fe2b49ef71df71",
+  "evidence": {
+    ".local/gate-6/v219-g502-coherent-components-root/component-result.json": "bc466d27bcd7b94065e1c03112fad80d92c3a1205bdb2b54bdf7470066ddb076",
+    ".local/gate-6/v219-g502-coherent-components-root/root-original-join.json": "3c74eb898a1ec01867cf159d018f002c9f703bb3cf5eb075f1d621fe389dba1f",
+    ".local/gate-6/v219-g502-coherent-components-root/closed-compiled-artifacts.json": "9e6e8d391a319a7456d36521b04c5bae2c4bc6b987885f8ddfdc72104e58845f",
+    ".local/gate-6/v219-g502-coherent-components-independent-v198-review/receipt.json": "a161bc2cfc755487a9d076b535d3a8ec2923ffd8af58762962c5b26b0dc18560",
+    ".local/gate-6/public-video-warm-test-access-v219-candidate/manifest.json": "77c02c713e989697252b3f458f1d0511a16e0363a17653086b61fa9195e1ea09",
+    ".local/gate-6/public-video-warm-test-access-independent-fixture-review/receipt.json": "f34bfa351dfcef019cc6df592efc5fd79d9f47ae6b46d734a7d4b2e390e943a1",
+    ".local/gate-6/v219-g503-core-test-access-root/normal493-runtime/receipt.json": "7ba72dc916fd5e88c886e7ced077dfeeb47b899863cee56e5ac057ad72a9048e",
+    ".local/gate-6/v219-g503-core-test-access-root/root-original-join.json": "d69508e0a2629d54042cb6b17effb52edb3f542b65bcb5838c690e22117c41a9",
+    ".local/gate-6/v219-g503-preparation-independent-fixture-audit/receipt.json": "5616a00d2ee59f63d7c385fc9cbc77fb20802b71454dce0d9fac2b087ee31c0e"
+  },
+  "actual_g502": {
+    "whole_passed": false,
+    "SIP_compiled_original_upstream_feature_union": true,
+    "old_E0275_absent": true,
+    "Core_test_compile_errors": 6,
+    "node_passed": 206,
+    "python_passed": 55,
+    "Rust_inventory_or_runtime_run": false,
+    "later_builds_run": false,
+    "all_original_children_natural_joined": 9,
+    "root_natural_exit": 1,
+    "source_unchanged": true
+  },
+  "normal493": {
+    "passed": true,
+    "root_pid": 6887,
+    "root_pgid_captured": false,
+    "root_natural_exit": 0,
+    "original_children_natural_zero_joined": 2,
+    "unchanged_mtimes": 4262,
+    "upstream_afterimages": 5,
+    "old_tree_preserved": true
+  },
+  "remaining": [
+    "Current493 originalfeatureunion/defaultproduction builds andaffectedunit regressions",
+    "Retained Store scene epoch/UTC assertion cause withlazyfailure diagnostics",
+    "Three actual decoded-media cases andstrictFirefox3",
+    "Completecombinedqualification, localARM11, normalreleases andfreshpreflight"
+  ],
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_revision": 187
+}

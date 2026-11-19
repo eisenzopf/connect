@@ -1,0 +1,119 @@
+{
+  "format": "connect/g6-058-fixture-root-cause-checkpoint/1",
+  "updated_at": "2026-11-19T09:06:51.096314+00:00",
+  "client_date": "2026-11-19",
+  "summary": "The six-target g506 build closed naturally: five passed, including the default server check; the native-to-WebRTC fixture had one partial-move compile error. Its setup-order correction is applied, awaiting recompilation. Separate required controls passed 14/15. A failure-only diagnostic proved both Session ends and the survivor check passed; only second cleanup failed. The fixture held its own freeze permit through teardown. Releasing that observing owner AFTER the unchanged survival checkpoint now passes the exact test with all five original assertions retained. This fixes fixture cleanup, with no production isolation or acceptance change. Source 496 is prepared and independently audited. The expiry test passed all 110 isolated attempts; its earlier intermittent failure remains unexplained. Next is a fresh complete retained/new affected regression batch, then three decoded-media representatives, strict Firefox three-cycle validation, final combined qualification, ARM11, normal release builds and preflight. Matrix remains 1/32 cells and 399/432 checks; G6-054 stays parked.",
+  "source_generation": 496,
+  "source_lock_sha256": "da517074e7e5e1cdeea8fd2fefde32d1fb198a15b1c948d2ec8a4a01bafdfa02",
+  "status": "FIXTURE_CORRECTIONS_APPLIED_FRESH_REGRESSIONS_PENDING",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "coordinator": "/root",
+  "authors": [
+    "/root/batch_build_review",
+    "/root/epoch_cause"
+  ],
+  "independent_reviewer": "/root/independent_batch_review",
+  "main_compile": {
+    "status": "FAILED",
+    "builds_passed": 5,
+    "builds_total": 6,
+    "default_shipping_check_passed": true,
+    "main_runtime_executed": false,
+    "result": {
+      "path": ".local/gate-6/v219-g506-coherent-components-root/component-result.json",
+      "sha256": "0b35ab7de010daaa4cd2ba1a10ee0e91377c3dc52817948be0cd2e1da5923138"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g506-actual-cohort-independent-audit/receipt.json",
+      "sha256": "ac92e694e236f68812c1bf384ed7a34d0f5db24f2abc0db9c683100ca813cdc9"
+    }
+  },
+  "native_rtc_fixture": {
+    "kind": "test fixture partial move E0382",
+    "correction_applied": true,
+    "correction_compilation_pending": true,
+    "source_sha256": "e327ebaea4d166616e4212f1534712084d59d3141266f5e3d647bef81f45ba61",
+    "review": {
+      "path": ".local/gate-6/native-rtc-public-b-fixture-partial-move-v219-g506-independent-review/receipt.json",
+      "sha256": "f7a4b5b8a991a28ac2c43fe070d601bab780385bff293af5b470ef6902d1472b"
+    }
+  },
+  "required_controls": {
+    "passed": 14,
+    "failed": 1,
+    "total": 15,
+    "audit": {
+      "path": ".local/gate-6/v219-g506-required15-actual-independent-audit/receipt.json",
+      "sha256": "4b696d310bc3c64ca081d823c879200d0cc7c7497cedfa3d15dd6a4d08de522e"
+    },
+    "not_regraded": true
+  },
+  "pooled_session_root_cause": {
+    "classification": "test fixture retains its own observing freeze permit through terminal cleanup",
+    "actual_A_flags": {
+      "ended_a": true,
+      "ended_b": true,
+      "clean_a": true,
+      "clean_b": false,
+      "survivor": true
+    },
+    "A_failed_counterfactual": {
+      "path": ".local/gate-6/v219-g507-pooled-native-A-actual-independent-audit/receipt.json",
+      "sha256": "abadfab8dc40689fe6034a45e3548f03c0e8f07c45389c552f44932dceeb629f"
+    },
+    "correction": "Drop successful Ready1 after the SAME survivor observation and before endB/global helpers; retain Err payload and all five conditions.",
+    "B_exact_test": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    "B_audit": {
+      "path": ".local/gate-6/v219-g508-pooled-native-B-actual-independent-audit/receipt.json",
+      "sha256": "07d8de01e64435fbe385ce1b0c2cb66c31ce243574e26bdaa7060cf0ad4e9581"
+    },
+    "production_code_changed": false,
+    "criteria_or_limits_changed": false,
+    "all_five_original_conditions_required": true
+  },
+  "expiry_diagnostics": {
+    "isolated_passed": 110,
+    "isolated_failed": 0,
+    "historical_cause_proven": false,
+    "ten_audit": {
+      "path": ".local/gate-6/v219-g506-store-expiry-independent-review/ten-actual-audit.json",
+      "sha256": "52f567b64d7e12e93f5ba5136e6da6589476e5203ac398bd0d149a47f89a59e9"
+    },
+    "hundred_audit": {
+      "path": ".local/gate-6/v219-g506-store-expiry-hundred-actual-independent-audit/receipt.json",
+      "sha256": "10321a8e9fba200443a30cba94ceb15cbf7c47f031e72d80ceacc1efb805b0b1"
+    },
+    "older_failed_cohort_not_regraded": true
+  },
+  "future_compile_feature_alignment": {
+    "review": {
+      "path": ".local/gate-6/v219-g506-service-feature-parity-review/independent-source-review.json",
+      "sha256": "9c00bcd330e476457a8d42e024386ed6ce57f3caaa7bfb099fb2581664ec5b8b"
+    },
+    "change": "Add existing schema-only feature to both integration build commands; default shipping check remains unchanged.",
+    "runtime_behavior_changed": false,
+    "actual_cache_reuse_verified": false
+  },
+  "normal496_audit": {
+    "path": ".local/gate-6/v219-g508-actual-normal496-independent-audit/receipt.json",
+    "sha256": "4703624462ba7a4759f5423342390a67e17656b4ca39dcea505a4829cebf23de"
+  },
+  "last_full_matrix": {
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "origin_main": {
+    "fetched": true,
+    "behind": 0
+  },
+  "local_resources_only": true,
+  "pending_capture_access": "BPF0/1 access reset; manual Terminal step requested. Recheck before capture/preflight.",
+  "mobile_revision": 191
+}

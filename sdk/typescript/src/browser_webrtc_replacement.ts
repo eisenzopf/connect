@@ -7,7 +7,7 @@ import {
     type BrowserReplacementReceipt,
     type BrowserReplacementRoot,
 } from "./browser_replacement.js";
-import { ConnectError } from "./errors.js";
+import { ConnectError, recoverableReadRefusal } from "./errors.js";
 import {
     canonicalJson,
     jsonObject,
@@ -61,15 +61,7 @@ const positive = (value: unknown): value is number =>
 export const recoverableReadinessFailure = (error: unknown): boolean => {
     if (!(error instanceof ConnectError)) return false;
     if (error.code === "timeout" || error.code === "transport") return true;
-    const problem = error.problem;
-    return (
-        error.code === "refused" &&
-        problem?.code === 503 &&
-        ((problem.category === "authorization" &&
-            problem.reason === "authority_unavailable") ||
-            (problem.category === "storage" &&
-                problem.reason === "storage_unavailable"))
-    );
+    return recoverableReadRefusal(error);
 };
 
 /** One target's original replacement phases. A readiness assertion is a signed

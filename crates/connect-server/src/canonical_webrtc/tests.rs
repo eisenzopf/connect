@@ -20,6 +20,7 @@ struct Fixture {
     endpoint: String,
     attempt: Option<NativeOfferLease>,
     credential: String,
+    _packet_scope: connect_store::PacketObserverScope,
 }
 impl Fixture {
     fn new(sdp: String) -> Self {
@@ -157,6 +158,8 @@ impl Fixture {
             .native_media_origin_with_peer(&key, &proof, &lease)
             .unwrap();
         drop(proof);
+        // Physical observation custody is independent of the released authority proof.
+        let packet_scope = store.retain_packet_observers().unwrap();
         Self {
             _temp: temp,
             store,
@@ -165,6 +168,7 @@ impl Fixture {
             endpoint: endpoint_id,
             attempt: Some(lease),
             credential: key,
+            _packet_scope: packet_scope,
         }
     }
 }

@@ -174,6 +174,7 @@ pub(super) fn apply(
             conversation_id,
             session_id,
             destination,
+            store,
         )
         .map(Outcome::SipLeg),
         Operation::SipEnd {

@@ -282,3 +282,36 @@ the original immutable offer and frozen decoder counts. The HTTP status surface
 can observe that original operation, but cannot submit physical readiness. See
 [the normative physical schema](../../contracts/schemas/replacement-decoder-readiness-1.schema.json)
 and `ReplacementReadiness*` components in the canonical OpenAPI reference.
+
+
+### Original public video B setup and phase status
+
+Current-authorized `operation.get` for an opted-in original `connection.replace`
+may include `webrtc_video_receive_reservation` and `webrtc_public_video_phase` in
+its operation payload. The first freezes the original Intent; the second reports
+its immutable native binding/cut phase. Both are metadata. An Intent alone has no
+MID, SSRC, F or decoder evidence. Before negotiated binding, terminal cleanup
+emits no invented wire Phase. Preserve the original operation/record IDs through
+uncertainty; status never remints physical work or extends preparation expiry.
+
+The closed public B acknowledgment is a signed native `connection.offer` marker
+with profile `connect-replacement-public-video-ready-v1`, the original
+`operation_record_id` and `public_video_readiness`. It preserves the entire
+original offer, current signer/key/device and reservation. The observation is
+video-only on the exact original B receiver; audio/A retain their independent
+private readiness. Decoded-ready also requires the actual successful local-native
+submission receipt for the SAME whole post-F keyframe on the original B writer;
+the signed decoded observation alone does not supply that receipt.
+`decoded_keyframes` is required and may be null only when the
+native browser counter is absent; a present zero is refused. Generations have
+independent namespaces. `source_cut_id` is opaque; no source frame ordinal is
+sent as a JSON number.
+
+HTTP `connection.offer` remains an explicit 501 unsupported command. HTTP status
+and cancellation grant no native readiness, current media or OLD restoration.
+`activated` is meaningful only with the original completed ready result and
+actual same owned installation; stopped/no-Activated settlement is nonrenderable.
+`discarded` records actual original whole-candidate joins; fresh OLD/source
+permission remains separate. See [the normative public video contract](../../contracts/webrtc-public-video.md)
+and `WebRtcPublicVideo*` OpenAPI components. The reference describes the wire
+contract; source/runtime/media qualification remains in Gate 6 evidence.

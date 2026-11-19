@@ -102,6 +102,11 @@ export function validateBrowserCanonical(value) {
                 new Set(item.map((value) => canonicalWireJson(value))).size !==
                     item.length)
                 return false;
+            if (rule.contains) {
+                const count = item.filter((value) => visit(rule.contains, value)).length;
+                if (!bounded(count, rule.minContains ?? 1, rule.maxContains))
+                    return false;
+            }
             if (rule.items && !item.every((value) => visit(rule.items, value)))
                 return false;
         }
@@ -114,8 +119,11 @@ export function validateBrowserCanonical(value) {
             if (rule.pattern &&
                 !(rule.pattern === "^[A-Za-z0-9._~-]+$"
                     ? item.length > 0 && !/[^A-Za-z0-9._~-]/.test(item)
-                    : /^(sip|sips|tel):[!-~]+$/.test(item) &&
-                        !/[^\x21-\x7e]/.test(item)))
+                    : rule.pattern === "^[!-~]+$"
+                        ? item.length > 0 && !/[^\x21-\x7e]/.test(item)
+                        : rule.pattern === "^(sip|sips|tel):[!-~]+$" &&
+                            /^(sip|sips|tel):[!-~]+$/.test(item) &&
+                            !/[^\x21-\x7e]/.test(item)))
                 return false;
             if (rule.format === "date-time" &&
                 !Number.isFinite(canonicalTimestamp(item)))

@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-16T10:54:10.091321+00:00",
-  "revision": 110,
+  "updated_at": "2026-11-19T13:51:25.307332+00:00",
+  "revision": 129,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 177,
-    "verified_at": "2026-11-16T10:52:41.496Z",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components486.json",
-    "readback_evidence_sha256": "9e294af473885fd78e932d5956442ff97cd22e5e2fa701880d375be1b2aecc47",
+    "content_revision": 198,
+    "verified_at": "2026-11-19T13:51:50.865Z",
+    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-components530.json",
+    "readback_evidence_sha256": "a751987e5a4e48ec40cb775054fe558353defd7a48aff1420bc32eceab8bd5ba",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -45,6 +45,21 @@
       "id": "/root/fixture_blockers",
       "role": "Harness/coverage owner; independent verification review",
       "current_work": "Actual signed RTCsameB/abort/OLDresume integration and independent original runtime audit"
+    },
+    {
+      "id": "/root/batch_build_review",
+      "role": "Compile-first runner author",
+      "current_work": "Compile-first runner author"
+    },
+    {
+      "id": "/root/independent_batch_review",
+      "role": "Independent runner and binding reviewer",
+      "current_work": "Independent runner and binding reviewer"
+    },
+    {
+      "id": "/root/epoch_cause",
+      "role": "Store epoch diagnostic owner",
+      "current_work": "Store epoch diagnostic owner"
     }
   ],
   "state_machine": [
@@ -2378,10 +2393,12 @@
       "owner_agent": "/root",
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
-      "status": "independent-source-reviewed",
-      "implementation_state": "DTO3 controls and inertSDK7 source reviewed, unrun. Actual producer, B construction/readiness and durableRootphases remain unimplemented.",
+      "status": "implemented-unverified",
+      "implementation_state": "Source now includes the producer, B construction/readiness and durable Root phases. End-to-end decoded-media verification remains pending; this is implemented but not matrix-qualified.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T02:02:25.014510+00:00"
+      "updated_at": "2026-11-19T09:06:51.096314+00:00",
+      "historical_implementation_state": "DTO3 controls and inertSDK7 source reviewed, unrun. Actual producer, B construction/readiness and durableRootphases remain unimplemented.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g508-fixture-progress.json"
     },
     {
       "id": "V219-NATIVE-FRAME-CUSTODY",
@@ -2414,10 +2431,14 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "status": "independent-source-reviewed",
-      "implementation_state": "Root source retains the same plan/F on definitely unstarted retries, releases roles/readers before IO, and owns Core Warm before awaits/SQL. Actual Closed and fresh OLD/source authorization govern restoration under one original two-second cutoff. Unresolved recovery stays owned and explicit. Coherent runtime is pending.",
+      "implementation_state": "Root source retains the same plan/F on definitely unstarted retries, releases roles/readers before IO, and owns Core Warm before awaits/SQL. Actual Closed and fresh OLD/source authorization govern restoration under one original two-second cutoff. Unresolved recovery stays owned and explicit. Coherent runtime is pending. Private original runtime identity is now opaque/no-method Weak with live scoped realm, preserving actual nonce/lifetime/current checks; newmanagedcontrol unrun.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T10:54:10.091321+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
+      "updated_at": "2026-11-16T13:03:22.832109+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g495-component-progress.json",
+      "latest_component_checkpoint": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g499-component-progress.json",
+        "status": "Store432/438; six test-only corrections applied unverified; overall compile blocked; no media/matrix credit"
+      }
     },
     {
       "id": "V219-FRESH-B-RECEIVER",
@@ -2426,10 +2447,10 @@
       "independent_reviewer": "/root/fixture_blockers",
       "coordinator": "/root",
       "status": "independent-source-reviewed",
-      "implementation_state": "Negotiated B reservation and the same original native tuple are composed with Host 31. Firefox/Chrome A+B capability evidence retains its separate scope. Actual Connect B decode/adoption remains unrun.",
+      "implementation_state": "Negotiated B reservation and the same original native tuple are applied with Host 31. Firefox/Chrome A+B capability evidence retains its separate scope. Actual Connect B decode/adoption remains unrun.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T10:54:10.091321+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
+      "updated_at": "2026-11-16T12:13:38.475212+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g488-component-progress.json"
     },
     {
       "id": "V219-NATIVE-POTENTIAL-IO",
@@ -2450,10 +2471,13 @@
       "independent_reviewer": "/root",
       "coordinator": "/root",
       "status": "implemented-unverified",
-      "implementation_state": "N1 original canonical backend/controller ownership and accepted TLS custody are applied. Generation 486 verifies five controls and production server compilation. N2 complete writer inventory/pin/F is composed in the next source-reviewed batch, unapplied and unrun. Actual Native F and decoded handoff remain unqualified.",
+      "implementation_state": "N1originalcontroller5controls verifiedg486. N2pooledSessionhistory/rawseal implementedunverified; same actualNative-to-RTC test strengthened to2Sessions/same2peers/fourlivechains and postcheckpointpublication proof, applied andunrun. No actualNativeF/handoff/matrixqualification.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T10:54:10.091321+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
+      "updated_at": "2026-11-16T12:46:38.697748+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g493-component-progress.json",
+      "contributing_agents": [
+        "/root/media_blockers"
+      ]
     },
     {
       "id": "V219-PUBLIC-B-WARM-WRITER",
@@ -2461,11 +2485,12 @@
       "owner_agent": "/root/media_blockers",
       "independent_reviewer": "/root",
       "coordinator": "/root",
-      "status": "independent-source-reviewed",
-      "implementation_state": "Warm/adoption, reservation and restore sources are composed. Latch V3 ends pending bootstrap after publication while keeping the permanent frame floor. Host source requires actual whole-keyframe local submission and signed B decode. The coherent batch is unapplied and unrun.",
+      "status": "implemented-unverified",
+      "implementation_state": "Warm/adoption, reservation, restore and signed B readiness are applied. Native and workspace builds and the first browser target passed; the native fixture setup correction awaits recompilation. Complete current-source regressions and actual media remain pending.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T10:54:10.091321+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
+      "updated_at": "2026-11-19T09:06:51.096314+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g508-fixture-progress.json",
+      "historical_implementation_state": "Warm/adoption, reservation and restore sources are composed. Latch V3 ends pending bootstrap after publication while keeping the permanent frame floor. Host source requires actual whole-keyframe local submission and signed B decode. The coherent batch is unapplied and unrun."
     },
     {
       "id": "V219-PUBLIC-B-SDK-WORKFLOW",
@@ -2474,10 +2499,11 @@
       "independent_reviewer": "/root",
       "coordinator": "/root",
       "status": "implemented-unverified",
-      "implementation_state": "SDK 206 component evidence remains qualified separately. A real RTC move/return representative is source-reviewed and unrun. Genuine Native-to-RTC encoder/feedback and actual abort/OLD-resume siblings are being implemented. Actual workflow behavior is not yet qualified.",
+      "implementation_state": "All three genuine SDK workflow test entry points are present. Roundtrip/abort target compiled; the Native-to-RTC fixture setup correction is applied and awaiting compilation. Actual decoded workflow behavior is not yet qualified.",
       "matrix_verified": false,
-      "updated_at": "2026-11-16T10:54:10.091321+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
+      "updated_at": "2026-11-19T09:06:51.096314+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g508-fixture-progress.json",
+      "historical_implementation_state": "SDK 206 component evidence remains qualified separately. A real RTC move/return representative is source-reviewed and unrun. Genuine Native-to-RTC encoder/feedback and actual abort/OLD-resume siblings are being implemented. Actual workflow behavior is not yet qualified."
     },
     {
       "id": "V219-PUBLIC-B-ROLE-MEASUREMENT",
@@ -2501,7 +2527,11 @@
       "implementation_state": "Private original-capture identity survives value clones. Runtime phase SPI, atomic Activated publication, signed public Ready and typed NotSubmitted cleanup are composed in 23 Store paths. Prospective 32 ledger controls plus 2 OLD-scene controls are source-reviewed and unrun.",
       "matrix_verified": false,
       "updated_at": "2026-11-16T10:54:10.091321+00:00",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json"
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json",
+      "latest_component_checkpoint": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g500-component-progress.json",
+        "status": "All22newStore cases and6corrected casesPASS; fullStore437/438, unrelated retainedscene-expiryfailure; Core/Host/media remain compileblocked; no matrix credit"
+      }
     },
     {
       "id": "V219-OWNED-CANDIDATE-DISCARD",
@@ -2517,19 +2547,201 @@
     },
     {
       "id": "V219-G481-AFFECTED-REGRESSIONS",
-      "title": "Resolve g481 Store38 and Service1 failures without weakening authority or media checks",
+      "title": "Resolve all retained/new affected regressions before decoded-media and full matrix verification",
       "owner_agent": "/root",
       "contributing_agents": [
-        "/root/fixture_blockers"
+        "/root/fixture_blockers",
+        "/root/batch_build_review",
+        "/root/epoch_cause"
       ],
-      "independent_reviewer": "/root/v198_resources",
+      "independent_reviewer": "/root/independent_batch_review",
       "coordinator": "/root",
-      "status": "implemented-unverified",
+      "status": "in-progress",
       "depends_on": [],
-      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g530-known-fixes-unit-verified.json",
       "matrix_verified": false,
-      "implementation_state": "g483 Store413/416+Service90/90; g484 focused original3 failures pass all3/0ignored. Exact source/binaries/owners independently audited. No failed historical result regrade and no new complete coherent affected-suite run yet.",
-      "updated_at": "2026-11-16T09:42:22.564718+00:00"
+      "implementation_state": "HistoricalcompleteG5192206passed. Current506knownfixes passNode1201 andRustschema/shared379; completecurrentcohort followsbatchcommit, thenactualmedia andremainingqualifiers.",
+      "updated_at": "2026-11-19T13:51:25.307332+00:00",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g524-complete-regressions-status-refusal.json",
+      "previous_independent_reviewer": "/root/v198_resources"
+    },
+    {
+      "id": "V219-G509-CORE-FIXTURES",
+      "title": "Core queue and keyframe-recorder fixture ordering",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "failed_tests": 3,
+      "implementation_state": "Exact previous failing controls now pass on source502; Core3 in completed g513 Core714, WebRTC4/SIP9 in focused g514 Server124/126. New SIP3 also pass. This is component scope only; full mandatory qualification and matrix remain open.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g524-complete-regressions-status-refusal.json",
+      "updated_at": "2026-11-19T13:10:38.769653+00:00",
+      "matrix_verified": false,
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "mapping_scope": "Regression prerequisite, not direct new cell evidence; historical cell/check grades remain unchanged."
+    },
+    {
+      "id": "V219-G509-NATIVE-FIXTURES",
+      "title": "Native dedicated real RTC, signed overlap and actual model contention fixtures",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "failed_tests": 5,
+      "implementation_state": "Original Native5 failures now have current passing component evidence: server-request overlap/catalog g514, codec g516, RTC2 g518; all three negative RTC modes and telephone deadline/loss control pass naturally. Full-suite interaction, decoded-media representatives and matrix remain open.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g524-complete-regressions-status-refusal.json",
+      "updated_at": "2026-11-19T13:10:38.769653+00:00",
+      "matrix_verified": false,
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "mapping_scope": "Regression prerequisite, not direct new cell evidence; historical cell/check grades remain unchanged."
+    },
+    {
+      "id": "V219-G509-WEBRTC-OBSERVER",
+      "title": "WebRTC fixture physical packet observer ownership",
+      "owner_agent": "/root/independent_batch_review",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "failed_tests": 4,
+      "implementation_state": "Exact previous failing controls now pass on source502; Core3 in completed g513 Core714, WebRTC4/SIP9 in focused g514 Server124/126. New SIP3 also pass. This is component scope only; full mandatory qualification and matrix remain open.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g524-complete-regressions-status-refusal.json",
+      "updated_at": "2026-11-19T13:10:38.769653+00:00",
+      "matrix_verified": false,
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "mapping_scope": "Regression prerequisite, not direct new cell evidence; historical cell/check grades remain unchanged."
+    },
+    {
+      "id": "V219-G509-VAPI-INSERTION",
+      "title": "Provider immutable observation message insertion",
+      "owner_agent": "/root/independent_batch_review",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "failed_tests": 2,
+      "implementation_state": "Source504 exact immutable metadata before provider insertion fixes both original Vapi tests. New Provider3 verify sender/time/source identity, corrections/replay and frozen Session audience under third current member; g516 all5 pass naturally.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g524-complete-regressions-status-refusal.json",
+      "updated_at": "2026-11-19T13:10:38.769653+00:00",
+      "matrix_verified": false,
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "mapping_scope": "Regression prerequisite, not direct new cell evidence; historical cell/check grades remain unchanged."
+    },
+    {
+      "id": "V219-G509-SIP-INSERTION",
+      "title": "Pending SIP leg exact parent insertion",
+      "owner_agent": "/root",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "failed_tests": 9,
+      "implementation_state": "Exact previous failing controls now pass on source502; Core3 in completed g513 Core714, WebRTC4/SIP9 in focused g514 Server124/126. New SIP3 also pass. This is component scope only; full mandatory qualification and matrix remain open.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g524-complete-regressions-status-refusal.json",
+      "updated_at": "2026-11-19T13:10:38.769653+00:00",
+      "matrix_verified": false,
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "mapping_scope": "Regression prerequisite, not direct new cell evidence; historical cell/check grades remain unchanged."
+    },
+    {
+      "id": "V219-G509-EXPIRY-PROVENANCE",
+      "title": "Scene expiry first revocation provenance",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [],
+      "failed_tests": 1,
+      "implementation_state": "Exact expiry control passed both focusedg516 and completeg519. Historical cause remains unproven; no oracle change or new healthy-call instrumentation. No historical failure regrade.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g524-complete-regressions-status-refusal.json",
+      "updated_at": "2026-11-19T13:10:38.769653+00:00",
+      "matrix_verified": false,
+      "matrix_affected_checks": [
+        "device-replacement-and-old-owner-retirement",
+        "independently-decoded-duplex-media-and-profile-budgets",
+        "current-revocation-expiry-and-conflicting-operation-refusals",
+        "owned-drain-and-resource-reclamation"
+      ],
+      "mapping_scope": "Regression prerequisite, not direct new cell evidence; historical cell/check grades remain unchanged.",
+      "cause_confirmed": false
+    },
+    {
+      "id": "V219-G511-INDEPENDENT-TEST-EXECUTION",
+      "title": "Execute independently eligible component and decoded-media diagnostics without promoting incomplete runs",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [
+        "V219-G481-AFFECTED-REGRESSIONS"
+      ],
+      "implementation_state": "Source-reviewed18+17 pure gates passed. Real g513 per-target runner built all6 and inventoried10; known forced Native child correctly made overall failure and stopped under global custody rule. Native observed status was stale but runtime_attempted+raw log/forced-stop sidecars explicitly show partial execution; no result regrade. Actual3 V8 real execution remains pending.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g515-verified-unit-progress.json",
+      "updated_at": "2026-11-19T11:51:48.926845+00:00",
+      "matrix_verified": false
+    },
+    {
+      "id": "V219-G524-STATUS-READ-RETRY",
+      "title": "Tolerate exact transient original-replacement status refusals within one deadline",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/batch_build_review",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [
+        "V219-G481-AFFECTED-REGRESSIONS"
+      ],
+      "implementation_state": "All currently identified source fixes are implemented and unit-verified on prepared source506. Current71browser/affectedNode modules pass1201/1201, generator--check and SDKbuild pass; original-profile Rustbuilds pass all3required UCTP schema/golden controls and the shared379-vector Rust/browser integration oracle. No skips, forced processes or acceptance changes. This verifies bounded originaloperation.get503recovery, exact logicalIDs/freshsignedrequests/one deadline/currentdenials, five fixture dependency routes, strict contains/min/max/ASCII validators and synchronized canonicalschema/vectors. The abortfixture now observes the actual read rejection; its paired pending-write negative preserves original transport-retirement semantics. Existing Core/Native/SIP/provider fixes passed historical completeaffectedG5192206/2206. Next is one complete current506 affected regression batch after this checkpoint/batchcommit, followed by all3real decoded-media representatives on that same source. StrictFirefox3, original finalqualification command/identity scopes, localARM11/normalreleases and capturepreflight remain before readiness for32cells. origin/main was freshly fetched:zero commits missing. Underlying internal source of temporaryauthority availability remains unproven; the SDK follows the existing bounded read-recovery policy. Last fullmatrix remainsv218:1/32cells,399/432checks; no unit/diagnostic result regrades a cell. G6-054 remains parked. LocalMac/nativeARM resources only; no GitHub tests or cloud runners.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g530-known-fixes-unit-verified.json",
+      "updated_at": "2026-11-19T13:51:25.307332+00:00",
+      "matrix_verified": false,
+      "matrix_affected_checks": [
+        "one-service-contract-and-original-operation-recovery",
+        "device-replacement-and-old-owner-retirement"
+      ],
+      "mapping_scope": "Current readiness representative failure; no direct new matrix-cell grade or causal attribution to every historical cell."
+    },
+    {
+      "id": "V219-G525-CONTRACT-VALIDATORS",
+      "title": "Synchronize publicB schema, shared vectors and finite Rust/browser validators",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/epoch_cause",
+      "coordinator": "/root",
+      "status": "component-verified",
+      "depends_on": [
+        "V219-G524-STATUS-READ-RETRY"
+      ],
+      "implementation_state": "All currently identified source fixes are implemented and unit-verified on prepared source506. Current71browser/affectedNode modules pass1201/1201, generator--check and SDKbuild pass; original-profile Rustbuilds pass all3required UCTP schema/golden controls and the shared379-vector Rust/browser integration oracle. No skips, forced processes or acceptance changes. This verifies bounded originaloperation.get503recovery, exact logicalIDs/freshsignedrequests/one deadline/currentdenials, five fixture dependency routes, strict contains/min/max/ASCII validators and synchronized canonicalschema/vectors. The abortfixture now observes the actual read rejection; its paired pending-write negative preserves original transport-retirement semantics. Existing Core/Native/SIP/provider fixes passed historical completeaffectedG5192206/2206. Next is one complete current506 affected regression batch after this checkpoint/batchcommit, followed by all3real decoded-media representatives on that same source. StrictFirefox3, original finalqualification command/identity scopes, localARM11/normalreleases and capturepreflight remain before readiness for32cells. origin/main was freshly fetched:zero commits missing. Underlying internal source of temporaryauthority availability remains unproven; the SDK follows the existing bounded read-recovery policy. Last fullmatrix remainsv218:1/32cells,399/432checks; no unit/diagnostic result regrades a cell. G6-054 remains parked. LocalMac/nativeARM resources only; no GitHub tests or cloud runners.",
+      "verification_evidence": "docs/evidence/gate-6/g6-058-v219-g530-known-fixes-unit-verified.json",
+      "updated_at": "2026-11-19T13:51:25.307332+00:00",
+      "matrix_verified": false,
+      "mapping_scope": "Contract/regression readiness prerequisite; historical matrix cell grades preserved."
     }
   ],
   "failure_mapping": [
@@ -5075,6 +5287,146 @@
       "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json",
       "sha256": "0a8db28ab3d277bf50efde48eb4c5f9189852a77cbc23329985430652b4d22f1",
       "mobile_revision": 177
+    },
+    {
+      "updated_at": "2026-11-16T12:13:38.475212+00:00",
+      "revision": 111,
+      "summary": "Public-B/Core/Store/Host lifecycle source batch is applied; normal484/485 preparation and independent custody audits pass. Contract294/18 and exact67-type coverage pass. NEW required pooled2Session Native strict-proof assumption corrected with perSession history and shared peer fence, source-reviewed and unrun. Reader-release race corrected; actual RTC/mixed controls integrated. Combined Rust compile/tests and actual decoded handoffs remain pending. Last full matrix stays1/32.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g488-component-progress.json",
+      "sha256": "faca61651dae87efcaab30fba06979b7acb734bcb4adddb58145b756e854e7a9",
+      "mobile_revision": 178
+    },
+    {
+      "updated_at": "2026-11-16T12:31:43.076953+00:00",
+      "revision": 112,
+      "summary": "Actualg490 passes206Node+55Python, zero skips; overallFAILED before any Rust tests. Three compile blocker classes identified: shared helper visibility, finite auto-trait compiler depth, and Store middle reexports. Reviewed corrections applied via normal487, custody independently verified; fresh compile sufficiency unproven. Unsupported aggregate Cargo flag is a separate Root runner defect, removed for the successor with original feature union retained. Pooled Native-to-RTC actual decoded proof remains required. Matrix stays1/32; no new matrix launched.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g491-component-progress.json",
+      "sha256": "60d553ad697f7edc83b36961f5afaf3c39238fa0279beb3480ea21cd847e3bc0",
+      "mobile_revision": 179
+    },
+    {
+      "updated_at": "2026-11-16T12:46:38.697748+00:00",
+      "revision": 113,
+      "summary": "Freshg492 passesProtocol87+Node206+Python55, zero failed/ignored; overallFAILED at single Core E0624 direct_port visibility across all5JSONbuilds/defaultcheck. Prior30helper+5trait-depth+StoreE0432 absent. All16children/Root88027 naturallyclose, source and Protocolbinary exact. Reviewed direct_port correction and pooledNative2Session same-selector TEST applied via normal488; compile/media unproven. Firefox manual capture unsupported in archived directAPI; current automatic strict programme and held Chrome-only manual proposal remain distinct. Matrix1/32 unchanged; no new matrix.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g493-component-progress.json",
+      "sha256": "7918f4ea12d1d44fca96c4fca2baac538a327e2b91823a1edd4652a91d378c1f",
+      "mobile_revision": 180
+    },
+    {
+      "updated_at": "2026-11-16T13:03:22.832109+00:00",
+      "revision": 114,
+      "summary": "g494 repeatsProtocol87+Node206+Python55 passes, zero skips; overallFAILED at downstream auto-trait E0275 (SIP/UCTP/WebRTC/Vapi), previousprivatehelper error gone. All16children/Root90470 naturallyclose;source/Protocolbinary exact. Reviewed no-method opaqueWeak SAMEpreparation runtime identity+live realm applied via normal489, with actualmanaged scope/cancel/weak-retirement control. No allocation/dispatch/lock/grant change and no defaultconsumer128limit rollout; compiler sufficiency/residualWarmOwner unproven. Actualdecodedmedia, strictFirefox, ARM/releases/preflight remain. Lastfullmatrix1/32 unchanged.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g495-component-progress.json",
+      "sha256": "9af8ca191417911ebbf3842dddbc0759090712fce8c1bdc52192217500efce60",
+      "mobile_revision": 181
+    },
+    {
+      "updated_at": "2026-11-16T13:28:35.214103+00:00",
+      "revision": 115,
+      "summary": "g496 again passesProtocol87+Node206+Python55, zero skips; overallFAILED. Opaque preparation identity removes3UCTPcompile paths; remainingSIP/Native/RTC/Vapi E0275 traversesWarmOwner. All16children/Root92770 naturallyclose, source/binary exact. Reviewed SAMEallocation Weak WarmOwner interface appliednormal490: exactcurrent/cutoff/cancel/coldrecovery, no allocation/newlock/limit/grant changes; pending indirectcalls, publishedfastpaths unchanged. Two genuine managed identity/owner controls mandatory; passive private mediaartifact retention applied. Default128 compile/units/actualmedia stillunproven. Lastmatrix1/32 unchanged.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g497-component-progress.json",
+      "sha256": "d6f886325f9b61427e01d41352b9e2c2511a3e392854656a5395ca040e4ecc43",
+      "mobile_revision": 182
+    },
+    {
+      "updated_at": "2026-11-16T14:18:14.562818+00:00",
+      "revision": 116,
+      "summary": "Latest g498: Protocol 87, Node 206 and Python 55 pass; Store 432/438 pass, six fail, zero ignored. Overall batch FAILED: SIP async auto-trait compilation still blocks other libraries and all three media representatives. Original Root and 18 children closed; unchanged source/binaries independently verified. All six Store failures traced to test assumptions; reviewed test-only corrections applied. Same-allocation historical Submission identity correction installed through normal491, independently audited; compile sufficiency unproven. Browser-group cancellation fix remains under review. No fresh decoded-media or matrix qualification; last full matrix v218 remains 1/32 cells and399/432 checks.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g499-component-progress.json",
+      "sha256": "507cb0145c51f5b1254cc1b888f715074406f8da484cba2b076efe4dc4bd82e1",
+      "mobile_revision_last_verified": 182,
+      "mobile_sync": "verified",
+      "mobile_revision": 183
+    },
+    {
+      "updated_at": "2026-11-16T15:04:14.715789+00:00",
+      "revision": 117,
+      "summary": "g500 completed FAILED: Store437/438, all six previous failures and all22new cases pass; one retained scene-expiry assertion fails before UTC cutoff. Separate unchanged isolated retry passes, not a regrade or cause proof. Protocol87+Node206+Python55 pass. Five Cargo JSON builds and default server check each fail with23SIP finite auto-trait compiler-depth errors; other Rust suites and actual media do not run. Root99926 and18children close naturally; source6424/prepared666/two original binaries independently audited. Selected SIP-only compiler budget256 patch reviewed/staged, zero runtime/API change. Failure-only cfg(test) epoch diagnostics must be lazy after assertion failure; preassert logging candidate held to avoid masking timing. Remaining epoch cause unresolved. Last full matrix v218 remains1/32 cells,399/432 checks.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g500-component-progress.json",
+      "sha256": "9e79b7ea54c113c189369aa205ad4f7ada252cfa4c3aa7f01f5efc5a1d738fbb",
+      "mobile_revision": 185
+    },
+    {
+      "updated_at": "2026-11-16T15:15:17.653072+00:00",
+      "revision": 118,
+      "summary": "Reviewed SIP-only compiler budget256 and lazy cfg(test) epoch diagnostics applied; normal492 preparation and independent custody audit pass. Old491 tree preserved,4266unchanged mtimes retained; no runtime/API/quality-policy change. Six cold incremental groups removed; actual5,337,665,536bytes recovered and original binaries unchanged. Compilation and remaining scene-expiry cause unproven. Next coherent batch retains all previous/new controls and all7specificStore regressions, with natural-join fail-fast builds. Latest complete g500 remains FAILED: Store437/438, all6priorfailures+22newPASS; Protocol87/Node206/Python55PASS; soleoldsceneUTCassert unresolved; otherRust/media compileblocked. Fullmatrix remains1/32 cells,399/432 checks.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g501-component-progress.json",
+      "sha256": "efb9b61e89c4ef7029d4798a809719fdd14b81d2d01cf58e85ebbb2b5df9d00b",
+      "mobile_revision": 186
+    },
+    {
+      "updated_at": "2026-11-16T15:37:08.554194+00:00",
+      "revision": 119,
+      "summary": "SIP compiles successfully in g502 original upstream feature union; oldE0275 family absent. Actual206Node+55PythonPASS; batchFAILED at6Core TEST access/import errors, so noRust inventory/runtime or later shipping/representative checks run. All9original children andRoot5764 close naturally, exactsource/artifacts independently audited. All6Core test access corrections reviewed and installed normal493:4qualifiedtypepaths, samegenuine publicroute stamp, cfg(test)actualroutingMutex exclusion. No runtime/API/predicate/deadline change. Preparation493 andindependentcustody pass; freshcompile/units pending. LastStoreg500 remains437/438 withall6earliercorrections+22newPASS, oneoldscene-expiryassertunresolved. Lastfullmatrix1/32cells,399/432checks unchanged.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g503-component-progress.json",
+      "sha256": "7d87e32cd563029640908ffbd23c2430948ab563a6b145c0188678c4295f2300",
+      "mobile_revision": 187
+    },
+    {
+      "updated_at": "2026-11-19T06:08:35.857246+00:00",
+      "revision": 120,
+      "summary": "Resumed November18: source493 contains all6 reviewed Core test-access corrections; compilation pending. Batch verification changes to build all6required Cargo roots and pin/inventory current artifacts before anyruntime tests; independenterrors collected together. Allretained/new selections andacceptance unchanged. Focused unchanged Store epoch diagnostic planned10attempts, retainallfailures/noassertionrelaxation. Lastg502SIPcompiled; Node206/Python55PASS; CoretestaccesscompileerrorspreventedRusttests. LastStoreg500437/438 all6earliercorrections+22newPASS; soleepochassertunresolved. No newmatrix; lastv2181/32,399/432.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g504-batch-progress.json",
+      "sha256": "8f8cb21654d1f590f4bd5f94c71c1ae631e96930f576ada4c40b6aaf2686c366",
+      "mobile_revision": 188
+    },
+    {
+      "updated_at": "2026-11-19T07:03:06.697714+00:00",
+      "revision": 121,
+      "summary": "The latest compile batch stopped before runtime: Core, WebRTC and UCTP library test binaries compiled, but Native fixtures had 11 compile errors and the service had two diagnostics for one private-method visibility error. A redundant dependent build was explicitly cancelled; the batch remains interrupted and unqualified. All known Native and service corrections are installed together in prepared source 494, with independent source and preparation reviews; compilation is pending. Cleanup recovered 18,226,642,944 bytes (about 17 GiB), preserving binaries and evidence. The earlier Store result remains 437/438, with six prior corrections and all 22 new cases passing; its scene-expiry cause remains unresolved. Next: compile all six targets before regression tests, then diagnose expiry, verify decoded-media representatives and complete ARM/release readiness. No acceptance criteria changed. Last full matrix remains 1/32 cells and 399/432 checks; G6-054 stays parked.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g505-batch-progress.json",
+      "sha256": "f89e620dce097df3bd5723da66f2c45c65c39f5ee5eb2ef50ec83ada0f7740e0",
+      "mobile_revision": 189
+    },
+    {
+      "updated_at": "2026-11-19T09:06:51.096314+00:00",
+      "revision": 122,
+      "summary": "The six-target g506 build closed naturally: five passed, including the default server check; the native-to-WebRTC fixture had one partial-move compile error. Its setup-order correction is applied, awaiting recompilation. Separate required controls passed 14/15. A failure-only diagnostic proved both Session ends and the survivor check passed; only second cleanup failed. The fixture held its own freeze permit through teardown. Releasing that observing owner AFTER the unchanged survival checkpoint now passes the exact test with all five original assertions retained. This fixes fixture cleanup, with no production isolation or acceptance change. Source 496 is prepared and independently audited. The expiry test passed all 110 isolated attempts; its earlier intermittent failure remains unexplained. Next is a fresh complete retained/new affected regression batch, then three decoded-media representatives, strict Firefox three-cycle validation, final combined qualification, ARM11, normal release builds and preflight. Matrix remains 1/32 cells and 399/432 checks; G6-054 stays parked.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g508-fixture-progress.json",
+      "sha256": "2c1b58d44a620f1b83af1fa8992e098dce9e23824742727a06470dfa30130052",
+      "mobile_revision": 191
+    },
+    {
+      "at": "2026-11-19T09:53:29.826463+00:00",
+      "revision": 123,
+      "event": "g509 all six builds and all selected runtimes complete; 2176/2200 passed;24 failures grouped with named owners/reviewers; all original process/source custody independently audited.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g509-complete-regression-progress.json"
+    },
+    {
+      "at": "2026-11-19T11:02:38.289792+00:00",
+      "revision": 124,
+      "event": "g511 naturally closed5/6 compile (soleNativeE0583), no runtimes; prepared reviewed502pathfix; cleanup59 measured10.31GB;35pureorchestration controls pass; next allretained/new regressions preserve strict aggregate.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g512-prepared-regression-progress.json"
+    },
+    {
+      "at": "2026-11-19T11:51:48.926845+00:00",
+      "revision": 125,
+      "event": "Verified18/24 previous failure controls in current-source component units; reconciled interruptedg513 and focused129/132; prepared504 RTC/codec/provider successor without relaxing criteria.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g515-verified-unit-progress.json"
+    },
+    {
+      "at": "2026-11-19T12:22:19.100085+00:00",
+      "revision": 126,
+      "event": "Verified source505 RTC2 and telephone cleanup3/3;23 prior failure fix controls have current component passes; historical expiry cause and full qualification remain open.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g518-rtc-cleanup-verified-progress.json"
+    },
+    {
+      "at": "2026-11-19T13:10:38.769653+00:00",
+      "revision": 127,
+      "event": "Complete affected2206PASS; fixture route gap fixed with25unitPASS; actual503status-read refusal now evidenced and bounded SDK correction assigned.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g524-complete-regressions-status-refusal.json"
+    },
+    {
+      "at": "2026-11-19T13:29:27.619627+00:00",
+      "revision": 128,
+      "event": "SDKretrybuild/newcontrols verified; broad1195/1198 exposedcontractsync/vocabularygap andabortmilestone corrected15/15. Schema506batch assigned.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g526-sdk-units-contract-sync.json"
+    },
+    {
+      "at": "2026-11-19T13:51:25.307332+00:00",
+      "revision": 129,
+      "event": "Knownfixescurrent506unitverified:Node1201plus3Rustcontrols/shared379/generator/SDK; batchcommit andcompletecurrentregressionsnext.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g530-known-fixes-unit-verified.json"
     }
   ],
   "tracking_review": {
@@ -6704,8 +7056,8 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Generation 486: original native-controller regression and four real TLS ownership controls PASS, zero ignored. Normal preparation, format, test build and production server compile pass. All 11 child owners and Root 72289 / tool 91104 close naturally; 6,369 source files and both binaries remain exact. Independent audit 41c7 accepted this scope. OLD 485 desired failure is preserved. The next public B/native/phase/restore batch covers 129 source paths and has passed source review, unrun. Decoded RTC/Native handoff, combined regression, local ARM/releases/preflight remain. Last full matrix: 1/32.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g486-component-progress.json",
-    "sha256": "0a8db28ab3d277bf50efde48eb4c5f9189852a77cbc23329985430652b4d22f1"
+    "status": "All currently identified source fixes are implemented and unit-verified on prepared source506. Current71browser/affectedNode modules pass1201/1201, generator--check and SDKbuild pass; original-profile Rustbuilds pass all3required UCTP schema/golden controls and the shared379-vector Rust/browser integration oracle. No skips, forced processes or acceptance changes. This verifies bounded originaloperation.get503recovery, exact logicalIDs/freshsignedrequests/one deadline/currentdenials, five fixture dependency routes, strict contains/min/max/ASCII validators and synchronized canonicalschema/vectors. The abortfixture now observes the actual read rejection; its paired pending-write negative preserves original transport-retirement semantics. Existing Core/Native/SIP/provider fixes passed historical completeaffectedG5192206/2206. Next is one complete current506 affected regression batch after this checkpoint/batchcommit, followed by all3real decoded-media representatives on that same source. StrictFirefox3, original finalqualification command/identity scopes, localARM11/normalreleases and capturepreflight remain before readiness for32cells. origin/main was freshly fetched:zero commits missing. Underlying internal source of temporaryauthority availability remains unproven; the SDK follows the existing bounded read-recovery policy. Last fullmatrix remainsv218:1/32cells,399/432checks; no unit/diagnostic result regrades a cell. G6-054 remains parked. LocalMac/nativeARM resources only; no GitHub tests or cloud runners.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g530-known-fixes-unit-verified.json",
+    "sha256": "dc2ca4206b3b4b353e92b78396a37675654afa3d91a92e1ddc53853b19f6b20a"
   }
 }

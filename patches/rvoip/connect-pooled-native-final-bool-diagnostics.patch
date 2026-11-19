@@ -1,0 +1,9 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/native_restore_witness_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/native_restore_witness_controls.rs
+@@ -134,5 +134,5 @@
+     let clean_a=a.close_originals().await.into_iter().all(|done|done);
+     let clean_b=b.close_originals().await.into_iter().all(|done|done);
+     if let Err(error)=result {resume_unwind(error)}
+-    assert!(ended_a&&ended_b&&clean_a&&clean_b&&survivor,"one retired Session must not invalidate another actual frozen owner");
++    assert!(ended_a&&ended_b&&clean_a&&clean_b&&survivor,"one retired Session must not invalidate another actual frozen owner; ended_a={ended_a} ended_b={ended_b} clean_a={clean_a} clean_b={clean_b} survivor={survivor}");
+ }

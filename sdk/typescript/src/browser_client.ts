@@ -6,8 +6,8 @@ import {
     WebSocketControl,
     type BrowserControlTransport,
 } from "./browser_control_transport.js";
-import { ConnectError } from "./errors.js";
-import { jsonObject, type JsonObject } from "./uctp_json.js";
+import { ConnectError, recoverableReadRefusal } from "./errors.js";
+import { canonicalJson, jsonObject, parseCanonicalJson, type JsonObject } from "./uctp_json.js";
 import {
     signEnvelope,
     validateSigningIdentity,
@@ -621,6 +621,15 @@ export class BrowserClient {
                 "backpressure",
                 "Original replacement recovery window exhausted",
             );
+        if (type === "operation.get") {
+            // Freeze logical inputs once; every retry is a fresh signed read,
+            // never a new root, physical attempt, or renewed caller budget.
+            const until = performance.now() + this.timeout(options.timeoutMs);
+            const original = parseCanonicalJson(
+                new TextEncoder().encode(canonicalJson(payload)),
+            ) as JsonObject;
+            return this.replacementStatusRead(original, { ...scope }, { ...options }, until);
+        }
         const frame = envelope(type, payload, scope);
         return this.exchange(
             frame,
@@ -633,6 +642,53 @@ export class BrowserClient {
             false,
             true,
         );
+    }
+    private async replacementStatusRead(
+        payload: JsonObject,
+        scope: Scope,
+        options: RequestOptions & { terminalType?: "connection.answer" },
+        until: number,
+    ): Promise<Envelope[]> {
+        for (;;) {
+            this.check();
+            if (options.signal?.aborted)
+                throw new ConnectError("cancelled", "Original replacement status cancelled");
+            const remaining = until - performance.now();
+            if (remaining < 1)
+                throw new ConnectError("timeout", "Original replacement status deadline");
+            this.expireReplacementReplies(Date.now());
+            if (this.abandonedReplacementReplies.size + this.pending.size >= 64)
+                throw new ConnectError("backpressure", "Original replacement recovery window exhausted");
+            try {
+                const frames = await this.exchange(
+                    envelope("operation.get", payload, scope),
+                    true,
+                    (value) => value.type === "ack" || value.type === "error" || value.type === options.terminalType,
+                    { ...options, timeoutMs: remaining },
+                    false,
+                    true,
+                    until,
+                );
+                if (performance.now() >= until)
+                    throw new ConnectError("timeout", "Original replacement status deadline");
+                return frames;
+            } catch (error) {
+                if (!recoverableReadRefusal(error)) throw error;
+                if (options.signal?.aborted)
+                    throw new ConnectError("cancelled", "Original replacement status cancelled");
+                this.check();
+                // Reuse the same non-retiring read bound. No continuation offer
+                // or transport failure enters this retry branch.
+                let timer: ReturnType<typeof setTimeout> | undefined;
+                try {
+                    await this.bound(new Promise<void>((resolve) => {
+                        timer = setTimeout(resolve, Math.min(20, Math.max(0, until - performance.now())));
+                    }), until, options.signal, false);
+                } finally {
+                    clearTimeout(timer);
+                }
+            }
+        }
     }
     private expireReplacementReplies(now: number): void {
         for (const [id, until] of this.abandonedReplacementReplies)
@@ -710,9 +766,10 @@ export class BrowserClient {
         options: RequestOptions,
         validateCanonical = false,
         retainMediaOnReplyTimeout = false,
+        originalReadUntil?: number,
     ): Promise<Envelope[]> {
         this.check();
-        const until = performance.now() + this.timeout(options.timeoutMs);
+        const until = originalReadUntil ?? performance.now() + this.timeout(options.timeoutMs);
         if (options.signal?.aborted)
             throw new ConnectError(
                 "cancelled",

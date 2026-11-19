@@ -1,0 +1,11 @@
+{
+  "format": "connect/g6-058-mobile-document-readback/1",
+  "verified_at": "2026-11-19T13:11:09.473Z",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "native_revision_id": "AHj4eMTY90YXUVpGWmFwbsCgSM_X83JU7rv_6LS-lirB-qTjxJtPWljQ5q6G6guSd1zl7aKZKTGqJPTGeD7vPvL--3y4cPO0oPSgsAsiLtE",
+  "content_revision": 196,
+  "tracker_revision": 127,
+  "header": "Revision 196 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+  "current_verification": "Current verification — November 19. The complete source505 affected regression batch G519 passed all2206 checks:1945 Rust,206 Node,55 Python; all6 builds,10 inventories,shipping check and32 original child processes passed/closed naturally. All24 previously failing controls passed, including scene expiry (historical timing cause remains unproven). Real decoded-media follow-up exposed a fixture import gap before media; five exact asset routes are fixed, and25 live Node HTTP/diagnostic controls pass. The subsequent real roundtrip reached both first-cycle roots Completed with DecodedReady/Activated in G522 but failed overall on status recovery; later controls were not run. New failure-only diagnostics in G524 now prove original operation.get refusals503/authorization/authority_unavailable during concurrent replacement preparation/waiting. They do not prove which internal SQL/fence path was busy. The SDK currently propagates that temporary read refusal; the next bounded operation.get-only retry fix preserves original logical IDs/scopes, fresh signed request IDs, one remaining deadline and current authorization. Mutations, offers,401/403 and unrelated errors will not be retried. Epoch authors the fix/tests; batch reviewer checks it; Root integrates/tests. Full coherent qualification, all3 decoded-media representatives, strict Firefox3, original final qualification scopes, local ARM11/releases and preflight remain. Last full matrix remains v218:1/32 cells and399/432 checks. No component/diagnostic pass upgrades a matrix cell. Local Mac/native ARM only; G6-054 remains parked.\n",
+  "exact_readback": true
+}

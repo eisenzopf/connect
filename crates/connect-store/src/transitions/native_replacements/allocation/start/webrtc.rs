@@ -1,6 +1,7 @@
 //! Fresh, bounded attribution for one replacement start across SDP delivery.
 //! This contains no authority interval and cannot allocate or repeat the effect.
 use super::*;
+mod public_video_ready;
 
 pub struct NativeReplacementStartOrigin {
     allocated: Arc<NativeReplacementAllocated>,

@@ -129,6 +129,8 @@ pub(crate) struct Epoch {
     revoked: Arc<AtomicBool>,
     availability: Arc<Availability>,
     until: Instant,
+    #[cfg(test)]
+    first_revocation: Arc<std::sync::OnceLock<FirstRevocation>>,
 }
 impl Epoch {
     pub(crate) fn current(&self) -> bool {
@@ -137,8 +139,85 @@ impl Epoch {
             && self.availability.current()
     }
     fn revoke(&self) {
+        #[cfg(not(test))]
         self.revoked.store(true, Ordering::Release);
+        #[cfg(test)]
+        {
+            let before = Instant::now();
+            // Only the actual first false-to-true winner records provenance.
+            // Later Slot/Generation drops cannot overwrite that event. A
+            // reader between this atomic and OnceLock publication sees pending.
+            if self
+                .revoked
+                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                .is_ok()
+            {
+                let after = Instant::now();
+                let _ = self.first_revocation.set(FirstRevocation {
+                    until_minus_before_ns: self.until_minus_for_test(before),
+                    until_minus_after_ns: self.until_minus_for_test(after),
+                });
+            }
+        }
     }
+    #[cfg(test)]
+    fn until_minus_for_test(&self, sampled: Instant) -> i128 {
+        // Duration uses u64 seconds, so its nanoseconds fit signed i128.
+        if self.until >= sampled {
+            self.until.duration_since(sampled).as_nanos() as i128
+        } else {
+            -(sampled.duration_since(self.until).as_nanos() as i128)
+        }
+    }
+    /// Failure diagnostics only. Read the existing primitive flags/deadline;
+    /// never retain a Generation, Reader, Registry or fresh admission.
+    #[cfg(test)]
+    pub(crate) fn sample_at_for_test(&self, sampled: Instant) -> EpochSample {
+        let revoked = self.revoked.load(Ordering::Acquire);
+        let first_revocation = self.first_revocation.get().copied();
+        let first_revocation_state = match (revoked, first_revocation) {
+            (false, None) => "not_observed_revoked",
+            (false, Some(_)) => "concurrent_transition_after_flag_load_uncertain",
+            (true, None) => "winner_record_pending_uncertain",
+            (true, Some(first)) if first.until_minus_before_ns < first.until_minus_after_ns => {
+                "inconsistent_bracket_uncertain"
+            }
+            (true, Some(first)) if first.until_minus_before_ns <= 0 => {
+                "first_transition_at_or_after_original_deadline"
+            }
+            (true, Some(first)) if first.until_minus_after_ns > 0 => {
+                "first_transition_before_original_deadline_cause_uncertain"
+            }
+            (true, Some(_)) => "first_transition_straddles_original_deadline_uncertain",
+        };
+        EpochSample {
+            revoked,
+            availability_raw: self.availability.0.load(Ordering::Acquire),
+            until_minus_sample_ns: self.until_minus_for_test(sampled),
+            first_revocation,
+            first_revocation_state,
+        }
+    }
+}
+/// Independent scalar loads at one supplied monotonic instant, not an atomic
+/// combined state or capability. AVAILABLE=1; other raw values refuse current.
+#[cfg(test)]
+#[derive(Debug)]
+pub(crate) struct EpochSample {
+    pub(crate) revoked: bool,
+    pub(crate) availability_raw: u8,
+    pub(crate) until_minus_sample_ns: i128,
+    pub(crate) first_revocation: Option<FirstRevocation>,
+    pub(crate) first_revocation_state: &'static str,
+}
+/// Immutable diagnostic bracket of the actual first revoked-bit transition,
+/// expressed against this SAME Epoch's original monotonic deadline. No reason
+/// or clock mechanism is inferred from an early or straddling bracket.
+#[cfg(test)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct FirstRevocation {
+    pub(crate) until_minus_before_ns: i128,
+    pub(crate) until_minus_after_ns: i128,
 }
 impl<T: SnapshotFacts> Drop for Generation<T> {
     fn drop(&mut self) {
@@ -513,6 +592,8 @@ impl<T: SnapshotFacts> ErasedSlot for Slot<T> {
             availability: self.availability.clone(),
             revoked: Arc::new(AtomicBool::new(false)),
             until: prepared.until,
+            #[cfg(test)]
+            first_revocation: Arc::new(std::sync::OnceLock::new()),
         };
         let next = Arc::new(Generation {
             number: previous + 1,

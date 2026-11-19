@@ -11,7 +11,7 @@ const reference={operationId:'original',command:'connection.replace',scope:{conv
 // The low-level state machine is exercised separately; neither test is live media.
 async function scenario(run,{path='webtransport',mode}={}) {
     const previous=BrowserMediaPeer.prototype.beginReplacementConnection,previousRtc=BrowserRtcConnection.beginReplacement;
-    let captured,finish,complete=false,reads=0;
+    let captured,finish,complete=false,reads=0,refusedCompletedRead=false;
     BrowserMediaPeer.prototype.beginReplacementConnection=function(input,root,options){
         captured={input,root,options};
         return {prepared:Promise.resolve({id:input.connectionId,onClose(){return()=>{};}}),
@@ -35,9 +35,19 @@ async function scenario(run,{path='webtransport',mode}={}) {
             ]},frame.id,frame);await peer.emit('ack',{},frame.id,frame);return true;
         }
         if(frame.type!=='operation.get')return false;reads++;
+        if(mode==='transient-completed-status'&&complete&&!refusedCompletedRead){
+            refusedCompletedRead=true;
+            await peer.emit('error',{code:503,category:'storage',reason:'storage_unavailable'},frame.id,frame);return true;
+        }
+        if(['transient-initial-status','transient-terminal-status','transient-foreign-scope'].includes(mode)&&reads===1){
+            assert.equal(captured,undefined,'503 before current preparation cannot construct a target');
+            await peer.emit('error',{code:503,category:'authorization',reason:'authority_unavailable'},frame.id,frame);return true;
+        }
+
         const readiness={stream_revision:6,streams:['audio','out','in'],participant_revision:2};
         const value={operation_id:'original',record_id:'record',command_type:'connection.replace',expected_revision:7,
             revision:reads,state:complete?'completed':'preparing',native_replacement_prepared:mode==='bad-flag'?'true':reads>=2};
+        if(mode==='transient-terminal-status')value.state='failed';
         if((!complete||mode==='intent-retained-completed')&&mode?.startsWith('intent')&&!(mode==='intent-disappears'&&reads>1))value.webrtc_video_receive_reservation={profile:'connect/webrtc-public-video-reservation/1',phase:'intent',reservation_id:'reservation',nonce:mode==='intent-changes'&&reads>1?'changed-nonce':'reservation-nonce',preview_stream_id:'out',preview_role:'receive',public_stream_id:mode==='intent-wrong-public'?'foreign':'in',...(mode==='intent-cut-smuggled'?{source_cut_id:'not-yet'}:{})};
         if(complete){
             // Parser/model metadata only: this fixture intercepts preparation;
@@ -52,7 +62,7 @@ async function scenario(run,{path='webtransport',mode}={}) {
                 retained_connection_ids:['remote'],admitted_connection_ids:['replacement_record'],retired_connection_ids:['source'],
                 session_revision:8,conversation_revision:null,readiness,physical_readiness:readiness,native_activation};
         }
-        await peer.emit('operation.updated',value,frame.id,{...frame,connid:mode==='foreign-scope'?'foreign':frame.connid});
+        await peer.emit('operation.updated',value,frame.id,{...frame,connid:['foreign-scope','transient-foreign-scope'].includes(mode)?'foreign':frame.connid});
         await peer.emit('ack',{},frame.id,frame);return true;
     }});}finally{BrowserMediaPeer.prototype.beginReplacementConnection=previous;BrowserRtcConnection.beginReplacement=previousRtc;}
 }
@@ -108,3 +118,30 @@ test('completed original snapshot may retain immutable reservation history witho
  await assert.rejects(()=>f.session.connections.prepareReplacement(input,{timeoutMs:500}),{kind:'conflict'});
  assert.equal(f.captured(),original,'Historical intent never creates another physical reservation');
 },{path:'wss-webrtc',mode:'intent-retained-completed'}));
+
+for(const path of ['webtransport','wss-webrtc'])test(`typed ${path} target retries only original status before one preparation`,()=>scenario(async f=>{
+ const target=await f.session.connections.prepareReplacement({operation:reference,audio:'audio',video:{send:'out',receive:'in'}},{timeoutMs:500});
+ try{
+  assert.equal(target.connection.id,'replacement_record');assert.equal(f.captured().root.operationId,'original');
+  const reads=f.f.sent.filter(frame=>frame.type==='operation.get');assert.equal(reads.length,2);
+  assert.equal(new Set(reads.map(frame=>frame.id)).size,2);assert.ok(reads.every(frame=>frame.payload.operation_id==='original'&&frame.connid==='source'));
+  assert.equal(f.f.sent.filter(frame=>['connection.replace','connection.offer'].includes(frame.type)).length,0);
+ }finally{f.finish();await target.completion;}
+},{path,mode:'transient-initial-status'}));
+
+test('typed source wait and target completion recover the same completed original after a signed503 read refusal',()=>scenario(async f=>{
+ const target=await f.session.connections.prepareReplacement({operation:reference,audio:'audio',video:{send:'out',receive:'in'}},{timeoutMs:500});
+ f.finish();
+ const source=f.client.operations.recover(reference);
+ const [a,b]=await Promise.all([source.wait({timeoutMs:500}),target.completion]);
+ assert.equal(a.snapshot.state,'completed');assert.equal(b.snapshot.state,'completed');
+ assert.equal(a.snapshot.recordId,b.snapshot.recordId);assert.equal(a.value.connection.id,target.connection.id);
+ assert.equal(f.f.sent.filter(frame=>['connection.replace','connection.offer'].includes(frame.type)).length,0);
+ assert.ok(f.f.sent.filter(frame=>frame.type==='operation.get').every(frame=>frame.payload.operation_id==='original'&&frame.connid==='source'));
+},{path:'wss-webrtc',mode:'transient-completed-status'}));
+
+for(const [mode,kind] of [['transient-terminal-status','conflict'],['transient-foreign-scope','protocol']])test(`typed initial503 cannot bypass current ${mode}`,()=>scenario(async f=>{
+ await assert.rejects(f.session.connections.prepareReplacement({operation:reference,audio:'audio'},{timeoutMs:500}),{kind});
+ assert.equal(f.captured(),undefined);assert.equal(f.f.sent.filter(frame=>frame.type==='operation.get').length,2);
+ assert.equal(f.f.sent.filter(frame=>['connection.replace','connection.offer'].includes(frame.type)).length,0);
+},{path:'wss-webrtc',mode}));

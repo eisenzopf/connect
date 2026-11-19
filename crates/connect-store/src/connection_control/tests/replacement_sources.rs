@@ -688,3 +688,5 @@ fn unreserved_endpoint_replacement_worker_claim_is_a_real_writer_and_cannot_borr
     );
     assert!(f.store.native_replacement_origin(&key, command).is_err());
 }
+
+mod video_restore;

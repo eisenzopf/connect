@@ -1,0 +1,11 @@
+{
+  "format": "connect/g6-058-mobile-document-readback/1",
+  "verified_at": "2026-11-19T13:51:50.865Z",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "native_revision_id": "AHj4eMTuQhngeTM6vFjrqYGfdX7uTKgufh4fR__o2vBYZiQfEO6_cEO4wMbhuSPCQHAh-U4PihEPin4gqlC_3HT9lecIfbldBHDcnrElUdo",
+  "content_revision": 198,
+  "tracker_revision": 129,
+  "header": "Revision 198 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+  "current_verification": "Current verification — November 19. All currently identified source fixes are implemented and unit-verified on prepared source506. Current71browser/affectedNode modules pass1201/1201, generator--check and SDKbuild pass; original-profile Rustbuilds pass all3required UCTP schema/golden controls and the shared379-vector Rust/browser integration oracle. No skips, forced processes or acceptance changes. This verifies bounded originaloperation.get503recovery, exact logicalIDs/freshsignedrequests/one deadline/currentdenials, five fixture dependency routes, strict contains/min/max/ASCII validators and synchronized canonicalschema/vectors. The abortfixture now observes the actual read rejection; its paired pending-write negative preserves original transport-retirement semantics. Existing Core/Native/SIP/provider fixes passed historical completeaffectedG5192206/2206. Next is one complete current506 affected regression batch after this checkpoint/batchcommit, followed by all3real decoded-media representatives on that same source. StrictFirefox3, original finalqualification command/identity scopes, localARM11/normalreleases and capturepreflight remain before readiness for32cells. origin/main was freshly fetched:zero commits missing. Underlying internal source of temporaryauthority availability remains unproven; the SDK follows the existing bounded read-recovery policy. Last fullmatrix remainsv218:1/32cells,399/432checks; no unit/diagnostic result regrades a cell. G6-054 remains parked. LocalMac/nativeARM resources only; no GitHub tests or cloud runners.\n",
+  "exact_readback": true
+}

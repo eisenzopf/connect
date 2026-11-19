@@ -1,0 +1,22 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -5043,6 +5043,8 @@
+ pub mod handoff;
+ 
+ pub mod device_replacement;
++// Shared nonblocking metadata classification; descendants retain the same error semantics.
++use device_replacement::metadata_lock_error;
+ 
+ pub mod local_audio;
+ 
+--- a/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/device_replacement.rs
+@@ -228,7 +228,7 @@
+     duplex: AudioDuplexStamp,
+     auxiliary_ports: Vec<Weak<Port>>,
+ }
+-fn metadata_lock_error<T>(error: std::sync::TryLockError<T>) -> StreamControlError {
++pub(super) fn metadata_lock_error<T>(error: std::sync::TryLockError<T>) -> StreamControlError {
+     match error {
+         std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
+         std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),

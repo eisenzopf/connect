@@ -170,7 +170,7 @@ impl CanonicalHandler {
             ]);
         }
         if let Some(action) = crate::canonical_operations::action(request)? {
-            let record = self
+            let observation = self
                 .service
                 .canonical_operation_held(
                     credential,
@@ -183,7 +183,12 @@ impl CanonicalHandler {
                     authority.map(|a| a.retained()),
                 )
                 .await?;
+            let record = &observation.record;
             let mut payload = json!({"operation_id":record.operation_id,"record_id":record.record_id,"command_type":record.command_type,"expected_revision":record.expected_revision,"state":record.state,"revision":record.revision});
+            if matches!(request.payload(), Payload::OperationGet(_)) {
+                observation.project_public_video(&mut payload);
+            }
+            let record = observation.record;
             if matches!(request.payload(), Payload::OperationGet(_)) {
                 crate::canonical_operations::project_preparation(&record, &mut payload);
             }
@@ -523,6 +528,7 @@ impl AuthenticatedHandler for CanonicalHandler {
                         "connect-replacement-media-v1"
                             | "connect-replacement-preparation-v1"
                             | "connect-replacement-ready-v1"
+                            | "connect-replacement-public-video-ready-v1"
                     )
                 ))
         {

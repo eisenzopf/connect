@@ -16,6 +16,8 @@ use rvoip_core::{
 #[derive(Clone)]
 pub(crate) enum Phase {
     Attach,
+    ReserveVideo,
+    WarmVideo(ManagedAudioDeviceReplacementPlan),
     Activate(AudioAudiencePlan),
     AudioPreroll(u64),
     Preroll(
@@ -47,6 +49,8 @@ impl Invocation {
     ) -> StreamControlError {
         let phase = match &self.phase {
             Phase::Attach => "attach",
+            Phase::ReserveVideo => "reserve-video",
+            Phase::WarmVideo(_) => "warm-video",
             Phase::Activate(_) => "activate",
             Phase::Preroll(_, _) => "preroll",
             Phase::AudioPreroll(_) => "audio-preroll",
@@ -226,7 +230,7 @@ impl Invocation {
                     && *request == expected
             }
             (
-                Phase::Commit(expected) | Phase::FreezeVideo(expected),
+                Phase::Commit(expected) | Phase::FreezeVideo(expected) | Phase::WarmVideo(expected),
                 MediaControlIntent::DeviceReplacement { plan },
             ) => expected.media().audience().same_intent(plan),
             _ => false,
@@ -234,6 +238,12 @@ impl Invocation {
         if !valid {
             tracing::debug!(target:"connect_service::canonical_replacement",candidate=scope.connection==self.policy.pending.binding().connection(),"Replacement continuation refused control intent");
             return Err(StreamControlError::Authority);
+        }
+        if let Phase::Commit(plan) = &self.phase {
+            self.root
+                .public_video
+                .require_commit_ready(&self.root, plan)
+                .map_err(|_| StreamControlError::Authority)?;
         }
         let owner = self.owner(scope.connection)?;
         let principal = if scope.connection == self.policy.pending.binding().connection() {
@@ -325,11 +335,15 @@ impl ParticipantReplacementLease for Invocation {
         self.check().map_err(|_| deny())?;
         if scope.intent != self.root.handle.intent()
             || !match (&self.phase, scope.plan) {
-                (Phase::Commit(expected) | Phase::FreezeVideo(expected), Some(plan)) => {
-                    expected.media().audience().same_intent(plan.audience())
-                }
+                (
+                    Phase::Commit(expected)
+                    | Phase::FreezeVideo(expected)
+                    | Phase::WarmVideo(expected),
+                    Some(plan),
+                ) => expected.media().audience().same_intent(plan.audience()),
                 (
                     Phase::Attach
+                    | Phase::ReserveVideo
                     | Phase::Activate(_)
                     | Phase::Preroll(_, _)
                     | Phase::AudioPreroll(_),
@@ -342,6 +356,8 @@ impl ParticipantReplacementLease for Invocation {
                 (Phase::Preroll(_, _), ReplacementPhase::Preroll)
                     | (Phase::AudioPreroll(_), ReplacementPhase::Preroll)
                     | (Phase::Attach, ReplacementPhase::Attach)
+                    | (Phase::ReserveVideo, ReplacementPhase::ReserveVideo)
+                    | (Phase::WarmVideo(_), ReplacementPhase::WarmVideo)
                     | (Phase::Activate(_), ReplacementPhase::Activate)
                     | (Phase::Commit(_), ReplacementPhase::Commit)
                     | (Phase::FreezeVideo(_), ReplacementPhase::FreezeVideo)
@@ -354,6 +370,12 @@ impl ParticipantReplacementLease for Invocation {
             || scope.session.as_str() != self.root.origin.request().session_id
         {
             return Err(deny());
+        }
+        if let Phase::Commit(plan) = &self.phase {
+            self.root
+                .public_video
+                .require_commit_ready(&self.root, plan)
+                .map_err(|_| deny())?;
         }
         let owner = self
             .owner(self.policy.pending.binding().connection())
@@ -467,4 +489,96 @@ impl MediaAuthorityLease for Held {
         owner.may_route_source = true;
         Ok(Box::new(owner))
     }
+}
+
+impl Invocation {
+    pub(crate) fn public_video_reservation(
+        &self,
+        scope: &MediaScope<'_>,
+        reserved: &rvoip_core::staged_streams::public_video_reservation::PublicVideoReservationPreparation,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        self.check()?;
+        let intent = self
+            .root
+            .public_video
+            .reservation()
+            .map_err(|_| StreamControlError::Authority)?
+            .intent();
+        if !matches!(self.phase, Phase::ReserveVideo)
+            || !matches!(scope.purpose, MediaPurpose::Control)
+            || !reserved.is_current()
+            || !reserved.matches_original_preparation(&self.root.handle)
+            || reserved.original_intent() != self.root.handle.intent()
+            || reserved.target().logical_id.as_str() != intent.public_stream_id
+            || scope.connection != &self.root.handle.intent().replacement
+            || scope.conversation != reserved.conversation()
+            || scope.session != reserved.session()
+            || !reliable_data::same_credential(scope.principal, &self.policy.principal)
+        {
+            return Err(StreamControlError::Authority);
+        }
+        let mut owner = self.owner(scope.connection)?;
+        // This callback owns only control/resource admission, never an audience.
+        owner.may_route_source = false;
+        owner.send_media.clear();
+        owner.receive_media.clear();
+        Ok(Box::new(Held {
+            invocation: self.clone(),
+            target: scope.connection.clone(),
+            owner,
+        }))
+    }
+    pub(crate) fn public_video_warm(
+        &self,
+        scope: &MediaScope<'_>,
+        warm: &rvoip_core::staged_streams::direct_subscriptions::PostCutPublicVideoScope,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        self.check()?;
+        let Phase::WarmVideo(plan) = &self.phase else {
+            return Err(StreamControlError::Authority);
+        };
+        let reserved = self
+            .root
+            .public_video
+            .reserved()
+            .map_err(|_| StreamControlError::Authority)?;
+        let MediaPurpose::Receive { source } = scope.purpose else {
+            return Err(StreamControlError::Authority);
+        };
+        if !warm.is_current()
+            || warm.is_published()
+            || warm.original_intent() != self.root.handle.intent()
+            || warm.target() != reserved.target()
+            || warm.frontier().operation_id() != self.root.handle.intent().operation_id
+            || scope.connection != &self.root.handle.intent().replacement
+            || scope.conversation != warm.conversation()
+            || scope.session != warm.session()
+            || !same_public_video_source(source, warm.source())
+            || plan.media().request().operation_id != self.root.handle.intent().operation_id
+            || !reliable_data::same_credential(scope.principal, &self.policy.principal)
+        {
+            return Err(StreamControlError::Authority);
+        }
+        // Reuse the exact held scene's current receive permission for this source.
+        // The Core-owned warm path independently restricts it to the actual B/F.
+        let owner = self.owner(scope.connection)?;
+        let held = Held {
+            invocation: self.clone(),
+            target: scope.connection.clone(),
+            owner,
+        };
+        let owner = *held.control_receive(source)?;
+        Ok(Box::new(Held { owner, ..held }))
+    }
+}
+pub(super) fn same_public_video_source(a: &MediaSource, b: &MediaSource) -> bool {
+    a.conversation == b.conversation
+        && a.session == b.session
+        && a.connection == b.connection
+        && a.participant == b.participant
+        && a.membership_epoch == b.membership_epoch
+        && a.connection_generation == b.connection_generation
+        && a.logical_id == b.logical_id
+        && a.transport_id == b.transport_id
+        && a.stream_generation == b.stream_generation
 }

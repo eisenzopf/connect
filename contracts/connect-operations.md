@@ -32,6 +32,18 @@ absent or unrecorded original capture, without retaining a reader while waiting
 for the preparation worker. Full effect details are not exposed on this wire
 projection.
 
+For an explicitly recorded public video B replacement, the specialized current
+`operation.get` projection may additionally carry
+`webrtc_video_receive_reservation` (original closed Intent) and
+`webrtc_public_video_phase` (closed original phase). A phase requires that same
+Intent, record and logical operation; matching native binding, cut, nonces and
+current authorization are enforced by the runtime. These optional fields are
+not placed in generic row loading and do not authorize media. A known stopped
+native completion has no Activated phase; Completed replay never repairs missing
+Activated after publication. Before B has a real negotiated binding, cleanup is
+an internal terminal marker and status invents no binding/Phase. See
+[original public video](webrtc-public-video.md).
+
 A handoff target may reference its own signed native offer record as `policy_ref`
 only while that physical peer's current named handoff policy permits the route.
 

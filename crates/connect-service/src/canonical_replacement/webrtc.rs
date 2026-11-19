@@ -89,8 +89,14 @@ pub(super) struct Source {
     origin: Arc<NativeReplacementStartOrigin>,
     offer: ReplacementOffer,
     adopted: OnceLock<Arc<connect_store::NativeMediaOrigin>>,
+    reserved_video: Option<Arc<crate::canonical_webrtc::ReservedReplacementVideo>>,
 }
 impl ReplacementSource for Source {
+    fn reserved_public_video(
+        &self,
+    ) -> Option<Arc<crate::canonical_webrtc::ReservedReplacementVideo>> {
+        self.reserved_video.clone()
+    }
     fn offer(&self) -> Result<ReplacementOffer> {
         self.current()?;
         Ok(ReplacementOffer {
@@ -684,7 +690,15 @@ impl Runtime {
                         return Err(Error::forbidden());
                     }
                     original_plan.get_or_insert(captured);
-                    let readiness = super::readiness::ReadyGate::new(&read, &plan, root.deadline)?;
+                    let readiness = match &allocated.reserved_video {
+                        Some(original) => super::readiness::ReadyGate::new_reserved(
+                            &read,
+                            &plan,
+                            root.deadline,
+                            original,
+                        )?,
+                        None => super::readiness::ReadyGate::new(&read, &plan, root.deadline)?,
+                    };
                     #[cfg(feature = "test-support")]
                     if let Some(probe) = &begin_probe {
                         if probe.load(Ordering::Acquire) == 0 {
@@ -816,6 +830,7 @@ impl Runtime {
                 offer: read.target().offer.clone(),
             },
             adopted: OnceLock::new(),
+            reserved_video: allocated.reserved_video.clone(),
         });
         owned.source = Some(source.clone());
         owned.peer = Some(peer.clone());

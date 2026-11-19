@@ -1096,3 +1096,31 @@ The focused Store controls use explicitly controlled engine observations;
 actual Core decoded PCM and signed server private-replacement/return controls
 are separate required behavior evidence. Source changes or typechecks alone do
 not qualify Gate 6 continuity or idle-resource requirements.
+
+
+## Optional original public B receiver
+
+The explicit public-video profile freezes one audio duplex stream, A camera plus
+private preview on one sendrecv stream, and a distinct B recvonly stream/MID on
+the same original WebRTC peer. Store records the server Intent before the first
+target offer; client echo cannot select this class without its actual original
+reservation. Private audio/A readiness does not count B. The original final
+replacement plan keeps A publication and B reception; private setup uses a local
+A-only receive copy.
+
+The separate public acknowledgment uses the original signed `connection.offer`
+with `connect-replacement-public-video-ready-v1`, not another physical target or
+an HTTP command. It freezes the exact original B binding/cut/public nonce and
+native decoder counts. The Host retains the whole parsed marker before replay;
+Store metadata does not reconstruct a browser decoder lease or compare counts
+that were never persisted. No phase or endpoint report alone grants movement.
+
+The source-cut ordinal stays server-owned exact u64 within its original realm;
+wire status uses only opaque `source_cut_id`. Actual original OLD drain/seal,
+post-F B writer/keyframe/decoder, current source+target authority, atomic same
+writer adoption, whole-candidate abort joins and fresh OLD restoration remain
+independent required owners/checks. No preparation deadline is renewed. After
+actual publication, ordinary current admission and its continuous published
+floor/protection own media independently of the expired preparation budget.
+See [the closed wire and HTTP status reference](webrtc-public-video.md). This
+contract does not assert an implemented/qualified matrix cell.

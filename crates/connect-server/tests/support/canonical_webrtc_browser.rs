@@ -22,9 +22,26 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
-struct OwnedBrowser(Child);
+struct OwnedBrowser(Child, bool);
+impl OwnedBrowser {
+    fn group_cleanup_parts(&mut self) -> (&mut Child, &mut bool) {
+        (&mut self.0, &mut self.1)
+    }
+}
 impl Drop for OwnedBrowser {
     fn drop(&mut self) {
+        if self.1 {
+            return;
+        }
+        // try_wait may itself reap an exited child. Never signal a PGID after
+        // that point or when wait ownership is unknown (including startup panic).
+        match self.0.try_wait() {
+            Ok(None) => {} // STILL unreaped: original PID anchors the group.
+            Ok(Some(_)) | Err(_) => {
+                self.1 = true;
+                return;
+            }
+        }
         let id = self.0.id();
         let _ = self.0.kill();
         #[cfg(unix)]
@@ -713,7 +730,7 @@ async fn run_configured_profile(algorithm: &str, browser_kind: &str, profile: Pr
         use std::os::unix::process::CommandExt;
         command.process_group(0);
     }
-    let mut browser = OwnedBrowser(command.spawn().unwrap());
+    let mut browser = OwnedBrowser(command.spawn().unwrap(), false);
     let until = tokio::time::Instant::now() + Duration::from_secs(12);
     let debug_port = loop {
         if browser_kind == "firefox" {
@@ -1309,3 +1326,9 @@ mod replacement_terminal;
 
 #[path = "canonical_webrtc_browser/replacement_roundtrip.rs"]
 mod replacement_roundtrip;
+
+#[path = "canonical_webrtc_browser/public_video_roundtrip.rs"]
+mod public_video_roundtrip;
+
+#[path = "canonical_webrtc_browser/public_video_abort.rs"]
+mod public_video_abort;

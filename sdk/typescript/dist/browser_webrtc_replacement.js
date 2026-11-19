@@ -1,6 +1,6 @@
 import { BrowserDeadline } from "./browser_deadline.js";
 import { replacementFrame, replacementReceipt, replacementRoot, } from "./browser_replacement.js";
-import { ConnectError } from "./errors.js";
+import { ConnectError, recoverableReadRefusal } from "./errors.js";
 import { canonicalJson, jsonObject, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
 const protocol = (message) => new ConnectError("protocol", message);
@@ -25,13 +25,7 @@ export const recoverableReadinessFailure = (error) => {
         return false;
     if (error.code === "timeout" || error.code === "transport")
         return true;
-    const problem = error.problem;
-    return (error.code === "refused" &&
-        problem?.code === 503 &&
-        ((problem.category === "authorization" &&
-            problem.reason === "authority_unavailable") ||
-            (problem.category === "storage" &&
-                problem.reason === "storage_unavailable")));
+    return recoverableReadRefusal(error);
 };
 /** One target's original replacement phases. A readiness assertion is a signed
  * observation of this fresh decoder, never a new replacement mutation. */

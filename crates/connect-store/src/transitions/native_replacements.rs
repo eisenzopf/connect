@@ -43,6 +43,9 @@ pub struct NativeReplacementPreparationAttempt {
 }
 #[derive(Clone)]
 pub struct NativeReplacementPrepared {
+    // Minted only by the actual once-owned preparation capture below. Cloning
+    // this value through Allocated/Started retains exact resource-free identity.
+    capture_identity: Arc<()>,
     selection: NativeReplacementSelection,
     owner: Weak<crate::InstallationOwnership>,
     runtime: String,
@@ -59,7 +62,12 @@ pub use candidate::{NativeReplacementCandidate, NativeReplacementCandidateRetire
 mod allocation;
 mod public_video;
 pub use public_video::{
-    NativeReplacementPublicVideoReservation, NativeReplacementUnpublishedRead,
+    NativeReplacementPublicVideoClosedExpected, NativeReplacementPublicVideoClosedGuard,
+    NativeReplacementPublicVideoClosedObservation, NativeReplacementPublicVideoExpected,
+    NativeReplacementPublicVideoNativeBinding, NativeReplacementPublicVideoPublication,
+    NativeReplacementPublicVideoReservation, NativeReplacementPublicVideoRuntimeGuard,
+    NativeReplacementPublicVideoRuntimeMetadata, NativeReplacementPublicVideoRuntimeObservation,
+    NativeReplacementPublicVideoStage, NativeReplacementUnpublishedRead,
     PublicVideoOperationSnapshot,
 };
 mod presence;
@@ -106,6 +114,19 @@ impl NativeReplacementPreparationLease {
         serde_json::from_str(&self.plan).map_err(|_| Error::storage())
     }
 }
+impl NativeReplacementPrepared {
+    fn same_capture(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.capture_identity, &other.capture_identity)
+            && std::sync::Weak::ptr_eq(&self.owner, &other.owner)
+            && self.runtime == other.runtime
+            && self.record == other.record
+            && self.reservation == other.reservation
+            && self.attempt == other.attempt
+            && self.effect == other.effect
+            && self.hash == other.hash
+            && self.observation == other.observation
+    }
+}
 impl NativeReplacementPreparationAttempt {
     pub fn record_id(&self) -> &str {
         self.lease.record_id()
@@ -122,6 +143,7 @@ impl NativeReplacementPreparationAttempt {
         }
         let origin = &self.lease.selection.origin;
         Ok(NativeReplacementPrepared {
+            capture_identity: Arc::new(()),
             selection: self.lease.selection.clone(),
             owner: origin.owner.clone(),
             runtime: origin.runtime.clone(),

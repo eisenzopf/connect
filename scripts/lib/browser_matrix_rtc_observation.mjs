@@ -224,7 +224,12 @@ export function browserMatrixRtcObservation(Rtc, {audio, video, invalid, measure
             }
             const presentation = {profile:'connect/rtc-video-presentation/1',
                 element_id:identity.element_id, callbackTime:current.now};
-            const descriptor=globalThis.connectPeerStreamDescriptor?.(connectionId,'receive');
+            let descriptor;
+            try{
+                const tracks=source.srcObject?.getVideoTracks?.();
+                if(Array.isArray(tracks)&&tracks.length===1)
+                    descriptor=globalThis.connectPeerStreamDescriptor?.(connectionId,'receive',{track:tracks[0]});
+            }catch{}
             if(descriptor)Object.assign(presentation,descriptor);
             for (const key of ['mediaTime', 'presentedFrames', 'rtpTimestamp', 'presentationTime',
                 'expectedDisplayTime', 'captureTime', 'receiveTime', 'processingDuration', 'width', 'height']) {

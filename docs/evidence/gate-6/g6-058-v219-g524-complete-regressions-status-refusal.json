@@ -1,0 +1,63 @@
+{
+  "format": "connect/g6-058-complete-regressions-and-current-read-refusal/1",
+  "updated_at": "2026-11-19T13:10:38.769653+00:00",
+  "summary": "The complete source505 affected regression batch G519 passed all2206 checks:1945 Rust,206 Node,55 Python; all6 builds,10 inventories,shipping check and32 original child processes passed/closed naturally. All24 previously failing controls passed, including scene expiry (historical timing cause remains unproven). Real decoded-media follow-up exposed a fixture import gap before media; five exact asset routes are fixed, and25 live Node HTTP/diagnostic controls pass. The subsequent real roundtrip reached both first-cycle roots Completed with DecodedReady/Activated in G522 but failed overall on status recovery; later controls were not run. New failure-only diagnostics in G524 now prove original operation.get refusals503/authorization/authority_unavailable during concurrent replacement preparation/waiting. They do not prove which internal SQL/fence path was busy. The SDK currently propagates that temporary read refusal; the next bounded operation.get-only retry fix preserves original logical IDs/scopes, fresh signed request IDs, one remaining deadline and current authorization. Mutations, offers,401/403 and unrelated errors will not be retried. Epoch authors the fix/tests; batch reviewer checks it; Root integrates/tests. Full coherent qualification, all3 decoded-media representatives, strict Firefox3, original final qualification scopes, local ARM11/releases and preflight remain. Last full matrix remains v218:1/32 cells and399/432 checks. No component/diagnostic pass upgrades a matrix cell. Local Mac/native ARM only; G6-054 remains parked.",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "source_generation": 505,
+  "source_lock_sha256": "3aa5fa83fd1b8b1f3559de167f5f427415c458a19c27a1ccf1d1ba536be10378",
+  "complete_affected_regressions": {
+    "total": 2206,
+    "rust": 1945,
+    "node": 206,
+    "python": 55,
+    "failed": 0,
+    "ignored": 0,
+    "result": {
+      "path": ".local/gate-6/v219-g519-complete-components-root/component-result.json",
+      "sha256": "946f7bd865ab2aa2af17de1bbf3d4d308cc6a937fd6f2b50e66f40a4a72d80c4"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g519-actual-complete-components-independent-audit/receipt.json",
+      "sha256": "ce9c1a89ed8754a1962609876e9083a8146da1ccd6d8cb1921ea134ab460e66e"
+    }
+  },
+  "fixture_units": {
+    "passed": 25,
+    "failed": 0,
+    "receipt": {
+      "path": ".local/gate-6/g524-continuation-boundary-actual-three-diagnostic/live-unit-receipt.json",
+      "sha256": "51ab5805fde157f3fa90e3ccdb6c49d1255e7fd44af0a167bbebd58806faae44"
+    },
+    "source_review": {
+      "path": ".local/gate-6/g520-owned-browser-observer-import-graph-independent-review/receipt.json",
+      "sha256": "8826f805700e7a88df6d96299594330ea9ae94816661c0a4a205ad2b46ea8d34"
+    }
+  },
+  "media_failure": {
+    "result": {
+      "path": ".local/gate-6/v219-g524-continuation-boundary-diagnostic-root/result.json",
+      "sha256": "6809d9c4b0385dcc277af246a3643d7ec8d53076b074c6861f52fa5d0349db7b"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g524-actual-failure-independent-audit/receipt.json",
+      "sha256": "a9590056d3121a127f5192f91e50f61e8eb97f11e6757c4004c1540652e9ee2b"
+    },
+    "request": "operation.get",
+    "problem": {
+      "code": 503,
+      "category": "authorization",
+      "reason": "authority_unavailable"
+    },
+    "underlying_availability_source_confirmed": false,
+    "later_two_not_run": true
+  },
+  "last_full_matrix": {
+    "version": "v218",
+    "passed_cells": 1,
+    "total_cells": 32,
+    "passed_checks": 399,
+    "total_checks": 432
+  },
+  "mobile_revision": 196
+}

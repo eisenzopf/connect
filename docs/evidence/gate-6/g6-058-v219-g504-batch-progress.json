@@ -1,0 +1,22 @@
+{
+  "format": "connect/g6-058-batch-preparation/1",
+  "updated_at": "2026-11-19T06:08:35.857246+00:00",
+  "client_date": "2026-11-18",
+  "summary": "Resumed November18: source493 contains all6 reviewed Core test-access corrections; compilation pending. Batch verification changes to build all6required Cargo roots and pin/inventory current artifacts before anyruntime tests; independenterrors collected together. Allretained/new selections andacceptance unchanged. Focused unchanged Store epoch diagnostic planned10attempts, retainallfailures/noassertionrelaxation. Lastg502SIPcompiled; Node206/Python55PASS; CoretestaccesscompileerrorspreventedRusttests. LastStoreg500437/438 all6earliercorrections+22newPASS; soleepochassertunresolved. No newmatrix; lastv2181/32,399/432.",
+  "source_lock_sha256": "3c84a58af17e49d63aed21ee3529d341d1940c3f5021268026fe2b49ef71df71",
+  "source_generation": 493,
+  "status": "PREPARING_COMPILE_ALL_BEFORE_RUNTIME",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "coordinator": "/root",
+  "compile_author": "/root/batch_build_review",
+  "independent_reviewer": "/root/independent_batch_review",
+  "expiry_owner": "/root/epoch_cause",
+  "last_full_matrix": {
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_revision": 188
+}

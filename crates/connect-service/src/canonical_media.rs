@@ -1192,6 +1192,55 @@ impl MediaAuthorityLease for Held {
     }
 }
 impl MediaPolicy for Policy {
+    fn current_original_old_video_restore(
+        &self,
+        scope: &MediaScope<'_>,
+        original: &rvoip_core::staged_streams::old_video_freeze::OldVideoRestoreScope,
+        held: &(dyn Any + Send + Sync),
+    ) -> ControlResult<MediaControl> {
+        let invocation = held
+            .downcast_ref::<crate::canonical_replacement::discard::RestoreInvocation>()
+            .ok_or(StreamControlError::Authority)?;
+        if !invocation.belongs_to(self) {
+            return Err(StreamControlError::Authority);
+        }
+        invocation.control(scope, original)
+    }
+    fn current_public_video_reservation(
+        &self,
+        scope: &MediaScope<'_>,
+        original: &rvoip_core::staged_streams::public_video_reservation::PublicVideoReservationPreparation,
+        held: &(dyn Any + Send + Sync),
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        let invocation = held
+            .downcast_ref::<crate::canonical_replacement::continuation::Invocation>()
+            .ok_or(StreamControlError::Authority)?;
+        if !std::ptr::eq(self, Arc::as_ptr(&invocation.policy.base)) {
+            return Err(StreamControlError::Authority);
+        }
+        invocation.public_video_reservation(scope, original)
+    }
+    fn current_public_video_warm(
+        &self,
+        scope: &MediaScope<'_>,
+        warm: &rvoip_core::staged_streams::direct_subscriptions::PostCutPublicVideoScope,
+        held: Option<&(dyn Any + Send + Sync)>,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        if let Some(held) = held {
+            let invocation = held
+                .downcast_ref::<crate::canonical_replacement::continuation::Invocation>()
+                .ok_or(StreamControlError::Authority)?;
+            if !std::ptr::eq(self, Arc::as_ptr(&invocation.policy.base)) {
+                return Err(StreamControlError::Authority);
+            }
+            return invocation.public_video_warm(scope, warm);
+        }
+        // No held invocation means actual fresh packet admission. The existing
+        // state-change snapshot supplies current authority without inline SQL.
+        self.replacement_target(scope.connection)?
+            .ok_or(StreamControlError::Authority)?
+            .public_video_warm(scope, warm)
+    }
     fn current_transport_update(
         &self,
         scope: &MediaScope<'_>,

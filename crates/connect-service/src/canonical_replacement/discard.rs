@@ -13,6 +13,8 @@ use rvoip_webrtc::canonical::{
     ClosedOriginalCandidate, OriginalCandidateDiscard, WebRtcPhysicalBinding,
 };
 use tokio_util::sync::CancellationToken;
+mod restore;
+pub(crate) use restore::RestoreInvocation;
 
 /// These exact original facts are historical labels only. Only the distinct
 /// cleanup phase accepts them, under a fresh known-unpublished Store Reader.
@@ -55,7 +57,7 @@ pub(super) enum OwnedDiscard {
         reason: EndReason,
     },
     Joining(OriginalCandidateDiscard),
-    Closed(ClosedOriginalCandidate),
+    Closed(Arc<ClosedOriginalCandidate>),
 }
 
 #[derive(Clone)]
@@ -170,9 +172,18 @@ impl Runtime {
             let _cancel_wait = wait.cancel_on_drop();
             let store = self.media.store.clone();
             let original = root.receipt.clone();
+            let negative = original_not_submitted(root)?;
             let owned_wait = wait.clone();
             let resolution = self.owned_store_call(move || {
-                store.native_replacement_known_unpublished_read(original, &owned_wait)
+                if let Some(captured) = negative {
+                    store.native_replacement_not_submitted_unpublished_read(
+                        original,
+                        &captured,
+                        &owned_wait,
+                    )
+                } else {
+                    store.native_replacement_known_unpublished_read(original, &owned_wait)
+                }
             });
             tokio::pin!(resolution);
             let resolved = tokio::select! { biased;
@@ -250,7 +261,7 @@ impl Runtime {
         };
         match result {
             Ok(closed) => {
-                *owned = OwnedDiscard::Closed(closed);
+                *owned = OwnedDiscard::Closed(Arc::new(closed));
                 Ok(())
             }
             Err(error) => {
@@ -262,4 +273,28 @@ impl Runtime {
             }
         }
     }
+}
+
+// Only the retained actual original negative capture selects this lineage.
+// A failed row, cancellation flag or Unknown cannot substitute for the token.
+fn original_not_submitted(
+    root: &PreparedReplacement,
+) -> Result<Option<Arc<connect_store::NativeReplacementCommitNotSubmitted>>> {
+    let allocated = root.allocated.lock().map_err(|_| Error::storage())?.clone();
+    let Some(allocated) = allocated else {
+        return Ok(None);
+    };
+    let started = allocated
+        .started
+        .lock()
+        .map_err(|_| Error::storage())?
+        .clone();
+    let Some(started) = started else {
+        return Ok(None);
+    };
+    let captured = started.commit.lock().map_err(|_| Error::storage())?;
+    Ok(match captured.as_ref() {
+        Some(super::movement::Capture::NotSubmitted(original)) => Some(original.clone()),
+        _ => None,
+    })
 }

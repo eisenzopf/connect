@@ -1,0 +1,71 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/physical_video_domain.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/physical_video_domain.rs
+@@ -7,10 +7,10 @@
+     window: Option<u32>,
+     mtu: Option<u16>,
+ ) -> (
+-    quinn::Endpoint,
+-    quinn::Endpoint,
++    ::quinn::Endpoint,
++    ::quinn::Endpoint,
+     rvoip_uctp::substrate::AcceptedNativeConnection,
+-    quinn::Connection,
++    ::quinn::Connection,
+ ) {
+     use rvoip_uctp::substrate::{
+         dev_client_config_trusting, make_server_endpoint, self_signed_for_dev,
+@@ -22,7 +22,7 @@
+         .with_single_cert(vec![cert.clone()], key)
+         .unwrap();
+     tls.alpn_protocols = vec![alpn.to_vec()];
+-    let mut host_transport = quinn::TransportConfig::default();
++    let mut host_transport = ::quinn::TransportConfig::default();
+     if let Some(mtu) = mtu {
+         host_transport.initial_mtu(mtu).mtu_discovery_config(None);
+     }
+@@ -34,11 +34,11 @@
+     .unwrap();
+     let mut tls = dev_client_config_trusting(&cert).unwrap();
+     tls.alpn_protocols = vec![alpn.to_vec()];
+-    let mut client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
+-    let mut config = quinn::ClientConfig::new(Arc::new(
+-        quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap(),
++    let mut client = ::quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
++    let mut config = ::quinn::ClientConfig::new(Arc::new(
++        ::quinn::crypto::rustls::QuicClientConfig::try_from(tls).unwrap(),
+     ));
+-    let mut transport = quinn::TransportConfig::default();
++    let mut transport = ::quinn::TransportConfig::default();
+     if let Some(mtu) = mtu {
+         transport.initial_mtu(mtu).mtu_discovery_config(None);
+     }
+@@ -197,7 +197,7 @@
+         for probe in &self.probes {probe.release();}
+         let mut clean=true;
+         for wire in &self.wires {clean&=wire.server.shutdown().await.is_ok();}
+-        clean&=self.factory.core.orch.end_session(self.factory.core.session.clone(),rvoip_core::session::EndReason::Normal).await.is_ok();
++        clean&=self.factory.core.orch.end_session(self.factory.core.session.clone(),rvoip_core::EndReason::Normal).await.is_ok();
+         for controller in &self.controllers {clean&=controller.shutdown(deadline()).await==0;}
+         clean&=self.factory.core.orch.drain_connection_lifecycle_tasks().await.is_ok();
+         for wire in &self.wires {
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/physical_video_domain/multisession.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/physical_video_domain/multisession.rs
+@@ -86,7 +86,7 @@
+     }
+     async fn close(&mut self)->bool {
+         let a=self.base.close().await;
+-        let b=self.base.factory.core.orch.end_session(self.sessions[1].clone(),rvoip_core::session::EndReason::Normal).await.is_ok();
++        let b=self.base.factory.core.orch.end_session(self.sessions[1].clone(),rvoip_core::EndReason::Normal).await.is_ok();
+         let c=self.base.factory.core.orch.drain_connection_lifecycle_tasks().await.is_ok();a&&b&&c
+     }
+ }
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+@@ -326,6 +326,7 @@
+         let adapter = CanonicalNativeAdapter::new(kind).unwrap();
+         core.orch.register(adapter.clone()).unwrap();
+         let factory = Arc::new(Factory {
++            diagnose_raw_context: true,
+             core: core.clone(),
+             adapters: HashMap::from([(kind, adapter.clone())]),
+             records: Default::default(),

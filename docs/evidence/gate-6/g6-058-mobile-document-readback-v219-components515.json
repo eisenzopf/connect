@@ -1,0 +1,23 @@
+{
+  "format": "connect/mobile-document-readback/1",
+  "verified_at": "2026-11-19T11:52:23.084Z",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMS7yH5C-D6ha7XhFi1HdlXBreytEPEco3iN1u5Jvfzc4sJN3jMl69b1NmK40BuoFXrfXhiv2uRmPZpEKs6cDtcaae0x2iUQTfc7DOY",
+  "content_revision": 194,
+  "tracker_revision": 125,
+  "header": "Revision 194 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+  "current_verification": "Current verification \u2014 November 19. Current source-502 unit evidence verifies 18 of the previous 24 failing controls: Core3, WebRTC4, SIP9, and Native server-request/catalog2 now pass. G513 built all six roots and inventoried all ten binaries; Core714, WebRTC88, UCTP217, Node206 and Python55 passed before Native interruption. Both RTC controls completed failed at a shared condition timeout; the next telephone control was active when its owned child was deliberately terminated. That child is explicitly forced, the entire run failed, and the initial positive-drain active-hang attribution was corrected from the preserved pre-stop log. A separate bounded same-source unit lane completed naturally: Server124/126, Native2/3, new SIP3/3; total129/132 passed. Remaining original controls are RTC2, codec1, Vapi2 and scene expiry1, plus the incomplete telephone control. Reviewed source504 is prepared: finite naturally joined RTC primer with same-track continuation, strict drain read errors and sparse stage/scalar diagnostics; codec ordering restored so confirmation precedes the queued gate reply, with exact revision conflict; provider insert now fills immutable sender/time metadata before the existing trigger and adds direct regressions. These new corrections await fresh compilation and focused runtime evidence. Original assertions and deadlines remain unchanged. Next are individually bounded Native controls and Vapi/Store checks, then complete mandatory regressions, three decoded-media representatives, strict Firefox three cycles, final qualification, ARM11, normal releases and preflight. Root coordinates; batch_build_review owns RTC and reviewed provider metadata, epoch_cause owns codec/expiry, independent_batch_review checks source and custody. Tracker125 records exact scopes and reviewers. Last full matrix stays v218 at1/32 cells and399/432 checks. G6-054 stays parked. Local Mac/native ARM only; no acceptance changes or historical regrading.\n",
+  "exact_readback_verified": true,
+  "replacements": [
+    {
+      "replaceAllText": {
+        "occurrencesChanged": 1
+      }
+    },
+    {
+      "replaceAllText": {
+        "occurrencesChanged": 1
+      }
+    }
+  ]
+}

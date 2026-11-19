@@ -1,0 +1,47 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
+@@ -192,9 +192,10 @@
+         assert!(ready.reservation.is_current());
+         assert!(room.nodes[&candidate].video_coverage.as_ref().unwrap().try_seal().is_err(),"SAME pre-cut owner still holds original raw seal after Warm refusal");
+         room.world.warm_allowed.store(true,Ordering::Release);let owner=warm(&room,&ready.plan,&ready.grant).await.unwrap();
++        let(packet,next)=video_packet(&room.nodes[&retained],24000,None);publish_packet(&room.nodes[&retained],packet,next).await;
++        let queued=outgoing(&mut b).await;
+         room.world.warm_allowed.store(false,Ordering::Release);
+-        let(packet,next)=video_packet(&room.nodes[&retained],24000,None);publish_packet(&room.nodes[&retained],packet,next).await;
+-        let io=AtomicUsize::new(0);let refused=outgoing(&mut b).await.deliver(|_|async {io.fetch_add(1,Ordering::AcqRel);Ok(())}).await;
++        let io=AtomicUsize::new(0);let refused=queued.deliver(|_|async {io.fetch_add(1,Ordering::AcqRel);Ok(())}).await;
+         assert!(refused.is_err());assert_eq!(io.load(Ordering::Acquire),0,"ordinary Receive would allow this controlled source, distinct Warm hook refused");
+         assert!(owner.is_current());assert!(ready.private.is_current());
+         assert!(room.orch.commit_staged_device_replacement_with_held(ready.plan.clone(),&Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()}).await.is_err(),"W1 cannot silently publish an unadopted physical seal/writer");
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/restore_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/restore_controls.rs
+@@ -127,7 +127,18 @@
+     for terminal in [false,true] {
+         let mut room=ManagedRoom::with_video(true).await;
+         let result=catch_original(async {
+-            let(ready,old,source,mut output,_frontier)=frozen(&mut room).await;
++            let(alice,old,source)=actors(&mut room).await;let ready=prepared(&mut room,&alice,&old,&source).await;
++            let mut output=room.nodes[&old].backend.port(Medium::Video).take_egress().unwrap();
++            let(packet,point)=video_packet(&room.nodes[&source],9000,None);let point=point.unwrap();publish_packet(&room.nodes[&source],packet,Some(point.clone())).await;
++            let family=room.nodes[&old].video_exposures[&desired(Medium::Video).logical_id].clone();
++            outgoing(&mut output).await.deliver(|_|async {family.record_potential(point.frame_realm());Ok(())}).await.unwrap();
++            // Capture SAME queued wrapper before F pauses OLD egress; queued
++            // metadata has no admitted IO and cannot advance the physical F.
++            let original=if terminal {None}else{
++                let(packet,point)=video_packet(&room.nodes[&source],15000,None);publish_packet(&room.nodes[&source],packet,point).await;
++                Some(outgoing(&mut output).await)
++            };
++            let _frontier=freeze(&room,&ready.plan,&ready.grant,&ready.reservation).await;
+             let ticket=room.nodes[&old].backend.port(Medium::Video).0.ticket(TicketSide::Egress);
+             assert!(room.orch.restore_staged_device_replacement_video_with_held(&ready.plan,&ready.grant).is_err());
+             let target=room.nodes[&ready.grant.intent.replacement].backend.clone();target.uncertain.store(true,Ordering::Release);
+@@ -142,8 +153,7 @@
+                 room.nodes[&old].backend.port(Medium::Video).report_terminal().unwrap();
+                 assert!(room.orch.restore_staged_device_replacement_video_with_held(&ready.plan,&host).is_err());assert!(!ticket.is_active());
+             } else {
+-                let(packet,point)=video_packet(&room.nodes[&source],15000,None);publish_packet(&room.nodes[&source],packet,point).await;
+-                let original=outgoing(&mut output).await;
++                let original=original.expect("nonterminal branch captured the same original wrapper before F");
+                 let publisher=room.nodes[&source].controller.clone();publisher.set_paused(&desired(Medium::Video).logical_id,publisher.revision(),true,deadline()).await.unwrap();
+                 assert!(room.orch.restore_staged_device_replacement_video_with_held(&ready.plan,&host).is_err());assert!(!ticket.is_active());
+                 publisher.set_paused(&desired(Medium::Video).logical_id,publisher.revision(),false,deadline()).await.unwrap();

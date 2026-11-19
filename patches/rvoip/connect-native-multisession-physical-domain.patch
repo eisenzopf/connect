@@ -1,0 +1,725 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/native_activation/physical_domain.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/native_activation/physical_domain.rs
+@@ -12,45 +12,91 @@
+ struct Inventory {live:BTreeMap<u128,Arc<Cursor>>,pending:BTreeMap<StreamId,PendingFamily>}
+ /// Cold exact batch reservation, never an IO or authority owner. Drop removes
+ /// only this claim's never-writable pending entries; live history remains.
+-pub struct NativeVideoRegistrationBatch {domain:Weak<NativeVideoPhysicalDomain>,claim:Arc<()>,keys:Vec<StreamId>}
+-impl Drop for NativeVideoRegistrationBatch {
++struct SessionRegistrationBatch {domain:Weak<NativeVideoSessionDomain>,claim:Arc<()>,keys:Vec<StreamId>}
++impl Drop for SessionRegistrationBatch {
+     fn drop(&mut self) {if let Some(domain)=self.domain.upgrade(){if let Ok(mut inventory)=domain.families.lock(){inventory.pending.retain(|key,entry|!self.keys.contains(key)||!Weak::ptr_eq(&entry.claim,&Arc::downgrade(&self.claim)));}else{domain.unknown();}}}
+ }
+ /// Strict original freeze owns this once, independent of packet admission.
+ /// It only excludes NEW visual registration; it cannot pause/resume/grant IO.
+-pub(crate) struct NativeInventoryPin {domain:Arc<NativeVideoPhysicalDomain>,claim:u64,before:NativeFrozenPhysicalWitness}
++pub(crate) struct NativeInventoryPin {domain:Arc<NativeVideoSessionDomain>,claim:u64,before:NativeFrozenPhysicalWitness}
+ impl NativeInventoryPin {
+     pub(crate) fn before(&self)->NativeFrozenPhysicalWitness {self.before.clone()}
+     pub(crate) fn capture(&self,ports:&[Arc<Port>],seal:&PhysicalVideoExposureSeal,realm:u128)->ControlResult<NativeFrozenPhysicalWitness> {self.domain.capture(ports,seal,realm,Some(self.claim))}
+ }
+ impl Drop for NativeInventoryPin {fn drop(&mut self){let _=self.domain.pin.compare_exchange(self.claim,0,Ordering::AcqRel,Ordering::Acquire);}}
++/// One original accepted physical peer. Raw escape/retirement and attribution
++/// failures stay peer-wide; only cold setup consults this Session registry.
++/// Entries retain flattened history for the physical peer's accepted Sessions.
++/// Each entry requires an original reserved visual handle. Canonical Native
++/// handles are nonreused u16 values for this peer lifetime (existing protocol
++/// bound); this metadata adds no Session/source/IO quota or eviction. Audio-only
++/// setup creates no entry. Current admission limits apply independently.
+ pub struct NativeVideoPhysicalDomain {
+-    pub(super) coverage:Arc<PhysicalVideoExposureCoverage>,
++    coverage:Arc<PhysicalVideoExposureCoverage>,
++    unknown:Arc<AtomicBool>,
++    sessions:Mutex<BTreeMap<(ConversationId,SessionId),Arc<NativeVideoSessionDomain>>>,
++}
++/// Only scalar progress is captured by packet writers, avoiding a cycle from
++/// the inventory's retained cursor back to its own Session inventory owner.
++pub(super) struct NativeVideoSessionProgress {
+     pub(super) realm:std::sync::OnceLock<u128>,pub(super) unknown:AtomicBool,
+-    inventory:AtomicU64,io:AtomicU64,maximum:AtomicU64,inherited:AtomicU64,
+-    families:Mutex<Inventory>,pin:AtomicU64,next_pin:AtomicU64,
+-}
+-impl NativeVideoPhysicalDomain {
+-    pub fn new(coverage:Arc<PhysicalVideoExposureCoverage>)->Arc<Self> {
+-        Arc::new(Self {coverage,realm:std::sync::OnceLock::new(),unknown:AtomicBool::new(false),
+-            inventory:AtomicU64::new(0),io:AtomicU64::new(0),maximum:AtomicU64::new(0),inherited:AtomicU64::new(0),families:Mutex::new(Inventory::default()),pin:AtomicU64::new(0),next_pin:AtomicU64::new(1)})
+-    }
+-    pub(super) fn unknown(&self) {if !self.unknown.load(Ordering::Relaxed){self.unknown.store(true,Ordering::Release);}}
+-    fn advance(&self,value:&AtomicU64) {
+-        // Exhaustion changes only proof availability; ordinary IO continues.
+-        if value.fetch_update(Ordering::AcqRel,Ordering::Acquire,|old|old.checked_add(1)).is_err() {self.unknown();}
+-    }
++    root_unknown:Arc<AtomicBool>,io:AtomicU64,maximum:AtomicU64,inherited:AtomicU64,
++}
++impl NativeVideoSessionProgress {
++    fn new(root_unknown:Arc<AtomicBool>)->Arc<Self> {Arc::new(Self {realm:std::sync::OnceLock::new(),unknown:AtomicBool::new(false),root_unknown,io:AtomicU64::new(0),maximum:AtomicU64::new(0),inherited:AtomicU64::new(0)})}
++    pub(super) fn unknown(&self) {self.unknown.store(true,Ordering::Release);}
++    pub(super) fn known(&self)->bool {!self.unknown.load(Ordering::Acquire)&&!self.root_unknown.load(Ordering::Acquire)}
++    fn advance(&self,value:&AtomicU64) {if value.fetch_update(Ordering::AcqRel,Ordering::Acquire,|old|old.checked_add(1)).is_err(){self.unknown();}}
+     pub(super) fn configure_realm(&self,value:Option<u128>) {
+         let Some(value)=value.filter(|v|*v!=0) else {self.unknown();return;};
+         if self.realm.get().is_some_and(|old|*old!=value) {self.unknown();return;}
+         if let Err(value)=self.realm.set(value) {if self.realm.get()!=Some(&value){self.unknown();}}
+     }
+     pub(super) fn record(&self,point:Option<SourceFrameRealmPoint>) {
+-        // No registry/policy mutex or SQL on the native packet/repair path.
+-        // This serial counts potential attempts, including definite failures.
++        // SAME captured Session progress; no registry/weak upgrade/policy lock.
+         self.advance(&self.io);
+         let Some(point)=point.filter(|p|self.realm.get()==Some(&p.incarnation())&&p.ordinal()!=0) else {self.unknown();return;};
+         if point.ordinal()>self.maximum.load(Ordering::Relaxed) {self.maximum.fetch_max(point.ordinal(),Ordering::AcqRel);}
++    }
++}
++pub(super) struct NativeVideoSessionDomain {
++    pub(super) coverage:Arc<PhysicalVideoExposureCoverage>,conversation:ConversationId,session:SessionId,
++    pub(super) progress:Arc<NativeVideoSessionProgress>,
++    inventory:AtomicU64,families:Mutex<Inventory>,pin:AtomicU64,next_pin:AtomicU64,
++}
++/// Composite cold reservation. Every member still owns its exact claim; a
++/// later group's refusal drops earlier claims without starting any writer.
++pub struct NativeVideoRegistrationBatch { _sessions:Vec<SessionRegistrationBatch> }
++impl NativeVideoPhysicalDomain {
++    pub fn new(coverage:Arc<PhysicalVideoExposureCoverage>)->Arc<Self> {
++        coverage.enable_native_session_seals();
++        Arc::new(Self {coverage,unknown:Arc::new(AtomicBool::new(false)),sessions:Mutex::new(BTreeMap::new())})
++    }
++    pub(super) fn scope(self:&Arc<Self>,port:&Arc<Port>)->ControlResult<Arc<NativeVideoSessionDomain>> {
++        let owner=port.owner.upgrade().ok_or(StreamControlError::Cancelled)?;
++        let key=(owner.conversation.clone(),owner.session.clone());
++        let mut sessions=self.sessions.lock().map_err(|_|{self.unknown.store(true,Ordering::Release);StreamControlError::Authority})?;
++        Ok(sessions.entry(key.clone()).or_insert_with(||Arc::new(NativeVideoSessionDomain {
++            coverage:self.coverage.clone(),conversation:key.0,session:key.1,progress:NativeVideoSessionProgress::new(self.unknown.clone()),
++            inventory:AtomicU64::new(0),families:Mutex::new(Inventory::default()),pin:AtomicU64::new(0),next_pin:AtomicU64::new(1),
++        })).clone())
++    }
++    pub fn reserve_visual_registration(self:&Arc<Self>,ports:&[PortPreparation])->ControlResult<NativeVideoRegistrationBatch> {
++        let mut groups:BTreeMap<(ConversationId,SessionId),(Arc<NativeVideoSessionDomain>,Vec<Arc<Port>>)> = BTreeMap::new();
++        for p in ports.iter().filter(|p|p.is_new&&p.port.binding().sink_ready&&matches!(p.port.binding().negotiated.requested.medium,Medium::Video|Medium::Screen)) {
++            let scope=self.scope(&p.port.0)?;
++            groups.entry((scope.conversation.clone(),scope.session.clone())).or_insert_with(||(scope.clone(),Vec::new())).1.push(p.port.0.clone());
++        }
++        let mut reservations=Vec::new();
++        for (_, (scope,ports)) in groups {reservations.push(scope.reserve_visual_registration(ports)?);}
++        Ok(NativeVideoRegistrationBatch {_sessions:reservations})
++    }
++}
++impl NativeVideoSessionDomain {
++    fn unknown(&self) {self.progress.unknown();}
++    fn advance(&self,value:&AtomicU64) {self.progress.advance(value);}
++    pub(super) fn configure_realm(&self,realm:Option<&SourceFrameRealm>) {
++        self.progress.configure_realm(realm.and_then(|realm|realm.for_scope(&self.conversation,&self.session)).and_then(|realm|realm.incarnation()));
+     }
+     fn prune_joined(&self,entries:&mut BTreeMap<u128,Arc<Cursor>>) {
+         entries.retain(|_,cursor| {
+@@ -61,18 +107,17 @@
+                 // A failed/unconfirmed join never reaches this branch.
+                 let Some(snapshot)=video.exposure.observer().snapshot() else {self.unknown();return true;};
+                 if video.observed.load(Ordering::Acquire)||snapshot.inherited_potential_ordinal!=0 {
+-                    if video.unknown.load(Ordering::Acquire)||snapshot.realm_incarnation!=self.realm.get().copied() {self.unknown();}
+-                    self.maximum.fetch_max(snapshot.maximum_potential_ordinal,Ordering::AcqRel);
+-                    self.inherited.fetch_max(snapshot.inherited_potential_ordinal,Ordering::AcqRel);
++                    if video.unknown.load(Ordering::Acquire)||snapshot.realm_incarnation!=self.progress.realm.get().copied() {self.unknown();}
++                    self.progress.maximum.fetch_max(snapshot.maximum_potential_ordinal,Ordering::AcqRel);
++                    self.progress.inherited.fetch_max(snapshot.inherited_potential_ordinal,Ordering::AcqRel);
+                 }
+             }
+             false
+         });
+     }
+-    pub fn reserve_visual_registration(self:&Arc<Self>,ports:&[PortPreparation])->ControlResult<NativeVideoRegistrationBatch> {
+-        let ports=ports.iter().filter(|p|p.is_new&&p.port.binding().sink_ready&&matches!(p.port.binding().negotiated.requested.medium,Medium::Video|Medium::Screen)).map(|p|p.port.0.clone()).collect::<Vec<_>>();
++    fn reserve_visual_registration(self:&Arc<Self>,ports:Vec<Arc<Port>>)->ControlResult<SessionRegistrationBatch> {
+         let claim=Arc::new(());let keys=ports.iter().map(|p|p.binding.transport_id.clone()).collect::<Vec<_>>();
+-        if ports.is_empty(){return Ok(NativeVideoRegistrationBatch {domain:Arc::downgrade(self),claim,keys});}
++        if ports.is_empty(){return Ok(SessionRegistrationBatch {domain:Arc::downgrade(self),claim,keys});}
+         let mut inventory=self.families.try_lock().map_err(metadata_lock_error)?;
+         if self.pin.load(Ordering::Acquire)!=0 {return Err(StreamControlError::NotReady);}
+         self.prune_joined(&mut inventory.live);
+@@ -83,7 +128,7 @@
+         }
+         for port in ports {inventory.pending.insert(port.binding.transport_id.clone(),PendingFamily {port:Arc::downgrade(&port),claim:Arc::downgrade(&claim)});}
+         self.advance(&self.inventory);
+-        Ok(NativeVideoRegistrationBatch {domain:Arc::downgrade(self),claim,keys})
++        Ok(SessionRegistrationBatch {domain:Arc::downgrade(self),claim,keys})
+     }
+     pub(super) fn register(self:&Arc<Self>,cursor:Arc<Cursor>)->ControlResult<()> {
+         let mut inventory=self.families.lock().map_err(|_|StreamControlError::Authority)?;
+@@ -117,7 +162,7 @@
+     }
+     fn capture_locked(self:&Arc<Self>,inventory:&mut Inventory,ports:&[Arc<Port>],seal:&PhysicalVideoExposureSeal,realm:u128,claim:Option<u64>)->ControlResult<NativeFrozenPhysicalWitness> {
+         if self.pin.load(Ordering::Acquire)!=claim.unwrap_or(0)||!inventory.pending.is_empty(){return Err(StreamControlError::NotReady);}
+-        if !seal.covers(&self.coverage)||self.unknown.load(Ordering::Acquire)||self.realm.get()!=Some(&realm) {return Err(StreamControlError::Unsupported);}
++        if !seal.covers_native_session(&self.coverage,realm)||!self.progress.known()||self.progress.realm.get()!=Some(&realm) {return Err(StreamControlError::Unsupported);}
+         self.prune_joined(&mut inventory.live);
+         let entries=&inventory.live;
+         let epoch=self.inventory.load(Ordering::Acquire);
+@@ -131,11 +176,11 @@
+             let video=cursor.video.as_ref().ok_or(StreamControlError::Unsupported)?;
+             let snapshot=video.exposure.observer().snapshot_sealed(seal).ok_or(StreamControlError::Unsupported)?;
+             if video.expected.get()!=Some(&realm)||video.unknown.load(Ordering::Acquire)||!snapshot.coverage_complete {return Err(StreamControlError::Unsupported);}
+-            self.maximum.fetch_max(snapshot.maximum_potential_ordinal,Ordering::AcqRel);
+-            self.inherited.fetch_max(snapshot.inherited_potential_ordinal,Ordering::AcqRel);
++            self.progress.maximum.fetch_max(snapshot.maximum_potential_ordinal,Ordering::AcqRel);
++            self.progress.inherited.fetch_max(snapshot.inherited_potential_ordinal,Ordering::AcqRel);
+         }
+-        let witness=NativeFrozenPhysicalWitness {domain:Arc::downgrade(self),claim,epoch,io:self.io.load(Ordering::Acquire),realm,
+-            maximum:self.maximum.load(Ordering::Acquire).max(self.inherited.load(Ordering::Acquire)),seal:seal.witness()};
++        let witness=NativeFrozenPhysicalWitness {domain:Arc::downgrade(self),claim,epoch,io:self.progress.io.load(Ordering::Acquire),realm,
++            maximum:self.progress.maximum.load(Ordering::Acquire).max(self.progress.inherited.load(Ordering::Acquire)),seal:seal.witness()};
+         if !witness.is_current() {return Err(StreamControlError::NotReady);}
+         Ok(witness)
+     }
+@@ -144,14 +189,14 @@
+ /// permission after publication; ordinary current authorization owns that phase.
+ #[derive(Clone)]
+ pub(crate) struct NativeFrozenPhysicalWitness {
+-    domain:Weak<NativeVideoPhysicalDomain>,claim:Option<u64>,epoch:u64,io:u64,realm:u128,maximum:u64,seal:PhysicalVideoSealWitness,
++    domain:Weak<NativeVideoSessionDomain>,claim:Option<u64>,epoch:u64,io:u64,realm:u128,maximum:u64,seal:PhysicalVideoSealWitness,
+ }
+ impl NativeFrozenPhysicalWitness {
+     pub(crate) fn is_current(&self)->bool {
+-        self.seal.is_current()&&self.domain.upgrade().is_some_and(|root|!root.unknown.load(Ordering::Acquire)
+-            &&root.pin.load(Ordering::Acquire)==self.claim.unwrap_or(0)&&root.realm.get()==Some(&self.realm)&&root.inventory.load(Ordering::Acquire)==self.epoch
+-            &&root.io.load(Ordering::Acquire)==self.io&&root.maximum.load(Ordering::Acquire)<=self.maximum
+-            &&root.inherited.load(Ordering::Acquire)<=self.maximum)
++        self.seal.is_current()&&self.domain.upgrade().is_some_and(|root|root.progress.known()
++            &&root.pin.load(Ordering::Acquire)==self.claim.unwrap_or(0)&&root.progress.realm.get()==Some(&self.realm)&&root.inventory.load(Ordering::Acquire)==self.epoch
++            &&root.progress.io.load(Ordering::Acquire)==self.io&&root.progress.maximum.load(Ordering::Acquire)<=self.maximum
++            &&root.progress.inherited.load(Ordering::Acquire)<=self.maximum)
+     }
+     pub(crate) fn ordinal(&self)->u64 {self.maximum}
+     pub(crate) fn same_inventory(&self,other:&Self)->bool {Weak::ptr_eq(&self.domain,&other.domain)&&self.claim==other.claim&&self.epoch==other.epoch&&self.realm==other.realm}
+@@ -204,6 +249,14 @@
+ }
+ #[cfg(feature="test-support")]
+ impl StreamController {
++    /// Actual original observer's Native Session seal, not an IO/F grant.
++    pub fn seal_native_video_session_for_test(&self,logical:&StreamId)->ControlResult<PhysicalVideoExposureSeal> {
++        let state=self.state.try_lock().map_err(metadata_lock_error)?;
++        let port=state.active.get(logical).ok_or(StreamControlError::NotReady)?;
++        let video=port.native_egress.get().and_then(|cursor|cursor.video.as_ref()).ok_or(StreamControlError::Unsupported)?;
++        if !video.progress.as_ref().is_some_and(|progress|progress.known()){return Err(StreamControlError::Unsupported);}
++        video.exposure.observer().try_seal_coverage().ok_or(StreamControlError::Unsupported)
++    }
+     pub fn capture_native_video_domain_for_test(&self,logical:&[StreamId],seal:&PhysicalVideoExposureSeal,realm:u128)->ControlResult<NativeCapturedMetadataForTest> {
+         let ports={let state=self.state.try_lock().map_err(metadata_lock_error)?;
+             logical.iter().map(|id|state.active.get(id).cloned().ok_or(StreamControlError::NotReady)).collect::<ControlResult<Vec<_>>>()?};
+--- a/crates/foundation/rvoip-core/src/staged_streams/native_activation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/native_activation.rs
+@@ -42,13 +42,14 @@
+     expected:std::sync::OnceLock<u128>,
+     unknown:AtomicBool,
+     observed:AtomicBool,
+-    domain:Option<Weak<NativeVideoPhysicalDomain>>,
++    domain:Option<Weak<physical_domain::NativeVideoSessionDomain>>,
++    progress:Option<Arc<physical_domain::NativeVideoSessionProgress>>,
+ }
+ impl NativeVideoPotential {
+     fn unknown(&self) {
+         if !self.unknown.load(Ordering::Relaxed) {self.unknown.store(true,Ordering::Release);}
+         self.exposure.mark_untracked();
+-        if let Some(domain)=self.domain.as_ref().and_then(Weak::upgrade){domain.unknown();}
++        if let Some(progress)=&self.progress {progress.unknown();}
+     }
+ }
+ /// Original native writer history. Generic/rootless adapters remain partial
+@@ -72,7 +73,7 @@
+         let Some(video)=&self.0.video else {return;};
+         if video.unknown.load(Ordering::Acquire) {return;}
+         let expected=realm.and_then(SourceFrameRealm::incarnation);
+-        if let Some(domain)=video.domain.as_ref().and_then(Weak::upgrade){domain.configure_realm(expected);}
++        if let Some(domain)=video.domain.as_ref().and_then(Weak::upgrade){domain.configure_realm(realm);}
+         video.exposure.configure_expected_realm(expected);
+         let Some(expected)=expected else {video.unknown();return;};
+         if video.expected.get().is_some_and(|old|*old!=expected) {video.unknown();return;}
+@@ -86,8 +87,7 @@
+         let Some(video)=&self.0.video else {return;};
+         let point=original.and_then(OriginalVideoFrame::frame_realm);
+         video.observed.store(true,Ordering::Release);
+-        if let Some(domain)=video.domain.as_ref().and_then(Weak::upgrade){domain.record(point);}
+-        else if video.domain.is_some(){video.unknown();}
++        if let Some(progress)=&video.progress {progress.record(point);}
+         if point.is_none_or(|point|video.expected.get()!=Some(&point.incarnation())) {video.unknown();}
+         video.exposure.record_potential(point);
+     }
+@@ -98,8 +98,7 @@
+ impl Cursor {
+     fn video_potential_observation(&self)->Option<NativeVideoPotentialObservation> {
+         let video=self.video.as_ref()?;
+-        let native_complete=video.domain.as_ref().and_then(Weak::upgrade).is_some_and(|domain|
+-            !domain.unknown.load(Ordering::Acquire)&&domain.realm.get()==video.expected.get());
++        let native_complete=video.progress.as_ref().is_some_and(|progress|progress.known()&&progress.realm.get()==video.expected.get());
+         Some(NativeVideoPotentialObservation {identity:self.identity.clone(),
+             exposure:video.exposure.observer().snapshot()?,
+             guarded_source_points_known:video.expected.get().is_some()&&!video.unknown.load(Ordering::Acquire),
+@@ -166,13 +165,14 @@
+     if port.native_egress.get().is_some() {return Err(StreamControlError::Authority);}
+     let owner=port.owner.upgrade().ok_or(StreamControlError::Cancelled)?;
+     let b=&port.binding;
++    let domain=if matches!(b.negotiated.requested.medium,Medium::Video|Medium::Screen) {domain.as_ref().map(|root|root.scope(port)).transpose()?}else{None};
+     let video=matches!(b.negotiated.requested.medium,Medium::Video|Medium::Screen).then(||{
+         let exposure=Arc::new(physical_video_exposure::PhysicalVideoExposure::default());
+         // Only the canonical original accepted driver supplies its shared
+         // physical domain. Generic raw IO remains escaped/partial; even a
+         // domain family snapshot alone is never a drained aggregate F.
+         exposure.bind_coverage(domain.as_ref().map_or_else(||Arc::new(physical_video_exposure::PhysicalVideoExposureCoverage::new(true)),|root|root.coverage.clone()));
+-        let video=NativeVideoPotential {exposure,expected:std::sync::OnceLock::new(),unknown:AtomicBool::new(false),observed:AtomicBool::new(false),domain:domain.as_ref().map(Arc::downgrade)};
++        let video=NativeVideoPotential {exposure,expected:std::sync::OnceLock::new(),unknown:AtomicBool::new(false),observed:AtomicBool::new(false),domain:domain.as_ref().map(Arc::downgrade),progress:domain.as_ref().map(|scope|scope.progress.clone())};
+         let observer=video.exposure.observer();
+         // Caller already owns the original output lock; do not recursively
+         // call AdapterMediaPort::observe_physical_video_exposure here.
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure/native_session_seals.rs
+@@ -0,0 +1,103 @@
++//! Native-only control-plane lease composition. RTC's exclusive seal API stays
++//! unchanged. There is still ONE CAS/raw fence per accepted physical peer.
++//! No registry/lock/refcount operation here runs on a packet writer path.
++use super::*;
++use std::collections::BTreeMap;
++#[derive(Default)]
++pub(super) struct NativeSessionSeals {
++    peer:Weak<SharedPeerFence>,
++    last_token:Option<u64>,
++    // A retired strict scope must never reopen raw handles to that history.
++    // Keep one flattened peer fence, not a chain/list of previous owners.
++    pinned:Option<Arc<SharedPeerFence>>,
++    scopes:BTreeMap<u128,Weak<ScopeSeal>>,
++}
++struct SharedPeerFence {coverage:Weak<PhysicalVideoExposureCoverage>,token:u64}
++impl SharedPeerFence {
++    fn is_current(&self)->bool {self.coverage.upgrade().is_some_and(|root|root.state.load(Ordering::Acquire)==self.token)}
++}
++impl Drop for SharedPeerFence {
++    fn drop(&mut self) {if let Some(root)=self.coverage.upgrade(){let _=root.state.compare_exchange(self.token,0,Ordering::AcqRel,Ordering::Acquire);}}
++}
++pub(super) struct ScopeSeal {realm:u128,peer:Arc<SharedPeerFence>,live:AtomicBool}
++impl ScopeSeal {
++    pub(super) fn realm(&self)->u128 {self.realm}
++    pub(super) fn is_current(&self)->bool {self.live.load(Ordering::Acquire)&&self.peer.is_current()}
++    pub(super) fn abort(&self) {self.live.store(false,Ordering::Release);}
++    pub(super) fn retire(&self,root:&Arc<PhysicalVideoExposureCoverage>) {
++        self.live.store(false,Ordering::Release);
++        let Some(state)=root.native_sessions.get() else {root.retire();return;};
++        match state.lock() {
++            Ok(mut state)=>if self.peer.is_current(){state.pinned=Some(self.peer.clone());},
++            Err(_)=>root.retire(),
++        }
++    }
++}
++impl PhysicalVideoExposureCoverage {
++    pub(in crate::staged_streams) fn enable_native_session_seals(&self) {let _=self.native_sessions.get_or_init(||std::sync::Mutex::new(NativeSessionSeals::default()));}
++    pub(super) fn try_seal_family(self:&Arc<Self>,realm:Option<u128>)->Result<PhysicalVideoExposureSeal,PhysicalVideoSealUnavailable> {
++        let Some(state)=self.native_sessions.get() else {return self.try_seal();};
++        let Some(realm)=realm.filter(|value|*value!=0) else {return Err(PhysicalVideoSealUnavailable::Retired);};
++        let mut state=state.lock().map_err(|_|{self.retire();PhysicalVideoSealUnavailable::Retired})?;
++        state.scopes.retain(|_,scope|scope.upgrade().is_some_and(|scope|scope.is_current()));
++        if state.scopes.contains_key(&realm) {return Err(PhysicalVideoSealUnavailable::AlreadySealed);}
++        let peer=if let Some(peer)=state.peer.upgrade() {
++            if !peer.is_current(){return Err(PhysicalVideoSealUnavailable::Retired);}
++            peer
++        } else {
++            let token=self.next_token.fetch_update(Ordering::Relaxed,Ordering::Relaxed,|next|next.checked_add(1)).map_err(|_|PhysicalVideoSealUnavailable::Exhausted)?;
++            // If the last abort is concurrently dropping its peer Arc, replace
++            // ONLY our exact no-longer-owned cohort token without an unlock
++            // gap. Its destructor CAS then cannot clear this fresh cohort.
++            let current=self.state.load(Ordering::Acquire);
++            let expected=if state.last_token==Some(current) {current}else{0};
++            self.state.compare_exchange(expected,token,Ordering::AcqRel,Ordering::Acquire).map_err(|value|match value {1|3=>PhysicalVideoSealUnavailable::Escaped,2|4=>PhysicalVideoSealUnavailable::Retired,_=>PhysicalVideoSealUnavailable::AlreadySealed})?;
++            let peer=Arc::new(SharedPeerFence {coverage:Arc::downgrade(self),token});
++            state.peer=Arc::downgrade(&peer);state.last_token=Some(token);peer
++        };
++        let scope=Arc::new(ScopeSeal {realm,peer:peer.clone(),live:AtomicBool::new(true)});
++        state.scopes.insert(realm,Arc::downgrade(&scope));
++        Ok(PhysicalVideoExposureSeal {coverage:self.clone(),token:peer.token,native_scope:Some(scope)})
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn native_distinct_session_leases_share_raw_fence_but_abort_and_retire_only_exact_scope() {
++        let root=Arc::new(PhysicalVideoExposureCoverage::new(false));root.enable_native_session_seals();
++        let a=root.try_seal_family(Some(11)).unwrap();let b=root.try_seal_family(Some(22)).unwrap();
++        let wa=a.witness();let wb=b.witness();assert_eq!(a.token,b.token);
++        assert_eq!(root.try_seal_family(Some(11)).err(),Some(PhysicalVideoSealUnavailable::AlreadySealed));
++        assert!(!root.mark_escaped());a.abort();assert!(!wa.is_current());assert!(wb.is_current());assert!(!root.mark_escaped());
++        let a=root.try_seal_family(Some(11)).unwrap();assert_eq!(a.token,b.token);
++        a.retire();assert!(wb.is_current(),"one retired Session must not invalidate another");
++        drop(b);assert!(!wb.is_current());assert!(!root.mark_escaped(),"retired strict history never reopens raw access");
++        let c=root.try_seal_family(Some(33)).unwrap();assert!(c.is_current(),"retired scoped history adds no future cut quota");
++        let wc=c.witness();root.retire();assert!(!wc.is_current());drop(c);assert!(!root.mark_escaped());
++    }
++    #[test]
++    fn native_scope_abort_last_releases_raw_but_shared_retirement_and_raw_race_fail_closed() {
++        let root=Arc::new(PhysicalVideoExposureCoverage::new(false));root.enable_native_session_seals();
++        let a=root.try_seal_family(Some(1)).unwrap();let b=root.try_seal_family(Some(2)).unwrap();drop(a);drop(b);assert!(root.mark_escaped());
++        assert_eq!(root.try_seal_family(Some(3)).err(),Some(PhysicalVideoSealUnavailable::Escaped));
++        for _ in 0..64 {
++            let root=Arc::new(PhysicalVideoExposureCoverage::new(false));root.enable_native_session_seals();
++            let start=Arc::new(std::sync::Barrier::new(3));
++            let seal={let root=root.clone();let start=start.clone();std::thread::spawn(move||{start.wait();root.try_seal_family(Some(9))})};
++            let escape={let root=root.clone();let start=start.clone();std::thread::spawn(move||{start.wait();root.mark_escaped()})};
++            start.wait();let seal=seal.join().unwrap();let escape=escape.join().unwrap();
++            match seal {Ok(seal)=>{assert!(!escape);assert!(seal.is_current());seal.retire();assert!(!root.mark_escaped());},Err(error)=>{assert!(escape);assert_eq!(error,PhysicalVideoSealUnavailable::Escaped);}}
++        }
++    }
++    #[test]
++    fn native_session_seal_cannot_cover_foreign_runtime_family_or_revive_old_witness() {
++        let root=Arc::new(PhysicalVideoExposureCoverage::new(false));root.enable_native_session_seals();
++        let family=Arc::new(PhysicalVideoExposure::default());family.configure_expected_realm(Some(5));family.bind_coverage(root.clone());
++        let wrong=root.try_seal_family(Some(6)).unwrap();assert!(family.observer().snapshot_sealed(&wrong).is_none());
++        let right=root.try_seal_family(Some(5)).unwrap();let witness=right.witness();assert!(family.observer().snapshot_sealed(&right).is_some());
++        right.abort();let new=root.try_seal_family(Some(5)).unwrap();assert!(!witness.is_current());assert!(new.is_current());
++        drop(wrong);drop(new);assert!(root.mark_escaped());
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/physical_video_exposure.rs
+@@ -1,6 +1,7 @@
+ //! Optional historical potential-IO metadata. Not a gate, readiness result,
+ //! source-exclusion certificate. The owned control-plane seal below only
+ //! excludes raw-handle escape; it does not stop or drain any physical writer.
++mod native_session_seals;
+ use super::SourceFrameRealmPoint;
+ use std::sync::{Arc, OnceLock, Weak, atomic::{AtomicBool, AtomicU64, Ordering}};
+ 
+@@ -8,8 +9,9 @@
+ /// linearize here BEFORE returning a peer/track/sender/transceiver capability.
+ /// This never runs on a packet path and does not quiesce or deny ordinary IO.
+ /// State: 0 unexposed, 1 escaped, 2 retired-unexposed, 3 retired-escaped,
+-/// 4 retired-sealed; >=5 is the unique live owned seal token.
+-pub struct PhysicalVideoExposureCoverage { state: AtomicU64, next_token: AtomicU64 }
++/// 4 retired-sealed; >=5 is one peer fence token. RTC owns it exclusively;
++/// Native qualified Session scopes share it through distinct nonclone leases.
++pub struct PhysicalVideoExposureCoverage { state: AtomicU64, next_token: AtomicU64, native_sessions:OnceLock<std::sync::Mutex<native_session_seals::NativeSessionSeals>> }
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ pub enum PhysicalVideoSealUnavailable { Escaped, Retired, AlreadySealed, Exhausted }
+ /// Nonclone owned no-escape lease. This is NOT an IO drain, source cut, F,
+@@ -17,16 +19,17 @@
+ pub struct PhysicalVideoExposureSeal {
+     coverage: Arc<PhysicalVideoExposureCoverage>,
+     token: u64,
++    native_scope:Option<Arc<native_session_seals::ScopeSeal>>,
+ }
+ /// Non-owning exact-token observation, not seal ownership/drain/permission.
+ #[derive(Clone)]
+-pub(crate) struct PhysicalVideoSealWitness {coverage:Weak<PhysicalVideoExposureCoverage>,token:u64}
++pub(crate) struct PhysicalVideoSealWitness {coverage:Weak<PhysicalVideoExposureCoverage>,token:u64,native_scope:Option<Weak<native_session_seals::ScopeSeal>>}
+ impl PhysicalVideoSealWitness {
+-    pub(crate) fn is_current(&self)->bool {self.coverage.upgrade().is_some_and(|root|root.state.load(Ordering::Acquire)==self.token)}
++    pub(crate) fn is_current(&self)->bool {self.coverage.upgrade().is_some_and(|root|root.state.load(Ordering::Acquire)==self.token)&&self.native_scope.as_ref().is_none_or(|scope|scope.upgrade().is_some_and(|scope|scope.is_current()))}
+ }
+ impl PhysicalVideoExposureCoverage {
+     pub fn new(already_exposed: bool) -> Self {
+-        Self { state: AtomicU64::new(u64::from(already_exposed)), next_token: AtomicU64::new(5) }
++        Self { state: AtomicU64::new(u64::from(already_exposed)), next_token: AtomicU64::new(5), native_sessions:OnceLock::new() }
+     }
+     /// True permits this SAME original capability to escape; false requires
+     /// the accessor to return unavailable without returning any raw handle.
+@@ -47,7 +50,7 @@
+                 2 | 4 => PhysicalVideoSealUnavailable::Retired,
+                 _ => PhysicalVideoSealUnavailable::AlreadySealed,
+             })?;
+-        Ok(PhysicalVideoExposureSeal { coverage: self.clone(), token })
++        Ok(PhysicalVideoExposureSeal { coverage: self.clone(), token, native_scope:None })
+     }
+     /// Called synchronously before original native close/Drop. An outstanding
+     /// lease can never abort or Drop back to an alive/unexposed state afterward.
+@@ -58,20 +61,26 @@
+     }
+ }
+ impl PhysicalVideoExposureSeal {
+-    pub(crate) fn witness(&self)->PhysicalVideoSealWitness {PhysicalVideoSealWitness {coverage:Arc::downgrade(&self.coverage),token:self.token}}
+-    pub fn is_current(&self) -> bool { self.coverage.state.load(Ordering::Acquire) == self.token }
++    pub(crate) fn witness(&self)->PhysicalVideoSealWitness {PhysicalVideoSealWitness {coverage:Arc::downgrade(&self.coverage),token:self.token,native_scope:self.native_scope.as_ref().map(Arc::downgrade)}}
++    pub fn is_current(&self) -> bool { self.coverage.state.load(Ordering::Acquire) == self.token && self.native_scope.as_ref().is_none_or(|scope|scope.is_current()) }
+     pub fn covers(&self, coverage: &Arc<PhysicalVideoExposureCoverage>) -> bool {
+         Arc::ptr_eq(&self.coverage, coverage) && self.is_current()
+     }
+-    /// Abort releases only this exact live token. Drop has identical behavior.
++    pub(super) fn covers_native_session(&self,coverage:&Arc<PhysicalVideoExposureCoverage>,realm:u128)->bool {
++        self.covers(coverage)&&self.native_scope.as_ref().is_none_or(|scope|scope.realm()==realm)
++    }
++    /// Abort releases this exact lease. Native other-Session leases and retired
++    /// strict history keep the peer raw fence; RTC retains exclusive semantics.
+     pub fn abort(self) { drop(self); }
+     /// Terminal lease retirement never reopens raw access to this strict peer.
+     pub fn retire(self) {
++        if let Some(scope)=&self.native_scope {scope.retire(&self.coverage);return;}
+         let _ = self.coverage.state.compare_exchange(self.token, 4, Ordering::AcqRel, Ordering::Acquire);
+     }
+ }
+ impl Drop for PhysicalVideoExposureSeal {
+     fn drop(&mut self) {
++        if let Some(scope)=&self.native_scope {scope.abort();return;}
+         let _ = self.coverage.state.compare_exchange(self.token, 0, Ordering::AcqRel, Ordering::Acquire);
+     }
+ }
+@@ -173,13 +182,14 @@
+     /// Only the Core original-plan freeze uses this to acquire its no-escape
+     /// lease. The returned lease still establishes no IO drain or authority.
+     pub(super) fn try_seal_coverage(&self) -> Option<PhysicalVideoExposureSeal> {
+-        self.0.upgrade()?.coverage.get()?.try_seal().ok()
++        let family=self.0.upgrade()?;
++        family.coverage.get()?.try_seal_family(family.expected.get().copied()).ok()
+     }
+     /// Exact peer no-escape association only. The caller still must obtain the
+     /// original physical writer quiescence/drain before treating any max as F.
+     pub fn snapshot_sealed(&self, seal: &PhysicalVideoExposureSeal) -> Option<PhysicalVideoExposureSnapshot> {
+         let family = self.0.upgrade()?;
+-        if !seal.covers(family.coverage.get()?) { return None; }
++        if !seal.covers(family.coverage.get()?) || seal.native_scope.as_ref().is_some_and(|scope|family.expected.get()!=Some(&scope.realm())) { return None; }
+         let snapshot = family.snapshot();
+         seal.is_current().then_some(snapshot)
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/native_restore_witness_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/native_restore_witness_controls.rs
+@@ -62,3 +62,77 @@
+     let cleanup=room.close_originals().await;let clean=cleanup.into_iter().all(|done|done);
+     if let Err(error)=result {resume_unwind(error)}assert!(clean);
+ }
++
++/// Two actual retained managed runtimes on ONE Orchestrator, with one MODELED
++/// accepted-native physical root installed cold on their original OLD ports.
++/// Production freeze mints both opaque witnesses/Fs; no witness constructor or
++/// closed token is exposed. The separate TLS control covers actual wire IO.
++#[tokio::test]
++async fn pooled_native_two_session_managed_freezes_keep_exact_session_history_current_and_survive_foreign_retirement() {
++    let mut a=ManagedRoom::with_video(true).await;
++    let session=a.orch.start_session(a.conversation.clone(),crate::session::SessionMedium::Voice,vec![]).await.unwrap();
++    let world=Arc::new(World {resources:Mutex::new(HashMap::new()),allowed:AtomicBool::new(true),warm_allowed:AtomicBool::new(false),video_mode:true});
++    let policy=Arc::new(PolicyView(world.clone()));let mut limits=ParticipantLimits::default();limits.mix_rate_hz=8000;
++    a.orch.enable_staged_participant_control(&session,world.clone(),policy.clone(),limits).unwrap();
++    let mut b=ManagedRoom {video_mode:true,orch:a.orch.clone(),route:a.route.clone(),world,policy,session,conversation:a.conversation.clone(),nodes:BTreeMap::new(),original_owners:Arc::new(Mutex::new(Vec::new()))};
++    let coverage=Arc::new(PhysicalVideoExposureCoverage::new(false));
++    let native=native_activation::NativeVideoPhysicalDomain::new(coverage.clone());
++    let result=catch_original(async {
++        let mut owners=Vec::new();
++        for room in [&mut a,&mut b] {
++            let alice=domain(&room.conversation,&room.session,"pooled-native-old","alice");
++            let bob=domain(&room.conversation,&room.session,"pooled-native-source","bob");
++            let old=room.initial_with_native_video_profile(alice.clone(),Some((native.clone(),coverage.clone()))).await;
++            let source=room.initial(bob).await;
++            for(receiver,publisher)in[(&old,&source),(&source,&old)] {room.select(receiver,vec![AudioSubscription::Connection(publisher.clone())]).await;}
++            let receiver=&room.nodes[&old].controller;let publisher=&room.nodes[&source].controller;
++            receiver.change_direct_subscriptions(receiver.revision(),DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(publisher,desired(Medium::Video).logical_id,desired(Medium::Video).logical_id)]),deadline(),CancellationToken::new(),None).await.unwrap();
++            let ready=prepared(room,&alice,&old,&source).await;
++            owners.push((old,source,ready));
++        }
++        let (old0,source0,ready0)=owners.remove(0);let(old1,source1,ready1)=owners.remove(0);
++        let port0=a.nodes[&old0].backend.port(Medium::Video);let port1=b.nodes[&old1].backend.port(Medium::Video);
++        let mut out0=port0.take_egress().unwrap();let mut out1=port1.take_egress().unwrap();
++        for(room,source,old,output)in[(&a,&source0,&old0,&mut out0),(&b,&source1,&old1,&mut out1)] {
++            let(packet,original)=video_packet(&room.nodes[source],90000,None);let original=original.unwrap();
++            publish_packet(&room.nodes[source],packet,Some(original.clone())).await;
++            let backend=room.nodes[old].backend.clone();let transport=backend.port(Medium::Video).binding().transport_id.clone();
++            outgoing(output).await.deliver(|_|async {
++                let mut writers=backend.native_writers.lock().unwrap();let writer=writers.get_mut(&transport).unwrap();
++                writer.observe_video_potential(Some(&original));writer.reserve_next()?;Ok(())
++            }).await.unwrap();
++        }
++        let f0=freeze(&a,&ready0.plan,&ready0.grant,&ready0.reservation).await;
++        assert!(a.orch.staged_old_video_restore_readiness(&ready0.plan).is_ok());
++        // Actual separately authorized Session1 callback after Session0 F. It
++        // must update ONLY Session1 progress, not invalidate Session0's F.
++        let(packet,next)=video_packet(&b.nodes[&source1],93000,None);let next=next.unwrap();publish_packet(&b.nodes[&source1],packet,Some(next.clone())).await;
++        let backend=b.nodes[&old1].backend.clone();outgoing(&mut out1).await.deliver(|_|async {
++            let mut writers=backend.native_writers.lock().unwrap();let writer=writers.get_mut(&port1.binding().transport_id).unwrap();writer.observe_video_potential(Some(&next));writer.reserve_next()?;Ok(())
++        }).await.unwrap();
++        assert!(a.orch.staged_old_video_restore_readiness(&ready0.plan).is_ok());
++        let f1=freeze(&b,&ready1.plan,&ready1.grant,&ready1.reservation).await;
++        assert_ne!(f0.realm_incarnation(),f1.realm_incarnation());assert_eq!(f1.ordinal(),next.frame_realm().unwrap().ordinal());
++        assert!(a.orch.staged_old_video_restore_readiness(&ready0.plan).is_ok()&&b.orch.staged_old_video_restore_readiness(&ready1.plan).is_ok());
++        assert!(port0.0.ticket(TicketSide::Ingress).is_active()&&port1.0.ticket(TicketSide::Ingress).is_active());
++        assert!(!port0.0.ticket(TicketSide::Egress).is_active()&&!port1.0.ticket(TicketSide::Egress).is_active());assert!(!coverage.mark_escaped());
++        for(room,old,source)in[(&mut a,&old0,&source0),(&mut b,&old1,&source1)] {
++            for node in room.nodes.values_mut(){node.drain();}
++            room.nodes.get_mut(old).unwrap().publish(800).unwrap();room.nodes.get_mut(source).unwrap().hear(800).await;
++        }
++        assert!(ready0.root.cancel());assert!(ready1.root.cancel());
++        assert!(a.orch.staged_old_video_restore_readiness(&ready0.plan).is_ok()&&b.orch.staged_old_video_restore_readiness(&ready1.plan).is_ok());
++        ready1
++    }).await;
++    // Do not use close_originals before this isolation observation: that
++    // helper intentionally drains the shared Orchestrator/route globally.
++    let ended_a=matches!(catch_original(a.orch.end_session(a.session.clone(),EndReason::Normal)).await,Ok(Ok(())));
++    let survivor=result.as_ref().is_ok_and(|ready1|b.orch.staged_old_video_restore_readiness(&ready1.plan).is_ok());
++    // End BOTH Sessions before either helper terminal-drains their shared
++    // Orchestrator; this does not move the earlier isolation observation.
++    let ended_b=matches!(catch_original(b.orch.end_session(b.session.clone(),EndReason::Normal)).await,Ok(Ok(())));
++    let clean_a=a.close_originals().await.into_iter().all(|done|done);
++    let clean_b=b.close_originals().await.into_iter().all(|done|done);
++    if let Err(error)=result {resume_unwind(error)}
++    assert!(ended_a&&ended_b&&clean_a&&clean_b&&survivor,"one retired Session must not invalidate another actual frozen owner");
++}
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/physical_video_domain/multisession.rs
+@@ -0,0 +1,158 @@
++//! TWO actual managed Session realms on each SAME original accepted TLS peer.
++//! Real QUIC/WT packets and original cleanup joins; controlled policy/readiness.
++//! Inventory snapshots/pins are not managed FreezeVideo or decoder evidence.
++use super::*;
++struct MultiProof {_base:AuthorityLease,session:Option<SessionId>,connection:Option<ConnectionId>,authorities:HashMap<Transport,PeerNativeAuthority>}
++struct MultiPolicy {base:Arc<Policy>,member:Membership,sessions:BTreeMap<String,SessionId>,connections:BTreeMap<String,ConnectionId>}
++impl MultiPolicy {
++    fn proof(&self,base:AuthorityLease,e:&Envelope)->Result<AuthorityLease,DispatchError> {
++        let (session,connection)=if e.kind()=="connection.offer" {
++            if e.scope(Scope::Conversation)!=Some("conversation"){return Err(DispatchError::Authority);}
++            (Some(self.sessions.get(e.scope(Scope::Session).ok_or(DispatchError::Authority)?).ok_or(DispatchError::Authority)?.clone()),Some(self.connections.get(e.scope(Scope::Connection).ok_or(DispatchError::Authority)?).ok_or(DispatchError::Authority)?.clone()))
++        }else{(None,None)};
++        let authorities=[Transport::Quic,Transport::WebTransport].into_iter().map(|kind|(kind,PeerNativeAuthority {actor:self.member.clone(),endpoint:endpoint("alice",kind),may_prepare:true})).collect();
++        Ok(AuthorityLease::holding(MultiProof {_base:base,session,connection,authorities}))
++    }
++}
++#[async_trait]
++impl PeerAuthority for MultiPolicy {
++    fn authority_lifetime(&self,c:&ValidatedBearer,d:&Device,i:&Identifier,h:&AuthorityLease)->Result<AuthorityLifetime,DispatchError>{self.base.authority_lifetime(c,d,i,h)}
++    async fn identity(&self,c:&ValidatedBearer,d:&Device)->Result<Identifier,DispatchError>{self.base.identity(c,d).await}
++    async fn acquire(&self,c:&ValidatedBearer,d:&Device,i:&Identifier,e:&Envelope)->Result<AuthorityLease,DispatchError>{self.proof(self.base.guard(c,d,i,e).await?,e)}
++    async fn refresh(&self,o:&ValidatedBearer,n:&ValidatedBearer,d:&Device,i:&Identifier,e:&Envelope)->Result<AuthorityLease,DispatchError>{self.proof(self.base.refresh(o,n,d,i,e).await?,e)}
++}
++struct MultiFactory {base:Arc<Factory>}
++struct MultiHandler {core:Arc<core_fixture::Fixture>,source:Arc<NativePhysicalBinding>,record:Arc<PhysicalRecord>}
++impl PhysicalHandlerFactory for MultiFactory {
++    fn handler(&self,context:NativeTransportContext)->Result<Arc<dyn AuthenticatedHandler>,DispatchError> {
++        assert!(context.media().is_some()); // No raw context/native/driver escape.
++        let record=Arc::new(PhysicalRecord::default());self.base.records.lock().unwrap().push(record.clone());
++        Ok(Arc::new(MultiHandler {core:self.base.core.clone(),source:NativePhysicalBinding::new(context),record}))
++    }
++}
++#[async_trait]
++impl AuthenticatedHandler for MultiHandler {
++    async fn handle(&self,authorized:AuthorizedEnvelope)->Result<Envelope,DispatchError> {
++        let proof=authorized.authority::<MultiProof>().ok_or(DispatchError::Authority)?;
++        let request=authorized.envelope();let kind=self.source.transport();
++        if request.kind()!="connection.offer"||request.original()["payload"]["substrate"]!=json!(if kind==Transport::Quic {"quic"}else{"webtransport"}) {return Err(DispatchError::Authority);}
++        let peer=authorized.peer_admission().ok_or(DispatchError::Authority)?.clone();
++        {let mut prior=self.record.peer.lock().unwrap();if let Some(old)=prior.as_ref(){assert!(Arc::ptr_eq(old,&peer));}else{*prior=Some(peer.clone());}}
++        let connection=proof.connection.clone().ok_or(DispatchError::Authority)?;
++        let intent=PeerNativeIntent {session:proof.session.clone().ok_or(DispatchError::Authority)?,connection:connection.clone(),transport:kind};
++        let lease=View(&proof.authorities[&kind]);
++        let pending=self.core.orch.prepare_peer_native_connection(peer,authorized.principal(),intent,&lease,self.source.clone()).map_err(|_|DispatchError::Authority)?;
++        pending.retain(authorized.principal(),&lease).map_err(|_|DispatchError::Authority)?;
++        self.record.connections.lock().unwrap().push(connection);
++        let mut reply=envelope("ack",json!({"details":{"reserved":true}}));
++        for field in ["cid","sid","connid","operation_id"] {reply[field]=request.original()[field].clone();}
++        reply["in_reply_to"]=json!(request.id());Envelope::from_value(reply).map_err(DispatchError::from)
++    }
++}
++struct MultiRoom {base:OwnedRoom,sessions:[SessionId;2]}
++impl MultiRoom {
++    async fn new(kind:&str)->Self {
++        let grants=Arc::new(MediaGrants(Arc::new(RwLock::new(PolicyState {owners:HashMap::new(),denied:BTreeSet::new(),private:false}))));
++        let(mut f,factory,_)=wire_setup_mode_with_media(true,Some(grants.clone()),false).await;
++        let second=factory.core.orch.start_session(factory.core.conversation.clone(),rvoip_core::session::SessionMedium::Voice,vec![]).await.unwrap();
++        factory.core.orch.enable_staged_participant_control(&second,factory.core.policy.clone(),grants.clone(),rvoip_core::orchestrator::participant_control::ParticipantLimits::default()).unwrap();
++        let sessions=[factory.core.session.clone(),second];
++        let member=factory.core.policy.0.read().unwrap().members[&core_fixture::participant("alice")].clone();
++        Arc::get_mut(&mut f.config).unwrap().authority=Arc::new(MultiPolicy {base:f.policy.clone(),member,sessions:BTreeMap::from([("session".into(),sessions[0].clone()),("session_b".into(),sessions[1].clone())]),connections:(0..16).map(|n|(format!("native_{n}"),ConnectionId::new())).collect()});
++        let mut base=OwnedRoom {f,factory:factory.clone(),grants,wires:vec![],records:vec![],kinds:vec![],controllers:vec![],probes:vec![]};
++        for _ in 0..2 {
++            let profile=CanonicalProfile::new(base.f.config.clone(),Arc::new(Handler::default()),8).unwrap().with_physical_handlers(Arc::new(MultiFactory {base:factory.clone()}));
++            let before=factory.records.lock().unwrap().len();let mut wire=wire_original(kind,profile).await.unwrap();authenticate_wire(&mut wire,&base.f).await;
++            base.records.push(factory.records.lock().unwrap()[before].clone());base.wires.push(wire);base.kinds.push(if kind=="quic"{Transport::Quic}else{Transport::WebTransport});
++        }
++        Self {base,sessions}
++    }
++    async fn configure(&mut self,side:usize,session:usize,n:usize,media:&[Medium])->Leg {
++        let kind=self.base.kinds[side];let mut offer=native_offer(n,if kind==Transport::Quic {"quic"}else{"wt"});
++        let wire_session=if session==0 {"session"}else{"session_b"};offer["sid"]=json!(wire_session);
++        self.base.wires[side].send(self.base.f.sign(offer)).await;assert_eq!(self.base.wires[side].read().await.kind(),"ack");
++        let id=self.base.records[side].connections.lock().unwrap().last().unwrap().clone();
++        let member=self.base.factory.core.policy.0.read().unwrap().members[&core_fixture::participant("alice")].clone();
++        let presence=SessionAppearance::admit(&member,self.sessions[session].clone(),None).unwrap();let endpoint=endpoint("alice",kind);
++        let mut connection=ConnectionBinding::prepare(&member,&presence,&endpoint,id.clone()).unwrap();connection.observe_ready(&member,&presence,&endpoint,1).unwrap();connection.activate(&member,&presence,&endpoint).unwrap();
++        let owner=MediaOwner {actor:member.clone(),member,presence,endpoint,connection,may_control:true,send_media:[Medium::Audio,Medium::Video,Medium::Screen].into_iter().collect(),receive_media:[Medium::Audio,Medium::Video,Medium::Screen].into_iter().collect(),local:capabilities(),remote:capabilities(),may_route_source:true};
++        self.base.grants.0.write().await.owners.insert(id.clone(),owner);
++        let readiness=Readiness::new();let adapter=&self.base.factory.adapters[&kind];
++        let scope=StagedRtpScope {session:self.sessions[session].clone(),connection:id.clone(),owner:principal("old").ownership_key(),wire_conversation:Some("conversation".into()),wire_session:wire_session.into(),wire_connection:format!("wire_{}",id.as_str())};
++        let controller=adapter.configure_rtp(&id,principal("old"),self.base.factory.core.conversation.clone(),scope,self.base.grants.clone(),readiness.clone(),16).unwrap();self.base.controllers.push(controller.clone());
++        let media_owner=adapter.physical_source(&id).unwrap().media().unwrap();if let Some(probe)=media_owner.original_video_send_probe_for_test(){self.base.probes.push(probe);}
++        controller.change(controller.revision(),&media.iter().map(|m|desired(*m)).collect::<Vec<_>>(),&BTreeSet::new(),deadline(),CancellationToken::new()).await.unwrap();
++        Leg {id,controller,readiness,media:media_owner}
++    }
++    async fn close(&mut self)->bool {
++        let a=self.base.close().await;
++        let b=self.base.factory.core.orch.end_session(self.sessions[1].clone(),rvoip_core::session::EndReason::Normal).await.is_ok();
++        let c=self.base.factory.core.orch.drain_connection_lifecycle_tasks().await.is_ok();a&&b&&c
++    }
++}
++async fn forward_multi(room:&MultiRoom,source:&Leg,target:&Leg,input:&mut mpsc::Receiver<MediaPacket>,sequence:u16)->Arc<rvoip_core::staged_streams::OriginalVideoFrame> {
++    send(&room.base.wires[0],original_packet(binding(source,Medium::Video).stream_local_id,sequence));
++    let packet=packet(input).await;let original=packet.original_video_frame().cloned().unwrap();assert!(original.frame_realm().is_some());
++    packet.try_forward_to(&target.controller,&desired(Medium::Video).logical_id).unwrap();
++    let actual=received(&room.base.wires[1]).await;assert_eq!(actual.stream_local_id,binding(target,Medium::Video).stream_local_id);assert_eq!(actual.rtp.packet().header.timestamp,u32::from(sequence)*3000);original
++}
++#[tokio::test(flavor="multi_thread",worker_threads=4)]
++async fn two_managed_sessions_on_same_native_tls_peer_keep_independent_current_inventory_io_and_shared_raw_fence() {
++    for kind in ["quic","wt"] {
++        let mut room=MultiRoom::new(kind).await;
++        let result=std::panic::AssertUnwindSafe(async {
++            let source0=room.configure(0,0,0,&[Medium::Audio,Medium::Video]).await;
++            let source1=room.configure(0,1,1,&[Medium::Audio,Medium::Video]).await;
++            let target0=room.configure(1,0,2,&[Medium::Audio,Medium::Video]).await;
++            let target1=room.configure(1,1,3,&[Medium::Audio,Medium::Video]).await;
++            assert!(Arc::ptr_eq(&target0.media,&target1.media),"not two peers disguising a pooled topology");
++            let peer=room.base.records[1].peer.lock().unwrap().clone().unwrap();assert_eq!(peer.snapshot().sessions,2);assert_eq!(peer.snapshot().connections,2);
++            select(&source0,&target0).await;select(&source1,&target1).await;
++            let logical=desired(Medium::Video).logical_id;
++            let mut input0=source0.controller.take_ingress(&logical).unwrap();let mut input1=source1.controller.take_ingress(&logical).unwrap();
++            let frame0=forward_multi(&room,&source0,&target0,&mut input0,1).await;
++            let frame1=forward_multi(&room,&source1,&target1,&mut input1,1).await;
++            let realm0=frame0.frame_realm().unwrap().incarnation();let realm1=frame1.frame_realm().unwrap().incarnation();assert_ne!(realm0,realm1);
++            for target in [&target0,&target1] {assert!(target.controller.native_video_potential_for_test(&logical).unwrap().physical_io_coverage_complete);}
++            let seal0=target0.controller.seal_native_video_session_for_test(&logical).unwrap();
++            let seal1=target1.controller.seal_native_video_session_for_test(&logical).unwrap();
++            assert!(target0.media.router().is_none()&&target1.media.datagrams().is_none());
++            assert!(target1.controller.capture_native_video_domain_for_test(&[logical.clone()],&seal0,realm1).is_err(),"same peer is not same Session lease");
++            let pin0=target0.controller.pin_native_video_domain_for_test(&[logical.clone()],&seal0,realm0).unwrap();
++            let pin1=target1.controller.pin_native_video_domain_for_test(&[logical.clone()],&seal1,realm1).unwrap();
++            let captured0=pin0.capture(&seal0,realm0).unwrap();let captured1=pin1.capture(&seal1,realm1).unwrap();
++            let _frame1=forward_multi(&room,&source1,&target1,&mut input1,2).await;
++            assert!(captured0.is_current(),"unaffected Session actual video IO must not invalidate selected Session F metadata");assert!(!captured1.is_current());
++            let fresh1=pin1.capture(&seal1,realm1).unwrap();
++            // Original camera/audio ingress still exists while BOTH scoped
++            // inventory exclusions coexist. Neither seal is an IO pause.
++            let audio_id=desired(Medium::Audio).logical_id;let mut camera=target0.controller.take_ingress(&logical).unwrap();
++            send(&room.base.wires[1],original_packet(binding(&target0,Medium::Video).stream_local_id,1));assert!(packet(&mut camera).await.original_video_frame().is_some());
++            let mut audio_in=target0.controller.take_ingress(&audio_id).unwrap();send(&room.base.wires[1],audio(binding(&target0,Medium::Audio).stream_local_id,0));
++            packet(&mut audio_in).await.try_forward_to(&source0.controller,&audio_id).unwrap();decoded(&received(&room.base.wires[0]).await);
++            assert!(captured0.is_current()&&fresh1.is_current());
++            drop(pin1);seal1.abort();assert!(captured0.is_current()&&seal0.is_current());assert!(target1.media.datagrams().is_none(),"another Session still owns the peer fence");
++            // Foreign Session visual registration is legal while Session0 is
++            // pinned, yet SAME Session extra Connection cannot be omitted.
++            let extra=room.configure(1,1,4,&[Medium::Video]).await;assert!(captured0.is_current());
++            let seal1=target1.controller.seal_native_video_session_for_test(&logical).unwrap();
++            assert!(target1.controller.capture_native_video_domain_for_test(&[logical.clone()],&seal1,realm1).is_err());
++            extra.controller.retire();assert_eq!(extra.controller.reconcile_cleanup(deadline()).await,0);
++            let after_join=target1.controller.capture_native_video_domain_for_test(&[logical.clone()],&seal1,realm1).unwrap();assert!(after_join.ordinal()>=frame1.frame_realm().unwrap().ordinal());
++            assert!(captured0.is_current());
++            // A real accepted input whose raw timestamp cannot be unwrapped
++            // loses only its already-attributed Session's optional proof.
++            // Legacy current native IO continues; the other Session F survives.
++            let timestamp=6000u32.wrapping_add(1u32<<31);let mut rtp=vec![0x80,0x80|96,0,3];rtp.extend_from_slice(&timestamp.to_be_bytes());rtp.extend_from_slice(&7u32.to_be_bytes());rtp.extend_from_slice(&[0x10,1,2,3]);
++            let raw=pack_observed_rtp_datagram(&ObservedRtpDatagram {flags:0,stream_local_id:binding(&source1,Medium::Video).stream_local_id,seq:3,rtp:observe_rtp(rtp.into()).unwrap()}).unwrap();send(&room.base.wires[0],raw);
++            let unknown=packet(&mut input1).await;assert!(unknown.original_video_frame().and_then(|frame|frame.frame_realm()).is_none());unknown.try_forward_to(&target1.controller,&logical).unwrap();
++            assert_eq!(received(&room.base.wires[1]).await.rtp.packet().header.timestamp,timestamp);
++            assert!(!target1.controller.native_video_potential_for_test(&logical).unwrap().physical_io_coverage_complete);assert!(!after_join.is_current());assert!(captured0.is_current());
++            seal1.retire();assert!(captured0.is_current()&&seal0.is_current(),"foreign Session retirement is not physical retirement");
++            drop(pin0);seal0.retire();
++            (captured0,after_join)
++        }).catch_unwind().await;
++        let clean=room.close().await;if let Err(error)=result {std::panic::resume_unwind(error);}
++        let(a,b)=result.unwrap();assert!(clean&&!a.is_current()&&!b.is_current());
++    }
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/physical_video_domain.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/physical_video_domain.rs
+@@ -369,3 +369,6 @@
+         let(exact,released,no_raw)=result.unwrap();assert!(clean&&exact&&released&&no_raw);
+     }
+ }
++
++#[path="physical_video_domain/multisession.rs"]
++mod multisession;

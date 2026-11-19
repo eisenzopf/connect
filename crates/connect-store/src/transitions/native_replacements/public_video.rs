@@ -6,7 +6,24 @@ use connect_protocol::{
 };
 use std::sync::Arc;
 mod atomic_prepare;
+mod closed_observation;
+mod not_submitted_read;
+mod runtime_observation;
+use super::allocation::NativeReplacementNotSubmittedLineage;
 use atomic_prepare::reserve_intent_in;
+pub use closed_observation::{
+    NativeReplacementPublicVideoClosedExpected, NativeReplacementPublicVideoClosedGuard,
+    NativeReplacementPublicVideoClosedObservation,
+};
+pub(super) use runtime_observation::{
+    append_activated_in_publication, require_completed_public_video, validate_public_ready_marker,
+};
+pub use runtime_observation::{
+    NativeReplacementPublicVideoExpected, NativeReplacementPublicVideoNativeBinding,
+    NativeReplacementPublicVideoPublication, NativeReplacementPublicVideoRuntimeGuard,
+    NativeReplacementPublicVideoRuntimeMetadata, NativeReplacementPublicVideoRuntimeObservation,
+    NativeReplacementPublicVideoStage,
+};
 
 /// Immutable original setup metadata. There is no public constructor or grant.
 pub struct NativeReplacementPublicVideoReservation {
@@ -41,8 +58,21 @@ pub struct NativeReplacementUnpublishedRead {
     wait: crate::AuthorityWait,
     actor_identity: String,
     original_expiry: i64,
+    not_submitted: Option<NativeReplacementNotSubmittedLineage>,
 }
 impl NativeReplacementUnpublishedRead {
+    fn historical(
+        &self,
+        store: &Store,
+        c: &Connection,
+    ) -> Result<(serde_json::Value, Vec<AuthorityScope>)> {
+        match &self.not_submitted {
+            None => historical(store, c, &self.original),
+            Some(lineage) => {
+                not_submitted_read::historical_not_submitted(store, c, &self.original, lineage)
+            }
+        }
+    }
     pub fn current(&self) -> bool {
         self.wait.check().is_ok() && self.original.owner.upgrade().is_some_and(|o| o.current())
     }
@@ -299,6 +329,7 @@ impl Store {
             wait: wait.clone(),
             actor_identity,
             original_expiry,
+            not_submitted: None,
         })
     }
 }
@@ -434,8 +465,8 @@ fn project(
     if rows.len() > 5 {
         return Err(Error::storage());
     }
-    // Existing private challenge is not synthesized from an ID/Intent. Until
-    // the physical phase issuer exists, no production code appends these rows.
+    // Existing private challenge is captured by the SAME actual Host runtime
+    // guard, never synthesized from an ID/Intent or accepted as client proof.
     let mut last = None;
     let mut original_nonce = None;
     for (raw, private_nonce) in rows {
@@ -519,8 +550,8 @@ fn validate_chain(
     Ok(())
 }
 
-// A Store-only kernel, deliberately without a production native/cut issuer.
-// The caller must first own the exact transaction Read; no row is an IO grant.
+// Store-only append kernel. The typed trusted runtime issuer derives its
+// Phase under exact transaction custody; no row is an IO grant.
 fn append_phase(
     store: &Store,
     c: &Connection,
@@ -528,6 +559,17 @@ fn append_phase(
     r: &NativeReplacementPublicVideoReservation,
     next: &wire::Phase,
     private_nonce: &str,
+) -> Result<()> {
+    append_phase_with_unpublished(store, c, held, r, next, private_nonce, None)
+}
+fn append_phase_with_unpublished(
+    store: &Store,
+    c: &Connection,
+    held: &Arc<AuthorityGuardSet>,
+    r: &NativeReplacementPublicVideoReservation,
+    next: &wire::Phase,
+    private_nonce: &str,
+    unpublished: Option<&NativeReplacementUnpublishedRead>,
 ) -> Result<()> {
     let p = &r.original;
     local_owner(store, &p.owner, &p.runtime)?;
@@ -539,8 +581,23 @@ fn append_phase(
     let (operation, state, completed) = root.ok_or_else(Error::forbidden)?;
     let value = serde_json::to_value(next).map_err(|_| Error::storage())?;
     let name = value["phase"].as_str().ok_or_else(Error::storage)?;
+    let historical_discard = if let Some(read) = unpublished {
+        if name != "discarded"
+            || !read.original.same_capture(p)
+            || read.saved != r.saved
+            || read.original_expiry != r.expires_at
+            || !Arc::ptr_eq(held, &read.held)
+            || !read.current()
+            || !store.authority_covers(held, &read.historical(store, c)?.1)
+        {
+            return Err(Error::forbidden());
+        }
+        true
+    } else {
+        false
+    };
     if (name == "activated" && !completed)
-        || (name != "activated" && state != "preparing")
+        || (name != "activated" && state != "preparing" && !historical_discard)
         || terminal(c, &p.record)?
     {
         return Err(Error::forbidden());
@@ -601,7 +658,7 @@ fn append_terminal(
     r: &NativeReplacementUnpublishedRead,
     reason: wire::DiscardReason,
 ) -> Result<()> {
-    if !r.current() || !store.authority_covers(&r.held, &historical(store, c, &r.original)?.1) {
+    if !r.current() || !store.authority_covers(&r.held, &r.historical(store, c)?.1) {
         return Err(Error::forbidden());
     }
     let phases:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_public_video_phases WHERE operation_record_id=?1)",[&r.original.record],|row|row.get(0)).map_err(|_|Error::storage())?;

@@ -1,0 +1,26 @@
+{
+  "format": "connect/mobile-document-readback/1",
+  "content_revision": 179,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMRnVsx1XYmWt4jBRhqbESyYj0j7MmE_WVluoj8xO55eGloMuAS4FlC982s5soTxBtpthSd2c2YIa-E0L_bUtUMee0uoxpoa8rCem9w",
+  "verified_at": "2026-11-16T12:30:52.948Z",
+  "replacements": [
+    {
+      "old_prefix": "Revision 178 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 39",
+      "old_absent": true,
+      "new_present_once": true
+    },
+    {
+      "old_prefix": "Current verification — The complete public-B lifecycle batch is now applied. Normal depend",
+      "old_absent": true,
+      "new_present_once": true
+    },
+    {
+      "old_prefix": "5. Parallel execution — Root: integrate, format, compile, run affected units and actual de",
+      "old_absent": true,
+      "new_present_once": true
+    }
+  ],
+  "matrix_qualified": false
+}

@@ -39,9 +39,14 @@ test('RTC observer rejects unavailable format and stops its original processor',
     assert.deepEqual(original.messages.map(value=>value.type),['stopped']);
 });
 test('only the actual RTC renderer is tapped and frame metadata stays bound to its original canvas',async()=>{
-    const keys=['AudioContext','MediaStreamAudioSourceNode','AudioWorkletNode','CanvasRenderingContext2D','HTMLVideoElement'];
+    const keys=['AudioContext','MediaStreamAudioSourceNode','AudioWorkletNode','CanvasRenderingContext2D','HTMLVideoElement','connectPeerStreamDescriptor'];
     const saved=Object.fromEntries(keys.map(key=>[key,globalThis[key]]));
     const nodes=[],contexts=[],audio=[],video=[],errors=[];
+    const publicTrack={kind:'video',id:'public-b'},privateTrack={kind:'video',id:'private-a'},lookups=[];
+    globalThis.connectPeerStreamDescriptor=(connection,direction,selector)=>{
+        lookups.push({connection,direction,selector});
+        return selector?.track===publicTrack?{connection_id:'original',stream_id:'public-b',track_id:publicTrack.id}:null;
+    };
     class MediaStreamAudioSourceNode {
         constructor(context){this.context=context;}
         connect(){}
@@ -81,13 +86,20 @@ test('only the actual RTC renderer is tapped and frame metadata stays bound to i
         assert.equal(audio.length,1);assert.equal(audio[0][0],'original');assert.equal(audio[0][1],42);
         const canvas={},other={},context=new CanvasRenderingContext2D(canvas),otherContext=new CanvasRenderingContext2D(other);
         observer.attach('original',canvas);
-        const element=new HTMLVideoElement();
+        const element=new HTMLVideoElement();element.srcObject={getVideoTracks:()=>[publicTrack]};
         element.requestVideoFrameCallback(()=>{context.drawImage(element,0,0);otherContext.drawImage(element,0,0);});
         element.callback(100,{mediaTime:1.25,presentedFrames:1});
         assert.equal(video.length,1);assert.equal(video[0][0],'original');assert.equal(video[0][1],1250000);
         assert.equal(video[0][4],640);assert.equal(video[0][5],360);
         assert.equal(video[0][3],canvas,'Readback must borrow the actual completed public render, not the mutable video element');
-        context.drawImage(element,0,0);assert.equal(video.length,1,'painting outside actual video callback is not decoded-frame evidence');
+        assert.equal(video[0][6].track_id,'public-b');assert.equal(lookups[0].selector.track,publicTrack);
+        element.srcObject={getVideoTracks:()=>[privateTrack]};
+        element.callback(101,{mediaTime:1.26,presentedFrames:2});
+        assert.equal(video.length,2,'Actual foreign receiver draw remains recorded');assert.equal('track_id'in video[1][6],false,'A draw cannot borrow B identity from connection alone');
+        element.srcObject={getVideoTracks:()=>[publicTrack,privateTrack]};
+        element.callback(102,{mediaTime:1.27,presentedFrames:3});
+        assert.equal(video.length,3);assert.equal('track_id'in video[2][6],false,'Multiple native tracks remain unknown');
+        context.drawImage(element,0,0);assert.equal(video.length,3,'painting outside actual video callback is not decoded-frame evidence');
         assert.deepEqual(errors,[]);
     }finally{
         await observer.close();

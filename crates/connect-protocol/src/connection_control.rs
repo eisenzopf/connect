@@ -57,6 +57,12 @@ impl OfferIntent {
         }
         let transport = self.endpoint_transport()?;
         let webrtc = transport == crate::provisioning::EndpointTransport::Webrtc;
+        if self.offer["replacement_preparation"]["profile"]
+            == crate::webrtc_public_video_phase::READY_PROFILE
+            && !webrtc
+        {
+            return Err(invalid());
+        }
         let maximum_bytes = if webrtc { 544 * 1024 } else { 32 * 1024 };
         if !self.offer.is_object()
             || serde_json::to_vec(&self.offer)
@@ -289,6 +295,26 @@ mod tests {
         wire.offer["substrate_setup"] =
             json!({"kind":"websocket+webrtc","sdp":"v=0\r\ns=synthetic-contract-only\r\n"});
         wire
+    }
+    #[test]
+    fn public_video_ready_offer_requires_web_rtc_and_preserves_the_exact_closed_marker() {
+        let mut wire = web_rtc_intent();
+        wire.offer["replacement_preparation"] = json!({"profile":crate::webrtc_public_video_phase::READY_PROFILE,"operation_record_id":"record",
+            "public_video_readiness":{"reservation_id":"original-reservation","source_cut_id":"original-cut","nonce":"public-nonce",
+                "binding":{"stream_id":"public-b","preview_stream_id":"preview-a","mid":"2","stream_generation":1,
+                    "physical_writer_incarnation":"original-writer","connection_generation":1,"primary_ssrc":0,"payload_type":96,"clock_rate_hz":90000,"codec":"vp8"},
+                "decoded_frames":1,"decoded_keyframes":null,"decoder_startup":"fresh-receiver-first-decoded-frame"}});
+        let original = wire.clone();
+        wire.normalize().unwrap();
+        assert!(wire == original);
+        for substrate in ["quic", "webtransport"] {
+            let mut native = original.clone();
+            native.offer["substrate"] = json!(substrate);
+            assert!(native.normalize().is_err());
+        }
+        let mut forged = original;
+        forged.offer["replacement_preparation"]["public_video_readiness"]["ready"] = json!(true);
+        assert!(forged.normalize().is_err());
     }
     #[test]
     fn web_rtc_offer_preserves_exact_sdp_and_maps_only_to_web_rtc_endpoint() {

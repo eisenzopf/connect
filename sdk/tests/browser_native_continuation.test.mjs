@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {BrowserClient} from '../typescript/dist/browser_client.js';
 import {BrowserTransportClient} from '../typescript/dist/browser_transport_client.js';
 import {BrowserMediaPeer} from '../typescript/dist/browser_media.js';
+import {ConnectError} from '../typescript/dist/errors.js';
 import {fixture} from './fixtures/browser_control_peer.mjs';
 // Actual signed control codec/lifetime model, not network, TLS or media proof.
 for(const transport of ['webtransport','websocket'])for(const algorithm of ['EdDSA','ES256'])
@@ -137,3 +138,74 @@ for(const algorithm of ['EdDSA','ES256']){
   },{algorithm,wtMode:'ok',handler:async context=>await sourceOwnerControl(context)||context.frame.type==='connection.end'});
  });
 }
+
+for(const algorithm of ['EdDSA','ES256'])test(`${algorithm} signed status503 recovery preserves both original Session media owners`,async()=>{
+ let reads=0;
+ await fixture(async f=>{
+  const owner=await BrowserTransportClient.connect(transportOptions(f)),owners=await sourceSessionOwners(f,owner);
+  try{
+   const value=await owner.recoverOperation(replacementReference(),{timeoutMs:500});
+   assert.equal(value.state,'completed');assert.equal(reads,2);assert.deepEqual(owners.closed,[0,0]);
+   assert.ok(owners.connections.every(connection=>connection.revision===1));assert.equal(owner.status.physicalEpoch,1);
+   assert.equal(f.transports.length,1);assert.equal(f.sent.filter(frame=>frame.type==='connection.replace'||frame.type==='connection.end').length,0);
+  }finally{await owners.peer.shutdown();await owner.shutdown();}
+ },{algorithm,wtMode:'ok',handler:async context=>{
+  if(await sourceOwnerControl(context))return true;
+  const {peer,frame}=context;if(frame.type!=='operation.get')return false;
+  if(++reads===1){await peer.emit('error',{code:503,category:'authorization',reason:'authority_unavailable'},frame.id,frame);return true;}
+  await peer.emit('operation.updated',{operation_id:frame.payload.operation_id,record_id:'source-record',command_type:'connection.replace',state:'completed',revision:3},frame.id,frame);
+  await peer.emit('ack',{},frame.id,frame);return true;
+ }});
+});
+
+for(const mode of ['deadline','abort'])test(`original status503 ${mode} preserves both actual local Session owners`,async()=>{
+ let first;const refused=new Promise(resolve=>first=resolve);
+ await fixture(async f=>{
+  const owner=await BrowserTransportClient.connect(transportOptions(f)),owners=await sourceSessionOwners(f,owner),abort=new AbortController();
+  const exchange=owners.physical.exchange;
+  // Observe the actual scoped exchange rejection, after its original write
+  // bound has joined. A server handler's emit is earlier than WT write exit.
+  owners.physical.exchange=function(...args){
+   const result=exchange.apply(this,args),frame=args[0];
+   if(frame.type==='operation.get'&&frame.payload.operation_id==='original-source-move')
+    return result.catch(error=>{first(error);throw error;});
+   return result;
+  };
+  try{
+   const pending=owner.recoverOperation(replacementReference(),{timeoutMs:160,signal:abort.signal});void pending.catch(()=>{});
+   if(mode==='abort'){
+    const failure=await refused;
+    assert.ok(failure instanceof ConnectError);assert.equal(failure.code,'refused');
+    assert.deepEqual(failure.problem,{code:503,category:'authorization',reason:'authority_unavailable'});
+    abort.abort();
+   }
+   await assert.rejects(pending,{code:mode==='abort'?'cancelled':'timeout'});
+   assert.deepEqual(owners.closed,[0,0]);assert.equal(owners.physical.closed,false);assert.equal(owner.status.physicalEpoch,1);
+   assert.equal(f.transports.length,1);assert.ok(owners.connections.every(connection=>connection.revision===1));
+   assert.equal(f.sent.filter(frame=>frame.type==='connection.replace'||frame.type==='connection.end').length,0);
+  }finally{owners.physical.exchange=exchange;await owners.peer.shutdown();await owner.shutdown();}
+ },{wtMode:'ok',handler:async context=>{
+  if(await sourceOwnerControl(context))return true;
+  const {peer,frame}=context;if(frame.type!=='operation.get')return false;
+  await peer.emit('error',{code:503,category:'authorization',reason:'authority_unavailable'},frame.id,frame);return true;
+ }});
+});
+
+test('original status cancellation during an actual pending write still retires both Session owners',async()=>{
+ let entered,release;const started=new Promise(resolve=>entered=resolve),held=new Promise(resolve=>release=resolve);
+ await fixture(async f=>{
+  const owner=await BrowserTransportClient.connect(transportOptions(f)),owners=await sourceSessionOwners(f,owner),abort=new AbortController();
+  try{
+   const pending=owner.recoverOperation(replacementReference(),{timeoutMs:500,signal:abort.signal});void pending.catch(()=>{});
+   await started;abort.abort();await assert.rejects(pending,{code:'cancelled'});
+   assert.equal(owners.physical.closed,true);assert.deepEqual(owners.closed,[1,1]);
+   assert.equal(f.transports.length,1);assert.equal(f.sent.filter(frame=>frame.type==='connection.replace').length,0);
+  }finally{release();await owners.peer.shutdown();await owner.shutdown();}
+ },{wtMode:'ok',handler:async context=>{
+  if(await sourceOwnerControl(context))return true;
+  if(context.frame.type!=='operation.get')return false;
+  // The real mock WritableStream.write awaits this original handler. Hold it
+  // until after the abort assertions; no error reply or retry delay is faked.
+  entered();await held;return true;
+ }});
+});

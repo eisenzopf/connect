@@ -1,0 +1,21 @@
+{
+  "format": "connect/mobile-document-readback/1",
+  "content_revision": 181,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMT_pjw_NgPfm8ZgEffC20ZTORKMGU1j5MEvpDSzJukCa7OseCFnCWCUJ6pHMa3NoA-AOM0l472n9796OJR7HwE25n63a-Dd4TxQdWs",
+  "verified_at": "2026-11-16T13:01:21.306Z",
+  "replacements": [
+    {
+      "old_prefix": "Revision 180 | Coordinator: /root | Latest complete matrix remains v218: 1/32 ce",
+      "old_absent": true,
+      "new_present_once": true
+    },
+    {
+      "old_prefix": "Current verification — Freshg492 PASSES87 Protocol tests (retained85 plus2new),2",
+      "old_absent": true,
+      "new_present_once": true
+    }
+  ],
+  "matrix_qualified": false
+}

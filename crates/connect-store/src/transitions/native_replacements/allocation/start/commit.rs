@@ -7,6 +7,7 @@ mod recovery;
 mod retired_source;
 mod scoped_mutation;
 pub use not_submitted::NativeReplacementCommitNotSubmitted;
+pub(in crate::transitions::native_replacements) use not_submitted::NativeReplacementNotSubmittedLineage;
 use recovery::{Projection, ProjectionFacts};
 
 // Invocation-local test observation only. It grants no authority, supplies no
@@ -1158,6 +1159,22 @@ impl Store {
         let public_key = serde_json::from_value(descriptor["public_key"].clone())
             .map_err(|_| Error::storage())?;
         if row.record.state == OperationState::Completed {
+            if let Some(captured) = live {
+                super::super::super::public_video::require_completed_public_video(
+                    self,
+                    &tx,
+                    &captured
+                        .attempt
+                        .origin
+                        .started
+                        .attempt
+                        .allocated
+                        .attempt
+                        .prepared,
+                    stopped,
+                    captured.attempt.private_successor.is_some(),
+                )?;
+            }
             if row
                 .record
                 .result
@@ -1439,10 +1456,33 @@ impl Store {
         )?;
         #[cfg(test)]
         crate::scoped_phase_timing::mark("publication-origin-and-installed-owner");
-        // No SQL follows until COMMIT. The Unit independently pins the full
-        // proof; release this &tx-borrowing permit before moving tx into the
-        // installed-owner callback, retaining its exact scalar cutoff below.
+        // Release this &tx-borrowing publication permit before the optional
+        // exact Activated metadata append (which uses its own narrow permit).
+        // The Unit still pins the full proof and scalar cutoff; the SAME
+        // installed owner spans that append and the final COMMIT callback.
         drop(permit);
+        if !stopped {
+            let installed = installation.as_ref().ok_or_else(Error::forbidden)?;
+            let captured = live.ok_or_else(Error::forbidden)?;
+            // Opted-in Activated is the SAME final transaction, not a later
+            // post-Completed append. No-intent path is an effect-free no-op.
+            super::super::super::public_video::append_activated_in_publication(
+                self,
+                &tx,
+                &held,
+                &captured
+                    .attempt
+                    .origin
+                    .started
+                    .attempt
+                    .allocated
+                    .attempt
+                    .prepared,
+                installed.as_ref(),
+                captured.attempt.private_successor.is_some(),
+            )?;
+        }
+        let successful_commit = std::cell::Cell::new(false);
         let commit: Box<dyn FnOnce() -> Result<()> + '_> = Box::new(|| {
             if !owner.current() {
                 return Err(Error::forbidden());
@@ -1453,12 +1493,20 @@ impl Store {
             #[cfg(test)]
             crate::scoped_phase_timing::mark("publication-before-commit");
             timing.committing();
-            tx.commit().map_err(|_| Error::storage())
+            tx.commit().map_err(|_| Error::storage())?;
+            successful_commit.set(true);
+            Ok(())
         });
         if let Some(installation) = installation.as_ref() {
             installation.publish(commit)?;
         } else {
             commit()?;
+        }
+        // Success is actual durable SQL, not merely publish returning Ok.
+        // Failure after commit is recoverable uncertainty over SAME movement;
+        // callers must never repeat its original physical effect.
+        if !successful_commit.get() {
+            return Err(Error::storage());
         }
         timing.committed();
         #[cfg(test)]

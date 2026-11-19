@@ -1,0 +1,157 @@
+{
+  "format": "connect/g6-058-complete-regression-checkpoint/1",
+  "updated_at": "2026-11-19T09:53:29.826463+00:00",
+  "summary": "The complete g509 regression batch compiled all six targets, including the corrected native-to-WebRTC fixture and unchanged default server check. All selected runtime tests ran: 2,176 of 2,200 passed, 24 failed, none skipped. The pooled-session cleanup correction also passed this complete batch. Failures comprise three Core fixture ordering errors, five Native replacement/overlap/contention fixture gaps, four WebRTC fixtures missing physical observer ownership, nine SIP storage failures, two Vapi persistence failures, and one intermittent scene-expiry failure. Reviewed source corrections are staged for Core, Native, WebRTC and Vapi; SIP exact-parent insertion is under independent review. These corrections remain unverified at runtime. Expiry diagnostics show monotonic/wall-clock disagreement near the deadline, but do not yet establish the first revocation cause. All original processes closed naturally and source/artifacts were independently audited. Three decoded-media representatives, strict Firefox three-cycle validation, final qualification, ARM11, normal release builds and preflight remain after the corrected regressions pass. Latest full matrix remains v218: 1/32 cells, 399/432 checks passed; G6-054 stays parked. Local Mac/native ARM only; criteria unchanged.",
+  "status": "FULL_AFFECTED_REGRESSIONS_FAILED_24_SOURCE_FIX_BATCH_PENDING_VERIFICATION",
+  "coordinator": "/root",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "source_generation": 496,
+  "source_lock_sha256": "da517074e7e5e1cdeea8fd2fefde32d1fb198a15b1c948d2ec8a4a01bafdfa02",
+  "builds_passed": 6,
+  "builds_total": 6,
+  "default_shipping_check_passed": true,
+  "all_selected_runtimes_executed": true,
+  "runtime": {
+    "passed": 2176,
+    "failed": 24,
+    "total": 2200,
+    "ignored": 0,
+    "rust_suites": {
+      "rvoip-core-runtime": {
+        "passed": 711,
+        "failed": 3,
+        "ignored": 0
+      },
+      "rvoip-uctp-runtime": {
+        "passed": 217,
+        "failed": 0,
+        "ignored": 0
+      },
+      "connect-protocol-runtime": {
+        "passed": 87,
+        "failed": 0,
+        "ignored": 0
+      },
+      "rvoip-webrtc-runtime": {
+        "passed": 88,
+        "failed": 0,
+        "ignored": 0
+      },
+      "connect-store-runtime": {
+        "passed": 437,
+        "failed": 1,
+        "ignored": 0
+      },
+      "connect-server-runtime": {
+        "passed": 111,
+        "failed": 15,
+        "ignored": 0
+      },
+      "connect-service-runtime": {
+        "passed": 98,
+        "failed": 0,
+        "ignored": 0
+      },
+      "rvoip-uctp-v2-peer-admission-runtime": {
+        "passed": 166,
+        "failed": 5,
+        "ignored": 0
+      }
+    },
+    "node_passed": 206,
+    "python_passed": 55
+  },
+  "actual_decoded_representatives_executed": false,
+  "result": {
+    "path": ".local/gate-6/v219-g509-coherent-components-root/component-result.json",
+    "sha256": "ba2421773ede379c93af69a8ad1e11929e5ef6e5932a5f251ac696ddfae33d65"
+  },
+  "original_join": {
+    "path": ".local/gate-6/v219-g509-coherent-components-root/root-original-join.json",
+    "sha256": "e0be6687439d28a3c127fe4578cb6ecb238757c967851c9c8229286d6f9f5616"
+  },
+  "independent_audit": {
+    "path": ".local/gate-6/v219-g509-actual-cohort-independent-audit/receipt.json",
+    "sha256": "c7d6ec5f3fca82a43382c5de085ca6753055d7b0c1ad5eca33ce23a04657d2a8"
+  },
+  "all_original_processes_naturally_closed": true,
+  "pooled_session_cleanup_fix_passed_in_complete_batch": true,
+  "expiry_previous_isolated_110_passes_do_not_regrade_current_failure": true,
+  "last_full_matrix": {
+    "version": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_revision": 192,
+  "groups": [
+    {
+      "id": "V219-G509-CORE-FIXTURES",
+      "failed_tests": 3,
+      "title": "Core queue and keyframe-recorder fixture ordering",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/independent_batch_review",
+      "status": "reviewed-source-candidate",
+      "next": "Three source-order corrections preserve original predicates/cutoffs; register and prepare upstream patches before compilation.",
+      "runtime_fix_verified": false,
+      "matrix_verified": false
+    },
+    {
+      "id": "V219-G509-NATIVE-FIXTURES",
+      "failed_tests": 5,
+      "title": "Native dedicated real RTC, signed overlap and actual model contention fixtures",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "status": "reviewed-source-candidate",
+      "next": "Use genuine dedicated RTC reservation/DTLS/RTP, exact NegotiationBusy while original negotiation is pending, genuine short controller exclusion separately from detached policy check. Source-reviewed; uncompiled.",
+      "runtime_fix_verified": false,
+      "matrix_verified": false
+    },
+    {
+      "id": "V219-G509-WEBRTC-OBSERVER",
+      "failed_tests": 4,
+      "title": "WebRTC fixture physical packet observer ownership",
+      "owner_agent": "/root/independent_batch_review",
+      "independent_reviewer": "/root/batch_build_review",
+      "status": "reviewed-source-candidate",
+      "next": "Own genuine PacketObserverScope after proof release through original peer shutdown; no permission reader and no cutoff change.",
+      "runtime_fix_verified": false,
+      "matrix_verified": false
+    },
+    {
+      "id": "V219-G509-VAPI-INSERTION",
+      "failed_tests": 2,
+      "title": "Provider immutable observation message insertion",
+      "owner_agent": "/root/independent_batch_review",
+      "independent_reviewer": "/root/batch_build_review",
+      "status": "reviewed-source-candidate",
+      "next": "Reuse exact existing new_message_birth through immutable message children, drop before commit. No broad Conversation Writer.",
+      "runtime_fix_verified": false,
+      "matrix_verified": false
+    },
+    {
+      "id": "V219-G509-SIP-INSERTION",
+      "failed_tests": 9,
+      "title": "Pending SIP leg exact parent insertion",
+      "owner_agent": "/root",
+      "independent_reviewer": "/root/batch_build_review",
+      "status": "independent-review-pending",
+      "next": "Source trigger guard rejects pending leg audience birth without Writer or exact permit. Candidate adds fixed SipLeg NamespaceBirth and same accepted Session audience constraints, with original wire admission unchanged and three new boundary tests.",
+      "runtime_fix_verified": false,
+      "matrix_verified": false
+    },
+    {
+      "id": "V219-G509-EXPIRY-PROVENANCE",
+      "failed_tests": 1,
+      "title": "Scene expiry first revocation provenance",
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/independent_batch_review",
+      "status": "investigating",
+      "next": "Actual scene monotonic until passed while later UTC sample was 1.351ms before wall cutoff. Original source current. First retirement cause unproven; stage test-only winner provenance, retain current assertion.",
+      "runtime_fix_verified": false,
+      "matrix_verified": false
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -268,12 +268,21 @@
+ /// Every queued packet still requires its own current policy admission.
+ /// Exact original managed preparation identity; metadata, never an IO grant.
+ #[derive(Clone)]
+-pub(crate) struct ReplacementPreparationIdentity {runtime:Weak<ManagedParticipantSession>,nonce:u128}
++pub(crate) struct ReplacementPreparationIdentity {
++    // SAME retained runtime allocation/lifetime, without exposing its whole
++    // coordinator graph in downstream auto-trait proofs. No methods/IO grant.
++    runtime:Weak<dyn Send+Sync>,
++    // The runtime creates this immutable scoped realm once alongside its own
++    // conversation/session. This stays weak and is checked live, never cached.
++    realm:Option<crate::staged_streams::SourceFrameRealm>,
++    nonce:u128,
++}
+ impl ReplacementPreparationIdentity {
+     pub(crate) fn same(&self,other:&Self)->bool {self.nonce==other.nonce && Weak::ptr_eq(&self.runtime,&other.runtime) && self.runtime.strong_count()!=0}
+     pub(crate) fn matches_scope(&self,conversation:&ConversationId,session:&SessionId,realm:u128)->bool {
+-        self.runtime.upgrade().is_some_and(|runtime|runtime.conversation==*conversation && runtime.session==*session
+-            && runtime.frame_realm.as_ref().and_then(|value|value.handle().incarnation())==Some(realm))
++        let Some(_runtime)=self.runtime.upgrade() else{return false;};
++        self.realm.as_ref().and_then(|value|value.for_scope(conversation,session))
++            .and_then(|value|value.incarnation())==Some(realm)
+     }
+ }
+ pub(crate) struct PrivateVideoBindingLifetime {
+@@ -325,7 +334,13 @@
+     }
+ }
+ impl DeviceReplacementPreparation {
+-    pub(crate) fn preparation_identity(&self)->ReplacementPreparationIdentity {ReplacementPreparationIdentity {runtime:Arc::downgrade(&self.runtime),nonce:self.nonce}}
++    pub(crate) fn preparation_identity(&self)->ReplacementPreparationIdentity {
++        // Arc unsizing reuses the exact original control/data allocation. The
++        // temporary strong clone drops here; identity owns no runtime/Reader.
++        let runtime:Arc<dyn Send+Sync>=self.runtime.clone();
++        ReplacementPreparationIdentity {runtime:Arc::downgrade(&runtime),
++            realm:self.runtime.frame_realm.as_ref().map(|value|value.handle()),nonce:self.nonce}
++    }
+     pub fn intent(&self) -> &ParticipantReplacementMutation {
+         &self.intent
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
+@@ -255,3 +255,6 @@
+ 
+ #[path="public_video_warm/native_restore_witness_controls.rs"]
+ mod native_restore_witness_controls;
++
++#[path="public_video_warm/preparation_identity_controls.rs"]
++mod preparation_identity_controls;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/preparation_identity_controls.rs
+@@ -0,0 +1,39 @@
++//! Actual retained runtime identity, no fabricated identity/nonce/realm.
++use super::*;
++
++#[tokio::test]
++async fn opaque_preparation_identity_preserves_actual_runtime_scope_cancel_and_weak_retirement() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let mut foreign=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;
++        let ready=prepared(&mut room,&alice,&old,&source).await;
++        let(other_alice,other_old,other_source)=actors(&mut foreign).await;
++        let other=prepared(&mut foreign,&other_alice,&other_old,&other_source).await;
++        let identity=ready.root.preparation_identity();let cloned=identity.clone();
++        let repeated=ready.root.preparation_identity();let different=other.root.preparation_identity();
++        let realm=room.nodes[&old].video_realm.as_ref().and_then(SourceFrameRealm::incarnation).unwrap();
++        assert!(identity.same(&cloned)&&identity.same(&repeated));
++        assert!(!identity.same(&different));
++        assert!(identity.matches_scope(&room.conversation,&room.session,realm));
++        assert!(!identity.matches_scope(&foreign.conversation,&room.session,realm));
++        assert!(!identity.matches_scope(&room.conversation,&foreign.session,realm));
++        assert!(!identity.matches_scope(&room.conversation,&room.session,realm^1));
++        assert!(ready.reservation.is_current());
++        assert!(ready.root.cancel());
++        assert!(!ready.reservation.is_current(),"metadata identity cannot renew cancelled admission");
++        assert!(identity.same(&cloned)&&identity.matches_scope(&room.conversation,&room.session,realm),
++            "structural runtime identity is deliberately separate from current preparation authority");
++        let root=Arc::downgrade(&ready.root);
++        // No actual preparation or runtime is returned from this scope.
++        (identity,cloned,root,room.conversation.clone(),room.session.clone(),realm)
++    }).await;
++    let clean=room.close_originals().await.into_iter().all(|done|done);
++    let other_clean=foreign.close_originals().await.into_iter().all(|done|done);
++    drop(room);drop(foreign);
++    assert!(clean&&other_clean,"both original managed owners joined before final weak-lifetime oracle");
++    let(identity,cloned,root,conversation,session,realm)=match result {Ok(value)=>value,Err(error)=>resume_unwind(error)};
++    assert!(root.upgrade().is_none(),"identity cannot keep actual original preparation alive");
++    assert!(!identity.same(&cloned),"last retained runtime cannot be revived by erased Weak clones");
++    assert!(!identity.matches_scope(&conversation,&session,realm));
++}

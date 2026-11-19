@@ -12,6 +12,7 @@ mod movement;
 mod preflight;
 mod preparation;
 mod projection;
+mod public_video;
 mod readiness;
 mod start;
 mod webrtc;
@@ -54,6 +55,7 @@ pub(crate) struct PreparedReplacement {
     allocated: std::sync::Mutex<Option<Arc<allocation::AllocatedReplacement>>>,
     original_cleanup_facts: discard::OriginalPreparationFacts,
     public_discard: Arc<tokio::sync::Mutex<discard::OwnedDiscard>>,
+    public_video: Arc<public_video::Preparation>,
     failed_allocation:
         std::sync::OnceLock<Arc<connect_store::NativeReplacementAllocationUncertain>>,
 }
@@ -366,6 +368,11 @@ impl Runtime {
                 // Capture even a Read whose later registry/credential resolution
                 // refuses. Subsequent reads may only shorten this first cutoff.
                 begin_until_for_resolution.fetch_min(read.expires_at(), Ordering::AcqRel);
+                // Cold classification under this SAME actual original Read.
+                // This consults current private floors/partners as well as the
+                // frozen profile; no SQL is added to Core or packet callbacks.
+                let public_video_required = runtime.media.store
+                    .native_replacement_public_video_eligible(&read)?;
                 let entries = runtime.media.replacement_preparation_entries(&read)?;
                 let actor = runtime.media.store.revalidate(&credential).map_err(|error| {
                     tracing::debug!(target:"connect_service::canonical_replacement",stage="preparation-credential",code=%error.code,"Replacement preparation authority refused");
@@ -396,7 +403,7 @@ impl Runtime {
                 } else {
                     None
                 };
-                Ok((read, entries, principal, telephone_target))
+                Ok((read, entries, principal, telephone_target, public_video_required))
             });
             tokio::pin!(resolution);
             let resolved = tokio::select! { biased;
@@ -419,7 +426,7 @@ impl Runtime {
                     });
                 }
             };
-            let (read, entries, principal, telephone_target) = match resolved {
+            let (read, entries, principal, telephone_target, public_video_required) = match resolved {
                 Ok(value) => value,
                 Err(error) => { drop(roles); return Err(error); }
             };
@@ -443,17 +450,18 @@ impl Runtime {
             let lease = lease.clone();
             let result = store_call(move || store.begin_native_replacement_preparation_before(&lease, read, until)).await;
             match result {
-                Ok((attempt, read)) => Ok((attempt, read, entries, principal, telephone_target, roles)),
+                Ok((attempt, read)) => Ok((attempt, read, entries, principal, telephone_target, public_video_required, roles)),
                 Err(error) => { drop(roles); Err(error) }
             }
         }).await;
-        let (attempt, read, entries, principal, telephone_target, roles) = match begun {
-            Ok(value) => value,
-            Err(error) => {
-                self.abort_unstarted_replacement(lease, &error.code).await;
-                return Err(error);
-            }
-        };
+        let (attempt, read, entries, principal, telephone_target, public_video_required, roles) =
+            match begun {
+                Ok(value) => value,
+                Err(error) => {
+                    self.abort_unstarted_replacement(lease, &error.code).await;
+                    return Err(error);
+                }
+            };
         let deadline = tokio::time::Instant::now()
             + Duration::from_secs((expires - chrono::Utc::now().timestamp()).max(0) as u64);
         let invocation = ReplacementPreparationInvocation {
@@ -475,6 +483,7 @@ impl Runtime {
             // Historical cleanup metadata comes from this SAME original held
             // preparation. It grants no later admission or media permission.
             let facts = discard::OriginalPreparationFacts::capture(&invocation)?;
+            let public_video = public_video::Preparation::new(public_video_required);
             self.core
                 .prepare_staged_device_replacement_with_held(
                     &sid,
@@ -484,11 +493,11 @@ impl Runtime {
                     invocation.cancel.clone(),
                     &invocation,
                 )
-                .map(|handle| (handle, facts))
+                .map(|handle| (handle, facts, public_video))
         })();
         drop(roles);
         drop(invocation);
-        let (handle, original_cleanup_facts) = match actual {
+        let (handle, original_cleanup_facts, public_video) = match actual {
             Ok(value) => value,
             Err(error) => {
                 tracing::debug!(target:"connect_service::canonical_replacement",?error,"Actual managed Core preparation refused");
@@ -523,6 +532,7 @@ impl Runtime {
             failed_allocation: Default::default(),
             original_cleanup_facts,
             public_discard: Arc::new(tokio::sync::Mutex::new(discard::OwnedDiscard::Empty)),
+            public_video: Arc::new(public_video),
         });
         self.replacements
             .lock()
@@ -611,7 +621,18 @@ impl Runtime {
         retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
             let receipt = saved.receipt.clone();
-            store_call(move || store.record_native_replacement_prepared(&receipt))
+            let public_video = saved.public_video.clone();
+            let original_record = saved.origin.record_id().to_owned();
+            store_call(move || {
+                if public_video.required() {
+                    let (record, reservation) = store
+                        .record_native_replacement_prepared_with_public_video_intent(receipt)?;
+                    public_video.install(&original_record, reservation)?;
+                    Ok(record)
+                } else {
+                    store.record_native_replacement_prepared(&receipt)
+                }
+            })
         })
         .await?;
         saved.recorded.store(true, Ordering::Release);
@@ -774,7 +795,27 @@ impl Runtime {
                 if let Some(telephone) = &telephone {
                     let _ = self.abandon_telephone_submission(telephone).await;
                 }
-                if newly_cancelled {
+                let original_public_cleanup = saved.public_video.required()
+                    && !saved.handle.is_committed()
+                    && saved
+                        .allocated
+                        .lock()
+                        .ok()
+                        .and_then(|a| a.clone())
+                        .is_some_and(|a| a.webrtc.is_some());
+                if original_public_cleanup {
+                    if let Err(error) = self.finish_original_public_video_abort(&saved).await {
+                        tracing::debug!(target:"connect_service::canonical_replacement",record=%record,code=%error.code,
+                            "Original public candidate cleanup/OLD restoration remains owned");
+                        if self.stop.is_cancelled() || error.code == "cleanup-incomplete" {
+                            self.retirement_failed.store(true, Ordering::Release);
+                            return; // registry retains the unresolved ORIGINAL Root
+                        }
+                        tokio::time::sleep(Duration::from_millis(20)).await;
+                        continue;
+                    }
+                }
+                if newly_cancelled || original_public_cleanup {
                     let _ = self.record_replacement(&saved).await;
                     let allocated = saved.allocated.lock().ok().and_then(|a| a.clone());
                     if let Some(allocated) = allocated {

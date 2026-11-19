@@ -1,0 +1,103 @@
+{
+  "format": "connect/g6-058-compile-frontier-checkpoint/1",
+  "updated_at": "2026-11-16T12:31:43.076953+00:00",
+  "checkpoint": 491,
+  "dependency_patch_generation": 487,
+  "source_lock_sha256": "6ded7e1191ed79ddea9d68e88c30e0f994143969337d0c459ba17c9c5ac881ea",
+  "status": "SCRIPT_COMPONENTS_PASS_RUST_COMPILE_FAILED_CORRECTIONS_APPLIED_UNRUN",
+  "summary": "Actualg490 passes206Node+55Python, zero skips; overallFAILED before any Rust tests. Three compile blocker classes identified: shared helper visibility, finite auto-trait compiler depth, and Store middle reexports. Reviewed corrections applied via normal487, custody independently verified; fresh compile sufficiency unproven. Unsupported aggregate Cargo flag is a separate Root runner defect, removed for the successor with original feature union retained. Pooled Native-to-RTC actual decoded proof remains required. Matrix stays1/32; no new matrix launched.",
+  "evidence": {
+    ".local/gate-6/v219-g490-coherent-components-root/component-result.json": "20b71f4a1c8904448f808025940592966e625968081ba214e8ce17f30713f855",
+    ".local/gate-6/v219-g490-coherent-components-root/root-original-join.json": "b43e4eefff1ba971ce886ca7c093ddd620d52c07aafc0874df5d72e07db4c342",
+    ".local/gate-6/v219-g490-components-independent-fixture-review/receipt.json": "f8124b376e5e508c3cc82d150ec83f76744da1f97bc74dec38ae8554be24efd1",
+    ".local/gate-6/core-metadata-lock-scope-independent-fixture-review/receipt.json": "6a1b02a5e70f8d1d628bbaf939b31622c9f9fe34e1a14f459d622d44a1ebf92f",
+    ".local/gate-6/core-auto-trait-recursion-budget-independent-root-review/receipt.json": "a8f11ffd38fb14c0c2cfed945464fcd9baefde627a1f0eefc011e20c6dbabbdd",
+    ".local/gate-6/store-public-video-reexports-independent-fixture-review/receipt.json": "3d458eca401184144c95da70ca4852e04bb401567c420cd8d74ba6a37a56e5d9",
+    ".local/gate-6/store-public-video-reexports-independent-v198-review/receipt.json": "35ac7e9c55946be0bc82998f4e8be1f07fe4d30f8254e1101f1d2978b3f61502",
+    ".local/gate-6/v219-g491-compile-corrections-root/normal487-runtime/receipt.json": "57f72267c525e9330ae03f12b9b156d415652b809748af7572084e8ae1d675e2",
+    ".local/gate-6/v219-g491-compile-corrections-root/root-original-join.json": "4edcdf30d4e1d495addd90d0158007faece7284eb657c2efc7ea9e05acb59a12",
+    ".local/gate-6/v219-g491-preparation-independent-fixture-review/receipt-normal487.json": "a20844a20cacc9640aab16d4b851ccf1589f5292c8e1c2a5245e15313773eb61"
+  },
+  "actual_g490": {
+    "passed": false,
+    "node": {
+      "passed": 206,
+      "failed": 0,
+      "skipped": 0
+    },
+    "python": {
+      "passed": 55,
+      "failed": 0,
+      "skipped": 0
+    },
+    "rust_tests_run": false,
+    "native_compile": {
+      "E0425_missing_helper": 30,
+      "E0275_trait_depth": 5
+    },
+    "both_representative_compiles": {
+      "Core_errors": 35,
+      "Store_middle_export_E0432": 1
+    },
+    "production_compile": {
+      "E0425": 26,
+      "E0275": 5,
+      "Store_E0432": 1
+    },
+    "runner_command_failures": {
+      "unsupported_keep_going": 2
+    },
+    "all_original_children_reaped_groups_absent": 14,
+    "root_pid": 85309,
+    "root_pgid": 85309,
+    "tool_session": 6073,
+    "root_natural_exit_code": 1,
+    "root_pid_and_group_absent": true,
+    "source_hash_modes_unchanged": 6407
+  },
+  "corrections": [
+    {
+      "id": "V219-CORE-METADATA-HELPER-VISIBILITY",
+      "state": "applied-unverified",
+      "change": "Existing helper pub(super), parentprivate import; WouldBlock/Poison classification unchanged."
+    },
+    {
+      "id": "V219-CORE-AUTO-TRAIT-DEPTH",
+      "state": "applied-unverified",
+      "change": "Compiler-suggested static recursion_limit256 for closed nominal Send graph; no unsafeSend/erased bound/runtime change; no further automatic increase."
+    },
+    {
+      "id": "V219-STORE-PUBLIC-VIDEO-REEXPORTS",
+      "state": "applied-unverified",
+      "change": "Complete middle module link for10already-public leaf and crate-root SPI names; no constructor/bound/grant change."
+    }
+  ],
+  "normal487": {
+    "passed": true,
+    "root_pid": 86327,
+    "tool_session": 62495,
+    "root_natural_exit_code": 0,
+    "root_pid_absent": true,
+    "root_pgid_captured": false,
+    "original_commands_natural_zero_joined": 2,
+    "preserved_complete_485_entries": 5151,
+    "old_mtimes_restored": 4261,
+    "upstream_afterimages": 3
+  },
+  "required_next": [
+    "Strengthen same Native-to-RTC test with unrelated second Session on same two Native peers, independently review and compile",
+    "Fresh coherent affected unit/build batch retaining same featureunion without unsupportedflag",
+    "Actual decoded handoff/abort/Readerrelease SQL/renderer recovery and pooled strictNativeF proof",
+    "Local ARM, release and preflight before full32"
+  ],
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "historical_results_unchanged": true
+}

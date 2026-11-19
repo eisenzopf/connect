@@ -59,21 +59,71 @@ pub(crate) fn action(request: &Envelope) -> Result<Option<OperationAction>> {
         _ => return Ok(None),
     }))
 }
+/// Current original operation plus its specialized metadata projection. Neither
+/// field grants media permission or proves a physical phase on its own.
+pub(crate) struct OperationObservation {
+    pub record: OperationRecord,
+    intent: Option<connect_protocol::webrtc_video_receive_reservation::Intent>,
+    phase: Option<connect_protocol::webrtc_public_video_phase::Phase>,
+}
+impl OperationObservation {
+    pub(crate) fn project_public_video(&self, payload: &mut serde_json::Value) {
+        if let Some(intent) = &self.intent {
+            payload["webrtc_video_receive_reservation"] = serde_json::json!(intent);
+        }
+        if let Some(phase) = &self.phase {
+            payload["webrtc_public_video_phase"] = serde_json::json!(phase);
+        }
+    }
+}
 impl Service {
     pub(crate) async fn canonical_operation_held(
         &self,
         credential: String,
         claim: connect_store::PeerOperationClaim,
         authority: Option<StoreInvocationAuthority>,
-    ) -> Result<OperationRecord> {
+    ) -> Result<OperationObservation> {
         let store = self.store.clone();
-        let result = tokio::task::spawn_blocking(move || match authority {
-            Some(authority) => store.execute_operation_action_with_peer(
-                &credential,
-                claim.action,
-                authority.peer_guard().ok_or_else(Error::forbidden)?,
-            ),
-            None => store.execute_operation_action_claim(&credential, claim),
+        let result = tokio::task::spawn_blocking(move || {
+            let get = matches!(&claim.action, OperationAction::Get { .. });
+            let record = match &authority {
+                Some(authority) => store.execute_operation_action_with_peer(
+                    &credential,
+                    claim.action.clone(),
+                    authority.peer_guard().ok_or_else(Error::forbidden)?,
+                ),
+                None => store.execute_operation_action_claim(&credential, claim.clone()),
+            }?;
+            if !get || record.command_type != "connection.replace" {
+                return Ok(OperationObservation {
+                    record,
+                    intent: None,
+                    phase: None,
+                });
+            }
+            // This is a control-plane projection only. Under signed dispatch,
+            // reuse the SAME original operation.get Read; do not nest another
+            // Reader behind a queued Writer or query phases on the packet path.
+            let snapshot = match &authority {
+                Some(authority) => store.native_replacement_public_video_snapshot_with_peer(
+                    &credential,
+                    &claim,
+                    authority.peer_guard().ok_or_else(Error::forbidden)?,
+                ),
+                None => store.native_replacement_public_video_snapshot(&credential, claim),
+            }?;
+            if snapshot.operation.record_id != record.record_id
+                || snapshot.operation.operation_id != record.operation_id
+            {
+                return Err(Error::forbidden());
+            }
+            // A standalone call may have observed a newer state between reads.
+            // Return the record from the SAME snapshot as its phase metadata.
+            Ok(OperationObservation {
+                record: snapshot.operation,
+                intent: snapshot.intent,
+                phase: snapshot.phase,
+            })
         })
         .await
         .map_err(|_| Error::storage())?;

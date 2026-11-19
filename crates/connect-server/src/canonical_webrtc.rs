@@ -391,7 +391,7 @@ async fn worker(
         let sdp=bounded_read(&stop,deadline,||original_sdp(&store,&origin,&initial)).await?;
         // Keep allocation owned even when the preparing caller goes away.
         binding.start_peer(config.clone(),PeerRole::Answerer).map_err(|_|engine_error())?;
-        let peer=binding.peer(deadline).await.map_err(|_|engine_error())?;
+        let mut peer=binding.signaling_control(deadline).await.map_err(|_|engine_error())?;
         if stop.is_cancelled(){return Err(Error::new("cancelled","WebRTC preparation cancelled"));}
         let answer=tokio::select! {
             biased;

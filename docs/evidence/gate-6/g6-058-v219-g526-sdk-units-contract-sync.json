@@ -1,0 +1,56 @@
+{
+  "format": "connect/g6-058-sdk-retry-unit-and-contract-frontier/1",
+  "updated_at": "2026-11-19T13:29:27.619627+00:00",
+  "summary": "The source505 affected regression batch G519 passed2206/2206 (1945Rust/206Node/55Python), with all6builds/10inventories/shipping and32 natural childclosures. Subsequent real-media diagnostics proved original replacement status reads were refused503/authorization/authority_unavailable; bounded GET-only retry is now applied and independently reviewed. CurrentSDKbuild passes; broader71browser/affectedNode modules completed1198tests:1195passed,3failed. The new abort test used a server-emission milestone while the mock write was still pending. Its corrected exact read-rejection milestone plus paired pending-write retirement negative now pass15/15; production write-retirement semantics and original media assertions remain. Two remaining broader failures expose a real contract-sync gap: workspace379vectors/newpublicBschema versus older generated/upstreamschema354, and missing contains/minContains/maxContains plus printableASCII support in Rust/browser fixedvalidators/generator. Batch agent is implementing one registered upstream506 patch and matching generator/browser/test updates with strict role counts, exactschema equality and allcurrentvectors. Epoch reviews that contractbatch; Root prepares/builds/tests after integration. Five fixture asset dependency routes are alreadyfixed with15HTTPtests; bounded failurelogging10tests pass. All3 decoded-media representatives still require current success (later2 notrun after the first failure), followed by strictFirefox3, original finalqualification scopes, localARM11/releases/preflight. Underlying source of temporary authority unavailability remains unproven; the SDK fix handles its existing recognized read-recovery policy. Last fullmatrix staysv218:1/32cells,399/432checks. No component pass regrades a cell; G6-054 remains parked; localMac/nativeARM only.",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "source_generation": 505,
+  "upcoming_generation": 506,
+  "source_lock_sha256": "3aa5fa83fd1b8b1f3559de167f5f427415c458a19c27a1ccf1d1ba536be10378",
+  "sdk_retry": {
+    "candidate": {
+      "path": ".local/gate-6/g524-original-status-get-bounded-retry-candidate/manifest.json",
+      "sha256": "dade04c47dfce4aeab566b88807ad09fecd0cb4784764b78c8ccde76d2500978"
+    },
+    "review": {
+      "path": ".local/gate-6/g524-original-status-get-bounded-retry-independent-batch-review/receipt.json",
+      "sha256": "7687d2dd5a0fcbda673fac77841d046c680a88cfea827ad85d1516cd8dea348e"
+    },
+    "unit_result": {
+      "path": ".local/gate-6/v219-g525-sdk-status-retry-unit-root/result.json",
+      "sha256": "a5377b4711c389eed200e2a077d627cc5bdc70d38652d05319064ced451a98b7"
+    },
+    "unit_join": {
+      "path": ".local/gate-6/v219-g525-sdk-status-retry-unit-root/root-original-join.json",
+      "sha256": "c3e8e316c9081ea7b912cf2c1a0a39c46a3e34c2bd56061fb400740d20130f25"
+    },
+    "unit_audit": {
+      "path": ".local/gate-6/v219-g525-actual-sdk-unit-independent-audit/receipt.json",
+      "sha256": "ab07b7229f0ba89682226de8b900da88eab9cf83c9c7144285d75f4e2c79188d"
+    },
+    "broad_observed": {
+      "tests": 1198,
+      "passed": 1195,
+      "failed": 3,
+      "skipped": 0
+    },
+    "corrected_abort_milestone": {
+      "path": ".local/gate-6/v219-g526-status-abort-unit-root/receipt.json",
+      "sha256": "950cc24751e90eb6b7da9bfd92aeeba2b70c74cb514ac2daccd38a27fd97af79"
+    },
+    "corrected_abort_passed": 15
+  },
+  "contract_gap": {
+    "expected_vectors": 379,
+    "old_generated_vectors": 354,
+    "required_vocabulary": [
+      "contains",
+      "minContains",
+      "maxContains",
+      "^[!-~]+$"
+    ],
+    "status": "CAUSE_CONFIRMED_IMPLEMENTATION_PENDING_VERIFICATION",
+    "acceptance_changed": false
+  },
+  "mobile_revision": 197
+}

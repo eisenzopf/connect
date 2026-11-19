@@ -504,9 +504,25 @@ RTP timestamps and decoder epochs are not changed.
 
 An explicit private-consultation successor records its original parent instead
 of public cuts. An unclassified closed native audience refuses before publication.
-WebRTC records `unsupported/non-native-adapter` and keeps its existing conservative
-observation boundary. These historical facts grant neither media authority nor
+For this native-sequence boundary, WebRTC records `unsupported/non-native-adapter`;
+the optional public B contract uses the separate original phases below. These historical facts grant neither media authority nor
 reliable Data delivery. Every operation read and actual send retains its current
 policy and original lifetime checks. Any post-Core attachment failure retains the
 original Known capture and stops/reconciles its exact target; it cannot become a
 completed ready cut.
+
+
+### Original public video B phases
+
+The optional WebRTC public B path uses separate closed metadata profiles
+`connect/webrtc-public-video-reservation/1` and
+`connect/webrtc-public-video-phase/1`. It does not relabel the independent native
+sequence-cut `native_activation` boundary. The original signed offer and
+current-authorized operation status retain the same logical IDs; no client JSON
+can manufacture a native resource/cut/lease from a matching shape. The closed
+public Ready marker is `connect-replacement-public-video-ready-v1` and contains
+B-only decoded video evidence, not audio readiness. See
+[the normative public video contract](webrtc-public-video.md), including
+omitted prebinding terminal phase, required nullable key counts, opaque cut IDs,
+independent generations and atomic Activated publication. HTTP has no native
+readiness command; schema conformance is not runtime or media qualification.

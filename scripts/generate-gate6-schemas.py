@@ -143,11 +143,34 @@ def build():
  definitions['StreamActiveSpeaker']['required']=['active_participant','strm_id','changed_at']
  definitions['OperationState']={'enum':STATES}
  definitions['OperationUpdated']=obj({'operation_id':ref('Identifier'),'record_id':ref('Identifier'),'subscription_record_id':ref('Identifier'),'command_type':{'type':'string','minLength':1,'maxLength':128},'expected_revision':{'anyOf':[{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},{'type':'null'}]},'state':ref('OperationState'),'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'result':{},'problem':{'type':'object'}},['operation_id','state','revision'])
+ # Closed optional public-video metadata. These are source schemas, not native
+ # proof. Runtime additionally checks exact original tuple/nonce/count relations.
+ public_video=json.loads((ROOT/'contracts/schemas/webrtc-public-video-1.schema.json').read_text())
+ readiness=json.loads((ROOT/'contracts/schemas/replacement-decoder-readiness-1.schema.json').read_text())
+ def prefixed(value,prefix):
+  if isinstance(value,list):return [prefixed(v,prefix) for v in value]
+  if isinstance(value,dict):return {k:prefixed(v,prefix) for k,v in value.items()}
+  if isinstance(value,str) and value.startswith('#/$defs/'):return '#/$defs/'+prefix+value[len('#/$defs/'):]
+  return value
+ definitions.update({'WebRtcPublicVideo'+k:prefixed(v,'WebRtcPublicVideo') for k,v in public_video['$defs'].items()})
+ definitions.update({'ReplacementReadiness'+k:prefixed(v,'ReplacementReadiness') for k,v in readiness['$defs'].items()})
+ definitions['OperationUpdated']['properties'].update(webrtc_video_receive_reservation=ref('WebRtcPublicVideoIntent'),webrtc_public_video_phase=ref('WebRtcPublicVideoPhase'))
+ basic=lambda profile:{**obj({'profile':{'const':profile},'operation_record_id':ref('Identifier')}),'additionalProperties':False}
+ definitions['ConnectionOffer']['properties']['webrtc_video_receive_reservation']=ref('WebRtcPublicVideoIntent')
+ definitions['ConnectionOffer']['properties']['replacement_preparation']={'oneOf':[basic('connect-replacement-preparation-v1'),basic('connect-replacement-media-v1'),ref('ReplacementReadinessChallengeMarker'),ref('ReplacementReadinessReadyMarker'),ref('WebRtcPublicVideoReadyMarker')]}
+ roles=[]
+ for kind,direction in [('audio','sendrecv'),('video','sendrecv'),('video','recvonly')]:
+  roles.append({'contains':{'type':'object','required':['kind','direction'],'properties':{'kind':{'const':kind},'direction':{'const':direction}}},'minContains':1,'maxContains':1})
+ definitions['ConnectionOffer'].setdefault('allOf',[]).append({'if':{'required':['webrtc_video_receive_reservation']},'then':{'required':['replacement_preparation'],'properties':{'substrate':{'const':'websocket+webrtc'},'streams_offered':{'minItems':3,'maxItems':3,'allOf':roles}}}})
+ definitions['ConnectionOffer']['allOf'].append({'if':{'required':['replacement_preparation'],'properties':{'replacement_preparation':{'required':['profile'],'properties':{'profile':{'const':'connect-replacement-public-video-ready-v1'}}}}},'then':{'required':['webrtc_video_receive_reservation']}})
  definitions['OperationUpdated']['allOf']=[{'if':{'properties':{'state':{'not':{'const':'completed'}}}},'then':{'not':{'required':['result']}}}]
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['command_type'],'properties':{'command_type':{'enum':['session.consult','session.consult.return','session.handoff','connection.replace']}}},'then':{'required':['record_id','expected_revision'],'properties':{'expected_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER-1}}}})
  # A current-authorized server reconciliation status binds the callback to
  # its original explicit subscription without exposing the private engine plan.
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['command_type'],'properties':{'command_type':{'const':'stream.reconcile'}}},'then':{'required':['record_id','subscription_record_id','expected_revision'],'properties':{'expected_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER-1}}}})
+ definitions['OperationUpdated']['allOf'].append({'if':{'anyOf':[{'required':['webrtc_video_receive_reservation']},{'required':['webrtc_public_video_phase']}]},'then':{'required':['command_type','record_id','expected_revision'],'properties':{'command_type':{'const':'connection.replace'}}}})
+ definitions['OperationUpdated']['allOf'].append({'if':{'required':['webrtc_public_video_phase']},'then':{'required':['webrtc_video_receive_reservation']}})
+ definitions['OperationUpdated']['allOf'].append({'if':{'required':['webrtc_public_video_phase'],'properties':{'webrtc_public_video_phase':{'required':['phase'],'properties':{'phase':{'const':'activated'}}}}},'then':{'required':['result'],'properties':{'state':{'const':'completed'},'result':{'type':'object','required':['activation_state'],'properties':{'activation_state':{'const':'ready'}}}}}})
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['subscription_record_id']},'then':{'required':['command_type'],'properties':{'command_type':{'const':'stream.reconcile'}}}})
  definitions['ReconciliationHint']=obj({'operation_id':ref('Identifier'),'record_id':ref('Identifier'),'command_type':{'const':'stream.reconcile'},'expected_revision':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER-1},'state':{'const':'completed'},'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'subscription_record_id':ref('Identifier'),'stream_revision':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER},'journal_hint':{'const':True},'resources_changed':{'const':False}})
  definitions['ReconciliationHint']['additionalProperties']=False
@@ -406,6 +429,54 @@ def main():
   elif label=='endpoint':p['details']['endpoint_id']='untrusted-endpoint'
   else:p['details']['ready']=True
   vectors.append(dict(id='ice-restart-'+label,scope='schema-only',valid=False,envelope=invalid))
+ # Public-video structural vectors only. Cross-field/native/authority matching
+ # is separately covered by typed Protocol/Store/Host controls.
+ intent={'profile':'connect/webrtc-public-video-reservation/1','phase':'intent','reservation_id':'original-reservation','nonce':'intent-original','preview_stream_id':'camera-a','preview_role':'receive','public_stream_id':'public-b'}
+ binding={'stream_id':'public-b','preview_stream_id':'camera-a','mid':'2','stream_generation':3,'physical_writer_incarnation':'writer-original','connection_generation':7,'primary_ssrc':0,'payload_type':96,'clock_rate_hz':90000,'codec':'vp8'}
+ base=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-operation.updated')
+ base['payload'].update(command_type='connection.replace',record_id='record-original',expected_revision=3,state='preparing',webrtc_video_receive_reservation=copy.deepcopy(intent))
+ common={'profile':'connect/webrtc-public-video-phase/1','reservation_id':'original-reservation','operation_record_id':'record-original','operation_id':base['payload']['operation_id'],'target_connection_id':'target-original','target_generation':2,'binding':binding}
+ phase_values={}
+ for phase in ['negotiated-never-fed','cut-bound-post-f','decoded-ready','activated','discarded']:
+  value={**copy.deepcopy(common),'phase':phase}
+  if phase in ['cut-bound-post-f','decoded-ready','activated']:value.update(source_cut_id='cut-original',public_readiness={'nonce':'public-original','decoder_startup':'fresh-receiver-first-decoded-frame'})
+  if phase=='discarded':value.update(source_cut_id=None,reason='cancelled')
+  phase_values[phase]=value
+  item=copy.deepcopy(base);item['payload']['webrtc_public_video_phase']=copy.deepcopy(value)
+  if phase=='activated':item['payload'].update(state='completed',result={'activation_state':'ready'})
+  if phase=='discarded':item['payload']['state']='cancelled'
+  vectors.append(dict(id='public-video-phase-'+phase,scope='schema-only',valid=True,envelope=item))
+ def phase_negative(label,change):
+  item=copy.deepcopy(base);item['payload']['webrtc_public_video_phase']=copy.deepcopy(phase_values['cut-bound-post-f']);change(item)
+  vectors.append(dict(id='public-video-phase-refuses-'+label,scope='schema-only',valid=False,envelope=item))
+ phase_negative('ordinal',lambda v:v['payload']['webrtc_public_video_phase'].update(source_frame_ordinal=9007199254740992))
+ phase_negative('numeric-cut',lambda v:v['payload']['webrtc_public_video_phase'].update(source_cut_id=37))
+ phase_negative('unicode-mid',lambda v:v['payload']['webrtc_public_video_phase']['binding'].update(mid='é'))
+ phase_negative('payload-type',lambda v:v['payload']['webrtc_public_video_phase']['binding'].update(payload_type=128))
+ phase_negative('false-activation-state',lambda v:v['payload']['webrtc_public_video_phase'].update(phase='activated'))
+ phase_negative('missing-intent',lambda v:v['payload'].pop('webrtc_video_receive_reservation'))
+ phase_negative('nonreplacement',lambda v:v['payload'].update(command_type='session.handoff'))
+ phase_negative('intent-transport-claim',lambda v:v['payload']['webrtc_video_receive_reservation'].update(mid='2'))
+ phase_negative('fractional-generation',lambda v:v['payload']['webrtc_public_video_phase']['binding'].update(stream_generation=1.5))
+ def stopped_activation(v):
+  v['payload'].update(state='completed',result={'activation_state':'stopped'});v['payload']['webrtc_public_video_phase']['phase']='activated'
+ phase_negative('stopped-activation',stopped_activation)
+ item=copy.deepcopy(base);item['payload']['webrtc_public_video_phase']=copy.deepcopy(phase_values['discarded']);item['payload']['webrtc_public_video_phase'].pop('source_cut_id')
+ vectors.append(dict(id='public-video-discard-requires-explicit-cut-or-null',scope='schema-only',valid=False,envelope=item))
+ ready=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-connection.offer')
+ ready['payload'].update(substrate='websocket+webrtc',webrtc_video_receive_reservation=copy.deepcopy(intent),streams_offered=[{'id':'audio','kind':'audio','direction':'sendrecv','codec_preferences':['pcmu']},{'id':'camera-a','kind':'video','direction':'sendrecv','codec_preferences':['vp8']},{'id':'public-b','kind':'video','direction':'recvonly','codec_preferences':['vp8']}],replacement_preparation={'profile':'connect-replacement-public-video-ready-v1','operation_record_id':'record-original','public_video_readiness':{'reservation_id':'original-reservation','source_cut_id':'cut-original','nonce':'public-original','binding':copy.deepcopy(binding),'decoded_frames':1,'decoded_keyframes':None,'decoder_startup':'fresh-receiver-first-decoded-frame'}})
+ vectors.append(dict(id='public-video-ready-original-three-roles-null-native-keycounter',scope='schema-only',valid=True,envelope=copy.deepcopy(ready)))
+ for label in ['missing-keycounter','zero-frames','audio','authority','extra-marker','missing-intent','wrong-role','numeric-cut']:
+  item=copy.deepcopy(ready);marker=item['payload']['replacement_preparation'];observation=marker['public_video_readiness']
+  if label=='missing-keycounter':observation.pop('decoded_keyframes')
+  elif label=='zero-frames':observation['decoded_frames']=0
+  elif label=='audio':observation['audio']={'decoded_samples':1}
+  elif label=='authority':observation['binding']['source_exclusion_enforced']=True
+  elif label=='extra-marker':marker['ready']=True
+  elif label=='missing-intent':item['payload'].pop('webrtc_video_receive_reservation')
+  elif label=='wrong-role':item['payload']['streams_offered'][2]['direction']='sendrecv'
+  else:observation['source_cut_id']=9007199254740992
+  vectors.append(dict(id='public-video-ready-refuses-'+label,scope='schema-only',valid=False,envelope=item))
  directory=ROOT/'contracts/uctp-vectors';directory.mkdir(exist_ok=True)
  emit(directory/'gate6-envelope.json', json.dumps(dict(format=1,scope='Schema vectors; no runtime/authorization/media claim.',vectors=vectors),indent=2)+'\n')
  emit(directory/'operation-transitions.json', json.dumps(dict(format=1,states=STATES,edges=EDGES,terminal=['completed','cancelled','failed'],conditional_edges={'interrupted->preparing':'Only after attributed reconciliation proves re-dispatch safe.','unknown->completed':'Requires attributed authorized reconciliation evidence.','unknown->cancelled':'Requires attributed authorized reconciliation evidence.','unknown->failed':'Requires attributed authorized reconciliation evidence.'}),indent=2)+'\n')

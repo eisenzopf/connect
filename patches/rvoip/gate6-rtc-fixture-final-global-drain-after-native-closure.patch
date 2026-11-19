@@ -1,0 +1,25 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/browser.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/browser.rs
+@@ -265,7 +265,7 @@
+         }).await.unwrap();
+     }
+     // Every original owner is joined before returning or rethrowing the work panic.
+-    async fn close(&mut self, s: &Scene, mode: &str) -> bool {
++    async fn close(&mut self, _s: &Scene, mode: &str) -> bool {
+         trace_stage(mode, "cleanup-primer-natural-join");
+         let pump = self.stop_primer().await;
+         if let Some(p) = &self.pending { p.cancel(); }
+@@ -279,9 +279,10 @@
+         trace_stage(mode, "cleanup-remote-rtc-peer");
+         let remote = match &self.remote { Some(peer) => peer.close().await.is_ok(), None => true };
+         self.owner.take();
+-        trace_stage(mode, "cleanup-original-core-lifecycle-drain");
+-        let lifecycle = s.core.orch.drain_connection_lifecycle_tasks().await.is_ok();
+-        pump && original && remote && lifecycle
++        // Scene.stop owns the terminal global drain AFTER all original Native
++        // physical owners close and their exact peer/adapter counts reach zero.
++        trace_stage(mode, "cleanup-return-to-original-native-scene-stop");
++        pump && original && remote
+     }
+ }
+ 

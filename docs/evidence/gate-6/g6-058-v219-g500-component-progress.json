@@ -1,0 +1,61 @@
+{
+  "format": "connect/g6-058-coherent-component-checkpoint/1",
+  "updated_at": "2026-11-16T15:04:14.715789+00:00",
+  "checkpoint": 500,
+  "status": "STORE437_OF438_ALL6CORRECTIONS_AND22NEW_PASS_COMPILER_AND_SCENE_EXPIRY_UNRESOLVED",
+  "summary": "g500 completed FAILED: Store437/438, all six previous failures and all22new cases pass; one retained scene-expiry assertion fails before UTC cutoff. Separate unchanged isolated retry passes, not a regrade or cause proof. Protocol87+Node206+Python55 pass. Five Cargo JSON builds and default server check each fail with23SIP finite auto-trait compiler-depth errors; other Rust suites and actual media do not run. Root99926 and18children close naturally; source6424/prepared666/two original binaries independently audited. Selected SIP-only compiler budget256 patch reviewed/staged, zero runtime/API change. Failure-only cfg(test) epoch diagnostics must be lazy after assertion failure; preassert logging candidate held to avoid masking timing. Remaining epoch cause unresolved. Last full matrix v218 remains1/32 cells,399/432 checks.",
+  "evidence": {
+    ".local/gate-6/v219-g500-coherent-components-root/component-result.json": "e3f5e0116a779ef5aed00e62885201f97fb343b7cd95ec4fe3b3f5d218cdb0bd",
+    ".local/gate-6/v219-g500-coherent-components-root/root-original-join.json": "7079056823d217a87f53de78a85aa6489334ecd03885c3559a8e92b0936f22fb",
+    ".local/gate-6/v219-g500-coherent-components-root/compiler-error-index.json": "63fcad40bff01f1338995a94ace54ecc8e4737e2907a10dd42f80de1dcee137e",
+    ".local/gate-6/v219-g500-coherent-components-independent-media-audit/receipt.json": "224fbee9008ad5dff09dc407a25accd1b36fcd8ca2b10359fc2777b499502612",
+    ".local/gate-6/v219-g500-store-scene-diagnostic-r1/result.json": "211011c61a790c2341727c11b061002663fd920b7517a57450cdb37ac21d1938",
+    ".local/gate-6/v219-g500-store-scene-diagnostic-r1/root-original-join.json": "3de922ab37282cad35588198dc2d9b87308c5e8c4d8b96e5d2373bf646fe63e9",
+    ".local/gate-6/sip-observed-auto-trait-budget-v219-candidate/manifest.json": "798de5d6d094ee09e556a0661585d219ad7971ea91707cae0de00d7c0297ca1d",
+    ".local/gate-6/sip-observed-auto-trait-budget-independent-v198-review/receipt.json": "a6ae0d11946530410f613be11ba4a69d06bfd233b336027e613f73830382d976",
+    ".local/gate-6/component-joined-build-failfast-v219-candidate/manifest.json": "52394dfc4ec341772573aa310bbadd0b4faf9a830ccfa9b1ad2fb42aac885945",
+    ".local/gate-6/component-joined-build-failfast-independent-v198-review/receipt.json": "a446e460039d4527f23637169955ef7590c13b34b90efcfd9d1a4a1f8332faee",
+    ".local/gate-6/g500-scene-epoch-independent-v198-causal-review/receipt.json": "1961344b9aacf9e53397c85aa01588e346801dbf454bf8a3c035246fbef13d90",
+    ".local/gate-6/scene-epoch-scalar-diagnostics-independent-v198-review/hold-v1-preassert-formatting.json": "07aaf597e259c3f7a777a66df70092e9b313a3dc500370d3a7a0396f1e42cc42"
+  },
+  "actual": {
+    "whole_passed": false,
+    "protocol_passed": 87,
+    "node_passed": 206,
+    "python_passed": 55,
+    "store_passed": 437,
+    "store_failed": 1,
+    "store_selected": 438,
+    "store_ignored": 0,
+    "all_six_previous_failures_pass": true,
+    "all22new_store_cases_pass": true,
+    "other_rust_and_media_run": false,
+    "root_exit_code": 1,
+    "all_original_child_joins": 18,
+    "source_and_binaries_unchanged": true
+  },
+  "scene_failure": {
+    "selector": "connection_control::tests::replacement_sources::start::scene_snapshot::private_scene_delivery_uses_real_original_source_without_primary_or_observer_sql",
+    "assertion": "crate::now() >= scene_cutoff",
+    "cause": "unresolved; early epoch invalidation or clock-domain expiry not yet distinguished",
+    "unchanged_retry_passed": true,
+    "historical_regrade": false,
+    "assertion_or_wait_relaxed": false
+  },
+  "next": [
+    "Normal prepare reviewed SIP-only compiler budget256 (not runtime or product acceptance)",
+    "Lazy assertion-failure-only epoch scalar diagnostics; actual cause before a repair",
+    "Fresh affected compilation/regression batch; fail early on failed dependency builds",
+    "Three actual decoded-media handoffs, strictFirefox3, completequalification, nativeARM/releases/preflight"
+  ],
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_revision": 185
+}

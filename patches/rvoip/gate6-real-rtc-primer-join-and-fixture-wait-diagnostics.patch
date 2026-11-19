@@ -1,0 +1,408 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/browser.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/browser.rs
+@@ -41,7 +41,10 @@
+     controller: Option<Arc<StreamController>>,
+     received: Option<Arc<dyn TrackRemote>>,
+     pump_stop: CancellationToken,
+-    pump: Option<tokio::task::JoinHandle<CoreResult<()>>>,
++    pump: Option<tokio::task::JoinHandle<CoreResult<u16>>>,
++    source_track: Option<Arc<dyn TrackLocal>>,
++    source_ssrc: Option<u32>,
++    source_last_sequence: u16,
+ }
+ impl Browser {
+     fn new() -> Self {
+@@ -51,12 +54,14 @@
+             owner: None, adapter: CanonicalWebRtcAdapter::new(), binding: None,
+             server: None, remote: None, controller: None, received: None,
+             pump_stop: CancellationToken::new(), pump: None,
++            source_track: None, source_ssrc: None, source_last_sequence: 0,
+         }
+     }
+     fn pending(&self) -> &Arc<DeviceReplacementPreparation> { self.pending.as_ref().unwrap() }
+     fn id(&self) -> ConnectionId { self.pending().intent().replacement.clone() }
+     fn peer(&self) -> Arc<PeerAdmission> { self.owner.as_ref().unwrap().peer() }
+-    async fn setup(&mut self, s: &Scene) {
++    async fn setup(&mut self, s: &Scene, mode: &str) {
++        trace_stage(mode, "setup-reservation");
+         let old = s.grants.0.read().await.owners[&s.live[0].leg.id].clone();
+         let identity = IdentityBinding::from_authenticated(
+             &self.operator, old.member.identity().clone(), Utc::now(),
+@@ -132,6 +137,7 @@
+         let mut config = WebRtcConfig::loopback();
+         config.capabilities.audio_codecs.retain(|c| matches!(c.name.as_str(), "g.711-mu" | "pcmu"));
+         assert_eq!(config.capabilities.audio_codecs.len(), 1);
++        trace_stage(mode, "setup-original-rtc-allocation");
+         self.binding.as_ref().unwrap().start_peer(config.clone(), PeerRole::Offerer).unwrap();
+         assert!(self.binding.as_ref().unwrap().start_peer(config.clone(), PeerRole::Offerer).is_err());
+         self.server = Some(self.adapter.original_peer(&id, &peer, until).await.unwrap());
+@@ -140,6 +146,7 @@
+         ).await.unwrap().unwrap());
+         let server = self.server.as_ref().unwrap();
+         let remote = self.remote.as_ref().unwrap();
++        trace_stage(mode, "setup-sdp-ice-dtls");
+         tokio::time::timeout_at(until, async {
+             server.add_local_audio_track().await.unwrap();
+             let offer = server.create_offer_and_gather().await.unwrap();
+@@ -150,6 +157,8 @@
+         }).await.unwrap();
+         let track = remote.local_audio_track().unwrap();
+         let ssrc = remote.local_audio_ssrc().unwrap();
++        self.source_track = Some(track.clone());
++        self.source_ssrc = Some(ssrc);
+         let stop = self.pump_stop.clone();
+         let pending_cancel = self.pending().cancellation();
+         let physical = self.physical.clone();
+@@ -157,24 +166,23 @@
+             let mut seq = 0u16;
+             let mut interval = tokio::time::interval(Duration::from_millis(20));
+             loop {
+-                tokio::select! { biased; _ = stop.cancelled() => return Ok(()), _ = interval.tick() => {} }
++                tokio::select! { biased; _ = stop.cancelled() => return Ok(seq), _ = interval.tick() => {} }
+                 seq = seq.wrapping_add(1);
+                 let packet = ::rtc::rtp::Packet {
+                     header: ::rtc::rtp::Header { version: 2, payload_type: 0, sequence_number: seq,
+                         timestamp: u32::from(seq) * 160, ssrc, ..Default::default() },
+                     payload: tone(),
+                 };
+-                tokio::select! { biased;
+-                    _ = stop.cancelled() => return Ok(()),
+-                    result = track.write_rtp(packet) => {
+-                        if result.is_err() {
+-                            if pending_cancel.is_cancelled() || physical.is_cancelled() || stop.is_cancelled() { return Ok(()); }
+-                            return Err(rvoip_core::RvoipError::InvalidState("controlled RTC audio write failed"));
+-                        }
+-                    },
++                // Finish the same queue admission before acknowledging primer stop.
++                // TrackLocal::write_rtp owns only this event enqueue; it returns
++                // after the original driver has accepted the SAME packet.
++                if track.write_rtp(packet).await.is_err() {
++                    if pending_cancel.is_cancelled() || physical.is_cancelled() || stop.is_cancelled() { return Ok(seq); }
++                    return Err(rvoip_core::RvoipError::InvalidState("controlled RTC audio write failed"));
+                 }
+             }
+         }));
++        trace_stage(mode, "setup-real-media-resources");
+         let g = grant(s, &intent, &self.operator, Approval::Resources).await;
+         let (controller, _activation) = self.adapter.configure_media(
+             &id, self.operator.clone(), s.core.conversation.clone(),
+@@ -188,6 +196,7 @@
+             &BTreeSet::from([desired(Medium::Audio).logical_id]), StreamGateAction::Mute,
+             until, Arc::new(g.clone())).await.unwrap();
+         drop(g);
++        trace_stage(mode, "setup-attach-activate");
+         let g = grant(s, &intent, &self.operator, Approval::Attach).await;
+         s.core.orch.attach_staged_device_replacement_with_held(self.pending(), Some(peer.clone()), &g).await.unwrap();
+         drop(g);
+@@ -201,7 +210,8 @@
+         let g = grant(s, self.pending().intent(), &self.operator, Approval::Signal(event)).await;
+         captured.observe_with_held(&g).unwrap()
+     }
+-    async fn prompt(&mut self) {
++    async fn prompt(&mut self, mode: &str) {
++        trace_stage(mode, "actual-preparation-prompt");
+         tokio::time::sleep(Duration::from_millis(35)).await;
+         let controller = self.controller.as_ref().unwrap();
+         let binding = controller.active_bindings().into_iter().find(|b| b.negotiated.requested.medium == Medium::Audio).unwrap();
+@@ -210,6 +220,33 @@
+             timestamp_rtp: 160, source_clock: None, captured_at: Utc::now(), payload_type: Some(0),
+         }, LocalAudioPurpose::EndpointPreparation { operation_id: self.pending().intent().operation_id.clone() }).unwrap();
+         self.heard().await;
++        // Readiness and the actual decoded preparation prompt precede the
++        // original primer's natural join. A live peer/track remains owned.
++        trace_stage(mode, "original-readiness-primer-natural-join");
++        assert!(self.stop_primer().await, "original RTC readiness primer naturally joined");
++    }
++    async fn stop_primer(&mut self) -> bool {
++        self.pump_stop.cancel();
++        match self.pump.take() {
++            Some(task) => match task.await {
++                Ok(Ok(sequence)) => { self.source_last_sequence = sequence; true }
++                _ => false,
++            },
++            None => true,
++        }
++    }
++    async fn fresh_source_tone(&mut self) {
++        assert!(self.pump.is_none(), "original readiness primer must already be joined");
++        assert_eq!(self.remote.as_ref().unwrap().local_audio_ssrc(), self.source_ssrc);
++        self.source_last_sequence = self.source_last_sequence.wrapping_add(1);
++        let packet = ::rtc::rtp::Packet {
++            header: ::rtc::rtp::Header { version: 2, payload_type: 0,
++                sequence_number: self.source_last_sequence,
++                timestamp: u32::from(self.source_last_sequence) * 160,
++                ssrc: self.source_ssrc.unwrap(), ..Default::default() },
++            payload: tone(),
++        };
++        self.source_track.as_ref().unwrap().write_rtp(packet).await.unwrap();
+     }
+     async fn heard(&mut self) {
+         tokio::time::timeout(Duration::from_secs(1), async {
+@@ -228,26 +265,36 @@
+         }).await.unwrap();
+     }
+     // Every original owner is joined before returning or rethrowing the work panic.
+-    async fn close(&mut self, s: &Scene) -> bool {
+-        self.pump_stop.cancel();
+-        let pump = match self.pump.take() { Some(task) => task.await.map(|r| r.is_ok()).unwrap_or(false), None => true };
++    async fn close(&mut self, s: &Scene, mode: &str) -> bool {
++        trace_stage(mode, "cleanup-primer-natural-join");
++        let pump = self.stop_primer().await;
+         if let Some(p) = &self.pending { p.cancel(); }
++        // Release only the newly retained fixture writer after its original primer joins.
++        self.source_track.take();
++        trace_stage(mode, "cleanup-original-rtc-binding");
+         let original = match (&self.pending, &self.binding) {
+             (Some(p), Some(binding)) => self.adapter.end_original_binding(p.intent().replacement.clone(), binding, EndReason::Normal).await.is_ok(),
+             _ => true,
+         };
++        trace_stage(mode, "cleanup-remote-rtc-peer");
+         let remote = match &self.remote { Some(peer) => peer.close().await.is_ok(), None => true };
+         self.owner.take();
++        trace_stage(mode, "cleanup-original-core-lifecycle-drain");
+         let lifecycle = s.core.orch.drain_connection_lifecycle_tasks().await.is_ok();
+         pump && original && remote && lifecycle
+     }
+ }
+ 
++fn trace_stage(mode: &str, stage: &str) {
++    eprintln!("RTC fixture stage-entry mode={mode} stage={stage}");
++}
++
+ pub(super) async fn confirmed_duplex() {
++    trace_stage("confirmed", "original-scene-setup");
+     let s = Scene::new_replacement("quic").await;
+     let mut c = Browser::new();
+     let work = std::panic::AssertUnwindSafe(async {
+-        c.setup(&s).await;
++        c.setup(&s, "confirmed").await;
+         let revision = c.pending().intent().expected_revision;
+         let foreign = PeerAdmissionOwner::new(&c.operator,
+             s.grants.0.read().await.owners[&c.id()].member.identity().clone(),
+@@ -255,8 +302,10 @@
+         assert!(s.core.orch.capture_device_replacement_event(c.pending(),
+             DeviceReplacementSignalSource::NativePeer(foreign.peer()), DeviceReplacementEndpointEvent::Answered).is_err());
+         assert!(s.core.orch.plan_staged_device_replacement(c.pending(), None).is_err());
++        trace_stage("confirmed", "original-old-tones");
+         s.tone(0, 1).await; s.tone(1, 0).await;
+-        c.prompt().await;
++        c.prompt("confirmed").await;
++        trace_stage("confirmed", "original-endpoint-confirmation");
+         assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Answered).await, Observation::Answered);
+         assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Dtmf { digits: "9".into() }).await, Observation::IncorrectDigits);
+         assert!(s.core.orch.plan_staged_device_replacement(c.pending(), None).is_err());
+@@ -264,6 +313,7 @@
+         assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Dtmf { digits: "5#".into() }).await, Observation::AlreadyConfirmed);
+         let late = s.core.orch.capture_device_replacement_event(c.pending(),
+             DeviceReplacementSignalSource::NativePeer(c.peer()), DeviceReplacementEndpointEvent::Answered).unwrap();
++        trace_stage("confirmed", "original-commit");
+         let plan = s.core.orch.plan_staged_device_replacement(c.pending(), None).unwrap();
+         let g = grant(&s, c.pending().intent(), &c.operator, Approval::Commit(plan.clone())).await;
+         let (outcome, _) = s.core.orch.commit_staged_device_replacement_with_held(plan, &g).await.unwrap();
+@@ -272,15 +322,22 @@
+         assert_eq!(s.core.orch.participant_capacity(&s.core.session).unwrap(), (4, 0));
+         let g = grant(&s, c.pending().intent(), &c.operator, Approval::Signal(DeviceReplacementEndpointEvent::Answered)).await;
+         assert!(late.observe_with_held(&g).is_err()); drop(g);
++        trace_stage("confirmed", "original-old-source-physical-close");
+         s.live[0].wire.server.shutdown().await.unwrap();
+-        core_fixture::until(|| s.live[0].peer.snapshot().connections == 0).await;
++        diagnosed_until(&s, &c, "confirmed", "old-source-peer-retirement", || s.live[0].peer.snapshot().connections == 0).await;
++        trace_stage("confirmed", "original-caller-cancel-survival");
+         c.caller_cancel.cancel();
+         tokio::time::sleep(Duration::from_millis(30)).await;
+         assert!(c.adapter.is_connection_live(&c.id()));
+         assert!(!c.pending().cancel());
++        trace_stage("confirmed", "original-committed-native-quiet-drain");
+         Scene::drain(&s.live[1].wire).await;
+-        // Continuous actual peer RTP must now cross the committed native route.
++        // One fresh packet on the SAME original peer/track/SSRC continues the
++        // primer sequence/timestamp after the unchanged quiet drain.
++        trace_stage("confirmed", "fresh-same-source-to-native-tone");
++        c.fresh_source_tone().await;
+         decoded(&received(&s.live[1].wire).await);
++        trace_stage("confirmed", "original-retained-to-rtc-tone");
+         // Drain actual remote RTP before requiring a new retained-to-RTC tone.
+         if let Some(track) = &c.received {
+             while tokio::time::timeout(Duration::from_millis(1), track.poll()).await.is_ok() {}
+@@ -288,42 +345,90 @@
+         send(&s.live[1].wire, audio(binding(&s.live[1].leg, Medium::Audio).stream_local_id, 0));
+         c.heard().await;
+         assert_eq!(c.adapter.total_allocations(), 1);
++        trace_stage("confirmed", "original-core-end");
+         s.core.orch.end_connection(c.id(), EndReason::Normal).await.unwrap();
+         assert!(!c.adapter.is_connection_live(&c.id()));
+     }).catch_unwind().await;
+-    let cleanup = c.close(&s).await;
+-    s.stop().await;
++    let diagnostic_peer = c.owner.as_ref().map(|owner| owner.peer());
++    let cleanup = c.close(&s, "confirmed").await;
++    diagnosed_scene_stop(&s, &c, diagnostic_peer.as_ref(), "confirmed").await;
+     assert!(cleanup, "all original RTC owners naturally joined");
+     if let Err(error) = work { std::panic::resume_unwind(error); }
+ }
+ 
++// Preserve the original predicate/deadline. Only a false original poll gets
++// an extra sequential diagnostic sample; it is not an atomic permission proof.
++async fn diagnosed_until(
++    s: &Scene, c: &Browser, mode: &str, stage: &str, mut predicate: impl FnMut() -> bool,
++) {
++    trace_stage(mode, stage);
++    let mut last = None;
++    let result = std::panic::AssertUnwindSafe(core_fixture::until(|| {
++        let ready = predicate();
++        if !ready {
++            last = Some((s.core.orch.participant_capacity(&s.core.session),
++                c.adapter.is_connection_live(&c.id()),
++                c.owner.as_ref().map(|owner| owner.peer().snapshot().connections),
++                s.live[0].peer.snapshot().connections));
++        }
++        ready
++    })).catch_unwind().await;
++    if let Err(error) = result {
++        eprintln!("RTC fixture failure mode={mode} stage={stage} last_capacity_adapter_live_rtc_peer_connections_old_native_peer_connections={last:?}");
++        std::panic::resume_unwind(error);
++    }
++}
++
++async fn diagnosed_scene_stop(s: &Scene, c: &Browser, peer: Option<&Arc<PeerAdmission>>, mode: &str) {
++    trace_stage(mode, "original-old-scene-stop");
++    let result = std::panic::AssertUnwindSafe(s.stop()).catch_unwind().await;
++    if let Err(error) = result {
++        eprintln!("RTC fixture failure mode={mode} stage=old-scene-stop at_failure_capacity={:?} adapter_live={:?} rtc_peer_connections={:?} old_native_peer_connections={:?}",
++            s.core.orch.participant_capacity(&s.core.session),
++            c.pending.as_ref().map(|pending| c.adapter.is_connection_live(&pending.intent().replacement)),
++            peer.map(|peer| peer.snapshot().connections),
++            s.live.iter().map(|live| live.peer.snapshot().connections).collect::<Vec<_>>());
++        std::panic::resume_unwind(error);
++    }
++}
++
+ pub(super) async fn preserve_old() {
+     for mode in ["no-answer", "voicemail", "lost-adapter"] {
++        trace_stage(mode, "original-scene-setup");
+         let s = Scene::new_replacement("quic").await;
+         let mut c = Browser::new();
+         let work = std::panic::AssertUnwindSafe(async {
+-            c.setup(&s).await;
++            c.setup(&s, mode).await;
+             let revision = c.pending().intent().expected_revision;
+-            c.prompt().await;
++            c.prompt(mode).await;
+             if mode == "voicemail" {
+                 assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Answered).await, Observation::Answered);
+             }
+             assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::MediaObserved).await, Observation::MediaReady);
+             assert!(s.core.orch.plan_staged_device_replacement(c.pending(), None).is_err());
++            trace_stage(mode, "original-candidate-cancel-or-physical-loss");
+             if mode == "lost-adapter" {
+                 // Retire the SAME real physical owner without an endpoint event hint.
+                 c.physical.cancel();
+             } else { assert!(c.pending().cancel()); }
+-            core_fixture::until(|| s.core.orch.participant_capacity(&s.core.session).unwrap() == (4, 0)).await;
++            diagnosed_until(&s, &c, mode, "candidate-capacity", || s.core.orch.participant_capacity(&s.core.session).unwrap() == (4, 0)).await;
+             assert_eq!(s.core.orch.participant_revision(&s.core.session).unwrap(), revision);
+             assert!(c.pending().cancellation().is_cancelled());
+-            core_fixture::until(|| !c.adapter.is_connection_live(&c.id()) && c.peer().snapshot().connections == 0).await;
+-            tokio::time::timeout(Duration::from_secs(1), c.server.as_ref().unwrap().wait_failed()).await.unwrap();
++            diagnosed_until(&s, &c, mode, "candidate-route-and-peer-retirement", || !c.adapter.is_connection_live(&c.id()) && c.peer().snapshot().connections == 0).await;
++            trace_stage(mode, "original-one-second-native-close-observation");
++            tokio::time::timeout(Duration::from_secs(1), c.server.as_ref().unwrap().wait_failed()).await.unwrap_or_else(|error| panic!("RTC fixture failure mode={mode} stage=original-one-second-native-close-observation error={error:?}"));
++            trace_stage(mode, "original-old-tones");
+             s.tone(0, 1).await; s.tone(1, 0).await; s.tone(2, 3).await;
+         }).catch_unwind().await;
+-        let cleanup = c.close(&s).await;
+-        s.stop().await;
++        // Resource-free metadata observation only; unique Owner drop in close
++        // still retires the peer regardless of this Arc's lifetime.
++        let diagnostic_peer = c.owner.as_ref().map(|owner| owner.peer());
++        let cleanup = c.close(&s, mode).await;
++        diagnosed_scene_stop(&s, &c, diagnostic_peer.as_ref(), mode).await;
+         assert!(cleanup, "all original RTC owners naturally joined");
+-        if let Err(error) = work { std::panic::resume_unwind(error); }
+-    }
+-}
++        if let Err(error) = work {
++            eprintln!("RTC fixture failure mode={mode} stage=original-work-panic-after-original-cleanup");
++            std::panic::resume_unwind(error);
++        }
++    }
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
+@@ -716,16 +716,40 @@
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+ async fn controlled_telephone_deadline_and_remote_loss_release_preparation_without_a_second_origination(
+ ) {
++    use futures::FutureExt;
+     for mode in ["deadline", "remote-end"] {
++        let mut stage = "scene-setup";
++        let mut last = None;
++        eprintln!("SIP fixture stage-entry mode={mode} stage={stage}");
++        let result = std::panic::AssertUnwindSafe(async {
+         let s = Scene::new_replacement("quic").await;
++        stage = "candidate-setup";
++        eprintln!("SIP fixture stage-entry mode={mode} stage={stage}");
+         let c = Candidate::new(&s, Transport::Sip).await;
++        last = Some((s.core.orch.participant_capacity(&s.core.session), c.adapter.current(&c.pending.intent().replacement),
++            c.pending.cancellation().is_cancelled(), c.adapter.starts.load(Ordering::Acquire),
++            s.live.iter().map(|live| live.peer.snapshot().connections).collect::<Vec<_>>()));
+         if mode == "remote-end" {
++            stage = "retained-remote-close";
++            eprintln!("SIP fixture stage-entry mode={mode} stage={stage}");
+             s.live[1].wire.server.shutdown().await.unwrap();
+         }
++        stage = "original-five-second-cancellation-wait";
++        eprintln!("SIP fixture stage-entry mode={mode} stage={stage}");
+         tokio::time::timeout(Duration::from_secs(5), c.pending.cancellation().cancelled())
+             .await
+             .unwrap();
+-        core_fixture::until(|| !c.adapter.current(&c.pending.intent().replacement)).await;
++        stage = "candidate-adapter-retirement";
++        eprintln!("SIP fixture stage-entry mode={mode} stage={stage}");
++        core_fixture::until(|| {
++            let current = c.adapter.current(&c.pending.intent().replacement);
++            if current {
++                last = Some((s.core.orch.participant_capacity(&s.core.session), current,
++                    c.pending.cancellation().is_cancelled(), c.adapter.starts.load(Ordering::Acquire),
++                    s.live.iter().map(|live| live.peer.snapshot().connections).collect::<Vec<_>>()));
++            }
++            !current
++        }).await;
+         assert_eq!(c.adapter.starts.load(Ordering::Acquire), 1);
+         assert!(!c.pending.is_committed());
+         assert!(s
+@@ -740,9 +764,20 @@
+                 .unwrap(),
+             Some(ParticipantRole::Agent)
+         );
++        stage = "original-old-tone-0-to-2";
++        eprintln!("SIP fixture stage-entry mode={mode} stage={stage}");
+         s.tone(0, 2).await;
++        stage = "original-old-tone-2-to-0";
++        eprintln!("SIP fixture stage-entry mode={mode} stage={stage}");
+         s.tone(2, 0).await;
++        stage = "original-old-scene-stop";
++        eprintln!("SIP fixture stage-entry mode={mode} stage={stage}");
+         s.stop().await;
++        }).catch_unwind().await;
++        if let Err(error) = result {
++            eprintln!("SIP fixture failure mode={mode} stage={stage} last_capacity_adapter_current_pending_cancelled_starts_native_connections={last:?}");
++            std::panic::resume_unwind(error);
++        }
+     }
+ }
+ 
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer.rs
+@@ -507,9 +507,9 @@
+         loop {
+             let bytes = tokio::time::timeout(Duration::from_millis(30), async {
+                 if let Some(wt) = &wire.wt {
+-                    let _ = wt.read_datagram().await;
++                    wt.read_datagram().await.expect("original WebTransport drain read failed");
+                 } else {
+-                    let _ = wire.quic.as_ref().unwrap().2.read_datagram().await;
++                    wire.quic.as_ref().unwrap().2.read_datagram().await.expect("original QUIC drain read failed");
+                 }
+             })
+             .await;

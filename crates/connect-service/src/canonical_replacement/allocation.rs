@@ -17,6 +17,7 @@ pub(super) struct AllocatedReplacement {
     pub receipt: Arc<connect_store::NativeReplacementAllocated>,
     pub physical: Weak<Physical>,
     pub(super) webrtc: Option<Arc<rvoip_webrtc::canonical::WebRtcPhysicalBinding>>,
+    pub(super) reserved_video: Option<Arc<crate::canonical_webrtc::ReservedReplacementVideo>>,
     pub(super) intent: connect_protocol::connection_control::OfferIntent,
     pub(super) recorded: AtomicBool,
     pub(super) failed_start:
@@ -104,7 +105,7 @@ impl Runtime {
             })?;
         let mut pending = Some(a);
         let mut deferred_sql = false;
-        let (a, _roles, attempt, read, (actor, endpoint, peer), target_key_id) = loop {
+        let (a, _roles, attempt, read, (actor, endpoint, peer, reserved_video), target_key_id) = loop {
             let a = pending.take().ok_or_else(Error::storage)?;
             // No allocation effect or physical owner exists yet. Release BOTH
             // application aliases before waiting; only this unique signed command,
@@ -277,6 +278,8 @@ impl Runtime {
                 let store = self.media.store.clone();
                 let a = a.clone();
                 let receipt = saved.receipt.clone();
+                let public_video = saved.public_video.clone();
+                let original_record = saved.origin.record_id().to_owned();
                 let key = credential.to_owned();
                 let transport = physical.binding.transport();
                 let native_media = physical.binding.media().is_some();
@@ -311,7 +314,8 @@ impl Runtime {
                             endpoint.verify(&identity, "connect-store".into(), chrono::Utc::now())
                                 .map_err(|_| Error::forbidden())?;
                             let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
-                            Ok((actor, endpoint, peer))
+                            let reserved_video=public_video.negotiation_from_allocation(read,&original_record)?;
+                            Ok((actor, endpoint, peer, reserved_video))
                         },
                     )
                 })
@@ -372,8 +376,14 @@ impl Runtime {
                 .webrtc
                 .get()
                 .ok_or_else(Error::forbidden)
-                .and_then(|host| host.reserve_physical(&peer, physical.lifetime.child_token()))
-            {
+                .and_then(|host| match &reserved_video {
+                    Some(original) => host.reserve_replacement_public_video(
+                        &peer,
+                        physical.lifetime.child_token(),
+                        original,
+                    ),
+                    None => host.reserve_physical(&peer, physical.lifetime.child_token()),
+                }) {
                 Ok(binding) => Some(binding),
                 Err(error) => {
                     // Capacity refusal follows the original durable begin. Keep
@@ -452,6 +462,7 @@ impl Runtime {
             receipt,
             physical: Arc::downgrade(&physical),
             webrtc,
+            reserved_video,
             intent,
             recorded: AtomicBool::new(false),
             started: std::sync::Mutex::new(None),

@@ -9,7 +9,7 @@ use rvoip_core::{
     stream_lifecycle::{Medium, StreamDirection},
 };
 use rvoip_uctp::v2::auth_dispatch::{AuthorizedEnvelope, ResourceActivationAuthority};
-mod admission;
+pub(super) mod admission;
 use std::sync::{Mutex, OnceLock};
 pub(super) struct ReadyGate {
     nonce: String,
@@ -31,6 +31,22 @@ impl ReadyGate {
         deadline: tokio::time::Instant,
     ) -> Result<Arc<Self>> {
         Self::with_received_video(read, plan, deadline, None, false)
+    }
+    pub(super) fn new_reserved(
+        read: &connect_store::NativeReplacementStartRead,
+        plan: &rvoip_uctp::v2::native_negotiation::NativeOfferPlan,
+        deadline: tokio::time::Instant,
+        original: &crate::canonical_webrtc::ReservedReplacementVideo,
+    ) -> Result<Arc<Self>> {
+        original.validate_offer(&read.target().offer)?;
+        original.validate_selected(plan.selected())?;
+        Self::from_reserved_selection(
+            read.source().context().source_generation,
+            read.target().connection.generation,
+            plan.selected(),
+            deadline,
+            original.profile(),
+        )
     }
     pub(super) fn new_native(
         read: &connect_store::NativeReplacementStartRead,
@@ -55,16 +71,51 @@ impl ReadyGate {
         mapped: Option<&[&str]>,
         counted_video_required: bool,
     ) -> Result<Arc<Self>> {
-        let audio = plan
-            .selected()
+        Self::from_selection(
+            read.source().context().source_generation,
+            read.target().connection.generation,
+            plan.selected(),
+            deadline,
+            mapped,
+            counted_video_required,
+        )
+    }
+    fn from_reserved_selection(
+        source_generation: u64,
+        target_generation: u64,
+        streams: &[rvoip_core::stream_lifecycle::NegotiatedStream],
+        deadline: tokio::time::Instant,
+        profile: &rvoip_webrtc::canonical::ReservedVideoProfile,
+    ) -> Result<Arc<Self>> {
+        profile
+            .validate_streams(streams.iter().map(|s| &s.requested))
+            .map_err(|_| Error::forbidden())?;
+        let preview = [profile.preview_stream_id().as_str()];
+        Self::from_selection(
+            source_generation,
+            target_generation,
+            streams,
+            deadline,
+            Some(&preview),
+            false,
+        )
+    }
+    fn from_selection(
+        source_generation: u64,
+        target_generation: u64,
+        streams: &[rvoip_core::stream_lifecycle::NegotiatedStream],
+        deadline: tokio::time::Instant,
+        mapped: Option<&[&str]>,
+        counted_video_required: bool,
+    ) -> Result<Arc<Self>> {
+        let audio = streams
             .iter()
             .find(|s| {
                 s.requested.medium == Medium::Audio
                     && s.requested.direction == StreamDirection::Both
             })
             .ok_or_else(Error::forbidden)?;
-        let video = plan
-            .selected()
+        let video = streams
             .iter()
             .filter(|s| {
                 s.requested.medium == Medium::Video
@@ -74,15 +125,14 @@ impl ReadyGate {
             .collect::<Vec<_>>();
         if video.len() > 1
             || mapped.is_some_and(|ids| ids.len() != video.len())
-            || read.source().context().source_generation.checked_add(1)
-                != Some(read.target().connection.generation)
+            || source_generation.checked_add(1) != Some(target_generation)
         {
             return Err(Error::forbidden());
         }
         Ok(Arc::new(Self {
             nonce: format!("replacement-ready-{}", uuid::Uuid::new_v4()),
-            source_generation: read.source().context().source_generation,
-            target_generation: read.target().connection.generation,
+            source_generation,
+            target_generation,
             audio: audio.requested.logical_id.as_str().into(),
             video: video
                 .first()
@@ -670,3 +720,6 @@ impl ReadyGate {
         self.video.as_deref()
     }
 }
+
+#[cfg(test)]
+mod reserved_preview_tests;

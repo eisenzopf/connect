@@ -1,0 +1,68 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -4956,6 +4956,14 @@
+             .count();
+         (remaining, ports)
+     }
++    /// Synchronous test-only exclusion of the SAME controller model mutex.
++    /// The caller supplies a bounded closure; the actual private guard stays
++    /// here through return/unwind. No model, port, grant or identity is issued.
++    #[cfg(feature = "test-support")]
++    pub fn with_model_state_exclusion_for_test<T>(&self, call: impl FnOnce() -> T) -> T {
++        let _state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        call()
++    }
+     /// Read-only cancellation observation for deterministic host interleaving tests.
+     /// This does not wait on metadata or grant media/control authority.
+     #[cfg(feature = "test-support")]
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -821,8 +821,8 @@
+             entered: entered_tx,
+             release: Mutex::new(release_rx),
+         }));
+-        // The actual source packet callback holds its controller model mutex.
+-        // No synthetic plan/error or grant is substituted for the catalog read.
++        // External packet policy waits with the model metadata detached.
++        // First prove the blocked policy callback leaves the catalog readable.
+         send(
+             &s.wire,
+             subscriptions::video_sequence(source_video, 2, 9002),
+@@ -831,20 +831,24 @@
+             .await
+             .unwrap()
+             .unwrap();
+-        assert!(matches!(
+-            s.native.core.orch.plan_staged_media_selection(
+-                &s.native.core.session,
+-                &s.second_id,
+-                3,
+-                &MediaSelectionChange::Reconcile,
+-            ),
+-            Err(ParticipantControlError::Media(
+-                StreamControlError::Backpressure
+-            ))
+-        ));
+-        // Cover at least two ordinary runtime catalog-poll deadlines.
+-        tokio::time::sleep(Duration::from_millis(1100)).await;
++        let available=s.native.core.orch.plan_staged_media_selection(
++            &s.native.core.session,&s.second_id,3,&MediaSelectionChange::Reconcile,
++        ).expect("blocked external policy must not retain Controller.State");
++        assert!(before.same_catalog(&available),"blocked policy leaves the SAME authoritative catalog available");
++        drop(available);
++        let source=s.controller();let orch=s.native.core.orch.clone();
++        let session=s.native.core.session.clone();let target=s.second_id.clone();
++        // One joined bounded owner holds the ACTUAL source model mutex, so
++        // both the explicit read and ordinary pollers see real exclusion.
++        let busy=tokio::task::spawn_blocking(move ||source.with_model_state_exclusion_for_test(||{
++            let result=orch.plan_staged_media_selection(&session,&target,3,&MediaSelectionChange::Reconcile).map(drop);
++            // SAME original interval covers at least two catalog-poll deadlines.
++            std::thread::sleep(Duration::from_millis(1100));
++            result
++        })).await.unwrap();
+         release_tx.send(()).unwrap();
++        assert!(matches!(busy,Err(ParticipantControlError::Media(StreamControlError::Backpressure))),
++            "actual source Controller.State exclusion must refuse exact Backpressure; actual={busy:?}");
+         tokio::time::sleep(Duration::from_millis(650)).await;
+         let after = s
+             .native

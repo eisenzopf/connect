@@ -1,0 +1,73 @@
+{
+  "format": "connect/g6-058-warm-owner-boundary-checkpoint/1",
+  "updated_at": "2026-11-16T13:28:35.214103+00:00",
+  "checkpoint": 497,
+  "dependency_patch_generation": 490,
+  "source_lock_sha256": "5b8437cf22e0a596240e8b092507b5ed5353b32f155902d6fcddfeee3cdb0f51",
+  "status": "348_COMPONENT_PASSES_WARM_OWNER_COMPILER_BLOCKER_REVIEWED_BOUNDARY_APPLIED_UNRUN",
+  "summary": "g496 again passesProtocol87+Node206+Python55, zero skips; overallFAILED. Opaque preparation identity removes3UCTPcompile paths; remainingSIP/Native/RTC/Vapi E0275 traversesWarmOwner. All16children/Root92770 naturallyclose, source/binary exact. Reviewed SAMEallocation Weak WarmOwner interface appliednormal490: exactcurrent/cutoff/cancel/coldrecovery, no allocation/newlock/limit/grant changes; pending indirectcalls, publishedfastpaths unchanged. Two genuine managed identity/owner controls mandatory; passive private mediaartifact retention applied. Default128 compile/units/actualmedia stillunproven. Lastmatrix1/32 unchanged.",
+  "evidence": {
+    ".local/gate-6/v219-g496-coherent-components-root/component-result.json": "3757485fb7de204f0f18cff3b254c827027653264f9dbc56417514d90f57e9f9",
+    ".local/gate-6/v219-g496-coherent-components-root/root-original-join.json": "763aaef34f815ffb13bd3333249ada705a28d7b675c2dcabe0525844449d9d5b",
+    ".local/gate-6/v219-g496-coherent-components-root/compiler-error-index.json": "9f342e32355f2ad3e53f5b1b8ebb50113cc3943792b4f1a5c7bcda11124684de",
+    ".local/gate-6/v219-g496-components-independent-fixture-review/receipt.json": "a7404e9885a85fef9741662f555b2a08b50293b14c5671ac92d60c6b1d8f59a3",
+    ".local/gate-6/warm-owner-opaque-authority-v219-candidate/manifest.json": "9ae9000dbac77f0f7f4e2685eca5aa58c78d1aef2b12cfcd5bd7cd8f5851c7a8",
+    ".local/gate-6/warm-owner-opaque-authority-independent-root-review/receipt.json": "32536f376e9f3974da6fb9a06131c8b0737e365aa77480750f761f6b94dcb372",
+    ".local/gate-6/warm-owner-opaque-authority-independent-media-review/receipt.json": "70546fde9ffa58672ff1c8f99163bc475905e936ffff7a44d947b869ecfc726b",
+    ".local/gate-6/v219-g497-warm-owner-boundary-root/normal490-runtime/receipt.json": "1b668847a5aad363ca867285d699c035d7116857c953d63eecd1b24eb8fe7fb3",
+    ".local/gate-6/v219-g497-warm-owner-boundary-root/root-original-join.json": "184a568d42d847bb20a99a8047be1b95a176b221ec08ae091f7fa9241c0e645d",
+    ".local/gate-6/v219-g497-warm-owner-boundary-independent-v198-review/receipt.json": "58d3d807a33228a4c2d5204cfbceded3eb4040619ddf47aac3181668899112af",
+    ".local/gate-6/public-b-representative-artifact-retention-v219-candidate/manifest.json": "3953cc38990588e6f17d1304d5a93975e4e6f07ffcb359d177cdb46f4d96c7e0",
+    ".local/gate-6/public-b-representative-artifact-retention-independent-v198-review/receipt.json": "11078543171f7bbc28052a46838d9cba4c31c7801282b33bfdf1ada93ced18d5",
+    ".local/gate-6/g497-artifact-retention-root-composition/composition.json": "6e2651d2e28934f0ac836ffaf4e0ca23397fd1293f62f110a4470f27745c410e"
+  },
+  "actual_g496": {
+    "passed": false,
+    "protocol_passed": 87,
+    "node_passed": 206,
+    "python_passed": 55,
+    "failed_or_skipped_tests": 0,
+    "other_rust_tests_or_representatives_run": false,
+    "remaining_upstream_compiler_errors": 2,
+    "remaining_workspace_compiler_errors": 5,
+    "removed_uctp_deep_runtime_paths": 3,
+    "root_pid": 92770,
+    "root_pgid": 92770,
+    "tool_session": 27757,
+    "natural_exit_code": 1,
+    "root_pid_and_group_absent": true,
+    "original_child_groups_reaped_absent": 16,
+    "source_hash_modes_unchanged": 6417,
+    "original_protocol_binary_exact": true
+  },
+  "normal490": {
+    "passed": true,
+    "root_pid": 93576,
+    "tool_session": 20245,
+    "root_natural_exit_code": 0,
+    "root_pid_absent": true,
+    "root_pgid_captured": false,
+    "original_commands_natural_zero_joined": 2,
+    "upstream_afterimages": 5,
+    "workspace_guards": 106,
+    "old_mtimes_restored": 4261
+  },
+  "warm_boundary": "Private soleimplementation keeps SAME original WarmOwner allocation/lifetime and existing current/cutoff/cancel checks; cold actualadoption/start recoversSAME Arc. Pendingqueries addindirectcalls, no publishedfastpathdispatch change. No unsafeSend, limitraise, mutexorallocation.",
+  "artifact_retention": "Testonly6paths preserveboundedprivate actualReady/native/phase/operation/browser evidence AFTER originalcleanup attempts usingexistingenv. Passingcasesfailoncopyerrors; earlyDrop partial/noClosureclaim. Mustsetfreshcaseartifactenv inactualrunner.",
+  "remaining": [
+    "Originalfeatureunion/defaultconsumer128 compile and affectedunits includingbothnewmanagedcontrols; no assumedwholecure",
+    "Actual RTCsameB roundtrip/abort/SQLReaderrelease/rendererrecovery andpooledNative-to-RTC decoded proof withretainedrawartifacts",
+    "FreshstrictautomaticFirefox3cycle, optionalChrome-onlymanualproposal separateheld",
+    "LocalARM/releases/preflight before32"
+  ],
+  "previous_checkpoint": "docs/evidence/gate-6/g6-058-v219-g495-component-progress.json",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  }
+}

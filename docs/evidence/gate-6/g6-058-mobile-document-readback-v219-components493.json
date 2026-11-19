@@ -1,0 +1,21 @@
+{
+  "format": "connect/mobile-document-readback/1",
+  "content_revision": 180,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMR0pD4YAi_gCPKBkA9Sd-M7IC4KNNME1PHBvDySXtnsWlZq52QgkrPFOszJNpc4zB6XycnosA-kvxCNl1o7TXfMSV2zRdtGbA3zc6k",
+  "verified_at": "2026-11-16T12:45:24.659Z",
+  "replacements": [
+    {
+      "old_prefix": "Revision 179 | Coordinator: /root | Latest complete matrix remains v218: 1/32 ce",
+      "old_absent": true,
+      "new_present_once": true
+    },
+    {
+      "old_prefix": "Current verification — Actual combined attemptg490 PASSES206 Node and55 Python t",
+      "old_absent": true,
+      "new_present_once": true
+    }
+  ],
+  "matrix_qualified": false
+}

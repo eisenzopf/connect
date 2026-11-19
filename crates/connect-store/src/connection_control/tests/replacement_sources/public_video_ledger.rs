@@ -928,3 +928,6 @@ fn public_video_known_unpublished_cleanup_refuses_actual_original_commit_unknown
         "cleanup refusal must not retire or renew the original public source"
     );
 }
+
+#[path = "public_video_ledger/runtime_issuer.rs"]
+mod runtime_issuer;

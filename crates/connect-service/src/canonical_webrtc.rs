@@ -26,7 +26,9 @@ mod admission;
 mod gates;
 mod ice;
 pub(crate) use ice::ack_details as ice_ack_details;
+mod reserved_replacement;
 mod streams;
+pub use reserved_replacement::ReservedReplacementVideo;
 
 /// One original Store-issued attempt; the host must take custody synchronously.
 /// It must not publish media or report operation success from SDP/DTLS alone.
@@ -49,6 +51,11 @@ pub struct ReplacementOffer {
     pub offer: serde_json::Value,
 }
 pub trait ReplacementSource: Send + Sync {
+    /// Immutable Store-issued original setup class only; no media/ready grant.
+    /// A JSON echo cannot opt a generic physical binding into this profile.
+    fn reserved_public_video(&self) -> Option<Arc<ReservedReplacementVideo>> {
+        None
+    }
     fn offer(&self) -> Result<ReplacementOffer>;
     fn current(&self) -> Result<()>;
     fn release_invocation(&self);
@@ -86,6 +93,19 @@ pub trait Host: Send + Sync {
         peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
         physical: CancellationToken,
     ) -> Result<Arc<WebRtcPhysicalBinding>>;
+    /// Explicit SAME recorded public A/B setup. Default hosts refuse; never
+    /// silently allocate a singleton/private receiver in place of fresh B.
+    fn reserve_replacement_public_video(
+        &self,
+        _peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
+        _physical: CancellationToken,
+        _original: &ReservedReplacementVideo,
+    ) -> Result<Arc<WebRtcPhysicalBinding>> {
+        Err(Error::new(
+            "unsupported-media-profile",
+            "Public B reservation host is not configured",
+        ))
+    }
     /// Return an owner even on allocation refusal so the original lease remains
     /// available for attributed cleanup. This must not start another attempt.
     fn start(&self, preparation: Preparation) -> Arc<dyn Attempt>;
@@ -117,6 +137,15 @@ impl Host for Installed {
         physical: CancellationToken,
     ) -> Result<Arc<WebRtcPhysicalBinding>> {
         self.host.reserve_physical(peer, physical)
+    }
+    fn reserve_replacement_public_video(
+        &self,
+        peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
+        physical: CancellationToken,
+        original: &ReservedReplacementVideo,
+    ) -> Result<Arc<WebRtcPhysicalBinding>> {
+        self.host
+            .reserve_replacement_public_video(peer, physical, original)
     }
     fn start(&self, preparation: Preparation) -> Arc<dyn Attempt> {
         self.host.start(preparation)

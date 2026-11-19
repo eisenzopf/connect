@@ -44,7 +44,9 @@ def main():
   valid=validator.is_valid(vector['envelope'])
   assert valid==vector['valid'],vector['id']
  positive={v['envelope']['type'] for v in vectors if v['valid']}
- assert len(positive)==66 and set(e['type'] for e in ledger['envelopes'])<=positive
+ declared=set(schema['properties']['type']['enum'])
+ assert positive==declared,dict(missing=sorted(declared-positive),unexpected=sorted(positive-declared))
+ assert set(e['type'] for e in ledger['envelopes'])<=positive
  # Security and concurrency boundaries go beyond generated shape roundtrips.
  handoff=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-session.handoff')
  cases=[]

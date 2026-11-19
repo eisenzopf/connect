@@ -1,0 +1,52 @@
+{
+  "format": "connect/g6-058-known-fixes-unit-verified/1",
+  "updated_at": "2026-11-19T13:51:25.307332+00:00",
+  "summary": "All currently identified source fixes are implemented and unit-verified on prepared source506. Current71browser/affectedNode modules pass1201/1201, generator--check and SDKbuild pass; original-profile Rustbuilds pass all3required UCTP schema/golden controls and the shared379-vector Rust/browser integration oracle. No skips, forced processes or acceptance changes. This verifies bounded originaloperation.get503recovery, exact logicalIDs/freshsignedrequests/one deadline/currentdenials, five fixture dependency routes, strict contains/min/max/ASCII validators and synchronized canonicalschema/vectors. The abortfixture now observes the actual read rejection; its paired pending-write negative preserves original transport-retirement semantics. Existing Core/Native/SIP/provider fixes passed historical completeaffectedG5192206/2206. Next is one complete current506 affected regression batch after this checkpoint/batchcommit, followed by all3real decoded-media representatives on that same source. StrictFirefox3, original finalqualification command/identity scopes, localARM11/normalreleases and capturepreflight remain before readiness for32cells. origin/main was freshly fetched:zero commits missing. Underlying internal source of temporaryauthority availability remains unproven; the SDK follows the existing bounded read-recovery policy. Last fullmatrix remainsv218:1/32cells,399/432checks; no unit/diagnostic result regrades a cell. G6-054 remains parked. LocalMac/nativeARM resources only; no GitHub tests or cloud runners.",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "source_generation": 506,
+  "source_lock_sha256": "809e5b2ec7492a20f6e7c4d8c4d389cfcd6f1219e1942c58de61cca5e0fb87eb",
+  "current_node": {
+    "passed": 1201,
+    "failed": 0,
+    "skipped": 0,
+    "result": {
+      "path": ".local/gate-6/v219-g529-schema506-node-unit-root/result.json",
+      "sha256": "e3c31aa04b3a47d4f607b8701edebb39d09b6fc34cb42391ec3aa2a03cc44cee"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g529-actual-sdk-node-independent-audit/receipt.json",
+      "sha256": "61dec79af11139852bdc4ba1b8fc482ff62eda4e2b181a64af338490f05f56f3"
+    }
+  },
+  "current_rust": {
+    "uctp_controls": 3,
+    "shared_oracle_cases": 1,
+    "shared_vectors": 379,
+    "result": {
+      "path": ".local/gate-6/v219-g530-schema506-rust-unit-root/result.json",
+      "sha256": "bb8ba0a6e35cf7f910caaa414de25477973b44ca89d90e01c576401bfb0d13c8"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g530-actual-rust-schema-independent-audit/receipt.json",
+      "sha256": "f380252a466ceeba21667979917b51c23a1350e8c8945db3bb6215dae00a52fe"
+    }
+  },
+  "normal506": {
+    "receipt": {
+      "path": ".local/gate-6/v219-g527-schema506-preparation-root/normal506-runtime/receipt.json",
+      "sha256": "499e7e9df80fefe22ba3f7634e50adb151eba81b3b681ab79cb76e2a7854e187"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g527-actual-normal506-independent-audit/receipt.json",
+      "sha256": "a3aa4f7bc35f55d0beee6f41dae45b3f3c3112134ab1b63b86d3920f1ae931e5"
+    }
+  },
+  "historical_complete_affected": {
+    "run": "g519",
+    "passed": 2206,
+    "failed": 0,
+    "not_regraded": true
+  },
+  "mobile_revision": 198
+}

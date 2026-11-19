@@ -1,0 +1,74 @@
+{
+  "format": "connect/g6-058-verified-unit-failure-frontier/1",
+  "updated_at": "2026-11-19T12:22:19.100085+00:00",
+  "summary": "Source505 focused verification now passes all three cleanup controls: real RTC negative (no-answer, voicemail and silent adapter loss), real RTC positive replacement/decoded duplex/caller-cancel recovery, and telephone deadline/remote-loss cleanup. All children and the original parent exited naturally. The RTC root cause was fixture shutdown order: terminal global drain rejected later Native cleanup tasks. Removing the premature drain preserves the original zero-peer/zero-route checks and mandatory final drain. Together with earlier component evidence, fixes for 23 of the 24 originally failing controls are now verified; the remaining expiry control passed once in current source but its historical intermittent cause remains unresolved. Codec1, Vapi2, new Provider3 and SIP3 already passed source504; no new expiry instrumentation or acceptance change is applied. The next complete batch retains all original tests and explicitly includes the new SIP/provider controls: expected1945 Rust plus206 Node plus55 Python checks. Actual decoded-media representatives, strict Firefox three cycles, final qualification, ARM11, normal releases and capture preflight remain. Last complete matrix remains v218:1/32 cells and399/432 checks. Component passes do not close matrix cells. Local Mac/native ARM only; G6-054 remains parked.",
+  "coordinator": "/root",
+  "status": "23_OLD_FAILURE_FIX_CONTROLS_VERIFIED_EXPIRY_CAUSE_OPEN",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "source_generation": 505,
+  "source_lock_sha256": "3aa5fa83fd1b8b1f3559de167f5f427415c458a19c27a1ccf1d1ba536be10378",
+  "old_failed_fix_controls_verified": {
+    "Core": 3,
+    "WebRTC": 4,
+    "SIP": 9,
+    "Native": 5,
+    "Vapi": 2,
+    "total": 23
+  },
+  "expiry": {
+    "current_single_control_pass": true,
+    "intermittent_cause_resolved": false,
+    "existing_diagnostics_retained": true,
+    "no_new_hotpath_instrumentation": true
+  },
+  "focused516": {
+    "selected": 13,
+    "passed": 11,
+    "failed": 2,
+    "result": {
+      "path": ".local/gate-6/v219-g516-focused-native-provider-root/result.json",
+      "sha256": "12c02ff827b3b7e001949ce1dadcbce67c7a51ffe038dc32bd9fcc3bf3adc25d"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g516-actual-focused-current504-independent-audit/receipt.json",
+      "sha256": "2583f0c0c1abe82829decaeedda34137babeb3845691dd4d5ba9ad662fd7b9cb"
+    }
+  },
+  "focused518": {
+    "selected": 3,
+    "passed": 3,
+    "failed": 0,
+    "negative_modes": [
+      "no-answer",
+      "voicemail",
+      "silent-adapter-loss"
+    ],
+    "result": {
+      "path": ".local/gate-6/v219-g518-rtc-final-drain-controls-root/result.json",
+      "sha256": "f2a80639bc5f92b374400b6f2a47e53379a79c750394ad901a430e19def5398a"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g518-actual-focused-current505-independent-audit/receipt.json",
+      "sha256": "30e4a24db0a47124ab24e38ce9914e7852dce9857ddbc2a49b17a130b3f4a65b"
+    }
+  },
+  "prepared505": {
+    "receipt": {
+      "path": ".local/gate-6/v219-g517-rtc-final-drain-root/normal505-runtime/receipt.json",
+      "sha256": "2f4b753825e7400810c5f4e8e90ca1404ccf39a8a9ee05f4cee90a4b84df01c0"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g517-actual-normal505-independent-audit/receipt.json",
+      "sha256": "d8a992e941b6e49671b18636f2188d8702d6ce8911f60bf64d4233c1c5bd666f"
+    }
+  },
+  "last_full_matrix": {
+    "version": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_revision": 195
+}

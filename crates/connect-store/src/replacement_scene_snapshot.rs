@@ -32,6 +32,24 @@ impl NativeReplacementSceneSnapshotEpoch {
     pub fn current(&self) -> bool {
         self.scene.current() && self.source.as_ref().is_none_or(|source| source.current())
     }
+    #[cfg(test)]
+    pub(crate) fn sample_at_for_test(
+        &self,
+        sampled: std::time::Instant,
+    ) -> (
+        crate::media_authorization::EpochSample,
+        Option<(
+            crate::media_authorization::EpochSample,
+            Option<crate::media_authorization::EpochSample>,
+        )>,
+    ) {
+        (
+            self.scene.sample_at_for_test(sampled),
+            self.source
+                .as_ref()
+                .map(|source| source.sample_at_for_test(sampled)),
+        )
+    }
 }
 impl NativeReplacementSceneSnapshot {
     pub fn admit(&self) -> Result<NativeReplacementSceneSnapshotLease> {

@@ -139,8 +139,25 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
         return {connection_id:entry.connection_id,stream_id:descriptor.stream_id,track_id:track.id,transceiver_index:descriptor.transceiver_index,mid:tx.mid};
         }catch{return null;}
     };
-    globalThis.connectPeerStreamDescriptor=(connectionId,direction)=>{
-        const found=entries.filter(value=>value.peer&&value.connection_id===connectionId);return found.length===1?describeTagged(found[0],direction):null;
+    globalThis.connectPeerStreamDescriptor=(connectionId,direction,selector)=>{
+        const found=entries.filter(value=>value.peer&&value.connection_id===connectionId);
+        if(found.length!==1)return null;
+        const entry=found[0],descriptor=describeTagged(entry,direction);if(!descriptor)return null;
+        try{
+            const txs=entry.peer.getTransceivers();
+            if(txs.filter(tx=>tx.mid===descriptor.mid).length!==1)return null;
+            if(selector!==undefined){
+                if(!selector||typeof selector!=='object'||Array.isArray(selector))return null;
+                const keys=Object.keys(selector);if(keys.length!==1)return null;
+                if(keys[0]==='mid'){
+                    if(typeof selector.mid!=='string'||!/^[A-Za-z0-9_-]{1,64}$/.test(selector.mid)||selector.mid!==descriptor.mid)return null;
+                }else if(keys[0]==='track'){
+                    const tx=txs[descriptor.transceiver_index],endpoint=direction==='send'?tx.sender:tx.receiver;
+                    if(!selector.track||endpoint?.track!==selector.track||!entry['video_'+direction+'_pointers']?.track.has(selector.track))return null;
+                }else return null;
+            }
+            return descriptor;
+        }catch{return null;}
     };
     }
     globalThis.connectPeerDiagnostics = () => ({
@@ -183,12 +200,38 @@ export function installPeerDiagnostics({peerBound=4,rtcAudioFacts=false,rtcSourc
             for(const field of fields)if(Number.isFinite(stat[field])&&(stat[field]>=0||field==='packetsLost'))row[field]=stat[field];
             if(rtcSourceFrameWitness&&stat.kind==='video'&&['outbound-rtp','inbound-rtp'].includes(stat.type)){
                 const direction=stat.type==='outbound-rtp'?'send':'receive';
-                row.original_track=globalThis.connectPeerStreamDescriptor(entry.connection_id,direction);
+                // A peer can own A preview and a distinct B receiver. The RTP
+                // dictionary must name the SAME unique original native MID;
+                // connection ownership alone never labels another track's row.
+                row.native_mid=typeof stat.mid==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(stat.mid)?stat.mid:null;
+                row.native_track_identifier=typeof stat.trackIdentifier==='string'&&stat.trackIdentifier.length>0&&stat.trackIdentifier.length<=256?stat.trackIdentifier:null;
+                row.original_track=globalThis.connectPeerStreamDescriptor(entry.connection_id,direction,{mid:stat.mid});
                 const codec=report.get(stat.codecId),transport=report.get(stat.transportId),pair=report.get(transport?.selectedCandidatePairId),
                     local=report.get(pair?.localCandidateId),remote=report.get(pair?.remoteCandidateId);
+                const role={profile:'connect/rtc-native-rtp-role/1',connection_id:entry.connection_id,peer_index:entry.peer_index,
+                    direction,complete:false,reason:'native-mid-unavailable',native_mid:row.native_mid,transceiver_index:null,native_track_id:null,
+                    codec_dictionary_type:typeof codec?.type==='string'&&codec.type.length<=64?codec.type:null};
+                row.native_rtp_binding=role;
+                try{
+                    const txs=entry.peer.getTransceivers(),matches=txs.filter(tx=>tx.mid===row.native_mid);
+                    if(!row.native_mid||txs.length>4||matches.length!==1)throw Error();
+                    const tx=matches[0],endpoint=direction==='send'?tx.sender:tx.receiver,track=endpoint?.track;
+                    if(!track||track.kind!=='video'||typeof track.id!=='string'||track.id.length<1||track.id.length>256
+                        ||(direction==='receive'&&!entry.peer.getReceivers().includes(endpoint)))throw Error();
+                    role.transceiver_index=txs.indexOf(tx);role.native_track_id=track.id;
+                    if(direction==='receive'&&stat.trackIdentifier!==undefined&&stat.trackIdentifier!==track.id){
+                        role.reason='native-track-identifier-contradiction';row.original_track_refusal=role.reason;
+                    }else{role.complete=true;role.reason=null;}
+                }catch{}
                 row.codec={mime_type:typeof codec?.mimeType==='string'?codec.mimeType:null,
                     payload_type:Number.isInteger(codec?.payloadType)?codec.payloadType:null,
                     clock_rate:Number.isInteger(codec?.clockRate)?codec.clockRate:null};
+                if(row.codec.mime_type?.toLowerCase()==='video/rtx'){
+                    const apt=typeof codec?.sdpFmtpLine==='string'&&codec.sdpFmtpLine.length<=1024
+                        ?codec.sdpFmtpLine.split(';').map(part=>part.trim()).filter(part=>part.startsWith('apt=')):[];
+                    const match=apt.length===1?/^apt=([0-9]{1,3})$/.exec(apt[0]):null;
+                    row.codec.associated_payload_type=match&&Number(match[1])<=127?Number(match[1]):null;
+                }
                 const endpoint=value=>value&&typeof value.address==='string'&&value.address.length<=128
                     &&Number.isInteger(value.port)&&value.port>0&&value.port<=65535?{address:value.address,port:value.port,protocol:value.protocol}:null;
                 row.selected_path={nominated:pair?.nominated===true,succeeded:pair?.state==='succeeded',

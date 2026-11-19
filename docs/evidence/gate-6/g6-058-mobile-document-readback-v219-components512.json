@@ -1,0 +1,23 @@
+{
+  "format": "connect/mobile-document-readback/1",
+  "verified_at": "2026-11-19T11:03:16.749Z",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMRZPx-3PoB0egETTeHZGTOCOpu_Ennf7sJkcB1kbD-fTemdgLR3qYxF33Z9QuDAauvSUi0AEJmtmAhzghVbasKEeiZgdPdmlxLK1dI",
+  "content_revision": 193,
+  "tracker_revision": 124,
+  "header": "Revision 193 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+  "current_verification": "Current verification \u2014 November 19. Reviewed corrections mapped to 23 Core/Native/WebRTC/SIP/Vapi failures are applied in prepared source 502. Scene expiry remains unresolved; test-only first-revocation diagnostics are prepared with the original assertion and cutoffs unchanged. The g511 batch completed all six builds: five passed, including both integration targets and the unchanged default shipping check. Native integration failed on one new RTC fixture module path; its one-attribute correction is prepared and awaits recompilation. No project runtime tests ran in g511 because the old global compile gate blocked all suites. The next reviewed runner executes independently eligible current targets and all original SDK scripts; a failed mandatory target still fails the complete run. Another reviewed gate allows actual decoded-media diagnostics after completed unit failures, preserving those failures and requiring both units and media to pass for aggregate success. All 35 isolated gate controls passed; they are not project or matrix passes. Cleanup removed only 59 reviewed completed cache payloads; measured free space increased by 10.31 GB with source, binaries, locks and protected entries unchanged. Preparation and all original process/source custody were independently audited. Next are complete retained/new regressions and three actual decoded-media representatives, then strict Firefox three-cycle validation, final qualification, ARM11, normal release builds and preflight. Last complete project runtimes remain g509: 2176/2200 passed, 24 failed. Last full matrix remains v218: 1/32 cells and 399/432 checks. G6-054 stays parked. Root coordinates; epoch_cause owns Core/expiry, batch_build_review owns Native RTC and runner changes, independent_batch_review checks source/custody; every task retains its named independent reviewer in tracker 124. Local Mac/native ARM only; criteria unchanged.\n",
+  "exact_readback_verified": true,
+  "replacements": [
+    {
+      "replaceAllText": {
+        "occurrencesChanged": 1
+      }
+    },
+    {
+      "replaceAllText": {
+        "occurrencesChanged": 1
+      }
+    }
+  ]
+}

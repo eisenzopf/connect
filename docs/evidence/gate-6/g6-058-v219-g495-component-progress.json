@@ -1,0 +1,68 @@
+{
+  "format": "connect/g6-058-opaque-preparation-identity-checkpoint/1",
+  "updated_at": "2026-11-16T13:03:22.832109+00:00",
+  "checkpoint": 495,
+  "dependency_patch_generation": 489,
+  "source_lock_sha256": "15222a36206aab3300672886463318fbb70e92fea7c86d6422c35e1a2ab41fae",
+  "status": "348_COMPONENT_CASES_PASS_DOWNSTREAM_COMPILE_FAILED_OPAQUE_IDENTITY_APPLIED_UNRUN",
+  "summary": "g494 repeatsProtocol87+Node206+Python55 passes, zero skips; overallFAILED at downstream auto-trait E0275 (SIP/UCTP/WebRTC/Vapi), previousprivatehelper error gone. All16children/Root90470 naturallyclose;source/Protocolbinary exact. Reviewed no-method opaqueWeak SAMEpreparation runtime identity+live realm applied via normal489, with actualmanaged scope/cancel/weak-retirement control. No allocation/dispatch/lock/grant change and no defaultconsumer128limit rollout; compiler sufficiency/residualWarmOwner unproven. Actualdecodedmedia, strictFirefox, ARM/releases/preflight remain. Lastfullmatrix1/32 unchanged.",
+  "evidence": {
+    ".local/gate-6/v219-g494-coherent-components-root/component-result.json": "9b676466f22a01b876e1a50ae10f8f1e1aeaf0c15e202609f1fded2aac168297",
+    ".local/gate-6/v219-g494-coherent-components-root/root-original-join.json": "00102ff82470539f5dd146dd836ed58dd7320cecf700f9a9fc390d7a98276733",
+    ".local/gate-6/v219-g494-coherent-components-root/compiler-error-index.json": "b0f10fa5996d1ae688442c012f50f0d60bb6785cc47b8e5ba7f4106df0fb2fbf",
+    ".local/gate-6/v219-g494-components-independent-fixture-review/receipt.json": "9bb3a098bbb1ab93c6daed7b78b5f7643132ce85728b914e898238f88d87c2c4",
+    ".local/gate-6/preparation-runtime-opaque-identity-v219-candidate/manifest.json": "40d81f7579e8403d5463b4136dda2d311f8a160d1041ae4084387a2bc5e7ceaf",
+    ".local/gate-6/preparation-runtime-opaque-identity-independent-root-review/receipt.json": "7be28db60909d4ebd020cf10281957960ff499429dc136d0d5f687a5a65d3e99",
+    ".local/gate-6/preparation-runtime-opaque-identity-independent-media-review/receipt.json": "1ba28d48894d4f50bdb920e653827ff72c6ddbe4860201afc0f13f727a59acc7",
+    ".local/gate-6/preparation-runtime-opaque-identity-independent-fixture-review/receipt.json": "f245a49c047976cf31322d07983f6a3b1c039588747f835409758f44e1d53818",
+    ".local/gate-6/v219-g495-opaque-identity-root/normal489-runtime/receipt.json": "5e087ab1e682c5b61cbe811517b8c6a67a47ec202afaadf082de6dbcd9782170",
+    ".local/gate-6/v219-g495-opaque-identity-root/root-original-join.json": "4134fafe266d958914a6353e64d153db67481f1ef61488f6c5bd37d7a69bb47e",
+    ".local/gate-6/v219-g495-preparation-independent-fixture-review/receipt-normal489.json": "f5e70a40224787d17ed14de52fdf98a1b3351d8d884480491d4a2216123f6d86"
+  },
+  "actual_g494": {
+    "passed": false,
+    "protocol_passed": 87,
+    "node_passed": 206,
+    "python_passed": 55,
+    "failed_or_skipped_tests": 0,
+    "other_rust_tests_or_representatives_run": false,
+    "compiler_frontier": "Only E0275 type-search expansion in consumers: all exactsource paths in errorindex, with feature/cfg line variants. Core private direct_port error no longer occurs.",
+    "root_pid": 90470,
+    "root_pgid": 90470,
+    "tool_session": 94265,
+    "natural_exit_code": 1,
+    "root_pid_and_group_absent": true,
+    "original_child_groups_reaped_absent": 16,
+    "source_files_hash_modes_unchanged": 6414,
+    "original_protocol_binary_exact": true
+  },
+  "normal489": {
+    "passed": true,
+    "root_pid": 91455,
+    "tool_session": 74533,
+    "root_natural_exit_code": 0,
+    "root_pid_absent": true,
+    "root_pgid_captured": false,
+    "original_children_natural_zero_joined": 2,
+    "upstream_afterimages": 3,
+    "workspace_guards": 103,
+    "old_mtimes_restored": 4262
+  },
+  "source_change": "Private preparation identity keeps exact original runtime allocation as Weak<dyn Send+Sync>, same nonce/pointer/liveness and pinned original weak scoped realm; no mutable authority cached. Actualcurrent/cancel/Port/ticket/policy checks unchanged. One realmanaged control added.",
+  "remaining": [
+    "Original coherent aggregate featureunion compile/affected units/defaultconsumers128; do not assumeopaqueidentity alsoresolvesWarmOwnerbranch",
+    "Actual RTCsameB/abort/Reader-release SQL/renderer recovery and pooledNative-to-RTC decoded proof",
+    "Current strictautomaticFirefoxNORMAL3, optionalChrome-only manual capability+quality separatelyheld",
+    "Local ARM/releases/preflight before32"
+  ],
+  "previous_checkpoint": "docs/evidence/gate-6/g6-058-v219-g493-component-progress.json",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  }
+}

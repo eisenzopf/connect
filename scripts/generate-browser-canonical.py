@@ -20,7 +20,7 @@ VOCABULARY = {
     'properties', 'required', 'additionalProperties', 'enum', 'const',
     'allOf', 'anyOf', 'oneOf', 'not', 'if', 'then', 'else', 'minLength',
     'maxLength', 'pattern', 'format', 'minimum', 'maximum', 'items',
-    'minItems', 'maxItems', 'uniqueItems',
+    'minItems', 'maxItems', 'uniqueItems', 'contains', 'minContains', 'maxContains',
 }
 
 
@@ -35,14 +35,14 @@ def generate():
         if '$ref' in node:
             assert node['$ref'].startswith('#/$defs/') and node['$ref'][8:] in schema['$defs']
         if 'pattern' in node:
-            assert node['pattern'] in ('^[A-Za-z0-9._~-]+$', '^(sip|sips|tel):[!-~]+$')
+            assert node['pattern'] in ('^[A-Za-z0-9._~-]+$', '^(sip|sips|tel):[!-~]+$', '^[!-~]+$')
         if 'format' in node:
             assert node['format'] == 'date-time'
         if 'type' in node:
             assert node['type'] in ('object', 'array', 'string', 'integer', 'number', 'boolean', 'null')
         if 'additionalProperties' in node:
             assert isinstance(node['additionalProperties'], bool)
-        for name in ('minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems'):
+        for name in ('minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'minContains', 'maxContains'):
             if name in node:
                 assert isinstance(node[name], (int, float)) and abs(node[name]) <= 9007199254740991
         for name in ('$defs', 'properties'):
@@ -51,7 +51,7 @@ def generate():
         for name in ('allOf', 'anyOf', 'oneOf'):
             for child in node.get(name, []):
                 check(child)
-        for name in ('items', 'not', 'if', 'then', 'else'):
+        for name in ('items', 'contains', 'not', 'if', 'then', 'else'):
             if name in node:
                 check(node[name])
 

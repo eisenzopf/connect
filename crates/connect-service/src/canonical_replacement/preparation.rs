@@ -86,6 +86,7 @@ impl Drop for NativeReplayCustody {
                     failed_allocation: root.failed_allocation.clone(),
                     original_cleanup_facts: root.original_cleanup_facts.clone(),
                     public_discard: root.public_discard.clone(),
+                    public_video: root.public_video.clone(),
                     deadline: root.deadline,
                     telephone: std::sync::Mutex::new(
                         root.telephone
@@ -529,8 +530,11 @@ impl Runtime {
                     .map_err(|_| Error::forbidden())?;
             }
         }
+        self.prepare_public_video_reservation(root, started, peer)
+            .await?;
         if let Some(gate) = &started.policy.readiness {
             if let Some(request) = super::movement::replacement_video(&root.plan)? {
+                let request = root.public_video.private_preview_request(request)?;
                 if !request.receivers.is_empty() {
                     let preparation = self.prepare_private_video(root, started, &request).await?;
                     gate.preroll
@@ -719,6 +723,7 @@ impl Runtime {
             )
             .await?;
             tracing::debug!(target:"connect_service::canonical_replacement",?observed,"Replacement actual private duplex readiness captured");
+            self.prepare_public_video_cut(root, started).await?;
             return self.move_native_replacement(root, started).await;
         }
     }

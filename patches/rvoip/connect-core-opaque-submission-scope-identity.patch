@@ -1,0 +1,97 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/submission.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/submission.rs
+@@ -12,12 +12,25 @@
+ /// Warm/public policy and exact native binding are required independently.
+ /// It intentionally carries no prep cutoff or strong Warm/controller/Reader.
+ pub struct PublicVideoKeyframeSubmission {
+-    scope:Weak<PostCutPublicVideoScope>,original:Arc<OriginalVideoFrame>,
++    // Historical exact-allocation identity only; this never reads current
++    // scope authority. The actual recorder keeps its concrete Scope Weak.
++    scope:Weak<dyn Send+Sync>,original:Arc<OriginalVideoFrame>,
+     native_ssrc:u32,payload_type:u8,timestamp:u32,
++}
++// Keep the SAME Scope allocation weakly, with no method dispatch, allocation
++// or retention of Scope/Root state in this immutable historical receipt.
++fn submission_scope_marker(scope:&Arc<PostCutPublicVideoScope>)->Weak<dyn Send+Sync> {
++    let erased:Arc<dyn Send+Sync>=scope.clone();
++    Arc::downgrade(&erased)
++}
++fn submission_scope_matches(marker:&Weak<dyn Send+Sync>,scope:&PostCutPublicVideoScope)->bool {
++    // Discard only trait-object metadata. The allocation stays reserved while
++    // this Weak exists, preserving the original no-address-reuse/ABA property.
++    std::ptr::eq(marker.as_ptr() as *const (),scope as *const PostCutPublicVideoScope as *const ())
+ }
+ impl PublicVideoKeyframeSubmission {
+     pub fn matches_scope(&self,scope:&PostCutPublicVideoScope)->bool {
+-        std::ptr::eq(self.scope.as_ptr(),scope)
++        submission_scope_matches(&self.scope,scope)
+             && self.original.frame_realm().is_some_and(|point|
+                 point.incarnation()==scope.frontier().realm_incarnation()
+                     && point.ordinal()>scope.frontier().ordinal())
+@@ -81,7 +94,17 @@
+             return;
+         }
+         let _=scope.submission.set(Arc::new(PublicVideoKeyframeSubmission {
+-            scope:Arc::downgrade(&scope),original,native_ssrc,payload_type,timestamp,
++            scope:submission_scope_marker(&scope),original,native_ssrc,payload_type,timestamp,
+         }));
+     }
+ }
++
++#[cfg(test)]
++impl PostCutPublicVideoScope {
++    // Test the actual identity primitive using ONLY an actual managed Scope.
++    // This returns no Submission/Recorder/native-success receipt or IO grant.
++    pub(crate) fn submission_identity_for_test(self:&Arc<Self>)->impl Fn(&Self)->bool+Send+Sync+'static {
++        let marker=submission_scope_marker(self);
++        move |scope|submission_scope_matches(&marker,scope)
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
+@@ -261,3 +261,6 @@
+ 
+ #[path="public_video_warm/warm_owner_authority_controls.rs"]
+ mod warm_owner_authority_controls;
++
++#[path="public_video_warm/submission_identity_controls.rs"]
++mod submission_identity_controls;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/submission_identity_controls.rs
+@@ -0,0 +1,36 @@
++//! Actual managed scopes exercise identity, not fabricated native submission.
++use super::*;
++
++#[tokio::test]
++async fn submission_identity_is_exact_same_scope_weak_metadata_and_never_current_authority() {
++    let mut room=ManagedRoom::with_video(true).await;
++    let mut foreign=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(alice,old,source)=actors(&mut room).await;
++        let ready=prepared(&mut room,&alice,&old,&source).await;
++        freeze(&room,&ready.plan,&ready.grant,&ready.reservation).await;
++        room.world.warm_allowed.store(true,Ordering::Release);
++        let original_warm=warm(&room,&ready.plan,&ready.grant).await.unwrap();
++        let scope=original_warm.scope_with_original_owner_for_test().unwrap();
++        let clone=scope.clone();let weak=Arc::downgrade(&scope);
++        let marker=scope.submission_identity_for_test();
++        let(other_alice,other_old,other_source)=actors(&mut foreign).await;
++        let other_ready=prepared(&mut foreign,&other_alice,&other_old,&other_source).await;
++        freeze(&foreign,&other_ready.plan,&other_ready.grant,&other_ready.reservation).await;
++        foreign.world.warm_allowed.store(true,Ordering::Release);
++        let other_warm=warm(&foreign,&other_ready.plan,&other_ready.grant).await.unwrap();
++        let other_scope=other_warm.scope_with_original_owner_for_test().unwrap();
++        assert!(marker(&scope)&&marker(&clone));assert!(!marker(&other_scope));
++        assert!(scope.is_current());assert!(scope.successful_keyframe_submission().is_none());
++        assert!(ready.root.cancel());
++        assert!(!scope.is_current());assert!(marker(&scope),"historical identity is separate from revoked current authority");
++        assert!(scope.successful_keyframe_submission().is_none(),"identity metadata cannot fabricate native successful submission");
++        original_warm.close();drop(original_warm);drop(clone);drop(scope);
++        assert!(weak.upgrade().is_none(),"retained identity marker cannot keep original Scope alive");
++        assert!(!marker(&other_scope),"dead original allocation cannot be adopted as another actual managed Scope");
++        other_warm.close();
++    }).await;
++    let clean=room.close_originals().await.into_iter().all(|done|done);
++    let other_clean=foreign.close_originals().await.into_iter().all(|done|done);
++    assert!(clean&&other_clean);if let Err(error)=result {resume_unwind(error)}
++}

@@ -1,0 +1,11 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -526,7 +526,7 @@
+         }
+         Ok(DirectValidationAttempt::Current(leases))
+     }
+-    fn direct_port<'a>(state: &'a State, logical: &StreamId) -> ControlResult<&'a Arc<Port>> {
++    pub(super) fn direct_port<'a>(state: &'a State, logical: &StreamId) -> ControlResult<&'a Arc<Port>> {
+         if state.closed
+             || state
+                 .model

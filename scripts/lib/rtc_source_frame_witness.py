@@ -186,7 +186,7 @@ class StatsIndex:
              and all(a <= b for a,b in zip(self.requested,self.requested[1:]))
              and all(a <= b for a,b in zip(self.completed,self.completed[1:])), 'original-statistics-clock')
         self.boundaries = pipeline.get('binding_boundaries')
-        self.receiver_owners, self.cache = {}, {}
+        self.receiver_owners, self.cache, self.roles = {}, {}, {}
         self.publications = None
         self.boundary_bytes_checked=False
         self.deadline = time.monotonic()+30 if deadline is None else deadline
@@ -194,6 +194,13 @@ class StatsIndex:
             for group in sample['peers']:
                 for row in group:
                     tag=row.get('original_track') or {}
+                    role=self.native_role(row)
+                    if role is not None and not row.get('original_track_refusal') and self.tag_matches_role(tag,role):
+                        key=(row.get('connection_id'),row.get('type'),tag.get('stream_id'),tag.get('track_id'))
+                        # The first exact original association is immutable.
+                        # A later conflicting row cannot teach a new role.
+                        self.roles.setdefault(key,role)
+                        need(len(self.roles)<=128,'bounded-original-native-roles')
                     if row.get('type')=='inbound-rtp' and row.get('kind')=='video' and isinstance(tag.get('stream_id'),str):
                         self.receiver_owners.setdefault(tag['stream_id'],set()).add(tag.get('connection_id'))
         if isinstance(self.boundaries,dict):
@@ -203,20 +210,72 @@ class StatsIndex:
                     if isinstance(tag.get('stream_id'),str):
                         self.receiver_owners.setdefault(tag['stream_id'],set()).add(tag.get('connection_id'))
 
-    def rows(self, number, owner, direction):
-        return [r for group in self.samples[number]['peers'] for r in group if r.get('connection_id')==owner
-                and r.get('kind')=='video' and r.get('type')==direction]
+    @staticmethod
+    def native_role(row):
+        role=row.get('native_rtp_binding')
+        if not isinstance(role,dict) or role.get('profile')!='connect/rtc-native-rtp-role/1' or role.get('complete') is not True:return None
+        expected_direction='receive' if row.get('type')=='inbound-rtp' else 'send'
+        if role.get('connection_id')!=row.get('connection_id') or type(role.get('peer_index')) is not int or not 0<=role['peer_index']<16 or role.get('peer_index')!=row.get('peer_index') or role.get('direction')!=expected_direction or role.get('reason') is not None:return None
+        mid,index,track=role.get('native_mid'),role.get('transceiver_index'),role.get('native_track_id')
+        if not isinstance(mid,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',mid) or type(index) is not int or not 0<=index<4 or not isinstance(track,str) or not 0<len(track)<=256:return None
+        if ('native_mid' in row and row['native_mid']!=mid) or (row.get('native_track_identifier') is not None and row['native_track_identifier']!=track):return None
+        return (mid,index,track)
 
-    def endpoint(self,number,owner,direction):
-        rows=self.rows(number,owner,direction)
+    @staticmethod
+    def tag_matches_role(tag,role):
+        return (isinstance(tag,dict) and isinstance(tag.get('stream_id'),str)
+                and (tag.get('mid'),tag.get('transceiver_index'),tag.get('track_id'))==role)
+
+    def expected_role(self,owner,direction,stream,track):
+        values={value for (o,d,s,t),value in self.roles.items() if o==owner and d==direction
+                and (stream is None or s==stream) and (track is None or t==track)}
+        return next(iter(values)) if len(values)==1 else None
+
+    def select_rows(self,rows,owner,direction,stream,track):
+        expected=self.expected_role(owner,direction,stream,track)
+        primary_pts={r['codec']['payload_type'] for r in rows if self.native_role(r)==expected and expected is not None
+            and (r.get('codec') or {}).get('mime_type','').lower()=='video/vp8'
+            and uint((r.get('codec') or {}).get('payload_type'),7)}
+        selected=[]
+        for row in rows:
+            role=self.native_role(row)
+            # Unknown or contradictory rows cannot be fitted to another role.
+            if role is None or expected is None or row.get('original_track_refusal'):
+                selected.append(row);continue
+            tag=row.get('original_track')
+            if tag is not None and not self.tag_matches_role(tag,role):
+                selected.append(row);continue
+            if role!=expected and isinstance(tag,dict) and ((stream is not None and tag.get('stream_id')==stream)
+                    or (track is not None and tag.get('track_id')==track)):
+                selected.append(row);continue
+            if role[0]!=expected[0] and role[1]!=expected[1]:continue
+            codec=row.get('codec') or {}
+            if role==expected and (row.get('native_rtp_binding') or {}).get('codec_dictionary_type')=='codec' and codec.get('mime_type','').lower()=='video/rtx' and codec.get('clock_rate')==90000 and uint(codec.get('payload_type'),7) and len(primary_pts)==1 and codec.get('associated_payload_type') in primary_pts and codec['payload_type'] not in primary_pts:continue
+            selected.append(row)
+        return selected
+
+    def rows(self, number, owner, direction, stream=None, track=None):
+        rows=[r for group in self.samples[number]['peers'] for r in group if r.get('connection_id')==owner
+              and r.get('kind')=='video' and r.get('type')==direction]
+        return self.select_rows(rows,owner,direction,stream,track)
+
+    def endpoint(self,number,owner,direction,stream=None,track=None):
+        rows=self.rows(number,owner,direction,stream,track)
         return bool(rows) and (len(rows)!=1 or rows[0].get('original_track') is not None)
 
     def snapshot(self, number, owner, direction, stream, track, ssrc, allow_unbound=False):
-        return self.snapshot_rows(self.rows(number,owner,direction), owner, direction, stream, track, ssrc, allow_unbound)
+        return self.snapshot_rows(self.rows(number,owner,direction,stream,track), owner, direction, stream, track, ssrc, allow_unbound)
 
     def snapshot_rows(self,rows,owner,direction,stream,track,ssrc,allow_unbound=False):
         need(len(rows)==1,'owner-statistics-ambiguous')
         row=rows[0];original=row.get('original_track')
+        need(not row.get('original_track_refusal'),'original-native-role-contradiction')
+        if 'native_rtp_binding' in row:
+            role=self.native_role(row)
+            need(role is not None,'original-native-role-unproved')
+            expected=self.expected_role(owner,direction,stream,track)
+            need(expected is not None and role==expected,'original-native-role-changed')
+            need(original is None or self.tag_matches_role(original,role),'original-native-role-contradiction')
         unbound=allow_unbound and original is None
         if not unbound:
             original=original or {}
@@ -264,7 +323,7 @@ class StatsIndex:
         requested_seconds=(requested-origin)/1000
         if requested_seconds<last:return None # Never a public-head or earlier sample.
         need(requested_seconds-last<=2,'owner-statistics-too-distant')
-        lows=[i for i in range(max(0,lo+1)) if self.endpoint(i,owner,direction)]
+        lows=[i for i in range(max(0,lo+1)) if self.endpoint(i,owner,direction,stream,track)]
         if not lows:return None # A real opposite low endpoint is still mandatory.
         actual=lows[-1];need(first-self.completed[actual]<=2,'owner-statistics-too-distant')
         rows=record.get('rows');need(isinstance(rows,list) and len(rows)==1,'retirement-statistics-ambiguous')
@@ -279,7 +338,7 @@ class StatsIndex:
         # Preserve EVERY available regular row and every unexplained earlier
         # disappearance in the original missing bracket; no sparse global poll.
         for i in range(actual,max(actual,min(len(self.samples)-1,hi))+1):
-            if self.rows(i,owner,direction):
+            if self.rows(i,owner,direction,stream,track):
                 need(self.snapshot(i,owner,direction,stream,track,ssrc)==value,'contradictory-regular-statistics')
             else:need(self.completed[i]>=requested_seconds,'retirement-cannot-explain-earlier-missing-statistics')
         proof=dict(profile=record['profile'],peer_index=record['peer_index'],connection_id=owner,direction=direction,
@@ -300,21 +359,21 @@ class StatsIndex:
             self.coordinate_bound(value,first,last,coordinates);return value
         need(len(self.cache)<16384,'original-statistics-cache-bound')
         # The normal actual-snapshot bracket remains preferred and unchanged.
-        if 0<=lo<=hi<len(self.samples) and all(self.endpoint(i,owner,direction) for i in range(lo,hi+1)):
+        if 0<=lo<=hi<len(self.samples) and all(self.endpoint(i,owner,direction,stream,track) for i in range(lo,hi+1)):
             need(first-self.completed[lo]<=2 and self.requested[hi]-last<=2,'owner-statistics-too-distant')
             values=[self.snapshot(i,owner,direction,stream,track,ssrc) for i in range(lo,hi+1)]
             need(all(v==values[0] for v in values),'source-or-receiver-state-changed')
             self.cache[key]=values[0];return values[0]
         if direction=='inbound-rtp':
-            highs=[i for i in range(hi,len(self.samples)) if self.endpoint(i,owner,direction)]
+            highs=[i for i in range(hi,len(self.samples)) if self.endpoint(i,owner,direction,stream,track)]
             if not highs:
                 retirement=self.retirement_high(owner,direction,first,last,stream,track,ssrc,lo,hi)
                 if retirement is not None:self.cache[key]=retirement;return retirement
         need(self.boundaries is not None,'owner-statistics-ambiguous' if 0<=lo<=hi<len(self.samples) else 'owner-statistics-do-not-bracket-pair')
         # A boundary NEVER manufactures both endpoints. One original, complete,
         # actual RTP snapshot must remain on the opposite side of the pair.
-        lows=[i for i in range(max(0,lo+1)) if self.endpoint(i,owner,direction)]
-        highs=[i for i in range(hi,len(self.samples)) if self.endpoint(i,owner,direction)]
+        lows=[i for i in range(max(0,lo+1)) if self.endpoint(i,owner,direction,stream,track)]
+        highs=[i for i in range(hi,len(self.samples)) if self.endpoint(i,owner,direction,stream,track)]
         have_lo=bool(lows) and first-self.completed[lows[-1]]<=2
         have_hi=bool(highs) and self.requested[highs[0]]-last<=2
         need(have_lo != have_hi,'native-boundary-needs-one-real-rtp-endpoint')
@@ -326,9 +385,9 @@ class StatsIndex:
         # still authoritative. Missing interior rows cannot become a boundary.
         start=min(actual,max(0,lo));end=max(actual,min(len(self.samples)-1,hi))
         for i in range(start,end+1):
-            if self.rows(i,owner,direction):
+            if self.rows(i,owner,direction,stream,track):
                 if provenance.get('native_path_kind')=='prflx-address-redacted':
-                    need(self.selection_epoch(i,owner,direction,value['peer_index'])==provenance['transport_epoch'],
+                    need(self.selection_epoch(i,owner,direction,value['peer_index'],stream,track)==provenance['transport_epoch'],
                          'contradictory-regular-selection-epoch')
                 observed=self.snapshot(i,owner,direction,stream,track,ssrc,allow_unbound=True)
                 if observed['track'] is not None:
@@ -371,8 +430,8 @@ class StatsIndex:
             need((delta(coordinates[0],reported)>=0 if public else delta(reported,coordinates[1])>=0),
                  'native-binding-reported-coordinate-does-not-cover-pair')
 
-    def selection_epoch(self,number,owner,direction,peer_index):
-        rows=self.rows(number,owner,direction)
+    def selection_epoch(self,number,owner,direction,peer_index,stream=None,track=None):
+        rows=self.rows(number,owner,direction,stream,track)
         need(len(rows)==1,'owner-statistics-ambiguous')
         path=rows[0].get('selected_path') or {}
         epoch=path.get('transport_epoch')
@@ -467,7 +526,7 @@ class StatsIndex:
         if partial:
             epoch=path.get('transport_epoch')
             self.check_selection_epoch(epoch,entry['peer_index'])
-            need(self.selection_epoch(actual,owner,direction,entry['peer_index'])==epoch,
+            need(self.selection_epoch(actual,owner,direction,entry['peer_index'],value['track'].get('stream_id'),value['track'].get('track_id'))==epoch,
                  'native-binding-selection-epoch-changed')
             # This is a relation to a real complete Stats endpoint, never a
             # replacement native address or a synthetic getStats sample.
@@ -1104,7 +1163,7 @@ def finalize(report, browser_folder, server_log, pcap_path):
     grouped = [[] for _ in contexts]
     for number, value in enumerate(requests): grouped[value[0]].append(number)
     auxiliary = metadata_size(requests, grouped, contexts, context_ids, windows, [value.cache for value in statistics],
-                              [value.requested for value in statistics], [value.completed for value in statistics], [value.receiver_owners for value in statistics], [value.boundaries for value in statistics], boundary_used, retirement_statistics_used, summaries.source_bindings, [value.publications for value in statistics], publication_used, deadline=deadline)
+                              [value.requested for value in statistics], [value.completed for value in statistics], [value.receiver_owners for value in statistics], [value.roles for value in statistics], [value.boundaries for value in statistics], boundary_used, retirement_statistics_used, summaries.source_bindings, [value.publications for value in statistics], publication_used, deadline=deadline)
     headers = capture_headers(pcap_path, report['packet_capture'], windows, cycles=len(cycles), deadline=deadline, auxiliary_bytes=auxiliary)
     compact, control_facts = [], []
     for context_id, numbers in enumerate(grouped):

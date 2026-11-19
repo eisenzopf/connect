@@ -1,0 +1,22 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -334,9 +334,6 @@
+         // Modeled counterpart of canonical cold arm; actual native keyframe
+         // IO/readiness remains a separate integration obligation.
+         let exposure=self.physical_video.get(&request.scope().target().logical_id).ok_or(StreamControlError::Unsupported)?;
+-        exposure.inherit_frontier(request.scope().frontier());
+-        if mode==21 {self.entered.notify_one();self.release.notified().await;}
+-        if mode==22 {return Err(StreamControlError::NotReady);}
+         if mode==24 {
+             let recorder=request.keyframe_submission_recorder(0,96)?;
+             if request.keyframe_submission_recorder(0,96).is_ok() {return Err(StreamControlError::Authority);}
+@@ -345,6 +342,9 @@
+             }
+             *self.keyframe_recorder.lock().unwrap()=Some(recorder);
+         }
++        exposure.inherit_frontier(request.scope().frontier());
++        if mode==21 {self.entered.notify_one();self.release.notified().await;}
++        if mode==22 {return Err(StreamControlError::NotReady);}
+         Ok(())
+     }
+ 

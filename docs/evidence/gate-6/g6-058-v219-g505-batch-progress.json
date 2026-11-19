@@ -1,0 +1,49 @@
+{
+  "format": "connect/g6-058-batch-preparation/1",
+  "updated_at": "2026-11-19T07:03:06.697714+00:00",
+  "client_date": "2026-11-18",
+  "summary": "The latest compile batch stopped before runtime: Core, WebRTC and UCTP library test binaries compiled, but Native fixtures had 11 compile errors and the service had two diagnostics for one private-method visibility error. A redundant dependent build was explicitly cancelled; the batch remains interrupted and unqualified. All known Native and service corrections are installed together in prepared source 494, with independent source and preparation reviews; compilation is pending. Cleanup recovered 18,226,642,944 bytes (about 17 GiB), preserving binaries and evidence. The earlier Store result remains 437/438, with six prior corrections and all 22 new cases passing; its scene-expiry cause remains unresolved. Next: compile all six targets before regression tests, then diagnose expiry, verify decoded-media representatives and complete ARM/release readiness. No acceptance criteria changed. Last full matrix remains 1/32 cells and 399/432 checks; G6-054 stays parked.",
+  "source_generation": 494,
+  "source_lock_sha256": "2daf5c5d49a9f9bae81a48f45b50158037ebb87b910bcaeef307facb2faf4699",
+  "status": "KNOWN_COMPILE_FIXES_PREPARED_NOT_YET_COMPILED",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "coordinator": "/root",
+  "compile_author": "/root/batch_build_review",
+  "independent_reviewer": "/root/independent_batch_review",
+  "expiry_owner": "/root/epoch_cause",
+  "latest_compile": {
+    "status": "INTERRUPTED_UNQUALIFIED",
+    "result_sha256": "087cc8a1ffa7eb2334e21c072f1cd3b761c9c1df33706cd5f901afb648b205de",
+    "independent_audit_sha256": "61e772e2e15e47f291f3b62971af237af9f897f2c81105869130707d843e8ac0",
+    "upstream_libraries_compiled": [
+      "Core",
+      "WebRTC",
+      "UCTP"
+    ],
+    "native_compile_errors": 11,
+    "workspace_compile_diagnostics": 2,
+    "workspace_distinct_causes": 1,
+    "runtime_executed": false
+  },
+  "combined_fix_manifest_sha256": "8f9ce278908bae9ff3fb40ae00491b51e99aad3d6699f1754db3f92e5d8c0a13",
+  "preparation_receipt_sha256": "9ebd916de14cc0d78cdbc2b9a924166b32e757d47588923085ac6aafbb0abd49",
+  "preparation_audit_sha256": "df3dea2a978b8d8b4fb800231912669797d0daabd59369a34ab47927c3308b88",
+  "cleanup": {
+    "plan_sha256": "fe3005b9af86facf106ec2275e73f07ac59bb2b739d51ad06e0e7e2ade922ebf",
+    "groups_removed": 34,
+    "free_before_bytes": 7424155648,
+    "free_after_bytes": 25650798592,
+    "actual_recovered_bytes": 18226642944,
+    "all5original_binaries_exact": true,
+    "source_libraries_logs_and_databases_untouched": true,
+    "completed_unix": 1795071290.4558048
+  },
+  "last_full_matrix": {
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_revision": 189
+}

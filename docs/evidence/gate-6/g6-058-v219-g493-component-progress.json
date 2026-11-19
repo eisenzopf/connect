@@ -1,0 +1,77 @@
+{
+  "format": "connect/g6-058-compile-frontier-checkpoint/1",
+  "updated_at": "2026-11-16T12:46:38.697748+00:00",
+  "checkpoint": 493,
+  "dependency_patch_generation": 488,
+  "source_lock_sha256": "a0f515dbf1578054254dcdccbfe168a59f118290b79cd23a01a6375db388f017",
+  "status": "348_COMPONENT_CASES_PASS_SINGLE_CORE_COMPILE_ERROR_REVIEWED_CORRECTION_APPLIED_UNRUN",
+  "summary": "Freshg492 passesProtocol87+Node206+Python55, zero failed/ignored; overallFAILED at single Core E0624 direct_port visibility across all5JSONbuilds/defaultcheck. Prior30helper+5trait-depth+StoreE0432 absent. All16children/Root88027 naturallyclose, source and Protocolbinary exact. Reviewed direct_port correction and pooledNative2Session same-selector TEST applied via normal488; compile/media unproven. Firefox manual capture unsupported in archived directAPI; current automatic strict programme and held Chrome-only manual proposal remain distinct. Matrix1/32 unchanged; no new matrix.",
+  "evidence": {
+    ".local/gate-6/v219-g492-coherent-components-root/component-result.json": "b5ed5f4478abae711dcb5eb0e850315eafa9260e5569fca68c4fe4df1ffafa1c",
+    ".local/gate-6/v219-g492-coherent-components-root/root-original-join.json": "ef3e850ceb2f73da9bfcb26bf5868531dc8fcd65a75b77eae6ac9b3722c9c3a6",
+    ".local/gate-6/v219-g492-coherent-components-root/compiler-frontier.json": "98a2bfd005a3cd6b3ba7dabbc04d667db0387c3347606a71329aa77ee27e15fd",
+    ".local/gate-6/v219-g492-coherent-components-independent-v198-review/receipt-actual-closed.json": "5241aeb2f11bfd98bab34c7ce0b5b707657a9bf9fb7b36afc9c4fc592fd12008",
+    ".local/gate-6/core-direct-port-scope-independent-v198-review/receipt.json": "0be80ee3db2595a94a4175b4c935b4cf9b59ce2922c85f45eab8e4ea6aeca379",
+    ".local/gate-6/v219-g493-direct-port-and-pooled-root/normal488-runtime/receipt.json": "8d720868b5f55dd33aad19f11d73709d00327e851242630a4281f18c4d65452a",
+    ".local/gate-6/v219-g493-direct-port-and-pooled-root/root-original-join.json": "53ac0538ce7244ce98e403246c7cca8e1abed9498bbf562ef76f8a8eb941f95b",
+    ".local/gate-6/v219-g493-direct-port-and-pooled-root/pooled-root-composition.json": "dcdf77fcecb77e63b787a369278e6c04522841490a97e15956574ef7d8ee3feb",
+    ".local/gate-6/v219-g493-preparation-independent-fixture-review/receipt-normal488.json": "142dc93300e86a6f082b4daacde779f2b12357b0313cca354b26340f14976c6f",
+    ".local/gate-6/native-to-rtc-pooled-session-representative-independent-fixture-review/receipt-v3.json": "716b48a620c624379f14c469b24d630fe30ed052274065614b1d49ceffe4830d",
+    ".local/gate-6/native-to-rtc-pooled-session-representative-independent-v198-review/receipt-v3.json": "4a4720115d0efe2a6440a08e7f513478f8ea4153b2e36830934edcc8fb076c92",
+    ".local/gate-6/manual-canvas-current-context-v219-composition/plan.json": "04ef7e5c2c99559d3dcbe93191ef32bf458ac6bcfe0048d0209606cbd83d7734"
+  },
+  "actual_g492": {
+    "passed": false,
+    "node_passed": 206,
+    "python_passed": 55,
+    "protocol_passed": 87,
+    "failed_or_skipped_tests": 0,
+    "remaining_compiler_frontier": "ONE E0624direct_port private sibling helper",
+    "prior_g490_compiler_classes_absent": [
+      "30metadata_lock_error E0425",
+      "5Send/Sync E0275",
+      "Store E0432 missing10middleexports"
+    ],
+    "other_rust_tests_run": false,
+    "root_pid": 88027,
+    "root_pgid": 88027,
+    "tool_session": 27501,
+    "root_natural_exit_code": 1,
+    "root_pid_and_group_absent": true,
+    "original_child_groups_reaped_absent": 16,
+    "source_hash_modes_unchanged": 6411,
+    "protocol_binary_original_exact": true
+  },
+  "normal488": {
+    "passed": true,
+    "root_pid": 89179,
+    "root_pgid_captured": false,
+    "root_tool_session": 10205,
+    "root_natural_exit_code": 0,
+    "original_children_natural_zero_joined": 2,
+    "upstream_afterimages": 1,
+    "workspace_guards": 100,
+    "preserved_old_tree_entries": 5151,
+    "unchanged_mtimes_restored": 4263
+  },
+  "applied_source": [
+    "private parent-visible same direct_port helper, unchanged body/authority",
+    "same original Native-to-RTC ignored selector now twoSessions on same2NativePeers/four source-decoder chains; actualNativepostcheckpointpublication timestamps, not sourcecapture time theorem"
+  ],
+  "remaining": [
+    "Current coherent Rust compilation and affected units",
+    "Actual RTCsameB/abort/Reader-release SQL/renderer recovery and pooledNative-to-RTC decoded representative",
+    "Fresh automatic Firefox strict3cycle programme after newB; optional Chrome-only manual source requires actual capability+quality, no universal fallback or alias waiver",
+    "Local ARM/release/preflight before full32"
+  ],
+  "previous_checkpoint": "docs/evidence/gate-6/g6-058-v219-g491-component-progress.json",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  }
+}

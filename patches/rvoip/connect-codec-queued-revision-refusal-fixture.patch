@@ -1,0 +1,39 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -2202,20 +2202,26 @@
+             old_binding.transport_id
+         );
+         let stale_gate = gate_command("mute", 1, Some(&["first"]), None);
+-        // The SAME signed gate is processed while the real offer remains
+-        // pending. Its actual error reply is the barrier, not unrelated RTP.
+-        tokio::time::timeout_at(overlap_until,gate_reply(&mut p.s,stale_gate,"error"))
+-            .await.expect("original codec request cutoff covers exact pending gate refusal");
+-        {
+-            let controls=p.s.record.controls.lock().unwrap();
+-            assert!(matches!(controls.last().unwrap(),Err(NativeOfferError::NegotiationBusy)),
+-                "unconfirmed original codec offer must refuse exact NegotiationBusy; actual={:?}",controls.last());
+-        }
+-        assert_eq!(p.s.controller().revision(),1);
++        // Ordinary client requests queue behind this active codec invocation;
++        // its correlated confirmation can still run through the reply path.
++        let stale_gate_id = stale_gate["id"].clone();
++        p.s.wire.send(p.s.f.sign(stale_gate)).await;
+         p.playback(1).await;
+         p.s.confirm(&callback).await;
+         codec_ack(&mut p.s, &request).await;
+         p.s.wait(3).await;
++        let refused = tokio::time::timeout_at(overlap_until,p.s.wire.read())
++            .await.expect("original codec request cutoff covers queued gate refusal after confirmation");
++        assert_eq!(refused.kind(), "error");
++        p.s.f.verify_server(&refused).await;
++        assert_eq!(refused.original()["in_reply_to"], stale_gate_id);
++        {
++            let controls=p.s.record.controls.lock().unwrap();
++            assert!(matches!(controls.last().unwrap(),Err(NativeOfferError::RevisionConflict { expected: 1, actual: 2 })),
++                "queued codec gate must refuse its original revision after replacement commit; transport={kind}; actual={:?}; control_count={}; revision={}",
++                controls.last(),controls.len(),p.s.controller().revision());
++        }
++        assert_eq!(p.s.controller().revision(), 2);
+         let current = p.s.controller().active_bindings()[0].clone();
+         assert_eq!(current.negotiated.requested.logical_id, first);
+         assert_ne!(current.transport_id, old_binding.transport_id);

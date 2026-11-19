@@ -1,0 +1,96 @@
+{
+  "format": "connect/g6-058-prepared-regression-checkpoint/1",
+  "updated_at": "2026-11-19T11:02:38.289792+00:00",
+  "summary": "The reviewed corrections for the 23 Core/Native/WebRTC/SIP/Vapi failures are applied in prepared source 502; the scene-expiry failure has first-revocation diagnostics and remains unresolved. The g511 compile batch completed all six roots: five passed, including both integration targets and unchanged default shipping check; Native integration failed on one new RTC fixture module path. Its exact one-attribute correction is prepared, awaiting recompilation. No project runtime tests executed in g511 because the former global compile gate blocked every suite. That gate is now corrected in the reviewed next runner: eligible current targets and SDK tests execute independently, while overall PASS still requires every mandatory build, inventory and test. A second reviewed runner permits decoded-media diagnostics after completed unit failures and retains the failed overall verdict. All 35 isolated orchestration controls passed; these are not project or matrix passes. Cleanup removed only 59 reviewed completed cache payloads, increasing measured free space by 10.31 GB; current source, binaries, locks and protected entries were unchanged. Normal source-502 preparation and all original process custody were independently audited. Next: all retained/new regressions and three actual decoded-media representatives, then strict Firefox three-cycle validation, final qualification, ARM11, normal release builds and preflight. Last complete runtime batch remains 2176/2200 with 24 failures; full matrix remains v218 at 1/32 cells and 399/432 checks. G6-054 stays parked. Local Mac/native ARM only; acceptance unchanged.",
+  "status": "REVIEWED_FIX_BATCH_SOURCE502_PREPARED_FULL_REGRESSIONS_PENDING",
+  "source_generation": 502,
+  "source_lock_sha256": "992dd23946b0a3a1cc912f110305911286085887641935aa42fa576fef5ec8d7",
+  "coordinator": "/root",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "g511_compile": {
+    "builds_passed": 5,
+    "builds_total": 6,
+    "runtime_executed": false,
+    "only_compiler_error": "E0583 Native real-RTC fixture nested module path",
+    "result": {
+      "path": ".local/gate-6/v219-g511-coherent-components-root/component-result.json",
+      "sha256": "3ebc820bc0b3ff11e549e663383a9049f2c63173123d31d639ecdb4d6ee3314e"
+    },
+    "original_join": {
+      "path": ".local/gate-6/v219-g511-coherent-components-root/root-original-join.json",
+      "sha256": "52ef23002edca870d53ae57eaa866e125a6440eaf3499a6f43ed091ade7eca35"
+    },
+    "independent_audit": {
+      "path": ".local/gate-6/v219-g511-actual-cohort-independent-audit/receipt.json",
+      "sha256": "844fe6cc652957ebddcf08a0b520dcf8073f7ca363d0d6196ea35cc0dd00b600"
+    },
+    "source_and_all_original_process_custody_verified": true
+  },
+  "native_path_correction": {
+    "review": {
+      "path": ".local/gate-6/g511-real-rtc-browser-module-path-independent-review/receipt.json",
+      "sha256": "351f4f92b0e8c4a2e8035d4d1748b156532ef1f1aa7f04978126e9da43965fb7"
+    },
+    "applied_prepared": true,
+    "recompiled": false
+  },
+  "preparation": {
+    "path": ".local/gate-6/v219-g512-native-module-path-root/normal502-runtime/receipt.json",
+    "sha256": "8d6e7056c64570e5b053aa4fe6ec6dff572f9046ce6dcd35feafbb6b17221ed0"
+  },
+  "preparation_and_cleanup_audit": {
+    "path": ".local/gate-6/v219-g512-cleanup-and-normal502-independent-audit/receipt.json",
+    "sha256": "0c40353d8dc481eb1d366cf9931325cb89e8558e26da01b5f36ac17dce7cad5f"
+  },
+  "cleanup": {
+    "result": {
+      "path": ".local/gate-6/v219-g511-older-completed-cache-review/execution-result.json",
+      "sha256": "ed5ca9d209c51a422bd9e9ea1acc159fa7d9625bcdbfc0f8a1fd3a455fdc224a"
+    },
+    "deleted_completed_payloads": 59,
+    "measured_free_increase_bytes": 10312151040,
+    "source_binaries_outside_locks_and_variant_roots_preserved": true
+  },
+  "orchestration": {
+    "per_target_source_review": {
+      "path": ".local/gate-6/component-per-target-diagnostics-v219-independent-review/receipt.json",
+      "sha256": "d7ccb64d69e494abb4f506c6c003a8217d990e3ba70d38c6e3bfe70dd0f310c6"
+    },
+    "per_target_pure18": {
+      "path": ".local/gate-6/component-per-target-diagnostics-v219-draft-v3/root-pure18-receipt.json",
+      "sha256": "5230f35350e18951630325fb07aef844da68f109ba5a434e793cd69f27e4f34d"
+    },
+    "actual3_source_review": {
+      "path": ".local/gate-6/public-b-actual-three-representatives-v219-v8-independent-review/receipt.json",
+      "sha256": "84bdc02cd44559bcea961e1578893e7ed6dcfdfd6deb3e0d82da9edd6659966a"
+    },
+    "actual3_pure17": {
+      "path": ".local/gate-6/public-b-actual-three-representatives-v219-v8-diagnostic-candidate/root-pure17-receipt.json",
+      "sha256": "7b863f3dffeeca2e6764a293d15ac373d2064271d7fd02977ab48c14acd59043"
+    },
+    "isolated_gate_passed": 35,
+    "real_execution_pending": true,
+    "qualification_requires_every_original_mandatory_check": true
+  },
+  "compiler_observation": {
+    "path": ".local/gate-6/g511-service-compiler-metadata-source-assessment/receipt-v2.json",
+    "sha256": "8c2dce9f82a73e6dbcec75b3c6ea119bc95066c42ea60241273b652d412478be"
+  },
+  "last_complete_runtime": {
+    "version": "g509",
+    "passed": 2176,
+    "failed": 24,
+    "total": 2200,
+    "ignored": 0,
+    "not_regraded": true
+  },
+  "last_full_matrix": {
+    "version": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_revision": 193
+}

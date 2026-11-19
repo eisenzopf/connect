@@ -6,9 +6,10 @@ use std::{future::Future, time::Duration};
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 
-pub(super) type Attempt<'a, T> = std::pin::Pin<Box<dyn Future<Output = Result<T>> + Send + 'a>>;
+pub(in crate::canonical_replacement) type Attempt<'a, T> =
+    std::pin::Pin<Box<dyn Future<Output = Result<T>> + Send + 'a>>;
 
-pub(super) fn authority_error(error: DispatchError) -> Error {
+pub(in crate::canonical_replacement) fn authority_error(error: DispatchError) -> Error {
     match error {
         DispatchError::AuthorityBusy => {
             Error::new("authority-busy", "Ready policy admission is busy")
@@ -24,7 +25,7 @@ pub(super) fn authority_error(error: DispatchError) -> Error {
     }
 }
 
-pub(super) async fn capture<T, F, Fut>(
+pub(in crate::canonical_replacement) async fn capture<T, F, Fut>(
     until: Instant,
     cancellation: [&CancellationToken; 4],
     stage: &'static str,

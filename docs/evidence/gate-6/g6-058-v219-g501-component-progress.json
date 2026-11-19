@@ -1,0 +1,51 @@
+{
+  "format": "connect/g6-058-preparation-checkpoint/1",
+  "updated_at": "2026-11-16T15:15:17.653072+00:00",
+  "checkpoint": 501,
+  "status": "NORMAL492_PREPARED_COMPILER_BUDGET_AND_LAZY_DIAGNOSTICS_APPLIED_UNVERIFIED",
+  "summary": "Reviewed SIP-only compiler budget256 and lazy cfg(test) epoch diagnostics applied; normal492 preparation and independent custody audit pass. Old491 tree preserved,4266unchanged mtimes retained; no runtime/API/quality-policy change. Six cold incremental groups removed; actual5,337,665,536bytes recovered and original binaries unchanged. Compilation and remaining scene-expiry cause unproven. Next coherent batch retains all previous/new controls and all7specificStore regressions, with natural-join fail-fast builds. Latest complete g500 remains FAILED: Store437/438, all6priorfailures+22newPASS; Protocol87/Node206/Python55PASS; soleoldsceneUTCassert unresolved; otherRust/media compileblocked. Fullmatrix remains1/32 cells,399/432 checks.",
+  "dependency_patch_generation": 492,
+  "source_lock_sha256": "14380bc112f6ad8f3cb1f4e58cc107b8c1841d9b8e5e2cfec0e65a7059bf7cf4",
+  "evidence": {
+    ".local/gate-6/v219-g501-sip-budget-root/normal492-runtime/receipt.json": "a7daf5470e257dca857d1086ca9c9da5d97af6a12db3c5f2e8d47fcac98325f8",
+    ".local/gate-6/v219-g501-sip-budget-root/root-original-join.json": "55cf8991504bf6b96941b4d86533f4e232cf71bc1720b1606b1dc82c7c44c9bd",
+    ".local/gate-6/v219-g501-preparation-independent-media-audit/receipt.json": "20ff0496b57c6d09c08fe83105f0d536a19b6db8e5a9b819a2f800f3f399bc23",
+    ".local/gate-6/v219-g501-cold-incremental-cleanup/result.json": "0520b99ff74244316d4481cccbd1320267e80b254ecb874cd01148d6281b1320",
+    ".local/gate-6/v219-g501-cold-incremental-cleanup-independent-v198-review/receipt.json": "6c2c4347ed82900ffeb4c00eb11ed3c05323cccac61ba28841eb5cd11c0a4ef1",
+    ".local/gate-6/sip-observed-auto-trait-budget-v219-candidate/manifest.json": "798de5d6d094ee09e556a0661585d219ad7971ea91707cae0de00d7c0297ca1d",
+    ".local/gate-6/sip-observed-auto-trait-budget-independent-v198-review/receipt.json": "a6ae0d11946530410f613be11ba4a69d06bfd233b336027e613f73830382d976",
+    ".local/gate-6/scene-epoch-scalar-diagnostics-v219-v2-candidate/manifest.json": "b2da67ac436654ab16cdd8557b6701f72f677365eea4e42f94b716fc96d0e4ac",
+    ".local/gate-6/scene-epoch-scalar-diagnostics-independent-v198-review/receipt-v2-lazy.json": "8d21a0df3701d698d7780533a2405c842176a30aba989c97f718fe0b4b4bef41",
+    ".local/gate-6/component-joined-build-failfast-v219-candidate/manifest.json": "52394dfc4ec341772573aa310bbadd0b4faf9a830ccfa9b1ad2fb42aac885945",
+    ".local/gate-6/component-joined-build-failfast-independent-v198-review/receipt.json": "a446e460039d4527f23637169955ef7590c13b34b90efcfd9d1a4a1f8332faee"
+  },
+  "normal_preparation": {
+    "passed": true,
+    "root_pid": 4393,
+    "root_pgid_captured": false,
+    "root_natural_exit_code": 0,
+    "original_children_natural_zero_joined": 2,
+    "unchanged_mtimes": 4266,
+    "old_tree_preserved": true
+  },
+  "cleanup": {
+    "actual_bytes_recovered": 5337665536,
+    "databases_changed": false,
+    "original_binaries_preserved": true
+  },
+  "remaining": [
+    "Actual affected feature-union and production builds/units on492",
+    "Unresolved old Store early-scene-epoch versus clock expiry; lazy failure samples retain assertion",
+    "Three actual decoded-media handoffs, strictFirefox3, completequalification, ARM/releases/preflight"
+  ],
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_revision": 186
+}

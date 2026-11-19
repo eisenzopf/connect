@@ -740,6 +740,25 @@ impl TargetPolicy {
         source: &MediaSource,
         held: Option<&connect_store::NativeMediaRead>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        self.receive_under(scope, source, held, None)
+    }
+    pub(crate) fn public_video_warm(
+        &self,
+        scope: &MediaScope<'_>,
+        warm: &rvoip_core::staged_streams::direct_subscriptions::PostCutPublicVideoScope,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+        let MediaPurpose::Receive { source } = scope.purpose else {
+            return Err(StreamControlError::Authority);
+        };
+        self.receive_under(scope, source, None, Some(warm))
+    }
+    fn receive_under(
+        &self,
+        scope: &MediaScope<'_>,
+        source: &MediaSource,
+        held: Option<&connect_store::NativeMediaRead>,
+        warm: Option<&rvoip_core::staged_streams::direct_subscriptions::PostCutPublicVideoScope>,
+    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
         self.receive_diagnostics.begin_receive(held.is_some());
         let mut leaf = 0;
         let mut medium = None;
@@ -747,13 +766,28 @@ impl TargetPolicy {
         let result = (|| {
             self.scope(scope)?;
             leaf = 1;
-            let gate = self
-                .readiness
-                .as_ref()
-                .ok_or(StreamControlError::NotReady)?;
             leaf = 2;
-            if !gate.permits(source) {
-                return Err(StreamControlError::Authority);
+            if let Some(warm) = warm {
+                let root = self.root.upgrade().ok_or(StreamControlError::Authority)?;
+                if !warm.is_current()
+                    || warm.is_published()
+                    || !root.public_video.warm_matches(warm)
+                    || warm.original_intent() != root.handle.intent()
+                    || scope.connection != &root.handle.intent().replacement
+                    || scope.conversation != warm.conversation()
+                    || scope.session != warm.session()
+                    || !super::continuation::same_public_video_source(source, warm.source())
+                {
+                    return Err(StreamControlError::Authority);
+                }
+            } else {
+                let gate = self
+                    .readiness
+                    .as_ref()
+                    .ok_or(StreamControlError::NotReady)?;
+                if !gate.permits(source) {
+                    return Err(StreamControlError::Authority);
+                }
             }
             leaf = 3;
             let entries = self.base.scene_entries(scope.session.as_str())?;

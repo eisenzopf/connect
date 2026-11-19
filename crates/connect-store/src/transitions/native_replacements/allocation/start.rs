@@ -5,6 +5,7 @@ mod audience;
 mod metadata;
 pub use audience::NativeReplacementAudienceCapture;
 mod commit;
+pub(in crate::transitions::native_replacements) use commit::NativeReplacementNotSubmittedLineage;
 mod phase;
 mod projection;
 mod receiver_epoch;

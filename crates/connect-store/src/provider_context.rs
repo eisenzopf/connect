@@ -182,9 +182,19 @@ impl Store {
                 "Durable provider observation capacity exceeded",
             ));
         }
+        // source_members already verified the sender's current original
+        // Session audience. Fill immutable metadata before INSERT so the
+        // compatibility trigger performs only the existing permitted no-op.
+        let sender_member =
+            crate::audience::member(&tx, &sender, &authority.conversation_id, true)?;
+        let birth = self.authority_writer_boundary.new_message_birth(
+            &tx,
+            &id,
+            &authority.conversation_id,
+        )?;
         tx.execute(
-            "INSERT INTO messages(id,conversation_id,sender,body,audience_mode,content_type,label) VALUES(?1,?2,?3,?4,'explicit','application/json',?5)",
-            params![id, authority.conversation_id, sender, stored_body,event_kind],
+            "INSERT INTO messages(id,conversation_id,sender,body,audience_mode,content_type,label,sender_participant_id,accepted_at) VALUES(?1,?2,?3,?4,'explicit','application/json',?5,?6,?7)",
+            params![id, authority.conversation_id, sender, stored_body,event_kind,sender_member.participant_id,crate::now()],
         )
         .map_err(|_| Error::storage())?;
         tx.execute("INSERT INTO message_audiences SELECT ?1,conversation_id,participant_id,membership_epoch,CASE WHEN participant_id=(SELECT participant_id FROM participants WHERE conversation_id=?2 AND identity_id=?3) THEN 'sender' ELSE 'recipient' END FROM resource_audiences WHERE kind='session' AND id=?4",params![id,authority.conversation_id,sender,session_id]).map_err(|_|Error::storage())?;
@@ -198,6 +208,7 @@ impl Store {
             )?;
         }
         let message = crate::messages::get(&tx, &authority.conversation_id, &id)?;
+        drop(birth);
         tx.commit().map_err(|_| Error::storage())?;
         Ok(message)
     }
@@ -253,3 +264,6 @@ fn bounded_string(value: Option<&Value>, limit: usize) -> Option<&str> {
 fn invalid(message: &str) -> Error {
     Error::new("invalid-request", message)
 }
+
+#[cfg(test)]
+mod tests;

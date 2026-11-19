@@ -1,0 +1,59 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/server_requests.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/server_requests.rs
+@@ -411,10 +411,11 @@
+     )
+     .await;
+     assert_eq!(s.controller().revision(), 1);
+-    assert!(matches!(
+-        s.record.controls.lock().unwrap().last().unwrap(),
+-        Err(NativeOfferError::Conflict)
+-    ));
++    {
++        let controls=s.record.controls.lock().unwrap();
++        assert!(matches!(controls.last().unwrap(),Err(NativeOfferError::NegotiationBusy)),
++            "pending original server request must refuse exact NegotiationBusy; actual={:?}",controls.last());
++    }
+     let second = origin
+         .request(
+             proposal(&s, 1, "overlapping_server_operation"),
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -2193,25 +2193,29 @@
+         send(&p.s.wire, audio_sequence(p.ah, 1));
+         let old_packet = packet(&mut p.ai).await;
+         let request = codec_command(1, &["pcma"]);
+-        let callback = codec_callback(&mut p.s, request.clone()).await;
++        let overlap_until=deadline();
++        let callback = tokio::time::timeout_at(overlap_until,codec_callback(&mut p.s, request.clone()))
++            .await.expect("original codec request cutoff covers its real pending-offer callback");
+         assert_eq!(p.s.controller().revision(), 1);
+         assert_eq!(
+             p.s.controller().active_bindings()[0].transport_id,
+             old_binding.transport_id
+         );
+         let stale_gate = gate_command("mute", 1, Some(&["first"]), None);
+-        p.s.wire.send(p.s.f.sign(stale_gate)).await;
++        // The SAME signed gate is processed while the real offer remains
++        // pending. Its actual error reply is the barrier, not unrelated RTP.
++        tokio::time::timeout_at(overlap_until,gate_reply(&mut p.s,stale_gate,"error"))
++            .await.expect("original codec request cutoff covers exact pending gate refusal");
++        {
++            let controls=p.s.record.controls.lock().unwrap();
++            assert!(matches!(controls.last().unwrap(),Err(NativeOfferError::NegotiationBusy)),
++                "unconfirmed original codec offer must refuse exact NegotiationBusy; actual={:?}",controls.last());
++        }
++        assert_eq!(p.s.controller().revision(),1);
+         p.playback(1).await;
+         p.s.confirm(&callback).await;
+         codec_ack(&mut p.s, &request).await;
+         p.s.wait(3).await;
+-        let refused = p.s.wire.read().await;
+-        assert_eq!(refused.kind(), "error");
+-        p.s.f.verify_server(&refused).await;
+-        assert!(matches!(
+-            p.s.record.controls.lock().unwrap().last().unwrap(),
+-            Err(NativeOfferError::Conflict)
+-        ));
+         let current = p.s.controller().active_bindings()[0].clone();
+         assert_eq!(current.negotiated.requested.logical_id, first);
+         assert_ne!(current.transport_id, old_binding.transport_id);

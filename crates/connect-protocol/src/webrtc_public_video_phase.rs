@@ -25,6 +25,16 @@ pub struct Binding {
 impl Binding {
     pub fn validate(&self, intent: &Intent) -> Result<()> {
         intent.validate_mapping(&self.preview_stream_id, &self.stream_id)?;
+        self.validate_shape()
+    }
+    /// Closed wire shape only. Current intent, native binding and custody are
+    /// checked separately by the original authenticated runtime owner.
+    pub fn validate_shape(&self) -> Result<()> {
+        id(&self.preview_stream_id)?;
+        id(&self.stream_id)?;
+        if self.preview_stream_id == self.stream_id {
+            return Err(invalid());
+        }
         opaque(&self.physical_writer_incarnation)?;
         if self.mid.is_empty()
             || self.mid.len() > 256
@@ -330,9 +340,29 @@ pub struct DecodedObservation {
     pub decoder_startup: String,
 }
 impl ReadyMarker {
+    /// Protocol validation creates no readiness, current authority or native
+    /// grant. Exact original phase/context matching remains mandatory.
+    pub fn validate_shape(&self) -> Result<()> {
+        id(&self.operation_record_id)?;
+        let r = &self.public_video_readiness;
+        id(&r.reservation_id)?;
+        opaque(&r.source_cut_id)?;
+        id(&r.nonce)?;
+        r.binding.validate_shape()?;
+        if self.profile != READY_PROFILE
+            || r.decoder_startup != DECODER_STARTUP
+            || !positive(r.decoded_frames)
+            || r.decoded_keyframes
+                .is_some_and(|keys| !positive(keys) || keys > r.decoded_frames)
+        {
+            return Err(invalid());
+        }
+        Ok(())
+    }
     /// Exact original challenge match only; a signed observation is not itself
     /// authorization or native media proof. The service retains those duties.
     pub fn validate(&self, context: &Context<'_>, original: &Phase) -> Result<()> {
+        self.validate_shape()?;
         original.validate(context)?;
         let (reservation, cut, challenge, binding) = match original {
             Phase::CutBoundPostF {

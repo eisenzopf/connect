@@ -298,3 +298,5 @@ fn parent_birth_refuses_foreign_connection_wrong_cid_and_raw_external_writer() {
     assert!(insert_session(&raw, &p, "raw-session", "invited").is_err());
     assert!(insert_call(&raw, &p, "raw-call").is_err());
 }
+
+mod sip_birth;

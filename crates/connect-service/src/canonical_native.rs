@@ -308,6 +308,15 @@ impl Runtime {
         cancellation: Option<tokio_util::sync::CancellationToken>,
     ) -> Result<()> {
         if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
+            == connect_protocol::webrtc_public_video_phase::READY_PROFILE
+        {
+            let outcome = self
+                .replacement_public_video_ready(a, physical, &credential)
+                .await;
+            let _ = tx.send(outcome);
+            return Ok(());
+        }
+        if a.envelope().original()["payload"]["replacement_preparation"]["profile"]
             == "connect-replacement-ready-v1"
         {
             let outcome = self.replacement_ready(a, physical, &credential).await;

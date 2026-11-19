@@ -2601,6 +2601,121 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-native-original-physical-owner.patch",
       "sha256": "2388cbb8954153dca4eb88c7b248df89b9351624d3ccfeface4ddfb137c7e0c5"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-b-lifecycle-coherent.patch",
+      "sha256": "3ecec7a589a522c65b0f4ecafb3dde14022773eb66ecb6063fd1e3e8c9c826f1"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-multisession-physical-domain.patch",
+      "sha256": "cc9ed93a2aaee6f0c93c5d2cad471bca00af70da095b40656a60c5855692de60"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-core-metadata-helper-scope.patch",
+      "sha256": "1b1d9a029781a1fe1c0507a69855c9057460f0c7a4c93234642fdee184c2cb86"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-core-auto-trait-recursion-budget.patch",
+      "sha256": "c09cad47dd779ea2e5bff94508386240b43a69ffdf00d6d4a77f0ad05076be20"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-core-direct-port-scope.patch",
+      "sha256": "2b98744d30b691d4b086b7d78a836a65ae4e22f182fba109fc556aea1d7a0140"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-core-opaque-preparation-runtime-identity.patch",
+      "sha256": "1038d82f59a039fabc19a2a1923a7fc02c54f95a6c9b38ee8479e010da67a8bd"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-core-opaque-warm-owner-authority.patch",
+      "sha256": "26980c855cef7970a40c0545de383793c5bc6e3d32c77797e5b70fee37f716cb"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-core-opaque-submission-scope-identity.patch",
+      "sha256": "8c25318bb40dba5e3bdd421f8de3215e9a03125ad2f15620c09954c9a8886f2a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-sip-auto-trait-recursion-budget.patch",
+      "sha256": "fc835a4130e5cd74d5a044e511b0c2ba3b3781004b4465cf096e13138ab088c4"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-core-public-video-warm-test-access.patch",
+      "sha256": "1dfec4f1b7a752c70aed4b4449a7b1b1185133bfea457c0fe824582178d8f6a7"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-physical-domain-test-compile-access.patch",
+      "sha256": "63cd010acf9508b1fcefacc06dc51c93d395e3936e6224fbf9e72bb476ef77dc"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-pooled-native-final-bool-diagnostics.patch",
+      "sha256": "a700a910b54d05641a1921917e07813286117ae4622857c39f78db33a08b1941"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-pooled-native-observing-owner-release.patch",
+      "sha256": "8726aef69a3d7a91a5e42fd2bea0ec1bfe18187cee036a6ac7fa8f82b194c328"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-video-keyframe-recorder-before-modeled-arm.patch",
+      "sha256": "55d73dc4be6ec5dbd9dbd521a8192077d2b17c918dc11098af1d6987c7a02c9d"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-core-warm-restore-negative-queue-order.patch",
+      "sha256": "add28ddedf1f1e1aa2f5c5456a98ff273b08070ed14b92ed03dda5e7458062b5"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-overlap-typed-refusals-fixture.patch",
+      "sha256": "75445f0c5d086dac5b6d5cdeb4ee396e05752612bc105fcf7585bbf534c98daa"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-catalog-actual-model-exclusion-fixture.patch",
+      "sha256": "1026ccb9c8cd2cd8d313dc5dff6c986f2ceb4468b8e4897da335342f753c66db"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-real-rtc-peer-replacement-controls.patch",
+      "sha256": "6b094843a7b7d6288561cc25133d3863e69602bdef54d34406ea79e5e1f564bc"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-real-rtc-browser-explicit-test-module-path.patch",
+      "sha256": "8f1a7889c77878a66ec5aa38325ae24b6104617e3ee9b1ea91bdaeee483e9c5a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-real-rtc-primer-join-and-fixture-wait-diagnostics.patch",
+      "sha256": "e43aeea192caecf4d78370d1c6a4c3f08b5088623052bc46a8d99b3559934c98"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-codec-queued-revision-refusal-fixture.patch",
+      "sha256": "5907661576d6a9bcde952fcd76b55a2a0a5dd5d6606ab92f674e9beeb0a9b5e4"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-rtc-fixture-final-global-drain-after-native-closure.patch",
+      "sha256": "97ac012a0d581146a279b53dbee9b6f9f00600e77072392d35fe63f845216184"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/gate6-public-b-fixed-schema-and-vector-sync.patch",
+      "sha256": "9772b8c624b27ca0dbc121a171245f3ebdd2e1fcb4fcf3c089167d68bb697b86"
     }
   ]
 }

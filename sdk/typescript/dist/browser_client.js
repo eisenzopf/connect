@@ -2,8 +2,8 @@ import { validateBrowserCanonical } from "./browser_canonical_validation.js";
 import { canonicalTimestamp } from "./uctp_datetime.js";
 import { BrowserTasks } from "./browser_tasks.js";
 import { WebTransportControl, WebSocketControl, } from "./browser_control_transport.js";
-import { ConnectError } from "./errors.js";
-import { jsonObject } from "./uctp_json.js";
+import { ConnectError, recoverableReadRefusal } from "./errors.js";
+import { canonicalJson, jsonObject, parseCanonicalJson } from "./uctp_json.js";
 import { signEnvelope, validateSigningIdentity, verifyEnvelope, } from "./uctp_signing.js";
 import { encodeEnvelope, envelope, EnvelopeReader, identifier, } from "./uctp_wire.js";
 // This closes only the new RTC readiness marker at the existing original-offer
@@ -451,10 +451,54 @@ export class BrowserClient {
         this.expireReplacementReplies(Date.now());
         if (this.abandonedReplacementReplies.size + this.pending.size >= 64)
             throw new ConnectError("backpressure", "Original replacement recovery window exhausted");
+        if (type === "operation.get") {
+            // Freeze logical inputs once; every retry is a fresh signed read,
+            // never a new root, physical attempt, or renewed caller budget.
+            const until = performance.now() + this.timeout(options.timeoutMs);
+            const original = parseCanonicalJson(new TextEncoder().encode(canonicalJson(payload)));
+            return this.replacementStatusRead(original, { ...scope }, { ...options }, until);
+        }
         const frame = envelope(type, payload, scope);
         return this.exchange(frame, true, (value) => value.type === "ack" ||
             value.type === "error" ||
             value.type === options.terminalType, options, false, true);
+    }
+    async replacementStatusRead(payload, scope, options, until) {
+        for (;;) {
+            this.check();
+            if (options.signal?.aborted)
+                throw new ConnectError("cancelled", "Original replacement status cancelled");
+            const remaining = until - performance.now();
+            if (remaining < 1)
+                throw new ConnectError("timeout", "Original replacement status deadline");
+            this.expireReplacementReplies(Date.now());
+            if (this.abandonedReplacementReplies.size + this.pending.size >= 64)
+                throw new ConnectError("backpressure", "Original replacement recovery window exhausted");
+            try {
+                const frames = await this.exchange(envelope("operation.get", payload, scope), true, (value) => value.type === "ack" || value.type === "error" || value.type === options.terminalType, { ...options, timeoutMs: remaining }, false, true, until);
+                if (performance.now() >= until)
+                    throw new ConnectError("timeout", "Original replacement status deadline");
+                return frames;
+            }
+            catch (error) {
+                if (!recoverableReadRefusal(error))
+                    throw error;
+                if (options.signal?.aborted)
+                    throw new ConnectError("cancelled", "Original replacement status cancelled");
+                this.check();
+                // Reuse the same non-retiring read bound. No continuation offer
+                // or transport failure enters this retry branch.
+                let timer;
+                try {
+                    await this.bound(new Promise((resolve) => {
+                        timer = setTimeout(resolve, Math.min(20, Math.max(0, until - performance.now())));
+                    }), until, options.signal, false);
+                }
+                finally {
+                    clearTimeout(timer);
+                }
+            }
+        }
     }
     expireReplacementReplies(now) {
         for (const [id, until] of this.abandonedReplacementReplies)
@@ -500,9 +544,9 @@ export class BrowserClient {
         this.tasks.track(this.writes);
         return write;
     }
-    async exchange(frame, signed, terminal, options, validateCanonical = false, retainMediaOnReplyTimeout = false) {
+    async exchange(frame, signed, terminal, options, validateCanonical = false, retainMediaOnReplyTimeout = false, originalReadUntil) {
         this.check();
-        const until = performance.now() + this.timeout(options.timeoutMs);
+        const until = originalReadUntil ?? performance.now() + this.timeout(options.timeoutMs);
         if (options.signal?.aborted)
             throw new ConnectError("cancelled", "Browser request cancelled before submission");
         if (this.pending.size >= 16)

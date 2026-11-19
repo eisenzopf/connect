@@ -1,0 +1,10 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/native_restore_witness_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/native_restore_witness_controls.rs
+@@ -128,6 +128,7 @@
+     // helper intentionally drains the shared Orchestrator/route globally.
+     let ended_a=matches!(catch_original(a.orch.end_session(a.session.clone(),EndReason::Normal)).await,Ok(Ok(())));
+     let survivor=result.as_ref().is_ok_and(|ready1|b.orch.staged_old_video_restore_readiness(&ready1.plan).is_ok());
++    let result = result.map(drop);
+     // End BOTH Sessions before either helper terminal-drains their shared
+     // Orchestrator; this does not move the earlier isolation observation.
+     let ended_b=matches!(catch_original(b.orch.end_session(b.session.clone(),EndReason::Normal)).await,Ok(Ok(())));

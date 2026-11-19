@@ -1,7 +1,7 @@
 //! Independent frozen Rust parser checks for the browser's shared data vectors.
 use connect_client::canonical::Envelope;
 use serde_json::{json, Value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 fn change(value: &mut Value, path: &str, replacement: Option<Value>) {
     let names: Vec<_> = path.split('.').collect();
@@ -33,7 +33,12 @@ fn frozen_rust_parser_and_browser_share_schema_registry_calendar_and_body_vector
     .unwrap();
     let mut templates = BTreeMap::new();
     let mut count = 0;
+    let mut ids = BTreeSet::new();
     for vector in baseline["vectors"].as_array().unwrap() {
+        assert!(
+            ids.insert(vector["id"].as_str().unwrap().to_string()),
+            "duplicate vector ID"
+        );
         let value = vector["envelope"].clone();
         let expected = vector["valid"].as_bool().unwrap();
         assert_eq!(
@@ -48,6 +53,10 @@ fn frozen_rust_parser_and_browser_share_schema_registry_calendar_and_body_vector
         count += 1;
     }
     for vector in extra["vectors"].as_array().unwrap() {
+        assert!(
+            ids.insert(vector["id"].as_str().unwrap().to_string()),
+            "duplicate vector ID"
+        );
         let mut value = templates[vector["template"].as_str().unwrap()].clone();
         if let Some(fields) = vector["set"].as_object() {
             for (path, replacement) in fields {
@@ -93,5 +102,7 @@ fn frozen_rust_parser_and_browser_share_schema_registry_calendar_and_body_vector
         );
         count += 1;
     }
+    assert_eq!(count, 379);
+    assert_eq!(ids.len(), 379);
     println!("{count} shared schema/registry/calendar/body vectors matched the frozen Rust parser; no execution or authority claim");
 }

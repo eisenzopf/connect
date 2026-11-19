@@ -19,6 +19,12 @@ pub(super) fn start(
             "RTC replacement requires bounded complete ICE preparation",
         ));
     }
+    let reserved_video = p.source.reserved_public_video();
+    if p.binding.reserved_video_profile()
+        != reserved_video.as_deref().map(|original| original.profile())
+    {
+        return Err(Error::forbidden());
+    }
     let stop = p.physical.child_token();
     let (state_tx, state) = watch::channel(State::Preparing);
     let source = p.source.clone();
@@ -36,6 +42,7 @@ pub(super) fn start(
         state,
         completion,
         av,
+        reserved_video,
     }))
 }
 struct Owned {
@@ -44,6 +51,7 @@ struct Owned {
     state: watch::Receiver<State>,
     completion: Completion,
     av: bool,
+    reserved_video: Option<Arc<connect_service::canonical_webrtc::ReservedReplacementVideo>>,
 }
 #[async_trait::async_trait]
 impl ReplacementAttempt for Owned {
@@ -54,11 +62,12 @@ impl ReplacementAttempt for Owned {
             match current {
                 State::Answered(answer) | State::Connected(answer) => {
                     let offer = bounded_read(&self.stop, deadline, || self.source.offer()).await?;
-                    return super::signaling::selected_answer(
+                    return super::signaling::selected_answer_with_reserved(
                         &offer.participant_id,
                         &offer.offer,
                         &answer,
                         self.av,
+                        self.reserved_video.as_deref(),
                     );
                 }
                 State::Closed(result) => {
@@ -98,10 +107,12 @@ async fn run(
 ) -> Result<()> {
     let result:Result<()>=async {
         let offer=bounded_read(&stop,p.deadline,||p.source.offer()).await?;
-        super::signaling::validate_offer(&offer.offer,config.require_vp8_audio_video_profile)?;
+        let reserved=p.source.reserved_public_video();
+        if p.binding.reserved_video_profile()!=reserved.as_deref().map(|original|original.profile()) {return Err(Error::forbidden());}
+        super::signaling::validate_offer_with_reserved(&offer.offer,config.require_vp8_audio_video_profile,reserved.as_deref())?;
         let sdp=offer.offer["substrate_setup"]["sdp"].as_str().ok_or_else(Error::forbidden)?;
         p.binding.start_peer(config,PeerRole::Answerer).map_err(|_|engine_error())?;
-        let peer=p.binding.peer(p.deadline).await.map_err(|_|engine_error())?;
+        let mut peer=p.binding.signaling_control(p.deadline).await.map_err(|_|engine_error())?;
         let answer=tokio::select! {biased;
             _=stop.cancelled()=>return Err(Error::new("cancelled","RTC replacement preparation cancelled")),
             _=tokio::time::sleep_until(p.deadline)=>return Err(Error::new("timeout","RTC replacement preparation deadline")),

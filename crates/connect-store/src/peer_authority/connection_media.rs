@@ -38,6 +38,8 @@ pub use replacement_activation::{
     NativeReplacementActivation, NativeReplacementInstallationGuard,
     NativeReplacementInstallationObservation,
 };
+mod video_restore;
+pub use video_restore::NativeVideoRestoreRead;
 mod roles;
 pub use roles::SessionRoleMediaRead;
 mod returns;
@@ -277,6 +279,21 @@ pub struct NativeMediaSnapshotEpoch {
 impl NativeMediaSnapshotEpoch {
     pub fn current(&self) -> bool {
         self.route.current() && self.source.as_ref().is_none_or(|epoch| epoch.current())
+    }
+    #[cfg(test)]
+    pub(crate) fn sample_at_for_test(
+        &self,
+        sampled: std::time::Instant,
+    ) -> (
+        crate::media_authorization::EpochSample,
+        Option<crate::media_authorization::EpochSample>,
+    ) {
+        (
+            self.route.sample_at_for_test(sampled),
+            self.source
+                .as_ref()
+                .map(|epoch| epoch.sample_at_for_test(sampled)),
+        )
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq)]

@@ -234,6 +234,39 @@ function terminalFixture(options={}){
     }};
 }
 
+test('serialized RTP diagnostics bind only the exact tagged native MID and retain other video rows as unknown',async()=>{
+    const f=terminalFixture({serialized:true});try{
+        f.tag();
+        const preview={id:'separate-private-preview',kind:'video',readyState:'live'};
+        const extra={mid:'2',sender:{},receiver:{track:preview,transport:f.peer.transport}};f.peer.txs.push(extra);
+        const rows=[
+            {id:'camera',type:'outbound-rtp',kind:'video',mid:'0',ssrc:11,packetsSent:8},
+            {id:'public',type:'inbound-rtp',kind:'video',mid:'1',trackIdentifier:f.peer.receiveTrack.id,ssrc:22,packetsReceived:9},
+            {id:'preview',type:'inbound-rtp',kind:'video',mid:'2',trackIdentifier:preview.id,ssrc:33,packetsReceived:10},
+            {id:'unbound',type:'inbound-rtp',kind:'video',ssrc:44,packetsReceived:11},
+            {id:'rtx',type:'inbound-rtp',kind:'video',mid:'1',trackIdentifier:f.peer.receiveTrack.id,ssrc:55,packetsReceived:12,codecId:'rtx-codec'},
+        ];
+        f.peer.getStats=async()=>new Map([...rows.map(row=>[row.id,row]),['rtx-codec',{type:'codec',mimeType:'video/rtx',payloadType:121,clockRate:90000,sdpFmtpLine:'apt=120;rtx-time=200'}]]);
+        const read=async()=>{const result=(await globalThis.connectPeerMediaDiagnostics())[0];assert.equal(result.length,5,'Unknown/contradictory/RTX rows must never be dropped');assert.deepEqual(result.map(row=>row.ssrc),[11,22,33,44,55]);return result;};
+        const original=await read();
+        assert.equal(original[0].original_track.stream_id,'source-video');
+        assert.equal(original[1].original_track.stream_id,'receive-video');assert.equal(original[1].original_track.mid,'1');
+        assert.equal(original[2].original_track,null);assert.equal(original[2].native_mid,'2');assert.equal(original[2].native_track_identifier,preview.id);
+        assert.equal(original[3].original_track,null);assert.equal(original[3].native_mid,null);
+        assert.equal(original[4].codec.mime_type,'video/rtx');assert.equal(original[4].codec.associated_payload_type,120);assert.equal(original[4].original_track.stream_id,'receive-video');assert.equal(original[4].native_rtp_binding.codec_dictionary_type,'codec');
+        assert.equal(globalThis.connectPeerStreamDescriptor('original-connection','receive',{track:preview}),null);
+        assert.equal(globalThis.connectPeerStreamDescriptor('original-connection','receive',{track:f.peer.receiveTrack}).track_id,f.peer.receiveTrack.id);
+        for(const patch of [{mid:undefined},{mid:'2'},{mid:'invalid mid'},{trackIdentifier:'wrong-original-track'},{trackIdentifier:null}]){
+            const saved={...rows[1]};Object.assign(rows[1],patch);const changed=(await read())[1];
+            if('trackIdentifier'in patch){assert.equal(changed.original_track_refusal,'native-track-identifier-contradiction');assert.equal(changed.original_track.track_id,f.peer.receiveTrack.id);assert.equal(changed.native_rtp_binding.complete,false);}
+            else assert.equal(changed.original_track,null);
+            Object.assign(rows[1],saved);
+        }
+        extra.mid='1';assert.equal((await read())[1].original_track,null,'Ambiguous native MID cannot be attributed');extra.mid='2';
+        assert.equal((await read())[1].original_track.stream_id,'receive-video','Unknown rows do not retag or replace original pointers');
+    }finally{f.peer.close();f.restore();}
+});
+
 test('terminal witness captures real tagged scalar bindings once before immediate native close including ended sender identity',()=>{
     const f=terminalFixture();try{
         f.tag();assert.deepEqual(globalThis.connectPeerStreamDescriptor('original-connection','send'),{connection_id:'original-connection',stream_id:'source-video',track_id:f.peer.sendTrack.id,transceiver_index:0,mid:'0'});

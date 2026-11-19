@@ -38,6 +38,17 @@ impl NativeReplacementActivation {
 /// Holds the exact installed Service entry against removal through publication.
 /// This is local resource custody, never permission to read or write media.
 pub trait NativeReplacementInstallationGuard {
+    /// Required ONLY for an opted-in exact public-video publication. The SAME
+    /// guard must retain actual original Core/adapter/F/BReady and installed
+    /// owner custody through publish. No Store, native IO, await or new reader.
+    /// Default refusal preserves all ordinary/no-intent installations while
+    /// preventing an opt-in from silently publishing without actual B proof.
+    fn require_public_video_ready(
+        &self,
+        _expected: &crate::NativeReplacementPublicVideoPublication<'_>,
+    ) -> Result<()> {
+        Err(Error::forbidden())
+    }
     /// Recheck and order native retirement around the final synchronous commit.
     /// The callback is already prepared local SQL work, never native IO or an
     /// authorization acquisition. Failure before it runs must leave no Ready.

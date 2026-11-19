@@ -1,0 +1,98 @@
+{
+  "format": "connect/g6-058-verified-unit-failure-frontier/1",
+  "updated_at": "2026-11-19T11:51:48.926845+00:00",
+  "summary": "Current source-502 unit evidence verifies 18 of the 24 previously failing controls: Core3, WebRTC4, SIP9, and Native server-request/catalog2 now pass. G513 compiled all six roots and inventoried all ten binaries; completed Core714, WebRTC88, UCTP217, Node206 and Python55 passed. Both new RTC controls then failed at a shared condition timeout; the following telephone control remained active when its owned Native child was stopped. That child is explicitly forced and the overall run failed; no complete Native result or later suite pass is claimed. The initial attribution of the active hang to the RTC drain was corrected from the preserved pre-stop log. A separate same-source bounded unit lane completed 132 tests naturally: Server124/126, Native2/3, new SIP3/3. Remaining original failures are RTC2, codec1, Vapi2 and unresolved scene expiry1, plus the incomplete telephone control. The reviewed next batch is prepared as source504: provider messages now populate immutable sender/time metadata before the existing trigger; codec control restores confirmation before awaiting the queued gate and checks exact revision conflict; RTC uses a finite naturally joined primer with same-track RTP continuation, strict drain read errors and stage/scalar traces. All original assertions and deadlines remain. Next are separately bounded focused controls and the remaining scene-expiry diagnostics, then the complete mandatory regressions, actual decoded-media representatives, strict Firefox three cycles, final qualification, ARM11, normal releases and preflight. Last full matrix remains v218 at 1/32 cells and 399/432 checks; G6-054 stays parked. Local Mac/native ARM only. No acceptance change or historical regrade.",
+  "coordinator": "/root",
+  "status": "18_OLD_FAILURE_CONTROLS_UNIT_VERIFIED_SOURCE504_NEXT_BATCH_PREPARED",
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "source_generation": 504,
+  "source_lock_sha256": "3187ec811e8007a6d0711ae527b0936eb4cd579ac1c62aa6b3db8f38acd083e5",
+  "old_failed_controls_verified_now": {
+    "Core": 3,
+    "WebRTC": 4,
+    "SIP": 9,
+    "Native_server_and_catalog": 2,
+    "total": 18
+  },
+  "remaining_original_failure_controls": {
+    "RTC": 2,
+    "Native_codec": 1,
+    "Vapi": 2,
+    "scene_expiry": 1,
+    "total": 6
+  },
+  "additional_incomplete_control": "controlled_telephone_deadline_and_remote_loss_release_preparation_without_a_second_origination",
+  "g513": {
+    "all6_builds_passed": true,
+    "all10_inventories_passed": true,
+    "completed_rust_passed": 1019,
+    "node_passed": 206,
+    "python_passed": 55,
+    "native_suite_incomplete_forced": true,
+    "rtc_completed_failed": 2,
+    "remaining4_suites_not_run": true,
+    "audit": {
+      "path": ".local/gate-6/v219-g513-actual-interrupted-cohort-independent-audit/receipt.json",
+      "sha256": "7a133d882799eafe98445b75a21909a4992c802d3443e72a1a712cc1e3ee47eb"
+    },
+    "forced_stop": {
+      "path": ".local/gate-6/v219-g513-coherent-components-root/native-coordinator-stop.json",
+      "sha256": "fcdff0b040a66ecc5f07de7dba3fa8d1c5665ebd9b32cea3c05691cff348cfa7"
+    },
+    "initial_active_hang_cause_was_corrected": true
+  },
+  "focused514": {
+    "selected": 132,
+    "passed": 129,
+    "failed": 3,
+    "ignored": 0,
+    "all_original_children_natural": true,
+    "audit": {
+      "path": ".local/gate-6/v219-g514-actual-focused-current502-independent-audit/receipt.json",
+      "sha256": "45b95f978fac4f0c777fc7c9953581ed4d87454b4e714aa1c272ccca82b46cdc"
+    },
+    "result": {
+      "path": ".local/gate-6/v219-g514-focused-storage-native-root/result.json",
+      "sha256": "1ee79bb3a4092bdf299ac023aaefa2b307c9cbce754a217566e35392e9bfd296"
+    }
+  },
+  "prepared504": {
+    "receipt": {
+      "path": ".local/gate-6/v219-g515-native-and-provider-batch-root/normal504-runtime/receipt.json",
+      "sha256": "73f8cd2b346750b068fbdd02e9e48da139798afb5a5dc6938c9a635369629eb0"
+    },
+    "audit": {
+      "path": ".local/gate-6/v219-g515-actual-normal504-independent-audit/receipt.json",
+      "sha256": "45f4e535d6f2f1044bc3d087d8b673c81d2095058fce829e8ee6c64e7cefc1eb"
+    },
+    "rtc_source_review": {
+      "path": ".local/gate-6/g513-real-rtc-primer-lifetime-and-wait-diagnostics-independent-review/receipt.json",
+      "sha256": "3818e14300c566665ba5816315067e5e32f0c1d12b487cc543bcb9c591471fad"
+    },
+    "codec_source_review": {
+      "path": ".local/gate-6/codec-queued-revision-refusal-v219-g514-independent-review/receipt.json",
+      "sha256": "01efe04cae50ace6f121dc79446d71ea1f80f4ece746d141db9d2900ddeec419"
+    },
+    "vapi_source_review": {
+      "path": ".local/gate-6/g514-provider-immutable-metadata-independent-batch-review/receipt.json",
+      "sha256": "ef3d63a2eedd8caaa0b9a91d6272b8938e5017facb60f6ec073f5dcd73d82669"
+    },
+    "fresh_compile_and_runtime_pending": true
+  },
+  "last_complete_runtime": {
+    "version": "g509",
+    "passed": 2176,
+    "failed": 24,
+    "total": 2200,
+    "not_regraded": true
+  },
+  "last_full_matrix": {
+    "version": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_revision": 194
+}

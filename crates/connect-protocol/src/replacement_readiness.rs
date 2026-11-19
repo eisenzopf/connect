@@ -109,6 +109,11 @@ pub fn validate_marker(value: &Value) -> Result<()> {
                 .map_err(|_| invalid())?
                 .validate()
         }
+        crate::webrtc_public_video_phase::READY_PROFILE if m.len() == 3 => {
+            serde_json::from_value::<crate::webrtc_public_video_phase::ReadyMarker>(value.clone())
+                .map_err(|_| invalid())?
+                .validate_shape()
+        }
         _ => Err(invalid()),
     }
 }
@@ -152,5 +157,81 @@ mod tests {
         assert!(validate_marker(&marker).is_err());
         marker["profile"] = json!("connect-replacement-preparation-v1");
         assert!(validate_marker(&marker).is_err());
+    }
+}
+
+#[cfg(test)]
+mod public_video_marker_tests {
+    use super::*;
+    use serde_json::json;
+    fn marker() -> Value {
+        json!({"profile":crate::webrtc_public_video_phase::READY_PROFILE,"operation_record_id":"original-record",
+            "public_video_readiness":{"reservation_id":"reservation-original","source_cut_id":"original-cut","nonce":"public-nonce",
+                "binding":{"stream_id":"public-b","preview_stream_id":"preview-a","mid":"2","stream_generation":1,
+                    "physical_writer_incarnation":"writer-original","connection_generation":1,"primary_ssrc":0,
+                    "payload_type":96,"clock_rate_hz":90000,"codec":"vp8"},
+                "decoded_frames":1,"decoded_keyframes":null,"decoder_startup":"fresh-receiver-first-decoded-frame"}})
+    }
+    #[test]
+    fn original_public_ready_marker_enters_protocol_only_as_a_closed_positive_observation() {
+        let original = marker();
+        validate_marker(&original).unwrap();
+        for (path, value) in [
+            (vec!["profile"], json!("connect-replacement-ready-v1")),
+            (vec!["operation_record_id"], json!("")),
+            (vec!["public_video_readiness", "source_cut_id"], json!("")),
+            (vec!["public_video_readiness", "nonce"], json!("")),
+            (vec!["public_video_readiness", "decoded_frames"], json!(0)),
+            (
+                vec!["public_video_readiness", "decoded_keyframes"],
+                json!(2),
+            ),
+            (
+                vec!["public_video_readiness", "decoder_startup"],
+                json!("fresh-peer-first-decoded-frame"),
+            ),
+            (
+                vec!["public_video_readiness", "binding", "stream_id"],
+                json!("preview-a"),
+            ),
+            (vec!["public_video_readiness", "binding", "mid"], json!("")),
+            (
+                vec!["public_video_readiness", "binding", "clock_rate_hz"],
+                json!(8000),
+            ),
+            (
+                vec!["public_video_readiness", "binding", "connection_generation"],
+                json!(0),
+            ),
+        ] {
+            let mut bad = original.clone();
+            let mut leaf = &mut bad;
+            for key in path {
+                leaf = &mut leaf[key];
+            }
+            *leaf = value;
+            assert!(validate_marker(&bad).is_err());
+        }
+        for scope in 0..3 {
+            let mut bad = original.clone();
+            match scope {
+                0 => bad["ready"] = json!(true),
+                1 => bad["public_video_readiness"]["ready"] = json!(true),
+                _ => bad["public_video_readiness"]["binding"]["ready"] = json!(true),
+            };
+            assert!(
+                validate_marker(&bad).is_err(),
+                "unknown fields never create readiness"
+            );
+        }
+        let mut missing = original.clone();
+        missing["public_video_readiness"]
+            .as_object_mut()
+            .unwrap()
+            .remove("decoded_keyframes");
+        assert!(
+            validate_marker(&missing).is_err(),
+            "explicit nullable field remains required"
+        );
     }
 }

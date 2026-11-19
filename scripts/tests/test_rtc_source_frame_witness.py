@@ -118,7 +118,85 @@ def final_case(folder,sets):
     return report,log,logged
 
 
+def native_role_census(cycle):
+    """Same captured dictionaries with explicit native A/B association, no IO."""
+    for sample in cycle['decoded_media']['rtc_media_pipeline']['samples']:
+        for group in sample['peers']:
+            originals=list(group)
+            for row in originals:
+                if row.get('kind')!='video' or not row.get('original_track'):continue
+                tag=row['original_track'];receive=row['type']=='inbound-rtp'
+                tag.setdefault('mid','2' if receive else '1');tag.setdefault('transceiver_index',2 if receive else 1)
+                row.setdefault('peer_index',1 if receive else 0)
+                row['native_rtp_binding']=dict(profile='connect/rtc-native-rtp-role/1',complete=True,reason=None,
+                    connection_id=row['connection_id'],peer_index=row['peer_index'],direction='receive' if receive else 'send',
+                    native_mid=tag['mid'],transceiver_index=tag['transceiver_index'],native_track_id=tag['track_id'],codec_dictionary_type='codec')
+                if receive:
+                    preview=copy.deepcopy(row);preview['original_track']=None;preview['ssrc']+=2
+                    preview['native_rtp_binding'].update(native_mid='1' if tag['mid']!='1' else '2',
+                        transceiver_index=1 if tag['transceiver_index']!=1 else 2,native_track_id='private-preview-track')
+                    rtx=copy.deepcopy(row);rtx['ssrc']+=1;rtx['codec'].update(mime_type='video/rtx',payload_type=121,associated_payload_type=row['codec']['payload_type'])
+                    group.extend([preview,rtx])
+
+
 class SourceFrameWitness(unittest.TestCase):
+    def test_actual_native_roles_select_only_original_B_without_removing_A_RTX_or_raw_rows(self):
+        values=facts();cycle,route,pair,summaries=values[:4]
+        baseline=prepare_pair(cycle,route,pair,summaries);native_role_census(cycle)
+        archived=copy.deepcopy(cycle)
+        self.assertEqual(prepare_pair(cycle,route,pair,summaries),baseline)
+        self.assertEqual(cycle,archived)
+        for sample in cycle['decoded_media']['rtc_media_pipeline']['samples']:sample['peers'][0].reverse()
+        self.assertEqual(prepare_pair(cycle,route,pair,summaries),baseline)
+        index=StatsIndex(cycle);owner=pair['first']['owner'];stream=pair['first']['presentation']['stream_id'];track=pair['first']['presentation']['track_id']
+        first=index.get(owner,'inbound-rtp',2.2,2.217,stream=stream,track=track,ssrc=values[5][4])
+        self.assertEqual(index.get(owner,'inbound-rtp',2.201,2.216,stream=stream,track=track,ssrc=values[5][4]),first)
+
+    def test_native_B_contradictions_unknown_rows_and_stripped_or_competing_roles_never_fall_back(self):
+        for change in ['path','codec','ssrc','tag','mid','track','raw-mid','raw-track','refusal','unknown','competing','coherent-competing-B','stripped','rtx-unproved','rtx-apt','rtx-collision']:
+            values=facts();cycle=values[0];native_role_census(cycle)
+            group=cycle['decoded_media']['rtc_media_pipeline']['samples'][1]['peers'][0]
+            target=next(row for row in group if row.get('type')=='inbound-rtp' and row.get('original_track') and row['codec']['mime_type']=='video/VP8')
+            if change=='path':target['selected_path']['remote']['port']+=1
+            elif change=='codec':target['codec']['payload_type']+=1
+            elif change=='ssrc':target['ssrc']+=10
+            elif change=='tag':target['original_track']['stream_id']='foreign'
+            elif change=='mid':target['native_rtp_binding']['native_mid']='changed'
+            elif change=='track':target['native_rtp_binding']['native_track_id']='changed'
+            elif change=='raw-mid':target['native_mid']='changed'
+            elif change=='raw-track':target['native_track_identifier']='changed'
+            elif change=='refusal':target['original_track_refusal']='native-track-identifier-contradiction'
+            elif change=='unknown':
+                unknown=copy.deepcopy(target);unknown['original_track']=None;unknown.pop('native_rtp_binding');group.append(unknown)
+            elif change=='competing':group.append(copy.deepcopy(target))
+            elif change=='coherent-competing-B':
+                competing=copy.deepcopy(target);competing['native_rtp_binding'].update(native_mid='3',transceiver_index=3)
+                competing['original_track'].update(mid='3',transceiver_index=3);group.append(competing)
+            elif change=='stripped':
+                for row in group:row.pop('native_rtp_binding',None)
+            elif change=='rtx-unproved':next(row for row in group if row['codec']['mime_type']=='video/rtx')['native_rtp_binding']['codec_dictionary_type']=None
+            elif change=='rtx-apt':next(row for row in group if row['codec']['mime_type']=='video/rtx')['codec']['associated_payload_type']=None
+            elif change=='rtx-collision':next(row for row in group if row['codec']['mime_type']=='video/rtx')['codec']['payload_type']=target['codec']['payload_type']
+            with self.assertRaises(WitnessError):prepare_pair(*values[:4])
+
+    def test_native_B_roles_apply_to_original_public_terminal_and_receiver_local_high_brackets(self):
+        for public in [False,True]:
+            values,anchor,binding=boundary_facts(public);native_role_census(values[0])
+            self.assertEqual(prepare_pair(*values[:4])['native_binding_boundaries'][0]['direction'],'receive')
+            if public:
+                pipeline=values[0]['decoded_media']['rtc_media_pipeline']
+                row=copy.deepcopy(next(row for row in pipeline['samples'][1]['peers'][0] if row.get('type')=='inbound-rtp' and row.get('original_track') and row['codec']['mime_type']=='video/VP8'))
+                row['original_track']=None;row['original_track_refusal']='native-track-identifier-contradiction';pipeline['samples'][0]['peers'][0].append(row)
+                with self.assertRaisesRegex(WitnessError,'original-native-role-contradiction'):prepare_pair(*values[:4])
+        values,record=retirement_statistics_facts();native_role_census(values[0])
+        self.assertTrue(prepare_pair(*values[:4])['native_retirement_statistics'])
+        for public in [False,True]:
+            for direction in ['send','receive']:
+                values,anchor,binding,actual=selection_boundary_facts(public,direction);native_role_census(values[0])
+                self.assertEqual(prepare_pair(*values[:4])['native_binding_boundaries'][0]['native_path_kind'],'prflx-address-redacted')
+                actual['selected_path']['selected_candidate_pair_changes']+=1
+                with self.assertRaises(WitnessError):prepare_pair(*values[:4])
+
     def test_distinct_original_frames_same_draw_use_actual_pipeline_without_changing_raw_fps(self):
         values=facts();c,r,p,m,sf,tf,e,rows=values
         proof=prepare_pair(c,r,p,m);self.assertEqual(proof['input_ts'],[199000,200530])

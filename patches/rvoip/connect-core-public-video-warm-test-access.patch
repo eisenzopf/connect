@@ -1,0 +1,83 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -278,7 +278,7 @@
+     prepare_calls: AtomicUsize,
+     initial_picture_calls: AtomicUsize,
+     public_warm_starts: AtomicUsize,
+-    keyframe_recorder: Mutex<Option<direct_subscriptions::PublicVideoKeyframeRecorder>>,
++    keyframe_recorder: Mutex<Option<crate::staged_streams::direct_subscriptions::PublicVideoKeyframeRecorder>>,
+     ports: Mutex<BTreeMap<StreamId, AdapterMediaPort>>,
+     mode: AtomicUsize,
+     audio_pt: AtomicUsize,
+@@ -326,7 +326,7 @@
+ }
+ #[async_trait::async_trait]
+ impl StagedMediaAdapter for Adapter {
+-    async fn start_public_video_warm(&self,request:&direct_subscriptions::PublicVideoWarmStart<'_>)->ControlResult<()> {
++    async fn start_public_video_warm(&self,request:&crate::staged_streams::direct_subscriptions::PublicVideoWarmStart<'_>)->ControlResult<()> {
+         let mode=self.mode.load(Ordering::Acquire);
+         if !(20..=22).contains(&mode) && mode!=24 {return Err(StreamControlError::Unsupported);}
+         if !request.is_current() {return Err(StreamControlError::NotReady);}
+@@ -349,7 +349,7 @@
+     }
+ 
+     async fn request_initial_video_picture(
+-        &self,request:&direct_subscriptions::InitialVideoPictureRequest<'_>,
++        &self,request:&crate::staged_streams::direct_subscriptions::InitialVideoPictureRequest<'_>,
+     )->ControlResult<()> {
+         // Test-only modes, selected AFTER actual managed setup. The existing
+         // default adapter remains unsupported and grants no hint capability.
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -470,7 +470,7 @@
+     fn current_public_video_reservation(&self,scope:&MediaScope<'_>,original:&public_video_reservation::PublicVideoReservationPreparation,held:&(dyn Any+Send+Sync))->ControlResult<Box<dyn MediaAuthorityLease>> {
+         public_video_warm::current_reservation(&self.0,scope,original,held)
+     }
+-    fn current_public_video_warm(&self,scope:&MediaScope<'_>,original:&direct_subscriptions::PostCutPublicVideoScope,held:Option<&(dyn Any+Send+Sync)>)->ControlResult<Box<dyn MediaAuthorityLease>> {
++    fn current_public_video_warm(&self,scope:&MediaScope<'_>,original:&crate::staged_streams::direct_subscriptions::PostCutPublicVideoScope,held:Option<&(dyn Any+Send+Sync)>)->ControlResult<Box<dyn MediaAuthorityLease>> {
+         public_video_warm::current(&self.0,scope,original,held)
+     }
+ 
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/adoption_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/adoption_controls.rs
+@@ -41,7 +41,7 @@
+         let observer=port.0.video_exposure.get().unwrap();let loan=controller.preflight_old_video_protection(observer).unwrap();
+         assert!(!coverage.mark_escaped());drop(loan);assert!(!coverage.mark_escaped());
+         room.world.warm_allowed.store(false,Ordering::Release);
+-        let public_stamp=room.nodes[&target].controller.direct_subscriptions.try_private_stamp(&room.nodes[&source].controller,&desired(Medium::Video).logical_id,&b_id(),Instant::now()).unwrap().unwrap();
++        let public_stamp=room.nodes[&target].controller.direct_subscriptions.stamp(&room.nodes[&source].controller,&desired(Medium::Video).logical_id,&b_id(),Instant::now()).unwrap();
+         assert!(original_route.same_generation(&public_stamp.delivery_ticket()));
+         assert!(original_source.same_generation(&room.nodes[&source].backend.port(Medium::Video).0.ticket(TicketSide::Ingress)));
+         assert!(original_target.same_generation(&port.0.ticket(TicketSide::Egress)));
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/definite_setup_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/definite_setup_controls.rs
+@@ -42,9 +42,9 @@
+         room.world.warm_allowed.store(true,Ordering::Release);
+         let target=room.nodes[&ready.grant.intent.replacement].controller.clone();
+         let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};
+-        let routing=target.direct_subscriptions.routing.lock().unwrap();
+-        let busy=room.orch.try_prepare_staged_public_video_warm_with_held(&ready.plan,&held);
+-        drop(routing);
++        let busy=target.direct_subscriptions.with_routing_exclusion_for_test(|| {
++            room.orch.try_prepare_staged_public_video_warm_with_held(&ready.plan,&held)
++        });
+         assert!(matches!(busy,Ok(None)));
+         assert!(ready.reservation.is_current());
+         let warm=room.orch.try_prepare_staged_public_video_warm_with_held(&ready.plan,&held).unwrap().unwrap();
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -88,6 +88,14 @@
+     pub(super) cancel: CancellationToken,
+ }
+ impl DirectGate {
++    /// Synchronous test-only exclusion of the actual routing mutex. Its private
++    /// guard remains held through call and drops on return/unwind, before await.
++    /// No route metadata, owner, ticket or permission is returned by this helper.
++    #[cfg(test)]
++    pub(super) fn with_routing_exclusion_for_test<T>(&self,call:impl FnOnce()->T)->T {
++        let _routing=self.routing.lock().unwrap();
++        call()
++    }
+     /// Numeric observation only for in-crate regressions. The routing field
+     /// stays private; no owner, ticket or permission leaves this locked read.
+     #[cfg(test)]

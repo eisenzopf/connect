@@ -1,0 +1,23 @@
+{
+  "format": "connect/mobile-document-readback/1",
+  "verified_at": "2026-11-19T09:54:28.277Z",
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMS6REwvI5RyDZ4I8qWkzn7yhsgazpClHAKSA3NeX8wQGBK18fniSPkmZeNHFnpg8osYRlUoIlyuzmJhlaQvfaoRTl7hS0D1jjI02k0",
+  "content_revision": 192,
+  "tracker_revision": 123,
+  "header": "Revision 192 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432 checks passed. No new full matrix has started. G6-054 stays parked.\n",
+  "current_verification": "Current verification \u2014 November 19. The complete g509 batch compiled all six targets, including the corrected native-to-WebRTC fixture and unchanged default server check. All selected runtimes ran: 2,176/2,200 passed, 24 failed, zero skipped. The pooled-session cleanup repair passed again. Remaining failures: Core fixture ordering 3; Native dedicated RTC/overlap/contention fixtures 5; WebRTC missing observer resource 4; SIP storage rejection 9; Vapi observation persistence 2; scene expiry 1. Core, Native, WebRTC and Vapi corrections are independently source-reviewed and staged; SIP exact pending-parent insertion is under independent review with three new boundary tests. None of these new candidates is runtime-verified yet. Expiry diagnostics show disagreement near the monotonic/wall deadline; first revocation cause remains unproven. All original processes closed naturally and the actual source/artifacts were independently audited. The three decoded-media representatives did not run because the regression batch failed. Strict Firefox three-cycle validation, final qualification, ARM11, normal release builds and final preflight remain. Root coordinates; epoch_cause owns Core/expiry, batch_build_review owns Native RTC and independently reviews Server/SIP, independent_batch_review reviews Core/Native and authors WebRTC/Vapi. Tracker 123 records each failure group and reviewer. Local Mac/native ARM only; criteria unchanged. Latest complete matrix remains v218: 1/32 cells and 399/432 checks. G6-054 stays parked.\n",
+  "exact_readback_verified": true,
+  "replacements": [
+    {
+      "replaceAllText": {
+        "occurrencesChanged": 1
+      }
+    },
+    {
+      "replaceAllText": {
+        "occurrencesChanged": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "format": "connect/mobile-document-readback/1",
+  "content_revision": 182,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMSNQtkd3_PH-F1gjVESvBeZX5Qvn--p0VCKtIWzHW3aQH84BKsyF0Jmf9z-JeFjc3i12Jupnn9rF2q4H9huti5180hNfenvVETtrs0",
+  "verified_at": "2026-11-16T13:27:20.566Z",
+  "replacements": [
+    {
+      "old_prefix": "Revision 181 | Coordinator: /root | Latest complete matrix remains v218: 1/32 ce",
+      "old_absent": true,
+      "new_present_once": true
+    },
+    {
+      "old_prefix": "Current verification — Freshg494 again passes87Protocol+206Node+55Python, zero s",
+      "old_absent": true,
+      "new_present_once": true
+    }
+  ],
+  "matrix_qualified": false
+}

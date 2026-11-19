@@ -90,6 +90,7 @@ export declare class BrowserClient {
     requestReplacementContinuation(type: "connection.offer" | "operation.get", payload: JsonObject, scope: Scope, options: RequestOptions & {
         terminalType?: "connection.answer";
     }): Promise<Envelope[]>;
+    private replacementStatusRead;
     private expireReplacementReplies;
     /** Fresh request ID binds the server's native media parameter exchange. */
     begin(type: string, payload: JsonObject, scope?: Scope, options?: RequestOptions & {

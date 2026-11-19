@@ -29,6 +29,7 @@ pub(crate) const PARENT_BIRTH_FUNCTION: &str = "connect_store_parent_birth_v1";
 enum BirthKind {
     Message,
     Call,
+    SipLeg,
     InvitedSession,
 }
 struct BirthKey {
@@ -118,6 +119,7 @@ impl State {
                     let conversation = context.get::<String>(2)?;
                     let kind = match kind.as_str() {
                         "call" => Some(BirthKind::Call),
+                        "sip-leg" => Some(BirthKind::SipLeg),
                         "invited-session" => Some(BirthKind::InvitedSession),
                         _ => None,
                     };
@@ -180,6 +182,14 @@ impl State {
     ) -> Result<NamespaceBirth<'a>> {
         self.new_birth(connection, BirthKind::Call, id, conversation)
     }
+    pub(crate) fn new_sip_leg_birth<'a>(
+        self: &Arc<Self>,
+        connection: &'a Connection,
+        id: &str,
+        conversation: &str,
+    ) -> Result<NamespaceBirth<'a>> {
+        self.new_birth(connection, BirthKind::SipLeg, id, conversation)
+    }
     pub(crate) fn new_invited_session_birth<'a>(
         self: &Arc<Self>,
         connection: &'a Connection,
@@ -225,6 +235,7 @@ impl State {
                 match kind {
                     BirthKind::Message => "SELECT EXISTS(SELECT 1 FROM messages WHERE id=?1)",
                     BirthKind::Call => "SELECT EXISTS(SELECT 1 FROM voice_calls WHERE id=?1)",
+                    BirthKind::SipLeg => "SELECT EXISTS(SELECT 1 FROM sip_legs WHERE id=?1)",
                     BirthKind::InvitedSession => {
                         "SELECT EXISTS(SELECT 1 FROM sessions WHERE id=?1)"
                     }
@@ -239,6 +250,7 @@ impl State {
                 match kind {
                     BirthKind::Message => "Message identity is unavailable",
                     BirthKind::Call => "Call identity is unavailable",
+                    BirthKind::SipLeg => "SIP leg identity is unavailable",
                     BirthKind::InvitedSession => "Session identity is unavailable",
                 },
             ));

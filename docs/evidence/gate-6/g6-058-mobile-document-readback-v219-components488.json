@@ -1,0 +1,36 @@
+{
+  "format": "connect/mobile-document-readback/1",
+  "content_revision": 178,
+  "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "revision_id": "AHj4eMRoSDf0THfEXTxY7bQE8M_lu7RLNrcMj92dtmnLqaq61LXCxS_a2EyjtkRqOAfqDvielHikiVXAbuFOrUnVWwgnkdk8j76ZGlxDxzI",
+  "verified_at": "2026-11-16T12:12:48.953Z",
+  "replacements": [
+    {
+      "old_prefix": "Revision 177 | Coordinator: /root | Latest complete matrix remains v218: 1/32 cells and 399/432",
+      "old_absent": true,
+      "new_present_once": true
+    },
+    {
+      "old_prefix": "Current verification — Generation486 passes the SAME original native-controller factory regress",
+      "old_absent": true,
+      "new_present_once": true
+    },
+    {
+      "old_prefix": "V219-PUBLIC-FRAME-REPLAY — Owners: media_blockers (Core/adapter), Root (Protocol/Service/Store/",
+      "old_absent": true,
+      "new_present_once": true
+    },
+    {
+      "old_prefix": "4. V219-PUBLIC-RESERVATION-INTENT and V219-ROOT-FREEZE-PHASE — The composed Store source preser",
+      "old_absent": true,
+      "new_present_once": true
+    },
+    {
+      "old_prefix": "5. Parallel execution — Root: integrate the full reviewed source batch, normal generation/build",
+      "old_absent": true,
+      "new_present_once": true
+    }
+  ],
+  "matrix_qualified": false
+}

@@ -60,6 +60,7 @@ pub(crate) fn dial(
     conversation_id: &str,
     session_id: &str,
     destination: &str,
+    store: &Store,
 ) -> Result<SipLeg> {
     let session = crate::sessions::get(c, conversation_id, session_id)?;
     crate::sessions::require_original_epoch(c, &actor.identity_id, &session)?;
@@ -73,12 +74,19 @@ pub(crate) fn dial(
     }
     let timestamp = now();
     let id = uuid::Uuid::new_v4().to_string();
+    // This fresh pending namespace is dormant until the worker's separate
+    // final wire admission. Do not invalidate existing Session media readers.
+    let birth = store
+        .authority_writer_boundary
+        .new_sip_leg_birth(c, &id, conversation_id)?;
     c.execute(
         "INSERT INTO sip_legs(id,conversation_id,session_id,credential_id,actor_id,destination,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?7)",
         params![id, conversation_id, session_id, credential_id, actor.identity_id, destination, timestamp],
     )
     .map_err(|_| Error::storage())?;
-    get(c, conversation_id, &id)
+    let leg = get(c, conversation_id, &id)?;
+    drop(birth);
+    Ok(leg)
 }
 
 pub(crate) fn end(

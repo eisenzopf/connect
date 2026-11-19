@@ -1,0 +1,59 @@
+{
+  "format": "connect/g6-058-coherent-batch-checkpoint/1",
+  "updated_at": "2026-11-16T14:18:14.562818+00:00",
+  "checkpoint": 499,
+  "dependency_patch_generation": 491,
+  "source_lock_sha256": "d089e339249d779fe0cad80aa6b226aa1ad5919c44892c1c98107d6c9c2e2ea3",
+  "status": "STORE432_OF438_ACTUAL_FAILED_TEST_RCA_CORRECTED_COMPILER_IDENTITY_APPLIED_UNVERIFIED",
+  "summary": "Latest g498: Protocol 87, Node 206 and Python 55 pass; Store 432/438 pass, six fail, zero ignored. Overall batch FAILED: SIP async auto-trait compilation still blocks other libraries and all three media representatives. Original Root and 18 children closed; unchanged source/binaries independently verified. All six Store failures traced to test assumptions; reviewed test-only corrections applied. Same-allocation historical Submission identity correction installed through normal491, independently audited; compile sufficiency unproven. Browser-group cancellation fix remains under review. No fresh decoded-media or matrix qualification; last full matrix v218 remains 1/32 cells and399/432 checks.",
+  "evidence": {
+    ".local/gate-6/v219-g498-coherent-components-root/component-result.json": "d828e9bc9a4732f6394694784b7a1ddcbfe555dbe071c285d4e6bac5b24a2c82",
+    ".local/gate-6/v219-g498-coherent-components-root/root-original-join.json": "1a783376d7ce95e6a165e9519165b0b0ebfaa5e3730bf11865980a31b44b7936",
+    ".local/gate-6/v219-g498-coherent-components-independent-media-audit/receipt.json": "24b97e3a032f2d832746c9eb2d9b264ca00491dec94188f9ccb994248f0ea5bc",
+    ".local/gate-6/v219-g499-submission-and-store-root/normal491-runtime/receipt.json": "217bff613982375bd7272027dc3a3ba53d6acea2729b507aa4988a315d45cf1d",
+    ".local/gate-6/v219-g499-preparation-independent-media-audit/receipt.json": "54b1bd68b6676f44dccb2de427b8a666714dc6d5d866c699da89e996d608fc24",
+    ".local/gate-6/store-public-video-readiness-fixture-rca-v219-candidate/manifest.json": "00465976b634641b2f0852da30e7abb7cc326cb98d318d334e07ac388cc45f6a",
+    ".local/gate-6/store-public-video-readiness-fixture-rca-independent-root-review/receipt.json": "ebbb0be819c40c4b5422b4b4df2f7ac98559af089f3f3fb28e0199a7d7ff7481",
+    ".local/gate-6/store-public-video-readiness-fixture-rca-independent-fixture-review/receipt.json": "74155578bebb30e1d9ded88a4a0d3269f665a1521f2693f35f286799fb636dc7",
+    ".local/gate-6/store-public-video-readiness-fixture-rca-independent-v198-review/receipt.json": "da46ef979654699434f1f7f00fc7ed1831d4fc22bf94b1029da4bf38182059de",
+    ".local/gate-6/submission-scope-opaque-identity-v219-candidate/manifest.json": "a0cfd2c6e88f646122ebfc479a027f3942673cb35b71e3d63fa60ebc78121d1e",
+    ".local/gate-6/submission-scope-opaque-identity-independent-root-review/receipt.json": "0468fe8a2628ab883f683524383a676f16ee538299582988ae96a94e4c452225",
+    ".local/gate-6/submission-scope-opaque-identity-independent-media-review/receipt.json": "5ad5b56182f1ecd0503ecf46f084d064e3f5fece8e185555aebcca39a81bd7f2"
+  },
+  "actual_g498": {
+    "passed": false,
+    "protocol_passed": 87,
+    "node_passed": 206,
+    "python_passed": 55,
+    "store_passed": 432,
+    "store_failed": 6,
+    "store_selected": 438,
+    "store_ignored": 0,
+    "other_rust_or_media_executed": false,
+    "original_child_joins": 18,
+    "root_natural_exit_code": 1,
+    "source_binary_unchanged": true
+  },
+  "fixes_applied_unverified": [
+    "Store readiness table counter and immediate actual baseline assertion",
+    "Store distinct snapshot/proof/original operation expiry controls",
+    "Store revoked credential unauthorized expectation plus independent credential and unaffected OLD controls",
+    "Historical Submission pointer-only weak identity without runtime graph traversal; Recorder current authority remains concrete"
+  ],
+  "remaining": [
+    "Full original feature-union/default-consumer compilation and affected units including all three managed identity tests and five N2 controls",
+    "Cancellation-safe original browser-group closure and actual three decoded-media representatives",
+    "Strict Firefox automatic three-cycle programme",
+    "Local ARM/release and full matrix preflight"
+  ],
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "mobile_sync": "Revision183 verified by scoped guarded write/readback; prior HTTP429 cleared."
+}

@@ -225,3 +225,70 @@ impl Store {
         call()
     }
 }
+
+/// Private immutable lineage minted only from the still-owned negative token.
+/// No Deserialize/public constructor/current permission or native-close grant.
+pub(in crate::transitions::native_replacements) struct NativeReplacementNotSubmittedLineage {
+    original: std::sync::Weak<()>,
+    attempt: String,
+    effect: String,
+    expected: String,
+}
+impl NativeReplacementCommitNotSubmitted {
+    pub(in crate::transitions::native_replacements) fn unpublished_lineage(
+        &self,
+        original: &NativeReplacementPrepared,
+    ) -> Result<NativeReplacementNotSubmittedLineage> {
+        let p = &self
+            .attempt
+            .origin
+            .started
+            .attempt
+            .allocated
+            .attempt
+            .prepared;
+        if !p.same_capture(original) {
+            return Err(Error::forbidden());
+        }
+        Ok(NativeReplacementNotSubmittedLineage {
+            original: Arc::downgrade(&p.capture_identity),
+            attempt: self.attempt.attempt.clone(),
+            effect: self.attempt.effect.clone(),
+            expected: self.attempt.expected.clone(),
+        })
+    }
+}
+impl NativeReplacementNotSubmittedLineage {
+    pub(in crate::transitions::native_replacements) fn require_durable(
+        &self,
+        c: &Connection,
+        p: &NativeReplacementPrepared,
+    ) -> Result<()> {
+        if !self
+            .original
+            .upgrade()
+            .is_some_and(|original| Arc::ptr_eq(&original, &p.capture_identity))
+        {
+            return Err(Error::forbidden());
+        }
+        // A failed effect alone, a persisted started marker or generic Unknown
+        // is insufficient. This is the exact SAME captured pre-Core negative.
+        let exact:bool=c.query_row(
+            "SELECT EXISTS(SELECT 1 FROM native_replacements n
+             JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='commit'
+             JOIN operation_effects e ON e.id=s.effect_id AND e.operation_record_id=s.operation_record_id
+             WHERE n.operation_record_id=?1 AND n.runtime_epoch=?2 AND n.reservation_id=?3 AND n.plan_digest=?4
+             AND s.attempt_id=?5 AND s.effect_id=?6 AND s.started=1 AND s.observation_json=?7
+             AND e.state='failed' AND e.observation_json=?8 AND e.provider='native-replacement-commit'
+             AND e.correlation_key=e.id AND e.attempt=1 AND e.submission_generation=1
+             AND NOT EXISTS(SELECT 1 FROM operation_effects other WHERE other.operation_record_id=n.operation_record_id
+                 AND other.provider='native-replacement-commit' AND other.id!=e.id))",
+            params![p.record,p.runtime,p.reservation,p.hash,self.attempt,self.effect,NOT_SUBMITTED,self.expected],
+            |row|row.get(0),
+        ).map_err(|_|Error::storage())?;
+        if !exact {
+            return Err(Error::forbidden());
+        }
+        Ok(())
+    }
+}

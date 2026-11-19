@@ -1,0 +1,69 @@
+{
+  "format": "connect/g6-058-coherent-source-preparation-checkpoint/1",
+  "updated_at": "2026-11-16T12:13:38.475212+00:00",
+  "checkpoint": 488,
+  "dependency_patch_generation": 485,
+  "base_revision": "d812f710e91f42fffb4e743ea581b5d892eccaef",
+  "source_lock_sha256": "7be1ce8b60ba429234644b0f5c35bfce8c30e124869c70d465d06d85cc1ec2e8",
+  "status": "SOURCE_APPLIED_PREPARATION_VERIFIED_COMBINED_RUST_UNRUN",
+  "evidence": {
+    ".local/gate-6/v219-g488-native-multisession-root/root-source-review.json": "f98a83725255b1f05850c7a29e02a08c1c3faf158fa10fa0f6265a9b0b382341",
+    ".local/gate-6/v219-g488-native-multisession-root/normal485-runtime/receipt.json": "5e23446dfc0b72f7423877c16218a03adf30a6cab1153ef5e6343901b3d3dcb6",
+    ".local/gate-6/v219-g488-native-multisession-root/root-original-join.json": "d0feb1f25c74d13052415c03a6aa9fd9cb86b67bc65bea0f3d870461cc2874c8",
+    ".local/gate-6/v219-g488-preparation-independent-fixture-review/receipt-normal485.json": "c3c19e03437493afb84bc97080767b371712264038991b8ea8fc2c57ace14dd7",
+    ".local/gate-6/native-multisession-domain-independent-v198-review/receipt-v2.json": "9f0f91ba2c18f0b2f4de18ff64d78e713d5b2d49b53ec76e60efb5a86f003aed",
+    ".local/gate-6/native-multisession-domain-independent-fixture-review/receipt-v2.json": "73987279251428a6060a870dc0cd2be581377ebc9ee4ac3b031dc64c50115283",
+    ".local/gate-6/v219-g487-preparation-independent-fixture-review/receipt-actual-normal484.json": "804a56d5580ad414e14bc74dc325a3644a93b2ac5d879881510cb95716f86278",
+    ".local/gate-6/g487-contract-coverage-independent-fixture-review/receipt.json": "912b9b9fbd9a007b2e042a40eae945f4e4642857cce474d0192d710ead44b85a",
+    ".local/gate-6/public-video-reader-release-independent-root-review/receipt-v3.json": "0af19e65bb542b1b850df5a1d7fa4c05185727eeff5fed4dc8b929c0bb991cd8",
+    ".local/gate-6/public-video-reader-release-independent-media-review/receipt-v3.json": "963709bd8aebc9d8f0c9fae0afe6fe7bd2d061d514def498018d6c734ff5d6a1",
+    ".local/gate-6/g488-final-workspace-controls/composition.json": "32edf1027e4fda50ff5d5ac861844c65fc87d876fcd62022b6fce5b1f264d3f2"
+  },
+  "observed": {
+    "normal_484_preparation": true,
+    "normal_485_preparation": true,
+    "preserved_complete_484_entries": 5147,
+    "unchanged_484_mtimes_restored": 4257,
+    "n2_source_afterimages": 7,
+    "original_root_pid": 82686,
+    "root_tool_session": 16060,
+    "root_natural_exit_code": 0,
+    "root_pid_absent": true,
+    "root_pgid_captured": false,
+    "original_children_natural_zero_joined_groups_absent": 2,
+    "contracts_vectors_passed": 294,
+    "contracts_semantic_boundaries_passed": 18,
+    "contract_declared_types": 67,
+    "generated_references_current": true,
+    "combined_rust_compile_or_tests_run": false
+  },
+  "new_blocker": {
+    "id": "V219-NATIVE-PHYSICAL-COVERAGE",
+    "cause": "Required pooled2Session Native topology met strict metadata built for one Session realm/inventory/raw seal. Ordinary media may continue; strict physical proof refuses.",
+    "fix": "Original peer keeps one raw transport fence; exact Session histories, pins and leases compose. Writers capture atomics once and never traverse new Session registry. Existing nonreused visual-handle space bounds retained metadata.",
+    "verification": "Independent source/API/control reviews accepted; normal485 exact afterimages installed; five focused controls and real pooled handoff remain UNRUN.",
+    "historical_causality": "Not established as cause of all old media failures."
+  },
+  "reader_release_fix": "First actual Ready capture retains a private winner token; real admitted aliases drop before Release/notify; pipeline and DecodedReady Acquire release. Replays cannot release first handler Readers. Actual heldReader+SQL controls are integrated but unrun.",
+  "required_next": [
+    "Finish post-take and mixed helper source review/composition; format current coherent workspace",
+    "Compile and unit-test affected Core/RTC/UCTP/Protocol/Store/Service/server and SDK/harness selectors; preserve failure evidence and fix actual compilation/regression gaps",
+    "Actual decoded RTC sameB roundtrip/abort/Reader-release SQL/post-take, Native-to-RTC and pooled2Session proof",
+    "Current regression, local ARM, release builds and matrix preflight"
+  ],
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_full_matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "historical_results_unchanged": [
+    "g483 affected416 remains413PASS3FAIL",
+    "g484 focused3 pass does not regrade g483",
+    "g486 ownership5 pass does not qualify decoded handoff"
+  ],
+  "source_batch_finalized": "Mixed3 and posttake1 workspace images applied; normal formatter completed0/tool31015; combined Rust compile pending"
+}

@@ -1,0 +1,401 @@
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -7707,10 +7707,13 @@
+  "rvoip-infra-common",
+  "rvoip-media-core",
+  "rvoip-quic",
++ "rvoip-rtc",
+  "rvoip-rtp-core",
+  "rvoip-sip",
+  "rvoip-sip-core",
+  "rvoip-sip-dialog",
++ "rvoip-webrtc",
++ "rvoip-webrtc-stack",
+  "rvoip-websocket",
+  "rvoip-webtransport",
+  "serde",
+--- a/crates/uctp/rvoip-uctp/Cargo.toml
++++ b/crates/uctp/rvoip-uctp/Cargo.toml
+@@ -61,6 +61,10 @@
+ thiserror.workspace = true
+ 
+ [dev-dependencies]
++# Real canonical RTC/DTLS replacement controls use the dedicated peer-owned path.
++rvoip-webrtc = { path = "../../webrtc/rvoip-webrtc" }
++webrtc = { workspace = true, features = ["runtime-tokio"] }
++rtc.workspace = true
+ tokio-tungstenite.workspace = true
+ tokio = { workspace = true, features = ["full", "test-util"] }
+ tracing-subscriber.workspace = true
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter.rs
+@@ -254,6 +254,9 @@
+         ))
+     }
+ }
++mod browser;
++
++// The generic preparation SPI intentionally excludes peer-owned WebRTC.
+ struct Candidate {
+     pending: Arc<DeviceReplacementPreparation>,
+     adapter: Arc<Adapter>,
+@@ -263,6 +266,7 @@
+ }
+ impl Candidate {
+     async fn new(s: &Scene, kind: Transport) -> Self {
++        assert_eq!(kind, Transport::Sip);
+         let old = s.grants.0.read().await.owners[&s.live[0].leg.id].clone();
+         let identity = IdentityBinding::from_authenticated(
+             &named_actor("alice"),
+@@ -519,7 +523,8 @@
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+ async fn controlled_browser_and_telephone_replacement_use_reserved_route_and_confirmed_duplex_once()
+ {
+-    for kind in [Transport::WebRtc, Transport::Sip] {
++    browser::confirmed_duplex().await;
++    for kind in [Transport::Sip] {
+         let s = Scene::new_replacement("quic").await;
+         let mut c = Candidate::new(&s, kind).await;
+         let id = c.pending.intent().replacement.clone();
+@@ -660,7 +665,8 @@
+ #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+ async fn controlled_browser_and_telephone_no_answer_voicemail_and_silent_resource_loss_preserve_old(
+ ) {
+-    for kind in [Transport::WebRtc, Transport::Sip] {
++    browser::preserve_old().await;
++    for kind in [Transport::Sip] {
+         for mode in ["no-answer", "voicemail", "lost-adapter"] {
+             let s = Scene::new_replacement("quic").await;
+             let mut c = Candidate::new(&s, kind).await;
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/browser.rs
+@@ -0,0 +1,329 @@
++//! Real in-process RTC/DTLS peers; not a browser-engine or provider rehearsal.
++use super::*;
++use futures::FutureExt;
++use rvoip_core::{
++    orchestrator::{peer_native::*, peer_sessions::*},
++    peer_admission::{PeerAdmission, PeerAdmissionLimits, PeerAdmissionOwner},
++};
++use ::rvoip_webrtc::{
++    canonical::{CanonicalWebRtcAdapter, WebRtcPhysicalBinding},
++    peer::{PeerRole, RvoipPeerConnection},
++    WebRtcConfig,
++};
++use ::webrtc::media_stream::{
++    track_local::TrackLocal,
++    track_remote::{TrackRemote, TrackRemoteEvent},
++};
++
++// Both trusted composition calls retain the same real policy read guard.
++struct Lease {
++    _guard: OwnedRwLockReadGuard<PolicyState>,
++    native: PeerNativeAuthority,
++    session: PeerSessionAuthority,
++}
++impl PeerNativeAuthorityLease for Lease {
++    fn authority(&self) -> &PeerNativeAuthority { &self.native }
++}
++impl PeerSessionAuthorityLease for Lease {
++    fn authority(&self) -> &PeerSessionAuthority { &self.session }
++}
++
++struct Browser {
++    pending: Option<Arc<DeviceReplacementPreparation>>,
++    operator: AuthenticatedPrincipal,
++    caller_cancel: CancellationToken,
++    physical: CancellationToken,
++    owner: Option<PeerAdmissionOwner>,
++    adapter: Arc<CanonicalWebRtcAdapter>,
++    binding: Option<Arc<WebRtcPhysicalBinding>>,
++    server: Option<Arc<RvoipPeerConnection>>,
++    remote: Option<Arc<RvoipPeerConnection>>,
++    controller: Option<Arc<StreamController>>,
++    received: Option<Arc<dyn TrackRemote>>,
++    pump_stop: CancellationToken,
++    pump: Option<tokio::task::JoinHandle<CoreResult<()>>>,
++}
++impl Browser {
++    fn new() -> Self {
++        Self {
++            pending: None, operator: named_actor("alice"),
++            caller_cancel: CancellationToken::new(), physical: CancellationToken::new(),
++            owner: None, adapter: CanonicalWebRtcAdapter::new(), binding: None,
++            server: None, remote: None, controller: None, received: None,
++            pump_stop: CancellationToken::new(), pump: None,
++        }
++    }
++    fn pending(&self) -> &Arc<DeviceReplacementPreparation> { self.pending.as_ref().unwrap() }
++    fn id(&self) -> ConnectionId { self.pending().intent().replacement.clone() }
++    fn peer(&self) -> Arc<PeerAdmission> { self.owner.as_ref().unwrap().peer() }
++    async fn setup(&mut self, s: &Scene) {
++        let old = s.grants.0.read().await.owners[&s.live[0].leg.id].clone();
++        let identity = IdentityBinding::from_authenticated(
++            &self.operator, old.member.identity().clone(), Utc::now(),
++        ).unwrap();
++        let mut endpoint = EndpointBinding::provision(
++            identity.clone(), EndpointId::from_string("endpoint_alice_adapter"),
++            DeviceId::from_string("device_alice_adapter"), Transport::WebRtc,
++            "controlled-real-rtc-peer".into(),
++        ).unwrap();
++        endpoint.verify(&identity, "controlled-endpoint-proof".into(), Utc::now()).unwrap();
++        let id = ConnectionId::new();
++        let intent = ParticipantReplacementMutation {
++            operation_id: "managed-adapter-replacement".into(),
++            correlation_id: "adapter-correlation".into(),
++            expected_revision: s.core.orch.participant_revision(&s.core.session).unwrap(),
++            participant: old.member.participant().clone(), source: s.live[0].leg.id.clone(),
++            replacement: id.clone(), retained: s.live[1].leg.id.clone(),
++            endpoint: endpoint.endpoint().clone(), device: endpoint.device().clone(),
++            confirmation: EndpointConfirmationPolicy::AnsweredDtmf { digits: "5#".into() },
++        };
++        let mut planned = old.clone();
++        planned.endpoint = endpoint.clone();
++        planned.connection = ConnectionBinding::prepare(&old.member, &old.presence, &endpoint, id.clone()).unwrap();
++        s.grants.0.write().await.owners.insert(id.clone(), planned);
++        // One original preparation cutoff, also bounds actual SDP/ICE/DTLS and resources.
++        let until = deadline();
++        let g = grant(s, &intent, &self.operator, Approval::Prepare).await;
++        self.pending = Some(s.core.orch.prepare_staged_device_replacement_with_held(
++            &s.core.session, self.operator.clone(), intent.clone(), until,
++            self.caller_cancel.clone(), &g,
++        ).unwrap());
++        drop(g);
++        let prepared = self.pending().prepared_binding();
++        {
++            let mut state = s.grants.0.write().await;
++            let owner = state.owners.get_mut(&id).unwrap();
++            owner.connection = prepared.binding().clone();
++            owner.presence = prepared.appearance().clone();
++        }
++        s.replacement_media.as_ref().unwrap().resources.lock().unwrap().insert(
++            id.clone(), Resources { pending: prepared, proof: None },
++        );
++        s.core.orch.register(self.adapter.clone()).unwrap();
++        let g = grant(s, &intent, &self.operator, Approval::Allocate).await;
++        // Even a genuine canonical adapter cannot enter through the generic SPI.
++        assert!(matches!(s.core.orch.prepare_adapter_device_replacement_with_held(
++            self.pending(), Arc::new(RouteContext { principal: self.operator.clone() }), &g,
++        ), Err(ParticipantControlError::Unsupported)));
++        drop(g);
++        assert_eq!(self.adapter.total_allocations(), 0);
++        self.owner = Some(PeerAdmissionOwner::new(
++            &self.operator, old.member.identity().clone(), endpoint.device().clone(),
++            self.physical.clone(), PeerAdmissionLimits { sessions: 4, connections: 4 },
++        ).unwrap());
++        let peer = self.peer();
++        let guard = s.grants.0.clone().read_owned().await;
++        assert!(!guard.private && !guard.denied.contains(&id));
++        let current = guard.owners[&id].clone();
++        let lease = Lease {
++            native: PeerNativeAuthority { actor: current.member.clone(), endpoint: current.endpoint.clone(), may_prepare: true },
++            session: PeerSessionAuthority { actor: current.member.clone(), invitees: vec![], may_create: false, may_attach: true },
++            _guard: guard,
++        };
++        s.core.orch.attach_peer_session(peer.clone(), &self.operator, &s.core.session, &lease).unwrap();
++        self.binding = Some(WebRtcPhysicalBinding::new(&peer, self.physical.clone()));
++        let reserved = s.core.orch.prepare_peer_webrtc_device_replacement(
++            self.pending(), peer.clone(), &self.operator, &lease, self.binding.as_ref().unwrap().clone(),
++        ).unwrap();
++        assert_eq!(reserved.connection_id(), &id);
++        assert_eq!(reserved.retain(&self.operator, &lease).unwrap(), id);
++        drop(lease);
++        assert_eq!(self.adapter.total_allocations(), 1);
++        let mut config = WebRtcConfig::loopback();
++        config.capabilities.audio_codecs.retain(|c| matches!(c.name.as_str(), "g.711-mu" | "pcmu"));
++        assert_eq!(config.capabilities.audio_codecs.len(), 1);
++        self.binding.as_ref().unwrap().start_peer(config.clone(), PeerRole::Offerer).unwrap();
++        assert!(self.binding.as_ref().unwrap().start_peer(config.clone(), PeerRole::Offerer).is_err());
++        self.server = Some(self.adapter.original_peer(&id, &peer, until).await.unwrap());
++        self.remote = Some(tokio::time::timeout_at(until,
++            RvoipPeerConnection::new(&config, PeerRole::Answerer),
++        ).await.unwrap().unwrap());
++        let server = self.server.as_ref().unwrap();
++        let remote = self.remote.as_ref().unwrap();
++        tokio::time::timeout_at(until, async {
++            server.add_local_audio_track().await.unwrap();
++            let offer = server.create_offer_and_gather().await.unwrap();
++            let answer = remote.accept_offer_and_gather(&offer).await.unwrap();
++            server.set_remote_answer(&answer).await.unwrap();
++            let remaining = until.saturating_duration_since(tokio::time::Instant::now());
++            tokio::try_join!(server.wait_connected(remaining), remote.wait_connected(remaining)).unwrap();
++        }).await.unwrap();
++        let track = remote.local_audio_track().unwrap();
++        let ssrc = remote.local_audio_ssrc().unwrap();
++        let stop = self.pump_stop.clone();
++        let pending_cancel = self.pending().cancellation();
++        let physical = self.physical.clone();
++        self.pump = Some(tokio::spawn(async move {
++            let mut seq = 0u16;
++            let mut interval = tokio::time::interval(Duration::from_millis(20));
++            loop {
++                tokio::select! { biased; _ = stop.cancelled() => return Ok(()), _ = interval.tick() => {} }
++                seq = seq.wrapping_add(1);
++                let packet = ::rtc::rtp::Packet {
++                    header: ::rtc::rtp::Header { version: 2, payload_type: 0, sequence_number: seq,
++                        timestamp: u32::from(seq) * 160, ssrc, ..Default::default() },
++                    payload: tone(),
++                };
++                tokio::select! { biased;
++                    _ = stop.cancelled() => return Ok(()),
++                    result = track.write_rtp(packet) => {
++                        if result.is_err() {
++                            if pending_cancel.is_cancelled() || physical.is_cancelled() || stop.is_cancelled() { return Ok(()); }
++                            return Err(rvoip_core::RvoipError::InvalidState("controlled RTC audio write failed"));
++                        }
++                    },
++                }
++            }
++        }));
++        let g = grant(s, &intent, &self.operator, Approval::Resources).await;
++        let (controller, _activation) = self.adapter.configure_media(
++            &id, self.operator.clone(), s.core.conversation.clone(),
++            s.replacement_media.as_ref().unwrap().clone(), 4, &g,
++        ).unwrap();
++        self.controller = Some(controller.clone());
++        self.adapter.wait_initial_media(&id, until, self.pending().cancellation()).await.unwrap();
++        controller.change_with_held(0, &[desired(Medium::Audio)], &BTreeSet::new(),
++            until, CancellationToken::new(), Arc::new(g.clone())).await.unwrap();
++        controller.set_media_gate_with_held(controller.revision(),
++            &BTreeSet::from([desired(Medium::Audio).logical_id]), StreamGateAction::Mute,
++            until, Arc::new(g.clone())).await.unwrap();
++        drop(g);
++        let g = grant(s, &intent, &self.operator, Approval::Attach).await;
++        s.core.orch.attach_staged_device_replacement_with_held(self.pending(), Some(peer.clone()), &g).await.unwrap();
++        drop(g);
++        let plan = s.core.orch.plan_staged_device_replacement_activation(self.pending()).unwrap();
++        let g = grant(s, &intent, &self.operator, Approval::Audience(plan.clone())).await;
++        s.core.orch.activate_staged_device_replacement_with_held(self.pending(), plan, &g).await.unwrap();
++    }
++    async fn event(&self, s: &Scene, event: DeviceReplacementEndpointEvent) -> Observation {
++        let captured = s.core.orch.capture_device_replacement_event(self.pending(),
++            DeviceReplacementSignalSource::NativePeer(self.peer()), event.clone()).unwrap();
++        let g = grant(s, self.pending().intent(), &self.operator, Approval::Signal(event)).await;
++        captured.observe_with_held(&g).unwrap()
++    }
++    async fn prompt(&mut self) {
++        tokio::time::sleep(Duration::from_millis(35)).await;
++        let controller = self.controller.as_ref().unwrap();
++        let binding = controller.active_bindings().into_iter().find(|b| b.negotiated.requested.medium == Medium::Audio).unwrap();
++        controller.try_queue_local_audio(&desired(Medium::Audio).logical_id, MediaFrame {
++            stream_id: binding.transport_id, kind: StreamKind::Audio, payload: tone(),
++            timestamp_rtp: 160, source_clock: None, captured_at: Utc::now(), payload_type: Some(0),
++        }, LocalAudioPurpose::EndpointPreparation { operation_id: self.pending().intent().operation_id.clone() }).unwrap();
++        self.heard().await;
++    }
++    async fn heard(&mut self) {
++        tokio::time::timeout(Duration::from_secs(1), async {
++            if self.received.is_none() {
++                self.received = self.remote.as_ref().unwrap().wait_remote_track(Duration::from_secs(1)).await;
++            }
++            let track = self.received.as_ref().unwrap();
++            loop {
++                if let TrackRemoteEvent::OnRtpPacket(packet, _) = track.poll().await.unwrap() {
++                    assert_eq!(packet.header.payload_type, 0);
++                    let mut codec = rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++                    assert!(codec.decode(&packet.payload).unwrap().samples.iter().any(|v| v.unsigned_abs() > 500));
++                    break;
++                }
++            }
++        }).await.unwrap();
++    }
++    // Every original owner is joined before returning or rethrowing the work panic.
++    async fn close(&mut self, s: &Scene) -> bool {
++        self.pump_stop.cancel();
++        let pump = match self.pump.take() { Some(task) => task.await.map(|r| r.is_ok()).unwrap_or(false), None => true };
++        if let Some(p) = &self.pending { p.cancel(); }
++        let original = match (&self.pending, &self.binding) {
++            (Some(p), Some(binding)) => self.adapter.end_original_binding(p.intent().replacement.clone(), binding, EndReason::Normal).await.is_ok(),
++            _ => true,
++        };
++        let remote = match &self.remote { Some(peer) => peer.close().await.is_ok(), None => true };
++        self.owner.take();
++        let lifecycle = s.core.orch.drain_connection_lifecycle_tasks().await.is_ok();
++        pump && original && remote && lifecycle
++    }
++}
++
++pub(super) async fn confirmed_duplex() {
++    let s = Scene::new_replacement("quic").await;
++    let mut c = Browser::new();
++    let work = std::panic::AssertUnwindSafe(async {
++        c.setup(&s).await;
++        let revision = c.pending().intent().expected_revision;
++        let foreign = PeerAdmissionOwner::new(&c.operator,
++            s.grants.0.read().await.owners[&c.id()].member.identity().clone(),
++            c.pending().intent().device.clone(), CancellationToken::new(), PeerAdmissionLimits::default()).unwrap();
++        assert!(s.core.orch.capture_device_replacement_event(c.pending(),
++            DeviceReplacementSignalSource::NativePeer(foreign.peer()), DeviceReplacementEndpointEvent::Answered).is_err());
++        assert!(s.core.orch.plan_staged_device_replacement(c.pending(), None).is_err());
++        s.tone(0, 1).await; s.tone(1, 0).await;
++        c.prompt().await;
++        assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Answered).await, Observation::Answered);
++        assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Dtmf { digits: "9".into() }).await, Observation::IncorrectDigits);
++        assert!(s.core.orch.plan_staged_device_replacement(c.pending(), None).is_err());
++        assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Dtmf { digits: "5#".into() }).await, Observation::Confirmed);
++        assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Dtmf { digits: "5#".into() }).await, Observation::AlreadyConfirmed);
++        let late = s.core.orch.capture_device_replacement_event(c.pending(),
++            DeviceReplacementSignalSource::NativePeer(c.peer()), DeviceReplacementEndpointEvent::Answered).unwrap();
++        let plan = s.core.orch.plan_staged_device_replacement(c.pending(), None).unwrap();
++        let g = grant(&s, c.pending().intent(), &c.operator, Approval::Commit(plan.clone())).await;
++        let (outcome, _) = s.core.orch.commit_staged_device_replacement_with_held(plan, &g).await.unwrap();
++        drop(g);
++        assert_eq!(outcome.media.participant_replacement.as_ref().unwrap().revision, revision + 1);
++        assert_eq!(s.core.orch.participant_capacity(&s.core.session).unwrap(), (4, 0));
++        let g = grant(&s, c.pending().intent(), &c.operator, Approval::Signal(DeviceReplacementEndpointEvent::Answered)).await;
++        assert!(late.observe_with_held(&g).is_err()); drop(g);
++        s.live[0].wire.server.shutdown().await.unwrap();
++        core_fixture::until(|| s.live[0].peer.snapshot().connections == 0).await;
++        c.caller_cancel.cancel();
++        tokio::time::sleep(Duration::from_millis(30)).await;
++        assert!(c.adapter.is_connection_live(&c.id()));
++        assert!(!c.pending().cancel());
++        Scene::drain(&s.live[1].wire).await;
++        // Continuous actual peer RTP must now cross the committed native route.
++        decoded(&received(&s.live[1].wire).await);
++        // Drain actual remote RTP before requiring a new retained-to-RTC tone.
++        if let Some(track) = &c.received {
++            while tokio::time::timeout(Duration::from_millis(1), track.poll()).await.is_ok() {}
++        }
++        send(&s.live[1].wire, audio(binding(&s.live[1].leg, Medium::Audio).stream_local_id, 0));
++        c.heard().await;
++        assert_eq!(c.adapter.total_allocations(), 1);
++        s.core.orch.end_connection(c.id(), EndReason::Normal).await.unwrap();
++        assert!(!c.adapter.is_connection_live(&c.id()));
++    }).catch_unwind().await;
++    let cleanup = c.close(&s).await;
++    s.stop().await;
++    assert!(cleanup, "all original RTC owners naturally joined");
++    if let Err(error) = work { std::panic::resume_unwind(error); }
++}
++
++pub(super) async fn preserve_old() {
++    for mode in ["no-answer", "voicemail", "lost-adapter"] {
++        let s = Scene::new_replacement("quic").await;
++        let mut c = Browser::new();
++        let work = std::panic::AssertUnwindSafe(async {
++            c.setup(&s).await;
++            let revision = c.pending().intent().expected_revision;
++            c.prompt().await;
++            if mode == "voicemail" {
++                assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Answered).await, Observation::Answered);
++            }
++            assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::MediaObserved).await, Observation::MediaReady);
++            assert!(s.core.orch.plan_staged_device_replacement(c.pending(), None).is_err());
++            if mode == "lost-adapter" {
++                // Retire the SAME real physical owner without an endpoint event hint.
++                c.physical.cancel();
++            } else { assert!(c.pending().cancel()); }
++            core_fixture::until(|| s.core.orch.participant_capacity(&s.core.session).unwrap() == (4, 0)).await;
++            assert_eq!(s.core.orch.participant_revision(&s.core.session).unwrap(), revision);
++            assert!(c.pending().cancellation().is_cancelled());
++            core_fixture::until(|| !c.adapter.is_connection_live(&c.id()) && c.peer().snapshot().connections == 0).await;
++            tokio::time::timeout(Duration::from_secs(1), c.server.as_ref().unwrap().wait_failed()).await.unwrap();
++            s.tone(0, 1).await; s.tone(1, 0).await; s.tone(2, 3).await;
++        }).catch_unwind().await;
++        let cleanup = c.close(&s).await;
++        s.stop().await;
++        assert!(cleanup, "all original RTC owners naturally joined");
++        if let Err(error) = work { std::panic::resume_unwind(error); }
++    }
++}
