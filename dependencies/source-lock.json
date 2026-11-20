@@ -2731,6 +2731,36 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-native-composite-initial-picture-delegation.patch",
       "sha256": "1ac0c2fada87b3c7fc792c4efb5636b3a319cd20e744d01dbdcb7dcc2d2b2ba8"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-owned-replacement-duplex-readiness-fixture-barrier.patch",
+      "sha256": "d3a47856c179769fddfd7a0ec2911860b966cf76ccd3bdc50fbc0139a4f97649"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-catalog-original-decision-test-diagnostics.patch",
+      "sha256": "24b7cf3ad8f1e004ea6111604154eccb03462049eb970365e7af09efb8bea049"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-catalog-original-window-witness-fixture.patch",
+      "sha256": "2eabdb3001eff65d01e19c931da329205eca3e9bbc64dd780a5212d35314d0c2"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-scene-tick-skip-busy-member-metadata.patch",
+      "sha256": "0d612ab6c7b98b770cf7534fa7690c22954d54a60a626743568f52de6d074c70"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-guarded-audio-model-metadata-nonblocking-tick.patch",
+      "sha256": "bbe31530bb5ac05f7bbbc6c5d771f04110d003dae56f4a2b3498f9e9c75a1cb1"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-pending-visual-original-egress-cache-and-metadata-busy.patch",
+      "sha256": "d3599978d59dd6be11d52126944ee83e05734482c8bd5bde89ee2ce97443ef0a"
     }
   ]
 }

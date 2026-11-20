@@ -1,0 +1,229 @@
+{
+  "format": "connect/gate6-checkpoint138-progress/1",
+  "status": "ACTUAL_G623_6PASS_1FAIL_CURRENT_SOURCE512_PENDING_PRODUCTION_WAIT_BATCH",
+  "recorded_at": "2026-11-20T02:58:34.371424+00:00",
+  "tracker_revision": 138,
+  "summary": "G623 completed all seven focused tests on prepared source512: six passed and one failed; independent actual audit accepted complete failed custody. All three builds, the default four-library shipping check and both inventories passed. Three Core duplex controls, the Core three-lock diagnostic control, the original RTC no-answer/voicemail/silent-loss control (all three modes), and the original catalog control (both transports and its full counter/revision/current-policy/camera/screen cleanup tail) passed. The new Native catalog control failed in its first QUIC release variant with24 MembersBusy observations; the other three variants were unreached. G620 remains failed5/7, including its earlier catalog failure whose later counter/media assertions were unreached. G618 remains complete failed3,280/3,282; its two original failures now have scoped component passes, not matrix-leaf closure. G615 seven builds/eleven inventories (runtime0) and G617 shared379 retain their source509 scopes. Normal512 preparation passed with one upstream fixture change, old511 tree preserved and4,268 unchanged file mtimes restored; its four pure exception controls are Root-recorded passes with the audit evidence limit retained. The tested working source is ca7d2bb9,6,493files on baseacb. Source analysis found real Members-to-controller metadata waits: public readers need not hold inflight. Epoch scene-tick and Batch audio nonblocking proposals are source-reviewed but not registered, built or runtime-verified; Primary pending-video/Data retention work remains under revision to preserve valid fresh recipients and reliable FIFO. No production causal repair pass is claimed. Mobile216 readback is verified with419 unrelated paragraphs preserved. Next: finish and review the complete wait/retention batch, register/prepare it normally and run its actual causal controls before committing and repeating the complete current-source regression and OriginalV8 on one seal. Current shared379, strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain separate pending scopes. Matrix stays v218:1/32 cells and399/432 checks; historical verdicts, stable IDs, owners and failure maps remain unchanged. Not ready for32; G6-054 stays parked and execution remains local Mac/native ARM.",
+  "tested_source": {
+    "base_revision": "acb2205a9990e9eb99c2ed2598a4868af220dd09",
+    "working_source_sha256": "ca7d2bb99cf9aee80da5bca70b0ebf61ea71f880cf62ba4fe20de324e953ccea",
+    "files": 6493,
+    "source_lock_sha256": "ced57d7369fd260f7d83d8929b2ae4e76d76c01c25101caba6175d282e29492f",
+    "prepared": {
+      "rvoip": "f659bf56e51c4358f991491e4ed8e7f2847d7f93ca6e0e2d39b861c8597b9d4e",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "generation": 512,
+    "final_verified_batch_commit": "TBD_ROOT_AFTER_CAUSAL_BATCH_VERIFICATION"
+  },
+  "actual_G623": {
+    "completed": 7,
+    "passed": 6,
+    "failed": 1,
+    "all3_builds_passed": true,
+    "default_shipping_libraries": 4,
+    "inventories_passed": 2,
+    "original_RTC_modes_passed": 3,
+    "original_catalog_transports_full_tail_passed": 2,
+    "Native_new_control_variants": {
+      "firstQUICrelease": "FAILED;24MembersBusy",
+      "other3": "UNREACHED"
+    },
+    "cases": [
+      {
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::replacement_duplex_barrier_controls::managed_replacement_duplex_metadata_waits_for_original_guarded_write_completion",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::replacement_duplex_barrier_controls::managed_replacement_duplex_metadata_requires_actual_post_activation_ingress",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::replacement_duplex_barrier_controls::managed_replacement_duplex_metadata_refuses_foreign_stale_and_cancelled_owners_without_signal_effects",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::media_scene::subscriptions::catalog_diagnostics_report_original_members_target_source_decisions_without_effects",
+        "status": "PASSED"
+      },
+      {
+        "selector": "peer_native::canonical_media::native_offers::future_subscriptions::actual_catalog_observer_distinguishes_released_source_lock_from_full_window_exclusion",
+        "status": "FAILED"
+      },
+      {
+        "selector": "peer_native::canonical_media::guarded_mixer::replacement::adapter::controlled_browser_and_telephone_no_answer_voicemail_and_silent_resource_loss_preserve_old",
+        "status": "PASSED"
+      },
+      {
+        "selector": "peer_native::canonical_media::native_offers::future_subscriptions::actual_catalog_contention_rereads_unchanged_sources_without_a_new_reconciliation",
+        "status": "PASSED"
+      }
+    ],
+    "source_unchanged": true,
+    "qualification": false
+  },
+  "normal512_actual": {
+    "commands_natural_passed": 2,
+    "old511_complete_tree_entries_preserved": 5156,
+    "equal_file_mtimes_restored": 4268,
+    "changed_existing_upstream": 1,
+    "added_upstream": 0,
+    "pure_fake_process_controls": {
+      "Root_recorded_passed": 4,
+      "Root_recorded_failed": 0,
+      "evidence_limit": "Tool transcript chunk43ce48 identified; no separate rawlog exists for independent TAP parsing. Audit independently verifies exact helper/control sources, not a fabricated logfile."
+    }
+  },
+  "G621_pure4_scope": "Separate original-Popen focused-runner fake controls; not counted as focused-runtime functions or added to any qualification total.",
+  "P7.2_frontiers": {
+    "duplex": {
+      "owner_agent": "/root/batch_build_review",
+      "status": "scoped-component-verified-not-matrix-qualified",
+      "actual_scope": "G620 andG623 threeCore controls and originalRTC three modes passed",
+      "historical_G618_exact_false_leaf": "UNOBSERVED; failedrecordretained"
+    },
+    "catalog_original_fixture": {
+      "owner_agent": "/root/epoch_cause",
+      "status": "G623-original-main-component-pass; newNativecontrol-still-failed",
+      "actual_scope": "Both main transports reach full strict tail; newNativefirstQUICrelease has24MembersBusy; other3variantsUNREACHED",
+      "G620_later_counter_media_assertions": "UNREACHED; not regraded"
+    },
+    "scene_tick_wait": {
+      "owner_agent": "/root/epoch_cause",
+      "status": "source-reviewed-proposed-not-runtime-verified",
+      "source_fact": "Tick owns Members then waits on Controller.State although legal public readers need no inflight"
+    },
+    "audio_metadata_waits": {
+      "owner_agent": "/root/batch_build_review",
+      "status": "source-reviewed-proposed-not-runtime-verified",
+      "source_fact": "Audio refresh holds audio members while waiting on State; tick-time registration reacquires Controller/PortState under scene Members",
+      "new_control_functions": 4
+    },
+    "pending_realtime_and_Data_retention": {
+      "owner_agent": "/root/independent_batch_review",
+      "status": "revision-pending-not-accepted-or-runtime-verified",
+      "source_requirements": "Do not lose fresh-after-cutover recipients while cache stale; preserve exact original generation and reliable DataFIFO across metadata Busy",
+      "original_candidate416b": "unaccepted; superseded successor pending"
+    },
+    "coordinator": "/root",
+    "independent_reviewer": "/root/independent_batch_review",
+    "cross_author_source_review": "Root and nonauthor peers review each author scope; no selfapproval",
+    "mapped_matrix_leaves_closed": false
+  },
+  "proofs": {
+    "G618_result": {
+      "path": ".local/gate-6/g618-current-full3282-root/component-result.json",
+      "sha256": "5795ed4b4ca635cabdc63ec4f6b87dba677f02439309fc8cd246dfcfca846867"
+    },
+    "G618_audit": {
+      "path": ".local/gate-6/g618-actual-full3282-independent-audit/receipt.json",
+      "sha256": "4a0d50b21ac50d370936fab803c51b639355ae4186525ebca3ce7570b193d37a"
+    },
+    "G615_result": {
+      "path": ".local/gate-6/g615-original469-seven-build-inventory-root/result.json",
+      "sha256": "4eb5b9c9e32db5bd00f8660c0d782220eb88c05391e0dabcac0e1c5e5af359d2"
+    },
+    "G615_audit": {
+      "path": ".local/gate-6/g615-actual-original-seven-eleven-and-g617-start-independent-review/receipt.json",
+      "sha256": "f27c93dad9fe7b66cdbb0905248a0434b8b28c77448eb8585e07700aa0256852"
+    },
+    "G617_result": {
+      "path": ".local/gate-6/g617-current-shared379-root/result.json",
+      "sha256": "3c9772ada92bd6dbb4c2175b4c451c2d29fe52c321aef70c002c70ed454f9c10"
+    },
+    "G617_audit": {
+      "path": ".local/gate-6/g617-actual-current379-independent-audit/receipt.json",
+      "sha256": "cb7fd484801650e1ffdf9628b1ca02cda1dfdd711d9c787e7279f9405de1c1ac"
+    },
+    "G620_result": {
+      "path": ".local/gate-6/g620-source511-focused-seven-root/result.json",
+      "sha256": "ea9eae86b6234055acbed44c456a28efb168f9bff51a8940805471d56b8708a8"
+    },
+    "G620_audit": {
+      "path": ".local/gate-6/g620-actual-focused-seven-independent-audit/receipt.json",
+      "sha256": "0fb22fab97961345432b2aa84711eb2e9ac7d0d312d63ff43787d9c82961aab8"
+    },
+    "normal512_receipt": {
+      "path": ".local/gate-6/g622-normal512-preparation-root/normal512-runtime/receipt.json",
+      "sha256": "7b23125c77411fb74a2b251d387bb72385e05c96fabba387a2e8796f8fa3a9b0"
+    },
+    "normal512_join": {
+      "path": ".local/gate-6/g622-normal512-preparation-root/root-original-join.json",
+      "sha256": "4b6d029e95ec5b6394444e76fef566a87282e2b667c8570c267285510efd5581"
+    },
+    "normal512_audit": {
+      "path": ".local/gate-6/g622-actual-normal512-independent-audit/receipt.json",
+      "sha256": "5ed9ee69620091b0dd5ba40d9b65913e9ba25c04e48d7c7a069fe17bdb89300a"
+    },
+    "normal512_source": {
+      "path": ".local/gate-6/g622-normal512-preparation-root/working-source512.json",
+      "sha256": "ca7d2bb99cf9aee80da5bca70b0ebf61ea71f880cf62ba4fe20de324e953ccea"
+    },
+    "normal512_pure4": {
+      "path": ".local/gate-6/g622-normal512-preparation-root/actual-pure-controls.json",
+      "sha256": "5baf1a5d3473c3df348361959c27e92a2c342f49920772baeda728ecd4519953"
+    },
+    "G621_pure4": {
+      "path": ".local/gate-6/g621-focused-runner-exception-controls-root/result.json",
+      "sha256": "8a0d82bf87cf8fd00b1b23bd95ac7f6c5655a0f8dd94b8777af0d78345f55354"
+    },
+    "G623_result": {
+      "path": ".local/gate-6/g623-source512-focused-seven-root/result.json",
+      "sha256": "bf06dd60da885d4c0684bd72d62eb1ae64b639d8fbdff9d086d8821d7dc379ad"
+    },
+    "G623_join": {
+      "path": ".local/gate-6/g623-source512-focused-seven-root/root-original-join.json",
+      "sha256": "93691da2a648ac64821d613150c36984fe227db4ff790cd7ff39d0a55833b422"
+    },
+    "G623_audit": {
+      "path": ".local/gate-6/g623-actual-focused-seven-independent-audit/receipt.json",
+      "sha256": "1fde10ac17106b28484324f6bbc4ff799a106e24db6d5c87256ecf2a514d1189"
+    },
+    "mobile216": {
+      "path": ".local/gate-6/mobile216-media-wait-batch-progress-root/readback.json",
+      "sha256": "cadbde7afee2342a1d367888347385023a1e819850eb974fe7f1196a14579326"
+    },
+    "scene_candidate": {
+      "path": ".local/gate-6/g623-scene-tick-busy-member-metadata-source-candidate/manifest.json",
+      "sha256": "d4801d06e77053622c49982daee4031920dccf476d72e86d61de7626403cc2e1"
+    },
+    "scene_batch_review": {
+      "path": ".local/gate-6/g623-scene-tick-independent-batch-source-review/receipt.json",
+      "sha256": "05cd994eace9ad08ec5f9bbbf10b20c294b817eb9a0371eb0068ba3ec6e9a5a3"
+    },
+    "audio_candidate": {
+      "path": ".local/gate-6/g623-audio-model-state-nonblocking-source-candidate/manifest.json",
+      "sha256": "2bbf7ee482f754afdc90839f4993414c1d539871777593a3df2c8f87147803f0"
+    },
+    "audio_Root_review": {
+      "path": ".local/gate-6/g624-audio-nonblocking-independent-root-source-review/receipt.json",
+      "sha256": "1891101a0c13789fdefc3d8e8823c87676fc3a70e6efe3160e93a0d2806efb18"
+    },
+    "audio_independent_review": {
+      "path": ".local/gate-6/g623-audio-model-state-independent-source-review/receipt.json",
+      "sha256": "49563939440ee1cb1f115dfc121e19b71d617b61f1392488c309b9203fdc0e57"
+    }
+  },
+  "mobile": {
+    "revision": 216,
+    "verified_scoped_update": true,
+    "unrelated_paragraphs_preserved": 419,
+    "raw_paragraph_content_not_copied": true
+  },
+  "not_observed": {
+    "combined_source515_registration_preparation": "TBD",
+    "production_tick_audio_pending_causal_controls": "TBD",
+    "final_batch_source_commit": "TBD",
+    "current_shared379_full_OriginalV8_Firefox_original900_ARM_release_preflight": "PENDING"
+  },
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "last_matrix": {
+    "version": 218,
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "historical_failed_G618_and_G620_preserved": true
+}

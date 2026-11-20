@@ -1,0 +1,317 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -2,11 +2,24 @@
+ use super::*;
+ use rvoip_uctp::v2::native_subscriptions::*;
+ #[cfg(feature = "test-support")]
+-#[derive(Debug)]
+ enum CatalogObservedOutcome {
+-    Planned { same_catalog: bool },
++    Planned {
++        same_catalog: bool,
++        // Exact read-only metadata from the ACTUAL returned background plan.
++        selection: rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan,
++    },
+     NoPlan,
+     Refused(NativeOfferError),
++}
++#[cfg(feature = "test-support")]
++impl std::fmt::Debug for CatalogObservedOutcome {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        match self {
++            Self::Planned { same_catalog, .. } => f.debug_struct("Planned").field("same_catalog", same_catalog).finish(),
++            Self::NoPlan => f.write_str("NoPlan"),
++            Self::Refused(error) => f.debug_tuple("Refused").field(error).finish(),
++        }
++    }
+ }
+ #[cfg(feature = "test-support")]
+ #[derive(Debug)]
+@@ -36,6 +49,87 @@
+     }).is_ok());
+     rx
+ }
++
++// A direct fixture snapshot may encounter the same explicit metadata exclusion
++// as the ordinary poller. Retry ONLY that pre-effect decision, with no reader
++// held and no renewed deadline. Callers still observe their WHOLE old window.
++#[cfg(feature = "test-support")]
++async fn catalog_snapshot_before(
++    s: &Scene,
++    until: Instant,
++) -> Result<Option<rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan>, rvoip_core::orchestrator::participant_control::ParticipantControlError> {
++    use rvoip_core::orchestrator::participant_control::ParticipantControlError;
++    use rvoip_core::staged_streams::subscription_plan::{CatalogReadDiagnosticsForTest, MediaSelectionChange};
++    loop {
++        if Instant::now() >= until { return Ok(None); }
++        let mut diagnostics = CatalogReadDiagnosticsForTest::default();
++        match s.native.core.orch.plan_staged_media_selection_diagnosed_for_test(
++            &s.native.core.session, &s.second_id, 3, &MediaSelectionChange::Reconcile, &mut diagnostics,
++        ) {
++            Ok(plan) => return Ok((Instant::now() <= until).then_some(plan)),
++            Err(ParticipantControlError::Media(StreamControlError::Backpressure)) if diagnostics.busy_leaf.is_some() => {
++                tokio::task::yield_now().await;
++            }
++            Err(error) => return Err(error),
++        }
++    }
++}
++
++#[cfg(feature = "test-support")]
++fn drain_catalog_rows(rx: &mut tokio::sync::mpsc::Receiver<CatalogObserved>) -> (Vec<CatalogObserved>, bool) {
++    let rows = std::iter::from_fn(|| rx.try_recv().ok()).take(128).collect();
++    let overflow = rx.try_recv().is_ok();
++    (rows, overflow)
++}
++
++// Same exact source/selector snapshots as the old final direct read, obtained
++// by the actual ordinary runtime instead. A late/straddling read gets NO credit.
++#[cfg(feature = "test-support")]
++fn catalog_window_snapshot(
++    rows: &[CatalogObserved],
++    before: &rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan,
++    start: Instant,
++    until: Instant,
++) -> Result<Option<rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan>, &'static str> {
++    let mut recovered = None;
++    for row in rows.iter().filter(|row| row.started >= start && row.at <= until) {
++        if row.at < row.started { return Err("invalid original plan time bracket"); }
++        match &row.outcome {
++            CatalogObservedOutcome::Planned { same_catalog, selection } => {
++                if !*same_catalog || !before.same_catalog(selection) { return Err("actual background catalog changed"); }
++                recovered = Some(selection.clone());
++            }
++            CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)) if row.leaf.is_some() => {},
++            _ => return Err("original background result was not an unchanged plan or explicit catalog metadata Busy"),
++        }
++    }
++    Ok(recovered)
++}
++
++#[cfg(feature = "test-support")]
++async fn observed_catalog_baseline(
++    s: &Scene,
++    policy: &Policy,
++    kind: &str,
++    phase: &str,
++) -> (rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan, tokio::sync::mpsc::Receiver<CatalogObserved>) {
++    let until = Instant::now() + Duration::from_millis(650);
++    let before = catalog_snapshot_before(s, until).await.unwrap().expect("original650ms baseline needs an actual metadata snapshot");
++    let mut observations = arm_catalog_probe(policy, &s.second_id, &before);
++    let armed = Instant::now();
++    // Existing Core selection wake hint: unlike policy.changed, its runtime
++    // branch does NOT clear last or request another policy reconciliation.
++    s.native.core.orch.staged_media_selection_changes(&s.native.core.session).unwrap().notify_waiters();
++    tokio::time::sleep_until(until).await;
++    let (rows, overflow) = drain_catalog_rows(&mut observations);
++    let dropped = policy.catalog_probe.get().unwrap().dropped.load(Ordering::Relaxed);
++    eprintln!("catalog baseline kind={kind} phase={phase} armed={armed:?} until={until:?} dropped={dropped} overflow={overflow} rows={rows:?}");
++    assert!(dropped == 0 && !overflow, "baseline observations must be complete");
++    let actual = catalog_window_snapshot(&rows, &before, armed, until).unwrap().expect("original650ms baseline requires a real post-arm ordinary background plan");
++    assert!(before.same_catalog(&actual));
++    (before, observations)
++}
++
+ struct FreshProof {
+     domain: Arc<Grants>,
+     wire_domain: Arc<WirePolicy>,
+@@ -255,7 +349,10 @@
+             at: Instant::now(),
+             leaf: diagnostics.busy_leaf.clone(),
+             outcome: match result {
+-                Ok(Some(plan)) => CatalogObservedOutcome::Planned { same_catalog: probe.before.same_catalog(plan.selection()) },
++                Ok(Some(plan)) => CatalogObservedOutcome::Planned {
++                    same_catalog: probe.before.same_catalog(plan.selection()),
++                    selection: plan.selection().clone(),
++                },
+                 Ok(None) => CatalogObservedOutcome::NoPlan,
+                 Err(error) => CatalogObservedOutcome::Refused(*error),
+             },
+@@ -861,18 +958,15 @@
+             subscriptions::video_sequence(source_video, 1, 9001),
+         );
+         assert_eq!(received(&other).await.rtp.packet().header.timestamp, 9001);
+-        tokio::time::sleep(Duration::from_millis(650)).await;
+-        let before = s
+-            .native
+-            .core
+-            .orch
+-            .plan_staged_media_selection(
+-                &s.native.core.session,
+-                &s.second_id,
+-                3,
+-                &MediaSelectionChange::Reconcile,
+-            )
+-            .unwrap();
++        #[cfg(feature = "test-support")]
++        let (before, mut catalog_observations) = observed_catalog_baseline(&s, &policy, kind, "original-main").await;
++        #[cfg(not(feature = "test-support"))]
++        let before = {
++            tokio::time::sleep(Duration::from_millis(650)).await;
++            s.native.core.orch.plan_staged_media_selection(
++                &s.native.core.session, &s.second_id, 3, &MediaSelectionChange::Reconcile,
++            ).unwrap()
++        };
+         let attempts = policy.attempts.load(Ordering::Acquire);
+         let observations = policy.operations.lock().unwrap().len();
+         let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
+@@ -883,23 +977,26 @@
+             entered: entered_tx,
+             release: Mutex::new(release_rx),
+         }));
++        // One original3s callback-entry/availability cap, never renewed.
++        let callback_until = Instant::now() + Duration::from_secs(3);
+         // External packet policy waits with the model metadata detached.
+         // First prove the blocked policy callback leaves the catalog readable.
+         send(
+             &s.wire,
+             subscriptions::video_sequence(source_video, 2, 9002),
+         );
+-        tokio::task::spawn_blocking(move || entered_rx.recv_timeout(Duration::from_secs(3)))
++        tokio::task::spawn_blocking(move || entered_rx.recv_timeout(callback_until.saturating_duration_since(Instant::now())))
+             .await
+             .unwrap()
+             .unwrap();
++        #[cfg(feature = "test-support")]
++        let available = catalog_snapshot_before(&s, callback_until).await.unwrap().expect("blocked external policy must not retain Controller.State through the original3s cap");
++        #[cfg(not(feature = "test-support"))]
+         let available=s.native.core.orch.plan_staged_media_selection(
+             &s.native.core.session,&s.second_id,3,&MediaSelectionChange::Reconcile,
+         ).expect("blocked external policy must not retain Controller.State");
+         assert!(before.same_catalog(&available),"blocked policy leaves the SAME authoritative catalog available");
+         drop(available);
+-        #[cfg(feature = "test-support")]
+-        let mut catalog_observations = arm_catalog_probe(&policy, &s.second_id, &before);
+         let source=s.controller();let orch=s.native.core.orch.clone();
+         let session=s.native.core.session.clone();let target=s.second_id.clone();
+         // One joined bounded owner holds the ACTUAL source model mutex, so
+@@ -913,19 +1010,19 @@
+         release_tx.send(()).unwrap();
+         #[cfg(feature = "test-support")]
+         let original_recovery_start = Instant::now();
++        #[cfg(feature = "test-support")]
++        let original_recovery_until = original_recovery_start + Duration::from_millis(650);
+         assert!(matches!(busy,Err(ParticipantControlError::Media(StreamControlError::Backpressure))),
+             "actual source Controller.State exclusion must refuse exact Backpressure; actual={busy:?}");
+         tokio::time::sleep(Duration::from_millis(650)).await;
+         #[cfg(feature = "test-support")]
+         let after = {
+-            let mut diagnostics = rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest::default();
+-            let original_result = s.native.core.orch.plan_staged_media_selection_diagnosed_for_test(
+-                &s.native.core.session, &s.second_id, 3, &MediaSelectionChange::Reconcile, &mut diagnostics,
+-            );
+-            let rows: Vec<_> = std::iter::from_fn(|| catalog_observations.try_recv().ok()).collect();
++            let (rows, overflow) = drain_catalog_rows(&mut catalog_observations);
+             let dropped = policy.catalog_probe.get().unwrap().dropped.load(Ordering::Relaxed);
+-            eprintln!("catalog original-window kind={kind} recovery_start={original_recovery_start:?} recovery_end={:?} background={rows:?} dropped={dropped}", Instant::now());
+-            original_result.unwrap_or_else(|error| panic!("original one-shot catalog kind={kind} error={error:?} leaf={:?}; background={rows:?}; dropped={dropped}", diagnostics.busy_leaf))
++            eprintln!("catalog original-window kind={kind} recovery_start={original_recovery_start:?} recovery_until={original_recovery_until:?} observed_end={:?} background={rows:?} dropped={dropped} overflow={overflow}", Instant::now());
++            assert!(dropped == 0 && !overflow, "original recovery observations must be complete");
++            catalog_window_snapshot(&rows, &before, original_recovery_start, original_recovery_until)
++                .unwrap().expect("original650ms recovery requires an actual unchanged ordinary background plan; no late, cached, straddling or all-Busy credit")
+         };
+         #[cfg(not(feature = "test-support"))]
+         let after = s
+@@ -1085,17 +1182,22 @@
+             other.send(s.f.sign(select(receiver.revision()))).await;
+             assert_eq!(other.read().await.kind(), "ack");
+             let (_, callback) = s.prepared(add_video(&s, 1, false)).await;
++            let source_video = subscriptions::stream_handle(&callback, "future_camera");
+             s.confirm(&callback).await;
+             s.wait(3).await;
+             let callback = other.read().await;
++            let target_video = subscriptions::stream_handle(&callback, "future_camera");
+             other.send(s.f.sign(s.confirmation(&callback))).await;
+             core_fixture::until(|| receiver.revision() == 3).await;
+             core_fixture::until(|| policy.operations.lock().unwrap().iter().any(|(_, v)| matches!(v, Ok(3)))).await;
+-            tokio::time::sleep(Duration::from_millis(650)).await;
+-            let before = s.native.core.orch.plan_staged_media_selection(&s.native.core.session, &s.second_id, 3, &MediaSelectionChange::Reconcile).unwrap();
++            send(&s.wire, subscriptions::video_sequence(source_video, 1, 9001));
++            let actual_first = received(&other).await;
++            assert_eq!(actual_first.rtp.packet().header.timestamp, 9001);
++            assert_eq!(actual_first.stream_local_id, target_video);
++            let (before, mut observations) = observed_catalog_baseline(&s, &policy, kind, "causal-control").await;
+             let attempts = policy.attempts.load(Ordering::Acquire);
+             let operations = policy.operations.lock().unwrap().len();
+-            let mut observations = arm_catalog_probe(&policy, &s.second_id, &before);
++            let changed = s.native.core.orch.staged_media_selection_changes(&s.native.core.session).unwrap();
+             let source = s.controller();
+             let source_id = s.id.clone();
+             let (held_tx, held_rx) = tokio::sync::oneshot::channel();
+@@ -1111,36 +1213,45 @@
+             let direct = entered.then(|| s.native.core.orch.plan_staged_media_selection_diagnosed_for_test(
+                 &s.native.core.session, &s.second_id, 3, &MediaSelectionChange::Reconcile, &mut direct_diagnostics,
+             ).map(drop));
+-            let mut rows = Vec::new();
+-            let mut observation_overflow = false;
+-            let mut release_at = None;
+-            // Keep observing to the original endpoint even after recovery.
+-            while Instant::now() < until {
+-                let row = match tokio::time::timeout_at(until, observations.recv()).await {
+-                    Ok(Some(row)) => row,
+-                    _ => break,
+-                };
+-                let source_busy = row.started >= held_at && row.at <= until
+-                    && row.leaf == Some(CatalogBusyLeafForTest::SourceState(source_id.clone()))
+-                    && matches!(row.outcome, CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)));
+-                if rows.len() < 128 { rows.push(row); } else { observation_overflow = true; }
+-                if release_within_window && source_busy && release_at.is_none() && Instant::now() < until {
+-                    release_at = Some(Instant::now());
+-                    let _ = release_tx.send(());
++            // Wake the ACTUAL existing runtime after acquisition; this is the
++            // Core metadata hint branch, not policy.changed's last reset.
++            changed.notify_waiters();
++            let observe = async {
++                let mut rows = Vec::new();
++                let mut observation_overflow = false;
++                let mut release_at = None;
++                // Keep observing to the original endpoint even after recovery.
++                while Instant::now() < until {
++                    let row = match tokio::time::timeout_at(until, observations.recv()).await {
++                        Ok(Some(row)) => row,
++                        _ => break,
++                    };
++                    let source_busy = row.started >= held_at && row.at <= until
++                        && row.leaf == Some(CatalogBusyLeafForTest::SourceState(source_id.clone()))
++                        && matches!(row.outcome, CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)));
++                    if rows.len() < 128 { rows.push(row); } else { observation_overflow = true; }
++                    if release_within_window && source_busy && release_at.is_none() && Instant::now() < until {
++                        release_at = Some(Instant::now());
++                        let _ = release_tx.send(());
++                    }
+                 }
+-            }
++                (rows, observation_overflow, release_at)
++            };
++            // Same getter as paused-policy availability. A real source lock
++            // retained through the full window MUST prevent its success too.
++            let (available, (rows, observation_overflow, release_at)) = tokio::join!(catalog_snapshot_before(&s, until), observe);
+             tokio::time::sleep_until(until).await;
+             let released_by_signal = owner.await.unwrap();
+             drop(release_tx);
++            let available = available.unwrap();
+             let saw_source_busy = rows.iter().any(|r| r.started >= held_at && r.at <= until
+                 && r.leaf == Some(CatalogBusyLeafForTest::SourceState(source_id.clone()))
+                 && matches!(r.outcome, CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable))));
+-            let recovered = rows.iter().any(|r| r.at <= until
+-                && release_at.is_some_and(|at| r.started >= at)
+-                && matches!(r.outcome, CatalogObservedOutcome::Planned { same_catalog: true }));
++            let recovered_snapshot = catalog_window_snapshot(&rows, &before, release_at.unwrap_or(held_at), until).unwrap();
++            let recovered = recovered_snapshot.is_some();
+             let successful_during_full_exclusion = !release_within_window && rows.iter().any(|r| r.started >= held_at && r.at <= until
+                 && matches!(r.outcome, CatalogObservedOutcome::Planned { .. } | CatalogObservedOutcome::NoPlan));
+-            let changed_catalog = rows.iter().any(|r| matches!(r.outcome, CatalogObservedOutcome::Planned { same_catalog: false }));
++            let changed_catalog = rows.iter().any(|r| matches!(r.outcome, CatalogObservedOutcome::Planned { same_catalog: false, .. }));
+             let dropped = policy.catalog_probe.get().unwrap().dropped.load(Ordering::Relaxed);
+             let unchanged = policy.attempts.load(Ordering::Acquire) == attempts
+                 && policy.operations.lock().unwrap().len() == operations && receiver.revision() == 3;
+@@ -1153,6 +1264,9 @@
+             assert!(saw_source_busy, "actual ordinary poller never observed held source kind={kind} rows={rows:?}");
+             assert_eq!(released_by_signal, release_within_window, "actual owner release route kind={kind}");
+             assert_eq!(recovered, release_within_window, "no-success is never accepted as recovery kind={kind} rows={rows:?}");
++            assert_eq!(available.is_some(), release_within_window, "same bounded availability getter must fail while the actual source stays held kind={kind}");
++            if let Some(available) = available { assert!(before.same_catalog(&available)); }
++            if let Some(actual) = recovered_snapshot { assert!(before.same_catalog(&actual)); }
+             assert!(!successful_during_full_exclusion, "a still-held source can never produce an in-window successful catalog kind={kind} rows={rows:?}");
+             assert!(!changed_catalog && unchanged && dropped == 0 && !observation_overflow, "full-window catalog/counters/observer capacity kind={kind} rows={rows:?} dropped={dropped}");
+         }

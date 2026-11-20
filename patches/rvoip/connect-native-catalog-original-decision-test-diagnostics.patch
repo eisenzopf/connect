@@ -1,0 +1,459 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -645,6 +645,31 @@
+             }
+         }
+         Ok(scene.plan_selection(connection, expected, input)?)
++    }
++    /// Same read and current-state checks, with caller-owned failure diagnostics.
++    #[cfg(feature = "test-support")]
++    pub fn plan_staged_media_selection_diagnosed_for_test(
++        &self,
++        session: &SessionId,
++        connection: &ConnectionId,
++        expected: u64,
++        input: &crate::staged_streams::subscription_plan::MediaSelectionChange,
++        diagnostics: &mut crate::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
++    ) -> ControlResult<crate::staged_streams::subscription_plan::MediaSubscriptionPlan> {
++        *diagnostics = Default::default();
++        let runtime = self.participant_runtime(session)?;
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        {
++            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.ended || !state.routes.contains_key(connection) {
++                return Err(ParticipantTransitionError::Inactive.into());
++            }
++        }
++        Ok(scene.plan_selection_diagnosed_for_test(connection, expected, input, diagnostics)?)
+     }
+     /// Read-only validation of opaque planned source bindings. The callbacks
+     /// return no IO grant; actual subscription commit still reauthorizes.
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -4,6 +4,20 @@
+     media_subscriptions::*, selection_intent::*, *,
+ };
+ use crate::ids::ParticipantId;
++/// Caller-owned observations of the ORIGINAL nonblocking metadata decision.
++/// Absent from production builds; recording never retries or acquires a lock.
++#[cfg(feature = "test-support")]
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum CatalogBusyLeafForTest {
++    Members,
++    TargetState,
++    SourceState(ConnectionId),
++}
++#[cfg(feature = "test-support")]
++#[derive(Clone, Debug, Default)]
++pub struct CatalogReadDiagnosticsForTest {
++    pub busy_leaf: Option<CatalogBusyLeafForTest>,
++}
+ #[derive(Clone, PartialEq, Eq)]
+ pub enum MediaSelection {
+     Stream(StreamId),
+@@ -172,7 +186,9 @@
+         expected: u64,
+         input: &MediaSelectionChange,
+     ) -> ControlResult<MediaSubscriptionPlan> {
+-        self.plan_selection_inner(target_id, expected, input, false)
++        self.plan_selection_inner(target_id, expected, input, false,
++            #[cfg(feature = "test-support")] None,
++        )
+     }
+     pub(crate) fn plan_selection_existing_ports(
+         &self,
+@@ -180,7 +196,20 @@
+         expected: u64,
+         input: &MediaSelectionChange,
+     ) -> ControlResult<MediaSubscriptionPlan> {
+-        self.plan_selection_inner(target_id, expected, input, true)
++        self.plan_selection_inner(target_id, expected, input, true,
++            #[cfg(feature = "test-support")] None,
++        )
++    }
++    #[cfg(feature = "test-support")]
++    pub(crate) fn plan_selection_diagnosed_for_test(
++        &self,
++        target_id: &ConnectionId,
++        expected: u64,
++        input: &MediaSelectionChange,
++        diagnostics: &mut CatalogReadDiagnosticsForTest,
++    ) -> ControlResult<MediaSubscriptionPlan> {
++        *diagnostics = Default::default();
++        self.plan_selection_inner(target_id, expected, input, false, Some(diagnostics))
+     }
+     fn plan_selection_inner(
+         &self,
+@@ -188,9 +217,16 @@
+         expected: u64,
+         input: &MediaSelectionChange,
+         existing_ports: bool,
++        #[cfg(feature = "test-support")] mut diagnostics: Option<&mut CatalogReadDiagnosticsForTest>,
+     ) -> ControlResult<MediaSubscriptionPlan> {
+         let members = self.members.try_lock().map_err(|error| match error {
+-            std::sync::TryLockError::WouldBlock => StreamControlError::Backpressure,
++            std::sync::TryLockError::WouldBlock => {
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostics) = diagnostics.as_deref_mut() {
++                    diagnostics.busy_leaf = Some(CatalogBusyLeafForTest::Members);
++                }
++                StreamControlError::Backpressure
++            }
+             std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
+         })?;
+         let target = members.get(target_id).ok_or_else(|| {
+@@ -202,7 +238,13 @@
+             .state
+             .try_lock()
+             .map_err(|error| match error {
+-                std::sync::TryLockError::WouldBlock => StreamControlError::Backpressure,
++                std::sync::TryLockError::WouldBlock => {
++                    #[cfg(feature = "test-support")]
++                    if let Some(diagnostics) = diagnostics.as_deref_mut() {
++                        diagnostics.busy_leaf = Some(CatalogBusyLeafForTest::TargetState);
++                    }
++                    StreamControlError::Backpressure
++                }
+                 std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
+             })?;
+         if state.closed || state.model.revision() != expected {
+@@ -252,6 +294,10 @@
+                     .try_lock()
+                     .map_err(|error| match error {
+                         std::sync::TryLockError::WouldBlock => {
++                            #[cfg(feature = "test-support")]
++                            if let Some(diagnostics) = diagnostics.as_deref_mut() {
++                                diagnostics.busy_leaf = Some(CatalogBusyLeafForTest::SourceState(member.controller.connection.clone()));
++                            }
+                             tracing::debug!(target: "rvoip_core::native_catalog", source=%member.controller.connection, target=%target.controller.connection, "Native subscription catalog read is busy");
+                             StreamControlError::Backpressure
+                         }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -2051,3 +2051,38 @@
+ 
+ #[path = "subscriptions/av_observation.rs"]
+ mod av_observation;
++
++// Exact original try_lock decisions, not fabricated error values.
++#[cfg(feature = "test-support")]
++#[tokio::test]
++async fn catalog_diagnostics_report_original_members_target_source_decisions_without_effects() {
++    use crate::staged_streams::subscription_plan::{CatalogBusyLeafForTest, CatalogReadDiagnosticsForTest, MediaSelectionChange};
++    let s = wildcard_scene().await;
++    let expected = s.f.b.revision();
++    let budget = s.f.b.stream_open_budget();
++    let mut diagnostics = CatalogReadDiagnosticsForTest::default();
++    let input = MediaSelectionChange::Reconcile;
++    let held = s.scene.members.lock().unwrap();
++    let members = s.scene.plan_selection_diagnosed_for_test(&s.f.b.connection, expected, &input, &mut diagnostics).map(drop);
++    drop(held);
++    assert!(matches!(members, Err(StreamControlError::Backpressure)));
++    assert_eq!(diagnostics.busy_leaf, Some(CatalogBusyLeafForTest::Members));
++    let held = s.f.b.state.lock().unwrap();
++    let target = s.scene.plan_selection_diagnosed_for_test(&s.f.b.connection, expected, &input, &mut diagnostics).map(drop);
++    drop(held);
++    assert!(matches!(target, Err(StreamControlError::Backpressure)));
++    assert_eq!(diagnostics.busy_leaf, Some(CatalogBusyLeafForTest::TargetState));
++    let held = s.f.a.state.lock().unwrap();
++    let source = s.scene.plan_selection_diagnosed_for_test(&s.f.b.connection, expected, &input, &mut diagnostics).map(drop);
++    drop(held);
++    assert!(matches!(source, Err(StreamControlError::Backpressure)));
++    assert_eq!(diagnostics.busy_leaf, Some(CatalogBusyLeafForTest::SourceState(s.f.a.connection.clone())));
++    let observed = s.scene.plan_selection_diagnosed_for_test(&s.f.b.connection, expected, &input, &mut diagnostics).unwrap();
++    assert!(diagnostics.busy_leaf.is_none(), "a later success cannot inherit the prior leaf");
++    let plain = s.scene.plan_selection(&s.f.b.connection, expected, &input).unwrap();
++    assert!(observed.same_catalog(&plain));
++    assert!(matches!(s.scene.plan_selection_diagnosed_for_test(&s.f.b.connection, expected + 1, &input, &mut diagnostics), Err(StreamControlError::Model(MediaTransitionError::Conflict))));
++    assert!(diagnostics.busy_leaf.is_none(), "stale revision is not contention");
++    assert_eq!(s.f.b.revision(), expected);
++    assert_eq!(s.f.b.stream_open_budget(), budget);
++}
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1537,6 +1537,7 @@
+         core: &rvoip_core::orchestrator::Orchestrator,
+         id: &ConnectionId,
+         origin: &Arc<super::native_requests::NativeRequestOrigin>,
++        #[cfg(feature = "test-support")] diagnostics: &mut rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
+     ) -> std::result::Result<
+         Option<super::native_subscriptions::NativeSubscriptionPlan>,
+         super::native_negotiation::NativeOfferError,
+@@ -1550,6 +1551,15 @@
+         if !flow.confirmed_at(expected) {
+             return Err(NativeOfferError::NotReady);
+         }
++        #[cfg(feature = "test-support")]
++        let selection = core
++            .plan_staged_media_selection_diagnosed_for_test(
++                &session, id, expected,
++                &rvoip_core::staged_streams::subscription_plan::MediaSelectionChange::Reconcile,
++                diagnostics,
++            )
++            .map_err(catalog_error)?;
++        #[cfg(not(feature = "test-support"))]
+         let selection = core
+             .plan_staged_media_selection(
+                 &session,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
+@@ -92,8 +92,16 @@
+             // A failed read schedules another fresh catalog read. It cannot
+             // force an engine effect when the recovered catalog is unchanged.
+             let mut catalog_retry = false;
+-            let plan =
+-                adapter.plan_native_reconciliation(&core, &runtime.connection, &runtime.origin);
++            #[cfg(feature = "test-support")]
++            let mut diagnostics = rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest::default();
++            #[cfg(feature = "test-support")]
++            let catalog_started = Instant::now();
++            let plan = adapter.plan_native_reconciliation(
++                &core, &runtime.connection, &runtime.origin,
++                #[cfg(feature = "test-support")] &mut diagnostics,
++            );
++            #[cfg(feature = "test-support")]
++            runtime.policy.catalog_plan_observed_for_test(&runtime.connection, catalog_started, &diagnostics, &plan);
+             let wanted = match plan {
+                 Ok(Some(plan))
+                     if runtime.origin.ready()
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
+@@ -231,6 +231,17 @@
+         held: Option<&super::auth_dispatch::AuthorityLease>,
+         no_effect: Option<&NativeSubscriptionNoEffect>,
+     ) -> Result<(), super::auth_dispatch::DispatchError>;
++    /// Cold test-only observation of the ORIGINAL plan, after all Core metadata
++    /// guards have dropped. No returned value can alter retry or reconciliation.
++    #[cfg(feature = "test-support")]
++    fn catalog_plan_observed_for_test(
++        &self,
++        _connection: &ConnectionId,
++        _started: tokio::time::Instant,
++        _diagnostics: &rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
++        _result: &Result<Option<NativeSubscriptionPlan>, NativeOfferError>,
++    ) {
++    }
+     fn changes(&self) -> Option<std::sync::Arc<tokio::sync::Notify>> {
+         None
+     }
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -1,6 +1,41 @@
+ //! Retained Participant intent reconciled through fresh authority and physical IO.
+ use super::*;
+ use rvoip_uctp::v2::native_subscriptions::*;
++#[cfg(feature = "test-support")]
++#[derive(Debug)]
++enum CatalogObservedOutcome {
++    Planned { same_catalog: bool },
++    NoPlan,
++    Refused(NativeOfferError),
++}
++#[cfg(feature = "test-support")]
++#[derive(Debug)]
++struct CatalogObserved {
++    started: Instant,
++    at: Instant,
++    leaf: Option<rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest>,
++    outcome: CatalogObservedOutcome,
++}
++#[cfg(feature = "test-support")]
++struct CatalogProbe {
++    connection: ConnectionId,
++    before: rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan,
++    tx: tokio::sync::mpsc::Sender<CatalogObserved>,
++    dropped: AtomicUsize,
++}
++#[cfg(feature = "test-support")]
++fn arm_catalog_probe(
++    policy: &Policy,
++    connection: &ConnectionId,
++    before: &rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan,
++) -> tokio::sync::mpsc::Receiver<CatalogObserved> {
++    let (tx, rx) = tokio::sync::mpsc::channel(128);
++    assert!(policy.catalog_probe.set(CatalogProbe {
++        connection: connection.clone(), before: before.clone(), tx,
++        dropped: AtomicUsize::new(0),
++    }).is_ok());
++    rx
++}
+ struct FreshProof {
+     domain: Arc<Grants>,
+     wire_domain: Arc<WirePolicy>,
+@@ -32,6 +67,8 @@
+     captured_error: Mutex<Option<(String, NativeOfferError)>>,
+     error_replays: AtomicUsize,
+     changed_errors: AtomicUsize,
++    #[cfg(feature = "test-support")]
++    catalog_probe: std::sync::OnceLock<CatalogProbe>,
+ }
+ impl Policy {
+     fn new(s: &Scene) -> Arc<Self> {
+@@ -50,6 +87,8 @@
+             captured_error: Mutex::new(None),
+             error_replays: AtomicUsize::new(0),
+             changed_errors: AtomicUsize::new(0),
++            #[cfg(feature = "test-support")]
++            catalog_probe: std::sync::OnceLock::new(),
+         })
+     }
+ }
+@@ -201,6 +240,29 @@
+             result.as_ref().map(|o| o.revision).map_err(Clone::clone),
+         ));
+         Ok(())
++    }
++    #[cfg(feature = "test-support")]
++    fn catalog_plan_observed_for_test(
++        &self,
++        connection: &ConnectionId,
++        started: Instant,
++        diagnostics: &rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
++        result: &Result<Option<NativeSubscriptionPlan>, NativeOfferError>,
++    ) {
++        let Some(probe) = self.catalog_probe.get().filter(|p| &p.connection == connection) else { return; };
++        let observed = CatalogObserved {
++            started,
++            at: Instant::now(),
++            leaf: diagnostics.busy_leaf.clone(),
++            outcome: match result {
++                Ok(Some(plan)) => CatalogObservedOutcome::Planned { same_catalog: probe.before.same_catalog(plan.selection()) },
++                Ok(None) => CatalogObservedOutcome::NoPlan,
++                Err(error) => CatalogObservedOutcome::Refused(*error),
++            },
++        };
++        if probe.tx.try_send(observed).is_err() {
++            probe.dropped.fetch_add(1, Ordering::Relaxed);
++        }
+     }
+     fn changes(&self) -> Option<Arc<tokio::sync::Notify>> {
+         Some(self.changed.clone())
+@@ -836,6 +898,8 @@
+         ).expect("blocked external policy must not retain Controller.State");
+         assert!(before.same_catalog(&available),"blocked policy leaves the SAME authoritative catalog available");
+         drop(available);
++        #[cfg(feature = "test-support")]
++        let mut catalog_observations = arm_catalog_probe(&policy, &s.second_id, &before);
+         let source=s.controller();let orch=s.native.core.orch.clone();
+         let session=s.native.core.session.clone();let target=s.second_id.clone();
+         // One joined bounded owner holds the ACTUAL source model mutex, so
+@@ -847,9 +911,23 @@
+             result
+         })).await.unwrap();
+         release_tx.send(()).unwrap();
++        #[cfg(feature = "test-support")]
++        let original_recovery_start = Instant::now();
+         assert!(matches!(busy,Err(ParticipantControlError::Media(StreamControlError::Backpressure))),
+             "actual source Controller.State exclusion must refuse exact Backpressure; actual={busy:?}");
+         tokio::time::sleep(Duration::from_millis(650)).await;
++        #[cfg(feature = "test-support")]
++        let after = {
++            let mut diagnostics = rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest::default();
++            let original_result = s.native.core.orch.plan_staged_media_selection_diagnosed_for_test(
++                &s.native.core.session, &s.second_id, 3, &MediaSelectionChange::Reconcile, &mut diagnostics,
++            );
++            let rows: Vec<_> = std::iter::from_fn(|| catalog_observations.try_recv().ok()).collect();
++            let dropped = policy.catalog_probe.get().unwrap().dropped.load(Ordering::Relaxed);
++            eprintln!("catalog original-window kind={kind} recovery_start={original_recovery_start:?} recovery_end={:?} background={rows:?} dropped={dropped}", Instant::now());
++            original_result.unwrap_or_else(|error| panic!("original one-shot catalog kind={kind} error={error:?} leaf={:?}; background={rows:?}; dropped={dropped}", diagnostics.busy_leaf))
++        };
++        #[cfg(not(feature = "test-support"))]
+         let after = s
+             .native
+             .core
+@@ -992,3 +1070,91 @@
+         );
+     }
+ }
++
++// Counterfactuals use the ACTUAL source mutex and ACTUAL ordinary poller.
++// Both cases observe the WHOLE original 650 ms; no retry helper or new cap.
++#[cfg(feature = "test-support")]
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_catalog_observer_distinguishes_released_source_lock_from_full_window_exclusion() {
++    use rvoip_core::orchestrator::participant_control::ParticipantControlError;
++    use rvoip_core::staged_streams::subscription_plan::{CatalogBusyLeafForTest, CatalogReadDiagnosticsForTest, MediaSelectionChange};
++    for kind in ["quic", "wt"] {
++        for release_within_window in [true, false] {
++            let (mut s, mut other, policy) = setup(kind).await;
++            let receiver = s.native.adapters[&s.kind].media_controller(&s.second_id).unwrap();
++            other.send(s.f.sign(select(receiver.revision()))).await;
++            assert_eq!(other.read().await.kind(), "ack");
++            let (_, callback) = s.prepared(add_video(&s, 1, false)).await;
++            s.confirm(&callback).await;
++            s.wait(3).await;
++            let callback = other.read().await;
++            other.send(s.f.sign(s.confirmation(&callback))).await;
++            core_fixture::until(|| receiver.revision() == 3).await;
++            core_fixture::until(|| policy.operations.lock().unwrap().iter().any(|(_, v)| matches!(v, Ok(3)))).await;
++            tokio::time::sleep(Duration::from_millis(650)).await;
++            let before = s.native.core.orch.plan_staged_media_selection(&s.native.core.session, &s.second_id, 3, &MediaSelectionChange::Reconcile).unwrap();
++            let attempts = policy.attempts.load(Ordering::Acquire);
++            let operations = policy.operations.lock().unwrap().len();
++            let mut observations = arm_catalog_probe(&policy, &s.second_id, &before);
++            let source = s.controller();
++            let source_id = s.id.clone();
++            let (held_tx, held_rx) = tokio::sync::oneshot::channel();
++            let (release_tx, release_rx) = std::sync::mpsc::sync_channel(1);
++            let until = Instant::now() + Duration::from_millis(650);
++            let owner = tokio::task::spawn_blocking(move || source.with_model_state_exclusion_for_test(|| {
++                let _ = held_tx.send(());
++                release_rx.recv_timeout(until.saturating_duration_since(Instant::now())).is_ok()
++            }));
++            let entered = tokio::time::timeout_at(until, held_rx).await.is_ok_and(|v| v.is_ok());
++            let held_at = Instant::now();
++            let mut direct_diagnostics = CatalogReadDiagnosticsForTest::default();
++            let direct = entered.then(|| s.native.core.orch.plan_staged_media_selection_diagnosed_for_test(
++                &s.native.core.session, &s.second_id, 3, &MediaSelectionChange::Reconcile, &mut direct_diagnostics,
++            ).map(drop));
++            let mut rows = Vec::new();
++            let mut observation_overflow = false;
++            let mut release_at = None;
++            // Keep observing to the original endpoint even after recovery.
++            while Instant::now() < until {
++                let row = match tokio::time::timeout_at(until, observations.recv()).await {
++                    Ok(Some(row)) => row,
++                    _ => break,
++                };
++                let source_busy = row.started >= held_at && row.at <= until
++                    && row.leaf == Some(CatalogBusyLeafForTest::SourceState(source_id.clone()))
++                    && matches!(row.outcome, CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)));
++                if rows.len() < 128 { rows.push(row); } else { observation_overflow = true; }
++                if release_within_window && source_busy && release_at.is_none() && Instant::now() < until {
++                    release_at = Some(Instant::now());
++                    let _ = release_tx.send(());
++                }
++            }
++            tokio::time::sleep_until(until).await;
++            let released_by_signal = owner.await.unwrap();
++            drop(release_tx);
++            let saw_source_busy = rows.iter().any(|r| r.started >= held_at && r.at <= until
++                && r.leaf == Some(CatalogBusyLeafForTest::SourceState(source_id.clone()))
++                && matches!(r.outcome, CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable))));
++            let recovered = rows.iter().any(|r| r.at <= until
++                && release_at.is_some_and(|at| r.started >= at)
++                && matches!(r.outcome, CatalogObservedOutcome::Planned { same_catalog: true }));
++            let successful_during_full_exclusion = !release_within_window && rows.iter().any(|r| r.started >= held_at && r.at <= until
++                && matches!(r.outcome, CatalogObservedOutcome::Planned { .. } | CatalogObservedOutcome::NoPlan));
++            let changed_catalog = rows.iter().any(|r| matches!(r.outcome, CatalogObservedOutcome::Planned { same_catalog: false }));
++            let dropped = policy.catalog_probe.get().unwrap().dropped.load(Ordering::Relaxed);
++            let unchanged = policy.attempts.load(Ordering::Acquire) == attempts
++                && policy.operations.lock().unwrap().len() == operations && receiver.revision() == 3;
++            eprintln!("catalog causal-control kind={kind} release_within_window={release_within_window} held_at={held_at:?} until={until:?} release_at={release_at:?} direct={direct:?} direct_leaf={:?} released_by_signal={released_by_signal} expected_attempts={attempts} expected_operations={operations} counters_revision_unchanged={unchanged} dropped={dropped} overflow={observation_overflow} rows={rows:?}", direct_diagnostics.busy_leaf);
++            s.wire.server.shutdown().await.unwrap();
++            other.server.shutdown().await.unwrap();
++            assert!(entered, "actual owner did not acquire within original window kind={kind}");
++            assert!(matches!(direct, Some(Err(ParticipantControlError::Media(StreamControlError::Backpressure)))), "old one-shot must refuse actual exclusion kind={kind} direct={direct:?}");
++            assert!(direct_diagnostics.busy_leaf.is_some(), "direct original Busy must identify its actual leaf kind={kind}");
++            assert!(saw_source_busy, "actual ordinary poller never observed held source kind={kind} rows={rows:?}");
++            assert_eq!(released_by_signal, release_within_window, "actual owner release route kind={kind}");
++            assert_eq!(recovered, release_within_window, "no-success is never accepted as recovery kind={kind} rows={rows:?}");
++            assert!(!successful_during_full_exclusion, "a still-held source can never produce an in-window successful catalog kind={kind} rows={rows:?}");
++            assert!(!changed_catalog && unchanged && dropped == 0 && !observation_overflow, "full-window catalog/counters/observer capacity kind={kind} rows={rows:?} dropped={dropped}");
++        }
++    }
++}

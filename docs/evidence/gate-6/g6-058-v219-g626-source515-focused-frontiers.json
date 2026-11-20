@@ -1,0 +1,348 @@
+{
+  "format": "connect/gate6-checkpoint139-progress/1",
+  "status": "ACTUAL_G626_16PASS_1FAIL_CURRENT_SOURCE515_PENDING_THREE_FOLLOWUP_SCOPES",
+  "recorded_at": "2026-11-20T04:04:29.626272+00:00",
+  "tracker_revision": 139,
+  "summary": "G626 completed all seventeen focused tests on prepared source515: sixteen passed and one failed; independent actual audit accepted complete failed custody. All three builds, the default four-library shipping check and both inventories passed. All ten new Core scene/audio/pending controls passed, as did the retained duplex and catalog Core controls, the original RTC control in all three modes, and the original catalog control on both transports through its full strict tail. The new Native catalog control still failed in its first QUIC release variant: twenty-four MembersBusy rows, direct SourceStateBusy, no release signal, no dropped observations, and unchanged recorded attempt/operation/revision counters. The other three variants were unreached. This remains an open control-path contention frontier; no final catalog repair or historical matrix cause is claimed. Normal515 preparation passed with six existing upstream files changed, no added upstream files, the complete old512 tree preserved and4,263 equal file mtimes restored. Tested source e8dd199b has6,497 files on baseacb; Root and all23 original children closed naturally, with source and current binaries unchanged. Three remaining source-only follow-ups are explicit: Batch queued-Data/common final PortState acquisition with three controls is independently source-reviewed; Epoch encoder payload-cache/consumer-slot release with two controls is independently source-reviewed; Primary control critical-section repair is approved for authoring and awaits final source review. None is in the G626-tested source or runtime-verified. G618 remains failed3,280/3,282, G620 failed5/7 and G623 failed6/7. G615 seven builds/eleven inventories with runtime0 and G617 shared379 retain their older source509 scopes. Mobile217 verified the earlier live-run update with419 unrelated paragraphs preserved; publishing this final checkpoint remains Root work. Next: finish and review the complete follow-up batch, prepare normally, run its actual controls, then commit and repeat current shared379, the complete regression and OriginalV8 on one seal. Strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain separate pending scopes. Matrix remains v218:1/32 cells and399/432 checks; all stable IDs, owners, failure maps and historical verdicts stay unchanged. Not ready for32; G6-054 stays parked and execution stays local Mac/native ARM.",
+  "tested_source": {
+    "base_revision": "acb2205a9990e9eb99c2ed2598a4868af220dd09",
+    "working_source_sha256": "e8dd199bffc4e9d712b589c4a3e8b023f7a084e31288cf28f1452efaa4fa3057",
+    "files": 6497,
+    "source_lock_sha256": "2f24cc7e838b6b996f5b855ddbc69d8e50377e0404289e3585ae6c94b2b32f4d",
+    "prepared": {
+      "rvoip": "8108962aa95cd01c68882f673e0200ea95bf72784e7c08b48847ad744f83bc69",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "generation": 515,
+    "final_verified_batch_commit": "TBD_ROOT_AFTER_COMPLETE_CAUSAL_BATCH_VERIFICATION"
+  },
+  "actual_G626": {
+    "completed": 17,
+    "passed": 16,
+    "failed": 1,
+    "all3_builds_passed": true,
+    "default_shipping_libraries": 4,
+    "inventories_passed": 2,
+    "inventory_sizes": {
+      "rvoip-core": 951,
+      "rvoip-uctp-v2-peer-admission": 211
+    },
+    "new_Core_metadata_controls_passed": 10,
+    "original_RTC_modes_passed": 3,
+    "original_catalog_transports_full_tail_passed": 2,
+    "Native_new_control_variants": {
+      "firstQUICrelease": "FAILED;24MembersBusy/directSourceStateBusy/no release",
+      "other3": "UNREACHED"
+    },
+    "recorded_counter_witness": "expected_attempts2 expected_operations2 counters_revision_unchanged=true; no fabricated numeric revision from raw log",
+    "cases": [
+      {
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::replacement_duplex_barrier_controls::managed_replacement_duplex_metadata_waits_for_original_guarded_write_completion",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::replacement_duplex_barrier_controls::managed_replacement_duplex_metadata_requires_actual_post_activation_ingress",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::replacement_duplex_barrier_controls::managed_replacement_duplex_metadata_refuses_foreign_stale_and_cancelled_owners_without_signal_effects",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::media_scene::subscriptions::catalog_diagnostics_report_original_members_target_source_decisions_without_effects",
+        "status": "PASSED"
+      },
+      {
+        "selector": "peer_native::canonical_media::native_offers::future_subscriptions::actual_catalog_observer_distinguishes_released_source_lock_from_full_window_exclusion",
+        "status": "FAILED"
+      },
+      {
+        "selector": "peer_native::canonical_media::guarded_mixer::replacement::adapter::controlled_browser_and_telephone_no_answer_voicemail_and_silent_resource_loss_preserve_old",
+        "status": "PASSED"
+      },
+      {
+        "selector": "peer_native::canonical_media::native_offers::future_subscriptions::actual_catalog_contention_rereads_unchanged_sources_without_a_new_reconciliation",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::media_scene::transient::scene_tick_skips_busy_source_metadata_preserves_original_and_unrelated_video",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::guarded_mixer::source_contention::guarded_mixer_actual_model_state_busy_preserves_all_original_audio_queues_and_third_peer_io",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::guarded_mixer::source_contention::guarded_mixer_actual_model_state_busy_rechecks_revocation_without_replaying_original_audio",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::guarded_mixer::source_contention::guarded_mixer_actual_model_state_busy_keeps_original_expiry_and_accepts_only_fresh_audio",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::guarded_mixer::source_contention::guarded_audio_tick_adoption_busy_preserves_unclaimed_input_and_recovers_poison",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::media_scene::transient::pending_diagnostics::scene_pending_visual_target_metadata_busy_keeps_original_and_healthy_recipient_progress",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::media_scene::transient::pending_diagnostics::scene_pending_visual_never_captures_post_admission_port_or_egress_generation",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::media_scene::transient::pending_diagnostics::scene_pending_visual_metadata_retry_cannot_revive_revoked_or_expired_original",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::media_scene::transient::pending_diagnostics::scene_pending_visual_stale_cache_retains_fresh_pre_admission_successor_and_fifo",
+        "status": "PASSED"
+      },
+      {
+        "selector": "staged_streams::tests::media_scene::transient::pending_diagnostics::scene_pending_data_metadata_busy_preserves_original_fifo_and_healthy_video",
+        "status": "PASSED"
+      }
+    ],
+    "source_unchanged": true,
+    "binaries_unchanged": true,
+    "Root_and_original_children_natural_closed": 24,
+    "qualification": false
+  },
+  "normal515_actual": {
+    "commands_natural_passed": 2,
+    "old512_complete_tree_preserved": true,
+    "equal_file_mtimes_restored": 4263,
+    "changed_existing_upstream": 6,
+    "added_upstream": 0,
+    "old4pure_cleanup_controls_source_carry": "Same reviewed local helper and Root-recorded prior four controls; no fresh normal515 pure run invented"
+  },
+  "P7.2_frontiers": {
+    "duplex": {
+      "owner_agent": "/root/batch_build_review",
+      "status": "scoped-component-verified-not-matrix-qualified",
+      "actual_scope": "G626 retained3Core duplex controls and originalRTC no-answer/voicemail/lost-adapter modes PASS",
+      "historical_G618_exact_false_leaf": "UNOBSERVED; failed record retained"
+    },
+    "catalog_original_fixture": {
+      "owner_agent": "/root/epoch_cause",
+      "status": "G626-original-main-two-transports-full-tail-PASS; newNativecontrol-firstQUIC-FAIL",
+      "actual_scope": "24MembersBusy/directSourceStateBusy/no release/no drops/counters_revision_unchanged; remaining3variants UNREACHED",
+      "G620_later_counter_media_assertions": "UNREACHED; not regraded"
+    },
+    "scene_tick_wait": {
+      "owner_agent": "/root/epoch_cause",
+      "status": "G626-scoped-Core-control-PASS-not-entire-path-closure",
+      "actual_scope": "One actual held source State/unrelated Video/retained original control PASS; newNative catalog control still fails"
+    },
+    "audio_metadata_waits": {
+      "owner_agent": "/root/batch_build_review",
+      "status": "G626-four-original-source515-Core-controls-PASS; additional-audio-followup-unrun",
+      "actual_scope": "All4actual model-state/adoption/retained-queue/revocation/expiry/poison controls PASS"
+    },
+    "pending_realtime_and_Data_retention": {
+      "owner_agent": "/root/independent_batch_review",
+      "status": "G626-five-source515-Core-controls-PASS; deeper-admission-followup-unrun",
+      "actual_scope": "All5original egress/cache/fresh-cutover/current-authority/Data FIFO controls PASS; Data sourceState/common finalPort waits need additional acquisition-only batch"
+    },
+    "queued_Data_common_admission_followup": {
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "status": "independent-source-reviewed-not-applied-or-runtime-verified",
+      "manifest_sha256": "11de2fef0a938955b7ec4401351689fb2de31e4b1400eac81703e264181356d2",
+      "source_review_sha256": "9d8f445e7183651208041f86c3d9ea8cd5b209ed2fec86a22f013f9bc5c30697",
+      "new_control_functions": 3,
+      "scope": "Data non-detached current authorization and same FIFO; common finalPort tryread preserves original current guards/observed expiry"
+    },
+    "encoder_payload_consumer_slot_followup": {
+      "owner_agent": "/root/epoch_cause",
+      "independent_reviewer": "/root/batch_build_review",
+      "status": "independent-source-reviewed-not-applied-or-runtime-verified",
+      "manifest_sha256": "6758799824ddaf8415780a973bc26205361d093153c59bf6dd4a27b254c21462",
+      "source_review_sha256": "99ecffc888db02f6c2570a7667634a942e543883a659fc6c73a06ebf5593a25c",
+      "new_control_functions": 2,
+      "scope": "Exact same-ready-Port negotiated payload cache and same consumer slot release before validation work"
+    },
+    "control_critical_sections_followup": {
+      "owner_agent": "/root/independent_batch_review",
+      "independent_reviewer": "/root",
+      "status": "Root-design-approved-authoring; final-source-review-and-runtime-pending",
+      "design_manifest_sha256": "7038f7487ffb05c0dde968561d7a23581554cf57139dbc3c78ed73056813bb69",
+      "scope": "Control-owned ConsumerState/SubscriptionGate and related metadata waits; no speculative successful repair claim"
+    },
+    "coordinator": "/root",
+    "independent_reviewer": "/root/independent_batch_review",
+    "cross_author_source_review": "Each source owner reviewed by nonauthor; Root coordinates final batch",
+    "mapped_matrix_leaves_closed": false
+  },
+  "proofs": {
+    "G618_result": {
+      "path": ".local/gate-6/g618-current-full3282-root/component-result.json",
+      "sha256": "5795ed4b4ca635cabdc63ec4f6b87dba677f02439309fc8cd246dfcfca846867"
+    },
+    "G618_audit": {
+      "path": ".local/gate-6/g618-actual-full3282-independent-audit/receipt.json",
+      "sha256": "4a0d50b21ac50d370936fab803c51b639355ae4186525ebca3ce7570b193d37a"
+    },
+    "G615_result": {
+      "path": ".local/gate-6/g615-original469-seven-build-inventory-root/result.json",
+      "sha256": "4eb5b9c9e32db5bd00f8660c0d782220eb88c05391e0dabcac0e1c5e5af359d2"
+    },
+    "G615_audit": {
+      "path": ".local/gate-6/g615-actual-original-seven-eleven-and-g617-start-independent-review/receipt.json",
+      "sha256": "f27c93dad9fe7b66cdbb0905248a0434b8b28c77448eb8585e07700aa0256852"
+    },
+    "G617_result": {
+      "path": ".local/gate-6/g617-current-shared379-root/result.json",
+      "sha256": "3c9772ada92bd6dbb4c2175b4c451c2d29fe52c321aef70c002c70ed454f9c10"
+    },
+    "G617_audit": {
+      "path": ".local/gate-6/g617-actual-current379-independent-audit/receipt.json",
+      "sha256": "cb7fd484801650e1ffdf9628b1ca02cda1dfdd711d9c787e7279f9405de1c1ac"
+    },
+    "G620_result": {
+      "path": ".local/gate-6/g620-source511-focused-seven-root/result.json",
+      "sha256": "ea9eae86b6234055acbed44c456a28efb168f9bff51a8940805471d56b8708a8"
+    },
+    "G620_audit": {
+      "path": ".local/gate-6/g620-actual-focused-seven-independent-audit/receipt.json",
+      "sha256": "0fb22fab97961345432b2aa84711eb2e9ac7d0d312d63ff43787d9c82961aab8"
+    },
+    "normal512_receipt": {
+      "path": ".local/gate-6/g622-normal512-preparation-root/normal512-runtime/receipt.json",
+      "sha256": "7b23125c77411fb74a2b251d387bb72385e05c96fabba387a2e8796f8fa3a9b0"
+    },
+    "normal512_join": {
+      "path": ".local/gate-6/g622-normal512-preparation-root/root-original-join.json",
+      "sha256": "4b6d029e95ec5b6394444e76fef566a87282e2b667c8570c267285510efd5581"
+    },
+    "normal512_audit": {
+      "path": ".local/gate-6/g622-actual-normal512-independent-audit/receipt.json",
+      "sha256": "5ed9ee69620091b0dd5ba40d9b65913e9ba25c04e48d7c7a069fe17bdb89300a"
+    },
+    "normal512_source": {
+      "path": ".local/gate-6/g622-normal512-preparation-root/working-source512.json",
+      "sha256": "ca7d2bb99cf9aee80da5bca70b0ebf61ea71f880cf62ba4fe20de324e953ccea"
+    },
+    "normal512_pure4": {
+      "path": ".local/gate-6/g622-normal512-preparation-root/actual-pure-controls.json",
+      "sha256": "5baf1a5d3473c3df348361959c27e92a2c342f49920772baeda728ecd4519953"
+    },
+    "G621_pure4": {
+      "path": ".local/gate-6/g621-focused-runner-exception-controls-root/result.json",
+      "sha256": "8a0d82bf87cf8fd00b1b23bd95ac7f6c5655a0f8dd94b8777af0d78345f55354"
+    },
+    "G623_result": {
+      "path": ".local/gate-6/g623-source512-focused-seven-root/result.json",
+      "sha256": "bf06dd60da885d4c0684bd72d62eb1ae64b639d8fbdff9d086d8821d7dc379ad"
+    },
+    "G623_join": {
+      "path": ".local/gate-6/g623-source512-focused-seven-root/root-original-join.json",
+      "sha256": "93691da2a648ac64821d613150c36984fe227db4ff790cd7ff39d0a55833b422"
+    },
+    "G623_audit": {
+      "path": ".local/gate-6/g623-actual-focused-seven-independent-audit/receipt.json",
+      "sha256": "1fde10ac17106b28484324f6bbc4ff799a106e24db6d5c87256ecf2a514d1189"
+    },
+    "mobile216": {
+      "path": ".local/gate-6/mobile216-media-wait-batch-progress-root/readback.json",
+      "sha256": "cadbde7afee2342a1d367888347385023a1e819850eb974fe7f1196a14579326"
+    },
+    "scene_candidate": {
+      "path": ".local/gate-6/g623-scene-tick-busy-member-metadata-source-candidate/manifest.json",
+      "sha256": "d4801d06e77053622c49982daee4031920dccf476d72e86d61de7626403cc2e1"
+    },
+    "scene_batch_review": {
+      "path": ".local/gate-6/g623-scene-tick-independent-batch-source-review/receipt.json",
+      "sha256": "05cd994eace9ad08ec5f9bbbf10b20c294b817eb9a0371eb0068ba3ec6e9a5a3"
+    },
+    "audio_candidate": {
+      "path": ".local/gate-6/g623-audio-model-state-nonblocking-source-candidate/manifest.json",
+      "sha256": "2bbf7ee482f754afdc90839f4993414c1d539871777593a3df2c8f87147803f0"
+    },
+    "audio_Root_review": {
+      "path": ".local/gate-6/g624-audio-nonblocking-independent-root-source-review/receipt.json",
+      "sha256": "1891101a0c13789fdefc3d8e8823c87676fc3a70e6efe3160e93a0d2806efb18"
+    },
+    "audio_independent_review": {
+      "path": ".local/gate-6/g623-audio-model-state-independent-source-review/receipt.json",
+      "sha256": "49563939440ee1cb1f115dfc121e19b71d617b61f1392488c309b9203fdc0e57"
+    },
+    "G626_result": {
+      "path": ".local/gate-6/g626-source515-focused17-root/result.json",
+      "sha256": "5b7f39583f050cf2fe32296989f2648bf9dab0203397efa9a65ea287080cea50"
+    },
+    "G626_join": {
+      "path": ".local/gate-6/g626-source515-focused17-root/root-original-join.json",
+      "sha256": "441fa7d25e897f9578580bedba1102b7f86b16bf93b9c8734ba18d49de4010af"
+    },
+    "G626_audit": {
+      "path": ".local/gate-6/g626-actual-focused17-independent-batch-audit/receipt.json",
+      "sha256": "2e69bef93f4d56f9529bad5d03d58ac657f41231c366855a0a5599e76ceff1e3"
+    },
+    "normal515_receipt": {
+      "path": ".local/gate-6/g625-normal515-preparation-root/normal515-runtime/receipt.json",
+      "sha256": "d391189919894b12c4a5b7029f4a4c635dc592bb7d2d69cf2055490807d5257a"
+    },
+    "normal515_join": {
+      "path": ".local/gate-6/g625-normal515-preparation-root/root-original-join.json",
+      "sha256": "f1911a4d6b08878d2d9164aac44c634158aa91f71c4a57876e21572a467f7249"
+    },
+    "normal515_audit": {
+      "path": ".local/gate-6/g625-actual-normal515-independent-batch-audit/receipt.json",
+      "sha256": "32b6f30aace12e5ba7ecdcd22cebcbf73a4cf53d1de940d19643ab5d87c58d5e"
+    },
+    "normal515_source": {
+      "path": ".local/gate-6/g625-normal515-preparation-root/working-source515.json",
+      "sha256": "e8dd199bffc4e9d712b589c4a3e8b023f7a084e31288cf28f1452efaa4fa3057"
+    },
+    "Data_common_source": {
+      "path": ".local/gate-6/g626-queued-data-admission-metadata-nonblocking-source-candidate/manifest.json",
+      "sha256": "11de2fef0a938955b7ec4401351689fb2de31e4b1400eac81703e264181356d2"
+    },
+    "Data_common_review": {
+      "path": ".local/gate-6/g626-queued-data-common-port-independent-source-review/receipt.json",
+      "sha256": "9d8f445e7183651208041f86c3d9ea8cd5b209ed2fec86a22f013f9bc5c30697"
+    },
+    "Audio_followup_source": {
+      "path": ".local/gate-6/g626-audio-encoder-current-payload-cache-and-consumer-slot-source-candidate-v2/manifest.json",
+      "sha256": "6758799824ddaf8415780a973bc26205361d093153c59bf6dd4a27b254c21462"
+    },
+    "Audio_followup_review": {
+      "path": ".local/gate-6/g626-audio-cache-slot-v2-independent-batch-source-review/receipt.json",
+      "sha256": "99ecffc888db02f6c2570a7667634a942e543883a659fc6c73a06ebf5593a25c"
+    },
+    "Control_design": {
+      "path": ".local/gate-6/g626-control-critical-section-repair-source-design/manifest.json",
+      "sha256": "7038f7487ffb05c0dde968561d7a23581554cf57139dbc3c78ed73056813bb69"
+    },
+    "mobile217": {
+      "path": ".local/gate-6/mobile217-focused17-live-root/readback.json",
+      "sha256": "207e37b74f63e0d3820e4f6ce941ee69f9f9b0f266c0fe8f7c4862e0d99568da"
+    },
+    "cleanup12_audit": {
+      "path": ".local/gate-6/g627-g628-actual-twelve-cleanup-controls-independent-audit/receipt.json",
+      "sha256": "8e37aee2a2ef0aa6d2e8fa2c7201fc1ecca2eaef2175ebd6b42516fd6c29a819"
+    }
+  },
+  "historical_failures_preserved": [
+    "G6183280/3282",
+    "G6205/7",
+    "G6236/7",
+    "G62616/17"
+  ],
+  "matrix_baseline": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "changed": false
+  },
+  "ready_for_32": false,
+  "qualification": false,
+  "full_unit_qualified": false,
+  "matrix_credit": false,
+  "mobile_checkpoint139_publication": "PENDING_ROOT; mobile217 actual readback records earlier LIVE update, not this terminal outcome"
+}

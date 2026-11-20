@@ -1,0 +1,120 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -959,11 +959,14 @@
+             let Ok(_flight) = member.controller.inflight.clone().try_acquire_owned() else {
+                 continue;
+             };
+-            let state = member
+-                .controller
+-                .state
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner());
++            let state = match member.controller.state.try_lock() {
++                Ok(state) => state,
++                // Public metadata readers need not own the control permit.
++                // Preserve this member's original inputs/pending; never hold
++                // the whole scene registry while waiting for its metadata.
++                Err(std::sync::TryLockError::WouldBlock) => continue,
++                Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++            };
+             if state.closed || member.controller.shutdown.is_cancelled() {
+                 member.inputs.clear();
+                 continue;
+@@ -1004,7 +1007,7 @@
+             } else if !self.audio.contains(id) {
+                 if let Ok(audio) = self
+                     .audio
+-                    .prepare_registered(member.controller.clone(), member.audio_consumer.clone())
++                    .try_prepare_registered(member.controller.clone(), member.audio_consumer.clone())
+                 {
+                     self.audio.insert_registered(id.clone(), audio);
+                 }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
+@@ -968,3 +968,86 @@
+         assert_eq!(after, (0, 0, 0, 0));
+     }
+ }
++
++// An ordinary read may hold State without the control inflight permit. The
++// actual tick must yield that member, retain its original pending packet, and
++// keep a different source/receiver moving in the SAME scene. Video-only here;
++// independent audio refresh contention has its own controls.
++#[tokio::test]
++async fn scene_tick_skips_busy_source_metadata_preserves_original_and_unrelated_video() {
++    for revoke_before_resume in [false, true] {
++        let (s, _, _) = setup().await;
++        s.f.policy.0.write().await.owners.insert("charlie".into(), owner("charlie"));
++        let ca = Adapter::new();
++        let c = StreamController::new(
++            ConversationId::from_string("conversation"), SessionId::from_string("session"),
++            ConnectionId::from_string("charlie"), principal("charlie"), s.f.a.policy.clone(),
++            ca.clone(), s.f.a.handles.clone(), 16,
++        ).unwrap();
++        c.change(0, &[desired(Medium::Video)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
++        let mut member = s.scene.prepare(c.clone()).unwrap();
++        member.quiesce(deadline(), CancellationToken::new()).await.unwrap();
++        assert!(member.ready());
++        s.scene.insert(c.connection.clone(), member, true);
++        s.scene.change_direct_subscriptions(
++            &c.connection, c.revision(), DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++                &s.f.b, desired(Medium::Video).logical_id.clone(), desired(Medium::Video).logical_id,
++            )]), deadline(), CancellationToken::new(), None,
++        ).await.unwrap();
++        let mut original_out = s.f.ba.port(Medium::Video).take_egress().unwrap();
++        let mut healthy_out = ca.port(Medium::Video).take_egress().unwrap();
++        s.publish(Medium::Video, 9000);
++        let healthy_source = s.f.ba.port(Medium::Video);
++        healthy_source.try_publish(&frame(&healthy_source, 19000)).unwrap();
++        let mut held = Some(s.f.a.state.lock().unwrap());
++        assert!(s.f.a.inflight.available_permits() > 0, "actual ordinary reader owns no inflight permit");
++        let scene = s.scene.clone();
++        let (sent, returned) = std::sync::mpsc::sync_channel(1);
++        let original_tick = std::thread::spawn(move || {
++            scene.tick();
++            scene.tick();
++            let _ = sent.send(());
++        });
++        // SAME bounded original Core metadata-probe pattern: release even on
++        // the old blocking implementation before joining that original worker.
++        let completed = returned.recv_timeout(Duration::from_millis(500));
++        if completed.is_err() { held.take(); }
++        original_tick.join().unwrap();
++        let retained_while_held = held.as_ref().map(|_| s.scene.retained_visual_for_test(
++            &s.f.a.connection, &desired(Medium::Video).logical_id,
++        ));
++        let independent = healthy_out.try_recv();
++        let independent_delivered = match independent {
++            Ok(packet) => packet.deliver(|frame| async move {
++                assert_eq!(rvoip_rtp_core::RtpPacket::parse(&frame.payload).unwrap().header.timestamp, 19000);
++                Ok(())
++            }).await.is_ok(),
++            Err(_) => false,
++        };
++        let original_blocked = original_out.try_recv().is_err();
++        drop(held);
++        assert!(completed.is_ok(), "actual scene tick waited on source State while holding Members: {completed:?}");
++        let retained = retained_while_held.unwrap();
++        assert_eq!((retained.0, retained.1), (1, 1), "two busy ticks must preserve the SAME pending original");
++        assert!(independent_delivered, "healthy SAME-scene source and receiver must deliver before held metadata releases");
++        assert!(original_blocked, "busy original cannot gain source authorization");
++        if revoke_before_resume { s.f.policy.0.write().await.revoked.insert("alice".into()); }
++        s.scene.tick();
++        if revoke_before_resume {
++            assert!(original_out.try_recv().is_err(), "revoked original never gains a delivery on recovery");
++        } else {
++            original_out.try_recv().unwrap().deliver(|frame| async move {
++                assert_eq!(rvoip_rtp_core::RtpPacket::parse(&frame.payload).unwrap().header.timestamp, 9000);
++                Ok(())
++            }).await.unwrap();
++            assert!(original_out.try_recv().is_err(), "the original was delivered once without republication");
++        }
++        assert_eq!(s.scene.retained_visual_for_test(&s.f.a.connection, &desired(Medium::Video).logical_id).0, 0);
++        healthy_source.try_publish(&frame(&healthy_source, 23000)).unwrap();
++        s.scene.tick();
++        healthy_out.try_recv().unwrap().deliver(|frame| async move {
++            assert_eq!(rvoip_rtp_core::RtpPacket::parse(&frame.payload).unwrap().header.timestamp, 23000);
++            Ok(())
++        }).await.unwrap();
++    }
++}

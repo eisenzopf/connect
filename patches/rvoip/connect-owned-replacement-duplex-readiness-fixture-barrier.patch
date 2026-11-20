@@ -1,0 +1,333 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_test_support.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_test_support.rs
+@@ -71,3 +71,18 @@
+         )
+     }
+ }
++
++/// Observe the actual pending state, not a reconstructed state-machine oracle.
++#[cfg(feature = "test-support")]
++pub(crate) fn pending_signal_snapshot(
++    p: &DeviceReplacementPreparation,
++) -> (u64, u64, bool, bool, Option<String>) {
++    let state = p.state.lock().unwrap_or_else(|error| error.into_inner());
++    (
++        state.captured_signal,
++        state.observed_signal,
++        state.ticket.has_answered(),
++        state.ticket.confirmation_ready(),
++        state.confirmation.as_ref().map(|partial| partial.digits.clone()),
++    )
++}
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -1006,6 +1006,36 @@
+         pending.context = Some(context.clone());
+         Ok(context)
+     }
++    /// Read only the SAME owned pending replacement's current duplex metadata.
++    /// This does not capture/consume a signal, grant permission, install a probe,
++    /// renew the preparation deadline, or establish future readiness.
++    #[cfg(feature = "test-support")]
++    pub fn staged_device_replacement_endpoint_ready_for_test(
++        &self,
++        p: &Arc<DeviceReplacementPreparation>,
++    ) -> ControlResult<()> {
++        self.owns_replacement(p)?;
++        p.check()?;
++        let controller = self
++            .adapter_for(&p.intent.replacement)?
++            .staged_controller(&p.intent.replacement)
++            .ok_or(StreamControlError::NotReady)?;
++        let signal = controller.capture_signal_stamp()?;
++        let pending = p.state.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => {
++                ParticipantControlError::Media(StreamControlError::MetadataBusy)
++            }
++            std::sync::TryLockError::Poisoned(_) => {
++                ParticipantControlError::Transition(ParticipantTransitionError::Conflict)
++            }
++        })?;
++        let context = pending.context.as_ref().ok_or(StreamControlError::NotReady)?;
++        let scene = p.runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?;
++        scene.replacement_endpoint_ready(context)?;
++        signal.check()?;
++        p.check()?;
++        Ok(())
++    }
+     /// Test-only synchronous exclusion of the exact original source's video
+     /// metadata. It exposes only the callback's result and numeric route counts.
+     #[cfg(feature = "test-support")]
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/replacement_duplex_barrier_controls.rs
+@@ -0,0 +1,158 @@
++//! Deterministic guarded-IO milestone controls, not WebRTC/network proof.
++use super::*;
++use crate::staged_streams::audience::AudioAudienceHandle;
++use crate::orchestrator::participant_control::replacement::metadata_test_support::pending_signal_snapshot;
++
++async fn initial_pair(room: &mut ManagedRoom) -> (ConnectionId, ConnectionId, Arc<Domain>) {
++    let original = domain(&room.conversation, &room.session, "duplex-old", "alice");
++    let source = room.initial(original.clone()).await;
++    let retained = room.initial(domain(&room.conversation, &room.session, "duplex-retained", "bob")).await;
++    room.select(&source, vec![AudioSubscription::Connection(retained.clone())]).await;
++    room.select(&retained, vec![AudioSubscription::Connection(source.clone())]).await;
++    let mut replacement = domain(&room.conversation, &room.session, "duplex-new", "alice");
++    let next = Arc::get_mut(&mut replacement).unwrap();
++    next.principal = original.principal.clone();
++    next.member = original.member.clone();
++    (source, retained, replacement)
++}
++
++fn queue_prompt(room: &mut ManagedRoom, candidate: &ConnectionId, context: &AudioAudienceHandle) {
++    let node = room.nodes.get_mut(candidate).unwrap();
++    let frame = node.frame(4000);
++    node.controller.try_queue_local_audio(
++        &desired(Medium::Audio).logical_id,
++        frame,
++        LocalAudioPurpose::EndpointPreparation { operation_id: context.operation_id().into() },
++    ).unwrap();
++}
++
++fn not_ready(result: Result<(), ParticipantControlError>) {
++    assert!(matches!(result, Err(ParticipantControlError::Media(StreamControlError::NotReady))));
++}
++
++async fn finish(room: &mut ManagedRoom, work: std::thread::Result<()>) {
++    let cleanup = room.close_originals().await;
++    assert!(cleanup.iter().all(|joined| *joined), "original managed owners unjoined: {cleanup:?}");
++    if let Err(error) = work { resume_unwind(error); }
++}
++
++#[tokio::test]
++async fn managed_replacement_duplex_metadata_waits_for_original_guarded_write_completion() {
++    let mut room = ManagedRoom::new().await;
++    let work = catch_original(async {
++        let (source, retained, next) = initial_pair(&mut room).await;
++        let (root, grant, signal, context, _probe) = room.prepare_move(&source, &retained, next).await;
++        let candidate = grant.intent.replacement.clone();
++        room.nodes.get_mut(&candidate).unwrap().publish(12000).unwrap();
++        queue_prompt(&mut room, &candidate, &context);
++        let queued = outgoing(&mut room.nodes.get_mut(&candidate).unwrap().out).await;
++        let (heard, observed) = tokio::sync::oneshot::channel();
++        let (complete, completion) = tokio::sync::oneshot::channel();
++        // Poll the ORIGINAL guarded writer, without a detached task or new IO.
++        // Its actual sink decodes the payload before the same send can finish.
++        let writer = queued.deliver(move |frame| async move {
++            let mut codec = rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++            let pcm = codec.decode(&frame.payload).unwrap();
++            let mean = pcm.samples.iter().map(|value| i32::from(*value)).sum::<i32>() / pcm.samples.len() as i32;
++            assert!((mean - 4000).abs() < 400);
++            heard.send(()).map_err(|_| StreamControlError::Cancelled)?;
++            completion.await.map_err(|_| StreamControlError::Cancelled)?;
++            Ok(())
++        });
++        tokio::pin!(writer);
++        tokio::select! {
++            result = &mut writer => panic!("writer completed before its original completion was released: {result:?}"),
++            result = observed => result.unwrap(),
++        }
++        // This is the old fixture's insufficient milestone: actual remote/sink
++        // decoded sound. Core has not published guarded delivery completion.
++        let before = pending_signal_snapshot(&root);
++        for _ in 0..3 {
++            not_ready(room.orch.staged_device_replacement_endpoint_ready_for_test(&root));
++            assert_eq!(pending_signal_snapshot(&root), before);
++        }
++        assert_eq!(room.signal(&root, &grant, &signal, DeviceReplacementEndpointEvent::MediaObserved), EndpointConfirmationObservation::BeforeAnswerOrMedia);
++        complete.send(()).unwrap();
++        writer.await.unwrap();
++        let before = pending_signal_snapshot(&root);
++        for _ in 0..3 {
++            room.orch.staged_device_replacement_endpoint_ready_for_test(&root).unwrap();
++            assert_eq!(pending_signal_snapshot(&root), before);
++        }
++        assert_eq!(room.signal(&root, &grant, &signal, DeviceReplacementEndpointEvent::MediaObserved), EndpointConfirmationObservation::MediaReady);
++        assert!(!root.prepared_binding().confirmation_ready());
++        assert!(room.orch.plan_staged_device_replacement(&root, None).is_err());
++        assert!(root.cancel());
++    }).await;
++    finish(&mut room, work).await;
++}
++
++#[tokio::test]
++async fn managed_replacement_duplex_metadata_requires_actual_post_activation_ingress() {
++    let mut room = ManagedRoom::new().await;
++    let work = catch_original(async {
++        let (source, retained, next) = initial_pair(&mut room).await;
++        let (root, grant, signal, context, _probe) = room.prepare_move(&source, &retained, next).await;
++        let candidate = grant.intent.replacement.clone();
++        // The actual endpoint has been activated; hold ALL input while the
++        // original outbound preparation prompt is decoded and fully delivered.
++        queue_prompt(&mut room, &candidate, &context);
++        room.nodes.get_mut(&candidate).unwrap().hear(4000).await;
++        let before = pending_signal_snapshot(&root);
++        not_ready(room.orch.staged_device_replacement_endpoint_ready_for_test(&root));
++        assert_eq!(pending_signal_snapshot(&root), before);
++        assert_eq!(room.signal(&root, &grant, &signal, DeviceReplacementEndpointEvent::MediaObserved), EndpointConfirmationObservation::BeforeAnswerOrMedia);
++        room.nodes.get_mut(&candidate).unwrap().publish(12000).unwrap();
++        room.orch.staged_device_replacement_endpoint_ready_for_test(&root).unwrap();
++        assert_eq!(room.signal(&root, &grant, &signal, DeviceReplacementEndpointEvent::MediaObserved), EndpointConfirmationObservation::MediaReady);
++        assert!(!root.prepared_binding().confirmation_ready());
++        assert!(root.cancel());
++        room.nodes.get_mut(&source).unwrap().publish(800).unwrap();
++        room.nodes.get_mut(&retained).unwrap().hear(800).await;
++    }).await;
++    finish(&mut room, work).await;
++}
++
++#[tokio::test]
++async fn managed_replacement_duplex_metadata_refuses_foreign_stale_and_cancelled_owners_without_signal_effects() {
++    for change in ["stale-port", "cancelled"] {
++        let mut room = ManagedRoom::new().await;
++        let mut foreign = ManagedRoom::new().await;
++        let work = catch_original(async {
++            let (source, retained, next) = initial_pair(&mut room).await;
++            let (root, grant, _signal, context, _probe) = room.prepare_move(&source, &retained, next).await;
++            let candidate = grant.intent.replacement.clone();
++            room.nodes.get_mut(&candidate).unwrap().publish(12000).unwrap();
++            queue_prompt(&mut room, &candidate, &context);
++            room.nodes.get_mut(&candidate).unwrap().hear(4000).await;
++            room.orch.staged_device_replacement_endpoint_ready_for_test(&root).unwrap();
++            let before = pending_signal_snapshot(&root);
++            assert!(matches!(foreign.orch.staged_device_replacement_endpoint_ready_for_test(&root), Err(ParticipantControlError::Authority)));
++            assert_eq!(pending_signal_snapshot(&root), before);
++            let controller = room.nodes[&candidate].controller.clone();
++            {
++                let held = controller.state.lock().unwrap();
++                assert!(matches!(room.orch.staged_device_replacement_endpoint_ready_for_test(&root), Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))));
++                assert_eq!(pending_signal_snapshot(&root), before);
++                drop(held);
++            }
++            if change == "stale-port" {
++                room.nodes[&candidate].backend.port(Medium::Audio).report_terminal().unwrap();
++                let result = room.orch.staged_device_replacement_endpoint_ready_for_test(&root);
++                assert!(matches!(result, Err(ParticipantControlError::Media(StreamControlError::NotReady | StreamControlError::Cancelled)) | Err(ParticipantControlError::Cancelled)));
++            } else {
++                assert!(root.cancel());
++                assert!(matches!(room.orch.staged_device_replacement_endpoint_ready_for_test(&root), Err(ParticipantControlError::Cancelled)));
++            }
++            // Refusal may initiate original cleanup, but it must not fabricate
++            // any signal sequence, answer, digits or confirmation.
++            assert_eq!(pending_signal_snapshot(&root), before);
++            root.cancel();
++        }).await;
++        let foreign_cleanup = foreign.close_originals().await;
++        let cleanup = room.close_originals().await;
++        assert!(foreign_cleanup.iter().chain(cleanup.iter()).all(|joined| *joined),
++            "original foreign/owned managed owners unjoined: {foreign_cleanup:?} {cleanup:?}");
++        if let Err(error) = work { resume_unwind(error); }
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -1689,3 +1689,7 @@
+ 
+ #[path="managed_adoption_quantum/public_video_warm.rs"]
+ mod public_video_warm;
++
++#[cfg(feature = "test-support")]
++#[path = "managed_adoption_quantum/replacement_duplex_barrier_controls.rs"]
++mod replacement_duplex_barrier_controls;
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/browser.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/guarded_mixer/replacement/adapter/browser.rs
+@@ -60,7 +60,7 @@
+     fn pending(&self) -> &Arc<DeviceReplacementPreparation> { self.pending.as_ref().unwrap() }
+     fn id(&self) -> ConnectionId { self.pending().intent().replacement.clone() }
+     fn peer(&self) -> Arc<PeerAdmission> { self.owner.as_ref().unwrap().peer() }
+-    async fn setup(&mut self, s: &Scene, mode: &str) {
++    async fn setup(&mut self, s: &Scene, mode: &str) -> tokio::time::Instant {
+         trace_stage(mode, "setup-reservation");
+         let old = s.grants.0.read().await.owners[&s.live[0].leg.id].clone();
+         let identity = IdentityBinding::from_authenticated(
+@@ -203,6 +203,7 @@
+         let plan = s.core.orch.plan_staged_device_replacement_activation(self.pending()).unwrap();
+         let g = grant(s, &intent, &self.operator, Approval::Audience(plan.clone())).await;
+         s.core.orch.activate_staged_device_replacement_with_held(self.pending(), plan, &g).await.unwrap();
++        until
+     }
+     async fn event(&self, s: &Scene, event: DeviceReplacementEndpointEvent) -> Observation {
+         let pending = self.pending();
+@@ -228,18 +229,41 @@
+         let g = grant(s, self.pending().intent(), &self.operator, Approval::Signal(event)).await;
+         captured.observe_with_held(&g).unwrap()
+     }
+-    async fn prompt(&mut self, mode: &str) {
++    async fn prompt(&mut self, s: &Scene, mode: &str, until: tokio::time::Instant) {
+         trace_stage(mode, "actual-preparation-prompt");
+-        tokio::time::sleep(Duration::from_millis(35)).await;
+-        let controller = self.controller.as_ref().unwrap();
+-        let binding = controller.active_bindings().into_iter().find(|b| b.negotiated.requested.medium == Medium::Audio).unwrap();
+-        controller.try_queue_local_audio(&desired(Medium::Audio).logical_id, MediaFrame {
+-            stream_id: binding.transport_id, kind: StreamKind::Audio, payload: tone(),
+-            timestamp_rtp: 160, source_clock: None, captured_at: Utc::now(), payload_type: Some(0),
+-        }, LocalAudioPurpose::EndpointPreparation { operation_id: self.pending().intent().operation_id.clone() }).unwrap();
+-        self.heard().await;
+-        // Readiness and the actual decoded preparation prompt precede the
+-        // original primer's natural join. A live peer/track remains owned.
++        let pending = self.pending().clone();
++        let cancellation = pending.cancellation();
++        // Preserve the original preparation cutoff across the existing prompt
++        // wait AND the actual Core predicate. No fresh readiness allowance.
++        tokio::time::timeout_at(until, async {
++            tokio::time::sleep(Duration::from_millis(35)).await;
++            let controller = self.controller.as_ref().unwrap();
++            let binding = controller.active_bindings().into_iter().find(|b| b.negotiated.requested.medium == Medium::Audio).unwrap();
++            controller.try_queue_local_audio(&desired(Medium::Audio).logical_id, MediaFrame {
++                stream_id: binding.transport_id, kind: StreamKind::Audio, payload: tone(),
++                timestamp_rtp: 160, source_clock: None, captured_at: Utc::now(), payload_type: Some(0),
++            }, LocalAudioPurpose::EndpointPreparation { operation_id: self.pending().intent().operation_id.clone() }).unwrap();
++            self.heard().await;
++            trace_stage(mode, "actual-current-core-duplex-before-primer-join");
++            loop {
++                match s.core.orch.staged_device_replacement_endpoint_ready_for_test(&pending) {
++                    Ok(()) => break,
++                    Err(ParticipantControlError::Media(
++                        StreamControlError::NotReady | StreamControlError::MetadataBusy,
++                    )) => {
++                        // Only read metadata again; never recapture/retry an
++                        // endpoint signal or install a new preparation owner.
++                        tokio::select! { biased;
++                            _ = cancellation.cancelled() => panic!("original RTC preparation cancelled"),
++                            _ = tokio::task::yield_now() => {}
++                        }
++                    }
++                    Err(error) => panic!("original RTC duplex readiness refused: {error:?}"),
++                }
++            }
++        }).await.unwrap_or_else(|error| panic!("RTC fixture failure mode={mode} stage=original-prompt-and-core-duplex-cutoff error={error:?}"));
++        // Actual duplex metadata and the decoded prompt precede the same
++        // original primer's natural join. The physical peer/track remain owned.
+         trace_stage(mode, "original-readiness-primer-natural-join");
+         assert!(self.stop_primer().await, "original RTC readiness primer naturally joined");
+     }
+@@ -313,7 +337,7 @@
+     let s = Scene::new_replacement("quic").await;
+     let mut c = Browser::new();
+     let work = std::panic::AssertUnwindSafe(async {
+-        c.setup(&s, "confirmed").await;
++        let until = c.setup(&s, "confirmed").await;
+         let revision = c.pending().intent().expected_revision;
+         let foreign = PeerAdmissionOwner::new(&c.operator,
+             s.grants.0.read().await.owners[&c.id()].member.identity().clone(),
+@@ -323,7 +347,7 @@
+         assert!(s.core.orch.plan_staged_device_replacement(c.pending(), None).is_err());
+         trace_stage("confirmed", "original-old-tones");
+         s.tone(0, 1).await; s.tone(1, 0).await;
+-        c.prompt("confirmed").await;
++        c.prompt(&s, "confirmed", until).await;
+         trace_stage("confirmed", "original-endpoint-confirmation");
+         assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Answered).await, Observation::Answered);
+         assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Dtmf { digits: "9".into() }).await, Observation::IncorrectDigits);
+@@ -417,9 +441,9 @@
+         let s = Scene::new_replacement("quic").await;
+         let mut c = Browser::new();
+         let work = std::panic::AssertUnwindSafe(async {
+-            c.setup(&s, mode).await;
++            let until = c.setup(&s, mode).await;
+             let revision = c.pending().intent().expected_revision;
+-            c.prompt(mode).await;
++            c.prompt(&s, mode, until).await;
+             if mode == "voicemail" {
+                 assert_eq!(c.event(&s, DeviceReplacementEndpointEvent::Answered).await, Observation::Answered);
+             }

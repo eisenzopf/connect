@@ -1,0 +1,412 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -727,29 +727,40 @@
+         self.target_started = self.stamp.started;
+     }
+     fn refresh(&mut self) -> ControlResult<()> {
+-        self.logical = self
+-            .consumer
+-            .logical()
+-            .ok_or(StreamControlError::NotReady)?;
++        let logical = self.consumer.logical().ok_or(StreamControlError::NotReady)?;
+         let port = {
+-            let state = self
+-                .controller
+-                .state
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner());
++            // The audio member map must not wait behind a model metadata reader.
++            let state = match self.controller.state.try_lock() {
++                Ok(state) => state,
++                Err(std::sync::TryLockError::WouldBlock) => return Err(StreamControlError::Backpressure),
++                Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++            };
+             if state.closed || self.controller.shutdown.is_cancelled() {
+                 return Err(StreamControlError::Cancelled);
+             }
+             state
+                 .active
+-                .get(&self.logical)
++                .get(&logical)
+                 .cloned()
+                 .ok_or(StreamControlError::NotReady)?
+         };
+         let stamp = self.consumer.stamp();
+         let changed = !Arc::ptr_eq(&port, &self.port);
+         let epoch = !self.ticket.is_current() || !self.stamp.is_current();
+-        if changed || epoch {
++        // Complete every fallible metadata try-lock before changing logical,
++        // clocks, codecs or any retained input/target quantum.
++        let payload_type = if changed || epoch {
++            let state = match port.state.try_lock() {
++                Ok(state) => state,
++                Err(std::sync::TryLockError::WouldBlock) => return Err(StreamControlError::Backpressure),
++                Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++            };
++            Some(state.payload_type.ok_or(StreamControlError::NotReady)?)
++        } else {
++            None
++        };
++        self.logical = logical;
++        if let Some(pt) = payload_type {
+             self.observations.note(
+                 AudioStage::RefreshReset,
+                 self.next_input_timestamp,
+@@ -758,12 +769,6 @@
+             self.clock_route = crate::clock_route::ClockRouteLease::new();
+             self.clock_source = uuid::Uuid::new_v4().as_u128();
+             self.source_timeline = None;
+-            let pt = port
+-                .state
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
+-                .payload_type
+-                .ok_or(StreamControlError::NotReady)?;
+             let codecs = Codecs::new(&port.binding.negotiated.format, pt, self.consumer.mix_rate)?;
+             if changed {
+                 self.input = port
+@@ -1185,8 +1190,33 @@
+         controller: Arc<StreamController>,
+         consumer: Arc<AudioConsumer>,
+     ) -> ControlResult<AudioMember> {
++        self.prepare_registered_inner(controller, consumer, false)
++    }
++    // Tick adoption already holds scene members. Ordinary control preparation
++    // retains its existing blocking admission path above.
++    pub(super) fn try_prepare_registered(
++        &self,
++        controller: Arc<StreamController>,
++        consumer: Arc<AudioConsumer>,
++    ) -> ControlResult<AudioMember> {
++        self.prepare_registered_inner(controller, consumer, true)
++    }
++    fn prepare_registered_inner(
++        &self,
++        controller: Arc<StreamController>,
++        consumer: Arc<AudioConsumer>,
++        nonblocking: bool,
++    ) -> ControlResult<AudioMember> {
+         let logical = consumer.logical().ok_or(StreamControlError::NotReady)?;
+-        let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++        let state = if nonblocking {
++            match controller.state.try_lock() {
++                Ok(state) => state,
++                Err(std::sync::TryLockError::WouldBlock) => return Err(StreamControlError::Backpressure),
++                Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++            }
++        } else {
++            controller.state.lock().unwrap_or_else(|p| p.into_inner())
++        };
+         if state.closed || controller.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+@@ -1199,7 +1229,15 @@
+             return Err(StreamControlError::Unsupported);
+         }
+         let pt = {
+-            let p = port.state.lock().unwrap_or_else(|p| p.into_inner());
++            let p = if nonblocking {
++                match port.state.try_lock() {
++                    Ok(state) => state,
++                    Err(std::sync::TryLockError::WouldBlock) => return Err(StreamControlError::Backpressure),
++                    Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++                }
++            } else {
++                port.state.lock().unwrap_or_else(|p| p.into_inner())
++            };
+             if !p.ready || !matches!(p.status, PortStatus::Active | PortStatus::Paused) {
+                 return Err(StreamControlError::NotReady);
+             }
+@@ -1291,16 +1329,25 @@
+                     0,
+                 );
+             }
+-            if member.refresh().is_err() {
+-                member.observations.note(
+-                    AudioStage::RefreshRefused,
+-                    member.next_input_timestamp,
+-                    member.pending.iter().map(|c| c.samples.len()).sum(),
+-                );
+-                member.pending.clear();
+-                member.target_pending.clear();
+-                member.waiting = None;
+-                continue;
++            match member.refresh() {
++                Ok(()) => {},
++                Err(StreamControlError::Backpressure) => {
++                    // Metadata exclusion is not a changed owner or permission
++                    // refusal. Preserve original waiting/PCM/target queues;
++                    // their unchanged tickets and deadlines still gate output.
++                    continue;
++                },
++                Err(_) => {
++                    member.observations.note(
++                        AudioStage::RefreshRefused,
++                        member.next_input_timestamp,
++                        member.pending.iter().map(|c| c.samples.len()).sum(),
++                    );
++                    member.pending.clear();
++                    member.target_pending.clear();
++                    member.waiting = None;
++                    continue;
++                },
+             }
+             // A fresh initial burst retains its ordinary first quantum. Later
+             // wakes repay actual retained source work, at most one extra round.
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/source_contention.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/source_contention.rs
+@@ -147,3 +147,254 @@
+         heard(output.try_recv().unwrap(), 1000).await;
+     }
+ }
++
++// Hold the ACTUAL controller metadata mutex without its independent inflight
++// permit, exactly as public metadata readers may. Always release and join BOTH
++// original threads before checking the result, including the old blocking
++// counterfactual. The500ms observation bound does not renew any packet deadline.
++struct ModelStateAudioTick {
++    release: Option<std::sync::mpsc::Sender<()>>,
++    holder: Option<std::thread::JoinHandle<()>>,
++    tick: Option<std::thread::JoinHandle<()>>,
++    returned_while_held: bool,
++    inflight_was_free: bool,
++}
++impl ModelStateAudioTick {
++    fn start(s: &Scene) -> Self {
++        let controller = s.controllers[0].clone();
++        let inflight_was_free = controller.inflight.clone().try_acquire_owned().is_ok();
++        let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
++        let (release_tx, release_rx) = std::sync::mpsc::channel();
++        let holder = std::thread::spawn(move || {
++            let _state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++            let _ = entered_tx.send(());
++            let _ = release_rx.recv_timeout(Duration::from_secs(3));
++        });
++        let mut owner = Self {
++            release: Some(release_tx),
++            holder: Some(holder),
++            tick: None,
++            returned_while_held: false,
++            inflight_was_free,
++        };
++        if entered_rx.recv_timeout(Duration::from_millis(500)).is_err() {
++            owner.close();
++            panic!("actual source model owner did not enter");
++        }
++        let mixer = s.mixer.clone();
++        let (done_tx, done_rx) = std::sync::mpsc::sync_channel(1);
++        owner.tick = Some(std::thread::spawn(move || {
++            mixer.tick();
++            let _ = done_tx.send(());
++        }));
++        owner.returned_while_held = done_rx.recv_timeout(Duration::from_millis(500)).is_ok();
++        owner
++    }
++    fn close(&mut self) -> bool {
++        if let Some(release) = self.release.take() {
++            let _ = release.send(());
++        }
++        let held = self.holder.take().is_none_or(|owner| owner.join().is_ok());
++        let tick = self.tick.take().is_none_or(|owner| owner.join().is_ok());
++        held && tick
++    }
++}
++impl Drop for ModelStateAudioTick {
++    fn drop(&mut self) {
++        self.close();
++    }
++}
++
++async fn model_state_audio_scene(stage: usize) -> (
++    Scene,
++    Vec<tokio::sync::mpsc::OwnedPermit<QueuedMedia>>,
++    mpsc::Receiver<QueuedMedia>,
++    mpsc::Receiver<QueuedMedia>,
++) {
++    let mode = Arc::new(AtomicUsize::new(0));
++    let saved = mode.clone();
++    let s = Scene::new_inner(
++        &[("a", "alice", audio(), 0), ("b", "bob", audio(), 0), ("c", "carol", audio(), 0)],
++        8000,
++        Some(Box::new(move |inner| Arc::new(BusySource {
++            inner,
++            mode: saved,
++            reads: Arc::new(AtomicUsize::new(0)),
++        }))),
++    ).await;
++    for index in 0..3 { s.bind(index, true).await; }
++    let out_a = s.port(0).take_egress().unwrap();
++    let mut out_c = s.port(2).take_egress().unwrap();
++    let egress = s.port(0).0.egress.clone();
++    let mut full = Vec::new();
++    while let Ok(permit) = egress.clone().try_reserve_owned() { full.push(permit); }
++    s.publish(0, 1800);
++    s.publish(1, 900);
++    mode.store(stage, Ordering::Release);
++    s.mixer.tick();
++    heard(out_c.try_recv().unwrap(), 900).await;
++    // Only seed the pre-existing waiting versus decoded-PCM paths with policy
++    // refusal. The contention being tested below is the real State mutex ONLY.
++    mode.store(0, Ordering::Release);
++    let queues = s.mixer.audio_queue_state_for_test(&s.controllers[0].connection).unwrap();
++    assert_eq!(queues.0, 0);
++    assert_eq!(queues.1, stage == 1);
++    assert_eq!(queues.2, (stage == 2) as usize);
++    assert_eq!(queues.3, 1, "actual unrelated PCM must already await this receiver");
++    (s, full, out_a, out_c)
++}
++
++// Record an ACTUAL guarded third-peer IO callback while State remains held.
++// Decode/assert only after owners have joined, so a negative control cannot
++// strand the source metadata owner through an assertion panic.
++async fn record_healthy_audio(out: &mut mpsc::Receiver<QueuedMedia>) -> (bool, Vec<u8>) {
++    let payload = Arc::new(Mutex::new(Vec::new()));
++    let saved = payload.clone();
++    let delivered = match out.try_recv() {
++        Ok(queued) => queued.deliver(move |frame| {
++            let bytes = frame.payload.to_vec();
++            let saved = saved.clone();
++            async move { *saved.lock().unwrap() = bytes; Ok(()) }
++        }).await.is_ok(),
++        Err(_) => false,
++    };
++    let bytes = payload.lock().unwrap().clone();
++    (delivered, bytes)
++}
++fn assert_healthy_audio(payload: &[u8], expected: i16) {
++    let mut codec = rvoip_media_core::codec::factory::CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++    let samples = codec.decode(payload).unwrap().samples;
++    assert_eq!(samples.len(), 160);
++    assert!((i32::from(samples[80]) - i32::from(expected)).abs() < 350);
++}
++
++#[tokio::test]
++async fn guarded_mixer_actual_model_state_busy_preserves_all_original_audio_queues_and_third_peer_io() {
++    for stage in [1, 2] {
++        let (s, full, mut out_a, mut out_c) = model_state_audio_scene(stage).await;
++        let before = s.mixer.audio_queue_state_for_test(&s.controllers[0].connection).unwrap();
++        s.publish_at(1, 1000, 160);
++        let mut owner = ModelStateAudioTick::start(&s);
++        let after = owner.returned_while_held.then(|| s.mixer.audio_queue_state_for_test(&s.controllers[0].connection).unwrap());
++        let healthy = if owner.returned_while_held { record_healthy_audio(&mut out_c).await } else { (false, Vec::new()) };
++        let no_idle_grant = s.policy.0.try_write().is_ok();
++        let joined = owner.close();
++        assert!(owner.inflight_was_free && owner.returned_while_held && joined, "actual State exclusion stalled the mixer");
++        let after = after.unwrap();
++        assert_eq!((after.0, after.1, after.2), (before.0, before.1, before.2));
++        assert!(after.3 >= before.3, "Busy erased original receiver PCM");
++        assert!(healthy.0 && no_idle_grant, "unrelated IO stalled or a permission reader survived");
++        assert_healthy_audio(&healthy.1, 1000);
++        drop(full);
++        s.mixer.tick();
++        heard(out_c.try_recv().expect("same original source PCM lost"), 1800).await;
++        heard(out_a.try_recv().expect("same original receiver quantum lost"), 900).await;
++        heard(out_a.try_recv().expect("next receiver quantum lost"), 1000).await;
++        s.mixer.tick();
++        assert!(out_c.try_recv().is_err() && out_a.try_recv().is_err(), "original audio replayed");
++    }
++}
++
++#[tokio::test]
++async fn guarded_mixer_actual_model_state_busy_rechecks_revocation_without_replaying_original_audio() {
++    for stage in [1, 2] {
++        let (s, full, mut out_a, mut out_c) = model_state_audio_scene(stage).await;
++        let mut owner = ModelStateAudioTick::start(&s);
++        let revoked_without_reader = match s.policy.0.try_write() {
++            Ok(mut policy) => { policy.revoked.insert("alice".into()); true },
++            Err(_) => false,
++        };
++        let joined = owner.close();
++        assert!(owner.returned_while_held && joined && revoked_without_reader);
++        drop(full);
++        s.mixer.tick();
++        assert!(out_c.try_recv().is_err() && out_a.try_recv().is_err(), "revoked original reached IO");
++        s.policy.0.try_write().unwrap().revoked.clear();
++        s.mixer.tick();
++        assert!(out_c.try_recv().is_err() && out_a.try_recv().is_err(), "permission restoration replayed old audio");
++        s.publish_at(0, 1000, 160);
++        s.mixer.tick();
++        heard(out_c.try_recv().unwrap(), 1000).await;
++    }
++}
++
++#[tokio::test]
++async fn guarded_mixer_actual_model_state_busy_keeps_original_expiry_and_accepts_only_fresh_audio() {
++    for stage in [1, 2] {
++        let (s, full, mut out_a, mut out_c) = model_state_audio_scene(stage).await;
++        let mut owner = ModelStateAudioTick::start(&s);
++        // The SAME existing200ms original age expires; Busy never renews it.
++        tokio::time::sleep(Duration::from_millis(210)).await;
++        let no_idle_grant = s.policy.0.try_write().is_ok();
++        let joined = owner.close();
++        assert!(owner.returned_while_held && joined && no_idle_grant);
++        drop(full);
++        s.mixer.tick();
++        assert!(out_c.try_recv().is_err() && out_a.try_recv().is_err(), "expired original audio escaped");
++        s.publish_at(0, 1000, 160);
++        s.mixer.tick();
++        heard(out_c.try_recv().unwrap(), 1000).await;
++        s.mixer.tick();
++        assert!(out_c.try_recv().is_err(), "fresh recovery repeated");
++    }
++}
++
++#[tokio::test]
++async fn guarded_audio_tick_adoption_busy_preserves_unclaimed_input_and_recovers_poison() {
++    use crate::staged_streams::audio_consumer::AudioConsumer;
++    use crate::staged_streams::guarded_audio::GuardedAudioMixer;
++    for port_metadata in [false, true] {
++        let s = Scene::new(&[("a", "alice", audio(), 0)], 8000).await;
++        s.publish(0, 1800);
++        let controller = s.controllers[0].clone();
++        let port = s.port(0).0.clone();
++        let consumer = AudioConsumer::optional(Some(desired(Medium::Audio).logical_id), 8000);
++        let mixer = GuardedAudioMixer::new(8000);
++        let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
++        let (release_tx, release_rx) = std::sync::mpsc::channel();
++        let held_controller = controller.clone();
++        let held_port = port.clone();
++        let holder = std::thread::spawn(move || {
++            if port_metadata {
++                let _state = held_port.state.lock().unwrap_or_else(|p| p.into_inner());
++                let _ = entered_tx.send(());
++                let _ = release_rx.recv_timeout(Duration::from_secs(3));
++            } else {
++                let _state = held_controller.state.lock().unwrap_or_else(|p| p.into_inner());
++                let _ = entered_tx.send(());
++                let _ = release_rx.recv_timeout(Duration::from_secs(3));
++            }
++        });
++        let entered = entered_rx.recv_timeout(Duration::from_millis(500)).is_ok();
++        let tick_mixer = mixer.clone();
++        let tick_controller = controller.clone();
++        let tick_consumer = consumer.clone();
++        let (done_tx, done_rx) = std::sync::mpsc::sync_channel(1);
++        let tick = std::thread::spawn(move || {
++            let result = tick_mixer.try_prepare_registered(tick_controller, tick_consumer);
++            let _ = done_tx.send(());
++            result
++        });
++        let returned_while_held = done_rx.recv_timeout(Duration::from_millis(500)).is_ok();
++        let unclaimed = returned_while_held.then(|| port.input.lock().unwrap().as_ref().map(|q| q.len()));
++        let _ = release_tx.send(());
++        let holder_joined = holder.join().is_ok();
++        let result = tick.join();
++        assert!(entered && returned_while_held && holder_joined);
++        assert!(matches!(result, Ok(Err(StreamControlError::Backpressure))));
++        assert_eq!(unclaimed, Some(Some(1)), "Busy consumed the original input receiver");
++        // Same old recovery semantics: poisoned metadata is recovered, not
++        // permanently reclassified as Busy or used to fabricate a fresh port.
++        let poison_controller = controller.clone();
++        let poison_port = port.clone();
++        let poisoned = std::thread::spawn(move || {
++            if port_metadata { let _state = poison_port.state.lock().unwrap(); panic!("deliberate original PortState poison"); }
++            else { let _state = poison_controller.state.lock().unwrap(); panic!("deliberate original Controller.State poison"); }
++        }).join().is_err();
++        consumer.activate(true);
++        let member = mixer.try_prepare_registered(controller.clone(), consumer).unwrap();
++        mixer.insert_registered(controller.connection.clone(), member);
++        assert!(poisoned);
++        assert_eq!(mixer.audio_queue_state_for_test(&controller.connection), Some((1, false, 0, 0)));
++    }
++}
