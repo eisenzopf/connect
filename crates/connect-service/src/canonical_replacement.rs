@@ -298,10 +298,12 @@ impl Runtime {
         };
         let native_request = ReplacementPreparationRequest {
             candidate_connection_id: candidate,
-            participant_revision: self
-                .core
-                .participant_revision(&sid)
-                .map_err(|_| Error::forbidden())?,
+            participant_revision: retry_metadata(&self.stop, || async {
+                self.core
+                    .try_participant_revision(&sid)
+                    .map_err(crate::canonical_runtime::participant_observation_error)
+            })
+            .await?,
             timeout_seconds: 30,
             telephone_policy: None,
             confirmation: ReplacementConfirmation::MediaOnly,

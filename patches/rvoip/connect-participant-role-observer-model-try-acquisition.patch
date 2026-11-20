@@ -1,0 +1,257 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -256,6 +256,18 @@
+     events: broadcast::Sender<ParticipantRuntimeEvent>,
+     #[cfg(feature = "memory-diagnostics")]
+     _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
++}
++
++// Only periodic role projection opts into immediate model acquisition.
++// Ordinary APIs preserve their existing wait/poison behavior.
++fn participant_model_state(runtime:&ManagedParticipantSession,immediate:bool)
++    ->ControlResult<std::sync::MutexGuard<'_,ManagedState>> {
++    if !immediate {return Ok(runtime.state.lock().unwrap_or_else(|poison|poison.into_inner()));}
++    match runtime.state.try_lock() {
++        Ok(state)=>Ok(state),
++        Err(std::sync::TryLockError::WouldBlock)=>Err(ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy)),
++        Err(std::sync::TryLockError::Poisoned(_))=>Err(ParticipantControlError::Authority),
++    }
+ }
+ 
+ struct LifecycleDeliveryGuard(ConnectionLifecycleTicket);
+@@ -446,6 +458,15 @@
+             .ok_or_else(|| RvoipError::InvalidState("participant control is not enabled").into())
+     }
+ 
++    fn try_participant_runtime(&self,session:&SessionId)
++        ->ControlResult<Option<Arc<ManagedParticipantSession>>> {
++        match self.participant_sessions.try_get(session) {
++            dashmap::try_result::TryResult::Present(runtime)=>Ok(Some(Arc::clone(runtime.value()))),
++            dashmap::try_result::TryResult::Absent=>Ok(None),
++            dashmap::try_result::TryResult::Locked=>Err(ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy)),
++        }
++    }
++
+     /// Test-only weak observations of the exact current staged member. This
+     /// grants no media authority and retains no controller, port, or codec.
+     #[cfg(feature = "test-support")]
+@@ -1164,6 +1185,49 @@
+             revision
+         })
+     }
++    /// Observe actual role and revision under one immediate metadata guard.
++    /// Busy is not a cached role, completion or permission. A terminated
++    /// coordinator preserves its exact terminal revision and no live role.
++    pub fn try_participant_role_snapshot(&self,session:&SessionId,participant:&ParticipantId)
++        ->ControlResult<(u64,Option<ParticipantRole>)> {
++        self.try_participant_model_snapshot(session,Some(participant))?
++            .ok_or_else(||RvoipError::InvalidState("participant control is not enabled").into())
++    }
++    /// Immediate read-only revision; includes the actual terminal scalar.
++    /// MetadataBusy is distinct from missing/uninitialized participant control.
++    pub fn try_participant_revision(&self,session:&SessionId)->ControlResult<u64> {
++        self.try_participant_model_snapshot(session,None)?.map(|snapshot|snapshot.0)
++            .ok_or_else(||RvoipError::InvalidState("participant control is not enabled").into())
++    }
++    /// An existence-only initialization probe. An existing coordinator needs no
++    /// model lock; its retained terminal scalar also prevents reinitialization.
++    /// Busy/poison never becomes false or authorizes initialization/reset.
++    pub fn try_participant_control_enabled(&self,session:&SessionId)->ControlResult<bool> {
++        if self.try_participant_runtime(session)?.is_some() {return Ok(true);}
++        self.try_participant_terminal_revision(session).map(|revision|revision.is_some())
++    }
++    fn try_participant_model_snapshot(&self,session:&SessionId,participant:Option<&ParticipantId>)
++        ->ControlResult<Option<(u64,Option<ParticipantRole>)>> {
++        if let Some(runtime)=self.try_participant_runtime(session)? {
++            let state=participant_model_state(&runtime,true)?;
++            return Ok(Some((state.controller.revision(),participant.and_then(|id|state.controller.role(id).cloned()))));
++        }
++        Ok(self.try_participant_terminal_revision(session)?.map(|revision|(revision,None)))
++    }
++    fn try_participant_terminal_revision(&self,session:&SessionId)->ControlResult<Option<u64>> {
++        let record=match self.sessions.try_get(session) {
++            dashmap::try_result::TryResult::Present(record)=>Arc::clone(record.value()),
++            dashmap::try_result::TryResult::Absent=>return Ok(None),
++            dashmap::try_result::TryResult::Locked=>return Err(ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy)),
++        };
++        let terminal=match record.try_read() {
++            Ok(record)=>record.participant_terminal_revision,
++            Err(std::sync::TryLockError::WouldBlock)=>return Err(ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy)),
++            Err(std::sync::TryLockError::Poisoned(_))=>return Err(ParticipantControlError::Authority),
++        };
++        Ok(terminal)
++    }
++
+     pub fn participant_revision(&self, session: &SessionId) -> ControlResult<u64> {
+         // Take an existing live owner first. A missing owner can only follow
+         // publication of its terminal scalar, so release cannot create a gap.
+@@ -1321,6 +1385,19 @@
+         )
+         .await
+     }
++    /// Project only an authorized Session role without waiting for the model
++    /// at initial validation, role-target capture or final commit. The SAME
++    /// current authority/replay/transition body applies. MetadataBusy is strictly
++    /// pre-effect; callers drop their original read before deferring.
++    pub async fn try_project_session_role_with_held(
++        self:&Arc<Self>,session_id:&SessionId,principal:AuthenticatedPrincipal,
++        mutation:ParticipantMutation,deadline:tokio::time::Instant,
++        cancellation:CancellationToken,held:&(dyn Any+Send+Sync),
++    )->ControlResult<ParticipantObservation> {
++        if !matches!(mutation.change,ParticipantChange::SetSessionRole {..}) {return Err(ParticipantControlError::Authority);}
++        self.change_participant_internal_model_access(session_id,principal,mutation,deadline,
++            cancellation,None,Some(held),false,None,true).await
++    }
+     pub async fn admit_peer_session_connection_with_held(
+         self: &Arc<Self>,
+         peer: Arc<crate::peer_admission::PeerAdmission>,
+@@ -1389,7 +1466,26 @@
+         private_audio: bool,
+         outbound: Option<&OutboundParticipantPreparation>,
+     ) -> ControlResult<ParticipantObservation> {
+-        let runtime = self.participant_runtime(session_id)?;
++        self.change_participant_internal_model_access(session_id,principal,mutation,deadline,
++            cancellation,peer,held,private_audio,outbound,false).await
++    }
++    async fn change_participant_internal_model_access(
++        self: &Arc<Self>,
++        session_id: &SessionId,
++        principal: AuthenticatedPrincipal,
++        mutation: ParticipantMutation,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        peer: Option<Arc<crate::peer_admission::PeerAdmission>>,
++        held: Option<&(dyn Any + Send + Sync)>,
++        private_audio: bool,
++        outbound: Option<&OutboundParticipantPreparation>,
++        immediate_model: bool,
++    ) -> ControlResult<ParticipantObservation> {
++        let runtime=if immediate_model {
++            if !matches!(mutation.change,ParticipantChange::SetSessionRole {..}) {return Err(ParticipantControlError::Authority);}
++            self.try_participant_runtime(session_id)?.ok_or_else(||RvoipError::InvalidState("participant control is not enabled"))?
++        } else {self.participant_runtime(session_id)?};
+         if let Some(outbound) = outbound {
+             outbound.require_invocation(self, session_id, &principal, &mutation)?;
+             if peer.is_some()
+@@ -1435,7 +1531,7 @@
+             deadline,
+         )?;
+         let mut candidate = {
+-            let mut state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            let mut state = participant_model_state(&runtime,immediate_model)?;
+             let scope = ParticipantScope {
+                 session: session_id,
+                 conversation: &runtime.conversation,
+@@ -1794,7 +1890,7 @@
+         if matches!(mutation.change, ParticipantChange::SetSessionRole { .. }) {
+             if let Some(staged) = &runtime.mixer.staged {
+                 let targets = {
+-                    let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++                    let state = participant_model_state(&runtime,immediate_model)?;
+                     let ids = state.controller.connections(&mutation.participant);
+                     staged.role_targets(&ids)
+                 };
+@@ -1818,7 +1914,7 @@
+             result = tokio::time::timeout_at(deadline, runtime.mixer.members.lock()) => result.map_err(|_|ParticipantControlError::Deadline)?,
+         };
+         let result = {
+-            let mut state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            let mut state = participant_model_state(&runtime,immediate_model)?;
+             let scope = ParticipantScope {
+                 session: session_id,
+                 conversation: &runtime.conversation,
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/held_control_tests.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/held_control_tests.rs
+@@ -720,3 +720,92 @@
+         revision
+     );
+ }
++
++
++#[tokio::test(flavor="multi_thread",worker_threads=4)]
++async fn role_watcher_model_busy_preserves_executor_same_mutation_and_real_revocation() {
++    let f=HeldFixture::new().await;
++    let _alice=f.join("alice").await;
++    let who=participant("alice");
++    let before=f.base.orch.try_participant_role_snapshot(&f.session,&who).unwrap();
++    let mutation=f.mutation("alice","same-periodic-role",ParticipantChange::SetSessionRole {role:ParticipantRole::Observer});
++    let context=f.context(mutation.clone(),principal("owner")).await;
++    let runtime=f.base.orch.participant_runtime(&f.session).unwrap();
++    let held=Arc::new(std::sync::atomic::AtomicBool::new(true));
++    let held_owner=held.clone();
++    let (entered,entered_rx)=std::sync::mpsc::channel();
++    let (release,release_rx)=std::sync::mpsc::channel();
++    let owner=std::thread::spawn(move || {
++        let state=runtime.state.lock().unwrap();
++        let _=entered.send(());
++        // A regressed blocking observation cannot strand the owner forever:
++        // release after the fuse, join, then fail its held-before-return proof.
++        let requested=release_rx.recv_timeout(Duration::from_secs(2)).is_ok();
++        drop(state);held_owner.store(false,Ordering::Release);requested
++    });
++    entered_rx.recv_timeout(Duration::from_secs(1)).unwrap();
++    let mut readers=Vec::new();
++    for _ in 0..4 {
++        let orch=f.base.orch.clone();let session=f.session.clone();let who=who.clone();let held=held.clone();
++        readers.push(tokio::spawn(async move {
++            let snapshot=orch.try_participant_role_snapshot(&session,&who);
++            let revision=orch.try_participant_revision(&session);
++            let enabled=orch.try_participant_control_enabled(&session);
++            (snapshot,revision,enabled,held.load(Ordering::Acquire))
++        }));
++    }
++    let held_timer=held.clone();
++    let timer=tokio::spawn(async move {
++        tokio::time::sleep(Duration::from_millis(1)).await;
++        held_timer.load(Ordering::Acquire)
++    });
++    let busy=f.base.orch.try_project_session_role_with_held(&f.session,context.principal.clone(),mutation.clone(),context.deadline,context.cancellation.clone(),&context).await;
++    drop(context); // The actual policy reader must not survive a Busy return.
++    let reader_released=f.policy.grant.try_write().map(|mut writer|{*writer=false;}).is_ok();
++    let denied=f.context(mutation.clone(),principal("owner")).await;
++    let revoked=f.base.orch.try_project_session_role_with_held(&f.session,denied.principal.clone(),mutation.clone(),denied.deadline,denied.cancellation.clone(),&denied).await;
++    drop(denied);
++    let mut observations=Vec::new();
++    for reader in readers {observations.push(reader.await);}
++    let timer_returned=timer.await;
++    let release_sent=release.send(()).is_ok();
++    let joined=owner.join(); // All assertions follow original owner closure.
++    assert!(release_sent&&matches!(joined,Ok(true)),"model-holder fuse elapsed before bounded observations returned");
++    assert!(matches!(busy,Err(ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy))));
++    assert!(reader_released,"Busy retained an actual external authority reader");
++    assert!(matches!(revoked,Err(ParticipantControlError::Authority)),"real policy revocation must not become temporary metadata Busy");
++    for observed in observations {
++        let(snapshot,revision,enabled,while_held)=observed.unwrap();
++        assert!(while_held,"observation waited for actual model release");
++        assert!(matches!(snapshot,Err(ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy))));
++        assert!(matches!(revision,Err(ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy))));
++        assert!(matches!(enabled,Ok(true)),"existence never needs the held live model");
++    }
++    assert!(matches!(timer_returned,Ok(true)),"four observer tasks starved the actual four-worker reactor until model release");
++    assert_eq!(f.base.orch.try_participant_role_snapshot(&f.session,&who).unwrap(),before);
++    *f.policy.grant.write().await=true;
++    let current=f.context(mutation.clone(),principal("owner")).await;
++    let applied=f.base.orch.try_project_session_role_with_held(&f.session,current.principal.clone(),mutation.clone(),current.deadline,current.cancellation.clone(),&current).await.unwrap();
++    assert_eq!((&applied.operation_id,&applied.correlation_id),(&mutation.operation_id,&mutation.correlation_id));
++    assert_eq!(applied.role,ParticipantRole::Observer);assert_eq!(applied.revision,before.0+1);
++    let replay=f.base.orch.try_project_session_role_with_held(&f.session,current.principal.clone(),mutation.clone(),current.deadline,current.cancellation.clone(),&current).await.unwrap();
++    assert_eq!(replay,applied,"same actual mutation must replay, not commit twice");
++    assert_eq!(f.base.orch.try_participant_role_snapshot(&f.session,&who).unwrap(),(applied.revision,Some(ParticipantRole::Observer)));
++    drop(current);
++    let denied_mutation=f.mutation("alice","denied-periodic-role",ParticipantChange::SetSessionRole {role:ParticipantRole::Agent});
++    *f.policy.grant.write().await=false;
++    let denied=f.context(denied_mutation.clone(),principal("owner")).await;
++    assert!(matches!(f.base.orch.try_project_session_role_with_held(&f.session,denied.principal.clone(),denied_mutation,denied.deadline,denied.cancellation.clone(),&denied).await,Err(ParticipantControlError::Authority)));
++    drop(denied);
++    assert_eq!(f.base.orch.try_participant_revision(&f.session).unwrap(),applied.revision);
++    let absent=SessionId::from_string("actual-missing-role-observer-session");
++    assert!(matches!(f.base.orch.try_participant_control_enabled(&absent),Ok(false)));
++    assert!(f.base.orch.try_participant_revision(&absent).is_err());
++    *f.policy.grant.write().await=true;
++    f.base.orch.end_session(f.session.clone(),EndReason::Normal).await.unwrap();
++    assert!(matches!(f.base.orch.try_participant_control_enabled(&f.session),Ok(true)));
++    let terminal=f.base.orch.participant_revision(&f.session).unwrap();
++    assert!(terminal>=applied.revision);
++    assert_eq!(f.base.orch.try_participant_revision(&f.session).unwrap(),terminal);
++    assert_eq!(f.base.orch.try_participant_role_snapshot(&f.session,&who).unwrap(),(terminal,None));
++}

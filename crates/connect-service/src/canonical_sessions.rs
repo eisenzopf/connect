@@ -317,4 +317,214 @@ mod http_projection_tests {
         );
         service.drain_canonical_runtime().await.unwrap();
     }
+
+    #[cfg(feature = "test-support")]
+    #[tokio::test]
+    async fn actual_model_busy_scalar_wait_yields_and_initializer_keeps_live_terminal_and_missing_distinct(
+    ) {
+        let directory = tempfile::tempdir().expect("fixture");
+        let store = std::sync::Arc::new(
+            connect_store::Store::initialize(
+                &directory.path().join("state.sqlite3"),
+                Default::default(),
+            )
+            .expect("store"),
+        );
+        let owner = store.create_identity("owner").expect("owner").id;
+        let other = store.create_identity("phone").expect("phone").id;
+        let key = store
+            .issue(
+                &owner,
+                connect_store::Scope::operator(),
+                chrono::Utc::now().timestamp() + 600,
+            )
+            .expect("key");
+        let connect_protocol::Outcome::Conversation(room) = store
+            .execute(
+                &key.id,
+                &connect_protocol::Operation::Create {
+                    request_id: "room".into(),
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                        other.clone(),
+                    ]),
+                },
+            )
+            .expect("room")
+        else {
+            panic!("room")
+        };
+        let target = room
+            .participants
+            .iter()
+            .find(|p| p.identity_id == other)
+            .expect("target")
+            .participant_id
+            .clone();
+        let service = Service::new(store);
+        service.install_canonical_runtime().expect("runtime");
+        let request = Request {
+            operation_id: "http-invite".into(),
+            conversation_id: room.id.clone(),
+            session_id: "http-session".into(),
+            by_participant: None,
+            expected_revision: None,
+            action: Action::Invite {
+                participants: vec![target],
+                medium: "voice".into(),
+                intent: "phone-callback".into(),
+                capabilities: serde_json::json!({"audio":["g.711-mu"]}),
+            },
+        };
+        let receipt = service
+            .canonical_session_held(key.id.clone(), request.clone(), None, None, None)
+            .await
+            .expect("HTTP admission");
+        assert_eq!(
+            receipt.state,
+            connect_protocol::transitions::OperationState::Completed
+        );
+        let runtime = service.canonical_runtime.get().unwrap().clone();
+        let sid = rvoip_core::ids::SessionId::from_string("http-session");
+        let missing = rvoip_core::ids::SessionId::from_string("never-projected-session");
+        assert!(!runtime
+            .core
+            .try_participant_control_enabled(&missing)
+            .unwrap());
+        assert!(runtime.core.try_participant_control_enabled(&sid).unwrap());
+        let (same, projection, held) = service
+            .store
+            .execute_session_control_projection(&key.id, request)
+            .unwrap();
+        assert_eq!(same, receipt);
+        let projection = projection.unwrap();
+        drop(held); // Never reacquire Store authority beneath the replay writer.
+        let actor = service.store.revalidate(&key.id).unwrap();
+        let principal = crate::authentication::StoreValidator::canonical(service.store.clone())
+            .principal(actor)
+            .unwrap();
+        struct ModelHolder {
+            release: Option<std::sync::mpsc::Sender<()>>,
+            owner: Option<std::thread::JoinHandle<bool>>,
+        }
+        impl ModelHolder {
+            fn release(&mut self) {
+                self.release.take().unwrap().send(()).unwrap();
+            }
+            fn close(&mut self) -> bool {
+                self.owner.take().is_some_and(|owner| owner.join().unwrap())
+            }
+        }
+        impl Drop for ModelHolder {
+            fn drop(&mut self) {
+                if let Some(release) = self.release.take() {
+                    let _ = release.send(());
+                }
+                if let Some(owner) = self.owner.take() {
+                    let _ = owner.join();
+                }
+            }
+        }
+        let (entered, ready) = std::sync::mpsc::channel();
+        let (release, released) = std::sync::mpsc::channel();
+        let owner = runtime.core.clone();
+        let held_sid = sid.clone();
+        let owner = std::thread::spawn(move || {
+            owner
+                .with_participant_model_state_exclusion_for_test(&held_sid, || {
+                    entered.send(()).unwrap();
+                    released
+                        .recv_timeout(std::time::Duration::from_secs(3))
+                        .is_ok()
+                })
+                .unwrap()
+        });
+        let mut holder = ModelHolder {
+            release: Some(release),
+            owner: Some(owner),
+        };
+        ready
+            .recv_timeout(std::time::Duration::from_secs(3))
+            .unwrap();
+        assert!(matches!(
+            runtime.core.try_participant_revision(&sid),
+            Err(
+                rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(
+                    rvoip_core::staged_streams::StreamControlError::MetadataBusy
+                )
+            )
+        ));
+        assert!(
+            runtime.core.try_participant_control_enabled(&sid).unwrap(),
+            "existence must not read the held live model or initialize another coordinator"
+        );
+        runtime
+            .project_session_container(&projection, principal.tenant.as_deref().unwrap())
+            .unwrap();
+        let cancel = tokio_util::sync::CancellationToken::new();
+        let until = tokio::time::Instant::now() + std::time::Duration::from_secs(3);
+        let stopped = tokio_util::sync::CancellationToken::new();
+        stopped.cancel();
+        assert_eq!(
+            runtime
+                .participant_revision_until(&sid, until, &stopped)
+                .await
+                .unwrap_err()
+                .code,
+            "forbidden"
+        );
+        assert_eq!(
+            runtime
+                .participant_revision_until(&sid, tokio::time::Instant::now(), &cancel)
+                .await
+                .unwrap_err()
+                .code,
+            "forbidden"
+        );
+        let heartbeat = std::sync::atomic::AtomicUsize::new(0);
+        let scalar = runtime.participant_revision_until(&sid, until, &cancel);
+        let healthy = async {
+            tokio::task::yield_now().await;
+            assert!(matches!(
+                runtime.core.try_participant_revision(&sid),
+                Err(
+                    rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(
+                        rvoip_core::staged_streams::StreamControlError::MetadataBusy
+                    )
+                )
+            ));
+            heartbeat.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+            holder.release();
+        };
+        let (revision, ()) = tokio::join!(scalar, healthy);
+        assert_eq!(revision.unwrap(), 1);
+        assert_eq!(heartbeat.load(std::sync::atomic::Ordering::Acquire), 1);
+        assert!(
+            holder.close(),
+            "original actual holder must be released by concurrent async work, never by its fuse"
+        );
+        assert_eq!(
+            runtime.core.try_participant_revision(&sid).unwrap(),
+            1,
+            "same original coordinator, no enable/admit replay"
+        );
+        runtime
+            .core
+            .end_session(sid.clone(), rvoip_core::adapter::EndReason::Normal)
+            .await
+            .unwrap();
+        let terminal = runtime.core.participant_revision(&sid).unwrap();
+        assert!(
+            runtime.core.try_participant_control_enabled(&sid).unwrap(),
+            "actual terminal scalar is not missing and cannot reinitialize"
+        );
+        assert_eq!(
+            runtime.core.try_participant_revision(&sid).unwrap(),
+            terminal
+        );
+        assert!(!runtime
+            .core
+            .try_participant_control_enabled(&missing)
+            .unwrap());
+        service.drain_canonical_runtime().await.unwrap();
+    }
 }

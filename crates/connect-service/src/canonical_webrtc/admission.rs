@@ -249,7 +249,9 @@ impl Runtime {
                 attempt.original_attempt().operation_id().into()
             },
             correlation: owned.correlation.clone().ok_or_else(Error::forbidden)?,
-            participant_revision: self.core.participant_revision(&sid).map_err(denied)?,
+            participant_revision: self
+                .participant_revision_until(&sid, deadline, &physical.lifetime)
+                .await?,
             cancel: physical.lifetime.child_token(),
             deadline,
         };
@@ -267,8 +269,9 @@ impl Runtime {
         }
         let mut admitted = None;
         for _ in 0..8 {
-            invocation.participant_revision =
-                self.core.participant_revision(&sid).map_err(denied)?;
+            invocation.participant_revision = self
+                .participant_revision_until(&sid, deadline, &invocation.cancel)
+                .await?;
             let mutation = ParticipantMutation {
                 operation_id: invocation.operation.clone(),
                 correlation_id: invocation.correlation.clone(),

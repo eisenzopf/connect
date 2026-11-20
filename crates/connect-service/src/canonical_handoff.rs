@@ -238,7 +238,10 @@ impl Runtime {
                     OldHandoffDisposition::Leave
                 },
             };
-            let revision = self.core.participant_revision(&sid).map_err(denied)?;
+            let revision = self
+                .core
+                .try_participant_revision(&sid)
+                .map_err(crate::canonical_runtime::participant_observation_error)?;
             let role = crate::canonical_runtime::participant_role(&desired);
             let independent = read
                 .media(incoming.connection_id(), None)

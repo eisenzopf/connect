@@ -2876,6 +2876,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-test-external-published-candidate-host-projection.patch",
       "sha256": "8e3197c9b35a7d5440fe037f50e2036c0e4d0476c75a365bba9970d61f709193"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-participant-role-observer-model-try-acquisition.patch",
+      "sha256": "660bab6b811e16c539714c2163cc9731cabe0e094432842a06da9ace0e33177a"
     }
   ]
 }

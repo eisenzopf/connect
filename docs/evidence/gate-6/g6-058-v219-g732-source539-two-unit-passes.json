@@ -1,0 +1,114 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 158,
+  "status": "ACTUAL_TWO_NEW_SOURCE539_CAUSAL_UNITS_PASS_ONLY_SAME45_UNRUN",
+  "actual_new_units": {
+    "generation": 539,
+    "source_files": 6576,
+    "source_sha256": "51dff75b44274995bb50d2b33939f0a144031c9cabc5e117513ba18f0fb49a38",
+    "source_prepared_unchanged": true,
+    "completed_distinct_functions": 2,
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0,
+    "Core": {
+      "selector": "orchestrator::participant_control::held_control_tests::role_watcher_model_busy_preserves_executor_same_mutation_and_real_revocation",
+      "build": "PASS",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 976,
+      "runtime_seconds_observed": 0.02,
+      "binary_sha256": "eb1688da8e6e0ebbd65b1d4d871763feb17a2abd813ff1bf15c00cba75922b96",
+      "direct_runtime_scope": "Initial modelBusy and atomic snapshots, actual four-worker/timer progress, real RwLock reader release/revocation, same-ID recovery/replay, actual missing/terminal",
+      "later_two_mutation_acquisition_races": "SOURCE_PROVED_NOT_SEPARATELY_FORCED"
+    },
+    "Service": {
+      "selector": "canonical_sessions::http_projection_tests::actual_model_busy_scalar_wait_yields_and_initializer_keeps_live_terminal_and_missing_distinct",
+      "build": "PASS",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 213,
+      "runtime_seconds_observed": 0.6,
+      "binary_sha256": "1d65af89a5daf11363d83f24dac2174edf837d89248ea833b6053d24a31ed7ff",
+      "direct_runtime_scope": "Real Store/session projection, actual held-model scalar Busy, existence without reinitialization, original cutoff/cancel, concurrent async holder release, terminal/missing"
+    },
+    "actual_single_CargoJSON_manifest_features_opt0_debug2_profiles_and_binarySHA_verified": true,
+    "both_original_Cargo_PID_PGID_natural0_unforced_joined_fresh_absent": true
+  },
+  "same_original45_next_runtime": "UNRUN",
+  "latest_completed_component_run": {
+    "id": "G724",
+    "generation": 538,
+    "completed": 45,
+    "passed": 42,
+    "failed": 3,
+    "verdict": "FAILED_UNCHANGED",
+    "remaining_three_quiet_failure_tails": "UNVERIFIED"
+  },
+  "reviewed_batch": {
+    "generation": 539,
+    "state": "APPLIED_PREPARED_WITH_TWO_SCOPED_UNIT_PASSES",
+    "no_new_code_change_claim": true
+  },
+  "whole_role_all_lockfree_claim": false,
+  "sole_G724_cause_proven": false,
+  "full_media_control_boundary_claim": false,
+  "all_historical_failed_verdicts_preserved": true,
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 236,
+  "mobile237": "PROPOSAL_ONLY",
+  "recorded_at": "2026-11-20T17:26:40.117085+00:00",
+  "proofs": {
+    "Core_actual_unit_result": {
+      "path": ".local/gate-6/g732-source539-causal-units-root/core/result.json",
+      "sha256": "234fabc46919e77368778b818259e954f5c097270873e73d5059fb35b0562188"
+    },
+    "Core_actual_unit_independent_audit": {
+      "path": ".local/gate-6/g732-actual-core-causal-unit-independent-audit/receipt.json",
+      "sha256": "c8860a6bc6477101e2dfb3c54a7795f8ecb8533580e12266c57b4666145410c8"
+    },
+    "Service_actual_unit_result": {
+      "path": ".local/gate-6/g732-source539-causal-units-root/service/result.json",
+      "sha256": "cb369921a448730e7d02e5f5b7d6201215d6b2a3066a6fb7abb417d0f080558d"
+    },
+    "both_actual_units_independent_audit": {
+      "path": ".local/gate-6/g732-actual-two-causal-units-independent-audit/receipt.json",
+      "sha256": "b434df3bd00b85ae28f684a9302861182c888278f744fb77cbb840ea542034dd"
+    },
+    "normal539_combined_preparation_audit": {
+      "path": ".local/gate-6/g729-actual-normal539-combined-independent-audit/receipt.json",
+      "sha256": "93ecabd2193699b24a61473c63cc3e987aaab43b669f1af9329b6f0273c8b50b"
+    },
+    "rolewatcher_nonauthor_source_review": {
+      "path": ".local/gate-6/g724-periodic-role-model-nonblocking-independent-source-review/receipt.json",
+      "sha256": "7c32cd8a4157a33fda5e4b2420dbd1c0183af5d27b029fa782fb0531c74e8d15"
+    },
+    "purpose_local_Service_nonauthor_source_review": {
+      "path": ".local/gate-6/g724-service-purpose-local-model-observation-independent-batch-source-review/receipt.json",
+      "sha256": "10a366c333f1e9a2d05730413e3f082334c7324b1ca13a086ae5016bec9dd931"
+    },
+    "G724_prior_failed_actual_result": {
+      "path": ".local/gate-6/g724-source538-fixture-corrections-fortyfive-root/result.json",
+      "sha256": "3a77744e831a7b74e72f996af3eff3140b5a24651710ed17823adddde1f70e96"
+    },
+    "G724_prior_failed_actual_audit": {
+      "path": ".local/gate-6/g724-actual45-independent-audit/receipt.json",
+      "sha256": "b93aeb5c5d54a517571e3c6cde3811e4d853fccb11fa9b837a8524774691a7c9"
+    },
+    "last_mobile236_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v236-source539-prepared.json",
+      "sha256": "877d3a01f82cd33bf060f75463c99171527dd46d081e7888ec2bea2bb692098f"
+    }
+  }
+}

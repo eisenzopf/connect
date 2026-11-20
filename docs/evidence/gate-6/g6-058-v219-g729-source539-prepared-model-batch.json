@@ -1,0 +1,137 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 157,
+  "status": "REVIEWED_MODEL_BATCH_APPLIED_PREPARED539_TWO_NEW_UNITS_AND_SAME45_UNRUN",
+  "latest_actual_component_run": {
+    "id": "G724",
+    "generation": 538,
+    "completed": 45,
+    "passed": 42,
+    "failed": 3,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "builds_passed": 9,
+    "inventories_passed": 9,
+    "verdict": "FAILED_UNCHANGED",
+    "passing_full_frontiers": [
+      "Core external-source control",
+      "Server Expire",
+      "Server real post-BEGIN SQL-fault"
+    ],
+    "remaining_failures": [
+      "Server Resume first live-duplex measuredquiet cutoff",
+      "Server Revoke first live-duplex measuredquiet cutoff",
+      "Server Unwind first live-duplex measuredquiet cutoff"
+    ],
+    "remaining_three_tails": "UNVERIFIED"
+  },
+  "applied_prepared_model_batch": {
+    "generation": 539,
+    "Core_existing_afterimages": 2,
+    "workspace_reviewed_paths": 11,
+    "new_files": 0,
+    "Core": "Actual try registry/terminal observations; atomic role+revision; Busy distinct from missing/poison; SetRole-only shared mutation with all3 model acquisitions try-only before effect",
+    "Service": "Periodic role reads and purpose-local revision/existence callers use agreed APIs; Busy not memoized as completed generation; original cutoff/cancel/current authority retained",
+    "observer": "Failure-only owned counters before same quiet assertion; no oracle/timewindow/readers/native sequence changes",
+    "ordinary_authorization_replay_and_effect_order_preserved": true,
+    "official_format_exit": 0,
+    "complete_old538_tree_preserved": true,
+    "unchanged_mtimes_restored": 4277,
+    "source_files": 6574,
+    "source_lock_sha256": "9c9a1a6bc9bbea3ee48e32d0b84546a2869f743c66d2142d93714baa7872fcf6",
+    "prepared": {
+      "rvoip": "25aeab9d23c52869f3d67ba386eae799dc7cf354748ffb9b1bb01ee32b007688",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "actual_preparation_audit": "ACCEPTED_PREPARATION_ONLY",
+    "historical_source_proof_pins_use_actual_g728_before_archive": true
+  },
+  "new_regression_controls": [
+    {
+      "selector": "orchestrator::participant_control::held_control_tests::role_watcher_model_busy_preserves_executor_same_mutation_and_real_revocation",
+      "status": "UNRUN"
+    },
+    {
+      "selector": "canonical_sessions::http_projection_tests::actual_model_busy_scalar_wait_yields_and_initializer_keeps_live_terminal_and_missing_distinct",
+      "status": "UNRUN"
+    }
+  ],
+  "same_original45_next_compile_runtime": "UNRUN",
+  "original45_and_quiet_private_public_sequence_oracles_and5s": "UNCHANGED",
+  "whole_role_all_lockfree_claim": false,
+  "sole_G724_cause_proven": false,
+  "other_existing_metadata_effect_locks": "RETAINED_EXPLICIT",
+  "all_historical_failed_verdicts_preserved": true,
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 235,
+  "mobile236": "PROPOSAL_ONLY",
+  "recorded_at": "2026-11-20T17:12:37.350698+00:00",
+  "proofs": {
+    "G724_failed_actual_result": {
+      "path": ".local/gate-6/g724-source538-fixture-corrections-fortyfive-root/result.json",
+      "sha256": "3a77744e831a7b74e72f996af3eff3140b5a24651710ed17823adddde1f70e96"
+    },
+    "G724_failed_actual_audit": {
+      "path": ".local/gate-6/g724-actual45-independent-audit/receipt.json",
+      "sha256": "b93aeb5c5d54a517571e3c6cde3811e4d853fccb11fa9b837a8524774691a7c9"
+    },
+    "rolewatcher_source_candidate": {
+      "path": ".local/gate-6/g724-periodic-role-model-nonblocking-source-candidate/manifest.json",
+      "sha256": "280c43b04a1c1281ccd8f59dca09f5ef48f69a3d307846d98885682ca13176a6"
+    },
+    "rolewatcher_nonauthor_source_review": {
+      "path": ".local/gate-6/g724-periodic-role-model-nonblocking-independent-source-review/receipt.json",
+      "sha256": "7c32cd8a4157a33fda5e4b2420dbd1c0183af5d27b029fa782fb0531c74e8d15"
+    },
+    "purpose_local_Service_source_candidate": {
+      "path": ".local/gate-6/g724-service-purpose-local-model-observation-source-candidate/manifest.json",
+      "sha256": "92641ae43687d8ff80cf7ab4975cde9d18313ef923e85ea99cce72e82a69c38e"
+    },
+    "purpose_local_Service_nonauthor_source_review": {
+      "path": ".local/gate-6/g724-service-purpose-local-model-observation-independent-batch-source-review/receipt.json",
+      "sha256": "10a366c333f1e9a2d05730413e3f082334c7324b1ca13a086ae5016bec9dd931"
+    },
+    "quiet_diagnostic_source_candidate": {
+      "path": ".local/gate-6/g724-native-observer-quiet-failure-phase-diagnostics-source-candidate/manifest.json",
+      "sha256": "cf268a875eee1b5f7497ce5a27fe736da049fed01fa0376c68ed4b4a1d6d2dbb"
+    },
+    "quiet_diagnostic_nonauthor_source_review": {
+      "path": ".local/gate-6/g724-native-quiet-diagnostics-independent-batch-source-review/receipt.json",
+      "sha256": "e5c37d10ed3f77ead43c8b57ffc73b579aafbab9197590e9f77ee5d8624ead79"
+    },
+    "workspace_actual_apply": {
+      "path": ".local/gate-6/g728-control-model-nonblocking-batch-root/apply-receipt.json",
+      "sha256": "0460ec1ab0140b9ee7318e34d39dce2610236913c4589d7888eb8a67c0ca791c"
+    },
+    "workspace_official_format": {
+      "path": ".local/gate-6/g728-control-model-nonblocking-batch-root/format-receipt.json",
+      "sha256": "62ccec33a2c7825b9f1d6e1937d7c4f08147f15510516957b415f1bea2b37c3f"
+    },
+    "normal539_actual_preparation": {
+      "path": ".local/gate-6/g729-normal539-nonblocking-model-root/normal539-runtime/receipt.json",
+      "sha256": "901d182d1fd68a457cee78f93c95c9b9833e9ad1cb055414975bb68c79a3623b"
+    },
+    "normal539_original_owner_join": {
+      "path": ".local/gate-6/g729-normal539-nonblocking-model-root/root-original-join.json",
+      "sha256": "93157b7b98679e309f6654ee7403405f3294ef0c77ea0194c252703a0f5ce785"
+    },
+    "normal539_combined_independent_audit": {
+      "path": ".local/gate-6/g729-actual-normal539-combined-independent-audit/receipt.json",
+      "sha256": "93ecabd2193699b24a61473c63cc3e987aaab43b669f1af9329b6f0273c8b50b"
+    },
+    "last_mobile235_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v235-source538-fortyfive.json",
+      "sha256": "78967e55dff3a2fded22bc810a81cdd3ed5b9ee69423311784644f9e7cfa6c08"
+    }
+  }
+}

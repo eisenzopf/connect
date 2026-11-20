@@ -681,12 +681,15 @@ impl Runtime {
         let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
 
         *stage = "attach";
-        self.attach(
+        self.attach_until(
             &read.target().session,
             a.principal(),
             peer.clone(),
             authority.retained(),
-        )?;
+            deadline,
+            &a.invocation_cancellation(),
+        )
+        .await?;
 
         *stage = "register";
         let entry = self
@@ -729,7 +732,9 @@ impl Runtime {
             authorized: a.clone(),
             resumed: None,
             read: read.clone(),
-            participant_revision: self.core.participant_revision(&sid).map_err(denied)?,
+            participant_revision: self
+                .participant_revision_until(&sid, deadline, &a.invocation_cancellation())
+                .await?,
         });
 
         *stage = "configure";
@@ -871,7 +876,9 @@ impl Runtime {
             authorized: a.clone(),
             resumed: Some(activation_proof.clone()),
             read: current.clone(),
-            participant_revision: self.core.participant_revision(&sid).map_err(denied)?,
+            participant_revision: self
+                .participant_revision_until(&sid, deadline, &a.invocation_cancellation())
+                .await?,
         });
         *stage = "activate-resources";
         let outcome = if isolated {
@@ -889,7 +896,9 @@ impl Runtime {
         for _ in 0..8 {
             let mut i = (*invocation).clone();
             i.read = current.clone();
-            i.participant_revision = self.core.participant_revision(&sid).map_err(denied)?;
+            i.participant_revision = self
+                .participant_revision_until(&sid, deadline, &a.invocation_cancellation())
+                .await?;
             let mutation = ParticipantMutation {
                 operation_id: admission_operation.into(),
                 correlation_id: a.envelope().id().into(),

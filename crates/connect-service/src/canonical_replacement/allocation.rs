@@ -341,12 +341,17 @@ impl Runtime {
             .ok_or_else(Error::forbidden)?;
         let rtc = read.source().context().target_transport
             == connect_protocol::provisioning::EndpointTransport::Webrtc;
-        if let Err(error) = self.attach(
-            read.target(),
-            a.principal(),
-            peer.clone(),
-            authority.retained(),
-        ) {
+        if let Err(error) = self
+            .attach_until(
+                read.target(),
+                a.principal(),
+                peer.clone(),
+                authority.retained(),
+                saved.deadline,
+                &a.invocation_cancellation(),
+            )
+            .await
+        {
             drop(read);
             drop(_roles);
             self.record_allocation_uncertain(&saved, attempt, a)

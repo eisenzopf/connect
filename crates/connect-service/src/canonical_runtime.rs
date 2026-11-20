@@ -23,6 +23,29 @@ use rvoip_uctp::v2::{
 };
 use std::sync::{Arc, Mutex, Weak};
 
+pub(crate) fn participant_observation_busy(
+    error: &rvoip_core::orchestrator::participant_control::ParticipantControlError,
+) -> bool {
+    matches!(
+        error,
+        rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(
+            rvoip_core::staged_streams::StreamControlError::MetadataBusy
+        )
+    )
+}
+pub(crate) fn participant_observation_error(
+    error: rvoip_core::orchestrator::participant_control::ParticipantControlError,
+) -> Error {
+    if participant_observation_busy(&error) {
+        Error::new(
+            "authority-busy",
+            "Participant model observation metadata is busy",
+        )
+    } else {
+        Error::forbidden()
+    }
+}
+
 /// Process-local counts. These observations confer no resource authority.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CanonicalRuntimeSnapshot {
@@ -598,7 +621,7 @@ impl Runtime {
     /// The caller retains the existing current command fence throughout this
     /// synchronous projection. Empty checked containers claim no physical peer,
     /// Participant presence, Connection, negotiated codec or media readiness.
-    pub(crate) fn project_session_container(
+    fn project_session_container_base(
         &self,
         projection: &PeerSessionProjection,
         tenant: &str,
@@ -622,28 +645,127 @@ impl Runtime {
                 [],
             )
             .map_err(|_| Error::storage())?;
-        // A retry may find the disposable Session after its first coordinator
-        // allocation failed. Always require the checked managed coordinator;
-        // a failed probe never permits attachment to an unguarded media graph.
-        if self.core.participant_revision(&sid).is_err() {
-            self.core
-                .enable_staged_participant_control(
-                    &sid,
-                    self.media.clone(),
-                    self.media.clone(),
-                    rvoip_core::orchestrator::participant_control::ParticipantLimits {
-                        participants: self.media.store.limits().participants,
-                        connections: self.capacity,
-                        // Preserve the approved 48 kHz Opus profile through
-                        // mixing. Telephone codecs resample at their boundary;
-                        // inheriting the 8 kHz default loses wideband content.
-                        mix_rate_hz: 48_000,
-                        ..Default::default()
-                    },
-                )
-                .map_err(|_| Error::storage())?;
+        Ok(())
+    }
+    fn enable_missing_participant_control(&self, sid: &SessionId) -> Result<()> {
+        self.core
+            .enable_staged_participant_control(
+                sid,
+                self.media.clone(),
+                self.media.clone(),
+                rvoip_core::orchestrator::participant_control::ParticipantLimits {
+                    participants: self.media.store.limits().participants,
+                    connections: self.capacity,
+                    // Preserve the approved 48 kHz Opus profile through
+                    // mixing. Telephone codecs resample at their boundary;
+                    // inheriting the 8 kHz default loses wideband content.
+                    mix_rate_hz: 48_000,
+                    ..Default::default()
+                },
+            )
+            .map_err(|_| Error::storage())?;
+        Ok(())
+    }
+    pub(crate) fn project_session_container(
+        &self,
+        projection: &PeerSessionProjection,
+        tenant: &str,
+    ) -> Result<()> {
+        self.project_session_container_base(projection, tenant)?;
+        let sid = SessionId::from_string(projection.session.id.clone());
+        // Presence is enough: never acquire the live model merely to decide
+        // whether it exists. Busy/poison are not permission to initialize.
+        if !self
+            .core
+            .try_participant_control_enabled(&sid)
+            .map_err(participant_observation_error)?
+        {
+            self.enable_missing_participant_control(&sid)?;
         }
         Ok(())
+    }
+    /// Retry only this scalar observation, retaining the caller's SAME resource
+    /// and operation owner. No activation, admission or durable begin is repeated.
+    pub(crate) async fn participant_revision_until(
+        &self,
+        sid: &SessionId,
+        until: tokio::time::Instant,
+        cancel: &tokio_util::sync::CancellationToken,
+    ) -> Result<u64> {
+        loop {
+            if self.stop.is_cancelled()
+                || cancel.is_cancelled()
+                || tokio::time::Instant::now() >= until
+            {
+                return Err(Error::forbidden());
+            }
+            match self.core.try_participant_revision(sid) {
+                Ok(revision) => return Ok(revision),
+                Err(error) if participant_observation_busy(&error) => {}
+                Err(error) => return Err(participant_observation_error(error)),
+            }
+            tokio::select! { biased;
+                _ = self.stop.cancelled() => return Err(Error::forbidden()),
+                _ = cancel.cancelled() => return Err(Error::forbidden()),
+                _ = tokio::time::sleep_until(until.min(tokio::time::Instant::now()+std::time::Duration::from_millis(5))) => {},
+            }
+        }
+    }
+    /// Async setup splits the one-time container projection from an existence
+    /// wait; the same current authority/peer is attached only AFTER it resolves.
+    pub(crate) async fn attach_until(
+        &self,
+        projection: &PeerSessionProjection,
+        principal: &AuthenticatedPrincipal,
+        peer: Arc<PeerAdmission>,
+        held: StoreInvocationAuthority,
+        until: tokio::time::Instant,
+        cancel: &tokio_util::sync::CancellationToken,
+    ) -> Result<()> {
+        let sid = SessionId::from_string(projection.session.id.clone());
+        if crate::canonical_sessions::terminal(&projection.session.state) || !projection.present {
+            self.core.release_peer_session_view(&peer, &sid);
+            return Ok(());
+        }
+        let member = current_member(principal, projection)?;
+        let lease = Lease {
+            value: PeerSessionAuthority {
+                actor: member,
+                invitees: vec![],
+                may_create: false,
+                may_attach: true,
+            },
+            _held: held,
+        };
+        self.project_session_container_base(
+            projection,
+            principal.tenant.as_deref().ok_or_else(Error::forbidden)?,
+        )?;
+        loop {
+            if self.stop.is_cancelled()
+                || cancel.is_cancelled()
+                || tokio::time::Instant::now() >= until
+            {
+                return Err(Error::forbidden());
+            }
+            match self.core.try_participant_control_enabled(&sid) {
+                Ok(true) => break,
+                Ok(false) => {
+                    self.enable_missing_participant_control(&sid)?;
+                    break;
+                }
+                Err(error) if participant_observation_busy(&error) => {}
+                Err(error) => return Err(participant_observation_error(error)),
+            }
+            tokio::select! { biased;
+                _ = self.stop.cancelled() => return Err(Error::forbidden()),
+                _ = cancel.cancelled() => return Err(Error::forbidden()),
+                _ = tokio::time::sleep_until(until.min(tokio::time::Instant::now()+std::time::Duration::from_millis(5))) => {},
+            }
+        }
+        self.core
+            .attach_peer_session(peer, principal, &sid, &lease)
+            .map_err(|_| Error::forbidden())
     }
     pub(crate) fn attach(
         &self,

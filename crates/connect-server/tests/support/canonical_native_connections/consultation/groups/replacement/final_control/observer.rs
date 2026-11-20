@@ -368,8 +368,24 @@ impl Evidence {
         let mut enqueued = 0usize;
         let mut packets = 0usize;
         let mut quiet = false;
+        // Failure-only bounded evidence, never a different quiet/admission oracle.
+        // Bucket 0 is observation before send_until; bucket 1 is the drain tail.
+        let mut phase_packets = [[0usize; 3]; 2];
+        let mut phase_marked = [[0usize; 3]; 2];
+        let mut phase_audible = [[0usize; 3]; 2];
+        let mut phase_peak = [[0i32; 3]; 2];
+        let mut phase_energy = [[0u64; 3]; 2];
+        let mut phase_samples = [[0u64; 3]; 2];
+        let mut phase_last_sequence = [[None::<u32>; 3]; 2];
+        let mut maximum_loop_gap_us = 0u128;
+        let mut maximum_event_wait_us = 0u128;
+        let mut maximum_enqueue_us = 0u128;
+        let mut previous_loop = start;
         while tokio::time::Instant::now() < until {
             let now = tokio::time::Instant::now();
+            maximum_loop_gap_us =
+                maximum_loop_gap_us.max(now.duration_since(previous_loop).as_micros());
+            previous_loop = now;
             let event = {
                 let receiving = peers
                     .iter_mut()
@@ -397,6 +413,7 @@ impl Evidence {
                     }
                 }
             };
+            maximum_event_wait_us = maximum_event_wait_us.max(now.elapsed().as_micros());
             match event {
                 Event::Quiet => {
                     quiet = true;
@@ -431,9 +448,12 @@ impl Evidence {
                     // is enforced by the server, so there is no local typed
                     // Preparing refusal to waive as a successful mute test.
                     attempts += 1;
+                    let enqueue_started = tokio::time::Instant::now();
                     peer.client
                         .send_native_media_datagram(&packet)
                         .expect("raw native enqueue failed; not a media authorization refusal");
+                    maximum_enqueue_us =
+                        maximum_enqueue_us.max(enqueue_started.elapsed().as_micros());
                     enqueued += 1;
                 }
                 Event::Packet(i, Err(error)) => {
@@ -479,6 +499,19 @@ impl Evidence {
                         .payload
                         .iter()
                         .any(|v| !matches!(*v, 0xff | 0x7f));
+                    let bucket = usize::from(tokio::time::Instant::now() >= send_until);
+                    phase_packets[bucket][i] += 1;
+                    phase_marked[bucket][i] += usize::from(marked);
+                    phase_audible[bucket][i] +=
+                        usize::from(pcm.iter().any(|value| value.abs() > 1000));
+                    phase_peak[bucket][i] = phase_peak[bucket][i]
+                        .max(pcm.iter().map(|value| value.abs()).max().unwrap_or(0));
+                    phase_energy[bucket][i] += pcm
+                        .iter()
+                        .map(|value| (i64::from(*value) * i64::from(*value)) as u64)
+                        .sum::<u64>();
+                    phase_samples[bucket][i] += pcm.len() as u64;
+                    phase_last_sequence[bucket][i] = Some(packet.seq);
                     if i == 2 {
                         assert_eq!(
                             packet.stream_local_id,
@@ -525,6 +558,12 @@ impl Evidence {
                     }
                 }
             }
+        }
+        if !quiet {
+            // All readers, raw forbidden-route checks and the SAME source phase
+            // ran unchanged. Energy/sample totals permit RMS reconstruction
+            // without logging payloads or treating low amplitude as silence.
+            eprintln!("SERVICE_PRIVATE_OBSERVER_QUIET_FAILURE phase={name} source={source:?} public={public:?} closed={closed} elapsed_ms={} original_budget_at_start_ms={} send_ms=400 minimum_tail_ms={} quiet_ms=200 since_last_marked_ms={} attempts={attempts} local_enqueues={enqueued} packets={packets} fresh_public={counts:?} fresh_private={private} raw_public={raw_public:?} raw_private={raw_private} historical={historical:?} phase_packets={phase_packets:?} phase_marked={phase_marked:?} phase_audible={phase_audible:?} phase_peak={phase_peak:?} phase_energy={phase_energy:?} phase_samples={phase_samples:?} phase_last_sequence={phase_last_sequence:?} maximum_loop_gap_us={maximum_loop_gap_us} maximum_event_wait_us={maximum_event_wait_us} maximum_enqueue_us={maximum_enqueue_us}",start.elapsed().as_millis(),until.duration_since(start).as_millis(),minimum_tail.duration_since(start).as_millis(),last_marked.elapsed().as_millis());
         }
         assert!(
             quiet,

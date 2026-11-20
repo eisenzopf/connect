@@ -186,20 +186,18 @@ impl Policy {
         &self,
         id: &ConnectionId,
         core: &rvoip_core::Orchestrator,
-    ) -> bool {
+    ) -> ParticipantResult<bool> {
         let Ok(entry) = self.entry(id) else {
-            return false;
+            return Ok(false);
         };
         let Ok(Some(role)) = self.store.try_native_session_role_hint(&entry.origin) else {
-            return false;
+            return Ok(false);
         };
-        core.participant_session_role(
+        let (_, observed) = core.try_participant_role_snapshot(
             &SessionId::from_string(entry.origin.session_id()),
             &ParticipantId::from_string(entry.origin.participant_id()),
-        )
-        .ok()
-        .flatten()
-            == Some(crate::canonical_runtime::participant_role(&role))
+        )?;
+        Ok(observed == Some(crate::canonical_runtime::participant_role(&role)))
     }
     fn role_sources(
         &self,
@@ -284,8 +282,10 @@ impl Runtime {
         let Ok(_serial) = self.role_projection.try_lock() else {
             return false;
         };
-        if self.media.unchanged_native_role_hint(id, &self.core) {
-            return true;
+        match self.media.unchanged_native_role_hint(id, &self.core) {
+            Ok(true) => return true,
+            Ok(false) => {}
+            Err(_) => return false, // Busy cannot complete this observed generation.
         }
         // The unchanged-role poll needs only the actual current source's read.
         let probe = if let Ok(entry) = self.media.entry(id) {
@@ -313,13 +313,10 @@ impl Runtime {
         };
         let sid = SessionId::from_string(probe.session.clone());
         let pid = ParticipantId::from_string(probe.participant.clone());
-        if self
-            .core
-            .participant_session_role(&sid, &pid)
-            .ok()
-            .flatten()
-            == Some(crate::canonical_runtime::participant_role(&probe.role))
-        {
+        let Ok((_, observed)) = self.core.try_participant_role_snapshot(&sid, &pid) else {
+            return false;
+        };
+        if observed == Some(crate::canonical_runtime::participant_role(&probe.role)) {
             return true;
         }
         let Ok((sources, native, phone)) = self.media.role_sources(&probe) else {
@@ -343,18 +340,12 @@ impl Runtime {
             return false;
         };
         let desired = crate::canonical_runtime::participant_role(&view.role);
-        if self
-            .core
-            .participant_session_role(&sid, &pid)
-            .ok()
-            .flatten()
-            == Some(desired.clone())
-        {
-            return true;
-        }
-        let Ok(revision) = self.core.participant_revision(&sid) else {
+        let Ok((revision, observed)) = self.core.try_participant_role_snapshot(&sid, &pid) else {
             return false;
         };
+        if observed == Some(desired.clone()) {
+            return true;
+        }
         let operation = format!(
             "connection-role-{}",
             hex::encode(Sha256::digest(
@@ -391,7 +382,7 @@ impl Runtime {
         };
         let outcome = self
             .core
-            .change_session_participant_with_held(
+            .try_project_session_role_with_held(
                 &sid,
                 principal,
                 mutation,
@@ -406,10 +397,9 @@ impl Runtime {
         if outcome.is_ok()
             && self
                 .core
-                .participant_session_role(&sid, &pid)
+                .try_participant_role_snapshot(&sid, &pid)
                 .ok()
-                .flatten()
-                == Some(desired)
+                .is_some_and(|(_, role)| role == Some(desired))
         {
             self.role_projections
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);

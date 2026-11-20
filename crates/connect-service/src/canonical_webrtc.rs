@@ -555,12 +555,15 @@ impl Runtime {
             }
         };
         let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
-        self.attach(
+        self.attach_until(
             &read.target().session,
             a.principal(),
             peer.clone(),
             authority.retained(),
-        )?;
+            deadline,
+            &a.invocation_cancellation(),
+        )
+        .await?;
         let base = crate::canonical_native::base_profile()?;
         let entry = self
             .media
@@ -610,9 +613,12 @@ impl Runtime {
             resumed: None,
             read: read.clone(),
             participant_revision: self
-                .core
-                .participant_revision(&SessionId::from_string(origin.session_id().to_owned()))
-                .map_err(|_| Error::forbidden())?,
+                .participant_revision_until(
+                    &SessionId::from_string(origin.session_id().to_owned()),
+                    deadline,
+                    &a.invocation_cancellation(),
+                )
+                .await?,
         };
         // Bound the controller by this exact selected program, rather than
         // the former single-audio constant or an untrusted advertised ceiling.

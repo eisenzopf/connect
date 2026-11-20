@@ -494,9 +494,8 @@ impl Runner {
             },
         };
         let revision = runtime
-            .core
-            .participant_revision(&sid)
-            .map_err(|_| Error::forbidden())?;
+            .participant_revision_until(&sid, deadline, &cancel)
+            .await?;
         let private = leg.signal.origin().source().is_private_candidate();
         let held = Box::new(policy::DialInvocation {
             leg: leg.clone(),
@@ -553,6 +552,9 @@ impl Runner {
             .set(origin.clone())
             .map_err(|_| Error::forbidden())?;
         leg.codec.set(codec).map_err(|_| Error::forbidden())?;
+        let revision = runtime
+            .participant_revision_until(&sid, deadline, &cancel)
+            .await?;
         let admission_read = loop {
             match leg.current_media_read() {
                 Ok(read) => break Arc::new(read),
@@ -573,10 +575,7 @@ impl Runner {
             }
         };
         let callback_read = admission_read.clone();
-        let revision = runtime
-            .core
-            .participant_revision(&sid)
-            .map_err(|_| Error::forbidden())?;
+
         let adapter = self.adapter.clone();
         let callback_leg = leg.clone();
         let media_policy = runtime.media.clone();

@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 157,
+  "mobile_content_revision": 236,
+  "recorded_at": "2026-11-20T17:15:35.827675+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "Source539 three-packet nonblocking-model batch applied/formatted/prepared/audited only; two new actual-lock controls and same45compile/runtimeUNRUN; G72442/45 remainsFAILED",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile236-source539-prepared-root/before-write.json",
+  "private_before_sha256": "82f72acad78e3dcb7aa1135e089aeb4a4e7f4a8c4f501a1262842a0b7a037ab6",
+  "private_write": ".local/gate-6/mobile236-source539-prepared-root/write.json",
+  "private_write_sha256": "1509ce95583ccd7ed4d396c2f79082efe7e6e8b9831fde50cb563a241b901efb",
+  "private_readback": ".local/gate-6/mobile236-source539-prepared-root/readback.json",
+  "private_readback_sha256": "dc91755fb433a556689cfe3e8ef9178db5902277aef78fb611bccbc3471f6a40"
+}
