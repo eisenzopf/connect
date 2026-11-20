@@ -1,0 +1,115 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 160,
+  "status": "ACTUAL_SOURCE541_FOUR_CAUSAL_UNITS_3PASS1FAIL_NO_AGGREGATE_QUALIFICATION",
+  "prepared_batch": {
+    "generation": 541,
+    "upstream_existing_afterimages": 16,
+    "workspace_formatted_paths": 10,
+    "registered_patch_count": 541,
+    "source_files": 6582,
+    "source_sha256": "d6cae82da74f8c9a16f9bb645ae18266b53804fc426ec708fdb382d9ad9355c4",
+    "preparation": "PASS_INDEPENDENTLY_AUDITED",
+    "complete_old539_preserved": true
+  },
+  "actual_four_new_units": {
+    "completed": 4,
+    "passed": 3,
+    "failed": 1,
+    "ignored": 0,
+    "Store": "PASS_three_same_started_Writer_turns",
+    "Clock": "PASS_lost_hint_read_race_and_saturation",
+    "NativeModel": "PASS_QUIC_and_WT_full_control_tails",
+    "NativeTOCTOU": {
+      "verdict": "FAILED",
+      "runtime_seconds": 3.11,
+      "variant": "FIRST_QUIC_ONLY",
+      "held_phase_owner_media_timer_pending_assertions": "PASSED_BEFORE_FAILURE",
+      "failure": "same_operation_recovery3s_timeout_future_subscriptions.rs1567",
+      "remaining_publication_tail_and_WT": "UNREACHED",
+      "actual_final_operation_result": "NOT_CAPTURED"
+    },
+    "natural_original_Cargo_PID_PGID_absent": [
+      41140,
+      41355,
+      41673,
+      42457
+    ],
+    "same_source_prepared_current_artifacts": true
+  },
+  "possible_recovery_fixture_mismatch": {
+    "status": "SOURCE_DERIVED_HYPOTHESIS_UNCONFIRMED",
+    "hypothesis": "screen_end_Reconcile_may_validly_return_noop_revision3_while_new_control_waits_Ok4",
+    "actual_final_result_absent": true,
+    "diagnostic_candidate": "SOURCE_ONLY_UNAPPLIED",
+    "repair_runtime_credit": false
+  },
+  "old_two_catalog_controls": "UNRUN",
+  "retained_G735": {
+    "verdict": "FAILED",
+    "passed": 41,
+    "failed": 4,
+    "generation": 539,
+    "regraded": false
+  },
+  "new49_component_run": "UNRUN",
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 238,
+  "mobile239": "PROPOSAL_ONLY",
+  "recorded_at": "2026-11-20T19:26:09.876791+00:00",
+  "proofs": {
+    "normal541_actual_preparation": {
+      "path": ".local/gate-6/g742-normal541-final-subscription-writer-root/normal541-runtime/receipt.json",
+      "sha256": "f563a1f97a236ef9c1a848513282aeb57f0c9516778f0bf99e038b737cc19229"
+    },
+    "normal541_actual_independent_audit": {
+      "path": ".local/gate-6/g742-actual-normal541-independent-audit/receipt.json",
+      "sha256": "dd0a92e588e4eb8cb8b00da6817fabedef4dbbbb895138ff768e6e8c448ae9d7"
+    },
+    "StoreClock_actual_independent_audit": {
+      "path": ".local/gate-6/g743-actual-store-clock-independent-audit/receipt.json",
+      "sha256": "898f13bf5676ce955955efe0caf615235989021daea1407185f57bdb650db217"
+    },
+    "Native_actual_independent_audit": {
+      "path": ".local/gate-6/g743-actual-native-causal-units-independent-audit/receipt.json",
+      "sha256": "5332394431ee85233fba5a1d4c3e96cebe9675d955b5f061526a31246a3fac85"
+    },
+    "Store_actual_PASS": {
+      "path": ".local/gate-6/g743-source541-causal-units-root/store/result.json",
+      "sha256": "034f4be5a091eecb842fe57ebf54753de10996667bc3fa85e468303a41229d7d"
+    },
+    "Clock_actual_PASS": {
+      "path": ".local/gate-6/g743-source541-causal-units-root/clock/result.json",
+      "sha256": "55317600387b4e3181a1b585325f5bbae29f209237522f63b49a35f52155a588"
+    },
+    "NativeModel_actual_PASS": {
+      "path": ".local/gate-6/g743-source541-causal-units-root/native-model/result.json",
+      "sha256": "5232ea18893424ccf628c8708eb3106467c279715194bd2e10b93ef3d814469e"
+    },
+    "NativeTOCTOU_actual_FAIL": {
+      "path": ".local/gate-6/g743-source541-causal-units-root/native-toctou/result.json",
+      "sha256": "f2280c5b9f585b908c3178bab58c535b4e29823edd895de698f3dcf345f557aa"
+    },
+    "native_recovery_diagnostic_source_only": {
+      "path": ".local/gate-6/g743-native-toctou-recovery-exact-phase-diagnostic-source-candidate/manifest.json",
+      "sha256": "4094634106bb7ab548a5ad92df30c7de69bfa0f65696176efc80a5fe3d613d2b"
+    },
+    "retained_G735_actual_failed_audit": {
+      "path": ".local/gate-6/g735-actual45-independent-audit/receipt.json",
+      "sha256": "7094d3456ab319fec487c1100245df28100e843e0b803029d8920ce69652dee9"
+    },
+    "last_mobile238_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v238-source539-fortyfive-regression.json",
+      "sha256": "1841a757f10c043ca4683966f2e64b1bd19a16ccb0de6889bc74aa586279be11"
+    }
+  }
+}

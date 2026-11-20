@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-20T18:19:05.492420+00:00",
+  "updated": "2026-11-20T19:26:09.876791+00:00",
   "run_status": "G677 completed all nine current build groups on source530: the Traits library compiled, while eight Core-dependent groups failed with the same two audience errors (E0063 missing an accidentally added unused legacy field and E0609 direct field access on generic MemberRead). No inventories or runtime tests ran; all45 selected component controls remain unrun. Root and all10 original children closed naturally and were freshly absent, with the6544-file source seal unchanged. The reviewed repair removes only the unused PreparedPrivateAudience.scene field and uses m.view().controller for the same Weak pointer check. It preserves the required deferred AudiencePostPublication.scene and actual current-scene Weak binding, every assertion and all selected test identities. Root registered and normally prepared this one-file change as531; preparation and independent audit passed with4278 unchanged bytes/modes restored to original mtimes, the complete original530 tree retained, and no added upstream files. The6545-file working seal records applied source preparation, not a committed or runtime-qualified batch. Coherent managed Core/Orchestrator/Store/Service/SIP integration remains applied but compile/runtime-unverified; the same nine-build/45-component lane is pending, followed by all required affected regressions. G674 packaging failure and G677 compile failures retain their original failed verdicts. The latest completed component scope remains G662 on525:13 completed,11PASS/2FAIL; historical G657 retains one forced incomplete case and three unrun cases. Root cache-only housekeeping recovered host headroom to about21GiB while retaining protected current artifacts; it adds no behavior evidence. No current shared379, complete full regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal Mac12/ARM6 releases or fresh launch preflight qualification is added. All seven readiness scopes, whole current Core-traits/SIP inventories and additive controls remain required. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 stays parked. Mobile225 remains the last verified readback; the next scoped226 update is pending Root.",
   "blockers": [
     {
@@ -20366,7 +20366,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-20T18:19:05.492420+00:00",
+  "updated_at": "2026-11-20T19:26:09.876791+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20410,9 +20410,9 @@
     "ready_for_32": false
   },
   "current_preparation_checkpoint": {
-    "status": "G735 completed all45 selected component tests on committed source539 after all nine builds and nine inventories passed:41PASS/4FAIL, with no ignored, incomplete or unrun cases. This is an overall regression from G72442/45:Server Expire lost its prior pass, while every other case verdict stayed the same. The Core external-source control and real post-BEGIN SQL-fault control remain full passes; the two new G732 Core/Service regression-unit passes remain separate scoped evidence. Root and all64 original children closed naturally, were joined and freshly absent; the6578-file source, prepared dependencies and nine binary hashes stayed fixed. Resume, Revoke and Expire now pass measured quiet in the first live-duplex phase but fail the unchanged greater-than-ten fresh public decoded-frame requirement, observing4,5 and2 frames respectively at observer.rs579. Unwind still fails the unchanged quiet cutoff at observer.rs568; its diagnostic records a4.64s maximum event wait and about4.65s scene wake gap. The remaining control tails for all four failed cases are unverified. Exact fresh-window count and scheduling-stall causes remain unproven; source metadata locks or Writer epoch churn are not established as sole causes. Two source-fix plans are being investigated and remain unapplied. No frame threshold, quiet predicate, original5s publication bound, authorization or native sequence oracle is relaxed. G735 remains failed, and G72442/45 plus all earlier failed results retain their historical verdicts. Current shared379, complete affected regressions including whole Core-traits/SIP and both new test identities, OriginalV8 and all seven recorded readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile238 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g735-source539-fortyfive-regression.json",
-    "sha256": "2f17457a7a31341b2d9e8658374cf2103bcf410beac302d8f5b4e6948fa41efa"
+    "status": "Normal541 is applied, prepared and independently audited: 16 existing upstream afterimages and 10 formatted workspace paths, with both canonical patches registered and the complete prior539 tree preserved. On the unchanged6582-file source, four new causal units completed: Store, selection clock and Native Model passed; Native TOCTOU failed, for3PASS/1FAIL with zero ignored. The Store control passed three same-started Writer turns with old-epoch refusal, disjoint-source currentness, unchanged SQL and fresh recovery. The clock control passed notification-registration/read-race and saturation checks. Native Model passed both QUIC and WebTransport, including held-model media/timer/pending-command progress, recovery, unchanged idle and revocation tails. TOCTOU passed its first QUIC held-phase owner/media/timer/pending assertions, then failed the unchanged3s same-operation recovery wait at future_subscriptions.rs1567 after3.11s; its remaining publication tail and WebTransport variant were not reached. Its final operation result was not captured. A source-derived possible fixture mismatch between a valid no-op revision3 and the test's expected revision4 remains unconfirmed; a failure-only diagnostic candidate is source-only and unapplied. Both old catalog controls remain unrun. The four original Cargo owners closed naturally and were freshly absent; source, prepared dependencies and actual current artifacts stayed fixed. G735 remains failed at41/45 on historical source539; neither its four failures nor mixed-audio behavior is newly qualified. The new49-case component run, current shared379, complete affected/full regressions, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile239 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g743-source541-four-causal-units.json",
+    "sha256": "8e0206b65e692885ce6d67f031ab907ea92200d3a2bafb10ef7035ccb23654b7"
   },
   "v219_g550_current_failure_frontiers": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
@@ -20981,5 +20981,19 @@
     "next_source_fixes": "INVESTIGATION_UNAPPLIED",
     "qualification": false,
     "matrix_credit": false
+  },
+  "v219_g743_source541_four_causal_units": {
+    "status": "actual541-four-new-units3PASS1FAIL-recovery-timeout-diagnostic-unapplied",
+    "prepared_generation": 541,
+    "actual_new_unit_functions_completed": 4,
+    "actual_new_unit_passed": 3,
+    "actual_new_unit_failed": 1,
+    "same49": "UNRUN",
+    "retained_G735": "FAILED41PASS4FAIL_NOT_REGRADED",
+    "diagnostic": "SOURCE_ONLY_UNAPPLIED",
+    "qualification": false,
+    "matrix_credit": false,
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g743-source541-four-causal-units.json",
+    "sha256": "8e0206b65e692885ce6d67f031ab907ea92200d3a2bafb10ef7035ccb23654b7"
   }
 }

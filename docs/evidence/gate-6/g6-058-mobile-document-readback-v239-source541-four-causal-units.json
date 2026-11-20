@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 160,
+  "mobile_content_revision": 239,
+  "recorded_at": "2026-11-20T19:28:12.486484+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "Source541 prepared production batch; four new causal units3PASS1FAIL, native recovery final outcome absent; diagnostic source-reviewed/unrun; two old catalog/49/all7readiness open; no matrix credit",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile239-source541-four-causal-units-root/before-write.json",
+  "private_before_sha256": "6685b59642a4e9ed79981dac4833b459a6aab86e8488e03e99b0af360f9d527e",
+  "private_write": ".local/gate-6/mobile239-source541-four-causal-units-root/write.json",
+  "private_write_sha256": "2559b4e645a5b7714777dab4e01bcda8b4a87a3d7e428d4fe6c9361fec29d19b",
+  "private_readback": ".local/gate-6/mobile239-source541-four-causal-units-root/readback.json",
+  "private_readback_sha256": "a46738280be58536bd503a4f4b2879711301868ba1b4b134be347a8501cbcb74"
+}
