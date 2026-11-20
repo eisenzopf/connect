@@ -28,11 +28,17 @@ pub struct TelephoneConnectionSnapshot {
     pub expected_movement: serde_json::Value,
     pub recipients: Vec<String>,
 }
+mod prepared;
+pub use prepared::TelephoneReplacementCommitPreparation;
+
 pub struct TelephoneReplacementCommitAttempt {
     pub(super) resources: Arc<TelephoneReplacementResourcesCapture>,
     pub(super) attempt: String,
     pub(super) effect: String,
     pub(super) descriptor: String,
+    original_until: i64,
+    sources: Vec<Arc<crate::NativeMediaOrigin>>,
+    original_scene: String,
     pub(super) snapshot: TelephoneConnectionSnapshot,
 }
 pub struct TelephoneReplacementCommitted {
@@ -98,7 +104,7 @@ impl Store {
         Arc<TelephoneReplacementCommitAttempt>,
         TelephoneReplacementSceneRead,
     )> {
-        self.begin_telephone_commit_admission(read, None)?
+        self.begin_telephone_commit_admission(read, None, None)?
             .ok_or_else(|| Error::new("authority-busy", "Telephone commit admission is busy"))
     }
     pub fn try_begin_telephone_replacement_commit_with_wait(
@@ -114,12 +120,28 @@ impl Store {
         let wait = wait.bounded(std::time::Duration::from_secs(
             (read.expires_at()).saturating_sub(crate::now()).max(0) as u64,
         ));
-        self.begin_telephone_commit_admission(read, Some(&wait))
+        self.begin_telephone_commit_admission(read, Some(&wait), None)
+    }
+    /// Begin only the once-chosen prepared telephone movement; never originate IO.
+    pub fn try_begin_prepared_telephone_replacement_commit_with_wait(
+        &self,
+        preparation: &TelephoneReplacementCommitPreparation,
+        read: TelephoneReplacementSceneRead,
+        wait: &crate::AuthorityWait,
+    ) -> Result<
+        Option<(
+            Arc<TelephoneReplacementCommitAttempt>,
+            TelephoneReplacementSceneRead,
+        )>,
+    > {
+        preparation.require_read(&read)?;
+        self.begin_telephone_commit_admission(read, Some(wait), Some(preparation))
     }
     fn begin_telephone_commit_admission(
         &self,
         read: TelephoneReplacementSceneRead,
         control_wait: Option<&crate::AuthorityWait>,
+        preparation: Option<&TelephoneReplacementCommitPreparation>,
     ) -> Result<
         Option<(
             Arc<TelephoneReplacementCommitAttempt>,
@@ -172,92 +194,25 @@ impl Store {
         // It retains this SAME Write through the already-prepared Core cut;
         // no fresh Read can fail after the durable attempt has been reserved.
         let read = self.telephone_scene_read_in(&tx, resources.clone(), &sources, held, until)?;
-        let ctx = read.media.source().context();
-        if !self.authority_covers(&read.media.interval, &p.selection.scopes(self, &tx, false)?)
-            || read
-                .existing(&ctx.source_runtime_connection_id, None)
-                .is_none()
-            || read
-                .existing(&ctx.retained_runtime_connection_id, None)
-                .is_none()
-        {
-            return Err(Error::forbidden());
-        }
-        let (_, _, descriptor) = facts(
-            self,
-            &tx,
-            p,
-            read.media.source(),
-            &a.route_credential,
-            &a.policy,
-        )?;
-        if descriptor != read.media.read.descriptor {
-            return Err(conflict());
-        }
-        let exists:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit')",[&p.record],|r|r.get(0)).map_err(|_|Error::storage())?;
-        if exists {
-            return Err(Error::new(
-                "reconciliation-required",
-                "Telephone movement was already attempted",
-            ));
-        }
-        let confirmed:u32=tx.query_row("SELECT count(*) FROM telephone_replacement_phases s JOIN operation_effects e ON e.id=s.effect_id AND e.state='confirmed' WHERE s.operation_record_id=?1 AND s.runtime_epoch=?2 AND s.observation_json IS NOT NULL",params![p.record,p.runtime],|r|r.get(0)).map_err(|_|Error::storage())?;
-        if confirmed != 3 {
-            return Err(Error::new(
-                "not-ready",
-                "Actual telephone confirmation is not recorded",
-            ));
-        }
-        let plan = allocation::current_prepared(self, &tx, p)?;
-        let revision = plan["expected_preparation"]["participant_revision"]
-            .as_u64()
-            .and_then(|v| v.checked_add(1))
-            .filter(|v| *v <= 9_007_199_254_740_991)
-            .ok_or_else(invalid)?;
-        let movement = serde_json::json!({"operation_id":ctx.operation_record_id,"session":ctx.session_id,"participant":ctx.participant_id,"membership_epoch":ctx.membership_epoch,"source":ctx.source_runtime_connection_id,"candidate":plan["candidate_runtime_id"],"retained":ctx.retained_runtime_connection_id,"endpoint":ctx.target_endpoint_id,"device":ctx.target_device_id,"generation":plan["generation"],"participant_revision":revision,"role":ctx.role,"confirmation":plan["confirmation"]});
-        let snapshot = TelephoneConnectionSnapshot {
-            connection_id: plan["candidate_connection_id"]
-                .as_str()
-                .ok_or_else(invalid)?
-                .into(),
-            runtime_connection_id: read.audio.candidate.clone(),
-            conversation_id: ctx.conversation_id.clone(),
-            session_id: ctx.session_id.clone(),
-            participant_id: ctx.participant_id.clone(),
-            membership_epoch: ctx.membership_epoch,
-            identity_id: ctx.identity_id.clone(),
-            endpoint_id: ctx.target_endpoint_id.clone(),
-            device_id: ctx.target_device_id.clone(),
-            generation: read.audio.generation,
-            source_connection_id: p
-                .selection
-                .origin
-                .request()
-                .connection_id
-                .clone()
-                .ok_or_else(invalid)?,
-            source_generation: plan["source_generation"].as_u64().ok_or_else(invalid)?,
-            route_credential_id: a.route_credential.clone(),
-            route_owner_id: read.media.route_actor().identity_id.clone(),
-            route_reference: a.policy.route_reference.clone(),
-            destination: read.media.destination()?,
-            endpoint_address: ctx.target_address.clone(),
-            role: ctx.role.clone(),
-            media: read.audio.clone(),
-            expected_movement: movement,
-            recipients: crate::audience::source_members(
-                &tx,
-                &ctx.conversation_id,
-                connect_protocol::membership::ContentKind::Session,
-                &ctx.session_id,
-            )?,
+        let (snapshot, descriptor, expected) =
+            self.telephone_commit_preparation_facts(&tx, &read, None)?;
+        let prepared = match preparation {
+            Some(value) => {
+                value.require_snapshot(&read, &descriptor)?;
+                None
+            }
+            None => Some(TelephoneReplacementCommitPreparation::new(
+                &read,
+                snapshot.clone(),
+                descriptor.clone(),
+            )?),
         };
-        let descriptor = crate::provisioning::canonical_json(
-            &serde_json::to_value(&snapshot).map_err(|_| Error::storage())?,
-        )?;
-        let expected = crate::provisioning::canonical_json(&snapshot.expected_movement)?;
-        let attempt = format!("tcm_{}", uuid::Uuid::new_v4());
-        let effect = format!("tre_{}", uuid::Uuid::new_v4());
+        let preparation = match preparation {
+            Some(value) => value,
+            None => prepared.as_ref().ok_or_else(Error::forbidden)?,
+        };
+        let attempt = preparation.attempt.clone();
+        let effect = preparation.effect.clone();
         if let Some(wait) = control_wait {
             wait.check()?;
             if !read.current() {
@@ -281,6 +236,9 @@ impl Store {
                 attempt,
                 effect,
                 descriptor,
+                original_until: preparation.original_until.min(read.expires_at()),
+                sources: preparation.sources.clone(),
+                original_scene: preparation.original_scene.clone(),
                 snapshot,
             }),
             read,

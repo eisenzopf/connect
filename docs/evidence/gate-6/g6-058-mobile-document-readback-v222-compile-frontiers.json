@@ -1,0 +1,18 @@
+{
+  "format": "connect/mobile-progress-scoped-readback/1",
+  "recorded_at": "2026-11-20T07:08:50.031287+00:00",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "content_revision": 222,
+  "repository_checkpoint": 143,
+  "replaced_root_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "paragraph_count": 422,
+  "unrelated_owner_paragraphs_preserved": 419,
+  "verified": true,
+  "raw_readback_private": ".local/gate-6/mobile222-g649-g653-compile-frontiers-root/readback.json",
+  "raw_readback_sha256": "93a86fb1f39724fa08aaffacf87c9c9d6251a37459f4e52170f460412bff27ac",
+  "scope": "G649/G653 actual compile frontiers/runtime0, current three RTC/Native compile passes only, narrow repairs source-reviewed; focused13 and caller/full/matrix pending. Last matrix1/32 remains unchanged."
+}

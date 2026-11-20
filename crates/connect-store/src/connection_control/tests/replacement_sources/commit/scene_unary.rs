@@ -1291,3 +1291,5 @@ fn invocation_local_scene_owner_keeps_current_credentials_and_earliest_nested_ex
     );
     drop(occupied);
 }
+
+mod final_admission;

@@ -1,0 +1,18 @@
+{
+  "format": "connect/mobile-progress-scoped-readback/1",
+  "recorded_at": "2026-11-20T07:56:13.744475+00:00",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "content_revision": 223,
+  "repository_checkpoint": 144,
+  "replaced_root_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "paragraph_count": 422,
+  "unrelated_owner_paragraphs_preserved": 419,
+  "verified": true,
+  "raw_readback_private": ".local/gate-6/mobile223-g657-partial-thirteen-root/readback.json",
+  "raw_readback_sha256": "ebf15cfe9172891318a640d5016db12b7e28e7dbf7c7d8e428e6e7f0f3427700",
+  "scope": "G657 failed partial scope:four buildsPASS,ninecomplete5PASS4FAIL,oneforcedincomplete,threeunrun. Fixture repairs/normal525 untested; full/caller/matrixpending."
+}

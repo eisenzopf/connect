@@ -485,10 +485,44 @@ fn facts_for_without_connection_dependency(
     origin: &NativeMediaOrigin,
     purpose: ReadPurpose,
 ) -> Result<(PeerConnectionProjection, Vec<AuthorityScope>, i64)> {
+    facts_for_without_connection_dependency_in(store, c, origin, purpose, None)
+}
+fn facts_for_handoff_cut(
+    store: &Store,
+    c: &Connection,
+    origin: &NativeMediaOrigin,
+    attempt: &crate::NativeHandoffAdmission,
+) -> Result<(PeerConnectionProjection, Vec<AuthorityScope>, i64)> {
+    attempt.require_unpublished(store, c)?;
+    let (view, mut scopes, until) = facts_for_without_connection_dependency_in(
+        store,
+        c,
+        origin,
+        ReadPurpose::Media,
+        Some(attempt.record_id()),
+    )?;
+    scopes.push(AuthorityScope::connection(
+        origin.connection_id(),
+        AuthorityMode::Read,
+    )?);
+    Ok((
+        view,
+        AuthorityScope::merged(&scopes)?,
+        until.min(attempt.expires_at()),
+    ))
+}
+fn facts_for_without_connection_dependency_in(
+    store: &Store,
+    c: &Connection,
+    origin: &NativeMediaOrigin,
+    purpose: ReadPurpose,
+    own_unpublished_handoff: Option<&str>,
+) -> Result<(PeerConnectionProjection, Vec<AuthorityScope>, i64)> {
     current_owner(store, origin).map_err(|e| native_view_error("owner", e))?;
     credential_refresh::require_epoch(store, c, origin)
         .map_err(|e| native_view_error("credential epoch", e))?;
-    if let Some(life) = handoff_lifetime::current(store, c, origin)? {
+    if let Some(life) = handoff_lifetime::current_except(store, c, origin, own_unpublished_handoff)?
+    {
         let (mut view, mut scopes, expiry) = match purpose {
             ReadPurpose::Media => returns::handoff_facts(store, c, origin)?,
             ReadPurpose::Signal | ReadPurpose::Presence => returns::signal_facts(store, c, origin)?,

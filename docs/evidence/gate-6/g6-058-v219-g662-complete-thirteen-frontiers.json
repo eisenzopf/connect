@@ -1,0 +1,186 @@
+{
+  "format": "connect/g6-058-complete-component-frontier-progress/1",
+  "checkpoint": 145,
+  "recorded_at": "2026-11-20T08:12:06.775248+00:00",
+  "summary": "G662 completed all 13 selected component tests after four current builds and inventories: 11 passed and two failed. There were no forced, incomplete or unrun cases. Root and all 22 original children exited naturally, were joined and were freshly absent; the source525 seal 8eda4ae0 covering 6523 files and four binary hashes remained fixed through close. The RTC partial-stream case failed its resource-refusal assertion after logical video end, before actual worker cleanup; a reviewed fixture correction now uses real reconcile_cleanup under the same end deadline and keeps every original assertion. The telephone same-attempt case returned authority-busy at its wait fixture; its correction remains pending. Both failures retain their original verdicts. Historical G657 remains partial: nine completed with five passes and four failures, one externally terminated incomplete Store case and three Store cases unrun; its raw all_original_groups_joined=false is not rewritten. Service caller review found three open source issues: Native first durable begin lacks the once-pinned cutoff; generic error-code retry can re-enter an uncertain first begin in all three routes; the four new controls hold a Controller.State gate that resource metadata reads before Started/Core, so their intended StillUnpublished setup cannot work. The author is correcting these; a reviewed test-support helper exposes the real participant-model gate without changing shipping behavior. The accepted Backend, Orchestrator and SIP assembly remains 46 source-only files with 24 authored controls, unapplied and unverified as a complete boundary; Service integration is not accepted. No complete regression, shared379, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal Mac12/ARM6 releases or fresh launch qualification is added. Whole current Core-traits/SIP inventories and all additive controls remain required. Matrix remains v218: 1/32 cells and 399/432 checks, not ready for 32; G6-054 stays parked. Existing mobile223 is retained pending Root’s fresh scoped update.",
+  "actual_G662": {
+    "source": {
+      "generation": 525,
+      "sha256": "8eda4ae0f5575cc3ba2349adeb75f3ba0841ea65368bca8fc9b98ff46a0bff6d",
+      "files": 6523,
+      "unchanged_at_original_close": true
+    },
+    "builds": {
+      "passed": 4,
+      "current_CargoJSON_artifacts_verified": 4,
+      "profile": "opt0/debug2/test; original feature selections",
+      "current_binary_sha_resolved_paths_equal": true
+    },
+    "inventories": {
+      "rvoip-webrtc": 285,
+      "rvoip-uctp": 219,
+      "rvoip-uctp-v2-peer-admission": 211,
+      "connect-store": 1846
+    },
+    "tests": {
+      "completed": 13,
+      "passed": 11,
+      "failed": 2
+    },
+    "passed_selectors": [
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_current_and_final_resource_witness_do_not_wait_for_original_port_map",
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_resource_witness_preserves_worker_source_and_physical_invalidation",
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_resource_witness_is_bound_to_original_publication_and_poison",
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_participant_physical_witness_precedes_stream_readiness_without_fabricating_it",
+      "canonical::media::worker_health::currentness_tests::worker_currentness_never_owns_or_waits_for_original_setup",
+      "v2::native_negotiation::activation::publication_tests::actual_current_does_not_wait_for_preparation_publication_and_poison_refuses",
+      "peer_native::canonical_media::native_offers::bootstrap::actual_native_initial_activation_enters_managed_scene_after_signed_confirmation_and_observes_real_flow",
+      "connection_control::tests::handoff_custody::final_admission::handoff_same_started_attempt_purpose_writer_preserves_modes_currentness_and_original_cutoff",
+      "connection_control::tests::replacement_sources::commit::scene_unary::final_admission::native_commit_grantfree_preparation_releases_actual_source_writer_and_preserves_same_attempt",
+      "connection_control::tests::replacement_sources::commit::scene_unary::final_admission::native_commit_same_attempt_readmission_refuses_changed_ledger_identity_currentness_and_foreign_scene",
+      "connection_control::tests::replacement_sources::commit::scene_unary::final_admission::native_commit_prepared_facts_do_not_survive_actual_permission_withdrawal_or_scene_change"
+    ],
+    "failed_selectors": [
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_audio_continues_after_video_end_and_exact_readded_stream_is_fenced",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::final_admission::telephone_commit_preparation_and_same_attempt_readmission_keep_no_idle_writer_and_never_renew"
+    ],
+    "failure_evidence": {
+      "RTC_partial_stream": "actual assertion1831 confirm_resources(original prepared.bindings()).is_err() failed after logical end; no source-review regrade. Worker cleanup sequencing investigation is separate.",
+      "telephone_same_attempt": "actual unwrap57 returned authority-busy; no retry/timeout/pass inferred."
+    },
+    "ownership": {
+      "original_tool": 85541,
+      "root_pid": 79208,
+      "root_pgid": 79208,
+      "root_natural_exit": 1,
+      "children": 22,
+      "all_child_waits_returned_natural_unforced": true,
+      "fresh_root_and_child_pid_pgid_absent": true,
+      "raw_all_original_groups_joined": true
+    },
+    "scope_complete": true,
+    "scope_passed": false,
+    "forced_cases": 0,
+    "incomplete_cases": [],
+    "unrun_cases": []
+  },
+  "historical_G657": {
+    "completed": 9,
+    "passed": 5,
+    "failed": 4,
+    "externally_forced_incomplete": 1,
+    "unrun": 3,
+    "raw_all_original_groups_joined": false,
+    "original_result_retained": true
+  },
+  "pending_repairs": {
+    "RTC_cleanup_fixture": "source-reviewed; actual worker cleanup uses same end bound, runtime retest pending",
+    "telephone_wait_fixture": "authoring; no pass inferred",
+    "Service_callers": "V1 held on three concrete findings; coherent successor pending",
+    "actual_participant_model_test_gate": "source-only reviewed overlay; no shipping behavior or runtime proof"
+  },
+  "Service_review_findings": [
+    {
+      "id": "native-first-begin-original-cutoff",
+      "file": "crates/connect-service/src/canonical_replacement/movement/managed_final.rs",
+      "detail": "First final Writer/begin uses old unbounded-by-Service-cutoff APIs after one loop-start until check. Cold Invocation.deadline shortening does not shorten Store preparation.original_until copied from read.expires_at. First durable Started can therefore occur after once-pinned Service cutoff. Phone/Handoff carry explicit original AuthorityWait into begin.",
+      "required_resolution": "Propagate original cancellation/cutoff into native durable begin, check before DML/commit, preserve actual owned attempt on late successful commit; actual pre-cancelled/expired no-DML negative."
+    },
+    {
+      "id": "begin-error-code-replay",
+      "files": [
+        "canonical_replacement/movement/managed_final.rs",
+        "telephone_replacement/movement/managed_final.rs",
+        "canonical_handoff/managed_final.rs"
+      ],
+      "detail": "Global temporary(error) retries authority-busy/storage-unavailable step errors while Prepared is Some, including errors from first durable begin. Attempt stays None, allowing first begin re-entry despite Store contract authorizing repeat only by typed Ok(None) before DML. Same-ID duplicate guards do not grant uncertainty replay permission.",
+      "required_resolution": "Stage-aware explicit begin outcome: only definite pre-entry/admission or typed Ok(None) may retry; begin Err retains true uncertainty/IDs and cannot become NotSubmitted or repeated first begin."
+    },
+    {
+      "id": "new-four-wrong-metadata-gate",
+      "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/final_control.rs",
+      "detail": "Candidate StreamController.State is held before final resource DTO; backend try_final_resource_requirements takes that State before Writer/begin/Core. Thus no Started or actual StillUnpublished can occur while holder remains held, contradicting every new control expectation.",
+      "required_resolution": "Use real participant runtime model gate that DTO does not acquire, with same bounded owner release/join and strict Started/StillUnpublished/Writer-free/IO/cutoff/post assertions. Actual test-support overlay1843 was separately source accepted268a48b3; no runtime proof."
+    }
+  ],
+  "accepted_upstream_assembly": {
+    "files": 46,
+    "authored_controls": 24,
+    "BackendV3": 5,
+    "OrchestratorV2": 8,
+    "SIPV2": 11,
+    "applied": false,
+    "compiled": false,
+    "run": false,
+    "complete_boundary": false
+  },
+  "remaining_readiness": [
+    "Finish and verify all legitimate native/telephone/Handoff Service final-currentness, attempt, Writer-release and PostCustody paths.",
+    "Fresh committed-source shared379 and complete retained/additive full regression using actual inventories, including whole current Core-traits and rvoip-sip suites.",
+    "OriginalV8 all three original cases on the same seal, strict Firefox NORMAL3 and original900 with469Rust plus431script occurrences and both full62 cases LAST.",
+    "Current native SourcePrep and local ARM11; normal Mac12/ARM6 shipping releases and fresh launch preflight."
+  ],
+  "mobile_sync": {
+    "retained_revision": 223,
+    "fresh_scoped_update": "pending Root"
+  },
+  "next_focused_result": null,
+  "proofs": {
+    "g662_result": {
+      "path": ".local/gate-6/g662-source525-thirteen-fixture-repaired-controls-root/result.json",
+      "sha256": "b7c2c3e378018d12b73216110cbfb301d52b3c6b043e34990c8d2af76cb97e0b"
+    },
+    "g662_original_join": {
+      "path": ".local/gate-6/g662-source525-thirteen-fixture-repaired-controls-root/root-original-join.json",
+      "sha256": "ea0b2a52e2d75907df85d997b2bf41ffa51419bbcf2daf40636907a171ee417e"
+    },
+    "g662_actual_independent_audit": {
+      "path": ".local/gate-6/g662-actual-thirteen-independent-epoch-audit/receipt.json",
+      "sha256": "81ab085462baa6b929cd2b3739eced74b3082df022c6ee3ad94f146b7fe98922"
+    },
+    "g657_failed_partial_history": {
+      "path": ".local/gate-6/g657-actual-partial-thirteen-independent-epoch-audit/receipt.json",
+      "sha256": "d3ae11ef4049a5c4848a6b5a1636551c81983acd19dcfcd408ec4241a9eb1bfb"
+    },
+    "g663_RTC_cleanup_fixture_source": {
+      "path": ".local/gate-6/g663-rtc-ended-video-real-cleanup-fixture-source-candidate/manifest.json",
+      "sha256": "5beaf2f9d40bcaa22855acfac6651033fdab7195c107cc5c8619906b148c2972"
+    },
+    "g663_RTC_cleanup_fixture_review": {
+      "path": ".local/gate-6/g663-rtc-cleanup-fixture-independent-epoch-source-review/receipt.json",
+      "sha256": "702f8849ae440095f5f6b30e7e0b97b630edefaef4507b79872bd2e0421a0a39"
+    },
+    "Service_callers_V1_source": {
+      "path": ".local/gate-6/g655-service-final-control-callers-source-candidate/manifest.json",
+      "sha256": "1fce59ca326158d1955023dffb7e9e78309a7840f3bf19ad71584415deaa3c2d"
+    },
+    "Service_targeted_findings": {
+      "path": ".local/gate-6/g655-service-final-control-targeted-epoch-source-review/v1-findings.json",
+      "sha256": "854ee380f5b05e1508fde9e2c9ef771db8adad85f02551d310e44296fa265986"
+    },
+    "actual_model_gate_test_support_overlay": {
+      "path": ".local/gate-6/g664-service-actual-managed-model-gate-test-support-overlay/manifest.json",
+      "sha256": "1843bf9bfbdf2513304babd26d0635ec67fbf9777622bf2e32a62adce717a860"
+    },
+    "actual_model_gate_overlay_review": {
+      "path": ".local/gate-6/g664-actual-model-gate-independent-batch-source-review/receipt.json",
+      "sha256": "268a48b3ec51708b6f5c237b30d975951c2ba7ce1603d23c25518088da2db331"
+    },
+    "accepted_three_packet_source_assembly": {
+      "path": ".local/gate-6/g655-accepted-managed-three-packet-inert-source-assembly/manifest.json",
+      "sha256": "9f45d358d5a3b19a010534036477b14bac0fecea79803793b1642e2f5fb63547"
+    }
+  },
+  "qualification": false,
+  "full_unit_qualified": false,
+  "matrix_credit": false,
+  "SourceReady32": false,
+  "matrix_baseline": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "publication": false
+}

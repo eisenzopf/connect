@@ -25,8 +25,9 @@ pub use native_replacements::{
     NativeReplacementAllocated, NativeReplacementAllocationAttempt,
     NativeReplacementAllocationRead, NativeReplacementAllocationUncertain,
     NativeReplacementAudienceCapture, NativeReplacementCandidate,
-    NativeReplacementCandidateRetirement, NativeReplacementCommitAttempt,
-    NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain,
+    NativeReplacementCandidateRetirement, NativeReplacementCommitAdmission,
+    NativeReplacementCommitAttempt, NativeReplacementCommitNotSubmitted,
+    NativeReplacementCommitPreparation, NativeReplacementCommitUncertain,
     NativeReplacementCommitted, NativeReplacementMediaAttempt, NativeReplacementMediaCapture,
     NativeReplacementMediaOrigin, NativeReplacementMediaPhase, NativeReplacementMediaRead,
     NativeReplacementPreparationAttempt, NativeReplacementPreparationLease,
@@ -43,10 +44,11 @@ pub use native_replacements::{
     TelephoneConnectionSnapshot, TelephoneMediaOrigin, TelephoneMediaRead,
     TelephoneNativeMediaRead, TelephoneNativeSignalRead, TelephoneReplacementAllocated,
     TelephoneReplacementAttempt, TelephoneReplacementAudienceCapture,
-    TelephoneReplacementCommitAttempt, TelephoneReplacementCommitUncertain,
-    TelephoneReplacementCommitted, TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead,
-    TelephoneReplacementPhase, TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture,
-    TelephoneReplacementPolicy, TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
+    TelephoneReplacementCommitAttempt, TelephoneReplacementCommitPreparation,
+    TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
+    TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead, TelephoneReplacementPhase,
+    TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture, TelephoneReplacementPolicy,
+    TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
     TelephoneReplacementResourcesCapture, TelephoneReplacementSceneRead,
     TelephoneReplacementSubmitted, TelephoneReplacementUncertain, TelephoneReplacementWriteRead,
     TelephoneSignalDirection, TelephoneSignalRead,
@@ -54,7 +56,9 @@ pub use native_replacements::{
 pub use replacement_source::{NativeReplacementContext, NativeReplacementOrigin};
 mod native_handoffs;
 pub use handoff_source::{NativeHandoffContext, NativeHandoffOrigin};
-pub use native_handoffs::{NativeHandoffApplied, NativeHandoffAttempt, NativeHandoffLease};
+pub use native_handoffs::{
+    NativeHandoffAdmission, NativeHandoffApplied, NativeHandoffAttempt, NativeHandoffLease,
+};
 mod native_consultations;
 mod native_offers;
 mod native_returns;

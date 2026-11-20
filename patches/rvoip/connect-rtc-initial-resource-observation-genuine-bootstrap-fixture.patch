@@ -1,0 +1,278 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+@@ -503,6 +503,7 @@
+ // Every resource is registered before its first awaited setup operation. A
+ // work panic therefore cannot bypass the original controllers/peers/proxy joins.
+ struct Harness {
++    initial_resource_fixture: bool,
+     policy: Arc<Policy>,
+     routes: Arc<DashMap<ConnectionId, Arc<Route>>>,
+     identity: Arc<()>,
+@@ -523,6 +524,7 @@
+     fn new() -> Self {
+         Proxy::verify_candidate_isolation();
+         Self {
++            initial_resource_fixture: false,
+             policy: Arc::new(Policy {
+                 owners: [
+                     ("alice".into(), owner("alice")),
+@@ -590,6 +592,15 @@
+         self.physical.push(physical.clone());
+         let mut config = WebRtcConfig::loopback();
+         config.require_vp8_audio_video_profile = true;
++        if self.initial_resource_fixture {
++            // Canonical audio requires one actual negotiated primary codec.
++            // The old video-only fixture may keep its broader codec table.
++            config
++                .capabilities
++                .audio_codecs
++                .retain(|codec| codec.name.eq_ignore_ascii_case("opus"));
++            assert_eq!(config.capabilities.audio_codecs.len(), 1);
++        }
+         physical
+             .start_peer(config.clone(), PeerRole::Offerer)
+             .unwrap();
+@@ -1112,8 +1123,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn canonical_expired_fragment_feedback_refuses_revoked_paused_generation_foreign_and_cancelled_source()
+- {
++async fn canonical_expired_fragment_feedback_refuses_revoked_paused_generation_foreign_and_cancelled_source(
++) {
+     let mut observations = vec![];
+     for action in 0..5 {
+         let mut h = Harness::new();
+@@ -1275,8 +1286,8 @@
+ }
+ 
+ #[tokio::test]
+-async fn canonical_initial_picture_preflight_observes_exact_original_sourcejob_under_seal_without_native_io()
+- {
++async fn canonical_initial_picture_preflight_observes_exact_original_sourcejob_under_seal_without_native_io(
++) {
+     let mut h = Harness::new();
+     let result = std::panic::AssertUnwindSafe(async {
+         h.setup().await;
+@@ -1355,6 +1366,7 @@
+ struct ResourceObservationLease {
+     inner: Box<dyn MediaAuthorityLease>,
+     observation: Arc<Mutex<Option<Arc<PreparedMediaObservation>>>>,
++    activation: Arc<OnceLock<Weak<RtcMediaActivation>>>,
+     owner: MediaOwner,
+ }
+ impl MediaAuthorityLease for ResourceObservationLease {
+@@ -1368,9 +1380,16 @@
+         &self,
+         prepared: &Arc<PreparedMediaObservation>,
+     ) -> ControlResult<Box<MediaOwner>> {
+-        let owner = self.inner.control_prepared(prepared)?;
++        // Use the real initial hook and adapter readiness before Core's own
++        // commit. No fixture can set PreparedMediaObservation's sealed bit.
++        let activation = self
++            .activation
++            .get()
++            .and_then(Weak::upgrade)
++            .ok_or(StreamControlError::NotReady)?;
++        let owner = activation.prepare(prepared, self.owner.clone())?;
+         *self.observation.lock().unwrap() = Some(prepared.clone());
+-        Ok(owner)
++        Ok(Box::new(owner))
+     }
+ }
+ impl ResourceObservationPolicy {
+@@ -1385,15 +1404,24 @@
+             self.inner.current(scope)?
+         };
+         let mut owner = inner.authority().clone();
+-        if let Some(activation) = self.activation.get() {
+-            owner = activation
+-                .upgrade()
++        let committed = self
++            .observation
++            .lock()
++            .unwrap()
++            .as_ref()
++            .is_some_and(|prepared| prepared.is_committed());
++        if committed {
++            owner = self
++                .activation
++                .get()
++                .and_then(Weak::upgrade)
+                 .ok_or(StreamControlError::Cancelled)?
+                 .current(owner)?;
+         }
+         Ok(Box::new(ResourceObservationLease {
+             inner,
+             observation: self.observation.clone(),
++            activation: self.activation.clone(),
+             owner,
+         }))
+     }
+@@ -1437,9 +1465,20 @@
+ }
+ fn resource_harness() -> Harness {
+     let mut h = Harness::new();
+-    // The real VP8+audio SDP fixture negotiates Opus. Match its supported Core
+-    // mono layout, without editing any existing video test's capabilities.
++    h.initial_resource_fixture = true;
++    // An ACTIVE owner makes Core skip initial preparation entirely. Start with
++    // a genuine preparing incarnation; the real adapter hook activates its
++    // copied owner only after negotiated resources are ready.
+     for owner in Arc::get_mut(&mut h.policy).unwrap().owners.values_mut() {
++        owner.connection = ConnectionBinding::prepare(
++            &owner.member,
++            &owner.presence,
++            &owner.endpoint,
++            owner.connection.connection().clone(),
++        )
++        .unwrap();
++        // Match the single Opus primary explicitly configured on both peers.
++        // The helper below independently checks the real completed SDP shape.
+         for capabilities in [&mut owner.local, &mut owner.remote] {
+             for capability in capabilities
+                 .send
+@@ -1475,19 +1514,11 @@
+         observation: captured.clone(),
+         activation: activated.clone(),
+     });
+-    let invocation = Arc::new(ResourceControlInvocation {
+-        domain: h.policy.clone(),
+-        cancellation: CancellationToken::new(),
+-        deadline: OnceLock::new(),
+-    });
+-    h.pair_with_policy_streams(name, false, policy, streams, Some(invocation))
++    // Configure actual peers/controller before starting the original initial
++    // change, so its control_prepared hook can use the real adapter instance.
++    h.pair_with_policy_streams(name, false, policy, &[], None)
+         .await;
+-    let prepared = captured
+-        .lock()
+-        .unwrap()
+-        .take()
+-        .expect("real Core initial prepared hook");
+-    assert!(prepared.is_committed());
++    let index = h.controllers.len() - 1;
+     let route = h
+         .routes
+         .get(&ConnectionId::from_string(name))
+@@ -1501,9 +1532,57 @@
+         .unwrap()
+         .activation
+         .clone();
++    activated.set(Arc::downgrade(&activation)).unwrap();
++    let peer = h.physical[index].peer_internal(until()).await.unwrap();
++    let (audio_format, audio_pt, receives, sends) = shape(&peer, Medium::Audio).await.unwrap();
++    assert_eq!(
++        audio_format,
++        MediaFormat::Encoded {
++            name: "opus".into(),
++            clock_rate_hz: 48000,
++            channels: 1,
++            fmtp: None
++        }
++    );
++    assert_eq!(audio_pt, crate::peer::builder::OPUS_PAYLOAD_TYPE);
++    assert!(receives && sends);
++    let invocation = Arc::new(ResourceControlInvocation {
++        domain: h.policy.clone(),
++        cancellation: CancellationToken::new(),
++        deadline: OnceLock::new(),
++    });
++    h.controllers[index]
++        .change_with_held(
++            0,
++            streams,
++            &BTreeSet::new(),
++            until(),
++            CancellationToken::new(),
++            invocation,
++        )
++        .await
++        .unwrap();
++    let prepared = captured
++        .lock()
++        .unwrap()
++        .as_ref()
++        .expect("real Core initial prepared hook")
++        .clone();
++    assert!(prepared.is_committed());
+     let owner = h.policy.owners[name].clone();
+-    activation.prepare(&prepared, owner.clone()).unwrap();
+-    activated.set(Arc::downgrade(&activation)).unwrap();
++    assert_eq!(
++        owner.connection.state(),
++        rvoip_core::relationships::BindingState::Preparing
++    );
++    assert_eq!(
++        activation
++            .current(owner.clone())
++            .unwrap()
++            .connection
++            .state(),
++        rvoip_core::relationships::BindingState::Active
++    );
++
+     (activation, prepared, owner)
+ }
+ async fn original_resource_observation(
+@@ -1749,11 +1828,9 @@
+             .unwrap();
+         // The original all-initial-bindings predicate now refuses this actual
+         // ended video, which previously also refused unrelated audio owners.
+-        assert!(
+-            h.backends[0]
+-                .confirm_resources(prepared.bindings())
+-                .is_err()
+-        );
++        assert!(h.backends[0]
++            .confirm_resources(prepared.bindings())
++            .is_err());
+         assert!(!original.is_current() && activation.try_current_resource_witness().is_err());
+         assert!(activation.current(owner.clone()).is_ok());
+         let audio_only = activation
+@@ -1762,11 +1839,9 @@
+         assert!(
+             audio_only.is_current() && receive_original_audio(&h, &mut input, &mut timestamp).await
+         );
+-        assert!(
+-            activation
+-                .try_current_resource_witness_for(&[old_video.clone()])
+-                .is_err()
+-        );
++        assert!(activation
++            .try_current_resource_witness_for(&[old_video.clone()])
++            .is_err());
+         // Ended logical IDs are intentionally not reusable. A new logical
+         // publication uses a new identity on the same actual negotiated slot.
+         let mut next_video = desired(Medium::Video);
+@@ -1794,11 +1869,9 @@
+             .try_current_resource_witness_for(&[new_video.clone()])
+             .unwrap();
+         assert!(new_witness.is_current() && audio_only.is_current());
+-        assert!(
+-            activation
+-                .try_current_resource_witness_for(&[old_video])
+-                .is_err()
+-        );
++        assert!(activation
++            .try_current_resource_witness_for(&[old_video])
++            .is_err());
+         let io = h.backends[0]
+             .ports
+             .get(&new_video.transport_id)
+@@ -1841,11 +1914,9 @@
+         assert!(physical.is_current() && physical.belongs_to(&h.controllers[0]));
+         assert!(activation.try_current_resource_witness().is_err());
+         assert!(activation.try_current_resource_witness_for(&[]).is_err());
+-        assert!(
+-            activation
+-                .current(h.policy.owners["alice"].clone())
+-                .is_err()
+-        );
++        assert!(activation
++            .current(h.policy.owners["alice"].clone())
++            .is_err());
+         assert!(h.controllers[0].active_bindings().is_empty());
+         // Original admission retirement invalidates even while another Arc to
+         // that same peer exists. No cache owns its admission lifecycle.

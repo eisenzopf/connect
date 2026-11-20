@@ -1,0 +1,35 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 145,
+  "mobile_content_revision": 224,
+  "recorded_at": "2026-11-20T08:14:42.598476+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "private_before": ".local/gate-6/mobile224-g662-complete-thirteen-root/before.json",
+  "private_before_sha256": "70e75ba1927e8ded7aaadb4ba0b3560e16a44b7087f123fc0fb747fd946794ed",
+  "private_write": ".local/gate-6/mobile224-g662-complete-thirteen-root/write.json",
+  "private_write_sha256": "84069dfcdbe1a58bd4d8c75520175d4f58f52dd5995ff15bf6490b77b5936a56",
+  "private_readback": ".local/gate-6/mobile224-g662-complete-thirteen-root/readback.json",
+  "private_readback_sha256": "7e93971d40921417721844cdde50be7179d226417fa68fd4926f97f0cbd0479d",
+  "actual_component_scope": {
+    "completed": 13,
+    "passed": 11,
+    "failed": 2,
+    "unrun": 0,
+    "forced": 0
+  },
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false
+}

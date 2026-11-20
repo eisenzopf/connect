@@ -2796,6 +2796,21 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-managed-dtmf-binding-index-nonwaiting-batch.patch",
       "sha256": "e80ccf72a0cb5956b8ce1fa6c41017f5e6db21a99d6651362e6ac7aba96b5910"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-stream-scoped-currentness-and-final-resource-witness.patch",
+      "sha256": "21949a4a79c783424467b9f049f716f3ac219aafbc8c4892352a3090b6170689"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-existing-port-nonwaiting-resource-validation-caller.patch",
+      "sha256": "c1934bd20b98e9506805d9465d137f67fa2b19203a6762344423b9e85688e970"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-initial-resource-observation-genuine-bootstrap-fixture.patch",
+      "sha256": "5532f3e226ad40a21adb456dd8ed8091062f8f04c0f7748ede9371e2929bb00f"
     }
   ]
 }

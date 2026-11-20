@@ -56,6 +56,9 @@ impl Store {
     }
 }
 
+mod prepared;
+pub use prepared::{NativeReplacementCommitAdmission, NativeReplacementCommitPreparation};
+
 pub struct NativeReplacementCommitAttempt {
     origin: Arc<NativeReplacementMediaOrigin>,
     attempt: String,
@@ -64,6 +67,8 @@ pub struct NativeReplacementCommitAttempt {
     target: PeerConnectionProjection,
     resources: String,
     source_expires_at: i64,
+    original_until: i64,
+    original_scene: String,
     activation: Arc<crate::NativeReplacementActivation>,
     private_successor:
         Option<crate::connection_control::private_consultation::replacement_lineage::Successor>,
@@ -532,6 +537,23 @@ impl Store {
         origin: Arc<NativeReplacementMediaOrigin>,
         read: &NativeReplacementSceneRead,
     ) -> Result<Option<NativeReplacementCommitAttempt>> {
+        self.begin_native_commit_prepared(origin, read, None)
+    }
+    /// Persist the original prepared IDs once, under the actual final Writer.
+    /// The preparation grants no IO and is revalidated against current facts.
+    pub fn try_begin_prepared_native_replacement_commit(
+        &self,
+        preparation: &NativeReplacementCommitPreparation,
+        read: &NativeReplacementSceneRead,
+    ) -> Result<Option<NativeReplacementCommitAttempt>> {
+        self.begin_native_commit_prepared(preparation.origin.clone(), read, Some(preparation))
+    }
+    fn begin_native_commit_prepared(
+        &self,
+        origin: Arc<NativeReplacementMediaOrigin>,
+        read: &NativeReplacementSceneRead,
+        preparation: Option<&NativeReplacementCommitPreparation>,
+    ) -> Result<Option<NativeReplacementCommitAttempt>> {
         let p = &origin.started.attempt.allocated.attempt.prepared;
         if !read.current()
             || read.media.source.selection().origin.record != p.record
@@ -550,87 +572,32 @@ impl Store {
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
-        let exists: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit')",
-            [&p.record], |r| r.get(0),
-        ).map_err(|_| Error::storage())?;
-        if exists {
-            return Err(Error::new(
-                "reconciliation-required",
-                "Replacement movement was already attempted",
-            ));
-        }
-        let (_, saved, scopes, _) = media_facts(self, &tx, &origin)?;
-        let ctx = read.media.source.context();
-        if !self.authority_covers(&read.media.interval, &scopes)
-            || read.media.target.runtime_connection_id
-                != saved["candidate_runtime_id"].as_str().ok_or_else(invalid)?
-            || !read.has_current_source(&ctx.source_runtime_connection_id)
-            || read
-                .existing(&ctx.retained_runtime_connection_id, None)
-                .is_none()
-        {
-            return Err(Error::forbidden());
-        }
-        let confirmed: u32 = tx.query_row(
-            "SELECT count(*) FROM native_replacement_media_steps s JOIN operation_effects e ON e.id=s.effect_id AND e.state='confirmed' WHERE s.operation_record_id=?1 AND s.started=1 AND s.observation_json IS NOT NULL",
-            [&p.record], |r| r.get(0),
-        ).map_err(|_| Error::storage())?;
-        if confirmed != 3 {
-            return Err(Error::new(
-                "not-ready",
-                "Actual private replacement readiness is not confirmed",
-            ));
-        }
-        // Capture the target's own lifetime, without the old preparation
-        // deadline. Its recipient scope must cover the established programme.
-        let mut binding = origin.started.attempt.request.clone();
-        binding.command = crate::PeerCommand::Binding;
-        let (meta, _, target_scopes, source_expires_at) =
-            crate::peer_authority::checked(self, &tx, &binding)?;
-        if !self.authority_covers(&read.media.interval, &target_scopes) {
-            return Err(Error::forbidden());
-        }
-        let descriptor: serde_json::Value =
-            serde_json::from_str(&origin.started.attempt.target).map_err(|_| Error::storage())?;
-        let mut intent: connect_protocol::connection_control::OfferIntent =
-            serde_json::from_value(descriptor["intent"].clone()).map_err(|_| Error::storage())?;
-        intent
-            .offer
-            .as_object_mut()
-            .ok_or_else(invalid)?
-            .remove("replacement_preparation");
-        let recipients = crate::connection_control::intent_resources(&tx, &meta.actor, &intent)?;
-        if recipients.iter().any(|r| !meta.actor.permits_recipient(r)) {
-            return Err(Error::forbidden());
-        }
-        let resources = crate::provisioning::canonical_json(&serde_json::json!(recipients))?;
-        let private_successor =
-            crate::connection_control::private_consultation::replacement_lineage::capture(
+        let facts = self.native_commit_preparation_facts(&tx, &origin, read, true, None)?;
+        let prepared = match preparation {
+            Some(prepared) => {
+                prepared.require_current(read, &facts)?;
+                None
+            }
+            None => Some(prepared::NativeReplacementCommitPreparation::new(
                 self,
-                &tx,
-                &ctx.source_connection_id,
-                &ctx.retained_connection_id,
-                &read.media.target,
-                &descriptor,
-                source_expires_at,
-                &read.media.interval,
-            )?;
-        let revision = saved["expected_preparation"]["participant_revision"]
-            .as_u64()
-            .and_then(|v| v.checked_add(1))
-            .filter(|v| *v <= 9_007_199_254_740_991)
-            .ok_or_else(invalid)?;
-        let expected = crate::provisioning::canonical_json(&serde_json::json!({
-            "operation_id":ctx.operation_record_id,"session":ctx.session_id,
-            "participant":ctx.participant_id,"membership_epoch":ctx.membership_epoch,
-            "source":ctx.source_runtime_connection_id,"candidate":saved["candidate_runtime_id"],
-            "retained":ctx.retained_runtime_connection_id,"endpoint":ctx.target_endpoint_id,
-            "device":ctx.target_device_id,"generation":saved["generation"],
-            "participant_revision":revision,"role":ctx.role,"confirmation":saved["confirmation"]
-        }))?;
-        let attempt = format!("nmc_{}", uuid::Uuid::new_v4());
-        let effect = format!("nre_{}", uuid::Uuid::new_v4());
+                origin.clone(),
+                read,
+                &facts,
+            )?),
+        };
+        let preparation = match preparation {
+            Some(value) => value,
+            None => prepared.as_ref().ok_or_else(Error::forbidden)?,
+        };
+        let attempt = preparation.attempt.clone();
+        let effect = preparation.effect.clone();
+        let prepared::NativeCommitFacts {
+            expected,
+            resources,
+            source_expires_at,
+            private_successor,
+            ..
+        } = facts;
         let recorded_at = crate::now();
         let permit = if read.supports_scoped_commit()
             && !self.authority_covers(&read.media.interval, &read.media.interval.mutation_scopes())
@@ -657,19 +624,7 @@ impl Store {
         tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='commit'",[&p.record]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_|Error::storage())?;
         native_handoffs::touch_at(&tx, &p.record, self, recorded_at)?;
-        let activation = self.replacement_activation_metadata(
-            crate::peer_authority::ReplacementActivationInput {
-                record: p.record.clone(),
-                attempt: attempt.clone(),
-                effect: effect.clone(),
-                runtime: p.runtime.clone(),
-                target: read.media.target.clone(),
-                binding: origin.started.attempt.request.clone(),
-                descriptor,
-                expires_at: source_expires_at,
-                original: p.selection.origin.clone(),
-            },
-        )?;
+        let activation = preparation.activation.clone();
         if !read.current() {
             return Err(Error::forbidden());
         }
@@ -683,6 +638,8 @@ impl Store {
             target: read.media.target.clone(),
             resources,
             source_expires_at,
+            original_until: preparation.original_until.min(read.expires_at()),
+            original_scene: preparation.original_scene.clone(),
             activation,
             private_successor,
         }))

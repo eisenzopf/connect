@@ -9,9 +9,9 @@ pub use media::{
     TelephoneAudioResources, TelephoneConnectionRuntimeObservation, TelephoneConnectionSnapshot,
     TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
     TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
-    TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
-    TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead, TelephoneReplacementPhase,
-    TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture,
+    TelephoneReplacementCommitPreparation, TelephoneReplacementCommitUncertain,
+    TelephoneReplacementCommitted, TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead,
+    TelephoneReplacementPhase, TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture,
     TelephoneReplacementResourcesAttempt, TelephoneReplacementResourcesCapture,
     TelephoneReplacementSceneRead, TelephoneSignalDirection, TelephoneSignalRead,
 };

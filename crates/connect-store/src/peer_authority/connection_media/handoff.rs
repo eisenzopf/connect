@@ -68,7 +68,24 @@ impl NativeHandoffSelection {
         c: &Connection,
         write: bool,
     ) -> Result<Vec<AuthorityScope>> {
-        let (_, _, mut scopes, _) = resolve(store, c, self)?;
+        self.scopes_in(store, c, write, None)
+    }
+    pub(crate) fn scopes_for_attempt(
+        &self,
+        store: &Store,
+        c: &Connection,
+        attempt: &crate::NativeHandoffAdmission,
+    ) -> Result<Vec<AuthorityScope>> {
+        self.scopes_in(store, c, true, Some(attempt))
+    }
+    fn scopes_in(
+        &self,
+        store: &Store,
+        c: &Connection,
+        write: bool,
+        attempt: Option<&crate::NativeHandoffAdmission>,
+    ) -> Result<Vec<AuthorityScope>> {
+        let (_, _, mut scopes, _) = resolve_in(store, c, self, attempt)?;
         if write {
             let actor = self.origin.require(store, c)?;
             scopes.push(AuthorityScope::identity(
@@ -89,7 +106,25 @@ impl NativeHandoffSelection {
         c: &Connection,
         plan: &serde_json::Value,
     ) -> Result<()> {
-        let (ctx, views, _, _) = resolve(store, c, self)?;
+        self.validate_plan_in(store, c, plan, None)
+    }
+    pub(crate) fn validate_plan_for_attempt(
+        &self,
+        store: &Store,
+        c: &Connection,
+        plan: &serde_json::Value,
+        attempt: &crate::NativeHandoffAdmission,
+    ) -> Result<()> {
+        self.validate_plan_in(store, c, plan, Some(attempt))
+    }
+    fn validate_plan_in(
+        &self,
+        store: &Store,
+        c: &Connection,
+        plan: &serde_json::Value,
+        attempt: Option<&crate::NativeHandoffAdmission>,
+    ) -> Result<()> {
+        let (ctx, views, _, _) = resolve_in(store, c, self, attempt)?;
         let h = &plan["handoff"];
         let keys = [
             "operation_id",
@@ -257,6 +292,20 @@ fn resolve(
     c: &Connection,
     selection: &NativeHandoffSelection,
 ) -> Result<(NativeHandoffContext, Views, Vec<AuthorityScope>, i64)> {
+    resolve_in(store, c, selection, None)
+}
+fn resolve_in(
+    store: &Store,
+    c: &Connection,
+    selection: &NativeHandoffSelection,
+    attempt: Option<&crate::NativeHandoffAdmission>,
+) -> Result<(NativeHandoffContext, Views, Vec<AuthorityScope>, i64)> {
+    if let Some(attempt) = attempt {
+        if attempt.record_id() != selection.origin.record_id() {
+            return Err(Error::forbidden());
+        }
+        attempt.require_unpublished(store, c)?;
+    }
     let actor = selection.origin.require(store, c)?;
     let mut context = selection.origin.context(store, c)?;
     let mut scopes = vec![AuthorityScope::identity(
@@ -400,6 +449,8 @@ fn resolve(
         let (view, required, expiry) = if isolate {
             quarantined.insert(source.connection_id().to_owned());
             returns::closure_facts(store, c, source)?
+        } else if let Some(attempt) = attempt {
+            facts_for_handoff_cut(store, c, source, attempt)?
         } else {
             facts(store, c, source)?
         };
@@ -508,7 +559,25 @@ impl Store {
         selection: NativeHandoffSelection,
         held: Arc<crate::AuthorityGuardSet>,
     ) -> Result<NativeHandoffRead> {
-        let (context, views, current, expires_at) = resolve(self, c, &selection)?;
+        self.native_handoff_read_with_authority_in(c, selection, held, None)
+    }
+    pub(crate) fn native_handoff_read_for_attempt(
+        &self,
+        c: &Connection,
+        selection: NativeHandoffSelection,
+        held: Arc<crate::AuthorityGuardSet>,
+        attempt: &crate::NativeHandoffAdmission,
+    ) -> Result<NativeHandoffRead> {
+        self.native_handoff_read_with_authority_in(c, selection, held, Some(attempt))
+    }
+    fn native_handoff_read_with_authority_in(
+        &self,
+        c: &Connection,
+        selection: NativeHandoffSelection,
+        held: Arc<crate::AuthorityGuardSet>,
+        attempt: Option<&crate::NativeHandoffAdmission>,
+    ) -> Result<NativeHandoffRead> {
+        let (context, views, current, expires_at) = resolve_in(self, c, &selection, attempt)?;
         if !self.authority_covers(&held, &current) || crate::now() >= expires_at {
             return Err(Error::forbidden());
         }

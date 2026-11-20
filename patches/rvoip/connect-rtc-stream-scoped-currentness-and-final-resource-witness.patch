@@ -1,0 +1,1325 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+@@ -124,6 +124,17 @@
+             return Err(StreamControlError::Authority);
+         }
+         prepared.ok_or(StreamControlError::NotReady)
++    }
++    /// Sealed original resource metadata only, never a physical or authority
++    /// grant. Final native publication still needs its real PeerAdmission and
++    /// lifecycle fences. Recapture/check the same observation at the final cut
++    /// to notice publication poison or replacement; no registry is acquired.
++    pub fn try_current_resource_observation(&self) -> ControlResult<Arc<PreparedMediaObservation>> {
++        let prepared = self.current_prepared()?;
++        if !prepared.is_committed() { return Err(StreamControlError::NotReady); }
++        let controller = self.controller.upgrade().ok_or(StreamControlError::Cancelled)?;
++        if !prepared.belongs_to(&controller) { return Err(StreamControlError::Authority); }
++        Ok(prepared)
+     }
+     /// Nonblocking current resource observation for host publication metadata.
+     /// Busy metadata is retryable; missing, aborted or cancelled resources have
+@@ -317,10 +328,12 @@
+                 .unwrap();
+         });
+         let before_release = rx.recv_timeout(std::time::Duration::from_secs(1));
++        let missing_observation = matches!(activation.try_current_resource_observation(), Err(StreamControlError::NotReady));
+         // Always release and join the original before asserting a counterfactual.
+         drop(publication);
+         worker.join().unwrap();
+         assert!(matches!(before_release, Ok(Err(StreamControlError::NotReady))), "the actual current callback must refuse missing preparation while publication is still held");
++        assert!(missing_observation);
+         let original = activation.clone();
+         assert!(std::thread::spawn(move || {
+             let _publication = original.publication.lock().unwrap();
+@@ -332,5 +345,6 @@
+             activation.current(current_owner()),
+             Err(StreamControlError::Authority)
+         ));
+-    }
+-}
++        assert!(matches!(activation.try_current_resource_observation(), Err(StreamControlError::Authority)));
++    }
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/bootstrap.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/bootstrap.rs
+@@ -253,6 +253,7 @@
+             .unwrap() as u16;
+         let proof = activation(&s).await;
+         assert_eq!(proof.confirmed_generation(), None);
++        assert!(matches!(proof.try_current_resource_observation(), Err(StreamControlError::NotReady)));
+         assert_eq!(s.controller().revision(), 0);
+         empty(&s);
+         send(&s.wire, audio_sequence(handle, 1));
+@@ -260,6 +261,11 @@
+         s.confirm(&callback).await;
+         admitted(&s).await;
+         assert_eq!(proof.confirmed_generation(), Some(1));
++        let resources = proof.try_current_resource_observation().unwrap();
++        assert!(resources.is_committed() && resources.belongs_to(&s.controller()));
++        assert_eq!(resources.committed_generation(), Some(1));
++        assert_eq!(resources.bindings().len(), 1);
++        assert_eq!(resources.bindings()[0].stream_local_id, handle);
+         assert_eq!(s.controller().revision(), 1);
+         assert_eq!(
+             s.grants.0.read().await.owners[&s.id].connection.state(),
+@@ -287,9 +293,11 @@
+             participant_revision
+         );
+         assert_eq!(proof.confirmed_generation(), Some(1));
++        assert!(Arc::ptr_eq(&resources, &proof.try_current_resource_observation().unwrap()));
+         admitted(&s).await;
+         s.wire.server.shutdown().await.unwrap();
+         core_fixture::until(|| proof.confirmed_generation().is_none()).await;
++        assert!(proof.try_current_resource_observation().is_err());
+     }
+ }
+ #[tokio::test]
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+@@ -552,6 +552,20 @@
+         }
+     }
+     async fn pair(&mut self, name: &str, loss: bool) {
++        self.pair_with_policy(name, loss, self.policy.clone()).await;
++    }
++    async fn pair_with_policy(&mut self, name: &str, loss: bool, policy: Arc<dyn MediaPolicy>) {
++        self.pair_with_policy_streams(name, loss, policy, &[desired(Medium::Video)], None)
++            .await;
++    }
++    async fn pair_with_policy_streams(
++        &mut self,
++        name: &str,
++        loss: bool,
++        policy: Arc<dyn MediaPolicy>,
++        streams: &[DesiredStream],
++        held: Option<Arc<dyn std::any::Any + Send + Sync>>,
++    ) {
+         let facts = self.policy.owners[name].clone();
+         let principal = principal(name);
+         let cancel = CancellationToken::new();
+@@ -621,7 +635,7 @@
+             SessionId::from_string("session"),
+             ConnectionId::from_string(name),
+             principal,
+-            self.policy.clone(),
++            policy,
+             backend.clone(),
+             handles(&self.owners.last().unwrap().peer()),
+             8,
+@@ -643,16 +657,32 @@
+             cancel,
+         });
+         self.routes.insert(ConnectionId::from_string(name), route);
+-        controller
+-            .change(
+-                controller.revision(),
+-                &[desired(Medium::Video)],
+-                &BTreeSet::new(),
+-                until(),
+-                CancellationToken::new(),
+-            )
+-            .await
+-            .unwrap();
++        if !streams.is_empty() {
++            if let Some(held) = held {
++                controller
++                    .change_with_held(
++                        controller.revision(),
++                        streams,
++                        &BTreeSet::new(),
++                        until(),
++                        CancellationToken::new(),
++                        held,
++                    )
++                    .await
++                    .unwrap();
++            } else {
++                controller
++                    .change(
++                        controller.revision(),
++                        streams,
++                        &BTreeSet::new(),
++                        until(),
++                        CancellationToken::new(),
++                    )
++                    .await
++                    .unwrap();
++            }
++        }
+     }
+     async fn setup(&mut self) {
+         self.pair("alice", false).await;
+@@ -1190,67 +1220,622 @@
+ // accessors themselves stay exercised below and MUST refuse under the seal.
+ #[tokio::test]
+ async fn canonical_guarded_source_feedback_remains_usable_while_original_peer_is_raw_sealed() {
+-    let mut h=Harness::new();
+-    let result=std::panic::AssertUnwindSafe(async {
++    let mut h = Harness::new();
++    let result = std::panic::AssertUnwindSafe(async {
+         h.setup().await;
+         h.baseline().await;
+-        let source=h.physical[0].peer_internal(until()).await.unwrap();
+-        let target=h.physical[1].peer_internal(until()).await.unwrap();
+-        let source_seal=OriginalWebRtcIceControl {peer:source.clone()}.try_seal_raw_access().unwrap();
+-        let target_seal=OriginalWebRtcIceControl {peer:target.clone()}.try_seal_raw_access().unwrap();
+-        let raw_refused=h.physical[0].peer(until()).await.is_err()
++        let source = h.physical[0].peer_internal(until()).await.unwrap();
++        let target = h.physical[1].peer_internal(until()).await.unwrap();
++        let source_seal = OriginalWebRtcIceControl {
++            peer: source.clone(),
++        }
++        .try_seal_raw_access()
++        .unwrap();
++        let target_seal = OriginalWebRtcIceControl {
++            peer: target.clone(),
++        }
++        .try_seal_raw_access()
++        .unwrap();
++        let raw_refused = h.physical[0].peer(until()).await.is_err()
+             && source.local_video_track().is_none()
+-            && source_seal.is_current() && target_seal.is_current();
+-        let output_ssrc=target.local_video_ssrc().unwrap();
+-        let lost_seq=h.next_sequence.wrapping_add(1);
+-        h.proxy.as_ref().unwrap().arm(output_ssrc,lost_seq,true);
+-        let (_timestamp,_sequence)=h.send_key().await;
+-        let _lost=h.proxy.as_ref().unwrap().lost().await;
+-        h.actual_nack(output_ssrc,lost_seq).await;
+-        let source_pli=tokio::time::timeout_at(until(),h.remote[0].video_keyframe_requests().notified()).await.is_ok();
+-        let remained_sealed=source_seal.is_current() && target_seal.is_current()
++            && source_seal.is_current()
++            && target_seal.is_current();
++        let output_ssrc = target.local_video_ssrc().unwrap();
++        let lost_seq = h.next_sequence.wrapping_add(1);
++        h.proxy.as_ref().unwrap().arm(output_ssrc, lost_seq, true);
++        let (_timestamp, _sequence) = h.send_key().await;
++        let _lost = h.proxy.as_ref().unwrap().lost().await;
++        h.actual_nack(output_ssrc, lost_seq).await;
++        let source_pli =
++            tokio::time::timeout_at(until(), h.remote[0].video_keyframe_requests().notified())
++                .await
++                .is_ok();
++        let remained_sealed = source_seal.is_current()
++            && target_seal.is_current()
+             && h.physical[0].peer(until()).await.is_err();
+-        source_seal.retire();target_seal.retire();
+-        (raw_refused,source_pli,remained_sealed)
+-    }).catch_unwind().await;
+-    let clean=h.close().await;
+-    if let Err(panic)=result {std::panic::resume_unwind(panic);}
+-    let (raw_refused,source_pli,remained_sealed)=result.unwrap();
+-    assert!(clean,"all original native/Core/proxy owners must join before the hint oracle");
+-    assert!(raw_refused && source_pli && remained_sealed,
+-        "guarded internal PLI must neither call an escaping getter nor reopen raw coverage");
++        source_seal.retire();
++        target_seal.retire();
++        (raw_refused, source_pli, remained_sealed)
++    })
++    .catch_unwind()
++    .await;
++    let clean = h.close().await;
++    if let Err(panic) = result {
++        std::panic::resume_unwind(panic);
++    }
++    let (raw_refused, source_pli, remained_sealed) = result.unwrap();
++    assert!(
++        clean,
++        "all original native/Core/proxy owners must join before the hint oracle"
++    );
++    assert!(
++        raw_refused && source_pli && remained_sealed,
++        "guarded internal PLI must neither call an escaping getter nor reopen raw coverage"
++    );
+ }
+ 
+ #[tokio::test]
+-async fn canonical_initial_picture_preflight_observes_exact_original_sourcejob_under_seal_without_native_io() {
+-    let mut h=Harness::new();
+-    let result=std::panic::AssertUnwindSafe(async {
+-        h.setup().await;h.baseline().await;
+-        let backend=h.backends[0].clone();
+-        let source=backend.ports.iter().find_map(|entry|entry.value().port.upgrade())
++async fn canonical_initial_picture_preflight_observes_exact_original_sourcejob_under_seal_without_native_io()
++ {
++    let mut h = Harness::new();
++    let result = std::panic::AssertUnwindSafe(async {
++        h.setup().await;
++        h.baseline().await;
++        let backend = h.backends[0].clone();
++        let source = backend
++            .ports
++            .iter()
++            .find_map(|entry| entry.value().port.upgrade())
+             .expect("actual original video Port");
+-        let foreign=h.backends[1].ports.iter().find_map(|entry|entry.value().port.upgrade())
++        let foreign = h.backends[1]
++            .ports
++            .iter()
++            .find_map(|entry| entry.value().port.upgrade())
+             .expect("actual foreign Port");
+-        let peer=h.physical[0].peer_internal(until()).await.unwrap();
+-        let seal=OriginalWebRtcIceControl {peer}.try_seal_raw_access().unwrap();
+-        let job=backend.sources[1].get().unwrap();
+-        let original={job.ready.borrow().as_ref().and_then(|value|value.as_ref().ok()).cloned()}.unwrap();
+-        let ssrc=original.ssrc;
+-        let first=backend.preflight_initial_video_picture(&source);
+-        let second=backend.preflight_initial_video_picture(&source);
+-        let foreign_refused=backend.preflight_initial_video_picture(&foreign).is_err();
+-        let same_source=job.ready.borrow().as_ref().and_then(|value|value.as_ref().ok())
+-            .is_some_and(|actual|Arc::ptr_eq(actual,&original) && actual.ssrc==ssrc);
+-        let sealed=seal.is_current() && h.physical[0].peer(until()).await.is_err();
++        let peer = h.physical[0].peer_internal(until()).await.unwrap();
++        let seal = OriginalWebRtcIceControl { peer }
++            .try_seal_raw_access()
++            .unwrap();
++        let job = backend.sources[1].get().unwrap();
++        let original = {
++            job.ready
++                .borrow()
++                .as_ref()
++                .and_then(|value| value.as_ref().ok())
++                .cloned()
++        }
++        .unwrap();
++        let ssrc = original.ssrc;
++        let first = backend.preflight_initial_video_picture(&source);
++        let second = backend.preflight_initial_video_picture(&source);
++        let foreign_refused = backend.preflight_initial_video_picture(&foreign).is_err();
++        let same_source = job
++            .ready
++            .borrow()
++            .as_ref()
++            .and_then(|value| value.as_ref().ok())
++            .is_some_and(|actual| Arc::ptr_eq(actual, &original) && actual.ssrc == ssrc);
++        let sealed = seal.is_current() && h.physical[0].peer(until()).await.is_err();
+         job.stop.cancel();
+-        let retired_refused=backend.preflight_initial_video_picture(&source).is_err();
++        let retired_refused = backend.preflight_initial_video_picture(&source).is_err();
+         seal.retire();
+-        (first,second,foreign_refused,same_source,sealed,retired_refused)
+-    }).catch_unwind().await;
+-    let clean=h.close().await;
+-    if let Err(error)=result {std::panic::resume_unwind(error);}
+-    let(first,second,foreign_refused,same_source,sealed,retired_refused)=result.unwrap();
+-    assert!(clean,"all original owners join before the preflight oracle");
+-    first.unwrap();second.unwrap();
++        (
++            first,
++            second,
++            foreign_refused,
++            same_source,
++            sealed,
++            retired_refused,
++        )
++    })
++    .catch_unwind()
++    .await;
++    let clean = h.close().await;
++    if let Err(error) = result {
++        std::panic::resume_unwind(error);
++    }
++    let (first, second, foreign_refused, same_source, sealed, retired_refused) = result.unwrap();
++    assert!(
++        clean,
++        "all original owners join before the preflight oracle"
++    );
++    first.unwrap();
++    second.unwrap();
+     assert!(foreign_refused && same_source && sealed && retired_refused);
+ }
++
++// Capture only the real Core-issued observation from the same normal initial
++// change. After activation the same real policy leases derive current owners
++// through the adapter, including original ingress; no ready/commit bits are set.
++struct ResourceObservationPolicy {
++    inner: Arc<Policy>,
++    observation: Arc<Mutex<Option<Arc<PreparedMediaObservation>>>>,
++    activation: Arc<OnceLock<Weak<RtcMediaActivation>>>,
++}
++struct ResourceObservationLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    observation: Arc<Mutex<Option<Arc<PreparedMediaObservation>>>>,
++    owner: MediaOwner,
++}
++impl MediaAuthorityLease for ResourceObservationLease {
++    fn authority(&self) -> &MediaOwner {
++        &self.owner
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<Utc>> {
++        self.inner.expires_at()
++    }
++    fn control_prepared(
++        &self,
++        prepared: &Arc<PreparedMediaObservation>,
++    ) -> ControlResult<Box<MediaOwner>> {
++        let owner = self.inner.control_prepared(prepared)?;
++        *self.observation.lock().unwrap() = Some(prepared.clone());
++        Ok(owner)
++    }
++}
++impl ResourceObservationPolicy {
++    fn read(
++        &self,
++        scope: &MediaScope<'_>,
++        original: bool,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let inner = if original {
++            self.inner.current_original_ingress(scope)?
++        } else {
++            self.inner.current(scope)?
++        };
++        let mut owner = inner.authority().clone();
++        if let Some(activation) = self.activation.get() {
++            owner = activation
++                .upgrade()
++                .ok_or(StreamControlError::Cancelled)?
++                .current(owner)?;
++        }
++        Ok(Box::new(ResourceObservationLease {
++            inner,
++            observation: self.observation.clone(),
++            owner,
++        }))
++    }
++}
++struct ResourceControlInvocation {
++    domain: Arc<Policy>,
++    cancellation: CancellationToken,
++    deadline: OnceLock<tokio::time::Instant>,
++}
++impl MediaPolicy for ResourceObservationPolicy {
++    fn current_control(
++        &self,
++        scope: &MediaScope<'_>,
++        intent: &MediaControlIntent<'_>,
++        held: &(dyn std::any::Any + Send + Sync),
++    ) -> ControlResult<MediaControl> {
++        let invocation = held
++            .downcast_ref::<ResourceControlInvocation>()
++            .ok_or(StreamControlError::Authority)?;
++        if !Arc::ptr_eq(&invocation.domain, &self.inner)
++            || !matches!(scope.purpose, MediaPurpose::Control)
++            || !matches!(intent, MediaControlIntent::Change { expected: 0, .. })
++        {
++            return Err(StreamControlError::Authority);
++        }
++        MediaControl::new(
++            self.current(scope)?,
++            invocation.cancellation.clone(),
++            *invocation.deadline.get_or_init(until),
++        )
++    }
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.read(scope, false)
++    }
++    fn current_original_ingress(
++        &self,
++        scope: &MediaScope<'_>,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.read(scope, true)
++    }
++}
++fn resource_harness() -> Harness {
++    let mut h = Harness::new();
++    // The real VP8+audio SDP fixture negotiates Opus. Match its supported Core
++    // mono layout, without editing any existing video test's capabilities.
++    for owner in Arc::get_mut(&mut h.policy).unwrap().owners.values_mut() {
++        for capabilities in [&mut owner.local, &mut owner.remote] {
++            for capability in capabilities
++                .send
++                .iter_mut()
++                .chain(capabilities.receive.iter_mut())
++            {
++                if capability.medium == Medium::Audio {
++                    capability.formats = vec![MediaFormat::Encoded {
++                        name: "opus".into(),
++                        clock_rate_hz: 48000,
++                        channels: 1,
++                        fmtp: None,
++                    }];
++                }
++            }
++        }
++    }
++    h
++}
++async fn original_resource_observation_streams(
++    h: &mut Harness,
++    name: &str,
++    streams: &[DesiredStream],
++) -> (
++    Arc<RtcMediaActivation>,
++    Arc<PreparedMediaObservation>,
++    MediaOwner,
++) {
++    let captured = Arc::new(Mutex::new(None));
++    let activated = Arc::new(OnceLock::new());
++    let policy = Arc::new(ResourceObservationPolicy {
++        inner: h.policy.clone(),
++        observation: captured.clone(),
++        activation: activated.clone(),
++    });
++    let invocation = Arc::new(ResourceControlInvocation {
++        domain: h.policy.clone(),
++        cancellation: CancellationToken::new(),
++        deadline: OnceLock::new(),
++    });
++    h.pair_with_policy_streams(name, false, policy, streams, Some(invocation))
++        .await;
++    let prepared = captured
++        .lock()
++        .unwrap()
++        .take()
++        .expect("real Core initial prepared hook");
++    assert!(prepared.is_committed());
++    let route = h
++        .routes
++        .get(&ConnectionId::from_string(name))
++        .unwrap()
++        .clone();
++    let activation = route
++        .installation
++        .lock()
++        .unwrap()
++        .as_ref()
++        .unwrap()
++        .activation
++        .clone();
++    let owner = h.policy.owners[name].clone();
++    activation.prepare(&prepared, owner.clone()).unwrap();
++    activated.set(Arc::downgrade(&activation)).unwrap();
++    (activation, prepared, owner)
++}
++async fn original_resource_observation(
++    h: &mut Harness,
++    name: &str,
++) -> (
++    Arc<RtcMediaActivation>,
++    Arc<PreparedMediaObservation>,
++    MediaOwner,
++) {
++    original_resource_observation_streams(h, name, &[desired(Medium::Video)]).await
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_rtc_current_and_final_resource_witness_do_not_wait_for_original_port_map() {
++    let mut h = resource_harness();
++    let outcome = std::panic::AssertUnwindSafe(async {
++        let (activation, prepared, owner) = original_resource_observation(&mut h, "alice").await;
++        let witness = activation.try_current_resource_witness().unwrap();
++        let expected_generation = witness.committed_generation();
++        let backend = h.backends[0].clone();
++        let stream = prepared.bindings()[0].transport_id.clone();
++        let held = backend.ports.get_mut(&stream).unwrap();
++        let (sent, returned) = std::sync::mpsc::sync_channel(1);
++        let reader = activation.clone();
++        let current = owner.clone();
++        let worker = std::thread::spawn(move || {
++            let _ = sent.send(reader.current(current).map(|_| ()));
++        });
++        let completed_before_release = returned.recv_timeout(Duration::from_millis(500));
++        let same_witness_current = witness.is_current();
++        let recaptured = activation.try_current_resource_witness().is_ok();
++        let prepare_busy = matches!(
++            activation.prepare(&prepared, owner.clone()),
++            Err(StreamControlError::MetadataBusy)
++        );
++        let selected_busy = matches!(
++            activation.try_current_resource_witness_for(prepared.bindings()),
++            Err(StreamControlError::MetadataBusy)
++        );
++        let physical_current = activation.try_physical_current_witness().is_ok();
++        // Release and join the original reader before asserting, including the
++        // old blocking map-read counterfactual. No observation timeout restarts.
++        drop(held);
++        let joined = worker.join();
++        assert!(
++            joined.is_ok() && matches!(completed_before_release, Ok(Ok(()))),
++            "actual current waited on original port registry"
++        );
++        assert!(
++            same_witness_current && recaptured && prepare_busy && selected_busy && physical_current
++        );
++        assert!(activation.current(owner).is_ok());
++        assert!(witness.belongs_to(&h.controllers[0]));
++        assert!(
++            witness.bindings().len() == prepared.bindings().len()
++                && witness
++                    .bindings()
++                    .iter()
++                    .zip(prepared.bindings())
++                    .all(|(a, b)| same_binding(a, b))
++        );
++        assert!(
++            witness.committed_generation() == expected_generation && expected_generation.is_some()
++        );
++        assert!(
++            tokio::time::timeout(Duration::from_secs(1), h.policy.guard.clone().write_owned())
++                .await
++                .is_ok()
++        );
++        witness
++    })
++    .catch_unwind()
++    .await;
++    let clean = h.close().await;
++    let witness = outcome.unwrap();
++    assert!(clean && !witness.is_current());
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_rtc_resource_witness_preserves_worker_source_and_physical_invalidation() {
++    for withdrawal in ["worker", "source", "physical", "controller"] {
++        let mut h = resource_harness();
++        let outcome = std::panic::AssertUnwindSafe(async {
++            let (activation, prepared, owner) = original_resource_observation(&mut h, "alice").await;
++            let (healthy, _, healthy_owner) = original_resource_observation(&mut h, "bob").await;
++            let original = activation.try_current_resource_witness().unwrap();
++            let peer = healthy.try_current_resource_witness().unwrap();
++            assert!(!original.belongs_to(&h.controllers[1]));
++            let mut wrong_binding = prepared.bindings()[0].clone(); wrong_binding.generation += 1;
++            assert!(matches!(activation.try_current_resource_witness_for(&[wrong_binding]), Err(StreamControlError::NotReady)));
++            match withdrawal {
++                "worker" => {
++                    let io = h.backends[0].ports.get(&prepared.bindings()[0].transport_id).unwrap().clone();
++                    io.health.retire();
++                    io.health.ready.store(true, Ordering::Release);
++                }
++                "source" => h.backends[0].sources[1].get().unwrap().stop.cancel(),
++                "physical" => h.physical[0].lifetime.cancel(),
++                "controller" => h.controllers[0].retire(),
++                _ => unreachable!(),
++            }
++            assert!(!original.is_current() && activation.try_current_resource_witness().is_err(), "withdrawal={withdrawal}");
++            assert_eq!(activation.current(owner).is_ok(), matches!(withdrawal, "worker" | "source"), "connection readiness must be separate from individual worker readiness: {withdrawal}");
++            assert!(peer.is_current() && healthy.current(healthy_owner).is_ok());
++        }).catch_unwind().await;
++        let clean = h.close().await;
++        outcome.unwrap();
++        assert!(clean, "withdrawal={withdrawal}");
++    }
++}
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_rtc_resource_witness_is_bound_to_original_publication_and_poison() {
++    let mut h = resource_harness();
++    let outcome = std::panic::AssertUnwindSafe(async {
++        let (activation, prepared, owner) = original_resource_observation(&mut h, "alice").await;
++        let first = activation.try_current_resource_witness().unwrap();
++        activation.prepare(&prepared, owner.clone()).unwrap();
++        let second = activation.try_current_resource_witness().unwrap();
++        assert!(!first.is_current() && second.is_current());
++        let publication = activation.publication.lock().unwrap();
++        let during_hold = second.is_current()
++            && activation.current(owner.clone()).is_ok()
++            && activation.try_current_resource_witness().is_ok();
++        let prepare_busy = matches!(
++            activation.prepare(&prepared, owner.clone()),
++            Err(StreamControlError::MetadataBusy)
++        );
++        drop(publication);
++        let original = activation.clone();
++        let poisoned = std::thread::spawn(move || {
++            let _held = original.publication.lock().unwrap();
++            panic!("controlled real RTC publication poison");
++        })
++        .join()
++        .is_err();
++        assert!(during_hold && prepare_busy && poisoned && !second.is_current());
++        assert!(matches!(
++            activation.try_current_resource_witness(),
++            Err(StreamControlError::Authority)
++        ));
++        assert!(matches!(
++            activation.try_physical_current_witness(),
++            Err(StreamControlError::Authority)
++        ));
++        assert!(matches!(
++            activation.current(owner),
++            Err(StreamControlError::Authority)
++        ));
++    })
++    .catch_unwind()
++    .await;
++    let clean = h.close().await;
++    outcome.unwrap();
++    assert!(clean);
++}
++
++// Drive the real remote track into the ordinary SourceJob and Core ingress.
++// The policy uses activation.current on this original-ingress path.
++async fn receive_original_audio(
++    h: &Harness,
++    input: &mut mpsc::Receiver<MediaPacket>,
++    timestamp: &mut u32,
++) -> bool {
++    while input.try_recv().is_ok() {}
++    let bound = until();
++    let writer = h.remote[0].outbound_audio_writer().unwrap();
++    loop {
++        writer
++            .write_audio(
++                crate::peer::builder::OPUS_PAYLOAD_TYPE,
++                *timestamp,
++                crate::media::pump::silent_opus_payload(),
++            )
++            .await
++            .unwrap();
++        *timestamp += 960;
++        tokio::select! {
++            packet = input.recv() => return packet.is_some(),
++            _ = tokio::time::sleep_until(bound) => return false,
++            _ = tokio::time::sleep(Duration::from_millis(20)) => {},
++        }
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_rtc_audio_continues_after_video_end_and_exact_readded_stream_is_fenced() {
++    let mut h = resource_harness();
++    let outcome = std::panic::AssertUnwindSafe(async {
++        let (activation, prepared, owner) = original_resource_observation_streams(
++            &mut h,
++            "alice",
++            &[desired(Medium::Audio), desired(Medium::Video)],
++        )
++        .await;
++        let original = activation.try_current_resource_witness().unwrap();
++        let audio = prepared
++            .bindings()
++            .iter()
++            .find(|b| b.negotiated.requested.medium == Medium::Audio)
++            .unwrap()
++            .clone();
++        let old_video = prepared
++            .bindings()
++            .iter()
++            .find(|b| b.negotiated.requested.medium == Medium::Video)
++            .unwrap()
++            .clone();
++        let mut input = h.controllers[0]
++            .take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++        let mut timestamp = 960;
++        assert!(receive_original_audio(&h, &mut input, &mut timestamp).await);
++        h.controllers[0]
++            .end_stream(
++                &desired(Medium::Video).logical_id,
++                h.controllers[0].revision(),
++                until(),
++            )
++            .await
++            .unwrap();
++        // The original all-initial-bindings predicate now refuses this actual
++        // ended video, which previously also refused unrelated audio owners.
++        assert!(
++            h.backends[0]
++                .confirm_resources(prepared.bindings())
++                .is_err()
++        );
++        assert!(!original.is_current() && activation.try_current_resource_witness().is_err());
++        assert!(activation.current(owner.clone()).is_ok());
++        let audio_only = activation
++            .try_current_resource_witness_for(&[audio.clone()])
++            .unwrap();
++        assert!(
++            audio_only.is_current() && receive_original_audio(&h, &mut input, &mut timestamp).await
++        );
++        assert!(
++            activation
++                .try_current_resource_witness_for(&[old_video.clone()])
++                .is_err()
++        );
++        // Ended logical IDs are intentionally not reusable. A new logical
++        // publication uses a new identity on the same actual negotiated slot.
++        let mut next_video = desired(Medium::Video);
++        next_video.logical_id = StreamId::from_string("video-next");
++        h.controllers[0]
++            .change(
++                h.controllers[0].revision(),
++                &[desired(Medium::Audio), next_video],
++                &BTreeSet::new(),
++                until(),
++                CancellationToken::new(),
++            )
++            .await
++            .unwrap();
++        let new_video = h.controllers[0]
++            .active_bindings()
++            .into_iter()
++            .find(|b| b.negotiated.requested.medium == Medium::Video)
++            .unwrap();
++        assert!(
++            new_video.transport_id != old_video.transport_id
++                && new_video.stream_local_id != old_video.stream_local_id
++        );
++        let new_witness = activation
++            .try_current_resource_witness_for(&[new_video.clone()])
++            .unwrap();
++        assert!(new_witness.is_current() && audio_only.is_current());
++        assert!(
++            activation
++                .try_current_resource_witness_for(&[old_video])
++                .is_err()
++        );
++        let io = h.backends[0]
++            .ports
++            .get(&new_video.transport_id)
++            .unwrap()
++            .clone();
++        io.health.retire();
++        assert!(!new_witness.is_current() && audio_only.is_current());
++        assert!(
++            activation.current(owner).is_ok()
++                && receive_original_audio(&h, &mut input, &mut timestamp).await
++        );
++    })
++    .catch_unwind()
++    .await;
++    let clean = h.close().await;
++    outcome.unwrap();
++    assert!(clean);
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_rtc_participant_physical_witness_precedes_stream_readiness_without_fabricating_it()
++{
++    let mut h = resource_harness();
++    let outcome = std::panic::AssertUnwindSafe(async {
++        h.pair_with_policy_streams("alice", false, h.policy.clone(), &[], None)
++            .await;
++        let route = h
++            .routes
++            .get(&ConnectionId::from_string("alice"))
++            .unwrap()
++            .clone();
++        let activation = route
++            .installation
++            .lock()
++            .unwrap()
++            .as_ref()
++            .unwrap()
++            .activation
++            .clone();
++        let physical = activation.try_physical_current_witness().unwrap();
++        assert!(physical.is_current() && physical.belongs_to(&h.controllers[0]));
++        assert!(activation.try_current_resource_witness().is_err());
++        assert!(activation.try_current_resource_witness_for(&[]).is_err());
++        assert!(
++            activation
++                .current(h.policy.owners["alice"].clone())
++                .is_err()
++        );
++        assert!(h.controllers[0].active_bindings().is_empty());
++        // Original admission retirement invalidates even while another Arc to
++        // that same peer exists. No cache owns its admission lifecycle.
++        let peer = h.owners[0].peer();
++        drop(h.owners.remove(0));
++        assert!(peer.is_closed() && !physical.is_current());
++        assert!(activation.try_physical_current_witness().is_err());
++        physical
++    })
++    .catch_unwind()
++    .await;
++    let clean = h.close().await;
++    let physical = outcome.unwrap();
++    assert!(clean && !physical.is_current());
++}
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/worker_health.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/worker_health.rs
+@@ -17,7 +17,24 @@
+     pub(super) stop: CancellationToken,
+     pub(super) setup: Arc<Mutex<Setup>>,
+ }
++/// Exact original worker lifetime without setup/task or IO ownership.
++#[derive(Clone)]
++pub(super) struct WorkerCurrentness {
++    ready: Arc<AtomicBool>,
++    stop: CancellationToken,
++}
++impl WorkerCurrentness {
++    pub(super) fn confirmed(&self) -> bool {
++        self.ready.load(Ordering::Acquire) && !self.stop.is_cancelled()
++    }
++}
+ impl WorkerHealth {
++    pub(super) fn currentness(&self) -> WorkerCurrentness {
++        WorkerCurrentness {
++            ready: self.ready.clone(),
++            stop: self.stop.clone(),
++        }
++    }
+     pub(super) fn new(stop: CancellationToken) -> Self {
+         Self {
+             ready: Arc::new(AtomicBool::new(false)),
+@@ -135,3 +152,46 @@
+         assert!(!h.confirmed());
+     }
+ }
++
++#[cfg(test)]
++mod currentness_tests {
++    use super::*;
++    #[tokio::test]
++    async fn worker_currentness_never_owns_or_waits_for_original_setup() {
++        let health = WorkerHealth::new(CancellationToken::new());
++        let original = health.guard();
++        health
++            .setup
++            .lock()
++            .unwrap()
++            .tasks
++            .push(tokio::spawn(async move {
++                let _original = original;
++                std::future::pending::<()>().await;
++                Ok(())
++            }));
++        health.activate(&health.setup.lock().unwrap()).unwrap();
++        let owners = Arc::strong_count(&health.setup);
++        let witness = health.currentness();
++        assert_eq!(Arc::strong_count(&health.setup), owners);
++        let setup = health.setup.lock().unwrap();
++        let (sent, result) = std::sync::mpsc::sync_channel(1);
++        let current = witness.clone();
++        let worker = std::thread::spawn(move || {
++            let _ = sent.send(current.confirmed());
++        });
++        let before_release = result.recv_timeout(std::time::Duration::from_millis(500));
++        health.retire();
++        health.ready.store(true, Ordering::Release);
++        let stale = !witness.confirmed();
++        drop(setup);
++        worker.join().unwrap();
++        let tasks = std::mem::take(&mut health.setup.lock().unwrap().tasks);
++        for task in tasks {
++            task.abort();
++            let _ = task.await;
++        }
++        assert_eq!(before_release.ok(), Some(true));
++        assert!(stale);
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -518,23 +518,31 @@
+             }
+         }
+     }
+-    fn confirms(&self, bindings: &[ReadyMediaBinding]) -> bool {
+-        self.current()
+-            && !bindings.is_empty()
+-            && bindings.iter().all(|b| {
+-                self.ports.get(&b.transport_id).is_some_and(|p| {
+-                    p.health.confirmed()
+-                        && same_binding(&p.binding, b)
+-                        && (!b.source_ready
+-                            || self.sources[if b.negotiated.requested.medium == Medium::Audio {
+-                                0
+-                            } else {
+-                                1
+-                            }]
+-                            .get()
+-                            .is_some_and(|s| !s.stop.is_cancelled()))
+-                })
+-            })
++    fn confirm_resources(&self, bindings: &[ReadyMediaBinding]) -> ControlResult<CurrentResources> {
++        if !self.current() || bindings.is_empty() { return Err(StreamControlError::NotReady); }
++        let mut workers = Vec::with_capacity(bindings.len());
++        for binding in bindings {
++            let io = match self.ports.try_get(&binding.transport_id) {
++                dashmap::try_result::TryResult::Present(io) => io,
++                dashmap::try_result::TryResult::Locked => return Err(StreamControlError::MetadataBusy),
++                dashmap::try_result::TryResult::Absent => return Err(StreamControlError::NotReady),
++            };
++            if !io.health.confirmed() || !same_binding(&io.binding, binding)
++                || !Arc::ptr_eq(&io.physical, &self.physical)
++            { return Err(StreamControlError::NotReady); }
++            let source = if binding.source_ready {
++                let source = self.sources[if binding.negotiated.requested.medium == Medium::Audio { 0 } else { 1 }]
++                    .get().ok_or(StreamControlError::NotReady)?;
++                if source.stop.is_cancelled() { return Err(StreamControlError::NotReady); }
++                Some(source.stop.clone())
++            } else { None };
++            workers.push((io.health.currentness(), source));
++        }
++        let resources = CurrentResources {
++            lifetime: self.lifetime.clone(), physical: Arc::downgrade(&self.physical), workers,
++        };
++        if !resources.current() { return Err(StreamControlError::NotReady); }
++        Ok(resources)
+     }
+ }
+ fn same_binding(a: &ReadyMediaBinding, b: &ReadyMediaBinding) -> bool {
+@@ -1564,17 +1572,110 @@
+             .map_err(|_| StreamControlError::CleanupUnconfirmed)?;
+     }
+ }
++/// Actual original worker/physical facts; no map, setup lock, task or IO owner.
++#[derive(Clone)]
++struct CurrentResources {
++    lifetime: CancellationToken,
++    physical: Weak<WebRtcPhysicalBinding>,
++    workers: Vec<(worker_health::WorkerCurrentness, Option<CancellationToken>)>,
++}
++impl CurrentResources {
++    fn physical_current(&self) -> bool {
++        !self.lifetime.is_cancelled()
++            && self
++                .physical
++                .upgrade()
++                .is_some_and(|physical| physical.owner_current() && physical.rtc_current())
++    }
++    fn current(&self) -> bool {
++        self.physical_current()
++            && self.workers.iter().all(|(health, source)| {
++                health.confirmed() && source.as_ref().is_none_or(|source| !source.is_cancelled())
++            })
++    }
++}
++struct ActivatedMediaObservation {
++    prepared: Arc<PreparedMediaObservation>,
++    resources: CurrentResources,
++}
++/// Exact published resource facts for a synchronous currentness check. This
++/// does not authorize media or a control mutation. The host still owns its
++/// current purpose grant and the Core final controller/port/peer guards.
++#[derive(Clone)]
++pub struct RtcMediaResourceWitness {
++    activation: Weak<RtcMediaActivation>,
++    observation: Arc<ActivatedMediaObservation>,
++    resources: CurrentResources,
++    bindings: Vec<ReadyMediaBinding>,
++}
++impl RtcMediaResourceWitness {
++    /// Reads only the original published observation, cancellation/worker bits
++    /// and original physical owner's published ICE/DTLS state. Never reads the
++    /// port registry, waits for setup/publication or calls policy.
++    pub fn is_current(&self) -> bool {
++        self.activation.upgrade().is_some_and(|activation| {
++            activation.current_prepared().is_ok_and(|current| {
++                Arc::ptr_eq(&current, &self.observation)
++                    && current.prepared.is_committed()
++                    && self.resources.current()
++            })
++        })
++    }
++    /// Identity metadata only; currentness and host authorization are separate.
++    pub fn belongs_to(&self, controller: &Arc<StreamController>) -> bool {
++        self.observation.prepared.belongs_to(controller)
++    }
++    pub fn bindings(&self) -> &[ReadyMediaBinding] {
++        &self.bindings
++    }
++    pub fn committed_generation(&self) -> Option<u64> {
++        self.is_current()
++            .then(|| self.observation.prepared.committed_generation())
++            .flatten()
++    }
++}
++/// Exact original physical-incarnation facts for participant selection intent.
++/// No stream, worker readiness, controller-state guard or permission is implied.
++/// The host must retain its current purpose grant and Core's actual final
++/// controller/peer guards when publishing that intent.
++#[derive(Clone)]
++pub struct RtcMediaPhysicalWitness {
++    activation: Weak<RtcMediaActivation>,
++    controller: Weak<StreamController>,
++    lifetime: CancellationToken,
++    physical: Weak<WebRtcPhysicalBinding>,
++}
++impl RtcMediaPhysicalWitness {
++    pub fn is_current(&self) -> bool {
++        !self.lifetime.is_cancelled()
++            && self.controller.strong_count() != 0
++            && self
++                .activation
++                .upgrade()
++                .is_some_and(|a| !a.publication.is_poisoned())
++            && self
++                .physical
++                .upgrade()
++                .is_some_and(|p| p.owner_current() && p.rtc_current())
++    }
++    pub fn belongs_to(&self, controller: &Arc<StreamController>) -> bool {
++        Weak::ptr_eq(&self.controller, &Arc::downgrade(controller))
++    }
++}
+ /// Metadata-only initial activation. Fresh host authority is still mandatory.
+ pub struct RtcMediaActivation {
+     controller: Weak<StreamController>,
+     backend: Weak<Backend>,
+-    prepared: arc_swap::ArcSwapOption<PreparedMediaObservation>,
+-    // Only preparation/publication state changes serialize here. Ordinary
+-    // current readers retain an immutable observation without this mutex.
++    // One atomic publication pairs the sealed Core fact with the exact actual
++    // original worker facts. Readers can never combine two preparations.
++    prepared: arc_swap::ArcSwapOption<ActivatedMediaObservation>,
+     publication: Mutex<()>,
+ }
+ impl RtcMediaActivation {
+-    pub(super) fn new(controller: &Arc<StreamController>, backend: &Arc<Backend>) -> ControlResult<Arc<Self>> {
++    pub(super) fn new(
++        controller: &Arc<StreamController>,
++        backend: &Arc<Backend>,
++    ) -> ControlResult<Arc<Self>> {
+         backend.bind_original_controller(controller)?;
+         Ok(Arc::new(Self {
+             controller: Arc::downgrade(controller),
+@@ -1583,7 +1684,7 @@
+             publication: Mutex::new(()),
+         }))
+     }
+-    fn current_prepared(&self) -> ControlResult<Arc<PreparedMediaObservation>> {
++    fn current_prepared(&self) -> ControlResult<Arc<ActivatedMediaObservation>> {
+         if self.publication.is_poisoned() {
+             return Err(StreamControlError::Authority);
+         }
+@@ -1592,6 +1693,81 @@
+             return Err(StreamControlError::Authority);
+         }
+         prepared.ok_or(StreamControlError::NotReady)
++    }
++    /// Exact physical owner/PC metadata, also valid for retained participant
++    /// intent before a stream exists. Never substitutes for Core's live guards.
++    pub fn try_physical_current_witness(
++        self: &Arc<Self>,
++    ) -> ControlResult<RtcMediaPhysicalWitness> {
++        if self.publication.is_poisoned() {
++            return Err(StreamControlError::Authority);
++        }
++        let backend = self
++            .backend
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let witness = RtcMediaPhysicalWitness {
++            activation: Arc::downgrade(self),
++            controller: self.controller.clone(),
++            lifetime: backend.lifetime.clone(),
++            physical: Arc::downgrade(&backend.physical),
++        };
++        if !witness.is_current() {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(witness)
++    }
++    /// Initial bindings only. Later stream changes must use the exact selected
++    /// binding API below rather than treating initial readiness as all streams.
++    pub fn try_current_resource_witness(
++        self: &Arc<Self>,
++    ) -> ControlResult<RtcMediaResourceWitness> {
++        let observation = self.current_prepared()?;
++        let witness = RtcMediaResourceWitness {
++            activation: Arc::downgrade(self),
++            resources: observation.resources.clone(),
++            bindings: observation.prepared.bindings().to_vec(),
++            observation,
++        };
++        if !witness.is_current() {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(witness)
++    }
++    /// Capture exact selected IO before entering the final authority boundary.
++    /// Contention refuses without waiting; the returned witness reads only
++    /// original worker/source cancellation bits at the final publication cut.
++    pub fn try_current_resource_witness_for(
++        self: &Arc<Self>,
++        bindings: &[ReadyMediaBinding],
++    ) -> ControlResult<RtcMediaResourceWitness> {
++        let observation = self.current_prepared()?;
++        let generation = observation
++            .prepared
++            .committed_generation()
++            .ok_or(StreamControlError::NotReady)?;
++        if bindings.is_empty()
++            || bindings
++                .iter()
++                .any(|b| b.connection_generation != generation)
++        {
++            return Err(StreamControlError::Authority);
++        }
++        let backend = self
++            .backend
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let resources = backend.confirm_resources(bindings)?;
++        let witness = RtcMediaResourceWitness {
++            activation: Arc::downgrade(self),
++            observation,
++            resources,
++            bindings: bindings.to_vec(),
++        };
++        if !witness.is_current() {
++            return Err(StreamControlError::NotReady);
++        }
++        Ok(witness)
+     }
+     pub fn try_confirmed_generation(&self) -> ControlResult<Option<u64>> {
+         let _publication = self.publication.try_lock().map_err(|error| match error {
+@@ -1599,7 +1775,9 @@
+             std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
+         })?;
+         let prepared = self.prepared.load_full();
+-        Ok(prepared.as_ref().and_then(|p| p.committed_generation()))
++        Ok(prepared
++            .as_ref()
++            .and_then(|p| p.prepared.committed_generation()))
+     }
+     pub fn try_publish_installed<R>(
+         &self,
+@@ -1614,14 +1792,13 @@
+         prepared
+             .as_ref()
+             .ok_or(StreamControlError::NotReady)?
++            .prepared
+             .try_publish_installed(generation, publish)
+     }
+-}
+-impl MediaActivation for RtcMediaActivation {
+-    fn prepare(
++    fn prepare_observation(
+         &self,
+         prepared: &Arc<PreparedMediaObservation>,
+-        current: MediaOwner,
++        activate: impl FnOnce() -> ControlResult<MediaOwner>,
+     ) -> ControlResult<MediaOwner> {
+         let controller = self
+             .controller
+@@ -1631,16 +1808,35 @@
+             .backend
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+-        if !prepared.belongs_to(&controller) || !backend.confirms(prepared.bindings()) {
++        if !prepared.belongs_to(&controller) {
+             return Err(StreamControlError::NotReady);
+         }
+-        let owner = prepared.activate_for_commit(current)?;
+-        let _publication = self
+-            .publication
+-            .lock()
+-            .map_err(|_| StreamControlError::Authority)?;
+-        self.prepared.store(Some(prepared.clone()));
++        // Snapshot exact workers only during preparation. A contended map is
++        // explicit pre-effect Busy; current media never visits this map.
++        let resources = backend.confirm_resources(prepared.bindings())?;
++        let owner = activate()?;
++        let observation = Arc::new(ActivatedMediaObservation {
++            prepared: prepared.clone(),
++            resources,
++        });
++        let _publication = self.publication.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++            std::sync::TryLockError::Poisoned(_) => StreamControlError::Authority,
++        })?;
++        if !observation.resources.current() {
++            return Err(StreamControlError::NotReady);
++        }
++        self.prepared.store(Some(observation));
+         Ok(owner)
++    }
++}
++impl MediaActivation for RtcMediaActivation {
++    fn prepare(
++        &self,
++        prepared: &Arc<PreparedMediaObservation>,
++        current: MediaOwner,
++    ) -> ControlResult<MediaOwner> {
++        self.prepare_observation(prepared, || prepared.activate_for_commit(current))
+     }
+     fn prepare_replacement(
+         &self,
+@@ -1649,26 +1845,9 @@
+         source: &MediaOwner,
+         pending: &rvoip_core::participant_transitions::PreparedParticipantReplacement,
+     ) -> ControlResult<MediaOwner> {
+-        let controller = self
+-            .controller
+-            .upgrade()
+-            .ok_or(StreamControlError::Cancelled)?;
+-        let backend = self
+-            .backend
+-            .upgrade()
+-            .ok_or(StreamControlError::Cancelled)?;
+-        if !prepared.belongs_to(&controller) || !backend.confirms(prepared.bindings()) {
+-            return Err(StreamControlError::NotReady);
+-        }
+-        // The replacement proof validates source, target and generation. An
+-        // ordinary generation-one activation cannot authorize this candidate.
+-        let owner = prepared.activate_replacement_resources(current, source, pending)?;
+-        let _publication = self
+-            .publication
+-            .lock()
+-            .map_err(|_| StreamControlError::Authority)?;
+-        self.prepared.store(Some(prepared.clone()));
+-        Ok(owner)
++        self.prepare_observation(prepared, || {
++            prepared.activate_replacement_resources(current, source, pending)
++        })
+     }
+     fn current_replacement(
+         &self,
+@@ -1676,33 +1855,43 @@
+         source: &MediaOwner,
+         pending: &rvoip_core::participant_transitions::PreparedParticipantReplacement,
+     ) -> ControlResult<MediaOwner> {
+-        let backend = self
++        // Keep the original missing-backend cancellation classification.
++        let _backend = self
+             .backend
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+-        let prepared = self.current_prepared()?;
+-        if !backend.confirms(prepared.bindings()) {
++        let observation = self.current_prepared()?;
++        // Activation established initial worker readiness once. Subsequent
++        // owner derivation checks connection lifetime; selected per-stream IO
++        // and final exact witnesses enforce current worker readiness. Requiring
++        // every initial worker here couples unrelated audio/video lifetimes.
++        if !observation.resources.physical_current() {
+             return Err(StreamControlError::NotReady);
+         }
+-        prepared.current_replacement_resources(current, source, pending)
++        observation
++            .prepared
++            .current_replacement_resources(current, source, pending)
+     }
+     fn current(&self, current: MediaOwner) -> ControlResult<MediaOwner> {
+-        let backend = self
++        let _backend = self
+             .backend
+             .upgrade()
+             .ok_or(StreamControlError::Cancelled)?;
+-        let prepared = self.current_prepared()?;
+-        if !backend.confirms(prepared.bindings()) {
++        let observation = self.current_prepared()?;
++        if !observation.resources.physical_current() {
+             return Err(StreamControlError::NotReady);
+         }
+-        prepared.current(current)
++        observation.prepared.current(current)
+     }
+     fn confirmed_generation(&self) -> Option<u64> {
+         let _publication = self.publication.lock().ok()?;
+-        self.prepared.load_full().as_ref()?.committed_generation()
+-    }
+-}
+-
++        self.prepared
++            .load_full()
++            .as_ref()?
++            .prepared
++            .committed_generation()
++    }
++}
+ impl Backend {
+     pub(super) async fn initial_resources(
+         &self,
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -19,7 +19,7 @@
+     future::{BoxFuture, Shared},
+     FutureExt,
+ };
+-pub use media::RtcMediaActivation;
++pub use media::{RtcMediaActivation, RtcMediaPhysicalWitness, RtcMediaResourceWitness};
+ use rvoip_core::{
+     adapter::*,
+     capability::{CapabilityDescriptor, NegotiatedCodecs},

@@ -1,0 +1,163 @@
+{
+  "format": "connect/g6-058-partial-component-frontier-progress/1",
+  "checkpoint": 144,
+  "recorded_at": "2026-11-20T07:50:11.259346+00:00",
+  "summary": "G657 reached current artifacts and inventories for all four scoped builds, then closed as a partial failed component run. Nine cases completed: five passed and four RTC cases failed during fixture setup. Three RTC failures stopped at the initial prepared hook; the partial-stream RTC case returned Unsupported during setup. The tenth case, the Native Store positive, stalled in proven same-thread SQL mutex recursion: its receiver connection guard was held while the record argument reacquired the same mutex. Root externally sent SIGTERM only to that original child76040; it exited -15 and is incomplete, never passed or naturally closed. Three remaining Store cases were not run. Root and all19original children were joined and freshly absent:18natural and1externally forced. The raw all_original_groups_joined=false verdict remains unchanged. Source524 seal43a6ec87 and four binary hashes stayed fixed through original close; newer fixture repairs do not regrade it. Reviewed G658 RTC bootstrap/profile and G659 two-site Store query-guard repairs are applied; their runtime retest remains pending, separately from normal525 preparation. BackendV3, OrchestratorV2 and SIPV2 form an exact ignored source assembly with24authored additive controls, all still uncompiled/unrun; actual Service caller/currentness/alias/PostCustody integration remains open. No complete regression, shared379, OriginalV8, strict Firefox NORMAL3, original900, ARM11, normal releases or fresh launch qualification is added. All current Core-traits tests and actual additive inventories remain required in the next full cohort. Matrix remains v218:1/32cells and399/432checks; not ready for32, no new matrix credit. G6-054 remains parked.",
+  "actual_G657": {
+    "source": {
+      "sha256": "43a6ec87a9990a12b633e9e1351ccf655a6796a04bc5be6b5d71112a081041b0",
+      "files": 6520,
+      "unchanged_at_original_close": true,
+      "current_source_is_newer_no_regrade": true
+    },
+    "builds_and_inventories": {
+      "builds_passed": 4,
+      "profiles": "actual Cargo JSON opt0/debug2/test; original features",
+      "inventories": {
+        "rvoip-webrtc": 285,
+        "rvoip-uctp": 219,
+        "rvoip-uctp-v2-peer-admission": 211,
+        "connect-store": 1846
+      },
+      "four_binary_sha_and_path_checks": true
+    },
+    "completed_tests": {
+      "completed": 9,
+      "passed": 5,
+      "failed": 4
+    },
+    "passed_selectors": [
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_participant_physical_witness_precedes_stream_readiness_without_fabricating_it",
+      "canonical::media::worker_health::currentness_tests::worker_currentness_never_owns_or_waits_for_original_setup",
+      "v2::native_negotiation::activation::publication_tests::actual_current_does_not_wait_for_preparation_publication_and_poison_refuses",
+      "peer_native::canonical_media::native_offers::bootstrap::actual_native_initial_activation_enters_managed_scene_after_signed_confirmation_and_observes_real_flow",
+      "connection_control::tests::handoff_custody::final_admission::handoff_same_started_attempt_purpose_writer_preserves_modes_currentness_and_original_cutoff"
+    ],
+    "failed_selectors": [
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_current_and_final_resource_witness_do_not_wait_for_original_port_map",
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_resource_witness_preserves_worker_source_and_physical_invalidation",
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_resource_witness_is_bound_to_original_publication_and_poison",
+      "canonical::media::picture_feedback_causal_tests::actual_rtc_audio_continues_after_video_end_and_exact_readded_stream_is_fenced"
+    ],
+    "failure_setup_split": {
+      "resource_control_0_1_2": "RTC fixture setup panic real Core initial prepared hook1489; raw FAILED retained.",
+      "resource_control_3": "RTC partial-stream setup Unsupported672, propagated1817; raw FAILED retained."
+    },
+    "forced_case": {
+      "pid": 76040,
+      "signal": "SIGTERM",
+      "exit_code": -15,
+      "raw_owner_forced_field": false,
+      "raw_naturally_exited": false,
+      "actual_external_force": true,
+      "credit": "INCOMPLETE_FORCED_NOT_PASS",
+      "sample_proof": "Actual same-thread test at final_admission.rs92 -> record helper -> Store.connection mutex wait; receiver guard owns same nonrecursive mutex during query argument evaluation."
+    },
+    "ownership": {
+      "original_root_pid": 75625,
+      "original_root_pgid": 75625,
+      "original_tool_session": 49287,
+      "root_terminal_exit": 1,
+      "children_reaped": 19,
+      "children_natural": 18,
+      "children_externally_forced": 1,
+      "fresh_root_and_all_child_pids_and_groups_absent": true,
+      "raw_all_original_groups_joined": false,
+      "raw_remaining_original_groups": [],
+      "raw_result_not_rewritten": true
+    },
+    "incomplete_attempted_tests": [
+      "connection_control::tests::replacement_sources::commit::scene_unary::final_admission::native_commit_grantfree_preparation_releases_actual_source_writer_and_preserves_same_attempt"
+    ],
+    "unrun_tests": [
+      "connection_control::tests::replacement_sources::commit::scene_unary::final_admission::native_commit_same_attempt_readmission_refuses_changed_ledger_identity_currentness_and_foreign_scene",
+      "connection_control::tests::replacement_sources::commit::scene_unary::final_admission::native_commit_prepared_facts_do_not_survive_actual_permission_withdrawal_or_scene_change",
+      "connection_control::tests::replacement_sources::telephone::runtime::media::continuation::commit::final_admission::telephone_commit_preparation_and_same_attempt_readmission_keep_no_idle_writer_and_never_renew"
+    ],
+    "scope_complete": false,
+    "raw_all_original_groups_joined": false,
+    "raw_result_retained": true
+  },
+  "current_repairs": {
+    "RTC_G658": "source-reviewed-applied-runtime-retest-pending",
+    "Store_G659": "source-reviewed-applied-runtime-retest-pending",
+    "normal525": "Root-owned separate preparation; no runtime retest result adopted by this checkpoint"
+  },
+  "source_only_assembly": {
+    "BackendV3_controls": 5,
+    "OrchestratorV2_controls": 8,
+    "SIPV2_controls": 11,
+    "total_authored_controls": 24,
+    "compiled": false,
+    "run": false,
+    "actual_Service_caller_integration": "OPEN"
+  },
+  "remaining_readiness": [
+    "Finish and verify actual Service native/telephone/Handoff final currentness/alias-release/operation PostCustody integration.",
+    "Execute all current additive controls and complete retained full cohort using actual inventories, including whole current Core-traits suite.",
+    "Fresh committed-source shared379, OriginalV8 all3, strict Firefox NORMAL3, original900 with469Rust+431script and full62pair LAST, localARM11, normalMac12/ARM6 releases and fresh launch preflight remain mandatory."
+  ],
+  "next_focused_result": null,
+  "proofs": {
+    "g657_result": {
+      "path": ".local/gate-6/g657-source524-thirteen-controls-after-cache-recovery-root/result.json",
+      "sha256": "a5266fc4315ed8d212637a2f490553094f2a28ec710aba76a8723e4c90525af6"
+    },
+    "g657_original_join": {
+      "path": ".local/gate-6/g657-source524-thirteen-controls-after-cache-recovery-root/root-original-join.json",
+      "sha256": "218f167e8636c010029f7dec3bcb6f6238325693b314d0e82db4d82810e0fffe"
+    },
+    "g657_actual_independent_audit": {
+      "path": ".local/gate-6/g657-actual-partial-thirteen-independent-epoch-audit/receipt.json",
+      "sha256": "d3ae11ef4049a5c4848a6b5a1636551c81983acd19dcfcd408ec4241a9eb1bfb"
+    },
+    "g657_external_forced_case": {
+      "path": ".local/gate-6/g657-source524-thirteen-controls-after-cache-recovery-root/external-forced-original-test-termination.json",
+      "sha256": "9629bf06c41131582225522a59abe485ec826298ab2ea97d5bbc835224648d9f"
+    },
+    "g657_actual_stack_sample": {
+      "path": ".local/gate-6/g657-source524-thirteen-controls-after-cache-recovery-root/store-native-positive-stack-sample.txt",
+      "sha256": "fee64bf8ec55a18a5cc4a9b68d184c4b401a6d651de95ac9b54f777ed57a1c15"
+    },
+    "g658_RTC_fixture_source": {
+      "path": ".local/gate-6/g658-rtc-initial-resource-fixture-source-candidate/manifest.json",
+      "sha256": "4a39ed842a8eec92d1f08812e9818ecae7337678ea5d89e11566384ed5e889f0"
+    },
+    "g658_RTC_fixture_review": {
+      "path": ".local/gate-6/g658-initial-resource-fixture-independent-source-review/receipt.json",
+      "sha256": "8e758169a369d637044bfc3670a74e98ee8482296a326a60d80673b0bb87f213"
+    },
+    "g659_Store_fixture_source": {
+      "path": ".local/gate-6/g657-store-final-admission-fixture-query-guard-source-candidate/manifest.json",
+      "sha256": "d21705adbf5491a795dbf5de9d0f08d4079a88159c594dc46cd7ea6d6cbf2a22"
+    },
+    "g659_Store_fixture_Root_review": {
+      "path": ".local/gate-6/g659-store-fixture-independent-root-review/receipt.json",
+      "sha256": "dacfbf7287b591705c1298c7ae752ab6fb654ae8cf2081b2001f904be4a9712f"
+    },
+    "g659_Store_fixture_independent_review": {
+      "path": ".local/gate-6/g657-store-fixture-query-guard-independent-epoch-source-review/receipt.json",
+      "sha256": "34c4696eb361345c1460f6cfeb044fb22142aadfc4e3bc662b131f41523ae6f4"
+    },
+    "g660_normal525_start": {
+      "path": ".local/gate-6/g660-normal525-fixture-preparation-root/ROOT-START-REVIEW.json",
+      "sha256": "fdba7da26376b493939738d427df89b0e4500e85b2bafbf07cb38f2f50c2dc12"
+    },
+    "accepted_three_packet_source_assembly": {
+      "path": ".local/gate-6/g655-accepted-managed-three-packet-inert-source-assembly/manifest.json",
+      "sha256": "9f45d358d5a3b19a010534036477b14bac0fecea79803793b1642e2f5fb63547"
+    }
+  },
+  "qualification": false,
+  "full_unit_qualified": false,
+  "matrix_credit": false,
+  "SourceReady32": false,
+  "matrix_baseline": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "publication": false
+}

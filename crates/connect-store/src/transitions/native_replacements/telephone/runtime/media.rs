@@ -13,7 +13,8 @@ pub use signal::{TelephoneNativeSignalRead, TelephoneSignalDirection, TelephoneS
 mod continuation;
 pub use commit::{
     TelephoneConnectionSnapshot, TelephoneReplacementCommitAttempt,
-    TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
+    TelephoneReplacementCommitPreparation, TelephoneReplacementCommitUncertain,
+    TelephoneReplacementCommitted,
 };
 pub use continuation::{
     TelephoneReplacementAudienceCapture, TelephoneReplacementPhase,

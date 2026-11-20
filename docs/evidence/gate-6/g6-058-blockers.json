@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-20T02:58:34.371424+00:00",
-  "run_status": "G644 passed eight exact guard foundation unit tests on prepared source522: five Core-traits route-ticket guards and three Core DTMF binding-index guards. Both original builds and current artifact profiles passed; the two inventories contain 71 Core-traits and 964 Core tests. Every selected test passed exactly once with zero failures or ignored tests. Root and all thirteen original children closed naturally and source, prepared dependencies and binaries remained unchanged. These are eight primitive control passes only; active Core audience, managed Orchestrator and Store/SIP/Service caller integration remains unsealed and unverified. The Root Native/RTC physical-resource snapshot implementation is also unsealed, with tests being added. The source520 ten controls were not rerun, and the whole 71-test Core-traits suite was not executed by this lane. The next full affected cohort must append all 71 current Core-traits tests to the retained scopes and derive its total from actual inventories. Current shared379, complete regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain pending on the eventual committed seal. Historical failed runs and scoped passes retain their original source identities and verdicts. Matrix remains v218: 1/32 cells and 399/432 checks; not ready for32, with no new qualification or matrix credit. G6-054 remains parked.",
+  "run_status": "G662 completed all 13 selected component tests after four current builds and inventories: 11 passed and two failed. There were no forced, incomplete or unrun cases. Root and all 22 original children exited naturally, were joined and were freshly absent; the source525 seal 8eda4ae0 covering 6523 files and four binary hashes remained fixed through close. The RTC partial-stream case failed its resource-refusal assertion after logical video end, before actual worker cleanup; a reviewed fixture correction now uses real reconcile_cleanup under the same end deadline and keeps every original assertion. The telephone same-attempt case returned authority-busy at its wait fixture; its correction remains pending. Both failures retain their original verdicts. Historical G657 remains partial: nine completed with five passes and four failures, one externally terminated incomplete Store case and three Store cases unrun; its raw all_original_groups_joined=false is not rewritten. Service caller review found three open source issues: Native first durable begin lacks the once-pinned cutoff; generic error-code retry can re-enter an uncertain first begin in all three routes; the four new controls hold a Controller.State gate that resource metadata reads before Started/Core, so their intended StillUnpublished setup cannot work. The author is correcting these; a reviewed test-support helper exposes the real participant-model gate without changing shipping behavior. The accepted Backend, Orchestrator and SIP assembly remains 46 source-only files with 24 authored controls, unapplied and unverified as a complete boundary; Service integration is not accepted. No complete regression, shared379, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal Mac12/ARM6 releases or fresh launch qualification is added. Whole current Core-traits/SIP inventories and all additive controls remain required. Matrix remains v218: 1/32 cells and 399/432 checks, not ready for 32; G6-054 stays parked. Existing mobile223 is retained pending Root’s fresh scoped update.",
   "blockers": [
     {
       "id": "B01",
@@ -20366,7 +20366,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-20T05:48:32.724165+00:00",
+  "updated_at": "2026-11-20T08:12:06.775248+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20410,9 +20410,9 @@
     "ready_for_32": false
   },
   "current_preparation_checkpoint": {
-    "status": "G644 passed eight exact guard foundation unit tests on prepared source522: five Core-traits route-ticket guards and three Core DTMF binding-index guards. Both original builds and current artifact profiles passed; the two inventories contain 71 Core-traits and 964 Core tests. Every selected test passed exactly once with zero failures or ignored tests. Root and all thirteen original children closed naturally and source, prepared dependencies and binaries remained unchanged. These are eight primitive control passes only; active Core audience, managed Orchestrator and Store/SIP/Service caller integration remains unsealed and unverified. The Root Native/RTC physical-resource snapshot implementation is also unsealed, with tests being added. The source520 ten controls were not rerun, and the whole 71-test Core-traits suite was not executed by this lane. The next full affected cohort must append all 71 current Core-traits tests to the retained scopes and derive its total from actual inventories. Current shared379, complete regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain pending on the eventual committed seal. Historical failed runs and scoped passes retain their original source identities and verdicts. Matrix remains v218: 1/32 cells and 399/432 checks; not ready for32, with no new qualification or matrix credit. G6-054 remains parked.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g644-source522-eight-guard-components.json",
-    "sha256": "29d2db96b4bd909f20b55ea02d62eac03bb00fcdfed5eb6c5b89aa181c0e97c8"
+    "status": "G662 completed all 13 selected component tests after four current builds and inventories: 11 passed and two failed. There were no forced, incomplete or unrun cases. Root and all 22 original children exited naturally, were joined and were freshly absent; the source525 seal 8eda4ae0 covering 6523 files and four binary hashes remained fixed through close. The RTC partial-stream case failed its resource-refusal assertion after logical video end, before actual worker cleanup; a reviewed fixture correction now uses real reconcile_cleanup under the same end deadline and keeps every original assertion. The telephone same-attempt case returned authority-busy at its wait fixture; its correction remains pending. Both failures retain their original verdicts. Historical G657 remains partial: nine completed with five passes and four failures, one externally terminated incomplete Store case and three Store cases unrun; its raw all_original_groups_joined=false is not rewritten. Service caller review found three open source issues: Native first durable begin lacks the once-pinned cutoff; generic error-code retry can re-enter an uncertain first begin in all three routes; the four new controls hold a Controller.State gate that resource metadata reads before Started/Core, so their intended StillUnpublished setup cannot work. The author is correcting these; a reviewed test-support helper exposes the real participant-model gate without changing shipping behavior. The accepted Backend, Orchestrator and SIP assembly remains 46 source-only files with 24 authored controls, unapplied and unverified as a complete boundary; Service integration is not accepted. No complete regression, shared379, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal Mac12/ARM6 releases or fresh launch qualification is added. Whole current Core-traits/SIP inventories and all additive controls remain required. Matrix remains v218: 1/32 cells and 399/432 checks, not ready for 32; G6-054 stays parked. Existing mobile223 is retained pending Root’s fresh scoped update.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g662-complete-thirteen-frontiers.json",
+    "sha256": "4962031e45d785bdd4c9577d1816bd3122684d36cc671ad10615ec8fd6b70e2e"
   },
   "v219_g550_current_failure_frontiers": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
@@ -20779,6 +20779,39 @@
     "primitive_helpers_applied": true,
     "active_caller_integration_verified": false,
     "next_full_whole_Core_traits_required": 71,
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "v219_g649_g653_compile_frontiers": {
+    "status": "actual-compile-failures-no-runtime-current-repair-unverified",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g649-g653-compile-frontiers.json",
+    "sha256": "34beee8d61937c4423fdaa71bc0beb54265d4047ed4021f7abafb21c0992873c",
+    "actual_runtime_tests": 0,
+    "prepared_generation": 524,
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "v219_g657_partial_thirteen_frontiers": {
+    "status": "actual-partial-failed-components-forced-case-incomplete-repairs-unverified",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g657-partial-thirteen-frontiers.json",
+    "sha256": "0f5dc14331ba290e3ab3d5e6bc8b484f1f72ae4828b2f826a44d11b8a97eeb74",
+    "completed": 9,
+    "passed": 5,
+    "failed": 4,
+    "incomplete_forced": 1,
+    "unrun": 3,
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "v219_g662_complete_thirteen_frontiers": {
+    "status": "actual-complete-failed-component-scope-service-findings-open",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g662-complete-thirteen-frontiers.json",
+    "sha256": "4962031e45d785bdd4c9577d1816bd3122684d36cc671ad10615ec8fd6b70e2e",
+    "completed": 13,
+    "passed": 11,
+    "failed": 2,
+    "incomplete": 0,
+    "unrun": 0,
     "qualification": false,
     "matrix_credit": false
   }

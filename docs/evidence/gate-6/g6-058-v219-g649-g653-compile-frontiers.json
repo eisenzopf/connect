@@ -1,0 +1,160 @@
+{
+  "format": "connect/g6-058-compile-frontier-progress/1",
+  "checkpoint": 143,
+  "recorded_at": "2026-11-20T07:03:38.604421+00:00",
+  "summary": "G649 and G653 closed as compile failures, with no runtime tests or inventories reached. G649 on prepared source523 failed all three RTC/Native builds at renamed resource-confirmation call sites. The reviewed caller repair and formatted Store admission subset were then prepared as source524. G653 passed all three RTC/Native builds and current artifact profiles, but Store compilation stopped at a ConnectionGuard borrow type error. Root applied the independently reviewed G654 local guard-borrow repair; its focused verification remains pending. Every original owner closed naturally: G649 Root plus four children and G653 Root plus five children, all freshly absent. The last actual unit success remains G644 eight primitive guard controls; it does not verify active managed Core, Orchestrator, Store, SIP or Service integration. Those caller integrations remain unfinished; SIP route proof review identified a last-owner Drop wait and its correction is being authored. No decoded media, complete regression, shared379, OriginalV8, strict Firefox NORMAL3, original900, ARM11 or normal-release qualification was added. The next full affected cohort must include all current Core-traits tests and derive totals from actual inventories. Historical failure mappings and results retain their original scope. Matrix remains v218: 1/32 cells and 399/432 checks; not ready for32, with no new matrix credit. G6-054 remains parked.",
+  "actual_runs": [
+    {
+      "run": "g649-source523-rtc-native-eight-controls-root",
+      "result_sha256": "ff59b26d67ab9ca3971b9408b5b1167871365ff67613dd43d13cd9d667883dde",
+      "join_sha256": "5165e488273f219bc2862ef7ffdb97257d4ba81d603d8d4dca6c587e2aceafb5",
+      "source_generation": 523,
+      "source_sha256": "6c0f19975243986c19ed3558ef97e5bba1280f072b9d5ea83b64ee9a9f41c665",
+      "source_files": 6512,
+      "source_unchanged_at_original_join": true,
+      "current_source_is_newer_and_not_regraded": true,
+      "builds": {
+        "webrtc-build65": {
+          "status": "FAILED_COMPILE",
+          "runtime_status": "NOT_RUN",
+          "validation_errors": [],
+          "exit_code": 101
+        },
+        "uctp-build65": {
+          "status": "FAILED_COMPILE",
+          "runtime_status": "NOT_RUN",
+          "validation_errors": [],
+          "exit_code": 101
+        },
+        "component-native-build": {
+          "status": "FAILED_COMPILE",
+          "runtime_status": "NOT_RUN",
+          "validation_errors": [],
+          "exit_code": 101
+        }
+      },
+      "natural_unforced_children": 4,
+      "root_and_children_fresh_pid_pgid_absent": true,
+      "runtime_tests": 0,
+      "inventories": 0,
+      "cause": "Three compile101 failures at renamed RTC confirms callsites; no current artifacts/inventories/runtime."
+    },
+    {
+      "run": "g653-source524-rtc-native-store-thirteen-controls-root",
+      "result_sha256": "698ec293e3a12241d264663fa2be044f21eec23148063c8ecd923d3b5d51840f",
+      "join_sha256": "9fbef2f64bb4471863fa2c2648ddae7534ea51c739f5f45ef2089d39f1c4ccf2",
+      "source_generation": 524,
+      "source_sha256": "35d4c3cf02f3f55437166ee60ddd6861ef4aa41db73569143b05cfacc4588600",
+      "source_files": 6518,
+      "source_unchanged_at_original_join": true,
+      "current_source_is_newer_and_not_regraded": true,
+      "builds": {
+        "webrtc-build65": {
+          "status": "PASSED",
+          "runtime_status": "NOT_RUN",
+          "validation_errors": [],
+          "exit_code": 0,
+          "binary": "rvoip-webrtc"
+        },
+        "uctp-build65": {
+          "status": "PASSED",
+          "runtime_status": "NOT_RUN",
+          "validation_errors": [],
+          "exit_code": 0,
+          "binary": "rvoip-uctp"
+        },
+        "component-native-build": {
+          "status": "PASSED",
+          "runtime_status": "NOT_RUN",
+          "validation_errors": [],
+          "exit_code": 0,
+          "binary": "rvoip-uctp-v2-peer-admission"
+        },
+        "component-store-build": {
+          "status": "FAILED_COMPILE",
+          "runtime_status": "NOT_RUN",
+          "validation_errors": [],
+          "exit_code": 101
+        }
+      },
+      "natural_unforced_children": 5,
+      "root_and_children_fresh_pid_pgid_absent": true,
+      "runtime_tests": 0,
+      "inventories": 0,
+      "cause": "Three RTC/Native builds/profile artifacts passed; Store compile E0308 ConnectionGuard borrowing failed before any inventory/runtime."
+    }
+  ],
+  "current_source": {
+    "prepared_generation": 524,
+    "Store_guard_borrow_repair": "applied-source-reviewed-runtime-unverified",
+    "current_committed_source": null
+  },
+  "last_actual_unit_success": {
+    "run": "G644",
+    "selected_tests_passed": 8,
+    "scope": "primitive guard components only"
+  },
+  "remaining_integration": {
+    "Core_audience": "source-authoring-unsealed-unverified",
+    "managed_Orchestrator": "source-authoring-unsealed-unverified",
+    "Store": "subset-applied-compile-repair-awaiting-focused-verification",
+    "SIP": "source-review-held-last-resource-Drop-correction-being-authored",
+    "Service": "source-authoring-unsealed-unverified"
+  },
+  "runtime_tests_executed_by_G649_G653": 0,
+  "inventories_executed_by_G649_G653": 0,
+  "next_focused_result": null,
+  "next_full_scope": {
+    "append_whole_current_Core_traits_inventory": true,
+    "derive_total_from_actual_inventories": true
+  },
+  "proofs": {
+    "g649_result": {
+      "path": ".local/gate-6/g649-source523-rtc-native-eight-controls-root/result.json",
+      "sha256": "ff59b26d67ab9ca3971b9408b5b1167871365ff67613dd43d13cd9d667883dde"
+    },
+    "g649_original_join": {
+      "path": ".local/gate-6/g649-source523-rtc-native-eight-controls-root/root-original-join.json",
+      "sha256": "5165e488273f219bc2862ef7ffdb97257d4ba81d603d8d4dca6c587e2aceafb5"
+    },
+    "g653_result": {
+      "path": ".local/gate-6/g653-source524-rtc-native-store-thirteen-controls-root/result.json",
+      "sha256": "698ec293e3a12241d264663fa2be044f21eec23148063c8ecd923d3b5d51840f"
+    },
+    "g653_original_join": {
+      "path": ".local/gate-6/g653-source524-rtc-native-store-thirteen-controls-root/root-original-join.json",
+      "sha256": "9fbef2f64bb4471863fa2c2648ddae7534ea51c739f5f45ef2089d39f1c4ccf2"
+    },
+    "actual_compile_audit": {
+      "path": ".local/gate-6/g649-g653-terminal-compile-independent-batch-audit/receipt.json",
+      "sha256": "583f6ce65c54344cdd2da2320e8fdd800ac961ae73eec2ca5b06272278f0e4de"
+    },
+    "normal524_receipt": {
+      "path": ".local/gate-6/g652-normal524-store-rtc-preparation-root/normal524-runtime/receipt.json",
+      "sha256": "b52f69a938da32ed7691a085004168e31bd66947f4d2663298f6f60b5f60172a"
+    },
+    "normal524_audit": {
+      "path": ".local/gate-6/g652-normal524-store-rtc-preparation-root/actual-root-verification.json",
+      "sha256": "87d7712663b6b281cc767de947ca955d51551b23a86c92dc269ac45350b4de38"
+    },
+    "StoreV2_format_application": {
+      "path": ".local/gate-6/g651-store-first-subset-root-integration/format-receipt.json",
+      "sha256": "b198ef633aaf85270d692df81b20e990e7fd9133472f5d1aae2b77895556ae93"
+    },
+    "g654_guard_borrow_source_review": {
+      "path": ".local/gate-6/g654-store-connection-guard-borrow-independent-batch-source-review/receipt.json",
+      "sha256": "d3ece3f25a68d0d45a9cc934749b2fbed133bce298c8c0292c05e89f50ca94ed"
+    }
+  },
+  "qualification": false,
+  "matrix_credit": false,
+  "SourceReady32": false,
+  "matrix_baseline": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "publication": false
+}

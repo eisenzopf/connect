@@ -1,0 +1,64 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+@@ -1526,12 +1526,30 @@
+         let expected_generation = witness.committed_generation();
+         let backend = h.backends[0].clone();
+         let stream = prepared.bindings()[0].transport_id.clone();
++        let io = backend.ports.get(&stream).unwrap().clone();
++        let original_port = PortPreparation {
++            port: io.port.upgrade().unwrap(),
++            is_new: false,
++        };
++        backend
++            .prepare_port(&original_port, until(), &CancellationToken::new())
++            .await
++            .unwrap();
++        let runtime = tokio::runtime::Handle::current();
++        let original_cutoff = until();
+         let held = backend.ports.get_mut(&stream).unwrap();
+         let (sent, returned) = std::sync::mpsc::sync_channel(1);
+         let reader = activation.clone();
+         let current = owner.clone();
++        let original_backend = backend.clone();
+         let worker = std::thread::spawn(move || {
+-            let _ = sent.send(reader.current(current).map(|_| ()));
++            let owner = reader.current(current).map(|_| ());
++            let readiness = runtime.block_on(original_backend.prepare_port(
++                &original_port,
++                original_cutoff,
++                &CancellationToken::new(),
++            ));
++            let _ = sent.send((owner, readiness));
+         });
+         let completed_before_release = returned.recv_timeout(Duration::from_millis(500));
+         let same_witness_current = witness.is_current();
+@@ -1550,7 +1568,11 @@
+         drop(held);
+         let joined = worker.join();
+         assert!(
+-            joined.is_ok() && matches!(completed_before_release, Ok(Ok(()))),
++            joined.is_ok()
++                && matches!(
++                    completed_before_release,
++                    Ok((Ok(()), Err(StreamControlError::MetadataBusy)))
++                ),
+             "actual current waited on original port registry"
+         );
+         assert!(
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -779,11 +779,9 @@
+         }
+         let b = prepared.port.binding();
+         if !prepared.is_new {
+-            return if self.confirms(std::slice::from_ref(b)) {
+-                Ok(())
+-            } else {
+-                Err(StreamControlError::NotReady)
+-            };
++            // Reused ports need the same exact readiness check as new
++            // resource witnesses. Never wait for the port registry here.
++            return self.confirm_resources(std::slice::from_ref(b)).map(|_| ());
+         }
+         let allocation = prepared
+             .port

@@ -161,6 +161,18 @@ pub struct NativeHandoffLease {
 }
 pub struct NativeHandoffAttempt {
     lease: NativeHandoffLease,
+    original_until: i64,
+}
+/// Same-attempt read routing only; never an outcome or current authority.
+#[derive(Clone)]
+pub struct NativeHandoffAdmission {
+    lease: Arc<NativeHandoffLease>,
+    original_until: i64,
+}
+impl std::fmt::Debug for NativeHandoffAdmission {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("NativeHandoffAdmission(redacted)")
+    }
 }
 pub struct NativeHandoffApplied {
     owner: Weak<crate::InstallationOwnership>,
@@ -193,6 +205,21 @@ impl NativeHandoffApplied {
     }
 }
 impl NativeHandoffLease {
+    fn preparation_copy(&self) -> Self {
+        Self {
+            selection: self.selection.clone(),
+            attempt: self.attempt.clone(),
+            effect: self.effect.clone(),
+            plan: self.plan.clone(),
+            selection_json: self.selection_json.clone(),
+            hash: self.hash.clone(),
+            expires_at: self.expires_at,
+        }
+    }
+    pub fn attempt_binding(&self) -> (&str, &str, &str) {
+        (self.record_id(), &self.attempt, &self.effect)
+    }
+
     pub fn expires_at(&self) -> i64 {
         self.expires_at
     }
@@ -203,9 +230,53 @@ impl NativeHandoffLease {
         serde_json::from_str(&self.plan).map_err(|_| Error::storage())
     }
 }
-impl NativeHandoffAttempt {
+impl NativeHandoffAdmission {
+    pub(crate) fn require_unpublished(&self, store: &Store, c: &Connection) -> Result<()> {
+        let lease = &self.lease;
+        let row = bound(c, store, lease)?;
+        let exact:bool=c.query_row(
+                "SELECT EXISTS(SELECT 1 FROM native_handoffs n JOIN operation_effects e ON e.id=n.effect_id AND e.operation_record_id=n.operation_record_id JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.attempt_id=?2 AND n.effect_id=?3 AND n.runtime_epoch=?4 AND n.plan_digest=?5 AND n.started=1 AND n.applied_json IS NULL AND e.provider='native-handoff' AND e.correlation_key=n.operation_record_id AND e.idempotency_mode='none' AND e.state='submitting' AND e.observation_json IS NULL AND e.provider_ref IS NULL AND e.attempt=1 AND e.submission_generation=1 AND o.worker_runtime=?6 AND o.cancel_requested=0 AND o.expires_at>?7)",
+                params![lease.record_id(),lease.attempt,lease.effect,lease.selection.origin.runtime,lease.hash,store.transition_runtime,crate::now()],|row|row.get(0)
+            ).map_err(|_|Error::storage())?;
+        if !exact
+            || row.record.state != OperationState::Preparing
+            || crate::now() >= self.expires_at()
+        {
+            return Err(Error::forbidden());
+        }
+        Ok(())
+    }
+
     pub fn expires_at(&self) -> i64 {
-        self.lease.expires_at
+        self.lease.expires_at.min(self.original_until)
+    }
+    pub fn record_id(&self) -> &str {
+        self.lease.record_id()
+    }
+}
+impl NativeHandoffAttempt {
+    pub fn attempt_binding(&self) -> (&str, &str, &str) {
+        self.lease.attempt_binding()
+    }
+
+    pub fn admission(&self) -> NativeHandoffAdmission {
+        let lease = &self.lease;
+        NativeHandoffAdmission {
+            original_until: self.original_until,
+            lease: Arc::new(NativeHandoffLease {
+                selection: lease.selection.clone(),
+                attempt: lease.attempt.clone(),
+                effect: lease.effect.clone(),
+                plan: lease.plan.clone(),
+                selection_json: lease.selection_json.clone(),
+                hash: lease.hash.clone(),
+                expires_at: lease.expires_at,
+            }),
+        }
+    }
+
+    pub fn expires_at(&self) -> i64 {
+        self.lease.expires_at.min(self.original_until)
     }
     pub fn record_id(&self) -> &str {
         self.lease.record_id()
@@ -603,8 +674,46 @@ impl Store {
     pub fn begin_native_handoff(
         &self,
         lease: NativeHandoffLease,
-        mut read: NativeHandoffRead,
+        read: NativeHandoffRead,
     ) -> Result<(NativeHandoffAttempt, NativeHandoffRead)> {
+        self.begin_native_handoff_in(lease, read, None)?
+            .ok_or_else(|| Error::new("authority-busy", "Handoff begin admission is busy"))
+    }
+    /// Bound read-only preparation to the original once-chosen publication
+    /// interval. A caller can only shorten an actual current read.
+    pub fn native_handoff_attempt_read_until(
+        &self,
+        lease: &NativeHandoffLease,
+        original_until: i64,
+    ) -> Result<NativeHandoffRead> {
+        let mut read = self.native_handoff_attempt_read(lease)?;
+        read.limit(original_until)?;
+        Ok(read)
+    }
+    /// First durable begin after cold preparation, using the SAME lease/IDs.
+    /// Cancellation/cutoff is checked before mutations and commit. A late
+    /// successful commit always returns owned attempt custody, never a lost
+    /// error that could authorize another begin or physical publication.
+    pub fn try_begin_native_handoff_with_wait(
+        &self,
+        lease: &NativeHandoffLease,
+        mut read: NativeHandoffRead,
+        original_until: i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<Option<(NativeHandoffAttempt, NativeHandoffRead)>> {
+        read.limit(original_until)?;
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (read.expires_at() - crate::now()).max(0) as u64,
+        ));
+        wait.check()?;
+        self.begin_native_handoff_in(lease.preparation_copy(), read, Some(&wait))
+    }
+    fn begin_native_handoff_in(
+        &self,
+        lease: NativeHandoffLease,
+        mut read: NativeHandoffRead,
+        control_wait: Option<&crate::AuthorityWait>,
+    ) -> Result<Option<(NativeHandoffAttempt, NativeHandoffRead)>> {
         read.limit(lease.expires_at)?;
         if !read.current()
             || read.selection().snapshot() != lease.selection.snapshot()
@@ -618,17 +727,46 @@ impl Store {
         // Drop EVERY old planning reader before acquiring the actual cut Writer.
         let selection = read.into_selection()?;
         let remaining = std::time::Duration::from_secs((cutoff - crate::now()).max(0) as u64);
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT).bounded(remaining),
-            || {
+        let default_wait =
+            crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT).bounded(remaining);
+        let (held, mut c) = if let Some(wait) = control_wait {
+            // Only this pre-DML admission may return None. The compatible
+            // planning read was already consumed; no Writer exists while SQL
+            // readiness waits. Actual authority acquisition itself is try-only.
+            let c = self.try_connection_with_wait(wait)?;
+            let scopes = selection.scopes(self, &c, true)?;
+            wait.check()?;
+            let held = match self.try_acquire_authority(&scopes) {
+                Ok(held) => held,
+                Err(error) if error.code == "authority-busy" => return Ok(None),
+                Err(error) => return Err(error),
+            };
+            wait.check()?;
+            c.bind_available_mutation_authority(self, &held)?;
+            (held, c)
+        } else {
+            let held = self.stable_authority(&default_wait, || {
                 let c = self.connection()?;
                 selection.scopes(self, &c, true)
-            },
-        )?;
-        let mut c = self.connection_with_authority(&held)?;
-        let tx = c
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+            })?;
+            let c = self.connection_with_authority(&held)?;
+            (held, c)
+        };
+        let tx = match c.transaction_with_behavior(TransactionBehavior::Immediate) {
+            Ok(tx) => tx,
+            Err(error)
+                if control_wait.is_some()
+                    && matches!(
+                        error.sqlite_error_code(),
+                        Some(
+                            rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked
+                        )
+                    ) =>
+            {
+                return Ok(None)
+            }
+            Err(_) => return Err(Error::storage()),
+        };
         let row = bound(&tx, self, &lease)?;
         if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
             return Err(Error::forbidden());
@@ -641,6 +779,9 @@ impl Store {
         read.limit(cutoff)?;
         if row.record.state != OperationState::Preparing {
             return Err(conflict());
+        }
+        if let Some(wait) = control_wait {
+            wait.check()?;
         }
         let changed = tx
             .execute(
@@ -662,8 +803,54 @@ impl Store {
         if !read.current() {
             return Err(Error::forbidden());
         }
+        if let Some(wait) = control_wait {
+            wait.check()?;
+        }
         tx.commit().map_err(|_| Error::storage())?;
-        Ok((NativeHandoffAttempt { lease }, read))
+        Ok(Some((
+            NativeHandoffAttempt {
+                lease,
+                original_until: cutoff,
+            },
+            read,
+        )))
+    }
+    /// A fresh final Writer for the SAME owned, still-unobserved attempt.
+    /// This rechecks current authority but performs no SQL mutation or renewal.
+    /// Its existence alone is never permission to retry a Core effect.
+    pub fn try_native_handoff_started_scene_write(
+        &self,
+        attempt: &NativeHandoffAdmission,
+        wait: &crate::AuthorityWait,
+    ) -> Result<NativeHandoffRead> {
+        let lease = &attempt.lease;
+        let until = attempt.expires_at();
+        let wait = wait.bounded(std::time::Duration::from_secs(
+            (until - crate::now()).max(0) as u64,
+        ));
+        // No prior grant exists while this owned SQL admission can wait.
+        let c = self.try_connection_with_wait(&wait)?;
+        attempt.require_unpublished(self, &c)?;
+        let scopes = lease.selection.scopes_for_attempt(self, &c, attempt)?;
+        wait.check()?;
+        let held = self.try_acquire_authority(&scopes)?;
+        // Every operation after the actual Writer exists is immediate; Busy
+        // returns only after local aliases drop. Service owns any later wait.
+        attempt.require_unpublished(self, &c)?;
+        if !self.authority_covers(
+            &held,
+            &lease.selection.scopes_for_attempt(self, &c, attempt)?,
+        ) {
+            return Err(Error::forbidden());
+        }
+        lease
+            .selection
+            .validate_plan_for_attempt(self, &c, &lease.plan()?, attempt)?;
+        let mut read =
+            self.native_handoff_read_for_attempt(&c, lease.selection.clone(), held, attempt)?;
+        read.limit(until)?;
+        wait.check()?;
+        Ok(read)
     }
     /// An engine error after attempt admission is uncertainty, never permission
     /// to call Core again. The caller drops its bounded IO readers first.

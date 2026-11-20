@@ -574,3 +574,5 @@ fn handoff_begin_refuses_expired_original_control_without_started_effect() {
         .unwrap();
     assert!(!started);
 }
+
+mod final_admission;

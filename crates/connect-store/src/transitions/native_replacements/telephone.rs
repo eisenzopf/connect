@@ -6,12 +6,13 @@ pub use runtime::{
     TelephoneMediaOrigin, TelephoneMediaRead, TelephoneNativeMediaRead, TelephoneNativeSignalRead,
     TelephoneReplacementAllocated, TelephoneReplacementAttempt,
     TelephoneReplacementAudienceCapture, TelephoneReplacementCommitAttempt,
-    TelephoneReplacementCommitUncertain, TelephoneReplacementCommitted,
-    TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead, TelephoneReplacementPhase,
-    TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture, TelephoneReplacementRead,
-    TelephoneReplacementResourcesAttempt, TelephoneReplacementResourcesCapture,
-    TelephoneReplacementSceneRead, TelephoneReplacementSubmitted, TelephoneReplacementUncertain,
-    TelephoneReplacementWriteRead, TelephoneSignalDirection, TelephoneSignalRead,
+    TelephoneReplacementCommitPreparation, TelephoneReplacementCommitUncertain,
+    TelephoneReplacementCommitted, TelephoneReplacementMediaOrigin, TelephoneReplacementMediaRead,
+    TelephoneReplacementPhase, TelephoneReplacementPhaseAttempt, TelephoneReplacementPhaseCapture,
+    TelephoneReplacementRead, TelephoneReplacementResourcesAttempt,
+    TelephoneReplacementResourcesCapture, TelephoneReplacementSceneRead,
+    TelephoneReplacementSubmitted, TelephoneReplacementUncertain, TelephoneReplacementWriteRead,
+    TelephoneSignalDirection, TelephoneSignalRead,
 };
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]

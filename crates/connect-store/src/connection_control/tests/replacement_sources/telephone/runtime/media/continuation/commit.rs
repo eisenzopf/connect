@@ -1100,3 +1100,5 @@ fn fixture_phase_retry_preserves_original_cutoff_and_reserves_once_after_actual_
 }
 
 mod control_chain;
+
+mod final_admission;

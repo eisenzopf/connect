@@ -12,7 +12,8 @@ mod receiver_epoch;
 mod webrtc;
 use crate::{AuthorityGuardSet, AuthorityScope, PeerConnectionProjection};
 pub use commit::{
-    NativeReplacementCommitAttempt, NativeReplacementCommitNotSubmitted,
+    NativeReplacementCommitAdmission, NativeReplacementCommitAttempt,
+    NativeReplacementCommitNotSubmitted, NativeReplacementCommitPreparation,
     NativeReplacementCommitUncertain, NativeReplacementCommitted,
 };
 pub use phase::{

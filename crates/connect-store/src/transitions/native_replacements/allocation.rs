@@ -7,8 +7,9 @@ use positive_capture::PositiveResourceCapture;
 mod start;
 pub(super) use start::NativeReplacementNotSubmittedLineage;
 pub use start::{
-    NativeReplacementAudienceCapture, NativeReplacementCommitAttempt,
-    NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain,
+    NativeReplacementAudienceCapture, NativeReplacementCommitAdmission,
+    NativeReplacementCommitAttempt, NativeReplacementCommitNotSubmitted,
+    NativeReplacementCommitPreparation, NativeReplacementCommitUncertain,
     NativeReplacementCommitted, NativeReplacementMediaAttempt, NativeReplacementMediaCapture,
     NativeReplacementMediaOrigin, NativeReplacementMediaPhase, NativeReplacementMediaRead,
     NativeReplacementSceneRead, NativeReplacementStartAttempt, NativeReplacementStartOrigin,
