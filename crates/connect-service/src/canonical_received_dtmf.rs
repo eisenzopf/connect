@@ -12,6 +12,7 @@ use connect_protocol::{
 use connect_store::{
     NativeDtmfRecipient, ReceivedDtmfPreparation, ReceivedDtmfRead, ReceivedDtmfTarget,
 };
+use rvoip_core::staged_streams::MediaActivation;
 use rvoip_core::{dtmf::*, ids::ConnectionId, staged_streams::MediaOwner};
 use rvoip_uctp::v2::{Envelope, Scope};
 use std::{

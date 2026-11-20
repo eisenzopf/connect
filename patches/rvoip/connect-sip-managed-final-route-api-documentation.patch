@@ -1,0 +1,92 @@
+--- a/crates/sip/rvoip-sip/src/adapter/device_replacement/final_route.rs
++++ b/crates/sip/rvoip-sip/src/adapter/device_replacement/final_route.rs
+@@ -5,7 +5,13 @@
+ use std::marker::PhantomData;
+ 
+ #[derive(Clone,Copy,Debug,PartialEq,Eq)]
+-pub enum SipManagedRouteRole { ReplacementSource, ReplacementTarget }
++/// Whether this exact SIP route is the source or target of the managed cut.
++pub enum SipManagedRouteRole {
++    /// Established SIP source being replaced by the selected canonical target.
++    ReplacementSource,
++    /// Prepared SIP target replacing the selected canonical source.
++    ReplacementTarget
++}
+ /// Exact attribution and original physical incarnation; not current permission.
+ #[derive(Clone,PartialEq,Eq)]
+ pub struct SipManagedRouteScope {
+@@ -13,15 +19,21 @@
+     connection:ConnectionId, generation:u64, role:SipManagedRouteRole,
+ }
+ impl SipManagedRouteScope {
++    /// Validate and own the original operation/attempt/effect and physical route identity.
++    /// This metadata grants no permission and does not renew the original attempt.
+     pub fn new(binding:(&str,&str,&str),connection:ConnectionId,generation:u64,role:SipManagedRouteRole)->rvoip_core::staged_streams::ControlResult<Self> {
+         if binding.0.is_empty()||binding.1.is_empty()||binding.2.is_empty()||generation==0 {
+             return Err(rvoip_core::staged_streams::StreamControlError::Authority);
+         }
+         Ok(Self {record:binding.0.into(),attempt:binding.1.into(),effect:binding.2.into(),connection,generation,role})
+     }
++    /// Return the original recorded operation, attempt and effect identifiers.
+     pub fn attempt_binding(&self)->(&str,&str,&str) {(&self.record,&self.attempt,&self.effect)}
++    /// Return the route role captured for this exact managed operation.
+     pub fn role(&self)->SipManagedRouteRole {self.role}
++    /// Return the exact physical connection identifier captured by this scope.
+     pub fn connection(&self)->&ConnectionId {&self.connection}
++    /// Return the original physical connection generation; never a renewed lease.
+     pub fn generation(&self)->u64 {self.generation}
+ }
+ /// Own outside the complete final turn: even fatal notification may enter maps
+@@ -31,7 +43,10 @@
+     fn fmt(&self,f:&mut fmt::Formatter<'_>)->fmt::Result {f.write_str("SipFinalRouteFailure(redacted)")}
+ }
+ impl SipFinalRouteFailure {
++    /// Whether actual metadata contention definitely prevented entering the cut.
+     pub fn is_busy(&self)->bool {matches!(self.inner,Some(CurrentMetadataError::Busy))}
++    /// Classify the refusal without finishing a deferred fatal notification.
++    /// The caller must still release every final alias before consuming this failure.
+     pub fn error(&self)->rvoip_core::staged_streams::StreamControlError {
+         if self.is_busy() {rvoip_core::staged_streams::StreamControlError::MetadataBusy}
+         else {rvoip_core::staged_streams::StreamControlError::NotReady}
+@@ -71,6 +86,8 @@
+     fn fmt(&self,f:&mut fmt::Formatter<'_>)->fmt::Result {f.write_str("SipFinalRouteView(redacted)")}
+ }
+ impl SipFinalRouteView {
++    /// Check this view's exact scope and live guarded turn, not Store authorization.
++    /// Escaped clones fail after the owning turn releases its real SIP fences.
+     pub fn is_current_for(&self,context:&SipDeviceReplacementContext,scope:&SipManagedRouteScope)->bool {
+         self.authority.upgrade().is_some_and(|authority|authority.final_metadata_healthy())
+             && self.scope==*scope && Weak::ptr_eq(&self.context,&Arc::downgrade(&context.inner))
+@@ -79,7 +96,9 @@
+             && self.route.upgrade().is_some_and(|route|
+                 route.connection_id==self.scope.connection && !route.final_cancelled.load(Ordering::Acquire))
+     }
++    /// Borrow this nonowning view's original attribution and route scope.
+     pub fn scope(&self)->&SipManagedRouteScope {&self.scope}
++    /// Borrow the codec metadata captured from the same guarded route turn.
+     pub fn codec(&self)->&CodecInfo {&self.codec}
+ }
+ /// Borrowed lexical proof, never queued/installed in an invocation. Actual
+@@ -89,16 +108,22 @@
+     codec:&'a CodecInfo, view:SipFinalRouteView, _guard_scope:PhantomData<&'a mut ()>,
+ }
+ impl SipCurrentMediaRoute<'_> {
++    /// Clone a nonowning callback view that expires before the real fences release.
+     pub fn view(&self)->SipFinalRouteView {self.view.clone()}
++    /// Check actual route-turn currentness for this proof's original context and scope.
+     pub fn is_current(&self)->bool {self.is_current_for(self.context,self.scope)}
++    /// Borrow the exact operation attribution and physical incarnation guarded by this turn.
+     pub fn scope(&self)->&SipManagedRouteScope {self.scope}
++    /// Whether the proof belongs to this exact original controller Arc, not a reused ID.
+     pub fn belongs_to(&self,controller:&Arc<rvoip_core::staged_streams::StreamController>)->bool {
+         self.context.inner.media.get().is_some_and(|media|Arc::ptr_eq(&media.controller,controller))
+     }
++    /// Check the same guarded context, scope, codec and live route without reentering registries.
+     pub fn is_current_for(&self,context:&SipDeviceReplacementContext,scope:&SipManagedRouteScope)->bool {
+         Arc::ptr_eq(&self.context.inner,&context.inner)&&self.scope==scope&&self.codec==self.view.codec()
+             && self.view.is_current_for(context,scope)
+     }
++    /// Borrow the negotiated codec while its actual route codec guard remains held.
+     pub fn codec(&self)->&CodecInfo {self.codec}
+ }
+ struct Turn(Arc<AtomicBool>);

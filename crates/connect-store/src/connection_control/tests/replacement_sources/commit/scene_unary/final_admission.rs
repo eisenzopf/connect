@@ -323,3 +323,152 @@ fn native_commit_prepared_facts_do_not_survive_actual_permission_withdrawal_or_s
         assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
     }
 }
+
+#[test]
+fn native_prepared_final_begin_original_wait_refuses_before_dml_and_rolls_back_before_commit() {
+    for stage in [
+        "pre-cancelled",
+        "original-expired",
+        "prepared-begin-before-dml",
+        "prepared-begin-before-commit",
+    ] {
+        let m = scene();
+        let planning =
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .unwrap();
+        let p = m
+            .f
+            .store
+            .prepare_native_replacement_commit_until(m.origin.clone(), &planning, crate::now() + 5)
+            .unwrap();
+        assert!(p.expires_at() <= planning.expires_at());
+        drop(planning);
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(1));
+        let read =
+            m.f.store
+                .try_native_replacement_commit_scene_write_with_wait(
+                    &m.origin,
+                    &m.sources,
+                    p.expires_at(),
+                    &wait,
+                )
+                .unwrap();
+        let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+        if stage == "pre-cancelled" {
+            wait.cancel();
+        }
+        let actual = if stage == "original-expired" {
+            let expired = crate::AuthorityWait::new(std::time::Duration::ZERO);
+            m.f.store
+                .try_begin_prepared_native_replacement_commit_with_wait(&p, &read, &expired)
+        } else if stage == "pre-cancelled" {
+            m.f.store
+                .try_begin_prepared_native_replacement_commit_with_wait(&p, &read, &wait)
+        } else {
+            let cancelled = wait.clone();
+            let hit = Arc::new(std::sync::atomic::AtomicBool::new(false));
+            let observed = hit.clone();
+            let actual = Store::with_native_replacement_commit_entry_probe_for_test(
+                stage,
+                move || {
+                    observed.store(true, std::sync::atomic::Ordering::Release);
+                    cancelled.cancel();
+                },
+                || {
+                    m.f.store
+                        .try_begin_prepared_native_replacement_commit_with_wait(&p, &read, &wait)
+                },
+            );
+            assert!(
+                hit.load(std::sync::atomic::Ordering::Acquire),
+                "actual original transaction boundary not reached"
+            );
+            actual
+        };
+        assert!(
+            actual.is_err(),
+            "original cutoff/cancel must not persist Started: {stage}"
+        );
+        drop(read);
+        assert_eq!(
+            Store::inspect_snapshot(m.f.store.path()).unwrap(),
+            before,
+            "actual transaction rollback/no new step/effect/journal: {stage}"
+        );
+    }
+    let m = scene();
+    let read =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    assert!(m
+        .f
+        .store
+        .prepare_native_replacement_commit_until(m.origin.clone(), &read, crate::now())
+        .is_err());
+    drop(read);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+}
+
+#[test]
+fn native_prepared_shorter_cutoff_rolls_back_at_actual_dml_and_commit_boundaries() {
+    for stage in ["prepared-begin-before-dml", "prepared-begin-before-commit"] {
+        let m = scene();
+        let planning =
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .unwrap();
+        let longer = planning.expires_at();
+        let p = m
+            .f
+            .store
+            .prepare_native_replacement_commit_until(m.origin.clone(), &planning, crate::now() + 1)
+            .unwrap();
+        assert!(p.expires_at() < longer);
+        drop(planning);
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(10));
+        // Deliberately preserve a longer legitimate read/wait: ONLY the once
+        // shortened preparation cutoff can refuse after the actual probe hold.
+        let read =
+            m.f.store
+                .try_native_replacement_commit_scene_write_with_wait(
+                    &m.origin, &m.sources, longer, &wait,
+                )
+                .unwrap();
+        assert!(read.expires_at() > p.expires_at());
+        let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+        let expires = p.expires_at();
+        let hit = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let observed = hit.clone();
+        let result = Store::with_native_replacement_commit_entry_probe_for_test(
+            stage,
+            move || {
+                observed.store(true, std::sync::atomic::Ordering::Release);
+                while crate::now() < expires {
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                }
+            },
+            || {
+                m.f.store
+                    .try_begin_prepared_native_replacement_commit_with_wait(&p, &read, &wait)
+            },
+        );
+        assert!(hit.load(std::sync::atomic::Ordering::Acquire));
+        assert!(
+            wait.check().is_ok() && read.current(),
+            "longer read/wait must still be valid"
+        );
+        assert!(
+            result.is_err(),
+            "short original preparation cutoff must refuse: {stage}"
+        );
+        drop(read);
+        assert_eq!(
+            Store::inspect_snapshot(m.f.store.path()).unwrap(),
+            before,
+            "same real transaction fully rolled back: {stage}"
+        );
+    }
+}

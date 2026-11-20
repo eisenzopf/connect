@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 150,
+  "mobile_content_revision": 229,
+  "recorded_at": "2026-11-20T13:16:03.554329+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "G696actual45=31PASS14FAIL; normal533guardfixprepared/audited; coldterminaldiagnosticsapplied; repairedruntimeUNRUN",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile229-component45-prepared533-root/before-write.json",
+  "private_before_sha256": "6d4e4958f384d7e3449173cbdccd78def65999dbf2343cf8dc4588210bd8bcaa",
+  "private_write": ".local/gate-6/mobile229-component45-prepared533-root/write.json",
+  "private_write_sha256": "bd3dfe9112f798f761a29ab236ce621151d33362861cc5c9500a76f0fe0e18b4",
+  "private_readback": ".local/gate-6/mobile229-component45-prepared533-root/readback.json",
+  "private_readback_sha256": "a258e9e2c83988cd4d722a98ea7ed73ca86f45b37850171850b099b33195ef99"
+}

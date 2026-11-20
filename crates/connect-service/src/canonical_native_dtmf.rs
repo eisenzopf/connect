@@ -1,4 +1,5 @@
 //! Original signed signal custody; queued work retains metadata, not readers.
+use rvoip_core::staged_streams::MediaActivation;
 mod gateways;
 use crate::canonical_native_streams::CapturedStreamOutcome;
 use crate::{

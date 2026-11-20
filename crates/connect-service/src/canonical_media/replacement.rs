@@ -453,6 +453,51 @@ impl Policy {
     ) -> ParticipantResult<MediaOwner> {
         self.replacement_source_owner_with_lookup(read, |id| entries.entry(id))
     }
+    #[cfg(feature = "test-support")]
+    pub(crate) fn replacement_source_owner_with_final_route_for_test(
+        &self,
+        read: &NativeReplacementPreparationRead,
+        view: &rvoip_sip::adapter::SipFinalRouteView,
+        record: &str,
+    ) -> ParticipantResult<MediaOwner> {
+        let deny = || ParticipantControlError::Authority;
+        let ctx = read.context();
+        if !read.current() {
+            return Err(deny());
+        }
+        // EXACT original legacy order and live registries, including retained
+        // entry lookup under the actual armed registry exclusion.
+        let retained = self
+            .entry(&ConnectionId::from_string(
+                ctx.retained_runtime_connection_id.clone(),
+            ))
+            .map_err(|_| deny())?;
+        let phone = read.source().telephone().ok_or_else(deny)?;
+        let policy = self
+            .telephone_target(&ConnectionId::from_string(
+                ctx.source_runtime_connection_id.clone(),
+            ))
+            .map_err(|_| deny())?
+            .ok_or_else(deny)?;
+        let old = policy
+            .established_owner_with_final_route(phone, view, record)
+            .map_err(|_| deny())?;
+        let remote = retained
+            .owner(read.retained().target(), &retained.principal, false)
+            .map_err(|_| deny())?;
+        retained
+            .activation()
+            .map_err(|_| deny())?
+            .ok_or_else(deny)?
+            .current(remote)
+            .map_err(|_| deny())?;
+        if old.member.participant().as_str() != ctx.participant_id
+            || old.member.epoch() != ctx.membership_epoch
+        {
+            return Err(deny());
+        }
+        Ok(old)
+    }
     fn replacement_source_owner_with_lookup(
         &self,
         read: &NativeReplacementPreparationRead,
@@ -548,18 +593,35 @@ impl super::Policy {
         metadata: Arc<connect_store::NativeReplacementActivation>,
         binding: rvoip_core::relationships::ConnectionBinding,
     ) -> ControlResult<Arc<ReplacementAdoption>> {
-        let origin = metadata.origin().clone();
         #[cfg(feature = "test-support")]
+        self.check_replacement_adoption_fault_for_test(metadata.origin().offer_record_id())?;
+        self.prepare_replacement_adoption_metadata(target, metadata, binding)
+    }
+    #[cfg(feature = "test-support")]
+    pub(crate) fn check_replacement_adoption_fault_for_test(
+        &self,
+        record: &str,
+    ) -> ControlResult<()> {
         if let Some(armed) = self
             .replacement_adoption_refusals
             .try_lock()
             .map_err(super::metadata_contention)?
-            .remove(origin.offer_record_id())
+            .remove(record)
         {
             armed.store(false, std::sync::atomic::Ordering::Release);
             return Err(StreamControlError::Authority);
         }
-
+        Ok(())
+    }
+    /// Cold metadata/resource construction only. The original test-only
+    /// post-Started/pre-Core refusal remains in the final admission turn.
+    pub(crate) fn prepare_replacement_adoption_metadata(
+        self: &Arc<Self>,
+        target: &Arc<crate::canonical_replacement::TargetPolicy>,
+        metadata: Arc<connect_store::NativeReplacementActivation>,
+        binding: rvoip_core::relationships::ConnectionBinding,
+    ) -> ControlResult<Arc<ReplacementAdoption>> {
+        let origin = metadata.origin().clone();
         if !std::ptr::eq(self.as_ref(), Arc::as_ptr(&target.base))
             || !binding.same_incarnation(target.pending.binding())
             || binding.state() != rvoip_core::relationships::BindingState::Active
@@ -850,7 +912,7 @@ impl ReplacementAdoption {
                 .as_ref()
                 .zip(self.target.activation.get())
                 .is_some_and(|(installed, original)| {
-                    let original: Arc<dyn MediaActivation> = original.clone();
+                    let original = original.clone();
                     Arc::ptr_eq(installed, &original)
                 })
             && binding.as_ref().is_some_and(|binding| {
@@ -910,7 +972,7 @@ struct InstalledEntry<'a> {
     native: &'a crate::canonical_replacement::Activation,
     generation: u64,
     continuation: &'a super::public_continuation::Continuation,
-    _activation: super::published::Write<'a, Option<Arc<dyn MediaActivation>>>,
+    _activation: super::published::Write<'a, Option<Arc<crate::canonical_replacement::Activation>>>,
     _binding: super::published::Write<'a, Option<rvoip_core::relationships::ConnectionBinding>>,
 
     _entries: super::published::Write<

@@ -25,6 +25,8 @@ fn telephone_commit_preparation_and_same_attempt_readmission_keep_no_idle_writer
             .try_telephone_replacement_scene_read(resources, &sources)
             .unwrap();
         let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(100));
+        // Exact immutable cutoff saved by the actual constructor below.
+        let attempt_until = preparation.expires_at().min(read.expires_at());
         let (attempt, read) = f
             .store
             .try_begin_prepared_telephone_replacement_commit_with_wait(&preparation, read, &wait)
@@ -48,9 +50,15 @@ fn telephone_commit_preparation_and_same_attempt_readmission_keep_no_idle_writer
                 .unwrap();
         }
         let before = Store::inspect_snapshot(f.store.path()).unwrap();
+        // Each independent try-only admission gets its own bounded call wait.
+        // The saved attempt/preparation expiry below remains immutable; snapshot
+        // inspection and cancellation work must not consume this call's 100ms.
+        let began = std::time::Instant::now();
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_millis(100));
         let actual = f
             .store
             .try_telephone_replacement_commit_attempt_scene_write(&attempt, &wait);
+        eprintln!("PHONE_FINAL_ADMISSION elapsed_us={} error={} denied={} now={} original_attempt_until={}",began.elapsed().as_micros(),actual.as_ref().err().map(|e|e.code.as_str()).unwrap_or("none"),denied,crate::now(),attempt_until);
         if denied {
             assert!(actual.is_err());
         } else {

@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 151,
+  "mobile_content_revision": 230,
+  "recorded_at": "2026-11-20T13:52:26.242353+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "G700actual45=39PASS6FAIL; fixture534prepared/audited and ordered ServiceActivebindingfixapplied/formatted; next45UNRUN",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile230-component45-remaining-repairs534-root/before-write.json",
+  "private_before_sha256": "a258e9e2c83988cd4d722a98ea7ed73ca86f45b37850171850b099b33195ef99",
+  "private_write": ".local/gate-6/mobile230-component45-remaining-repairs534-root/write.json",
+  "private_write_sha256": "148524b9a3c555d7de95c75092896913402374132f02c8b7eb42b9b2062d6460",
+  "private_readback": ".local/gate-6/mobile230-component45-remaining-repairs534-root/readback.json",
+  "private_readback_sha256": "0a70ca320325ed48dda4f4e0565a1ade9c8eaa4a5baa62e1a8dcaa2920935003"
+}

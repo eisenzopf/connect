@@ -15,8 +15,21 @@ impl Runtime {
         started: &Arc<media::Started>,
         phase: Phase,
     ) -> Result<Invocation> {
-        let admission =
-            admission::Admission::new(root.deadline, root.handle.cancellation(), i64::MAX);
+        self.telephone_scene_until(root, started, phase, root.deadline)
+            .await
+    }
+    pub(super) async fn telephone_scene_until(
+        self: &Arc<Self>,
+        root: &Arc<PreparedReplacement>,
+        started: &Arc<media::Started>,
+        phase: Phase,
+        until: tokio::time::Instant,
+    ) -> Result<Invocation> {
+        let admission = admission::Admission::new(
+            root.deadline.min(until),
+            root.handle.cancellation(),
+            i64::MAX,
+        );
         let media = self.media.clone();
         let session = root
             .handle
@@ -49,7 +62,9 @@ impl Runtime {
             started: started.clone(),
             read: Arc::new(read),
             phase,
-            deadline: root.deadline.min(expiry),
+            deadline: root.deadline.min(until).min(expiry),
+            final_turn: false,
+            final_sip_route: None,
         })
     }
     // Reserve metadata under a short Writer, then obtain a fresh current IO
@@ -127,6 +142,8 @@ impl Runtime {
                     read: Arc::new(read),
                     phase,
                     deadline: root.deadline.min(expiry),
+                    final_turn: false,
+                    final_sip_route: None,
                 })
             });
         match admitted {

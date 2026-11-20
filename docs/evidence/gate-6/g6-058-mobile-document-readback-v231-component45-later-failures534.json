@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 152,
+  "mobile_content_revision": 231,
+  "recorded_at": "2026-11-20T14:14:18.484064+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "G704actual45=39PASS6FAIL same labels laterfailures; externalScene-admission and nativeprivate-vs-public observation investigations OPEN",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile231-component45-later-failures534-root/before-write.json",
+  "private_before_sha256": "0a70ca320325ed48dda4f4e0565a1ade9c8eaa4a5baa62e1a8dcaa2920935003",
+  "private_write": ".local/gate-6/mobile231-component45-later-failures534-root/write.json",
+  "private_write_sha256": "ed3f7454a1c1c47d3c1a991030247044fe5815dba0b5fc645b9ebe65e5a1c131",
+  "private_readback": ".local/gate-6/mobile231-component45-later-failures534-root/readback.json",
+  "private_readback_sha256": "c38f0062e483594235e6448373b807123448556d2d1b76ea298bd1d903fb5602"
+}

@@ -1,0 +1,726 @@
+--- a/crates/sip/rvoip-sip/src/adapter/device_replacement/final_route/tests.rs
++++ b/crates/sip/rvoip-sip/src/adapter/device_replacement/final_route/tests.rs
+@@ -0,0 +1,126 @@
++//! Actual route/lifecycle/map/codec fences. Metadata-only fixture, no SIP wire,
++//! decoded media, endpoint confirmation or host publication permission claim.
++use super::*;
++use rvoip_core::{participant_transitions::{ParticipantSession,ParticipantMutation,ParticipantChange,ParticipantReplacementMutation,EndpointConfirmationPolicy},
++    relationships::{IdentityBinding,Membership},participant::{ParticipantKind,ParticipantRole},
++    ids::{TenantId,ConversationId,ParticipantId,IdentityId,EndpointId,DeviceId,SessionId as CoreSessionId},
++    identity::{AuthenticationMethod,IdentityAssurance}};
++use crate::api::unified::Config as ApiConfig;
++struct Fixture {coordinator:Arc<UnifiedCoordinator>,adapter:Arc<SipAdapter>,context:SipDeviceReplacementContext,route:Arc<SipOutboundRoute>,scope:SipManagedRouteScope}
++fn member(name:&str)->(AuthenticatedPrincipal,Membership,IdentityBinding) {
++    let p=AuthenticatedPrincipal {subject:name.into(),tenant:Some("final-route-tenant".into()),scopes:vec!["sip_dial".into()],issuer:None,expires_at:None,method:AuthenticationMethod::Bearer,assurance:IdentityAssurance::Anonymous};
++    let b=IdentityBinding::from_authenticated(&p,IdentityId::from_string(format!("identity-{name}")),Utc::now()).unwrap();
++    let m=Membership::admit(b.clone(),ConversationId::from_string("final-route-conversation"),ParticipantId::from_string(format!("member-{name}")),ParticipantKind::Human,ParticipantRole::Agent).unwrap();(p,m,b)
++}
++fn endpoint(b:&IdentityBinding,name:&str)->EndpointBinding {
++    let mut e=EndpointBinding::provision(b.clone(),EndpointId::from_string(format!("endpoint-{name}")),DeviceId::from_string(format!("device-{name}")),Transport::Sip,"sip:unit@example.test".into()).unwrap();
++    e.verify(b,"unit-resolver".into(),Utc::now()).unwrap();e
++}
++fn ticket(name:&str)->(PreparedParticipantReplacement,AuthenticatedPrincipal,EndpointBinding) {
++    let mut session=ParticipantSession::new(TenantId::from_string("final-route-tenant"),ConversationId::from_string("final-route-conversation"),CoreSessionId::from_string(format!("model-{name}")),4,6,64).unwrap();
++    let(p,a,b)=member(&format!("local-{name}"));let(_,remote,rb)=member(&format!("remote-{name}"));
++    let old=ConnectionId::from_string(format!("old-{name}"));let retained=ConnectionId::from_string(format!("retained-{name}"));
++    for (m,e,id) in [(&a,endpoint(&b,&format!("old-{name}")),old.clone()),(&remote,endpoint(&rb,&format!("remote-{name}")),retained.clone())] {
++        let mut ready=session.prepare_admission(m,&e,id.clone(),None).unwrap();let generation=ready.generation();ready.observe_ready(m,&e,generation).unwrap();
++        let mutation=ParticipantMutation {operation_id:format!("admit-{id}"),correlation_id:format!("correlation-{id}"),expected_revision:session.revision(),participant:m.participant().clone(),change:ParticipantChange::Admit {connection:id,role_override:None}};
++        session.apply(m,m,mutation,Some(ready),Some(&e)).unwrap();
++    }
++    let e=endpoint(&b,&format!("phone-{name}"));
++    let intent=ParticipantReplacementMutation {operation_id:format!("original-plan-{name}"),correlation_id:format!("plan-correlation-{name}"),expected_revision:session.revision(),participant:a.participant().clone(),source:old,replacement:ConnectionId::from_string(format!("candidate-{name}")),retained,endpoint:e.endpoint().clone(),device:e.device().clone(),confirmation:EndpointConfirmationPolicy::MediaOnly};
++    (session.prepare_replacement(&a,&e,intent).unwrap(),p,e)
++}
++impl Fixture {
++    async fn new(name:&str)->Self {
++        let coordinator=UnifiedCoordinator::new(ApiConfig::local("managed-final-route-unit",0)).await.unwrap();
++        let adapter=SipAdapter::new(coordinator.clone()).await.unwrap();
++        let (pending,principal,endpoint)=ticket(name);let id=pending.intent().replacement.clone();let generation=pending.generation();
++        let session=SessionId::from(format!("sip-final-{name}"));
++        let route=SipOutboundRoute::new(id.clone(),session.clone(),"sip:unit@example.test".into(),Arc::new(SipOriginateContext::default()),crate::media_stream::SipMediaStream::managed_final_bound_metadata_fixture());
++        adapter.reserve_outbound_route(route.clone()).unwrap();
++        let handle=coordinator.helpers.state_machine.store.create_session(session,crate::state_table::Role::UAC,false).await.unwrap().lifecycle_handle.unwrap();
++        assert_eq!(adapter.promote_outbound_route_if_admitted(&route),Some(handle));
++        let(signals,receiver)=mpsc::channel(SIP_OUTBOUND_EVENT_STAGE_CAPACITY);
++        let context=SipDeviceReplacementContext {inner:Arc::new(Context {adapter:Arc::downgrade(&adapter),core:Weak::new(),preparation:Weak::new(),pending,endpoint,principal,originate:Arc::new(SipOriginateContext::default()),claimed:AtomicBool::new(true),lifetime:OnceLock::new(),route:OnceLock::new(),signals,receiver:StdMutex::new(Some(receiver)),conversation:OnceLock::new(),media_started:AtomicBool::new(false),media:OnceLock::new()})};
++        context.inner.lifetime.set(CancellationToken::new()).unwrap();context.inner.route.set(Arc::downgrade(&route)).unwrap();
++        assert!(route.replacement.set(context.inner.clone()).is_ok());
++        let record=format!("new-cut-{name}");let scope=SipManagedRouteScope::new((&record,"same-attempt","same-effect"),id,generation,SipManagedRouteRole::ReplacementTarget).unwrap();
++        Self {coordinator,adapter,context,route,scope}
++    }
++    async fn close(self) {let _=self.adapter.drain().await;let _=self.coordinator.shutdown_gracefully(Some(Duration::ZERO)).await;}
++}
++#[tokio::test]
++async fn actual_route_mapping_and_state_fences_refuse_without_wait_and_escape_view_retires() {
++    let f=Fixture::new("held").await;let resource=f.context.capture_managed_route_resource();let mut calls=0;
++    {let held=f.adapter.mapping_lock.lock().unwrap();let error=f.context.try_with_managed_final_route(&resource,&f.scope,|_|{calls+=1;}).unwrap_err();assert!(error.is_busy());error.finish();drop(held);}
++    {let held=f.route.state.lock().unwrap();let error=f.context.try_with_managed_final_route(&resource,&f.scope,|_|{calls+=1;}).unwrap_err();assert!(error.is_busy());error.finish();drop(held);}
++    assert_eq!(calls,0);
++    let view=f.context.try_with_managed_final_route(&resource,&f.scope,|proof| {
++        calls+=1;assert!(proof.is_current());assert!(f.adapter.mapping_lock.try_lock().is_err());assert!(f.route.state.try_lock().is_err());
++        assert!(matches!(f.route.stream.try_with_current_bound_codec(|_|Ok(())),Err(CurrentMetadataError::Busy)));
++        proof.view()
++    }).unwrap();assert_eq!(calls,1);assert!(!view.is_current_for(&f.context,&f.scope));
++    assert!(f.adapter.mapping_lock.try_lock().is_ok());assert!(f.route.state.try_lock().is_ok());drop(resource);f.close().await;
++}
++#[tokio::test]
++async fn final_route_exact_scope_foreign_context_and_changed_generation_cannot_reuse_view() {
++    let f=Fixture::new("original").await;let resource=f.context.capture_managed_route_resource();let foreign=Fixture::new("foreign").await;
++    let changed=SipManagedRouteScope::new(f.scope.attempt_binding(),f.scope.connection().clone(),f.scope.generation()+1,f.scope.role()).unwrap();
++    let mut calls=0;let failure=f.context.try_with_managed_final_route(&resource,&changed,|_|{calls+=1;}).unwrap_err();assert!(!failure.is_busy());failure.finish();assert_eq!(calls,0);
++    f.context.try_with_managed_final_route(&resource,&f.scope,|proof| {
++        assert!(proof.is_current());let view=proof.view();assert!(!view.is_current_for(&foreign.context,&f.scope));
++        let wrong_attempt=SipManagedRouteScope::new((f.scope.attempt_binding().0,"other-attempt",f.scope.attempt_binding().2),f.scope.connection().clone(),f.scope.generation(),f.scope.role()).unwrap();
++        assert!(!view.is_current_for(&f.context,&wrong_attempt));assert!(!view.is_current_for(&f.context,&changed));
++    }).unwrap();foreign.close().await;drop(resource);f.close().await;
++}
++#[tokio::test]
++async fn actual_route_cancellation_invalidates_held_proof_before_any_guard_or_view_release() {
++    let f=Fixture::new("cancel").await;let resource=f.context.capture_managed_route_resource();
++    f.context.try_with_managed_final_route(&resource,&f.scope,|proof| {
++        assert!(proof.is_current());let view=proof.view();f.route.cancel_route();
++        assert!(!proof.is_current());assert!(!view.is_current_for(&f.context,&f.scope));assert!(f.route.state.try_lock().is_err());
++    }).unwrap();assert!(f.context.try_with_managed_final_route(&resource,&f.scope,|_|()).is_err());drop(resource);f.close().await;
++}
++#[tokio::test]
++async fn panicking_final_callback_invalidates_escaped_view_and_releases_all_actual_fences() {
++    let f=Fixture::new("panic").await;let resource=f.context.capture_managed_route_resource();let mut escaped=None;
++    assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++        let _=f.context.try_with_managed_final_route(&resource,&f.scope,|proof| {escaped=Some(proof.view());panic!("controlled synchronous final cut panic")});
++    })).is_err());
++    assert!(!escaped.unwrap().is_current_for(&f.context,&f.scope));
++    assert!(!matches!(f.adapter.mapping_lock.try_lock(),Err(std::sync::TryLockError::WouldBlock)));
++    assert!(!matches!(f.route.state.try_lock(),Err(std::sync::TryLockError::WouldBlock)));
++    let failure=f.context.try_with_managed_final_route(&resource,&f.scope,|_|()).unwrap_err();
++    assert!(!f.coordinator.helpers.state_machine.store.authority().final_metadata_healthy());failure.finish();drop(resource);f.close().await;
++}
++
++#[tokio::test]
++async fn retired_original_route_and_adapter_resources_survive_helper_refusal_until_outer_owner_release() {
++    let f=Fixture::new("outer-resource").await;
++    let resource=f.context.capture_managed_route_resource();
++    let route=Arc::downgrade(&f.route);let adapter=Arc::downgrade(&f.adapter);
++    let Fixture {coordinator,adapter:original_adapter,context,route:original_route,scope}=f;
++    // Real ordinary retirement removes mappings and invalidates the route. The
++    // outer metadata-only resource keeps the exact retired owner, never authority.
++    let handle=original_route.lifecycle_handle().unwrap();
++    {let _mapping=original_adapter.mapping_lock.lock().unwrap();
++        assert!(original_adapter.remove_epoch_locked(&SipRouteEpoch {session_id:original_route.session_id.clone(),connection_id:original_route.connection_id.clone(),owner:SipRouteEpochOwner::Admitted(handle)}).is_some());}
++    drop(original_route);drop(original_adapter);
++    assert!(route.upgrade().is_some());assert!(adapter.upgrade().is_some());
++    let mut calls=0;let failure=context.try_with_managed_final_route(&resource,&scope,|_|{calls+=1;}).unwrap_err();
++    assert!(!failure.is_busy());assert_eq!(calls,0);failure.finish();
++    // Both exact owners are still retained AFTER all helper error temporaries
++    // dropped. Only releasing this OUTER resource can run their ordinary Drop.
++    assert!(route.upgrade().is_some());assert!(adapter.upgrade().is_some());
++    drop(resource);assert!(route.upgrade().is_none());
++    // Adapter background owners, if any, retain their ordinary shutdown path;
++    // no claim that dropping this metadata owner completed adapter retirement.
++    let _=coordinator.shutdown_gracefully(Some(Duration::ZERO)).await;
++}
++#[tokio::test]
++async fn foreign_or_absent_outer_route_resource_never_invokes_final_cut() {
++    let f=Fixture::new("resource-original").await;let foreign=Fixture::new("resource-foreign").await;
++    let resource=foreign.context.capture_managed_route_resource();let mut calls=0;
++    let failure=f.context.try_with_managed_final_route(&resource,&f.scope,|_|{calls+=1;}).unwrap_err();
++    assert!(!failure.is_busy());failure.finish();assert_eq!(calls,0);drop(resource);
++    foreign.close().await;f.close().await;
++}
+--- a/crates/sip/rvoip-sip/src/adapter/device_replacement/final_route.rs
++++ b/crates/sip/rvoip-sip/src/adapter/device_replacement/final_route.rs
+@@ -0,0 +1,183 @@
++//! Actual try-only SIP route custody. Never Store or publication authority.
++use super::*;
++use crate::session_lifecycle::CurrentMetadataError;
++use rvoip_core::capability::CodecInfo;
++use std::marker::PhantomData;
++
++#[derive(Clone,Copy,Debug,PartialEq,Eq)]
++pub enum SipManagedRouteRole { ReplacementSource, ReplacementTarget }
++/// Exact attribution and original physical incarnation; not current permission.
++#[derive(Clone,PartialEq,Eq)]
++pub struct SipManagedRouteScope {
++    record:String, attempt:String, effect:String,
++    connection:ConnectionId, generation:u64, role:SipManagedRouteRole,
++}
++impl SipManagedRouteScope {
++    pub fn new(binding:(&str,&str,&str),connection:ConnectionId,generation:u64,role:SipManagedRouteRole)->rvoip_core::staged_streams::ControlResult<Self> {
++        if binding.0.is_empty()||binding.1.is_empty()||binding.2.is_empty()||generation==0 {
++            return Err(rvoip_core::staged_streams::StreamControlError::Authority);
++        }
++        Ok(Self {record:binding.0.into(),attempt:binding.1.into(),effect:binding.2.into(),connection,generation,role})
++    }
++    pub fn attempt_binding(&self)->(&str,&str,&str) {(&self.record,&self.attempt,&self.effect)}
++    pub fn role(&self)->SipManagedRouteRole {self.role}
++    pub fn connection(&self)->&ConnectionId {&self.connection}
++    pub fn generation(&self)->u64 {self.generation}
++}
++/// Own outside the complete final turn: even fatal notification may enter maps
++/// and watches. The fatal bit has ALREADY failed closed before this is returned.
++pub struct SipFinalRouteFailure { inner:Option<CurrentMetadataError> }
++impl std::fmt::Debug for SipFinalRouteFailure {
++    fn fmt(&self,f:&mut fmt::Formatter<'_>)->fmt::Result {f.write_str("SipFinalRouteFailure(redacted)")}
++}
++impl SipFinalRouteFailure {
++    pub fn is_busy(&self)->bool {matches!(self.inner,Some(CurrentMetadataError::Busy))}
++    pub fn error(&self)->rvoip_core::staged_streams::StreamControlError {
++        if self.is_busy() {rvoip_core::staged_streams::StreamControlError::MetadataBusy}
++        else {rvoip_core::staged_streams::StreamControlError::NotReady}
++    }
++    /// Call after every Writer/Core/role/SIP guard drops.
++    pub fn finish(mut self) {
++        if let Some(CurrentMetadataError::Fatal(fatal))=self.inner.take() {fatal.finish();}
++    }
++}
++impl Drop for SipFinalRouteFailure {
++    fn drop(&mut self) {
++        // Service owns this in its OUTER cleanup frame, so unwind drops all
++        // actual final-turn guards first. No fatal notification is discarded.
++        if let Some(CurrentMetadataError::Fatal(fatal))=self.inner.take() {fatal.finish();}
++    }
++}
++/// Grant-free lifetime custody captured into the caller OUTER frame before
++/// final admission. No Reader, route guard, permission or currentness snapshot.
++/// Even a stale partial capture retains every upgraded owner until the caller
++/// releases ALL final aliases; helper errors/panics cannot trigger last-owner
++/// route/adapter Drop beneath a Writer. Never construct as a temporary argument.
++pub struct SipManagedRouteResource {
++    context:Weak<Context>,
++    route:Option<Arc<SipOutboundRoute>>,
++    adapter:Option<Arc<SipAdapter>>,
++}
++/// Static nonowning view for existing Any callbacks. Every clone invalidates
++/// BEFORE any real guard releases, including on a panicking cut. This flag is
++/// never final publication authority: the final witness borrows the real proof.
++#[derive(Clone)]
++pub struct SipFinalRouteView {
++    context:Weak<Context>, route:Weak<SipOutboundRoute>, scope:SipManagedRouteScope,
++    codec:CodecInfo, turn:Weak<AtomicBool>,
++    authority:Weak<crate::session_lifecycle::SessionLeaseAuthority>,
++}
++impl std::fmt::Debug for SipFinalRouteView {
++    fn fmt(&self,f:&mut fmt::Formatter<'_>)->fmt::Result {f.write_str("SipFinalRouteView(redacted)")}
++}
++impl SipFinalRouteView {
++    pub fn is_current_for(&self,context:&SipDeviceReplacementContext,scope:&SipManagedRouteScope)->bool {
++        self.authority.upgrade().is_some_and(|authority|authority.final_metadata_healthy())
++            && self.scope==*scope && Weak::ptr_eq(&self.context,&Arc::downgrade(&context.inner))
++            && self.turn.upgrade().is_some_and(|turn|turn.load(Ordering::Acquire))
++            && !context.inner.principal.is_expired() && replacement_lifetime_current(&context.inner)
++            && self.route.upgrade().is_some_and(|route|
++                route.connection_id==self.scope.connection && !route.final_cancelled.load(Ordering::Acquire))
++    }
++    pub fn scope(&self)->&SipManagedRouteScope {&self.scope}
++    pub fn codec(&self)->&CodecInfo {&self.codec}
++}
++/// Borrowed lexical proof, never queued/installed in an invocation. Actual
++/// guards stay on the helper stack through this synchronous callback only.
++pub struct SipCurrentMediaRoute<'a> {
++    context:&'a SipDeviceReplacementContext, scope:&'a SipManagedRouteScope,
++    codec:&'a CodecInfo, view:SipFinalRouteView, _guard_scope:PhantomData<&'a mut ()>,
++}
++impl SipCurrentMediaRoute<'_> {
++    pub fn view(&self)->SipFinalRouteView {self.view.clone()}
++    pub fn is_current(&self)->bool {self.is_current_for(self.context,self.scope)}
++    pub fn scope(&self)->&SipManagedRouteScope {self.scope}
++    pub fn belongs_to(&self,controller:&Arc<rvoip_core::staged_streams::StreamController>)->bool {
++        self.context.inner.media.get().is_some_and(|media|Arc::ptr_eq(&media.controller,controller))
++    }
++    pub fn is_current_for(&self,context:&SipDeviceReplacementContext,scope:&SipManagedRouteScope)->bool {
++        Arc::ptr_eq(&self.context.inner,&context.inner)&&self.scope==scope&&self.codec==self.view.codec()
++            && self.view.is_current_for(context,scope)
++    }
++    pub fn codec(&self)->&CodecInfo {self.codec}
++}
++struct Turn(Arc<AtomicBool>);
++impl Drop for Turn {fn drop(&mut self){self.0.store(false,Ordering::Release);}}
++
++impl SipDeviceReplacementContext {
++    /// Infallible grant-free capture: absent owners remain absent, never current.
++    /// There is no fallible early return that could drop a partial last owner.
++    pub fn capture_managed_route_resource(&self)->SipManagedRouteResource {
++        SipManagedRouteResource {
++            context:Arc::downgrade(&self.inner),
++            route:self.inner.route.get().and_then(Weak::upgrade),
++            adapter:self.inner.adapter.upgrade(),
++        }
++    }
++    /// Busy NEVER invokes cut. No ordinary map/codec lookup is reentered while
++    /// these guards are held; only the exact proof/view may guide callbacks.
++    pub fn try_with_managed_final_route<T>(&self,resource:&SipManagedRouteResource,scope:&SipManagedRouteScope,
++        cut:impl for<'a> FnOnce(SipCurrentMediaRoute<'a>)->T)->Result<T,SipFinalRouteFailure> {
++        let context=&self.inner;
++        let attempt=||->Result<T,CurrentMetadataError> {
++            if !replacement_lifetime_current(context)||context.principal.is_expired()
++                ||scope.connection!=context.pending.intent().replacement||scope.generation!=context.pending.generation()
++            {return Err(CurrentMetadataError::Unavailable);}
++            if !Weak::ptr_eq(&resource.context,&Arc::downgrade(context))
++                || !Weak::ptr_eq(&context.adapter,&resource.adapter.as_ref().map(Arc::downgrade).unwrap_or_default())
++            {return Err(CurrentMetadataError::Unavailable);}
++            let route=resource.route.as_ref().ok_or(CurrentMetadataError::Unavailable)?;
++            let adapter=resource.adapter.as_ref().ok_or(CurrentMetadataError::Unavailable)?;
++            if !context.route.get().is_some_and(|original|Weak::ptr_eq(original,&Arc::downgrade(route)))
++            {return Err(CurrentMetadataError::Unavailable);}
++            if !route.replacement.get().is_some_and(|original|Arc::ptr_eq(original,context)) {return Err(CurrentMetadataError::Unavailable);}
++            let handle=route.lifecycle_handle().ok_or(CurrentMetadataError::Unavailable)?;
++            adapter.coordinator.helpers.state_machine.store.try_with_current_snapshot(&handle,|_| {
++                let _mapping=match adapter.mapping_lock.try_lock() {
++                    Ok(v)=>v, Err(std::sync::TryLockError::WouldBlock)=>return Err(CurrentMetadataError::Busy),
++                    Err(std::sync::TryLockError::Poisoned(e))=>e.into_inner(),
++                };
++                let by_session=match adapter.by_session.try_get(&route.session_id) {
++                    dashmap::try_result::TryResult::Present(v)=>v,
++                    dashmap::try_result::TryResult::Locked=>return Err(CurrentMetadataError::Busy),
++                    dashmap::try_result::TryResult::Absent=>return Err(CurrentMetadataError::Unavailable),
++                };
++                let by_connection=match adapter.by_connection.try_get(&route.connection_id) {
++                    dashmap::try_result::TryResult::Present(v)=>v,
++                    dashmap::try_result::TryResult::Locked=>return Err(CurrentMetadataError::Busy),
++                    dashmap::try_result::TryResult::Absent=>return Err(CurrentMetadataError::Unavailable),
++                };
++                let outbound=match adapter.outbound_routes.try_get(&route.connection_id) {
++                    dashmap::try_result::TryResult::Present(v)=>v,
++                    dashmap::try_result::TryResult::Locked=>return Err(CurrentMetadataError::Busy),
++                    dashmap::try_result::TryResult::Absent=>return Err(CurrentMetadataError::Unavailable),
++                };
++                if by_session.connection_id!=route.connection_id||by_connection.session_id!=route.session_id
++                    ||!matches!(&by_session.owner,SipRouteBindingOwner::Admitted(v)if v==&handle)
++                    ||!matches!(&by_connection.owner,SipRouteBindingOwner::Admitted(v)if v==&handle)
++                    ||!Arc::ptr_eq(outbound.value(),route) {return Err(CurrentMetadataError::Unavailable);}
++                let state=match route.state.try_lock() {
++                    Ok(v)=>v,Err(std::sync::TryLockError::WouldBlock)=>return Err(CurrentMetadataError::Busy),
++                    Err(std::sync::TryLockError::Poisoned(e))=>e.into_inner(),
++                };
++                if !matches!(state.phase,SipOutboundRoutePhase::Prepared|SipOutboundRoutePhase::Activating|SipOutboundRoutePhase::Flushing|SipOutboundRoutePhase::Active)
++                    ||route.final_cancelled.load(Ordering::Acquire) {return Err(CurrentMetadataError::Unavailable);}
++                route.stream.try_with_current_bound_codec(|codec| {
++                    let alive=Arc::new(AtomicBool::new(true));
++                    // Last declared: invalidates before ALL preceding real guards.
++                    let _turn=Turn(alive.clone());
++                    let view=SipFinalRouteView {context:Arc::downgrade(context),route:Arc::downgrade(route),
++                        scope:scope.clone(),codec:codec.clone(),turn:Arc::downgrade(&alive),
++                        authority:Arc::downgrade(adapter.coordinator.helpers.state_machine.store.authority())};
++                    let proof=SipCurrentMediaRoute {context:self,scope,codec,view,_guard_scope:PhantomData};
++                    if !proof.is_current_for(self,scope) {return Err(CurrentMetadataError::Unavailable);}
++                    Ok(cut(proof))
++                })
++            })
++        };
++        attempt().map_err(|error|SipFinalRouteFailure {inner:Some(error)})
++    }
++}
++
++#[cfg(test)]
++mod tests;
+--- a/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
++++ b/crates/sip/rvoip-sip/src/adapter/device_replacement.rs
+@@ -12,6 +12,9 @@
+     Orchestrator,
+ };
+ use tokio_util::sync::CancellationToken;
++
++mod final_route;
++pub use final_route::{SipManagedRouteRole,SipManagedRouteScope,SipFinalRouteFailure,SipFinalRouteView,SipCurrentMediaRoute,SipManagedRouteResource};
+ 
+ /// Created by the installed adapter from the actual Core preparation and a
+ /// protected host's current verified endpoint/principal. It cannot be built
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -53,7 +53,7 @@
+     SipInitialAnswer, SipInitialCallObservation, SipInitialParticipantContext,
+ };
+ mod device_replacement;
+-pub use device_replacement::{SipDeviceReplacementContext, SipDeviceReplacementSignal};
++pub use device_replacement::{SipDeviceReplacementContext, SipDeviceReplacementSignal, SipManagedRouteRole,SipManagedRouteScope,SipFinalRouteFailure,SipFinalRouteView,SipCurrentMediaRoute,SipManagedRouteResource};
+ 
+ const MAX_SIP_INBOUND_ALLOWLIST_HEADERS: usize = 32;
+ const MAX_PENDING_SIP_INBOUND_CONTEXTS: usize = 4_096;
+@@ -333,6 +333,9 @@
+     activation: watch::Sender<Option<SipActivationCompletion>>,
+     cleanup: watch::Sender<Option<bool>>,
+     cancel: watch::Sender<bool>,
++    // Monotonic actual route cancellation. Watch remains the wire/task hint;
++    // final resource fences must never wait for its read/write lock.
++    final_cancelled: AtomicBool,
+     replacement: OnceLock<Arc<device_replacement::Context>>,
+     initial_participant: OnceLock<Arc<initial_participant::Context>>,
+     initial_signaling: watch::Sender<initial_participant::Signaling>,
+@@ -380,6 +383,7 @@
+             activation,
+             cleanup,
+             cancel,
++            final_cancelled: AtomicBool::new(false),
+             replacement: OnceLock::new(),
+             initial_participant: OnceLock::new(),
+             initial_signaling: watch::channel(initial_participant::Signaling::Pending).0,
+@@ -396,6 +400,11 @@
+             return existing == &handle;
+         }
+         self.lifecycle_handle.set(handle).is_ok()
++    }
++
++    fn cancel_route(&self) {
++        self.final_cancelled.store(true,Ordering::Release);
++        self.cancel.send_replace(true);
+     }
+ 
+     fn lifecycle_handle(&self) -> Option<SessionRegistryHandle> {
+@@ -524,7 +533,7 @@
+         }
+         drop(state);
+         if terminal && disposition == SipRouteStageDisposition::Retained {
+-            self.cancel.send_replace(true);
++            self.cancel_route();
+         }
+         disposition
+     }
+@@ -690,7 +699,7 @@
+                 true
+             }
+         };
+-        self.cancel.send_replace(true);
++        self.cancel_route();
+         self.stream.request_close();
+         start
+     }
+@@ -776,7 +785,7 @@
+ 
+ impl Drop for SipOutboundRoute {
+     fn drop(&mut self) {
+-        self.cancel.send_replace(true);
++        self.cancel_route();
+         self.stream.request_close();
+     }
+ }
+@@ -2260,6 +2269,11 @@
+             .is_some_and(|state| state.epoch == *epoch);
+         if owns_transfer_history {
+             self.transfer_attempts.remove(&epoch.connection_id);
++        }
++        // Exact removal is authoritative even if another Arc keeps this route
++        // alive; publish its monotonic cancellation before removing any index.
++        if let Some(route)=self.outbound_routes.get(&epoch.connection_id).filter(|r|epoch.matches_route(r.value())) {
++            route.final_cancelled.store(true,Ordering::Release);
+         }
+         self.by_connection.remove(&epoch.connection_id);
+         self.by_session.remove(&epoch.session_id);
+@@ -3343,7 +3357,7 @@
+             if let Some(route) = route.as_ref().filter(|r| r.replacement.get().is_some()) {
+                 drop(mapping.take());
+                 if !route.capture_replacement_signal(epoch, &event) {
+-                    route.cancel.send_replace(true);
++                    route.cancel_route();
+                     return false;
+                 }
+                 mapping = Some(self.mapping_lock.lock().unwrap_or_else(|v| v.into_inner()));
+--- a/crates/sip/rvoip-sip/src/media_stream.rs
++++ b/crates/sip/rvoip-sip/src/media_stream.rs
+@@ -1534,6 +1534,34 @@
+     }
+ }
+ 
++impl SipMediaStream {
++    /// Unit-fixture metadata only: exercise actual lifecycle/codec fences
++    /// without originating a call, creating IO, or claiming decoded readiness.
++    #[cfg(test)]
++    pub(crate) fn managed_final_bound_metadata_fixture()->Arc<Self> {
++        let stream=Self::dormant(Direction::Outbound);
++        assert!(stream.inner.lifecycle.begin_binding());assert!(stream.inner.lifecycle.mark_bound());
++        stream
++    }
++    /// Pin the actual bound lifecycle and negotiated codec, without waiting on
++    /// a media driver or codec mutation. No samples/decoder readiness are made.
++    pub(crate) fn try_with_current_bound_codec<T>(
++        &self,cut:impl FnOnce(&CodecInfo)->Result<T,crate::session_lifecycle::CurrentMetadataError>,
++    )->Result<T,crate::session_lifecycle::CurrentMetadataError> {
++        use crate::session_lifecycle::CurrentMetadataError as Error;
++        let lifecycle=match self.inner.lifecycle.state.try_lock() {
++            Ok(value)=>value,Err(std::sync::TryLockError::WouldBlock)=>return Err(Error::Busy),
++            Err(std::sync::TryLockError::Poisoned(error))=>error.into_inner(),
++        };
++        if *lifecycle!=SipMediaLifecycle::Bound {return Err(Error::Unavailable);}
++        let codec=match self.inner.codec.try_read() {
++            Ok(value)=>value,Err(std::sync::TryLockError::WouldBlock)=>return Err(Error::Busy),
++            Err(std::sync::TryLockError::Poisoned(error))=>error.into_inner(),
++        };
++        let result=cut(&codec);drop(codec);drop(lifecycle);result
++    }
++}
++
+ #[async_trait]
+ impl MediaStream for SipMediaStream {
+     fn id(&self) -> StreamId {
+@@ -2448,3 +2476,30 @@
+         stream.close().await.unwrap();
+     }
+ }
++
++#[cfg(test)]
++mod managed_final_codec_tests {
++    use super::*;
++    use crate::session_lifecycle::CurrentMetadataError;
++    #[test]
++    fn final_codec_borrows_actual_bound_state_and_negotiation_and_releases_on_refusal() {
++        let stream=SipMediaStream::dormant(Direction::Outbound);
++        assert!(matches!(stream.try_with_current_bound_codec(|_|Ok(())),Err(CurrentMetadataError::Unavailable)));
++        assert!(stream.inner.lifecycle.begin_binding());assert!(stream.inner.lifecycle.mark_bound());
++        let lifecycle=stream.inner.lifecycle.state.lock().unwrap();
++        assert!(matches!(stream.try_with_current_bound_codec(|_|Ok(())),Err(CurrentMetadataError::Busy)));
++        drop(lifecycle);
++        let codec=stream.inner.codec.write().unwrap();
++        assert!(matches!(stream.try_with_current_bound_codec(|_|Ok(())),Err(CurrentMetadataError::Busy)));
++        drop(codec);
++        stream.try_with_current_bound_codec(|actual| {
++            assert_eq!(actual,&*stream.inner.codec.try_read().unwrap());
++            assert!(stream.inner.codec.try_write().is_err());
++            assert!(stream.inner.lifecycle.state.try_lock().is_err());
++            Ok(())
++        }).unwrap();
++        assert!(stream.inner.codec.try_write().is_ok());assert!(stream.inner.lifecycle.state.try_lock().is_ok());
++        stream.inner.lifecycle.mark_closed();
++        assert!(matches!(stream.try_with_current_bound_codec(|_|Ok(())),Err(CurrentMetadataError::Unavailable)));
++    }
++}
+--- a/crates/sip/rvoip-sip/src/session_lifecycle.rs
++++ b/crates/sip/rvoip-sip/src/session_lifecycle.rs
+@@ -825,6 +825,22 @@
+     #[error("session lifecycle authority is draining")]
+     #[cfg(test)]
+     AuthorityDraining,
++}
++
++/// Internal try-only metadata acquisition result; no operation is admitted.
++#[derive(Debug)]
++pub(crate) enum CurrentMetadataError { Busy, Unavailable, Fatal(DeferredMetadataFatal) }
++/// The fatal bit is already latched. Potentially waited watch/map notification
++/// runs only after the caller has released its entire final grant/guard turn.
++pub(crate) struct DeferredMetadataFatal {
++    authority: Arc<SessionLeaseAuthority>,
++    reason: AuthorityFatalReason,
++}
++impl std::fmt::Debug for DeferredMetadataFatal {
++    fn fmt(&self,f:&mut std::fmt::Formatter<'_>)->std::fmt::Result {f.write_str("DeferredMetadataFatal(redacted)")}
++}
++impl DeferredMetadataFatal {
++    pub(crate) fn finish(self) {self.authority.latch_fatal(self.reason);}
+ }
+ 
+ #[derive(Clone, Copy, Debug, Error, Eq, PartialEq)]
+@@ -1844,6 +1860,10 @@
+         })
+     }
+ 
++    /// Pure currentness for an already-held exact final route proof. Deferred
++    /// notifications are hints; the same fatal atomic is authoritative now.
++    pub(crate) fn final_metadata_healthy(&self)->bool {self.fatal.load(Ordering::Acquire)==0}
++
+     fn fatal_reason(&self) -> Option<AuthorityFatalReason> {
+         AuthorityFatalReason::from_u8(self.fatal.load(Ordering::Acquire))
+     }
+@@ -2292,6 +2312,34 @@
+         }
+         true
+     }
++
++    /// Borrow the real exact-generation cell state through a synchronous cut.
++    /// No operation registration, raw-ID admission, renewal or teardown wait.
++    pub(crate) fn try_with_current_exact<T>(
++        self:&Arc<Self>,key:&SessionKey,cut:impl FnOnce()->Result<T,CurrentMetadataError>,
++    )->Result<T,CurrentMetadataError> {
++        self.require_healthy().map_err(|_|CurrentMetadataError::Unavailable)?;
++        let cell=match self.cells.try_get(key) {
++            dashmap::try_result::TryResult::Present(value)=>Arc::clone(value.value()),
++            dashmap::try_result::TryResult::Locked=>return Err(CurrentMetadataError::Busy),
++            dashmap::try_result::TryResult::Absent=>return Err(CurrentMetadataError::Unavailable),
++        };
++        let state=match cell.state.try_lock() {
++            Ok(value)=>value,
++            Err(std::sync::TryLockError::WouldBlock)=>return Err(CurrentMetadataError::Busy),
++            Err(std::sync::TryLockError::Poisoned(_))=>{
++                let reason=AuthorityFatalReason::CellPoisoned;
++                let _=self.fatal.compare_exchange(0,reason as u8,Ordering::AcqRel,Ordering::Acquire);
++                return Err(CurrentMetadataError::Fatal(DeferredMetadataFatal {authority:self.clone(),reason}));
++            }
++        };
++        if !matches!(state.phase,SessionPhase::Active) {return Err(CurrentMetadataError::Unavailable);}
++        let result=cut();
++        drop(state);
++        result
++    }
++
++
+ 
+     pub(crate) fn is_current(&self, key: &SessionKey) -> bool {
+         let Some(cell) = self.cells.get(key).map(|cell| Arc::clone(cell.value())) else {
+@@ -6956,3 +7004,57 @@
+         assert_eq!(operation.await, Err(OwnedOperationError::SupervisorDropped));
+     }
+ }
++
++#[cfg(test)]
++mod managed_final_metadata_tests {
++    use super::*;
++    use std::sync::atomic::{AtomicUsize,Ordering};
++    #[test]
++    fn exact_final_lifecycle_fence_is_try_only_and_retains_actual_original_incarnation() {
++        let authority=SessionLeaseAuthority::new();
++        let lease=authority.admit(SessionId::from("managed-final-real-cell")).unwrap();
++        let cell=Arc::clone(authority.cells.get(lease.key()).unwrap().value());
++        let calls=AtomicUsize::new(0);
++        let held=cell.state.lock().unwrap();
++        assert!(matches!(authority.try_with_current_exact(lease.key(),||{calls.fetch_add(1,Ordering::SeqCst);Ok(())}),Err(CurrentMetadataError::Busy)));
++        assert_eq!(calls.load(Ordering::SeqCst),0);
++        drop(held);
++        authority.try_with_current_exact(lease.key(),|| {
++            assert!(cell.state.try_lock().is_err(),"the callback borrows the real lifetime fence");
++            calls.fetch_add(1,Ordering::SeqCst);Ok(())
++        }).unwrap();
++        assert_eq!(calls.load(Ordering::SeqCst),1);
++        authority.retire(lease.key()).unwrap();
++        assert!(matches!(authority.try_with_current_exact(lease.key(),||{calls.fetch_add(1,Ordering::SeqCst);Ok(())}),Err(CurrentMetadataError::Unavailable)));
++        assert_eq!(calls.load(Ordering::SeqCst),1);
++    }
++    #[test]
++    fn final_lifecycle_poison_is_immediately_fatal_before_owned_notification_is_finished() {
++        let authority=SessionLeaseAuthority::new();
++        let lease=authority.admit(SessionId::from("managed-final-poison")).unwrap();
++        let cell=Arc::clone(authority.cells.get(lease.key()).unwrap().value());
++        let mut cancelled=cell.cancel.subscribe();
++        assert!(std::panic::catch_unwind(AssertUnwindSafe(||{let _held=cell.state.lock().unwrap();panic!("controlled actual cell poison")})).is_err());
++        let error=authority.try_with_current_exact(lease.key(),||Ok(())).unwrap_err();
++        assert!(!authority.final_metadata_healthy());
++        assert_eq!(authority.fatal_reason(),Some(AuthorityFatalReason::CellPoisoned));
++        assert!(!*cancelled.borrow_and_update(),"notification has not run under final grants");
++        assert!(matches!(authority.try_with_current_exact(lease.key(),||Ok(())),Err(CurrentMetadataError::Unavailable)));
++        match error {CurrentMetadataError::Fatal(deferred)=>deferred.finish(),other=>panic!("unexpected failure: {other:?}")}
++        assert!(*cancelled.borrow_and_update());
++        assert!(!authority.final_metadata_healthy());
++    }
++    #[test]
++    fn final_lifecycle_panicking_cut_releases_real_fence_and_next_turn_fails_closed() {
++        let authority=SessionLeaseAuthority::new();
++        let lease=authority.admit(SessionId::from("managed-final-panic")).unwrap();
++        let cell=Arc::clone(authority.cells.get(lease.key()).unwrap().value());
++        assert!(std::panic::catch_unwind(AssertUnwindSafe(|| {
++            let _:Result<(),CurrentMetadataError>=authority.try_with_current_exact(lease.key(),||panic!("actual final callback"));
++        })).is_err());
++        assert!(matches!(cell.state.try_lock(),Err(std::sync::TryLockError::Poisoned(_))),"guard was released, not left locked");
++        let failure=authority.try_with_current_exact(lease.key(),||Ok(())).unwrap_err();
++        assert!(!authority.final_metadata_healthy());
++        if let CurrentMetadataError::Fatal(deferred)=failure {deferred.finish()}else{panic!("missing owned fatal notification")}
++    }
++}
+--- a/crates/sip/rvoip-sip/src/session_registry.rs
++++ b/crates/sip/rvoip-sip/src/session_registry.rs
+@@ -295,6 +295,28 @@
+     pub(crate) fn authority(&self) -> &Arc<SessionLeaseAuthority> {
+         &self.authority
+     }
++
++    /// Pin this exact slot and its authoritative lifecycle through a try-only
++    /// synchronous cut. No new session/operation and no mutation lane is created.
++    pub(crate) fn try_with_current_exact<T>(
++        &self,handle:&SessionRegistryHandle,
++        cut:impl FnOnce()->Result<T,crate::session_lifecycle::CurrentMetadataError>,
++    )->Result<T,crate::session_lifecycle::CurrentMetadataError> {
++        use crate::session_lifecycle::CurrentMetadataError as Error;
++        self.authority.try_with_current_exact(handle.key(),|| {
++            let state=match self.state.try_lock() {
++                Ok(value)=>value,
++                Err(std::sync::TryLockError::WouldBlock)=>return Err(Error::Busy),
++                Err(std::sync::TryLockError::Poisoned(_))=>return Err(Error::Unavailable),
++            };
++            Self::validate_entry(&state,handle.key(),handle.slot_revision()).map_err(|_|Error::Unavailable)?;
++            let result=cut();
++            drop(state);
++            result
++        })
++    }
++
++
+ 
+     fn lock_state(&self) -> Result<StdMutexGuard<'_, RegistryState>, SessionRegistryError> {
+         self.state
+--- a/crates/sip/rvoip-sip/src/session_store/state.rs
++++ b/crates/sip/rvoip-sip/src/session_store/state.rs
+@@ -882,6 +882,15 @@
+         self.current.load_full()
+     }
+ 
++    pub(crate) fn try_lock_update(&self)->Result<StdMutexGuard<'_,()>,crate::session_lifecycle::CurrentMetadataError> {
++        match self.update_lock.try_lock() {
++            Ok(value)=>Ok(value),
++            Err(std::sync::TryLockError::WouldBlock)=>Err(crate::session_lifecycle::CurrentMetadataError::Busy),
++            // Match lock_update's existing poison recovery.
++            Err(std::sync::TryLockError::Poisoned(error))=>Ok(error.into_inner()),
++        }
++    }
++
+     pub(crate) fn lock_update(&self) -> StdMutexGuard<'_, ()> {
+         self.update_lock
+             .lock()
+--- a/crates/sip/rvoip-sip/src/session_store/store.rs
++++ b/crates/sip/rvoip-sip/src/session_store/store.rs
+@@ -460,6 +460,29 @@
+         info!(session_id = %session_id, ?role, "created exact SIP session lifetime");
+         Ok(session)
+     }
++
++    /// Hold the actual map cell/update fence and exact registry incarnation.
++    /// All acquisition is try-only; the callback is synchronous and cannot lend
++    /// this proof as an admission/operation guard.
++    pub(crate) fn try_with_current_snapshot<T>(
++        &self,handle:&SessionRegistryHandle,
++        cut:impl FnOnce(&SessionStateSnapshot)->Result<T,crate::session_lifecycle::CurrentMetadataError>,
++    )->Result<T,crate::session_lifecycle::CurrentMetadataError> {
++        use crate::session_lifecycle::CurrentMetadataError as Error;
++        let entry=match self.sessions.try_get(handle.session_id()) {
++            dashmap::try_result::TryResult::Present(value)=>value,
++            dashmap::try_result::TryResult::Locked=>return Err(Error::Busy),
++            dashmap::try_result::TryResult::Absent=>return Err(Error::Unavailable),
++        };
++        let _update=entry.value().try_lock_update()?;
++        let snapshot=entry.value().snapshot();
++        if snapshot.session_id!=*handle.session_id() || snapshot.lifecycle_handle.as_ref()!=Some(handle) {
++            return Err(Error::Unavailable);
++        }
++        self.registry.try_with_current_exact(handle,||cut(&snapshot))
++    }
++
++
+ 
+     pub(crate) fn lifecycle_handle(&self, session_id: &SessionId) -> Option<SessionRegistryHandle> {
+         self.current_snapshot(session_id)?.lifecycle_handle.clone()
+@@ -1664,3 +1687,31 @@
+         assert!(current.digest_nc.is_empty());
+     }
+ }
++
++#[cfg(test)]
++mod managed_final_snapshot_tests {
++    use super::*;
++    use crate::session_lifecycle::CurrentMetadataError;
++    use std::sync::atomic::{AtomicUsize,Ordering};
++    #[tokio::test]
++    async fn final_snapshot_pins_actual_update_and_exact_registry_without_wait_or_raw_id_fallback() {
++        let store=SessionStore::new();let sid=SessionId::new();
++        let snapshot=store.create_session(sid.clone(),Role::UAC,false).await.unwrap();
++        let handle=snapshot.lifecycle_handle.unwrap();
++        let cell=Arc::clone(store.sessions.get(&sid).unwrap().value());
++        let calls=AtomicUsize::new(0);
++        let update=cell.lock_update();
++        assert!(matches!(store.try_with_current_snapshot(&handle,|_|{calls.fetch_add(1,Ordering::SeqCst);Ok(())}),Err(CurrentMetadataError::Busy)));
++        drop(update);
++        let forged=handle.with_next_slot_revision_for_test();
++        assert!(matches!(store.try_with_current_snapshot(&forged,|_|{calls.fetch_add(1,Ordering::SeqCst);Ok(())}),Err(CurrentMetadataError::Unavailable)));
++        assert_eq!(calls.load(Ordering::SeqCst),0);
++        store.try_with_current_snapshot(&handle,|current| {
++            assert_eq!(current.lifecycle_handle.as_ref(),Some(&handle));
++            assert!(cell.try_lock_update().is_err());
++            calls.fetch_add(1,Ordering::SeqCst);Ok(())
++        }).unwrap();
++        assert_eq!(calls.load(Ordering::SeqCst),1);
++        assert!(cell.try_lock_update().is_ok());
++    }
++}

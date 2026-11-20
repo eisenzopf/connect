@@ -59,6 +59,11 @@ pub(crate) struct PreparedReplacement {
     failed_allocation:
         std::sync::OnceLock<Arc<connect_store::NativeReplacementAllocationUncertain>>,
 }
+impl PreparedReplacement {
+    pub(crate) fn operation_id(&self) -> &str {
+        &self.origin.request().operation_id
+    }
+}
 impl Drop for PreparedReplacement {
     fn drop(&mut self) {
         self.handle.cancel();

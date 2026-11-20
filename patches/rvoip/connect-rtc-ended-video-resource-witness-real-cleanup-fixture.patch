@@ -1,0 +1,25 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/picture_feedback_causal_tests.rs
+@@ -1818,14 +1818,21 @@
+             .unwrap();
+         let mut timestamp = 960;
+         assert!(receive_original_audio(&h, &mut input, &mut timestamp).await);
++        let end_until = until();
+         h.controllers[0]
+             .end_stream(
+                 &desired(Medium::Video).logical_id,
+                 h.controllers[0].revision(),
+-                until(),
++                end_until,
+             )
+             .await
+             .unwrap();
++        assert!(h.controllers[0].active_bindings().iter().all(|binding| {
++            binding.negotiated.requested.logical_id != old_video.negotiated.requested.logical_id
++        }));
++        // Logical end retires the Core port/tickets. Worker/source resource
++        // retirement is owned by the actual cleanup API, under the same bound.
++        assert_eq!(h.controllers[0].reconcile_cleanup(end_until).await, 0);
+         // The original all-initial-bindings predicate now refuses this actual
+         // ended video, which previously also refused unrelated audio owners.
+         assert!(h.backends[0]

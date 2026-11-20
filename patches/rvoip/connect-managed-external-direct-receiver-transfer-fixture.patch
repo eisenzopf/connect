@@ -1,0 +1,55 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
+@@ -98,7 +98,7 @@
+     } else {room.select(&healthy_target,vec![AudioSubscription::Connection(healthy_source.clone())]).await;}
+     if let Some(external)=external {
+         // A real ended unrelated video remains historical in this retained
+-        // connection. Audio-only publication must not demand that old worker.
++        // connection. Its audio output must not demand that old worker.
+         let retained_controller=room.nodes[&retained].controller.clone();
+         let logical=desired(Medium::Video).logical_id;
+         let end=PortCommand {world:room.world.clone(),connection:retained.clone(),expected:retained_controller.revision(),mutation:PortMutation::End(logical.clone()),until:deadline()};
+@@ -108,6 +108,12 @@
+         let change=crate::staged_streams::direct_subscriptions::DirectSubscriptionChange::Subscribe(vec![crate::staged_streams::direct_subscriptions::DirectSubscription::new(external,desired(Medium::Video).logical_id,desired(Medium::Video).logical_id)]);
+         let held=PortCommand {world:room.world.clone(),connection:healthy_target.clone(),expected:controller.revision(),mutation:PortMutation::Direct(change.clone()),until:deadline()};
+         controller.change_direct_subscriptions(held.expected,change,held.until,CancellationToken::new(),Some(&held)).await.unwrap();
++        // The final cut must actually transfer this exact external publisher.
++        // The healthy target's unchanged selection alone is outside the cut.
++        let receiver=room.nodes[&old].controller.clone();
++        let change=crate::staged_streams::direct_subscriptions::DirectSubscriptionChange::Subscribe(vec![crate::staged_streams::direct_subscriptions::DirectSubscription::new(external,desired(Medium::Video).logical_id,desired(Medium::Video).logical_id)]);
++        let held=PortCommand {world:room.world.clone(),connection:old.clone(),expected:receiver.revision(),mutation:PortMutation::Direct(change.clone()),until:deadline()};
++        receiver.change_direct_subscriptions(held.expected,change,held.until,CancellationToken::new(),Some(&held)).await.unwrap();
+     }
+     let mut next=domain(&room.conversation,&room.session,"managed-cut-successor","alice");
+     let exact=Arc::get_mut(&mut next).unwrap();exact.principal=alice.principal.clone();exact.member=alice.member.clone();
+@@ -120,7 +126,11 @@
+     room.signal(&root,&grant,&signal,DeviceReplacementEndpointEvent::Answered);
+     room.signal(&root,&grant,&signal,DeviceReplacementEndpointEvent::MediaObserved);
+     assert_eq!(room.signal(&root,&grant,&signal,DeviceReplacementEndpointEvent::Dtmf {digits:"7".into()}),EndpointConfirmationObservation::Confirmed);
+-    let plan=room.orch.plan_staged_device_replacement(&root,None).unwrap();
++    let video=external.map(|_|crate::staged_streams::device_replacement::ReplacementVideoRequest {
++        publications:Vec::new(),
++        receivers:vec![crate::staged_streams::device_replacement::ReplacementVideoStream {previous:desired(Medium::Video).logical_id,replacement:desired(Medium::Video).logical_id}],
++    });
++    let plan=room.orch.plan_staged_device_replacement(&root,video).unwrap();
+     ModelReady {root,grant,plan,old,retained,healthy_source,healthy_target,_audio:audio,_probe:probe,_context:context}
+ }
+ fn command(ready:&ModelReady)->Command {Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()}}
+@@ -555,6 +565,8 @@
+         let ready=model_ready_with_external(&mut room,false,Some(&source)).await;
+         let destination=room.nodes[&ready.healthy_target].controller.clone();
+         let target_port=room.nodes[&ready.healthy_target].backend.port(Medium::Video);let mut output=target_port.take_egress().unwrap();
++        let transferred=room.nodes[&ready.grant.intent.replacement].controller.clone();
++        let mut transferred_output=room.nodes[&ready.grant.intent.replacement].backend.port(Medium::Video).take_egress().unwrap();
+         let prepared=room.orch.prepare_staged_managed_cut(captured(&room,&ready).await).await.unwrap();
+         assert!(!prepared.final_media_connections().contains(&source.connection),"receive-only external publisher must never acquire new CONTROL permission");
+         let requirements=prepared.try_final_resource_requirements().unwrap();
+@@ -600,6 +612,8 @@
+         port.try_publish(&frame(&port,64000)).unwrap();let after=receive(&mut ingress).await;
+         after.try_forward_to(&destination,&desired(Medium::Video).logical_id).unwrap();
+         outgoing(&mut output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,64000);Ok(())}).await.unwrap();
++        after.try_forward_to(&transferred,&desired(Medium::Video).logical_id).unwrap();
++        outgoing(&mut transferred_output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,64000);Ok(())}).await.unwrap();
+         assert!(!source.shutdown.is_cancelled());
+         room.nodes.get_mut(&ready.healthy_target).unwrap().drain();
+         room.nodes.get_mut(&ready.retained).unwrap().publish(6900).unwrap();room.nodes.get_mut(&ready.healthy_target).unwrap().hear(6900).await;

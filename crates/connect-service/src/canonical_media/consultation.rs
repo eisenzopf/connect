@@ -138,7 +138,12 @@ impl MediaAuthorityLease for HeldAudience {
     }
     fn control_receive(&self, source: &MediaSource) -> ControlResult<Box<MediaOwner>> {
         let i = &self.invocation;
-        if let Some(leg) = i.policy.sip_audience_target(&source.connection)? {
+        let sip = if matches!(&i.read, AudienceRead::Handoff(_)) {
+            None
+        } else {
+            i.policy.sip_audience_target(&source.connection)?
+        };
+        if let Some(leg) = sip {
             let (phone, target) = i
                 .read
                 .sip_receive(self.target.origin.connection_id(), &leg.source_id()?)
@@ -176,7 +181,12 @@ impl MediaAuthorityLease for HeldAudience {
         source: &rvoip_core::staged_streams::MediaParticipantSource,
     ) -> ControlResult<Box<MediaOwner>> {
         let i = &self.invocation;
-        if let Some(leg) = i.policy.sip_audience_target(&source.connection)? {
+        let sip = if matches!(&i.read, AudienceRead::Handoff(_)) {
+            None
+        } else {
+            i.policy.sip_audience_target(&source.connection)?
+        };
+        if let Some(leg) = sip {
             let (phone, target) = i
                 .read
                 .sip_receive(self.target.origin.connection_id(), &leg.source_id()?)

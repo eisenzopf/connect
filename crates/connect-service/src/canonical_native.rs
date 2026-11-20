@@ -765,7 +765,11 @@ impl Runtime {
             )
             .map_err(denied)?;
         let activation = native.native_media_activation(&id, &a).map_err(denied)?;
-        entry.set_activation(activation.clone()).map_err(denied)?;
+        entry
+            .set_activation(Arc::new(crate::canonical_replacement::Activation::Native(
+                activation.clone(),
+            )))
+            .map_err(denied)?;
         *stage = "stage-resources";
         let quarantined = controller
             .stage_initial_selected_with_held(

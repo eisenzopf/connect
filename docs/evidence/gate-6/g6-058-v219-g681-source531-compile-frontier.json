@@ -1,0 +1,142 @@
+{
+  "format": "connect/g6-058-source531-compile-frontier-progress/1",
+  "checkpoint": 147,
+  "recorded_at": "2026-11-20T09:03:52.318385+00:00",
+  "summary": "G677 completed all nine current build groups on source530: the Traits library compiled, while eight Core-dependent groups failed with the same two audience errors (E0063 missing an accidentally added unused legacy field and E0609 direct field access on generic MemberRead). No inventories or runtime tests ran; all45 selected component controls remain unrun. Root and all10 original children closed naturally and were freshly absent, with the6544-file source seal unchanged. The reviewed repair removes only the unused PreparedPrivateAudience.scene field and uses m.view().controller for the same Weak pointer check. It preserves the required deferred AudiencePostPublication.scene and actual current-scene Weak binding, every assertion and all selected test identities. Root registered and normally prepared this one-file change as531; preparation and independent audit passed with4278 unchanged bytes/modes restored to original mtimes, the complete original530 tree retained, and no added upstream files. The6545-file working seal records applied source preparation, not a committed or runtime-qualified batch. Coherent managed Core/Orchestrator/Store/Service/SIP integration remains applied but compile/runtime-unverified; the same nine-build/45-component lane is pending, followed by all required affected regressions. G674 packaging failure and G677 compile failures retain their original failed verdicts. The latest completed component scope remains G662 on525:13 completed,11PASS/2FAIL; historical G657 retains one forced incomplete case and three unrun cases. Root cache-only housekeeping recovered host headroom to about21GiB while retaining protected current artifacts; it adds no behavior evidence. No current shared379, complete full regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal Mac12/ARM6 releases or fresh launch preflight qualification is added. All seven readiness scopes, whole current Core-traits/SIP inventories and additive controls remain required. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 stays parked. Mobile225 remains the last verified readback; the next scoped226 update is pending Root.",
+  "G677": {
+    "source_generation": 530,
+    "source_files": 6544,
+    "completed_builds": 9,
+    "Traits_build_passed": 1,
+    "Core_dependent_builds_failed": 8,
+    "actual_same_error_codes": [
+      "E0063",
+      "E0609"
+    ],
+    "inventories": 0,
+    "runtime_executed": 0,
+    "unrun_component_controls": 45,
+    "root_and10_original_children_natural_unforced_joined_fresh_absent": true,
+    "source_unchanged": true,
+    "passed": false,
+    "not_regraded": true
+  },
+  "repair": {
+    "status": "APPLIED_NORMALLY_PREPARED_531_COMPILE_RUNTIME_UNVERIFIED",
+    "changed_existing_upstream": 1,
+    "added_upstream": 0,
+    "only_two_line_edits": true,
+    "required_AudiencePostPublication_scene_binding_unchanged": true,
+    "new_test_functions": 0
+  },
+  "normal531": {
+    "passed": true,
+    "scope": "source-preparation-only",
+    "working_source_files": 6545,
+    "working_source_sha256": "20636e4b3e2ff3b5357c304ab103ee33b812a065f750b4a09ec97d2bd845edf8",
+    "base_revision": "784fbb709f2ee3f5ce14b0b33adee784cd39144d",
+    "root_and_two_original_children_natural0_joined_fresh_absent": true,
+    "unchanged_source_mtimes": 4278,
+    "complete_original530_tree_preserved": true,
+    "current_batch_committed": false
+  },
+  "next_focused45": {
+    "status": "NOT_RUN_ON_531",
+    "same9_builds_and45_selectors": true,
+    "driver_body_changes": false,
+    "predicted_outcomes": null
+  },
+  "last_completed_components": {
+    "run": "G662",
+    "source_generation": 525,
+    "completed": 13,
+    "passed": 11,
+    "failed": 2,
+    "not_regraded": true
+  },
+  "resource_housekeeping": {
+    "source": "Root_actual_G680_result",
+    "scope": "old_not_current_library_cache_only",
+    "free_after_GiB": 21.179805755615234,
+    "no_source_DB_evidence_executable_deletions": true,
+    "qualification": false
+  },
+  "required_readiness": [
+    "current committed generators/default shared379",
+    "complete affected full regression and OriginalV8",
+    "strict Firefox NORMAL3",
+    "original900=469+431 with two full62 Mac signed cases LAST",
+    "local ARM source preparation and original ARM11",
+    "normal Mac12 then ARM6 release artifacts",
+    "fresh capture/storage/process/browser/guest launch preflight"
+  ],
+  "proofs": {
+    "G677_actual_result": {
+      "path": ".local/gate-6/g677-source530-fortyfive-causal-controls-root/result.json",
+      "sha256": "5b2592a98620704cda92f1f9c35dfa0411bf0b6fc7f58cda5202fff9d848256d"
+    },
+    "G677_original_root_join": {
+      "path": ".local/gate-6/g677-source530-fortyfive-causal-controls-root/root-original-join.json",
+      "sha256": "294858f2a3fdfc6917a0e7c6e4f0b68b387b9a0b2021fbe4c803885e5cb93c30"
+    },
+    "G677_independent_actual_audit": {
+      "path": ".local/gate-6/g677-actual-nine-build-frontier-independent-epoch-audit/receipt.json",
+      "sha256": "f83549a318035d5e12ffbb3985e3d3bf9fb7679f3078e1cec45b8bf9396d718c"
+    },
+    "compile_repair_source": {
+      "path": ".local/gate-6/g677-audience-private-layout-and-generic-member-compile-repair-source-candidate/manifest.json",
+      "sha256": "c8f31ec74eef3ddf51cd8be08fa5cb956a43273c2bf615bd3409a73b3c92f6cf"
+    },
+    "compile_repair_independent_source_review": {
+      "path": ".local/gate-6/g677-audience-compile-repair-independent-epoch-source-review/receipt.json",
+      "sha256": "14555d66b5ea96fa7b4eab4fa27104f840c84ee8e0190522c6ffccee52aa304f"
+    },
+    "normal531_actual_receipt": {
+      "path": ".local/gate-6/g681-normal531-core-audience-compile-repair-root/normal531-runtime/receipt.json",
+      "sha256": "f138b493222e31e3b1e31bbe656a815a77081e446343f141fac92f535b090f73"
+    },
+    "normal531_original_root_join": {
+      "path": ".local/gate-6/g681-normal531-core-audience-compile-repair-root/root-original-join.json",
+      "sha256": "0202c9fa953289217bbe22a89d369554d7cad7f1d2b406436791ca0810690314"
+    },
+    "normal531_actual_root_verification": {
+      "path": ".local/gate-6/g681-normal531-core-audience-compile-repair-root/actual-root-verification.json",
+      "sha256": "31466ef1f629ee4246a340a65ddc138eb32c9e3f76271cd27f253c930d9e2f3f"
+    },
+    "normal531_independent_actual_audit": {
+      "path": ".local/gate-6/g681-actual-normal531-independent-epoch-audit/receipt.json",
+      "sha256": "8ce752f57dd2d737dc06d320d12ff557c414aec4008e34ba02c0fef372f5be2e"
+    },
+    "normal531_working_source": {
+      "path": ".local/gate-6/g681-normal531-core-audience-compile-repair-root/working-source531.json",
+      "sha256": "20636e4b3e2ff3b5357c304ab103ee33b812a065f750b4a09ec97d2bd845edf8"
+    },
+    "prior_normal530_actual_audit": {
+      "path": ".local/gate-6/g676-actual-normal530-independent-epoch-audit/receipt.json",
+      "sha256": "e14102bf8b96839636607fc9ec828795832c3c4c720f53e017b8598c2b3e9f14"
+    },
+    "last_completed_G662_audit": {
+      "path": ".local/gate-6/g662-actual-thirteen-independent-epoch-audit/receipt.json",
+      "sha256": "81ab085462baa6b929cd2b3739eced74b3082df022c6ee3ad94f146b7fe98922"
+    },
+    "Root_cache_only_housekeeping_result": {
+      "path": ".local/gate-6/g680-old-library-cache-space-root/result.json",
+      "sha256": "7a7df52aa244fcbaa32824b4710d3ff91306a9b4cdf11340fe65b0db165da7ae"
+    }
+  },
+  "qualification": false,
+  "matrix_credit": false,
+  "SourceReady32": false,
+  "matrix_baseline": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "mobile": {
+    "last_verified_revision": 225,
+    "next_scoped226": "PENDING_ROOT_NOT_PUBLISHED_BY_PROPOSAL"
+  },
+  "publication": false
+}

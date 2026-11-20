@@ -5,14 +5,10 @@ use super::{
     continuation::{Invocation, Phase},
     start::StartedReplacement,
 };
+mod cold;
 mod commit_admission;
-struct CommitEntry<'a> {
-    roles: tokio::sync::MutexGuard<'a, ()>,
-    i: Invocation,
-    owner: rvoip_core::staged_streams::MediaOwner,
-    plan: rvoip_core::orchestrator::participant_control::ManagedAudioDeviceReplacementPlan,
-    attempt: connect_store::NativeReplacementCommitAttempt,
-}
+mod final_current;
+mod managed_final;
 use connect_store::{NativeReplacementCommitNotSubmitted, NativeReplacementCommitUncertain};
 use rvoip_core::{adapter::EndReason, participant_transitions::EndpointConfirmationPolicy};
 #[derive(Clone)]
@@ -59,181 +55,63 @@ impl Runtime {
     ) -> Result<()> {
         // One absolute phase bound, pinned before any fresh-plan retry. The
         // original root/source expiry and current Core/Store checks still cap it.
-        let until = root
-            .deadline
-            .min(tokio::time::Instant::now() + Duration::from_secs(5));
-        let admission_began = std::time::Instant::now();
-        let root_cancel = root.handle.cancellation();
-        let CommitEntry { roles, i, owner, plan, attempt } = commit_admission::admit(
-            until, [&self.stop, &root_cancel], |number| {
-            let future: commit_admission::Attempt<'_, CommitEntry<'_>> = Box::pin(async move {
-            let (roles, mut i) = super::projection::read(&self.role_projection, &self.stop, until, || async {
-                let plan = (if root.public_video.required() {
-                    root.public_video.commit_plan()
-                } else {
-                    self.core.plan_staged_device_replacement(&root.handle, replacement_video(&root.plan)?)
-                        .map_err(super::projection::core_plan_error)
-                }).map_err(|error| {
-                    tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="plan",?error,"Replacement pre-commit refused");
-                    error
-                })?;
-                let plan = if let Some(parent) = plan.media().private_predecessor() {
-                    let original = {
-                        let audiences = self.consultation_audiences.lock().map_err(|_| Error::storage())?;
-                        let original = audiences.get(parent).ok_or_else(Error::forbidden)?;
-                        if original.session != root.origin.request().session_id
-                            || original.handle.primary_connection() != &plan.media().request().source
-                        { return Err(Error::forbidden()); }
-                        original.handle.clone()
-                    };
-                    plan.with_private_consultation(&original).map_err(super::projection::core_plan_error)?
-                } else { plan };
-                self.continuation_read_once(root, started, Phase::Commit(plan)).await
-            }).await.map_err(|error| {
-                tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="scene-read",code=%error.code,"Replacement pre-commit refused");
-                error
-            })?;
-            // Core must retain the SAME phase cutoff even if its fresh source
-            // proof itself lives longer. Never renew it on metadata retries.
-            i.deadline = i.deadline.min(until);
-            // This is the fully resealed current SceneWriter returned by Store;
-            // authority_summary separately measures its earlier file interval.
-            let writer_returned_us = admission_began.elapsed().as_micros() as u64;
-            let Phase::Commit(plan) = i.phase.clone() else {
-                return Err(Error::forbidden());
-            };
-            let owner = i.owner(started.policy.pending.binding().connection()).map_err(|error| {
-                tracing::debug!(target:"connect_service::canonical_replacement",operation=%root.origin.request().operation_id,stage="current-owner",?error,"Replacement pre-commit refused");
-                Error::forbidden()
-            })?;
-            let store = self.media.store.clone();
-            let origin = started.policy.origin.get().cloned().ok_or_else(Error::forbidden)?;
-            let read = i.read.clone();
-            let dispatch_us = admission_began.elapsed().as_micros() as u64;
-            // No outer cancellation race may detach this actual Store owner.
-            let result = store_call(move || store.try_begin_native_replacement_commit(origin, &read)).await;
-            let returned_us = admission_began.elapsed().as_micros() as u64;
-            if number<=8 || matches!(&result,Ok(Some(_))) {
-                tracing::debug!(target:"connect_service::canonical_replacement",
-                    operation=%root.origin.request().operation_id,stage="commit-entry-returned",number,
-                    scene_writer_returned_us=writer_returned_us,begin_dispatch_us=dispatch_us,
-                    begin_returned_us=returned_us,definite_no_attempt=matches!(&result,Ok(None)),
-                    code=result.as_ref().err().map(|e|e.code.as_str()),
-                    "Original Commit admission control timing");
-            }
-            match result {
-                Ok(Some(attempt)) => Ok(Some(CommitEntry { roles, i, owner, plan, attempt })),
-                result => {
-                    // ALL original Writer/role/owner aliases are gone BEFORE
-                    // the admission helper may pause/replan this SAME root.
-                    drop(owner);
-                    drop(plan);
-                    drop(i);
-                    drop(roles);
-                    if number<=8 {
-                        tracing::debug!(target:"connect_service::canonical_replacement",
-                            operation=%root.origin.request().operation_id,stage="commit-entry-writer-dropped",number,
-                            elapsed_us=admission_began.elapsed().as_micros() as u64,
-                            "Original Commit admission control timing");
-                    }
-                    match result {
-                        Ok(None) => Ok(None), // Only this pre-Unit result retries.
-                        Err(error) => Err(error),
-                        Ok(Some(_)) => unreachable!(),
-                    }
-                }
-            }
-            });
-            future
-        }).await?;
-        let adoption = if !self.stop.is_cancelled()
-            && !root.handle.is_committed()
-            && !root.handle.cancellation().is_cancelled()
-            && tokio::time::Instant::now() < until
-            && i.read.current()
+        let until = self.managed_publication_cutoff(
+            root.origin.record_id(),
+            root.deadline
+                .min(tokio::time::Instant::now() + Duration::from_secs(5)),
+        )?;
+        let commit_began = std::time::Instant::now();
+        let (attempt, outcome, handle, revisions, adoption, observed, cleanup) = match self
+            .commit_prepared_native_cut(root, started, until)
+            .await?
         {
-            self.media
-                .prepare_replacement_adoption(
-                    &started.policy,
-                    attempt.activation().clone(),
-                    owner.connection.clone(),
-                )
-                .ok()
-        } else {
-            None
-        };
-        drop(owner);
-        let adoption = match adoption {
-            Some(adoption) => adoption,
-            None => {
-                drop(i);
-                tracing::debug!(target:"connect_service::canonical_replacement",
-                    operation=%root.origin.request().operation_id,stage="commit-writer-dropped-not-submitted",
-                    elapsed_us=admission_began.elapsed().as_micros() as u64,
-                    "Original Commit admission control timing");
+            managed_final::Outcome::NeverInvoked { attempt, error } => {
                 let capture = Arc::new(attempt.not_submitted());
                 *started.commit.lock().map_err(|_| Error::storage())? =
                     Some(Capture::NotSubmitted(capture.clone()));
-                // Release the role/read interval before acquiring any writer.
-                // The cleanup loop retains the definite outcome even if its
-                // first metadata write is transiently unavailable.
-                drop(roles);
                 self.stop_unsubmitted_replacement(root, started, capture)
                     .await;
-                return Err(Error::forbidden());
+                return Err(error);
             }
-        };
-        // Lifecycle/adoption/Core execution are outside EVERY admission retry.
-        started.lifecycle.begin_movement();
-        let commit_began = std::time::Instant::now();
-        tracing::debug!(target:"connect_service::canonical_replacement",
-            operation=%root.origin.request().operation_id,stage="commit-core-enter",
-            elapsed_us=admission_began.elapsed().as_micros() as u64,
-            "Original Commit admission control timing");
-        let result = self
-            .core
-            .commit_staged_device_replacement_with_held(plan, &i)
-            .await;
-        let (outcome, handle) = match result {
-            Ok(value) => value,
-            Err(error) => {
-                drop(i);
-                tracing::debug!(target:"connect_service::canonical_replacement",
-                    operation=%root.origin.request().operation_id,stage="commit-writer-dropped-uncertain",
-                    elapsed_us=admission_began.elapsed().as_micros() as u64,
-                    "Original Commit admission control timing");
+            managed_final::Outcome::Uncertain { attempt, error } => {
                 let capture = Arc::new(attempt.uncertain());
                 *started.commit.lock().map_err(|_| Error::storage())? =
                     Some(Capture::Unknown(capture.clone()));
-                super::projection::record(
-                    roles,
-                    retry_metadata(&self.stop, || {
-                        let store = self.media.store.clone();
-                        let capture = capture.clone();
-                        store_call(move || store.native_replacement_commit_uncertain(&capture))
-                    }),
-                )
+                retry_metadata(&self.stop, || {
+                    let store = self.media.store.clone();
+                    let capture = capture.clone();
+                    store_call(move || store.native_replacement_commit_uncertain(&capture))
+                })
                 .await?;
-                tracing::debug!(target:"connect_service::canonical_replacement",?error,"Replacement movement outcome uncertain");
-                return Err(Error::forbidden());
+                return Err(error);
+            }
+            managed_final::Outcome::Published {
+                attempt,
+                outcome,
+                handle,
+                revisions,
+                adoption,
+                observed,
+                cleanup,
+            } => (
+                attempt, outcome, handle, revisions, adoption, observed, cleanup,
+            ),
+        };
+        let revisions = match revisions {
+            Ok(revisions) => revisions,
+            Err(error) => {
+                let capture = Arc::new(attempt.uncertain());
+                *started.commit.lock().map_err(|_| Error::storage())? =
+                    Some(Capture::Unknown(capture.clone()));
+                retry_metadata(&self.stop, || {
+                    let store = self.media.store.clone();
+                    let capture = capture.clone();
+                    store_call(move || store.native_replacement_commit_uncertain(&capture))
+                })
+                .await?;
+                return Err(error);
             }
         };
-        tracing::debug!(target:"connect_service::canonical_replacement",
-            connection=%outcome.admitted, stage="physical-complete",
-            elapsed_us=commit_began.elapsed().as_micros() as u64,
-            "Replacement commit phase observed");
-        let observed = outcome
-            .media
-            .receiver_revisions
-            .iter()
-            .map(|(id, revision)| (id.as_str().to_owned(), *revision))
-            .collect();
-        let revisions = i.read.capture_commit_revisions(observed)?;
-        drop(i);
-        tracing::debug!(target:"connect_service::canonical_replacement",
-            operation=%root.origin.request().operation_id,stage="commit-writer-dropped",
-            elapsed_us=admission_began.elapsed().as_micros() as u64,
-            "Original Commit admission control timing");
         #[cfg(feature = "test-support")]
         self.media
             .await_replacement_projection_for_test(
@@ -342,9 +220,9 @@ impl Runtime {
         let capture = Arc::new(KnownCapture::new(committed));
         *started.commit.lock().map_err(|_| Error::storage())? =
             Some(Capture::Known(capture.clone()));
-        // Actual immutable effect is now owned. Release the coordinator before
-        // any off-media authority factory; recording below remains mandatory.
-        drop(roles);
+        // Exact Known custody supersedes the outer raw published observation.
+        // All final aliases already ended before terminal cleanup was submitted.
+        observed.recorded();
         #[cfg(feature = "test-support")]
         let route_fixture = self.media.prepare_route_enrollment_fixture(
             root.origin.record_id(),
@@ -373,7 +251,7 @@ impl Runtime {
         // commit for both surviving peers and the admitted target. Moving
         // epoch metadata still needs fresh current continuation authority;
         // ordinary readiness remains gated by inactive-origin publication.
-        let activation_result = activation_result.and_then(|()| {
+        let activation_result = activation_result.and(cleanup).and_then(|()| {
             for id in handle.audience().commit().connections() {
                 if id != &outcome.replaced
                     && self.native_connection_live(id)

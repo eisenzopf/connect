@@ -5,6 +5,7 @@ use crate::{
     canonical_runtime::{Physical, Runtime},
 };
 use async_trait::async_trait;
+use rvoip_core::staged_streams::MediaActivation;
 use rvoip_core::{ids::ConnectionId, staged_streams::MediaOwner};
 use rvoip_uctp::v2::{
     auth_dispatch::{AuthorityLease, AuthorizedEnvelope, DispatchError},

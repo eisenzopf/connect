@@ -30,9 +30,11 @@ pub(crate) struct Invocation {
     pub root: Arc<PreparedReplacement>,
     pub phase: Phase,
     pub deadline: tokio::time::Instant,
+    pub final_turn: bool,
+    pub final_sip_route: Option<rvoip_sip::adapter::SipFinalRouteView>,
 }
 impl Invocation {
-    fn check(&self) -> ControlResult<()> {
+    pub(super) fn check(&self) -> ControlResult<()> {
         if !self.read.current()
             || self.root.handle.is_committed()
             || self.root.handle.cancellation().is_cancelled()
@@ -42,10 +44,20 @@ impl Invocation {
         }
         Ok(())
     }
-    fn owner(&self, id: &ConnectionId) -> ControlResult<MediaOwner> {
+    pub(super) fn owner(&self, id: &ConnectionId) -> ControlResult<MediaOwner> {
         self.check()?;
         if id == &self.root.handle.intent().replacement {
-            return self.started.policy.owner(self.read.media());
+            return if self.final_turn {
+                self.started.policy.owner_with_final_route(
+                    self.read.media(),
+                    self.final_sip_route
+                        .as_ref()
+                        .ok_or(StreamControlError::MetadataBusy)?,
+                    &self.read.media().source().context().operation_record_id,
+                )
+            } else {
+                self.started.policy.owner(self.read.media())
+            };
         }
         let entry = self.runtime.media.entry(id)?;
         let read = self
@@ -57,6 +69,16 @@ impl Invocation {
             .activation()?
             .ok_or(StreamControlError::NotReady)?
             .current(owner)
+    }
+    pub(super) fn principal_for(
+        &self,
+        id: &ConnectionId,
+    ) -> ControlResult<rvoip_core::AuthenticatedPrincipal> {
+        Ok(if id == &self.root.handle.intent().replacement {
+            self.started.policy.principal()?
+        } else {
+            self.runtime.media.entry(id)?.principal.clone()
+        })
     }
     pub(crate) fn media_control(
         &self,
@@ -81,15 +103,7 @@ impl Invocation {
             return Err(StreamControlError::Authority);
         }
         let owner = self.owner(scope.connection)?;
-        let principal = if scope.connection == &self.root.handle.intent().replacement {
-            self.started.policy.principal()?
-        } else {
-            self.runtime
-                .media
-                .entry(scope.connection)?
-                .principal
-                .clone()
-        };
+        let principal = self.principal_for(scope.connection)?;
         if scope.conversation != owner.member.conversation()
             || scope.session != owner.presence.session()
             || !rvoip_core::staged_streams::reliable_data::same_credential(
@@ -108,6 +122,37 @@ impl Invocation {
             self.root.handle.cancellation(),
             self.deadline,
         )
+    }
+    pub(super) fn final_role_scope_current(
+        &self,
+        scope: &ParticipantReplacementScope<'_>,
+    ) -> RoleResult<()> {
+        let deny = || ParticipantControlError::Authority;
+        self.check().map_err(|_| deny())?;
+        if scope.intent != self.root.handle.intent()
+            || !match (&self.phase, scope.plan) {
+                (Phase::Attach | Phase::Activate(_), None) => true,
+                (Phase::Commit(expected), Some(plan)) => {
+                    expected.media().audience().same_intent(plan.audience())
+                }
+                _ => false,
+            }
+            || !matches!(
+                (&self.phase, scope.phase),
+                (Phase::Attach, ReplacementPhase::Attach)
+                    | (Phase::Activate(_), ReplacementPhase::Activate)
+                    | (Phase::Commit(_), ReplacementPhase::Commit)
+            )
+            || !rvoip_core::staged_streams::reliable_data::same_credential(
+                scope.principal,
+                &self.root.operator,
+            )
+            || scope.conversation.as_str() != self.read.media().source().context().conversation_id
+            || scope.session.as_str() != self.read.media().source().context().session_id
+        {
+            return Err(deny());
+        }
+        Ok(())
     }
     pub(crate) fn role_control(
         &self,
@@ -159,31 +204,8 @@ impl ParticipantReplacementLease for Invocation {
         &self,
         scope: &ParticipantReplacementScope<'_>,
     ) -> RoleResult<ParticipantReplacementAuthority> {
+        self.final_role_scope_current(scope)?;
         let deny = || ParticipantControlError::Authority;
-        self.check().map_err(|_| deny())?;
-        if scope.intent != self.root.handle.intent()
-            || !match (&self.phase, scope.plan) {
-                (Phase::Attach | Phase::Activate(_), None) => true,
-                (Phase::Commit(expected), Some(plan)) => {
-                    expected.media().audience().same_intent(plan.audience())
-                }
-                _ => false,
-            }
-            || !matches!(
-                (&self.phase, scope.phase),
-                (Phase::Attach, ReplacementPhase::Attach)
-                    | (Phase::Activate(_), ReplacementPhase::Activate)
-                    | (Phase::Commit(_), ReplacementPhase::Commit)
-            )
-            || !rvoip_core::staged_streams::reliable_data::same_credential(
-                scope.principal,
-                &self.root.operator,
-            )
-            || scope.conversation.as_str() != self.read.media().source().context().conversation_id
-            || scope.session.as_str() != self.read.media().source().context().session_id
-        {
-            return Err(deny());
-        }
         let owner = self
             .owner(&self.root.handle.intent().replacement)
             .map_err(|_| deny())?;

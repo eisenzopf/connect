@@ -1,5 +1,8 @@
 //! Actual managed telephone movement, retained capture and independent lifetime.
 use super::continuation::{Invocation, Phase};
+mod cold;
+mod final_current;
+mod managed_final;
 use super::*;
 use crate::{
     canonical_consultation::{retry_metadata, store_call},
@@ -23,61 +26,16 @@ impl Runtime {
         leg: &Arc<allocation::Allocated>,
         started: &Arc<media::Started>,
     ) -> Result<()> {
-        let roles = self.role_projection.lock().await;
-        let plan=self.core.plan_staged_device_replacement(&root.handle, None).map_err(|error|{tracing::debug!(target:"connect_service::telephone_replacement",?error,"Telephone compound plan refused");Error::forbidden()})?;
-        let admission =
-            admission::Admission::new(root.deadline, root.handle.cancellation(), i64::MAX);
-        let media = self.media.clone();
-        let session = root
-            .handle
-            .prepared_binding()
-            .appearance()
-            .session()
-            .as_str()
-            .to_owned();
-        let capture = started.capture.clone();
-        let policy = started.policy.clone();
-        let (attempt, read, owner) = admission
-            .run(self, move |store, until, wait| {
-                let sources = media
-                    .scene_origins(&session)
-                    .map_err(|_| Error::forbidden())?;
-                let read = match store.telephone_replacement_scene_read_with_wait(
-                    capture.clone(),
-                    &sources,
-                    until,
-                    wait,
-                ) {
-                    Ok(read) => read,
-                    Err(error) if error.code == "authority-busy" => return Ok(None),
-                    Err(error) => return Err(error),
-                };
-                let owner = policy.owner(read.media()).map_err(|_| Error::forbidden())?;
-                Ok(store
-                    .try_begin_telephone_replacement_commit_with_wait(read, wait)?
-                    .map(|(attempt, read)| (attempt, read, owner)))
-            })
-            .await?;
-        let expiry = tokio::time::Instant::now()
-            + std::time::Duration::from_secs(
-                (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64,
-            );
-        let i = Invocation {
-            runtime: self.clone(),
-            root: root.clone(),
-            started: started.clone(),
-            read: Arc::new(read),
-            phase: Phase::Commit(plan.clone()),
-            deadline: root.deadline.min(expiry),
-        };
-        let result = self
-            .core
-            .commit_staged_device_replacement_with_held(plan, &i)
-            .await;
-        let (outcome, handle) = match result {
-            Ok(actual) => actual,
-            Err(error) => {
-                drop(i);
+        let until = self.managed_publication_cutoff(
+            root.handle.intent().operation_id.as_str(),
+            root.deadline
+                .min(tokio::time::Instant::now() + std::time::Duration::from_secs(5)),
+        )?;
+        let (attempt, outcome, handle, owner, revisions, observed, cleanup) = match self
+            .commit_prepared_telephone_cut(root, started, until)
+            .await?
+        {
+            managed_final::Outcome::Uncertain { attempt, error } => {
                 let capture = Arc::new(attempt.uncertain());
                 *started.commit.lock().map_err(|_| Error::storage())? =
                     Some(Capture::Unknown(capture.clone()));
@@ -89,18 +47,37 @@ impl Runtime {
                     })
                 })
                 .await?;
-                tracing::debug!(target:"connect_service::telephone_replacement",?error,"Telephone movement uncertain");
-                return Err(Error::forbidden());
+                return Err(error);
+            }
+            managed_final::Outcome::Published {
+                attempt,
+                outcome,
+                handle,
+                owner,
+                revisions,
+                observed,
+                cleanup,
+            } => (
+                attempt, outcome, handle, owner, revisions, observed, cleanup,
+            ),
+        };
+        let revisions = match revisions {
+            Ok(value) => value,
+            Err(error) => {
+                let capture = Arc::new(attempt.uncertain());
+                *started.commit.lock().map_err(|_| Error::storage())? =
+                    Some(Capture::Unknown(capture.clone()));
+                retry_metadata(&self.stop, || {
+                    let store = self.media.store.clone();
+                    let capture = capture.clone();
+                    store_call(move || {
+                        store.record_telephone_replacement_commit_uncertain(&capture)
+                    })
+                })
+                .await?;
+                return Err(error);
             }
         };
-        let observed = outcome
-            .media
-            .receiver_revisions
-            .iter()
-            .map(|(id, revision)| (id.as_str().to_owned(), *revision))
-            .collect();
-        let revisions = i.read.capture_commit_revisions(observed)?;
-        drop(i);
         let actual = outcome
             .media
             .participant_replacement
@@ -134,6 +111,7 @@ impl Runtime {
         )?);
         *started.commit.lock().map_err(|_| Error::storage())? =
             Some(Capture::Known(capture.clone()));
+        observed.recorded();
         retry_metadata(&self.stop, || {
             let store = self.media.store.clone();
             let capture = capture.clone();
@@ -146,7 +124,7 @@ impl Runtime {
             store_call(move || store.project_telephone_replacement_committed(&capture))
         })
         .await?;
-        let mut confirmed = true;
+        let mut confirmed = cleanup.is_ok();
         for id in handle.audience().commit().connections() {
             if id != &outcome.replaced
                 && id != &outcome.admitted
@@ -170,7 +148,6 @@ impl Runtime {
         if !confirmed || current.is_err() || !started.policy.physical_current() {
             tracing::debug!(target:"connect_service::telephone_replacement",confirmed,code=?current.as_ref().err().map(|e|e.code.as_str()),physical=started.policy.physical_current(),"Known telephone target adoption refused");
             drop(current);
-            drop(roles);
             self.retire_telephone_connection(&origin, leg).await;
             return Err(Error::new(
                 "reconciliation-required",
@@ -187,7 +164,6 @@ impl Runtime {
             .set(origin.clone())
             .map_err(|_| Error::forbidden())?;
         self.media.remove(&outcome.replaced);
-        drop(roles);
         tracing::debug!(target:"connect_service::telephone_replacement",generation=origin.snapshot().generation,"Telephone actual managed movement committed");
         self.watch_telephone_connection(origin, leg, started).await;
         Ok(())

@@ -1,0 +1,23 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/managed_cut.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/managed_cut.rs
+@@ -599,3 +599,20 @@
+ impl Orchestrator {
+     pub(crate) fn managed_capacity_for_test(&self,session:&SessionId)->ControlResult<(usize,usize)> {let runtime=self.participant_runtime(session)?;Ok((runtime.slots.available_permits(),runtime.replacement_slots.available_permits()))}
+ }
++
++/// Actual managed participant model exclusion for downstream host controls.
++/// Resource-requirement metadata does not take this final publication gate.
++/// The caller supplies bounded release/join custody; no authority or readiness
++/// is produced and this method is absent from ordinary shipping profiles.
++#[cfg(feature = "test-support")]
++impl Orchestrator {
++    pub fn with_participant_model_state_exclusion_for_test<T>(
++        &self,
++        session: &SessionId,
++        hold: impl FnOnce() -> T,
++    ) -> ControlResult<T> {
++        let runtime = self.participant_runtime(session)?;
++        let _state = runtime.state.lock().unwrap_or_else(|poison| poison.into_inner());
++        Ok(hold())
++    }
++}

@@ -636,7 +636,9 @@ impl Runtime {
             .map_err(|_| Error::forbidden())?;
         owned.controller = Some(controller.clone());
         entry
-            .set_activation(activation)
+            .set_activation(Arc::new(crate::canonical_replacement::Activation::WebRtc(
+                activation,
+            )))
             .map_err(|_| Error::forbidden())?;
         owned.quarantined = Some(
             controller

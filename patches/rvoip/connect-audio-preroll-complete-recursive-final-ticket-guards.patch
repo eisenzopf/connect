@@ -1,0 +1,103 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -337,6 +337,16 @@
+ }
+ impl SubscriptionStamp {
+     pub(super) fn cut_ticket(&self) -> PeerRouteTicket { self.ticket.clone() }
++    /// Complete ticket dependencies of the same guarded currentness predicate.
++    /// Preroll keeps its original and target programme fences in addition to
++    /// the private root; collecting them never stages or changes a generation.
++    pub(super) fn cut_tickets(&self) -> Vec<PeerRouteTicket> {
++        let mut tickets = vec![self.ticket.clone()];
++        if let Some(binding) = &self.preparation {
++            tickets.extend(binding.cut_tickets());
++        }
++        tickets
++    }
+     pub(super) fn current_cut(&self, tickets:&rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>)->bool {
+         !self.cancel.is_cancelled() && tickets.is_current(&self.ticket) && self.gate.strong_count()>0
+             && self.preparation.as_ref().is_none_or(|binding|binding.current_cut(tickets))
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -323,7 +323,8 @@
+         Ok(vec![self.decoded.port.upgrade().ok_or(StreamControlError::NotReady)?, self.delivered.port.upgrade().ok_or(StreamControlError::NotReady)?])
+     }
+     pub(super) fn cut_tickets(&self) -> Vec<PeerRouteTicket> {
+-        let mut tickets=vec![self.decoded.ticket.clone(),self.delivered.ticket.clone(),self.delivered.subscription.cut_ticket()];
++        let mut tickets=vec![self.decoded.ticket.clone(),self.delivered.ticket.clone()];
++        tickets.extend(self.delivered.subscription.cut_tickets());
+         if let Some(consumer)=&self.decoded.consumer {tickets.push(consumer.ticket.clone());}
+         tickets.push(self.delivered.consumer.ticket.clone());tickets
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
+@@ -140,6 +140,49 @@
+         }
+     }
+ }
++/// Actual receiver-only preroll must retain every original guarded fence.
++/// This observes the SAME stamp minted by real mixer delivery in model_ready.
++fn assert_actual_preroll_ticket_closure(
++    room: &ManagedRoom,
++    ready: &ModelReady,
++) -> crate::staged_streams::audio_subscriptions::SubscriptionStamp {
++    use rvoip_core_traits::peer_switch::{PeerRouteGuardError, PeerRouteGuardSet, PeerRouteTicket};
++    let consumer = room.nodes[&ready.grant.intent.replacement]
++        .controller.audio_consumer.lock().unwrap().as_ref()
++        .and_then(std::sync::Weak::upgrade).expect("actual candidate audio consumer");
++    let stamp = consumer.subscriptions.mix_stamp();
++    assert!(stamp.is_current(), "actual delivered preroll must already be current");
++    let old_root_only = [stamp.cut_ticket()];
++    {
++        let guards = PeerRouteGuardSet::try_acquire(&old_root_only).unwrap();
++        assert!(!stamp.current_cut(&guards), "the old root-only set must refuse subordinate fences");
++    }
++    let mut complete = Vec::<PeerRouteTicket>::new();
++    for ticket in stamp.cut_tickets() {
++        if !complete.iter().any(|old| old.same_generation(&ticket)) {
++            complete.push(ticket);
++        }
++    }
++    assert!(complete.len() > old_root_only.len());
++    {
++        let guards = PeerRouteGuardSet::try_acquire(&complete).unwrap();
++        assert!(stamp.current_cut(&guards), "complete actual recursive ticket closure");
++    }
++    for missing in 0..complete.len() {
++        let partial = complete.iter().enumerate().filter(|(index, _)| *index != missing)
++            .map(|(_, ticket)| ticket.clone()).collect::<Vec<_>>();
++        let guards = PeerRouteGuardSet::try_acquire(&partial).unwrap();
++        assert!(!stamp.current_cut(&guards), "missing actual subordinate ticket must fail closed");
++    }
++    for ticket in &complete {
++        let held = [ticket.clone()];
++        let _original = PeerRouteGuardSet::try_acquire(&held).unwrap();
++        assert!(matches!(PeerRouteGuardSet::try_acquire(&complete), Err(PeerRouteGuardError::MetadataBusy)),
++            "actual subordinate lock must be try-only Busy");
++    }
++    eprintln!("AUDIO_PREROLL_GUARD_CLOSURE actual_tickets={} old_root_only_refused=true complete_current=true each_missing_refused=true each_actual_lock_busy=true", complete.len());
++    stamp
++}
+ struct ModelHold {release:Option<std::sync::mpsc::Sender<()>>,joined:Option<std::thread::JoinHandle<()>>}
+ impl Drop for ModelHold {fn drop(&mut self){if let Some(release)=self.release.take(){let _=release.send(());}if let Some(joined)=self.joined.take(){let _=joined.join();}}}
+ fn hold_model(room:&ManagedRoom)->ModelHold {
+@@ -170,6 +213,7 @@
+     let mut room=ManagedRoom::new().await;
+     let work=catch_original(async {
+         let ready=model_ready(&mut room).await;
++        let original_preroll = assert_actual_preroll_ticket_closure(&room, &ready);
+         let prepared=room.orch.prepare_staged_managed_cut(captured(&room,&ready).await).await.unwrap();
+         let before=room.orch.participant_revision(&room.session).unwrap();
+         let allocations=room.route.allocations.load(Ordering::Acquire);
+@@ -190,6 +234,11 @@
+         assert_eq!(outcome.replaced,ready.old);assert_eq!(outcome.admitted,ready.grant.intent.replacement);assert_eq!(outcome.retained,ready.retained);
+         assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before+1);assert!(ready.root.is_committed());
+         room.orch.finish_managed_cut_publication(post).await.unwrap();
++        assert!(!original_preroll.is_current(), "actual once-only adoption retires the original private stamp");
++        let retired_tickets = original_preroll.cut_tickets();
++        let retired = rvoip_core_traits::peer_switch::PeerRouteGuardSet::try_acquire(&retired_tickets).unwrap();
++        assert!(!original_preroll.current_cut(&retired), "complete guards cannot revive a retired original");
++        drop(retired);
+         assert_eq!(room.route.allocations.load(Ordering::Acquire),allocations);
+         assert_eq!(room.orch.session_of(&ready.old),None);assert_eq!(room.orch.session_of(&ready.grant.intent.replacement),Some(room.session.clone()));
+     }).await;

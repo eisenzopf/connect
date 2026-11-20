@@ -2811,6 +2811,51 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-rtc-initial-resource-observation-genuine-bootstrap-fixture.patch",
       "sha256": "5532f3e226ad40a21adb456dd8ed8091062f8f04c0f7748ede9371e2929bb00f"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-audience-grantfree-cold-nonwaiting-final-cut.patch",
+      "sha256": "e17049c5a4dab245dfb80825e5d06670d5b895b9d577cd6ecfa649e0dd2ebe76"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-participant-cold-final-cut-and-owned-post-custody.patch",
+      "sha256": "67beecccf0e786c1087c3ae067390e8f28e99d248c5a2f8b1f178b861400927d"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-sip-nonwaiting-final-route-currentness.patch",
+      "sha256": "61e0de9a758296ed98056bd0c1b0ea06904ff0d3a390f601b3b23537b85ffe6e"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-rtc-ended-video-resource-witness-real-cleanup-fixture.patch",
+      "sha256": "934ee6e48a3e9aeb874a7205096b050eae67fe856e269f19f476c2518d40e8e3"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-model-gate-test-support-delegate.patch",
+      "sha256": "095e796c503fe8286561d5b2e4014fc245bacdddb58d3640990aad8bebf6a086"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-audience-private-layout-and-member-view-compile-repair.patch",
+      "sha256": "5c59437d8f26eec285e95ef8f0d8537e8f89e533e422252c1790c54f7ac3980b"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-sip-managed-final-route-api-documentation.patch",
+      "sha256": "71f8ec38fe0c64cba8458806627a954c140a6c22a7d8ce831879ceab956b41fb"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-audio-preroll-complete-recursive-final-ticket-guards.patch",
+      "sha256": "ac779c862b7a1f53603edec64c266ea64bfd3e826e731e7c8ede041971b8c23c"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-external-direct-receiver-transfer-fixture.patch",
+      "sha256": "c0011fc19d616d451610b3a70600bc494419c4751bce38e7265557a4580ee2e9"
     }
   ]
 }

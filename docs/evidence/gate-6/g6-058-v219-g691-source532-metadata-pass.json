@@ -1,0 +1,139 @@
+{
+  "format": "connect/g6-058-checkpoint149-source532-metadata-pass/1",
+  "checkpoint": 149,
+  "recorded_at": "2026-11-20T11:23:14.363092+00:00",
+  "status": "ACTUAL_THREE_METADATA_PASS_ONLY_SAME45_RUNTIME_UNRUN",
+  "author": "/root/independent_batch_review",
+  "coordinator": "/root",
+  "G691": {
+    "completed_metadata_checks": 3,
+    "passed_metadata_checks": 3,
+    "compiler_errors": 0,
+    "required_metadata_target_counts": [
+      5,
+      3,
+      1
+    ],
+    "original_tool": 11717,
+    "original_root": 97133,
+    "original_children": 3,
+    "all_original_owners_natural0_unforced_joined_fresh_absent": true,
+    "source_files": 6550,
+    "source_sha256": "dae7a0d351a4c39f3b75f495c48d000c0a72964e93bdf414f284e3cd87b216eb",
+    "source_unchanged": true,
+    "runtime_tests": 0,
+    "executables_qualified": 0,
+    "scope": "Five selected upstream and three selected workspace libraries production cfg; one canonical-runtime integration test cfg metadata only. No library unit-test runtime or shipping verification."
+  },
+  "current_batch": {
+    "changed_workspace_files": 44,
+    "latest_registered_upstream_corrections": [
+      531,
+      532
+    ],
+    "prepared": {
+      "rvoip": "0aa3c106fcc5d737bdedc4d43e1bfaf1fdf09e0f0b3d1db199461bbeef7c3e77",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "source_lock_sha256": "25206c8fd6e188a2a9e9e74dd548ced67f34278e9f051ec3c6c4781f19edbd0f",
+    "nine_Service_repairs_applied_formatted_preparation_verified": true,
+    "same9builds_and45_runtime_controls": "UNRUN",
+    "all_seven_recorded_readiness_scopes": "OPEN_UNCHANGED"
+  },
+  "G694": {
+    "status": "COMPLETED_OLD_ORPHAN_OBJECT_CACHE_CLEANUP",
+    "deleted_count": 58194,
+    "deleted_logical_GiB": 53.37492720782757,
+    "observed_physical_free_before_GiB": 17.187118530273438,
+    "observed_physical_free_after_GiB": 62.293060302734375,
+    "logical_and_physical_counts_not_equated": true,
+    "source_unchanged": true,
+    "all_executables_libraries_metadata_source_evidence_and_DB_preserved": true,
+    "behavior_qualification": false
+  },
+  "failed_history_preserved": {
+    "G688": "One metadata PASS/two metadata FAIL, unchanged",
+    "G682": "Two build PASS/seven SIP docs FAIL,45 controls unrun, unchanged"
+  },
+  "proofs": {
+    "checkpoint148_Root_review": {
+      "path": ".local/gate-6/g690-checkpoint148-root-review/receipt.json",
+      "sha256": "e8d68397937a5d2623bc85d35263c3ad368151d5db1d210743205a094ee74c46"
+    },
+    "mobile227_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v227-source532-compiler-correction.json",
+      "sha256": "067bea5a31fd9fcbbf8971eacab935a7972d740ef2936e74d53a2d34a66c0225"
+    },
+    "mobile227_Root_coordinator_sync": {
+      "path": ".local/gate-6/mobile227-source532-compiler-correction-root/coordinator-sync-receipt.json",
+      "sha256": "e05e2f2e90eb3b305c785db2cdedc3e2b83548ac717bd70fd66346d1bb820870"
+    },
+    "G691_actual_result": {
+      "path": ".local/gate-6/g691-source532-nine-corrections-fast3-root/result.json",
+      "sha256": "45945609dd52f0e165d6cc9f1c7d2acab58beeaf0c01784f5891b0f568bfdbbf"
+    },
+    "G691_original_Root_join": {
+      "path": ".local/gate-6/g691-source532-nine-corrections-fast3-root/root-original-join.json",
+      "sha256": "2a169b71077acc829f59362c6ea96f890f368e781ea947f99ee021a0f66c6df8"
+    },
+    "G691_independent_actual_audit": {
+      "path": ".local/gate-6/g691-actual-fast3-independent-epoch-audit/receipt.json",
+      "sha256": "c1b979650284b825ac4924046869ddb4f7b7d6b94ac3b00d3553bbce9c3979d9"
+    },
+    "G691_tested_working_source": {
+      "path": ".local/gate-6/g691-source532-nine-corrections-fast3-root/working-source532-after-nine-and-checkpoint148.json",
+      "sha256": "dae7a0d351a4c39f3b75f495c48d000c0a72964e93bdf414f284e3cd87b216eb"
+    },
+    "G691_bound_plan": {
+      "path": ".local/gate-6/g691-source532-nine-corrections-fast3-root/plan.json",
+      "sha256": "cc7ce8fcec35bc3bc655e0e9354ea74e1e2306b0748cc2c3350f36a5dd477ff0"
+    },
+    "G692_same45_inert_source_review": {
+      "path": ".local/gate-6/g692-same45-inert-rebind-independent-epoch-review/receipt.json",
+      "sha256": "0da8f4e0126e34c413dab9ea7536f9dfe57cb2208c408e9eaa5eec76434beeb0"
+    },
+    "G694_conditional_source_review": {
+      "path": ".local/gate-6/g694-orphan-old-object-cache-readonly/independent-review.json",
+      "sha256": "7fee05730f2a9fdbdd0d33b82c3648053ab8290b32d31936da71add830117f5d"
+    },
+    "G694_actual_cleanup": {
+      "path": ".local/gate-6/g694-orphan-old-object-cache-readonly/cleanup-result.json",
+      "sha256": "b5dfb9a794ac7e7b9f900682ae145ac3d9ad195d835fb9d531d50a23a971b24b"
+    },
+    "prior_G688_failed_actual_audit": {
+      "path": ".local/gate-6/g688-actual-fast3-independent-epoch-audit/receipt.json",
+      "sha256": "26b2be9971c67aca3a519d8d97e09dd49d29a029b63b412c360d5c734bdf1f86"
+    },
+    "G689_actual_nine_file_apply": {
+      "path": ".local/gate-6/g689-service-activation-imports-and-SIP-context-inert-assembly/apply-receipt.json",
+      "sha256": "a00a43afa300dc1637ed57f03c610abd18bd2bec81bc0dfd55241e3be71c5700"
+    },
+    "G689_official_format": {
+      "path": ".local/gate-6/g689-service-activation-imports-and-SIP-context-inert-assembly/format-receipt.json",
+      "sha256": "9981140537c65bdd94646f1c5907f429ef25b1a1298ebaa0ecb70350ee1bc195"
+    },
+    "G689_normal532_noop_preparation": {
+      "path": ".local/gate-6/g689-service-activation-imports-and-SIP-context-inert-assembly/prepare-noop-receipt.json",
+      "sha256": "9de680c1df56768f2aef2365c5c05859a8b6af972a97084b6b4b6cdb60c4e393"
+    },
+    "normal532_actual_source_audit": {
+      "path": ".local/gate-6/g687-actual-normal532-independent-epoch-audit/receipt.json",
+      "sha256": "68efb28e7cc5a4dfe05d678a03864f8a80201b98ae24536840ac3a7426789b46"
+    }
+  },
+  "last_verified_mobile_revision": 227,
+  "proposed_mobile_revision": 228,
+  "mobile_publication_and_readback": "PENDING_ROOT_ONLY",
+  "ready_for_32": false,
+  "qualification": false,
+  "matrix_credit": false,
+  "matrix_latest": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "parked": "G6-054",
+  "review_scope": "Documentation proposal only; no execution grant or new acceptance condition. Existing source/owner/runtime/readiness criteria unchanged."
+}

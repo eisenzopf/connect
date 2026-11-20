@@ -59,12 +59,34 @@ impl media::Policy {
             .map_err(|_| StreamControlError::Authority)
     }
     pub(crate) fn established_owner(&self, read: &TelephoneMediaRead) -> ControlResult<MediaOwner> {
+        self.established_owner_in(read, None)
+    }
+    pub(crate) fn established_owner_with_final_route(
+        &self,
+        read: &TelephoneMediaRead,
+        view: &rvoip_sip::adapter::SipFinalRouteView,
+        record: &str,
+    ) -> ControlResult<MediaOwner> {
+        self.established_owner_in(read, Some((view, record)))
+    }
+    fn established_owner_in(
+        &self,
+        read: &TelephoneMediaRead,
+        final_route: Option<(&rvoip_sip::adapter::SipFinalRouteView, &str)>,
+    ) -> ControlResult<MediaOwner> {
         let established = self.established.get().ok_or(StreamControlError::NotReady)?;
         let s = read.snapshot();
         if !read.current()
             || established.origin.record_id()
                 != s.expected_movement["operation_id"].as_str().unwrap_or("")
-            || !self.physical_current()
+            || match final_route {
+                Some((view, record)) => !self.final_route_current(
+                    view,
+                    record,
+                    rvoip_sip::adapter::SipManagedRouteRole::ReplacementSource,
+                ),
+                None => !self.physical_current(),
+            }
             || s.runtime_connection_id != self.pending.intent().replacement.as_str()
             || s.generation != self.pending.generation()
         {

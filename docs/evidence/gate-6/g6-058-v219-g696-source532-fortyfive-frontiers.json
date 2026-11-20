@@ -1,0 +1,193 @@
+{
+  "format": "connect/g6-058-checkpoint150-source532-fortyfive-frontiers/1",
+  "checkpoint": 150,
+  "recorded_at": "2026-11-20T13:13:13.980471+00:00",
+  "status": "ACTUAL_G696_FAILED45_SOURCE533_CORRECTION_PREPARED_RUNTIME_UNVERIFIED",
+  "author": "/root/independent_batch_review",
+  "coordinator": "/root",
+  "G696": {
+    "test_builds_passed": 9,
+    "inventories": 9,
+    "completed": 45,
+    "passed": 31,
+    "failed": 14,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "retained_original13_allPASS": true,
+    "additional_passes": {
+      "Core": 3,
+      "Core_traits": 1,
+      "SIP": 11,
+      "Store_cutoff": 2,
+      "Service_final_owner": 1
+    },
+    "failed_families": {
+      "Core_initial_capture_Media_NotReady": 9,
+      "Server_cold_preparation_probe_timeout_before_intended_oracle": 5
+    },
+    "source_sha256": "203dacc42f28b21bb342959e700ef83628669aee33868f5eb2c35517a6ba1c22",
+    "source_files": 6552,
+    "source_unchanged": true,
+    "all9_binary_SHA_unchanged": true,
+    "original_tool": 58345,
+    "original_root": 99137,
+    "original_children": 64,
+    "natural_child_exit_counts": {
+      "0": 50,
+      "101": 14
+    },
+    "all_original_owners_natural_unforced_joined_fresh_PID_PGID_absent": true,
+    "overall_passed": false,
+    "scope_complete": true
+  },
+  "source_diagnosis": {
+    "defect": "AudioPreroll subscription ticket collector omits dependencies required by unchanged guarded currentness predicate.",
+    "actual_first_refusal_leaf_instrumented": false,
+    "Server_shared_causal_relation": "UNPROVEN",
+    "candidate_files": 3,
+    "nonauthor_source_review": "SOURCE_ACCEPTED_ONLY",
+    "candidate_applied": true,
+    "candidate_runtime_verified": false,
+    "new_test_identities": 0,
+    "scope": "Complete existing guard dependency collection and strengthen actual preroll counterfactual; no readiness/policy/authority/window relaxation.",
+    "repair_success_claimed": false,
+    "candidate_registered_generation": 533,
+    "repair_compilation_runtime": "UNRUN"
+  },
+  "proofs": {
+    "G696_actual_result": {
+      "path": ".local/gate-6/g696-source532-fortyfive-after-compiler-pass-root/result.json",
+      "sha256": "5c38914220b92559d2cbad32ee24a816eef0d2579bedf2aa99ee0d0757154786"
+    },
+    "G696_original_Root_join": {
+      "path": ".local/gate-6/g696-source532-fortyfive-after-compiler-pass-root/root-original-join.json",
+      "sha256": "717690e4fa02db9cfdd83d9e4110dcbb46a72d677033be6ac4115a7936ad8012"
+    },
+    "G696_independent_actual_audit": {
+      "path": ".local/gate-6/g696-actual45-independent-audit/receipt.json",
+      "sha256": "9118fdd95e2b214f54d91fb1b8bb7dab888d3a3532363842e1076aab7c87d673"
+    },
+    "G696_independent_actual_verdicts": {
+      "path": ".local/gate-6/g696-actual45-independent-audit/actual-verdicts.json",
+      "sha256": "53fd5187ac4f10fda73c57e74a4188449b34a5b20fa5075b6fb61f511d4f8042"
+    },
+    "G696_tested_working_source": {
+      "path": ".local/gate-6/g696-source532-fortyfive-after-compiler-pass-root/source-before.json",
+      "sha256": "203dacc42f28b21bb342959e700ef83628669aee33868f5eb2c35517a6ba1c22"
+    },
+    "Core_capture_readonly_source_diagnosis": {
+      "path": ".local/gate-6/g696-warm-capture-readonly-source-audit/receipt.json",
+      "sha256": "a27f47f71ce38f0745585c8a649371215f6194ab1c38a29a3a3adbbc2097f199"
+    },
+    "recursive_preroll_ticket_source_proposal": {
+      "path": ".local/gate-6/g696-audio-preroll-recursive-final-ticket-closure-source-candidate/manifest.json",
+      "sha256": "c2089ca23359516845704282b95f857e2dacd7e42fe3dec8483855d48f787b17"
+    },
+    "recursive_preroll_ticket_nonauthor_source_review": {
+      "path": ".local/gate-6/g696-audio-preroll-recursive-closure-independent-batch-source-review/receipt.json",
+      "sha256": "2dd1c5fdb1a3b9c376c3c36096f42d6a92626e1393bfcf194bd8c8008440ccae"
+    },
+    "checkpoint149_Root_review": {
+      "path": ".local/gate-6/g695-checkpoint149-root-review/receipt.json",
+      "sha256": "9aa4e4f09cf895c7e9b7f6e74dd1af199488feb32282bd3313959509de90eaba"
+    },
+    "mobile228_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v228-source532-metadata-pass.json",
+      "sha256": "c9fef85c2576732070f396e9f6ed8415eb6b6dfa901a3a5b9f9d4732a37d1fbe"
+    },
+    "mobile228_Root_sync": {
+      "path": ".local/gate-6/mobile228-source532-metadata-pass-root/coordinator-sync-receipt.json",
+      "sha256": "1c8fc258c779cd269067b025d23f2fbef2ec436266d179353f81abb80884b854"
+    },
+    "prior_G691_metadata_actual_audit": {
+      "path": ".local/gate-6/g691-actual-fast3-independent-epoch-audit/receipt.json",
+      "sha256": "c1b979650284b825ac4924046869ddb4f7b7d6b94ac3b00d3553bbce9c3979d9"
+    },
+    "prior_G688_failed_actual_audit": {
+      "path": ".local/gate-6/g688-actual-fast3-independent-epoch-audit/receipt.json",
+      "sha256": "26b2be9971c67aca3a519d8d97e09dd49d29a029b63b412c360d5c734bdf1f86"
+    },
+    "normal533_actual_receipt": {
+      "path": ".local/gate-6/g697-normal533-reviewed-preroll-guard-closure-root/normal533-runtime/receipt.json",
+      "sha256": "e3ec97a26c2ccce6065913187fdbdfd1d115dc567900247cb5fbece76d41be12"
+    },
+    "normal533_original_command_join": {
+      "path": ".local/gate-6/g697-normal533-reviewed-preroll-guard-closure-root/root-original-join.json",
+      "sha256": "37501722afe39351dc561b9ff0ddcb518cfc288aa4816f0b1199657f560bd640"
+    },
+    "normal533_Root_source_acceptance": {
+      "path": ".local/gate-6/g697-normal533-reviewed-preroll-guard-closure-root/root-source-acceptance.json",
+      "sha256": "d28c35c4b09512452dbf06e06b29a28d24e57ad004cc531ae7e7d561556b0034"
+    },
+    "normal533_registered_source_lock": {
+      "path": ".local/gate-6/g697-normal533-reviewed-preroll-guard-closure-root/source-lock-533.json",
+      "sha256": "9623227ce2175c08864ba35d447930e315fb7e9414a72782db08cdb1b71639a8"
+    },
+    "normal533_actual_preparation_audit": {
+      "path": ".local/gate-6/g697-actual-normal533-epoch-preparation-audit/receipt.json",
+      "sha256": "7bd88d5a2008f097257c087c3e499a2e7afc3d0759bd4cdd952bccbef92f7782"
+    },
+    "failure_only_cold_diagnostics_source": {
+      "path": ".local/gate-6/g696-service-native-managed-cold-terminal-stage-diagnostics-source-candidate/manifest.json",
+      "sha256": "83c3a917e749ace9df6f770b035c553668b2d1860d09aeb7b79afcfd4a1c5130"
+    },
+    "failure_only_cold_diagnostics_Root_review": {
+      "path": ".local/gate-6/g698-cold-terminal-stage-diagnostics-root-review/receipt.json",
+      "sha256": "7f5233e300c30daf886dd7ae51137e379f92e1135b7550d243059576f8bd22a2"
+    },
+    "failure_only_cold_diagnostics_official_format": {
+      "path": ".local/gate-6/g698-cold-terminal-stage-diagnostics-root-review/format.json",
+      "sha256": "1777a750a415feb1aef5b0edc270a125cca04fa8733c6096f5fdd5780b6979d5"
+    }
+  },
+  "last_verified_mobile_revision": 228,
+  "proposed_mobile_revision": 229,
+  "mobile_publication_and_readback": "PENDING_ROOT_ONLY",
+  "all_seven_recorded_readiness_scopes": "OPEN_UNCHANGED",
+  "failed_history_regraded": false,
+  "ready_for_32": false,
+  "qualification": false,
+  "full_unit_qualified": false,
+  "matrix_credit": false,
+  "matrix_latest": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "parked": "G6-054",
+  "normal533": {
+    "status": "ACTUAL_PREPARATION_AND_VERIFICATION_PASS_ACTUAL_AUDIT_ACCEPTED",
+    "raw_receipt_sha256": "e3ec97a26c2ccce6065913187fdbdfd1d115dc567900247cb5fbece76d41be12",
+    "original_command_join_sha256": "37501722afe39351dc561b9ff0ddcb518cfc288aa4816f0b1199657f560bd640",
+    "both_original_commands_exit0_naturally_joined_unforced": true,
+    "changed_existing": 3,
+    "added_upstream": 0,
+    "equal_file_mtimes_restored": 4276,
+    "complete_old532_tree_preserved": true,
+    "source_files": 6553,
+    "prepared": {
+      "rvoip": "e23aaedad30e76fbe6771e77f10f4008ecd0bb822c359329634bce4148181372",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "source_lock_sha256": "9623227ce2175c08864ba35d447930e315fb7e9414a72782db08cdb1b71639a8",
+    "official_format_check": "ROOT_REPORTED_EXIT0",
+    "independent_actual_preparation_audit": "7bd88d5a2008f097257c087c3e499a2e7afc3d0759bd4cdd952bccbef92f7782",
+    "repair_compilation_runtime": "UNRUN",
+    "qualification": false
+  },
+  "applied_failure_only_cold_terminal_diagnostics": {
+    "files": 1,
+    "terminal_error_logs": 8,
+    "source_sha256": "27b98a0eac501d5e2ce22ff9146a6696c5833431c81de41bfd802c5e1883d264",
+    "Root_source_review_sha256": "7f5233e300c30daf886dd7ae51137e379f92e1135b7550d243059576f8bd22a2",
+    "official_format_exit": 0,
+    "formatted_bytes_equal_reviewed": true,
+    "original_error_mapping_branches_deadlines_test_identities_unchanged": true,
+    "runtime_verified": false,
+    "Server_shared_causal_relation": "UNPROVEN",
+    "repair_claimed": false
+  }
+}

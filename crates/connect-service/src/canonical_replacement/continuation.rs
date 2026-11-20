@@ -39,6 +39,9 @@ pub(crate) struct Invocation {
     pub root: Arc<PreparedReplacement>,
     pub phase: Phase,
     pub deadline: tokio::time::Instant,
+    pub final_turn: bool,
+    pub managed_capture: bool,
+    pub final_sip_route: Option<rvoip_sip::adapter::SipFinalRouteView>,
 }
 impl Invocation {
     fn refused(
@@ -74,7 +77,7 @@ impl Invocation {
                 .as_ref()
                 .is_some_and(|p| std::ptr::eq(Arc::as_ptr(p), source))
     }
-    fn check(&self) -> ControlResult<()> {
+    pub(super) fn check(&self) -> ControlResult<()> {
         if !self.read.current()
             || self.root.handle.is_committed()
             || self.root.handle.cancellation().is_cancelled()
@@ -122,14 +125,25 @@ impl Invocation {
         self.check()?;
         if id == self.policy.pending.binding().connection() {
             #[cfg(feature = "test-support")]
-            if matches!(self.phase, Phase::Commit(_)) {
+            if matches!(self.phase, Phase::Commit(_)) && !self.managed_capture {
                 if let Some(result) = self.policy.base.probe_held_registry_for_test(
                     &self.root.origin.request().operation_id,
                     || {
-                        let refused = matches!(
-                            self.policy.current_owner(self.read.media()),
-                            Err(StreamControlError::Authority)
-                        );
+                        let legacy = if self.final_turn && self.source_phone.is_some() {
+                            self.final_sip_route
+                                .as_ref()
+                                .ok_or(StreamControlError::MetadataBusy)
+                                .and_then(|view| {
+                                    self.policy.current_owner_with_final_route_for_test(
+                                        self.read.media(),
+                                        view,
+                                        self.root.origin.record_id(),
+                                    )
+                                })
+                        } else {
+                            self.policy.current_owner(self.read.media())
+                        };
+                        let refused = matches!(legacy, Err(StreamControlError::Authority));
                         let mut expired = self.clone();
                         expired.deadline = tokio::time::Instant::now() - Duration::from_secs(1);
                         let expired_refused =
@@ -151,14 +165,23 @@ impl Invocation {
                 .source_runtime_connection_id
         {
             if let Some(phone) = &self.source_phone {
-                return phone.established_owner(
-                    self.read
-                        .media()
-                        .source()
-                        .source()
-                        .telephone()
-                        .ok_or(StreamControlError::Authority)?,
-                );
+                let source = self
+                    .read
+                    .media()
+                    .source()
+                    .source()
+                    .telephone()
+                    .ok_or(StreamControlError::Authority)?;
+                if self.final_turn {
+                    return phone.established_owner_with_final_route(
+                        source,
+                        self.final_sip_route
+                            .as_ref()
+                            .ok_or(StreamControlError::MetadataBusy)?,
+                        self.root.origin.record_id(),
+                    );
+                }
+                return phone.established_owner(source);
             }
         }
         let entry = self
@@ -182,6 +205,29 @@ impl Invocation {
             })?
             .current(owner)
             .map_err(|error| self.refused("existing-activation-current", id, error))
+    }
+    pub(super) fn principal_for(
+        &self,
+        id: &ConnectionId,
+    ) -> ControlResult<rvoip_core::AuthenticatedPrincipal> {
+        Ok(if id == self.policy.pending.binding().connection() {
+            self.policy.principal.clone()
+        } else if id.as_str()
+            == self
+                .read
+                .media()
+                .source()
+                .context()
+                .source_runtime_connection_id
+            && self.source_phone.is_some()
+        {
+            self.source_phone
+                .as_ref()
+                .ok_or(StreamControlError::Authority)?
+                .principal()?
+        } else {
+            self.entry(id)?.principal.clone()
+        })
     }
     pub(crate) fn media_control(
         &self,
@@ -246,24 +292,7 @@ impl Invocation {
                 .map_err(|_| StreamControlError::Authority)?;
         }
         let owner = self.owner(scope.connection)?;
-        let principal = if scope.connection == self.policy.pending.binding().connection() {
-            self.policy.principal.clone()
-        } else if scope.connection.as_str()
-            == self
-                .read
-                .media()
-                .source()
-                .context()
-                .source_runtime_connection_id
-            && self.source_phone.is_some()
-        {
-            self.source_phone
-                .as_ref()
-                .ok_or(StreamControlError::Authority)?
-                .principal()?
-        } else {
-            self.entry(scope.connection)?.principal.clone()
-        };
+        let principal = self.principal_for(scope.connection)?;
         if scope.conversation != owner.member.conversation()
             || scope.session != owner.presence.session()
             || !rvoip_core::staged_streams::reliable_data::same_credential(
@@ -282,6 +311,58 @@ impl Invocation {
             self.root.handle.cancellation(),
             self.deadline,
         )
+    }
+    pub(super) fn final_role_scope_current(
+        &self,
+        scope: &ParticipantReplacementScope<'_>,
+    ) -> RoleResult<()> {
+        let deny = || ParticipantControlError::Authority;
+        self.check().map_err(|_| deny())?;
+        if scope.intent != self.root.handle.intent()
+            || !match (&self.phase, scope.plan) {
+                (
+                    Phase::Commit(expected)
+                    | Phase::FreezeVideo(expected)
+                    | Phase::WarmVideo(expected),
+                    Some(plan),
+                ) => expected.media().audience().same_intent(plan.audience()),
+                (
+                    Phase::Attach
+                    | Phase::ReserveVideo
+                    | Phase::Activate(_)
+                    | Phase::Preroll(_, _)
+                    | Phase::AudioPreroll(_),
+                    None,
+                ) => true,
+                _ => false,
+            }
+            || !matches!(
+                (&self.phase, scope.phase),
+                (Phase::Preroll(_, _), ReplacementPhase::Preroll)
+                    | (Phase::AudioPreroll(_), ReplacementPhase::Preroll)
+                    | (Phase::Attach, ReplacementPhase::Attach)
+                    | (Phase::ReserveVideo, ReplacementPhase::ReserveVideo)
+                    | (Phase::WarmVideo(_), ReplacementPhase::WarmVideo)
+                    | (Phase::Activate(_), ReplacementPhase::Activate)
+                    | (Phase::Commit(_), ReplacementPhase::Commit)
+                    | (Phase::FreezeVideo(_), ReplacementPhase::FreezeVideo)
+            )
+            || !rvoip_core::staged_streams::reliable_data::same_credential(
+                scope.principal,
+                &self.root.operator,
+            )
+            || scope.conversation.as_str() != self.root.origin.request().conversation_id
+            || scope.session.as_str() != self.root.origin.request().session_id
+        {
+            return Err(deny());
+        }
+        if let Phase::Commit(plan) = &self.phase {
+            self.root
+                .public_video
+                .require_commit_ready(&self.root, plan)
+                .map_err(|_| deny())?;
+        }
+        Ok(())
     }
     pub(crate) fn role_control(
         &self,
@@ -331,52 +412,8 @@ impl ParticipantReplacementLease for Invocation {
         &self,
         scope: &ParticipantReplacementScope<'_>,
     ) -> RoleResult<ParticipantReplacementAuthority> {
+        self.final_role_scope_current(scope)?;
         let deny = || ParticipantControlError::Authority;
-        self.check().map_err(|_| deny())?;
-        if scope.intent != self.root.handle.intent()
-            || !match (&self.phase, scope.plan) {
-                (
-                    Phase::Commit(expected)
-                    | Phase::FreezeVideo(expected)
-                    | Phase::WarmVideo(expected),
-                    Some(plan),
-                ) => expected.media().audience().same_intent(plan.audience()),
-                (
-                    Phase::Attach
-                    | Phase::ReserveVideo
-                    | Phase::Activate(_)
-                    | Phase::Preroll(_, _)
-                    | Phase::AudioPreroll(_),
-                    None,
-                ) => true,
-                _ => false,
-            }
-            || !matches!(
-                (&self.phase, scope.phase),
-                (Phase::Preroll(_, _), ReplacementPhase::Preroll)
-                    | (Phase::AudioPreroll(_), ReplacementPhase::Preroll)
-                    | (Phase::Attach, ReplacementPhase::Attach)
-                    | (Phase::ReserveVideo, ReplacementPhase::ReserveVideo)
-                    | (Phase::WarmVideo(_), ReplacementPhase::WarmVideo)
-                    | (Phase::Activate(_), ReplacementPhase::Activate)
-                    | (Phase::Commit(_), ReplacementPhase::Commit)
-                    | (Phase::FreezeVideo(_), ReplacementPhase::FreezeVideo)
-            )
-            || !rvoip_core::staged_streams::reliable_data::same_credential(
-                scope.principal,
-                &self.root.operator,
-            )
-            || scope.conversation.as_str() != self.root.origin.request().conversation_id
-            || scope.session.as_str() != self.root.origin.request().session_id
-        {
-            return Err(deny());
-        }
-        if let Phase::Commit(plan) = &self.phase {
-            self.root
-                .public_video
-                .require_commit_ready(&self.root, plan)
-                .map_err(|_| deny())?;
-        }
         let owner = self
             .owner(self.policy.pending.binding().connection())
             .map_err(|_| deny())?;

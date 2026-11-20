@@ -185,6 +185,21 @@ impl Store {
         let facts = self.native_commit_preparation_facts(&c, &origin, read, false, None)?;
         NativeReplacementCommitPreparation::new(self, origin, read, &facts)
     }
+    /// Bind cold facts to the caller's once-chosen absolute phase cutoff.
+    /// This can only shorten the real planning read, never mint a new grant.
+    pub fn prepare_native_replacement_commit_until(
+        &self,
+        origin: Arc<NativeReplacementMediaOrigin>,
+        read: &NativeReplacementSceneRead,
+        original_until: i64,
+    ) -> Result<NativeReplacementCommitPreparation> {
+        let mut prepared = self.prepare_native_replacement_commit(origin, read)?;
+        prepared.original_until = prepared.original_until.min(original_until);
+        if crate::now() >= prepared.original_until {
+            return Err(Error::forbidden());
+        }
+        Ok(prepared)
+    }
     /// A new short planning read can only validate the same grant-free facts;
     /// this never begins or reauthorizes a possibly submitted movement.
     pub fn revalidate_prepared_native_replacement_commit(

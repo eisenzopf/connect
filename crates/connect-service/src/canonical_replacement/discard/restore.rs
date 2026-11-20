@@ -5,6 +5,7 @@ use connect_store::{
     NativeReplacementPublicVideoClosedExpected, NativeReplacementPublicVideoClosedGuard,
     NativeReplacementPublicVideoClosedObservation, NativeVideoRestoreRead,
 };
+use rvoip_core::staged_streams::MediaActivation;
 use rvoip_core::staged_streams::{
     old_video_freeze::{OldVideoRestoreResourceState, OldVideoRestoreScope},
     ControlResult, MediaAuthorityLease, MediaControl, MediaOwner, MediaPurpose, MediaScope,

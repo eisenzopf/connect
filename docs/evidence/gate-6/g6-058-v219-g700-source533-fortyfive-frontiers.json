@@ -1,0 +1,161 @@
+{
+  "format": "connect/g6-058-checkpoint151-failed45-corrections-prepared534/1",
+  "checkpoint": 151,
+  "recorded_at": "2026-11-20T13:50:30.858913+00:00",
+  "status": "ACTUAL_G70039PASS6FAIL_REMAINING_REPAIRS_PREPARED_RUNTIME_UNVERIFIED",
+  "author": "/root/independent_batch_review",
+  "coordinator": "/root",
+  "G700": {
+    "generation": 533,
+    "completed": 45,
+    "passed": 39,
+    "failed": 6,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "all9_test_builds_and_inventories_PASS": true,
+    "source_files": 6555,
+    "source_sha256": "fd036b9614e3dfa143c6da20458a525f4605ed353cfe22c96e7955b5924c48a7",
+    "source_and_all9_binary_SHA_unchanged": true,
+    "original_tool": 77298,
+    "original_root": 8988,
+    "original_children": 64,
+    "original_child_exit_counts": {
+      "0": 58,
+      "101": 6
+    },
+    "all_original_owners_natural_unforced_joined_fresh_PID_PGID_absent": true,
+    "all_prior31_passes_retained": true,
+    "eight_prior_Core_capture_failures_nowPASS": true,
+    "ninth_prior_Core_capture_failure": "Advanced past capture; failed actual selected external-source binding assertion before later intended external-PortBusy/publication oracles.",
+    "remaining_Server_failures": {
+      "count": 5,
+      "observed_terminal_stage": "managed-cold-adoption-metadata",
+      "observed_error": "Authority",
+      "outcome": "Cold-preparation probe timeout before intended later final-boundary oracles."
+    },
+    "overall_passed": false,
+    "scope_complete": true
+  },
+  "prepared534_fixture_correction": {
+    "status": "APPLIED_NORMAL_PREPARATION_AND_ACTUAL_AUDIT_PASS_ONLY",
+    "production_files_changed": 0,
+    "existing_test_identity_preserved": true,
+    "actual_receiver_transfer_into_candidate_cut": true,
+    "changed_fixture_afterimages": 1,
+    "afterimage_sha256": "e1f920ade9b3ecdd4a8dccea3e0d2bf2a8710cf75969326a8c518fae2c81358f",
+    "complete_old533_tree_preserved": true,
+    "unchanged_file_mtimes_restored": 4278,
+    "added_upstream": 0,
+    "source_files_before_doc_update": 6556,
+    "prepared": {
+      "rvoip": "c13d956bb3903405027e2be8814652354a4897b505a01a597f37ed23bb531db0",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "source_lock_sha256": "f9244a7a6ba834272f13c9bde4f87bf3d739aab4cc36834936fdb7cf95cdf995",
+    "compiler_runtime_verification": "UNRUN"
+  },
+  "applied_Service_ordered_V2": {
+    "status": "APPLIED_REVIEWED_OFFICIAL_FORMAT_UNCHANGED",
+    "source_path": "crates/connect-service/src/canonical_replacement/movement/cold.rs",
+    "after_sha256": "8bf8b88af5464bc7f2b1d857056c821ce6ef13f9ec23ca7e2b2c2d759ca865be",
+    "same_actual_activated_resource_binding_under_original_planning_invocation": true,
+    "fallible_owner_read_precedes_one_shot_Core_capture": true,
+    "original_authorization_currentness_deadlines_final_guards_and45identities_unchanged": true,
+    "held_V1_never_applied": true,
+    "only_workspace_delta_from_actual_normal534": [
+      "crates/connect-service/src/canonical_replacement/movement/cold.rs"
+    ],
+    "prepared_and_lock_unchanged": true,
+    "compiler_runtime_verification": "UNRUN"
+  },
+  "separate_helper_controls": {
+    "passed": 8,
+    "scope": "AST-extracted FakePopen/process-signal methods only",
+    "included_in45_count": false,
+    "original900_or_Firefox_runtime_credit": false
+  },
+  "proofs": {
+    "G700_actual_result": {
+      "path": ".local/gate-6/g700-source533-preroll-repair-fortyfive-root/result.json",
+      "sha256": "e941467594053ad7dbb9cc97e71ef302a46ed109143cc9e6ebef0cffb117342d"
+    },
+    "G700_original_Root_join": {
+      "path": ".local/gate-6/g700-source533-preroll-repair-fortyfive-root/root-original-join.json",
+      "sha256": "af83cc8b33800193e9d279a911c6b34984eecd2f0ddfe6265857458e4634deb4"
+    },
+    "G700_independent_actual_audit": {
+      "path": ".local/gate-6/g700-actual45-independent-audit/receipt.json",
+      "sha256": "6fd6c042892e96ae28733e39449de79b9ba115fd13654cb5f99ed4423f57c5ef"
+    },
+    "G700_independent_verdicts": {
+      "path": ".local/gate-6/g700-actual45-independent-audit/actual-verdicts.json",
+      "sha256": "ceee56d38163eb1436053c4b93a12a0b78b7f1a49af810a57fa86bbdb471144b"
+    },
+    "normal534_actual_receipt": {
+      "path": ".local/gate-6/g701-normal534-external-direct-fixture-root/normal534-runtime/receipt.json",
+      "sha256": "fe2f28857558a648a020be66b0e333ae8c28672bf51dd21d66205f749c9c4c7d"
+    },
+    "normal534_original_join": {
+      "path": ".local/gate-6/g701-normal534-external-direct-fixture-root/root-original-join.json",
+      "sha256": "9912559748c3ed9e378c1f382675eb30dcecd4b23568c47d56718d77409710e6"
+    },
+    "normal534_independent_actual_audit": {
+      "path": ".local/gate-6/g701-actual-normal534-independent-audit/receipt.json",
+      "sha256": "72add127405f0051d06b60a3cfca82925c57ec742d56e1b64a52be71c19cf417"
+    },
+    "external_transfer_fixture_source": {
+      "path": ".local/gate-6/g700-external-direct-receiver-transfer-fixture-source-candidate/manifest.json",
+      "sha256": "53266e9968ddd2430ed2c4a3b8613d3c46e5bdb73a8e00167185db738e31f405"
+    },
+    "external_transfer_fixture_Root_acceptance": {
+      "path": ".local/gate-6/g701-normal534-external-direct-fixture-root/root-source-acceptance.json",
+      "sha256": "344186c2edfbe747c549c56425d49d9870c72d73a46eac8d1a0828a0df6184a2"
+    },
+    "ordered_Service_binding_V2_source": {
+      "path": ".local/gate-6/g700-service-cold-actual-activated-binding-source-candidate-v2/manifest.json",
+      "sha256": "3e0ac29a9d5e0eae53215476d168c6c429f87a982878bfe94a34fa4e0a2e5c90"
+    },
+    "ordered_Service_binding_V2_nonauthor_review": {
+      "path": ".local/gate-6/g700-service-actual-activated-binding-independent-batch-source-review/v2-receipt.json",
+      "sha256": "4d00f38141f601c430f7c13a8e867a4a5a49c1436491ee1fc483f5c2724eb4c2"
+    },
+    "ordered_Service_binding_V2_actual_apply": {
+      "path": ".local/gate-6/g702-service-cold-actual-activated-binding-v2-root/apply-receipt.json",
+      "sha256": "5cd50df8df01e8877805137b7a30efa69ff8719fa0bc6b0e2e7329ecd8cc6e3d"
+    },
+    "ordered_Service_binding_V2_official_format": {
+      "path": ".local/gate-6/g702-service-cold-actual-activated-binding-v2-root/format-receipt.json",
+      "sha256": "2223f174930a5c24bcfa92293501d2fbbab2633d2e66450c2b005a5e695c5e48"
+    },
+    "helper_only_eight_controls_actual": {
+      "path": ".local/gate-6/g700-owned-finally-helper-eight-controls-root/receipt.json",
+      "sha256": "75fe7258e4c0fcab9ef5d9ca96f7de09136c40126e4d3b36bfde82927795a2f2"
+    },
+    "prior_G696_failed_actual_audit": {
+      "path": ".local/gate-6/g696-actual45-independent-audit/receipt.json",
+      "sha256": "9118fdd95e2b214f54d91fb1b8bb7dab888d3a3532363842e1076aab7c87d673"
+    },
+    "last_mobile229_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v229-component45-prepared533.json",
+      "sha256": "960b77b1b64488f7ba9fad6c85e6cf5dd20e24c53910f08a4a76ec9f1110d185"
+    }
+  },
+  "earlier_failed_verdicts_regraded": false,
+  "remaining_readiness_scopes": "All seven existing scopes open and unchanged; no full, media, release, ARM,900,Firefox or matrix qualification.",
+  "last_verified_mobile_revision": 229,
+  "proposed_mobile_revision": 230,
+  "mobile_publication_and_readback": "PENDING_ROOT_ONLY",
+  "ready_for_32": false,
+  "qualification": false,
+  "full_unit_qualified": false,
+  "matrix_credit": false,
+  "matrix_latest": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "parked": "G6-054"
+}

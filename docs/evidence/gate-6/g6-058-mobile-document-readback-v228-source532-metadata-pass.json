@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 149,
+  "mobile_content_revision": 228,
+  "recorded_at": "2026-11-20T11:25:52.679165+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "G691all3metadataPASS;G694actualcleanupphysical62GiB;9testbuilds45runtimecontrolsUNRUN",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile228-source532-metadata-pass-root/before-write.json",
+  "private_before_sha256": "546b384b6f800837d49c8e8be0f63c252407518a5680fa79895313a5e3eb6ae9",
+  "private_write": ".local/gate-6/mobile228-source532-metadata-pass-root/write.json",
+  "private_write_sha256": "90e34d075d0e2cd5c3685495882c7495817577cf22ceb1f8a5c483ba4c254bfd",
+  "private_readback": ".local/gate-6/mobile228-source532-metadata-pass-root/readback.json",
+  "private_readback_sha256": "6d4e4958f384d7e3449173cbdccd78def65999dbf2343cf8dc4588210bd8bcaa"
+}

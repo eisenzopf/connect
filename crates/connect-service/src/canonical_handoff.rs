@@ -1,4 +1,5 @@
 //! Owned native handoff: actual opaque Core plan, one attempt and captured facts.
+mod managed_final;
 use crate::{
     authentication::StoreValidator,
     canonical_consultation::{descriptor, retry_metadata, store_call},
@@ -138,7 +139,7 @@ impl Runtime {
         command: TransitionCommand,
         record: String,
     ) -> Result<()> {
-        let _roles = self.role_projection.lock().await;
+        let roles = self.role_projection.lock().await;
         let saved = self
             .handoffs
             .lock()
@@ -296,43 +297,31 @@ impl Runtime {
         else {
             return Ok(());
         };
-        let read = retry_metadata(&self.stop, || async {
-            self.media.store.native_handoff_attempt_read(&lease)
-        })
-        .await?;
-        let store = self.media.store.clone();
-        let (attempt, read) = store_call(move || store.begin_native_handoff(lease, read)).await?;
-        let remaining = (read.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
-        let invocation = HandoffInvocation {
-            policy: self.media.clone(),
-            plan: plan.clone(),
-            read: Arc::new(read),
-            principal: principal.clone(),
-            cancel: self.stop.child_token(),
-        };
-        let actual = self
-            .core
-            .commit_staged_audio_handoff_with_held(
-                &sid,
-                principal,
-                plan,
-                tokio::time::Instant::now() + Duration::from_secs(remaining),
-                invocation.cancel.clone(),
-                &invocation,
-            )
-            .await;
-        let (outcome, handle) = match actual {
-            Ok(v) => v,
-            Err(error) => {
-                tracing::debug!(target:"connect_service::canonical_handoff",?error,"Core handoff refused or became uncertain");
-                drop(invocation);
+        let until = self.managed_publication_cutoff(
+            &record,
+            tokio::time::Instant::now() + Duration::from_secs(5),
+        )?;
+        drop(roles);
+        let (attempt, outcome, handle, observed_custody, cleanup) = match self
+            .commit_prepared_handoff(&sid, principal, plan, Arc::new(lease), until)
+            .await?
+        {
+            managed_final::Outcome::Uncertain { attempt, error } => {
                 let store = self.media.store.clone();
                 store_call(move || store.native_handoff_uncertain(attempt)).await?;
+                tracing::debug!(target:"connect_service::canonical_handoff",code=%error.code,"Same started Handoff attempt remains uncertain; no planning retry");
                 return Err(Error::new(
                     "reconciliation-required",
                     "Native handoff attempt is uncertain",
                 ));
             }
+            managed_final::Outcome::Published {
+                attempt,
+                outcome,
+                handle,
+                observed,
+                cleanup,
+            } => (attempt, outcome, handle, observed, cleanup),
         };
         let p = outcome
             .media
@@ -344,7 +333,7 @@ impl Runtime {
             observed,
             crate::canonical_runtime::capture_audience_metadata(handle.audience().commit())?,
         )?);
-        let mut carry_failed = false;
+        let mut carry_failed = cleanup.is_err();
         for id in handle.audience().commit().connections() {
             if !outcome.retiring.contains(id)
                 && self
@@ -364,7 +353,7 @@ impl Runtime {
                 members,
             },
         );
-        drop(invocation);
+        observed_custody.recorded();
         self.settle_handoff(receipt).await?;
         if carry_failed {
             return Err(Error::new(

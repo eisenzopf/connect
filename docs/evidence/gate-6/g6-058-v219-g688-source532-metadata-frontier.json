@@ -1,0 +1,181 @@
+{
+  "format": "connect/g6-058-checkpoint148-source532-metadata-frontier/1",
+  "checkpoint": 148,
+  "recorded_at": "2026-11-20T10:43:53.841442+00:00",
+  "status": "ACTUAL_FAILED_FAST3_REPAIRS_APPLIED_FORMATTED_PREP_VERIFIED_POSTREPAIR_UNRUN",
+  "coordinator": "/root",
+  "author": "/root/independent_batch_review",
+  "G682": {
+    "builds_completed": 9,
+    "builds_passed": 2,
+    "builds_failed": 7,
+    "same_missing_SIP_docs_items_per_failed_log": 19,
+    "old_Core_E0063_E0609_absent": true,
+    "inventories": 0,
+    "runtime_tests": 0,
+    "unrun_component_controls": 45,
+    "all_original_owners_natural_joined_fresh_absent": true,
+    "failed_verdict_preserved": true
+  },
+  "normal532": {
+    "status": "ACTUAL_PREPARATION_AUDITED_PASS_ONLY",
+    "source_files": 6548,
+    "source_sha256": "4c248fddf0defb0fa20b310653db85ee2d2e2f6fe1835a72d4d074fffcab3420",
+    "comments_only_SIP_docs_change": true,
+    "compile_or_runtime_qualification": false
+  },
+  "followup_repairs": {
+    "status": "ACTUAL_ROOT_APPLIED_OFFICIAL_FORMAT_PASS_NORMAL532_NOOP_PREP_VERIFIED",
+    "files": 9,
+    "activation_local_import_files": 8,
+    "actual_trait_calls": 9,
+    "owned_SIP_context_return_annotations": 1,
+    "new_tests": 0,
+    "postrepair_FAST3": "UNRUN",
+    "postrepair_nine_builds_45_controls": "UNRUN",
+    "postrepair_source_sha256": "ac76f666aa35e6336becfb62f2feb6a7dd4d5d0c37484d8a3204ce5b36328728",
+    "all_other6539_workspace_bytes_modes_unchanged": true,
+    "upstream_prepared_and_lock_unchanged": true
+  },
+  "last_verified_mobile_revision": 226,
+  "proposed_mobile_revision": 227,
+  "mobile_publication_and_readback": "PENDING_ROOT_ONLY",
+  "proofs": {
+    "G682_result": {
+      "path": ".local/gate-6/g682-source531-fortyfive-causal-controls-root/result.json",
+      "sha256": "eb7d632a9b393620dfb61cc2601b2d6046a5e90249e96aeee0978dd29d964026"
+    },
+    "G682_join": {
+      "path": ".local/gate-6/g682-source531-fortyfive-causal-controls-root/root-original-join.json",
+      "sha256": "c0466dc0e5ca8acaf8bc3ef8d3367a7de4946af3c850cd0d712da9c025cc2f9f"
+    },
+    "G682_audit": {
+      "path": ".local/gate-6/g682-actual-nine-build-SIP-docs-frontier-independent-epoch-audit/receipt.json",
+      "sha256": "ca621f9fe9b817df5786db3dcc76747f86e3ff9682e909c522fb31214b7f10b5"
+    },
+    "SIP_docs_source": {
+      "path": ".local/gate-6/g682-sip-final-route-public-api-documentation-source-candidate/manifest.json",
+      "sha256": "782c81741c612e51f919293af4c1c60b1408748ea4602d97e783e29423ffa96e"
+    },
+    "SIP_docs_source_review": {
+      "path": ".local/gate-6/g682-sip-public-docs-independent-epoch-source-review/receipt.json",
+      "sha256": "333fe44526a10348e7d2be4621e85c7107177522f642d0831a99ac161a743ced"
+    },
+    "normal532_receipt": {
+      "path": ".local/gate-6/g687-normal532-after-stale-cache-space-recovery-root/normal532-runtime/receipt.json",
+      "sha256": "b1c97f035bd9a347c62579f37a30d6b23d2b2b01b664fbe577b3981d40630bd8"
+    },
+    "normal532_audit": {
+      "path": ".local/gate-6/g687-actual-normal532-independent-epoch-audit/receipt.json",
+      "sha256": "68efb28e7cc5a4dfe05d678a03864f8a80201b98ae24536840ac3a7426789b46"
+    },
+    "normal532_source": {
+      "path": ".local/gate-6/g687-normal532-after-stale-cache-space-recovery-root/working-source532.json",
+      "sha256": "4c248fddf0defb0fa20b310653db85ee2d2e2f6fe1835a72d4d074fffcab3420"
+    },
+    "FAST3_upstream_actual": {
+      "path": ".local/gate-6/g688-source532-fast-three-metadata-checks-root/upstream-production-metadata-metadata-result.json",
+      "sha256": "b389918f9a404eb5238c111414bf8b2cf111256e40323518552ce8275e0cab24"
+    },
+    "FAST3_workspace_actual": {
+      "path": ".local/gate-6/g688-source532-fast-three-metadata-checks-root/workspace-production-metadata-metadata-result.json",
+      "sha256": "6942baced954c1ecde3c407f8da5160b96b26ac3b1e3002946fa73135971b053"
+    },
+    "FAST3_plan": {
+      "path": ".local/gate-6/g688-source532-fast-three-metadata-checks-root/plan.json",
+      "sha256": "538ebd8319a37b15e52621b6a3e7753241f2af0b3ab90c6494d8209b7aacce5d"
+    },
+    "FAST3_live_owner": {
+      "path": ".local/gate-6/g688-source532-fast-three-metadata-checks-root/root-live-owner.json",
+      "sha256": "62bece3e056ff67e398858ab82666ddf50c27456b69ec06f9967f5a10aba6b7d"
+    },
+    "activation_imports_source": {
+      "path": ".local/gate-6/g688-service-concrete-activation-local-trait-imports-source-candidate/manifest.json",
+      "sha256": "ec401bba15611a376c07a35f25dfd3850a127cc21fc223729bb733f34e763b65"
+    },
+    "activation_imports_review": {
+      "path": ".local/gate-6/g688-local-activation-trait-imports-independent-epoch-source-review/receipt.json",
+      "sha256": "5adcb9fcdffcbdf6dc2ad74f5ae6a26a130aab8b684ecd46da57ce1871fce74b"
+    },
+    "telephone_context_source": {
+      "path": ".local/gate-6/g688-telephone-final-route-owned-context-type-source-candidate/manifest.json",
+      "sha256": "75ce44899c331158175e3217fc8c33a5b788606fe56d5f4466d89161fd5dff1d"
+    },
+    "telephone_context_review": {
+      "path": ".local/gate-6/g688-telephone-context-Arc-return-independent-epoch-source-review/receipt.json",
+      "sha256": "effccd7040cdeca26a2508552c84e1d07c36c44a8d59a14e8d290e220b87ba26"
+    },
+    "nine_file_inert_assembly": {
+      "path": ".local/gate-6/g689-service-activation-imports-and-SIP-context-inert-assembly/manifest.json",
+      "sha256": "75abfebeadd1cd5458606f9247a6cacf1ca8284e3eef3782c4baf107c2ff9228"
+    },
+    "mobile226_tracked": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v226-source531-compile-frontier.json",
+      "sha256": "a19a64c9186620e78317050207b6100b7c2b010b00bb14517cdd545facf02328"
+    },
+    "G688_actual_result": {
+      "path": ".local/gate-6/g688-source532-fast-three-metadata-checks-root/result.json",
+      "sha256": "5dd54a0483f1d9db057d06316a4f68254069dfd2b57aebf3807cd8bd4c3118f2"
+    },
+    "G688_original_join": {
+      "path": ".local/gate-6/g688-source532-fast-three-metadata-checks-root/root-original-join.json",
+      "sha256": "7baca21e3f6930243d4d5e1b9f4e62f2916adcfc86eac72ed0f6fd9931b647fc"
+    },
+    "G688_actual_audit": {
+      "path": ".local/gate-6/g688-actual-fast3-independent-epoch-audit/receipt.json",
+      "sha256": "26b2be9971c67aca3a519d8d97e09dd49d29a029b63b412c360d5c734bdf1f86"
+    },
+    "G688_canonical_runtime_metadata_actual": {
+      "path": ".local/gate-6/g688-source532-fast-three-metadata-checks-root/canonical-runtime-test-metadata-metadata-result.json",
+      "sha256": "8a8dbe00da5ac8f75930ba71e84bd9c9065e1b58f57d373c4c9fcf32b894094b"
+    },
+    "nine_file_actual_apply": {
+      "path": ".local/gate-6/g689-service-activation-imports-and-SIP-context-inert-assembly/apply-receipt.json",
+      "sha256": "a00a43afa300dc1637ed57f03c610abd18bd2bec81bc0dfd55241e3be71c5700"
+    },
+    "nine_file_official_format": {
+      "path": ".local/gate-6/g689-service-activation-imports-and-SIP-context-inert-assembly/format-receipt.json",
+      "sha256": "9981140537c65bdd94646f1c5907f429ef25b1a1298ebaa0ecb70350ee1bc195"
+    },
+    "postrepair_normal532_prepare_noop": {
+      "path": ".local/gate-6/g689-service-activation-imports-and-SIP-context-inert-assembly/prepare-noop-receipt.json",
+      "sha256": "9de680c1df56768f2aef2365c5c05859a8b6af972a97084b6b4b6cdb60c4e393"
+    },
+    "working_source_after_nine_corrections": {
+      "path": ".local/gate-6/g689-service-activation-imports-and-SIP-context-inert-assembly/working-source532-after-compiler-correction.json",
+      "sha256": "ac76f666aa35e6336becfb62f2feb6a7dd4d5d0c37484d8a3204ce5b36328728"
+    }
+  },
+  "ready_for_32": false,
+  "qualification": false,
+  "matrix_credit": false,
+  "remaining_scope": "Existing same9builds/45controls, fresh shared379, affected full regression including whole Core-traits/SIP, OriginalV8 and all seven recorded readiness scopes unchanged; counts derive actual inventories, no requirement or waiver added.",
+  "final_binding_required": [
+    "Root factual review/application and mobile227 scoped publication/readback; actual mobile226 retained until verified"
+  ],
+  "G688_actual_terminal": {
+    "completed_metadata_checks": 3,
+    "passed_metadata_checks": 1,
+    "failed_metadata_checks": 2,
+    "upstream_production_metadata": "PASSED_METADATA_ONLY_FIVE_SELECTED_LIBRARIES",
+    "workspace_and_canonical_runtime_metadata": "BOTH_FAILED_SAME10_ERRORS",
+    "error_counts_per_failed_check": {
+      "E0599": 9,
+      "E0308": 1
+    },
+    "distinct_error_sites": 10,
+    "original_tool": 12956,
+    "original_root": 92943,
+    "original_children": 3,
+    "child_natural_exit_codes": [
+      0,
+      101,
+      101
+    ],
+    "all_original_owners_natural_unforced_joined_fresh_absent": true,
+    "source_files": 6548,
+    "source_unchanged": true,
+    "runtime_tests": 0,
+    "failed_verdict_preserved": true
+  }
+}

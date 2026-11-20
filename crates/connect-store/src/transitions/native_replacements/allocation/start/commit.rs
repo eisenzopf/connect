@@ -513,6 +513,36 @@ impl Store {
         let writer = self.acquire_authority(&scopes, &wait)?;
         self.native_replacement_scene_with_interval(origin, sources, None, Some((&writer, expiry)))
     }
+    /// Final-turn admission: caller owns no previous Read/Writer while SQL
+    /// readiness waits. Actual file acquisition is try-only; after it exists,
+    /// current scene derivation and begin are immediate and retain this cutoff.
+    pub fn try_native_replacement_commit_scene_write_with_wait(
+        &self,
+        origin: &NativeReplacementMediaOrigin,
+        sources: &[Arc<crate::NativeMediaOrigin>],
+        original_until: i64,
+        wait: &crate::AuthorityWait,
+    ) -> Result<NativeReplacementSceneRead> {
+        wait.check()?;
+        if crate::now() >= original_until {
+            return Err(Error::forbidden());
+        }
+        let provisional = self.try_native_replacement_scene_read(origin, sources)?;
+        let scopes = provisional.scoped_commit_scopes()?;
+        let expiry = provisional.expires_at().min(original_until);
+        drop(provisional);
+        drop(self.try_connection_with_wait(wait)?);
+        wait.check()?;
+        let writer = self.try_acquire_authority(&scopes)?;
+        let read = self.native_replacement_scene_with_interval(
+            origin,
+            sources,
+            None,
+            Some((&writer, expiry)),
+        )?;
+        wait.check()?;
+        Ok(read)
+    }
     /// Persist the single commit attempt before entering Core while retaining
     /// the complete current mixed mutation proof through physical movement.
     /// failure to enter primary SQL is a definite pre-effect Busy, never a wait.
@@ -537,7 +567,7 @@ impl Store {
         origin: Arc<NativeReplacementMediaOrigin>,
         read: &NativeReplacementSceneRead,
     ) -> Result<Option<NativeReplacementCommitAttempt>> {
-        self.begin_native_commit_prepared(origin, read, None)
+        self.begin_native_commit_prepared(origin, read, None, None)
     }
     /// Persist the original prepared IDs once, under the actual final Writer.
     /// The preparation grants no IO and is revalidated against current facts.
@@ -546,14 +576,34 @@ impl Store {
         preparation: &NativeReplacementCommitPreparation,
         read: &NativeReplacementSceneRead,
     ) -> Result<Option<NativeReplacementCommitAttempt>> {
-        self.begin_native_commit_prepared(preparation.origin.clone(), read, Some(preparation))
+        self.begin_native_commit_prepared(preparation.origin.clone(), read, Some(preparation), None)
+    }
+    /// Same prepared IDs, with the original cancellation/deadline checked
+    /// before any DML and immediately before COMMIT. A successful late COMMIT
+    /// still returns its owned attempt; no post-commit check loses attribution.
+    pub fn try_begin_prepared_native_replacement_commit_with_wait(
+        &self,
+        preparation: &NativeReplacementCommitPreparation,
+        read: &NativeReplacementSceneRead,
+        wait: &crate::AuthorityWait,
+    ) -> Result<Option<NativeReplacementCommitAttempt>> {
+        self.begin_native_commit_prepared(
+            preparation.origin.clone(),
+            read,
+            Some(preparation),
+            Some(wait),
+        )
     }
     fn begin_native_commit_prepared(
         &self,
         origin: Arc<NativeReplacementMediaOrigin>,
         read: &NativeReplacementSceneRead,
         preparation: Option<&NativeReplacementCommitPreparation>,
+        control_wait: Option<&crate::AuthorityWait>,
     ) -> Result<Option<NativeReplacementCommitAttempt>> {
+        if let Some(wait) = control_wait {
+            wait.check()?;
+        }
         let p = &origin.started.attempt.allocated.attempt.prepared;
         if !read.current()
             || read.media.source.selection().origin.record != p.record
@@ -619,6 +669,14 @@ impl Store {
         } else {
             None
         };
+        #[cfg(test)]
+        observe_commit_entry_probe("prepared-begin-before-dml");
+        if let Some(wait) = control_wait {
+            wait.check()?;
+            if crate::now() >= preparation.original_until {
+                return Err(Error::forbidden());
+            }
+        }
         tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,'native-replacement-commit',?1,'none','prepared',?3)",params![effect,p.record,expected]).map_err(|_|Error::storage())?;
         tx.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,'commit',?2,?3)",params![p.record,attempt,effect]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='commit'",[&p.record]).map_err(|_|Error::storage())?;
@@ -629,6 +687,14 @@ impl Store {
             return Err(Error::forbidden());
         }
         drop(permit);
+        #[cfg(test)]
+        observe_commit_entry_probe("prepared-begin-before-commit");
+        if let Some(wait) = control_wait {
+            wait.check()?;
+            if crate::now() >= preparation.original_until {
+                return Err(Error::forbidden());
+            }
+        }
         tx.commit().map_err(|_| Error::storage())?;
         Ok(Some(NativeReplacementCommitAttempt {
             origin,

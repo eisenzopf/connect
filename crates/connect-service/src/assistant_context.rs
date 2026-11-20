@@ -3,6 +3,7 @@ use crate::{canonical_media::Connection, canonical_runtime::Runtime, Service};
 use connect_protocol::{Error, Result};
 use connect_store::{NativeAssistantContextRead, Store};
 use rvoip_core::ids::ConnectionId;
+use rvoip_core::staged_streams::MediaActivation;
 use std::sync::{Arc, Weak};
 
 /// This bounded reader owns current Store authority and checks the actual

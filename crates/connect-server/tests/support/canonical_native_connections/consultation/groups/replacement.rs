@@ -6,6 +6,9 @@ mod activation;
 mod av;
 #[path = "replacement/decoded_readiness.rs"]
 pub(super) mod decoded_readiness;
+#[cfg(feature = "test-support")]
+#[path = "replacement/final_control.rs"]
+mod final_control;
 #[path = "replacement/start_replay.rs"]
 mod start_replay;
 async fn wait_prepared(f: &Fixture, key: &str, operation: &str) -> OperationRecord {
@@ -189,6 +192,8 @@ async fn exercise_replacement_with_control(
 #[derive(Clone, Copy)]
 enum ActivationAudit {
     None,
+    #[cfg(feature = "test-support")]
+    FinalControl(final_control::Case),
     #[cfg(feature = "test-support")]
     RouteEnrollment(activation::route_enrollment::Boundary),
     #[cfg(feature = "test-support")]
@@ -551,6 +556,13 @@ async fn exercise_replacement_with_av_transfer(
                 video: transfer_video.then(av::transfer::intent),
             },
             payload_extensions: Default::default(),
+        };
+        #[cfg(feature = "test-support")]
+        let final_control_probe = if matches!(activation_audit, ActivationAudit::FinalControl(_)) {
+            Some(f.server.service.arm_canonical_preparation_custody_probe_for_test(
+                &command.operation_id,if matches!(activation_audit,ActivationAudit::FinalControl(final_control::Case::PostPanic)) {connect_service::canonical_media_projection_fixture::PreparationCustodyPhase::ManagedPostPanic}else{connect_service::canonical_media_projection_fixture::PreparationCustodyPhase::ManagedFinalPrepared}).unwrap())
+        } else {
+            None
         };
         let mcp_probe = if mcp {
             Some(crate::canonical_mcp::TransitionProbe::submit(&f, &command, &key.token).await)
@@ -1093,6 +1105,38 @@ async fn exercise_replacement_with_av_transfer(
                 )
                 .await
             };
+            #[cfg(feature = "test-support")]
+            if let ActivationAudit::FinalControl(case) = activation_audit {
+                let probe = final_control_probe.as_ref().unwrap();
+                let negative = final_control::verify(
+                    &f,
+                    &key.id,
+                    &command,
+                    plan["candidate_runtime_id"].as_str().unwrap(),
+                    &mut peers,
+                    probe,
+                    case,
+                )
+                .await;
+                if negative {
+                    for peer in peers {
+                        let _ = peer.client.shutdown().await;
+                    }
+                    wait_slots(&f, 0).await;
+                    let movement_controller = super::sdk_movements::before_shutdown(&f).await;
+                    let shutdown = f.server.shutdown().await;
+                    if matches!(
+                        case,
+                        final_control::Case::PostPanic | final_control::Case::BeginFault
+                    ) {
+                        assert_eq!(shutdown.unwrap_err().to_string(),"Canonical shutdown failed: canonical runtime retirement; public Session failure: None","actual Service panic/unsettled publication or begin uncertainty must remain a failed drain");
+                    } else {
+                        shutdown.unwrap();
+                    }
+                    super::sdk_movements::shutdown_joined(movement_controller);
+                    continue;
+                }
+            }
             #[cfg(feature = "test-support")]
             if let Some((armed, original_bindings)) = fault_audit {
                 if matches!(activation_audit, ActivationAudit::RefuseBeforeCore) {
@@ -2019,4 +2063,101 @@ async fn production_mcp_device_movement_keeps_decoded_generation_two_audio_origi
             "MCP device movement {algorithm}: speaker/observer, current endpoint/target revocation, retained remote, decoded generation-two media, original replay/recovery, one effect per phase and joined owners"
         );
     }
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn managed_final_metadata_busy_releases_actual_store_writer_and_keeps_original_media_until_same_cut(
+) {
+    exercise_replacement_with_av_control(
+        true,
+        true,
+        false,
+        true,
+        false,
+        None,
+        false,
+        Some((false, false, false)),
+        false,
+        false,
+        ActivationAudit::FinalControl(final_control::Case::Resume),
+    )
+    .await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn managed_final_metadata_busy_actual_revocation_refuses_same_started_attempt_without_replay()
+{
+    exercise_replacement_with_av_control(
+        true,
+        true,
+        false,
+        true,
+        false,
+        None,
+        false,
+        Some((false, false, false)),
+        false,
+        false,
+        ActivationAudit::FinalControl(final_control::Case::Revoke),
+    )
+    .await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn managed_final_metadata_busy_original_publication_expiry_never_becomes_not_submitted_or_replayed(
+) {
+    exercise_replacement_with_av_control(
+        true,
+        true,
+        false,
+        true,
+        false,
+        None,
+        false,
+        Some((false, false, false)),
+        false,
+        false,
+        ActivationAudit::FinalControl(final_control::Case::Expire),
+    )
+    .await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn managed_actual_publication_service_unwind_releases_all_writers_before_owned_post_and_resource_drop(
+) {
+    exercise_replacement_with_av_control(
+        true,
+        true,
+        false,
+        true,
+        false,
+        None,
+        false,
+        Some((false, false, false)),
+        false,
+        false,
+        ActivationAudit::FinalControl(final_control::Case::PostPanic),
+    )
+    .await;
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn managed_real_post_begin_sql_failure_is_not_retried_or_relabelled_not_submitted() {
+    exercise_replacement_with_av_control(
+        true,
+        true,
+        false,
+        true,
+        false,
+        None,
+        false,
+        Some((false, false, false)),
+        false,
+        false,
+        ActivationAudit::FinalControl(final_control::Case::BeginFault),
+    )
+    .await;
 }

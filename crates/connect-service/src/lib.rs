@@ -468,6 +468,23 @@ impl Service {
             .media
             .arm_preparation_custody_probe_for_test(operation, phase)
     }
+    /// Exclude the ACTUAL participant runtime model state for bounded host
+    /// interleaving tests. This creates no policy grant or media readiness.
+    #[cfg(feature = "test-support")]
+    pub fn with_canonical_control_model_metadata_for_test<T>(
+        &self,
+        session: &str,
+        hold: impl FnOnce() -> T,
+    ) -> Result<T> {
+        let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
+        runtime
+            .core
+            .with_participant_model_state_exclusion_for_test(
+                &rvoip_core::ids::SessionId::from_string(session),
+                hold,
+            )
+            .map_err(|_| Error::forbidden())
+    }
     /// Compare original replacement-start authority under registry exclusion.
     #[cfg(feature = "test-support")]
     pub fn arm_canonical_start_registry_probe_for_test(
@@ -672,6 +689,51 @@ impl Service {
             if !runtime.drain_control_polls(deadline).await {
                 incomplete = true;
                 tracing::debug!(target: "connect_service::canonical_runtime_drain", stage = "control-polls", "Original control poll retirement remains incomplete");
+            }
+            // All operation futures are joined (or their original owners
+            // reaped) before removing fatal cleanup payloads from this SAME
+            // admitted container. Never drop a payload under its container lock.
+            let failed_posts = runtime
+                .consultation_jobs
+                .lock()
+                .unwrap_or_else(|poison| {
+                    incomplete = true;
+                    poison.into_inner()
+                })
+                .take_failed();
+            if !failed_posts.is_empty() {
+                incomplete = true;
+            }
+            for failed in failed_posts {
+                failed.report_and_release();
+            }
+            let unsettled = runtime
+                .consultation_jobs
+                .lock()
+                .unwrap_or_else(|poison| {
+                    incomplete = true;
+                    poison.into_inner()
+                })
+                .take_observed();
+            if !unsettled.is_empty() {
+                incomplete = true;
+            }
+            for actual in unsettled {
+                actual.report_and_release();
+            }
+            let begins = runtime
+                .consultation_jobs
+                .lock()
+                .unwrap_or_else(|poison| {
+                    incomplete = true;
+                    poison.into_inner()
+                })
+                .take_unconfirmed_begin();
+            if !begins.is_empty() {
+                incomplete = true;
+            }
+            for outcome in begins {
+                outcome.report_and_release();
             }
             if runtime
                 .retirement_failed

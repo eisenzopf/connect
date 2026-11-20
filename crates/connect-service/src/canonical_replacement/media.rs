@@ -8,7 +8,7 @@ use rvoip_core::{
     participant_transitions::PreparedParticipantReplacement,
     relationships::{EndpointBinding, IdentityBinding},
     staged_streams::*,
-    stream_lifecycle::{Medium, StreamGateAction},
+    stream_lifecycle::{Medium, ReadyMediaBinding, StreamGateAction},
     AuthenticatedPrincipal,
 };
 use rvoip_uctp::v2::{
@@ -46,6 +46,46 @@ pub(crate) enum Activation {
     WebRtc(Arc<rvoip_webrtc::canonical::RtcMediaActivation>),
 }
 impl Activation {
+    pub(crate) fn try_final_physical(
+        &self,
+    ) -> ControlResult<crate::canonical_media::FinalPhysicalWitness> {
+        match self {
+            Self::Native(activation) => Ok(crate::canonical_media::FinalPhysicalWitness::Native {
+                activation: activation.clone(),
+                observation: activation.try_current_resource_observation()?,
+            }),
+            Self::WebRtc(activation) => Ok(crate::canonical_media::FinalPhysicalWitness::WebRtc(
+                activation.try_physical_current_witness()?,
+            )),
+        }
+    }
+    pub(crate) fn try_final_resources_for(
+        &self,
+        bindings: &[ReadyMediaBinding],
+    ) -> ControlResult<crate::canonical_media::FinalResourceWitness> {
+        if bindings.is_empty() {
+            return Err(StreamControlError::Authority);
+        }
+        match self {
+            Self::Native(activation) => {
+                let observation = activation.try_current_resource_observation()?;
+                if observation
+                    .committed_generation()
+                    .is_none_or(|g| bindings.iter().any(|b| b.connection_generation != g))
+                {
+                    return Err(StreamControlError::Authority);
+                }
+                Ok(crate::canonical_media::FinalResourceWitness::Native {
+                    activation: activation.clone(),
+                    observation,
+                    bindings: bindings.to_vec(),
+                })
+            }
+            Self::WebRtc(activation) => Ok(crate::canonical_media::FinalResourceWitness::WebRtc(
+                activation.try_current_resource_witness_for(bindings)?,
+            )),
+        }
+    }
     pub(crate) fn confirmed_generation(&self) -> Option<u64> {
         MediaActivation::confirmed_generation(self)
     }
@@ -358,6 +398,23 @@ impl TargetPolicy {
         read: &connect_store::NativeReplacementMediaRead,
     ) -> ControlResult<MediaOwner> {
         let (owner, old) = self.owners(read.source(), read.target())?;
+        self.activation
+            .get()
+            .ok_or(StreamControlError::NotReady)?
+            .current_replacement(owner, &old, &self.pending)
+    }
+    #[cfg(feature = "test-support")]
+    pub(super) fn current_owner_with_final_route_for_test(
+        &self,
+        read: &connect_store::NativeReplacementMediaRead,
+        view: &rvoip_sip::adapter::SipFinalRouteView,
+        record: &str,
+    ) -> ControlResult<MediaOwner> {
+        let old = self
+            .base
+            .replacement_source_owner_with_final_route_for_test(read.source(), view, record)
+            .map_err(deny)?;
+        let (owner, old) = self.owners_with_source(read.source(), read.target(), old)?;
         self.activation
             .get()
             .ok_or(StreamControlError::NotReady)?

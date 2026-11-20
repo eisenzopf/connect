@@ -1,0 +1,2040 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/handoff.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/handoff.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/handoff.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/handoff.rs
+@@ -103,6 +103,31 @@
+         _ => StreamControlError::Authority,
+     }
+ }
++fn check_handoff_authority(
++    runtime: &ManagedParticipantSession,
++    principal: &AuthenticatedPrincipal,
++    plan: &ManagedAudioHandoffPlan,
++    authority: &ParticipantHandoffAuthority,
++) -> std::result::Result<(), StreamControlError> {
++        let (old, new) = plan.media.participants();
++        if authority.outgoing.participant() != &old
++            || authority.incoming.participant() != &new
++            || authority.actor.conversation() != &runtime.conversation
++            || authority.outgoing.conversation() != &runtime.conversation
++            || authority.incoming.conversation() != &runtime.conversation
++            || !authority.incoming_may_send_audio
++            || (plan.media.request().old_disposition == OldHandoffDisposition::Observer
++                && !authority.outgoing_may_receive_audio)
++            || plan.incoming_role == ParticipantRole::Observer
++        {
++            return Err(StreamControlError::Authority);
++        }
++        authority
++            .actor
++            .revalidate_principal(&principal, Utc::now())
++            .map_err(|_| StreamControlError::Authority)?;
++    Ok(())
++}
+ pub(crate) struct ManagedHandoffContext {
+     pub(super) owner: Arc<Orchestrator>,
+     pub(super) runtime: Arc<ManagedParticipantSession>,
+@@ -142,23 +167,7 @@
+                 plan: &self.plan,
+             })
+             .map_err(media_error)?;
+-        let (old, new) = self.plan.media.participants();
+-        if authority.outgoing.participant() != &old
+-            || authority.incoming.participant() != &new
+-            || authority.actor.conversation() != &self.runtime.conversation
+-            || authority.outgoing.conversation() != &self.runtime.conversation
+-            || authority.incoming.conversation() != &self.runtime.conversation
+-            || !authority.incoming_may_send_audio
+-            || (self.plan.media.request().old_disposition == OldHandoffDisposition::Observer
+-                && !authority.outgoing_may_receive_audio)
+-            || self.plan.incoming_role == ParticipantRole::Observer
+-        {
+-            return Err(StreamControlError::Authority);
+-        }
+-        authority
+-            .actor
+-            .revalidate_principal(&self.principal, Utc::now())
+-            .map_err(|_| StreamControlError::Authority)?;
++        check_handoff_authority(&self.runtime, &self.principal, &self.plan, &authority)?;
+         Ok(authority)
+     }
+     pub(crate) fn check(
+@@ -339,3 +348,200 @@
+         observation
+     }
+ }
++
++
++pub(crate) struct HandoffCutSeed {
++    owner: Arc<Orchestrator>,
++    runtime: Arc<ManagedParticipantSession>,
++    plan: ManagedAudioHandoffPlan,
++    principal: AuthenticatedPrincipal,
++    guidance: ParticipantHandoffAuthority,
++    conversation: Arc<RwLock<Conversation>>,
++    session: Arc<RwLock<Session>>,
++    lifecycles: Vec<ConnectionLifecycleTicket>,
++    deadline: tokio::time::Instant,
++    cancellation: CancellationToken,
++}
++pub(crate) struct PreparedHandoffCut {
++    owner: Arc<Orchestrator>,
++    runtime: Arc<ManagedParticipantSession>,
++    plan: ManagedAudioHandoffPlan,
++    principal: AuthenticatedPrincipal,
++    mutation: ParticipantHandoffMutation,
++    conversation: Arc<RwLock<Conversation>>,
++    session: Arc<RwLock<Session>>,
++    lifecycles: Vec<ConnectionLifecycleTicket>,
++    deadline: tokio::time::Instant,
++    cancellation: CancellationToken,
++    model: Option<PreparedParticipantHandoff>,
++    post: Option<Box<super::ManagedCutPostPublication>>,
++    model_committed: bool,
++    removed_originals: Vec<LiveRoute>,
++}
++impl HandoffCutSeed {
++    pub(crate) fn capture(owner:&Arc<Orchestrator>,session:&SessionId,principal:AuthenticatedPrincipal,plan:&ManagedAudioHandoffPlan,deadline:tokio::time::Instant,cancellation:CancellationToken,held:&(dyn Any+Send+Sync))->ControlResult<Self> {
++        use super::managed_cut::{try_arc,try_mutex};
++        let runtime=try_arc(&owner.participant_sessions,session)?.ok_or(ParticipantControlError::Authority)?;
++        let request=ParticipantHandoffScope {conversation:&runtime.conversation,session,principal:&principal,plan};
++        let control=runtime.policy.current_handoff_control(&request,held)?;
++        let guidance=control.current(&request)?;
++        check_handoff_authority(&runtime,&principal,plan,&guidance)?;
++        let deadline=principal_expiry(&principal).map_or(deadline.min(control.deadline),|expiry|deadline.min(control.deadline).min(tokio::time::Instant::now()+(expiry-Utc::now()).to_std().unwrap_or_default()));
++        if cancellation.is_cancelled(){return Err(ParticipantControlError::Cancelled);}
++        if tokio::time::Instant::now()>=deadline{return Err(ParticipantControlError::Deadline);}
++        let conversation=try_arc(&owner.conversations,&runtime.conversation)?.ok_or(ParticipantControlError::Authority)?;
++        let session_value=try_arc(&owner.sessions,session)?.ok_or(ParticipantControlError::Authority)?;
++        let ids=plan.media.outgoing_connections().into_iter().chain([plan.media.request().retained.clone(),plan.media.request().admitted.clone()]).collect::<std::collections::BTreeSet<_>>();
++        let state=try_mutex(&runtime.state)?;
++        if state.ended||state.controller.revision()!=plan.expected_revision{return Err(ParticipantTransitionError::Conflict.into());}
++        let lifecycles=ids.iter().map(|id|state.routes.get(id).map(|route|route.lifecycle.clone()).ok_or(ParticipantControlError::Authority)).collect::<ControlResult<Vec<_>>>()?;
++        drop(state);drop(control);
++        Ok(Self {owner:owner.clone(),runtime,plan:plan.clone(),principal,guidance,conversation,session:session_value,lifecycles,deadline,cancellation})
++    }
++    pub(crate) fn scene(&self)->ControlResult<Arc<crate::staged_streams::media_scene::GuardedMediaScene>> {self.runtime.mixer.staged.clone().ok_or(ParticipantControlError::Unsupported)}
++    pub(crate) fn audience(&self)->AudioAudiencePlan {self.plan.media.audience().clone()}
++    pub(crate) fn deadline(&self)->tokio::time::Instant {self.deadline}
++    pub(crate) fn cancellation(&self)->CancellationToken {self.cancellation.clone()}
++    pub(crate) fn stage_once(self)->ControlResult<PreparedHandoffCut> {
++        use super::managed_cut::{try_mutex,try_read};
++        if self.cancellation.is_cancelled(){return Err(ParticipantControlError::Cancelled);}
++        if tokio::time::Instant::now()>=self.deadline{return Err(ParticipantControlError::Deadline);}
++        let state=try_mutex(&self.runtime.state)?;let conversation=try_read(&self.conversation)?;let session=try_read(&self.session)?;
++        if state.ended||state.controller.revision()!=self.plan.expected_revision||conversation.state!=ConversationState::Open||matches!(session.state,SessionState::Ending|SessionState::Ended|SessionState::Failed){return Err(ParticipantTransitionError::Conflict.into());}
++        let outgoing=state.controller.connections(self.guidance.outgoing.participant()).into_iter().collect::<std::collections::BTreeSet<_>>();
++        if outgoing!=self.plan.media.outgoing_connections(){return Err(ParticipantTransitionError::Conflict.into());}
++        let request=self.plan.media.request();
++        for id in outgoing.iter().chain([&request.retained,&request.admitted]) {
++            if !session.connections.contains_key(id)||!state.routes.get(id).is_some_and(|route|self.lifecycles.iter().any(|ticket|ticket.connection_id==*id&&ticket.generation==route.lifecycle.generation&&Arc::ptr_eq(&ticket.state,&route.lifecycle.state))){return Err(StreamControlError::NotReady.into());}
++        }
++        let mutation=ParticipantHandoffMutation {operation_id:request.operation_id.clone(),correlation_id:self.plan.correlation_id.clone(),expected_revision:self.plan.expected_revision,outgoing:self.guidance.outgoing.participant().clone(),incoming:self.guidance.incoming.participant().clone(),retained:request.retained.clone(),admitted:request.admitted.clone(),incoming_role:self.plan.incoming_role.clone(),outgoing_disposition:match request.old_disposition {OldHandoffDisposition::Observer=>ParticipantHandoffDisposition::Observe,OldHandoffDisposition::Leave=>ParticipantHandoffDisposition::Leave}};
++        let model=state.controller.prepare_handoff(&self.guidance.actor,&self.guidance.outgoing,&self.guidance.incoming,mutation.clone())?;
++        let observation=model.observation();
++        let retiring=observation.retired.iter().map(|id|self.lifecycles.iter().find(|ticket|&ticket.connection_id==id).expect("captured outgoing lifecycle").clone()).collect();
++        let post=super::managed_cut::ManagedModelPostFacts {owner:Arc::downgrade(&self.owner),
++            #[cfg(feature="vcon")] records:Vec::new(),
++            retiring,events:vec![(self.runtime.events.clone(),ParticipantRuntimeEvent::HandoffCommitted(observation.clone()))]};
++        let removed_originals=Vec::with_capacity(observation.retired.len());
++        drop(session);drop(conversation);drop(state);
++        Ok(PreparedHandoffCut {owner:self.owner,runtime:self.runtime,plan:self.plan,principal:self.principal,mutation,conversation:self.conversation,session:self.session,lifecycles:self.lifecycles,deadline:self.deadline,cancellation:self.cancellation,model:Some(model),post:Some(post.prebuild()),model_committed:false,removed_originals})
++    }
++}
++
++
++pub(crate) struct PreparedHandoffGuard<'a,'b,'c> {
++    owner: &'a Arc<Orchestrator>,
++    runtime: &'a Arc<ManagedParticipantSession>,
++    plan: &'a ManagedAudioHandoffPlan,
++    principal: &'a AuthenticatedPrincipal,
++    original_lifecycles: &'a [ConnectionLifecycleTicket],
++    deadline: tokio::time::Instant,
++    cancellation: &'a CancellationToken,
++    grant: &'b super::FinalControlGrant<'c>,
++    model: &'a mut Option<PreparedParticipantHandoff>,
++    post: &'a mut Option<Box<super::ManagedCutPostPublication>>,
++    model_committed: &'a mut bool,
++    removed_originals: &'a mut Vec<LiveRoute>,
++    retiring_indices: Vec<(ConnectionId,usize)>,
++    _mixer: tokio::sync::MutexGuard<'a,HashMap<ConnectionId,ConferenceMember>>,
++    state: std::sync::MutexGuard<'a,ManagedState>,
++    _registry: std::sync::MutexGuard<'a,()>,
++    lifecycles: Vec<std::sync::MutexGuard<'a,ConnectionLifecycleState>>,
++    conversation: std::sync::RwLockWriteGuard<'a,Conversation>,
++    session: std::sync::RwLockWriteGuard<'a,Session>,
++    index: Option<crate::orchestrator::dtmf_routing::BindingCommit<'a>>,
++}
++impl PreparedHandoffCut {
++    pub(crate) fn scene(&self)->ControlResult<Arc<crate::staged_streams::media_scene::GuardedMediaScene>> {self.runtime.mixer.staged.clone().ok_or(ParticipantControlError::Unsupported)}
++    pub(crate) fn deadline(&self)->tokio::time::Instant {self.deadline}
++    pub(crate) fn cancellation(&self)->&CancellationToken {&self.cancellation}
++    pub(crate) fn record(&self)->&str {&self.plan.media.request().operation_id}
++    pub(crate) fn owner(&self)->&Arc<Orchestrator> {&self.owner}
++    pub(crate) fn try_guard<'a,'b,'c>(&'a mut self,grant:&'b super::FinalControlGrant<'c>)->std::result::Result<PreparedHandoffGuard<'a,'b,'c>,StreamControlError> {
++        use super::managed_cut::{try_mutex,try_write,try_lifecycles};
++        use crate::orchestrator::dtmf_routing::BindingChange;
++        let Self {owner,runtime,plan,principal,mutation,conversation,session,lifecycles:original_lifecycles,deadline,cancellation,model,post,model_committed,removed_originals}=self;
++        let request=ParticipantHandoffScope {conversation:&runtime.conversation,session:&runtime.session,principal,plan};
++        let super::FinalControlGrant::Handoff {authority,current,..}=grant else {return Err(StreamControlError::Authority);};
++        if cancellation.is_cancelled()||grant.cancellation().is_cancelled(){return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=(*deadline).min(grant.deadline()){return Err(StreamControlError::Deadline);}
++        if !current.is_current(&request,grant.attempt()){return Err(StreamControlError::Authority);}
++        check_handoff_authority(runtime,principal,plan,authority)?;
++        let mixer=runtime.mixer.members.try_lock().map_err(|_|StreamControlError::MetadataBusy)?;
++        let state=try_mutex(&runtime.state)?;
++        let registry=try_mutex(&owner.connection_registry_lock)?;
++        let lifecycles=try_lifecycles(owner,original_lifecycles,&registry)?;
++        let conversation=try_write(conversation)?;
++        let session=try_write(session)?;
++        if state.ended||state.controller.revision()!=plan.expected_revision||conversation.state!=ConversationState::Open||matches!(session.state,SessionState::Ending|SessionState::Ended|SessionState::Failed){return Err(crate::stream_lifecycle::MediaTransitionError::Conflict.into());}
++        let outgoing=state.controller.connections(authority.outgoing.participant()).into_iter().collect::<std::collections::BTreeSet<_>>();
++        if outgoing!=plan.media.outgoing_connections(){return Err(crate::stream_lifecycle::MediaTransitionError::Conflict.into());}
++        for id in outgoing.iter().chain([&plan.media.request().retained,&plan.media.request().admitted]) {
++            if !session.connections.contains_key(id)||!state.routes.get(id).is_some_and(|route|original_lifecycles.iter().any(|ticket|ticket.connection_id==*id&&ticket.generation==route.lifecycle.generation&&Arc::ptr_eq(&ticket.state,&route.lifecycle.state))){return Err(StreamControlError::NotReady);}
++        }
++        state.controller.validate_prepared_handoff(&authority.actor,&authority.outgoing,&authority.incoming,mutation,model.as_ref().ok_or(StreamControlError::Authority)?).map_err(|error|media_error(error.into()))?;
++        // Observe has no retired index key. Leave removes exactly the original
++        // model observation's keys; sorted unique shards are acquired once.
++        if *model_committed||model.is_none()||post.is_none()||!removed_originals.is_empty(){return Err(StreamControlError::Authority);}
++        let retiring_indices=model.as_ref().expect("validated original model token").observation().retired.iter().map(|id|Ok((id.clone(),original_lifecycles.iter().position(|ticket|ticket.connection_id==*id).ok_or(StreamControlError::Authority)?))).collect::<std::result::Result<Vec<_>,StreamControlError>>()?;
++        let changes=model.as_ref().expect("validated original model token").observation().retired.iter().map(|id|BindingChange{connection:id.clone(),before:Some(runtime.session.clone()),after:None}).collect::<Vec<_>>();
++        let index=owner.sessions_by_connection.try_compound_change(&changes)?;
++        if cancellation.is_cancelled()||grant.cancellation().is_cancelled(){return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=(*deadline).min(grant.deadline()){return Err(StreamControlError::Deadline);}
++        if !current.is_current(&request,grant.attempt()){return Err(StreamControlError::Authority);}
++        Ok(PreparedHandoffGuard {owner,runtime,plan,principal,original_lifecycles,deadline:*deadline,cancellation,grant,model,post,model_committed,removed_originals,retiring_indices,_mixer:mixer,state,_registry:registry,lifecycles,conversation,session,index:Some(index)})
++    }
++}
++impl super::ManagedAudiencePublication for PreparedHandoffGuard<'_, '_, '_> {
++    fn tickets(&self)->Vec<rvoip_core_traits::peer_switch::PeerRouteTicket> {
++        // Observe changes the original outgoing role too: its existing
++        // publication deliveries join the same final drain even though only
++        // Leave retires those original route tickets.
++        self.plan.media.outgoing_connections().iter().filter_map(|id|self.state.routes.get(id).map(|route|route.publication.ticket())).collect()
++    }
++    fn quiescence_tickets(&self)->Vec<rvoip_core_traits::peer_switch::PeerRouteTicket> {self.tickets()}
++    fn model_committed(&self)->bool {*self.model_committed}
++    fn empty_post(&mut self)->super::ManagedCutPostPublication {
++        if *self.model_committed{return *self.post.take().expect("actual handoff commit retained its prebuilt post");}
++        super::ManagedCutPostPublication {cleanup:None,owner:Arc::downgrade(self.owner),
++            #[cfg(feature="vcon")] records:Vec::new(),
++            retiring:Vec::new(),events:Vec::new(),model_cleanup:None,audience:None}
++    }
++    fn check(&self,plan:&AudioAudiencePlan,routes:&rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>)->std::result::Result<(),StreamControlError> {
++        if !self.plan.media.audience().same_intent(plan){return Err(StreamControlError::Authority);}
++        if self.cancellation.is_cancelled()||self.grant.cancellation().is_cancelled(){return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=self.deadline.min(self.grant.deadline()){return Err(StreamControlError::Deadline);}
++        let request=ParticipantHandoffScope {conversation:&self.runtime.conversation,session:&self.runtime.session,principal:self.principal,plan:self.plan};
++        let super::FinalControlGrant::Handoff {authority,current,..}=self.grant else {return Err(StreamControlError::Authority);};
++        if !current.is_current(&request,self.grant.attempt()){return Err(StreamControlError::Authority);}
++        check_handoff_authority(self.runtime,self.principal,self.plan,authority)?;
++        for ticket in self.tickets() {if !routes.is_current(&ticket){return Err(StreamControlError::NotReady);}}
++        Ok(())
++    }
++    fn commit(&mut self,routes:&mut rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>)->(super::replacement::ManagedAudienceObservation,super::ManagedCutPostPublication) {
++        let observation=self.state.controller.commit_handoff(self.model.take().expect("same one-shot prepared handoff model"));
++        *self.model_committed=true;
++        self.index.take().expect("preflighted original index guards").commit();
++        for (id,index) in &self.retiring_indices {
++            self.session.connections.remove(id);
++            self.removed_originals.push(self.state.routes.remove(id).expect("validated retiring original route"));
++            self.removed_originals.last_mut().expect("outer-owned removed route").publication.retire_held(routes);
++            let state=&mut self.lifecycles[*index];state.active=false;state.retired=true;
++            if let Some(permit)=&state.peer_admission{permit.retire_delivery();}
++            state.generation=state.generation.saturating_add(1);
++        }
++        if observation.outgoing_role.is_none(){
++            self.session.participants.remove(&observation.outgoing);
++            for pending in self.state.pending.values().filter(|pending|pending.participant==observation.outgoing){pending.cancellation.cancel();}
++        }
++        self.conversation.last_activity_at=Utc::now();
++        let post=*self.post.take().expect("actual same handoff model post");
++        (super::replacement::ManagedAudienceObservation {handoff:Some(observation),replacement:None},post)
++    }
++}
++
++impl PreparedHandoffCut {
++    pub(crate) fn map_published(&self,outcome:crate::staged_streams::audience::AudioAudienceOutcome,handle:crate::staged_streams::audience::AudioAudienceHandle)->super::managed_cut::ManagedPublishedValue {
++        let (outcome,handle)=self.plan.media.finish_managed_audience(outcome,handle);
++        super::managed_cut::ManagedPublishedValue::Handoff(outcome,handle)
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/managed_cut.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/managed_cut.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/managed_cut.rs
+@@ -0,0 +1,601 @@
++//! Linear managed publication: grant-free preparation and one borrowed final turn.
++//!
++//! The public types below are the agreed Service/Core boundary. Implementations
++//! must never put an invocation, authority lease or paused delivery guard in the
++//! two opaque preparation objects.
++use super::*;
++use crate::staged_streams::{MediaControlIntent, MediaScope, MediaSource, MediaParticipantSource, StreamControlError, StreamController};
++use crate::staged_streams::device_replacement::{AudioDeviceReplacementHandle, AudioDeviceReplacementOutcome};
++use crate::staged_streams::handoff::{AudioHandoffHandle, AudioHandoffOutcome};
++
++/// Currentness of the exact purpose-specific final read, not cached role facts.
++/// Every method must be a pure atomic/expiry/scope check. They must not enter the
++/// Store, invoke policy, acquire a media mutex or wait for an authority fence.
++/// There is deliberately no default implementation or optional witness. This
++/// synchronous borrow has no Send/Sync requirement; a real non-Send SIP route
++/// guard stays in its lexical final block and must be dropped before any await.
++pub trait ReplacementFinalCurrent {
++    fn is_current(&self, scope: &ParticipantReplacementScope<'_>, attempt: ManagedAttemptBinding<'_>) -> bool;
++    fn media_is_current(&self, controller: &Arc<StreamController>, scope: &MediaScope<'_>, intent: &MediaControlIntent<'_>, attempt: ManagedAttemptBinding<'_>) -> bool;
++    fn source_is_current(&self, controller: &Arc<StreamController>, source: &MediaSource, intent: &MediaControlIntent<'_>, attempt: ManagedAttemptBinding<'_>) -> bool;
++    fn participant_source_is_current(&self, controller: &Arc<StreamController>, source: &MediaParticipantSource, intent: &MediaControlIntent<'_>, attempt: ManagedAttemptBinding<'_>) -> bool;
++}
++
++/// Handoff counterpart of the exact final-read witness, with the same purity
++/// and ownership requirements. A replacement witness cannot authorize Handoff.
++pub trait HandoffFinalCurrent {
++    fn is_current(&self, scope: &ParticipantHandoffScope<'_>, attempt: ManagedAttemptBinding<'_>) -> bool;
++    fn media_is_current(&self, controller: &Arc<StreamController>, scope: &MediaScope<'_>, intent: &MediaControlIntent<'_>, attempt: ManagedAttemptBinding<'_>) -> bool;
++    fn source_is_current(&self, controller: &Arc<StreamController>, source: &MediaSource, intent: &MediaControlIntent<'_>, attempt: ManagedAttemptBinding<'_>) -> bool;
++    fn participant_source_is_current(&self, controller: &Arc<StreamController>, source: &MediaParticipantSource, intent: &MediaControlIntent<'_>, attempt: ManagedAttemptBinding<'_>) -> bool;
++}
++
++/// Exact durable attempt metadata. It is not authority and cannot by itself
++/// reconstruct a prepared cut or authorize re-admission.
++#[derive(Clone, Copy)]
++pub struct ManagedAttemptBinding<'a> {
++    pub record: &'a str,
++    pub attempt_id: &'a str,
++    pub effect_id: &'a str,
++}
++#[derive(PartialEq, Eq)]
++pub(crate) struct BoundManagedAttempt {
++    record: String,
++    attempt_id: String,
++    effect_id: String,
++}
++impl BoundManagedAttempt {
++    fn capture(value: ManagedAttemptBinding<'_>) -> Self {
++        Self { record: value.record.to_owned(), attempt_id: value.attempt_id.to_owned(), effect_id: value.effect_id.to_owned() }
++    }
++    fn matches(&self, value: ManagedAttemptBinding<'_>) -> bool {
++        self.record == value.record && self.attempt_id == value.attempt_id && self.effect_id == value.effect_id
++    }
++}
++
++/// Borrowed for precisely one synchronous final attempt. The caller owns the
++/// actual current purpose Writer and every alias of `held` outside this value.
++/// Core may derive temporary owner/receive tuples before acquiring its gates;
++/// none of those leases may escape that attempt or enter a prepared object.
++/// The supported caller also retains its exact grant-free per-turn controller
++/// resource bank OUTSIDE the Writer/final frame: every CONTROL and selected
++/// receive-source Arc is owned before this read and released only after all
++/// read/role/SIP aliases, before any Busy wait. This prevents temporary final
++/// metadata from being a last resource owner; external Weak sources are never
++/// permanently pinned by cold preparation.
++pub enum FinalControlGrant<'a> {
++    Replacement {
++        authority: &'a ParticipantReplacementAuthority,
++        attempt: ManagedAttemptBinding<'a>,
++        held: &'a (dyn Any + Send + Sync),
++        current: &'a dyn ReplacementFinalCurrent,
++        cancellation: &'a CancellationToken,
++        deadline: tokio::time::Instant,
++    },
++    Handoff {
++        authority: &'a ParticipantHandoffAuthority,
++        attempt: ManagedAttemptBinding<'a>,
++        held: &'a (dyn Any + Send + Sync),
++        current: &'a dyn HandoffFinalCurrent,
++        cancellation: &'a CancellationToken,
++        deadline: tokio::time::Instant,
++    },
++}
++impl FinalControlGrant<'_> {
++    pub(crate) fn attempt(&self) -> ManagedAttemptBinding<'_> {
++        match self { Self::Replacement { attempt, .. } | Self::Handoff { attempt, .. } => *attempt }
++    }
++    pub(crate) fn held(&self) -> &(dyn Any + Send + Sync) {
++        match self { Self::Replacement { held, .. } | Self::Handoff { held, .. } => *held }
++    }
++    pub(crate) fn deadline(&self) -> tokio::time::Instant {
++        match self { Self::Replacement { deadline, .. } | Self::Handoff { deadline, .. } => *deadline }
++    }
++    pub(crate) fn cancellation(&self) -> &CancellationToken {
++        match self { Self::Replacement { cancellation, .. } | Self::Handoff { cancellation, .. } => cancellation }
++    }
++    pub(crate) fn check_media_current(&self, controller: &Arc<StreamController>, scope: &MediaScope<'_>, intent: &MediaControlIntent<'_>) -> std::result::Result<(), StreamControlError> {
++        if self.cancellation().is_cancelled() { return Err(StreamControlError::Cancelled); }
++        if tokio::time::Instant::now() >= self.deadline() { return Err(StreamControlError::Deadline); }
++        let current = match self {
++            Self::Replacement { current, .. } => current.media_is_current(controller, scope, intent, self.attempt()),
++            Self::Handoff { current, .. } => current.media_is_current(controller, scope, intent, self.attempt()),
++        };
++        if current { Ok(()) } else { Err(StreamControlError::Authority) }
++    }
++    pub(crate) fn check_source_current(&self, controller: &Arc<StreamController>, source: &MediaSource, intent: &MediaControlIntent<'_>) -> std::result::Result<(), StreamControlError> {
++        if self.cancellation().is_cancelled() { return Err(StreamControlError::Cancelled); }
++        if tokio::time::Instant::now() >= self.deadline() { return Err(StreamControlError::Deadline); }
++        let current = match self {
++            Self::Replacement { current, .. } => current.source_is_current(controller, source, intent, self.attempt()),
++            Self::Handoff { current, .. } => current.source_is_current(controller, source, intent, self.attempt()),
++        };
++        if current { Ok(()) } else { Err(StreamControlError::Authority) }
++    }
++    pub(crate) fn check_participant_source_current(&self, controller: &Arc<StreamController>, source: &MediaParticipantSource, intent: &MediaControlIntent<'_>) -> std::result::Result<(), StreamControlError> {
++        if self.cancellation().is_cancelled() { return Err(StreamControlError::Cancelled); }
++        if tokio::time::Instant::now() >= self.deadline() { return Err(StreamControlError::Deadline); }
++        let current = match self {
++            Self::Replacement { current, .. } => current.participant_source_is_current(controller, source, intent, self.attempt()),
++            Self::Handoff { current, .. } => current.participant_source_is_current(controller, source, intent, self.attempt()),
++        };
++        if current { Ok(()) } else { Err(StreamControlError::Authority) }
++    }
++}
++
++/// Exact try-captured resource requirements for one future final turn. These
++/// facts are not authority; each fresh final read and pure scope witness must
++/// still validate the requested branch and exact controller incarnation.
++pub struct ManagedCutResourceRequirements {
++    pub controls: Vec<(ConnectionId, Arc<StreamController>, Vec<crate::stream_lifecycle::ReadyMediaBinding>)>,
++    pub sources: Vec<ManagedReceiveResourceRequirement>,
++}
++pub enum ManagedReceiveResourceRequirement {
++    Concrete { connection: ConnectionId, controller: Arc<StreamController>, binding: crate::stream_lifecycle::ReadyMediaBinding },
++    Participant { connection: ConnectionId, controller: Arc<StreamController> },
++}
++
++/// Exact once-captured metadata/model token plus private audience facts. No
++/// authority reader, callback owning one, or NEW delivery pause is retained
++/// here. The original plan may retain its separately authorized recorded F.
++#[must_use]
++pub struct ManagedCutPreparationFacts {
++    pub(crate) model: PreparedManagedModel,
++    pub(crate) audience: crate::staged_streams::audience::AudiencePreparationFacts,
++}
++
++/// Same one-shot model token and completed cold audience preparation. This is
++/// intentionally neither Clone nor constructible by an external caller.
++#[must_use]
++pub struct PreparedManagedCut {
++    cleanup: ManagedCleanupReservation,
++    pub(crate) bound_attempt: Option<BoundManagedAttempt>,
++    pub(crate) model: PreparedManagedModel,
++    pub(crate) audience: crate::staged_streams::audience::PreparedAudienceCut,
++}
++
++impl PreparedManagedCut {
++    pub fn try_final_resource_requirements(&self) -> std::result::Result<ManagedCutResourceRequirements,StreamControlError> {
++        self.audience.try_final_resource_requirements()
++    }
++    /// Exact metadata-only bank requested by the private final audience turn.
++    /// This neither checks nor confers permission or a physical resource grant.
++    pub fn final_media_connections(&self) -> Vec<ConnectionId> {
++        self.audience.final_media_connections()
++    }
++    /// Exact receive-source incarnations, including supported sources outside
++    /// the scene and future participant intent with no current stream. No
++    /// additional CONTROL query or negotiated-stream requirement is implied.
++    pub fn final_receive_source_controllers(&self) -> std::result::Result<Vec<Arc<StreamController>>, StreamControlError> {
++        self.audience.final_receive_source_controllers()
++    }
++    // Called before any final guard acquisition/publication, after exact role
++    // and media grant scope validation. A returned linear retry keeps the SAME
++    // binding; a foreign later final grant cannot reuse this prepared token.
++    pub(crate) fn bind_attempt(&mut self, attempt: ManagedAttemptBinding<'_>, expected_record: &str) -> std::result::Result<(), StreamControlError> {
++        if attempt.record != expected_record || attempt.attempt_id.is_empty() || attempt.effect_id.is_empty() {
++            return Err(StreamControlError::Authority);
++        }
++        if let Some(original) = &self.bound_attempt {
++            if !original.matches(attempt) { return Err(StreamControlError::Authority); }
++        } else { self.bound_attempt = Some(BoundManagedAttempt::capture(attempt)); }
++        Ok(())
++    }
++}
++
++pub(crate) enum PreparedManagedModel {
++    Replacement(replacement::PreparedReplacementCut),
++    Handoff(handoff::PreparedHandoffCut),
++}
++
++/// Only the pre-publication complete guard-acquisition path can construct this
++/// linear return. Calling a publish method, even one returning an error, makes
++/// this return unavailable. A public error code alone cannot recreate it.
++#[must_use]
++pub struct StillUnpublishedManagedCut {
++    pub(crate) prepared: PreparedManagedCut,
++    pub(crate) reason: StreamControlError,
++}
++impl StillUnpublishedManagedCut {
++    pub fn into_prepared(self) -> PreparedManagedCut { self.prepared }
++    pub fn reason(&self) -> &StreamControlError { &self.reason }
++}
++
++/// Captured true post-publication work only. No current authority or NEW final
++/// pause may enter this object. An original recorded-F owner can remain in its
++/// original plan until committed cleanup, with its original cutoff unchanged.
++/// Service consumes this obligation only AFTER every
++/// final-grant/reader/control/role alias has dropped, even on EffectPossible.
++#[must_use]
++pub struct ManagedCutPostPublication {
++    pub(super) cleanup: Option<ManagedCleanupReservation>,
++    pub(crate) owner: Weak<Orchestrator>,
++    #[cfg(feature = "vcon")]
++    pub(crate) records: Vec<(SessionId, crate::records::RecordConnectionFact)>,
++    pub(crate) retiring: Vec<ConnectionLifecycleTicket>,
++    pub(crate) model_cleanup: Option<PreparedManagedModel>,
++    pub(crate) events: Vec<(broadcast::Sender<ParticipantRuntimeEvent>, ParticipantRuntimeEvent)>,
++    pub(crate) audience: Option<crate::staged_streams::audience::AudiencePostPublication>,
++}
++
++/// Cold templates are not observed facts until the actual model commit takes
++/// this value and stamps the cut. Keeping them separate avoids a recursive
++/// Prepared -> Post -> Prepared ownership graph and cannot fabricate a record.
++pub(super) struct ManagedModelPostFacts {
++    pub(super) owner: Weak<Orchestrator>,
++    #[cfg(feature = "vcon")]
++    pub(super) records: Vec<(SessionId, crate::records::RecordConnectionFact)>,
++    pub(super) retiring: Vec<ConnectionLifecycleTicket>,
++    pub(super) events: Vec<(broadcast::Sender<ParticipantRuntimeEvent>, ParticipantRuntimeEvent)>,
++}
++impl ManagedModelPostFacts {
++    pub(super) fn prebuild(self) -> Box<ManagedCutPostPublication> {
++        // Allocated cold; these are not observed facts until the exact model
++        // commit marks this SAME retained obligation under its final guards.
++        Box::new(ManagedCutPostPublication { cleanup:None, owner:self.owner,
++            #[cfg(feature = "vcon")] records:self.records,
++            retiring:self.retiring, events:self.events, model_cleanup:None, audience:None })
++    }
++}
++
++pub enum ManagedCutPublished {
++    Replacement { outcome: AudioDeviceReplacementOutcome, handle: AudioDeviceReplacementHandle, post: ManagedCutPostPublication },
++    Handoff { outcome: AudioHandoffOutcome, handle: AudioHandoffHandle, post: ManagedCutPostPublication },
++}
++
++/// Service retains the SAME durable started attempt for every branch. Only
++/// StillUnpublished returns a token that permits another Core final turn.
++/// Refused and EffectPossible consume it; neither is a NotSubmitted receipt.
++#[must_use]
++pub enum ManagedCutAttempt {
++    StillUnpublished(StillUnpublishedManagedCut),
++    Published(ManagedCutPublished),
++    Refused { error: ParticipantControlError, post: ManagedCutPostPublication },
++    EffectPossible { error: ParticipantControlError, post: ManagedCutPostPublication },
++}
++
++
++/// Typed mode selected only after original role-plan scope validation. This is
++/// preparation metadata, not permission or a generic caller-supplied boolean.
++pub(crate) enum ManagedCutKind { Replacement, Handoff }
++
++/// The audience backend derives ALL final reads before this model guard is
++/// acquired. It then combines these exact model/publication tickets with its
++/// own complete guard set. No policy or ordinary ticket lookup is allowed in
++/// check/commit; the final grant witness is pure and already purpose-scoped.
++pub(crate) trait ManagedAudiencePublication {
++    fn tickets(&self) -> Vec<rvoip_core_traits::peer_switch::PeerRouteTicket>;
++    /// Only ORIGINAL published model routes, never cold successor tickets.
++    fn quiescence_tickets(&self) -> Vec<rvoip_core_traits::peer_switch::PeerRouteTicket>;
++    fn empty_post(&mut self) -> ManagedCutPostPublication;
++    fn model_committed(&self) -> bool;
++    fn check(&self, plan: &crate::staged_streams::audience::AudioAudiencePlan, routes: &rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>) -> std::result::Result<(), StreamControlError>;
++    fn commit(&mut self, routes: &mut rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>) -> (replacement::ManagedAudienceObservation, ManagedCutPostPublication);
++}
++
++pub(super) fn try_mutex<T>(mutex: &Mutex<T>) -> std::result::Result<std::sync::MutexGuard<'_, T>, StreamControlError> {
++    match mutex.try_lock() {
++        Ok(value) => Ok(value),
++        Err(std::sync::TryLockError::Poisoned(error)) => Ok(error.into_inner()),
++        Err(std::sync::TryLockError::WouldBlock) => Err(StreamControlError::MetadataBusy),
++    }
++}
++pub(super) fn try_write<T>(lock: &RwLock<T>) -> std::result::Result<std::sync::RwLockWriteGuard<'_, T>, StreamControlError> {
++    match lock.try_write() {
++        Ok(value) => Ok(value),
++        Err(std::sync::TryLockError::Poisoned(error)) => Ok(error.into_inner()),
++        Err(std::sync::TryLockError::WouldBlock) => Err(StreamControlError::MetadataBusy),
++    }
++}
++pub(super) fn try_arc<K: Eq + std::hash::Hash, T>(map: &dashmap::DashMap<K, Arc<T>>, key: &K) -> std::result::Result<Option<Arc<T>>, StreamControlError> {
++    match map.try_get(key) {
++        dashmap::try_result::TryResult::Present(value) => Ok(Some(Arc::clone(value.value()))),
++        dashmap::try_result::TryResult::Absent => Ok(None),
++        dashmap::try_result::TryResult::Locked => Err(StreamControlError::MetadataBusy),
++    }
++}
++
++
++pub(super) fn try_lifecycles<'a>(
++    owner: &Orchestrator,
++    tickets: &'a [ConnectionLifecycleTicket],
++    _registry: &std::sync::MutexGuard<'_, ()>,
++) -> std::result::Result<Vec<std::sync::MutexGuard<'a, ConnectionLifecycleState>>, StreamControlError> {
++    let mut states = Vec::with_capacity(tickets.len());
++    for ticket in tickets { states.push(try_mutex(&ticket.state)?); }
++    for (ticket, state) in tickets.iter().zip(&states) {
++        if !state.active || state.retired || state.generation != ticket.generation
++            || state.peer_admission.as_ref().is_some_and(|permit| permit.peer.is_closed())
++        { return Err(StreamControlError::Cancelled); }
++        match owner.connection_lifecycles.try_get(&ticket.connection_id) {
++            dashmap::try_result::TryResult::Present(actual) if Arc::ptr_eq(actual.value(), &ticket.state) => {},
++            dashmap::try_result::TryResult::Locked => return Err(StreamControlError::MetadataBusy),
++            _ => return Err(StreamControlError::NotReady),
++        }
++        match owner.connections.try_get(&ticket.connection_id) {
++            dashmap::try_result::TryResult::Present(actual) if actual.inbound_publication == InboundPublicationState::Published => {},
++            dashmap::try_result::TryResult::Locked => return Err(StreamControlError::MetadataBusy),
++            _ => return Err(StreamControlError::NotReady),
++        }
++    }
++    Ok(states)
++}
++
++pub(super) fn try_read<T>(lock: &RwLock<T>) -> std::result::Result<std::sync::RwLockReadGuard<'_, T>, StreamControlError> {
++    match lock.try_read() {
++        Ok(value) => Ok(value),
++        Err(std::sync::TryLockError::Poisoned(error)) => Ok(error.into_inner()),
++        Err(std::sync::TryLockError::WouldBlock) => Err(StreamControlError::MetadataBusy),
++    }
++}
++
++
++impl PreparedManagedModel {
++    fn scene(&self)->ControlResult<Arc<crate::staged_streams::media_scene::GuardedMediaScene>> {
++        match self {Self::Replacement(model)=>model.scene(),Self::Handoff(model)=>model.scene()}
++    }
++    fn owner(&self)->&Arc<Orchestrator> {match self {Self::Replacement(model)=>model.owner(),Self::Handoff(model)=>model.owner()}}
++    fn record(&self)->&str {match self {Self::Replacement(model)=>model.record(),Self::Handoff(model)=>model.record()}}
++    fn try_guard<'a,'b,'c>(&'a mut self,grant:&'b FinalControlGrant<'c>)->std::result::Result<ManagedModelGuard<'a,'b,'c>,StreamControlError> {
++        match self {Self::Replacement(model)=>model.try_guard(grant).map(ManagedModelGuard::Replacement),Self::Handoff(model)=>model.try_guard(grant).map(ManagedModelGuard::Handoff)}
++    }
++}
++enum ManagedModelGuard<'a,'b,'c> {
++    Replacement(replacement::PreparedReplacementGuard<'a,'b,'c>),
++    Handoff(handoff::PreparedHandoffGuard<'a,'b,'c>),
++}
++impl ManagedAudiencePublication for ManagedModelGuard<'_, '_, '_> {
++    fn tickets(&self)->Vec<rvoip_core_traits::peer_switch::PeerRouteTicket> {match self {Self::Replacement(g)=>g.tickets(),Self::Handoff(g)=>g.tickets()}}
++    fn quiescence_tickets(&self)->Vec<rvoip_core_traits::peer_switch::PeerRouteTicket> {match self {Self::Replacement(g)=>g.quiescence_tickets(),Self::Handoff(g)=>g.quiescence_tickets()}}
++    fn empty_post(&mut self)->ManagedCutPostPublication {match self {Self::Replacement(g)=>g.empty_post(),Self::Handoff(g)=>g.empty_post()}}
++    fn model_committed(&self)->bool {match self {Self::Replacement(g)=>g.model_committed(),Self::Handoff(g)=>g.model_committed()}}
++    fn check(&self,plan:&crate::staged_streams::audience::AudioAudiencePlan,routes:&rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>)->std::result::Result<(),StreamControlError> {match self {Self::Replacement(g)=>g.check(plan,routes),Self::Handoff(g)=>g.check(plan,routes)}}
++    fn commit(&mut self,routes:&mut rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>)->(replacement::ManagedAudienceObservation,ManagedCutPostPublication) {match self {Self::Replacement(g)=>g.commit(routes),Self::Handoff(g)=>g.commit(routes)}}
++}
++impl ManagedCutPostPublication {
++    fn refused(model:PreparedManagedModel,audience:crate::staged_streams::audience::PreparedAudienceCut,cleanup:ManagedCleanupReservation)->Self {
++        Self {cleanup:Some(cleanup),owner:Arc::downgrade(model.owner()),
++            #[cfg(feature="vcon")] records:Vec::new(),
++            retiring:Vec::new(),events:Vec::new(),model_cleanup:Some(model),audience:Some(audience.refusal_cleanup())}
++    }
++}
++fn retryable_metadata(error:&StreamControlError)->bool {matches!(error,StreamControlError::MetadataBusy|StreamControlError::Backpressure)}
++
++impl Orchestrator {
++    pub fn capture_staged_replacement_cut_facts(self:&Arc<Self>,plan:&ManagedAudioDeviceReplacementPlan,deadline:tokio::time::Instant,cancel:CancellationToken,held:&(dyn Any+Send+Sync))->ControlResult<ManagedCutPreparationFacts> {
++        let seed=replacement::ReplacementCutSeed::capture(self,plan,deadline,cancel,held)?;
++        let scene=seed.scene()?;
++        let audience=scene.capture_audience_cut_facts(seed.audience(),seed.deadline(),seed.cancellation(),held)?;
++        // Stage exactly once, only after the complete metadata capture. No
++        // authority lease is moved into either result object.
++        let model=PreparedManagedModel::Replacement(seed.stage_once()?);
++        Ok(ManagedCutPreparationFacts {model,audience})
++    }
++    pub fn capture_staged_handoff_cut_facts(self:&Arc<Self>,session:&SessionId,principal:AuthenticatedPrincipal,plan:&ManagedAudioHandoffPlan,deadline:tokio::time::Instant,cancel:CancellationToken,held:&(dyn Any+Send+Sync))->ControlResult<ManagedCutPreparationFacts> {
++        let seed=handoff::HandoffCutSeed::capture(self,session,principal,plan,deadline,cancel,held)?;
++        let scene=seed.scene()?;
++        let audience=scene.capture_audience_cut_facts(seed.audience(),seed.deadline(),seed.cancellation(),held)?;
++        let model=PreparedManagedModel::Handoff(seed.stage_once()?);
++        Ok(ManagedCutPreparationFacts {model,audience})
++    }
++    /// Called only after the caller drops EVERY planning-read alias. Cold
++    /// transport/codec reservations retain the same model token without a
++    /// purpose Writer or a delivery pause across their awaits.
++    pub async fn prepare_staged_managed_cut(self:&Arc<Self>,facts:ManagedCutPreparationFacts)->ControlResult<PreparedManagedCut> {
++        let ManagedCutPreparationFacts {model,audience}=facts;
++        if !Arc::ptr_eq(self,model.owner()){return Err(ParticipantControlError::Authority);}
++        let scene=model.scene()?;
++        // Reserve original terminal custody BEFORE any final publication.
++        // The cold worker owns no Core/grant/resources while waiting.
++        let cleanup=self.reserve_managed_cut_cleanup()?;
++        let audience=scene.prepare_audience_cut(audience).await?;
++        Ok(PreparedManagedCut {cleanup,bound_attempt:None,model,audience})
++    }
++    /// One synchronous final turn. StillUnpublished is the only reusable
++    /// result and owns the SAME model/adoption/attempt token. All local final
++    /// controls and all Core guards drop before it can reach a caller await.
++    pub fn try_commit_prepared_managed_cut(self:&Arc<Self>,mut prepared:PreparedManagedCut,grant:FinalControlGrant<'_>)->ManagedCutAttempt {
++        let record=prepared.model.record().to_owned();
++        let identity=Arc::ptr_eq(self,prepared.model.owner());
++        let scene=prepared.model.scene();
++        let same_purpose=matches!((&prepared.model,&grant),(PreparedManagedModel::Replacement(_),FinalControlGrant::Replacement{..})|(PreparedManagedModel::Handoff(_),FinalControlGrant::Handoff{..}));
++        let precheck=if !identity||!same_purpose {Err(StreamControlError::Authority)} else if grant.cancellation().is_cancelled(){Err(StreamControlError::Cancelled)} else if tokio::time::Instant::now()>=grant.deadline(){Err(StreamControlError::Deadline)} else {prepared.bind_attempt(grant.attempt(),&record)};
++        let scene=match (precheck,scene) {
++            (Ok(()),Ok(scene))=>scene,
++            (Err(error),_)=>return ManagedCutAttempt::Refused {error:error.into(),post:ManagedCutPostPublication::refused(prepared.model,prepared.audience,prepared.cleanup)},
++            (_,Err(error))=>return ManagedCutAttempt::Refused {error,post:ManagedCutPostPublication::refused(prepared.model,prepared.audience,prepared.cleanup)},
++        };
++        if prepared.cleanup.sender.is_closed(){return ManagedCutAttempt::Refused {error:StreamControlError::CleanupUnconfirmed.into(),post:ManagedCutPostPublication::refused(prepared.model,prepared.audience,prepared.cleanup)};}
++        let turn=match std::panic::catch_unwind(std::panic::AssertUnwindSafe(||scene.begin_audience_final_turn(&prepared.audience,&grant))) {
++            Ok(Ok(turn))=>turn,
++            Ok(Err(reason)) if retryable_metadata(&reason)=>return ManagedCutAttempt::StillUnpublished(StillUnpublishedManagedCut {prepared,reason}),
++            Ok(Err(error))=>return ManagedCutAttempt::Refused {error:error.into(),post:ManagedCutPostPublication::refused(prepared.model,prepared.audience,prepared.cleanup)},
++            Err(_)=>return ManagedCutAttempt::Refused {error:StreamControlError::CleanupUnconfirmed.into(),post:ManagedCutPostPublication::refused(prepared.model,prepared.audience,prepared.cleanup)},
++        };
++        let PreparedManagedCut {cleanup,bound_attempt,mut model,audience}=prepared;
++        let attempt={
++            let model_ref=&mut model;
++            let grant_ref=&grant;
++            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(move ||{let original=model_ref;original.try_guard(grant_ref)})) {
++                Ok(Ok(mut guard))=>Ok(scene.try_commit_audience_cut(audience,turn,&grant,&mut guard)),
++                Ok(Err(error))=>Err((audience,turn,error)),
++                Err(_)=>Err((audience,turn,StreamControlError::CleanupUnconfirmed)),
++            }
++        };
++        match attempt {
++            Err((audience,turn,reason))=> {
++                drop(turn);
++                if retryable_metadata(&reason) {ManagedCutAttempt::StillUnpublished(StillUnpublishedManagedCut {prepared:PreparedManagedCut {cleanup,bound_attempt,model,audience},reason})}
++                else {ManagedCutAttempt::Refused {error:reason.into(),post:ManagedCutPostPublication::refused(model,audience,cleanup)}}
++            }
++            Ok(crate::staged_streams::audience::AudienceCutAttempt::StillUnpublished {prepared:audience,reason})=>ManagedCutAttempt::StillUnpublished(StillUnpublishedManagedCut {prepared:PreparedManagedCut {cleanup,bound_attempt,model,audience},reason}),
++            Ok(crate::staged_streams::audience::AudienceCutAttempt::Published {outcome,handle,mut post})=> {
++                // Only grant-free result metadata is mapped here. Any resource
++                // retirement/F cleanup remains in the linear post obligation.
++                let published=match &model {
++                    PreparedManagedModel::Replacement(value)=>value.map_published(outcome,handle),
++                    PreparedManagedModel::Handoff(value)=>value.map_published(outcome,handle),
++                };
++                post.model_cleanup=Some(model);post.cleanup=Some(cleanup);
++                match published {
++                    ManagedPublishedValue::Replacement(outcome,handle)=>ManagedCutAttempt::Published(ManagedCutPublished::Replacement {outcome,handle,post}),
++                    ManagedPublishedValue::Handoff(outcome,handle)=>ManagedCutAttempt::Published(ManagedCutPublished::Handoff {outcome,handle,post}),
++                }
++            }
++            Ok(crate::staged_streams::audience::AudienceCutAttempt::Refused {error,mut post})=> {post.model_cleanup=Some(model);post.cleanup=Some(cleanup);ManagedCutAttempt::Refused {error:error.into(),post}},
++            Ok(crate::staged_streams::audience::AudienceCutAttempt::EffectPossible {error,mut post})=> {post.model_cleanup=Some(model);post.cleanup=Some(cleanup);ManagedCutAttempt::EffectPossible {error:error.into(),post}},
++        }
++    }
++}
++pub(super) enum ManagedPublishedValue {
++    Replacement(AudioDeviceReplacementOutcome,AudioDeviceReplacementHandle),
++    Handoff(AudioHandoffOutcome,AudioHandoffHandle),
++}
++
++
++/// The SAME terminal task was admitted during cold preparation. Losing its
++/// observer never cancels work; a failed submission retains exact unsent work
++/// and is a fatal custody failure, never admission retry/republication.
++#[must_use]
++pub enum ManagedCutPostFinishError {
++    SubmissionFailed { error: ParticipantControlError, post: ManagedCutPostPublication },
++    AcceptedUnconfirmed { error: ParticipantControlError },
++}
++impl std::fmt::Debug for ManagedCutPostFinishError {
++    fn fmt(&self,f:&mut std::fmt::Formatter<'_>)->std::fmt::Result {
++        match self {Self::SubmissionFailed {error,..}=>f.debug_tuple("SubmissionFailed").field(error).finish(),Self::AcceptedUnconfirmed {error}=>f.debug_tuple("AcceptedUnconfirmed").field(error).finish()}
++    }
++}
++pub(super) struct ManagedCleanupReservation {
++    sender: tokio::sync::oneshot::Sender<ManagedCleanupWork>,
++    completion: tokio::sync::oneshot::Receiver<ControlResult<()>>,
++}
++struct ManagedCleanupWork {owner:Arc<Orchestrator>,post:ManagedCutPostPublication}
++#[must_use]
++pub struct ManagedCutPostCompletion {completion:tokio::sync::oneshot::Receiver<ControlResult<()>>}
++impl ManagedCutPostCompletion {
++    pub async fn wait(self)->std::result::Result<(),ManagedCutPostFinishError> {
++        match self.completion.await {
++            Ok(Ok(()))=>Ok(()),
++            Ok(Err(error))=>Err(ManagedCutPostFinishError::AcceptedUnconfirmed {error}),
++            Err(_)=>Err(ManagedCutPostFinishError::AcceptedUnconfirmed {error:RvoipError::InvalidState("accepted managed cleanup lost completion").into()}),
++        }
++    }
++}
++impl Orchestrator {
++    fn reserve_managed_cut_cleanup(&self)->ControlResult<ManagedCleanupReservation> {
++        let (sender,work)=tokio::sync::oneshot::channel::<ManagedCleanupWork>();
++        let (completed,completion)=tokio::sync::oneshot::channel();
++        self.connection_lifecycle_tasks.spawn_terminal(async move {
++            // No Core/route/current authority owner is retained while cold.
++            // Cold abandonment is no effect: no payload was ever published.
++            let result=match work.await {
++                Ok(ManagedCleanupWork {owner,post})=>owner.finish_managed_cut_post_owned(post).await,
++                Err(_)=>Ok(()),
++            };
++            let _=completed.send(result);
++        }).map_err(|_|ParticipantControlError::Core(RvoipError::AdmissionRejected("managed cut terminal cleanup capacity unavailable")))?;
++        Ok(ManagedCleanupReservation {sender,completion})
++    }
++    /// SYNCHRONOUS handoff for the actual Service operation-owner Drop path.
++    /// Its nested final frame (including all Writer/read/role/SIP aliases) MUST
++    /// already have ended. This does not infer release from a timer/Post Drop.
++    /// Sending transfers a strong original Core with the actual work once.
++    pub fn start_managed_cut_publication(self:&Arc<Self>,mut post:ManagedCutPostPublication)->std::result::Result<ManagedCutPostCompletion,ManagedCutPostFinishError> {
++        if !post.owner.upgrade().is_some_and(|owner|Arc::ptr_eq(&owner,self)) {
++            return Err(ManagedCutPostFinishError::SubmissionFailed {error:ParticipantControlError::Authority,post});
++        }
++        let Some(ManagedCleanupReservation {sender,completion})=post.cleanup.take() else {
++            return Err(ManagedCutPostFinishError::SubmissionFailed {error:RvoipError::InvalidState("managed cut lacks original cleanup reservation").into(),post});
++        };
++        match sender.send(ManagedCleanupWork {owner:self.clone(),post}) {
++            Ok(())=>Ok(ManagedCutPostCompletion {completion}),
++            Err(mut work)=> {
++                // The worker's original join is retained by the terminal
++                // supervisor. No second task or Core publication is admitted.
++                work.post.cleanup=None;
++                Err(ManagedCutPostFinishError::SubmissionFailed {error:RvoipError::InvalidState("pre-admitted managed cleanup worker closed before submission").into(),post:work.post})
++            }
++        }
++    }
++    pub async fn finish_managed_cut_publication(self:&Arc<Self>,post:ManagedCutPostPublication)->std::result::Result<(),ManagedCutPostFinishError> {
++        self.start_managed_cut_publication(post)?.wait().await
++    }
++    async fn finish_managed_cut_post_owned(self:&Arc<Self>,mut post:ManagedCutPostPublication)->ControlResult<()> {
++        // The capture policy may enter Store/application code. It is called
++        // only here, after ALL final model/media/authority aliases have gone.
++        let mut custody_error=None;
++        #[cfg(feature="vcon")]
++        for (session,fact) in std::mem::take(&mut post.records) {
++            if std::panic::catch_unwind(std::panic::AssertUnwindSafe(||self.capture_record_connection_fact(&session,fact))).is_err(){custody_error=Some(StreamControlError::CleanupUnconfirmed.into());}
++        }
++        for (sender,event) in std::mem::take(&mut post.events) {let _=sender.send(event);}
++        if let Some(audience)=post.audience.take(){if let Err(error)=audience.finish().await {custody_error=Some(error.into());}}
++        // Refusal cleanup drops inactive reservations here too. The protocol
++        // still owns its original F plan; a noncommitted audience never marks
++        // that original freeze committed merely to perform cleanup.
++        drop(post.model_cleanup.take());
++        for ticket in std::mem::take(&mut post.retiring) {
++            // Connection IDs are non-reusable. Still verify actual custody so
++            // a foreign lifecycle cannot be retired from stale metadata.
++            let exact=self.connection_lifecycles.get(&ticket.connection_id).is_some_and(|actual|Arc::ptr_eq(actual.value(),&ticket.state));
++            if !exact{custody_error=Some(ParticipantControlError::Authority);continue;}
++            let adapter=self.adapter_for_cleanup(&ticket.connection_id).ok();
++            let forgotten=self.begin_connection_teardown(&ticket.connection_id,InboundAdmissionTermination::Cancelled);
++            let _=self.finish_connection_teardown(&ticket.connection_id,forgotten).await;
++            if let Some(adapter)=adapter {
++                let transport=adapter.transport();
++                if adapter.is_connection_live(&ticket.connection_id) {
++                    // Same existing bounded end/quarantine behavior as the
++                    // original owned participant-route retirement path.
++                    self.cleanup_failed_adapter_route(adapter.clone(),transport,&ticket.connection_id,"participant route retired").await;
++                    if adapter.is_connection_live(&ticket.connection_id){custody_error=Some(StreamControlError::CleanupUnconfirmed.into());}
++                }
++            } else {custody_error=Some(StreamControlError::CleanupUnconfirmed.into());}
++        }
++        match custody_error {Some(error)=>Err(error),None=>Ok(())}
++    }
++}
++
++
++#[cfg(test)]
++impl Orchestrator {
++    /// Occupy actual retained terminal slots until their real senders drop.
++    /// No ordinary intake bit or synthetic admission result is substituted.
++    pub(crate) fn occupy_managed_cleanup_slots_for_test(&self)->Vec<tokio::sync::oneshot::Sender<()>> {
++        let mut occupied=Vec::new();
++        loop {
++            let (release,released)=tokio::sync::oneshot::channel();
++            if self.connection_lifecycle_tasks.spawn_terminal(async move {let _=released.await;}).is_err(){break;}
++            occupied.push(release);
++        }
++        occupied
++    }
++    /// Hold the real model metadata mutex, with no mock lock/result/grant.
++    pub(crate) fn with_managed_model_metadata_for_test<T>(&self,session:&SessionId,work:impl FnOnce()->T)->ControlResult<T> {
++        let runtime=self.participant_runtime(session)?;
++        let _state=runtime.state.lock().unwrap_or_else(|poisoned|poisoned.into_inner());
++        Ok(work())
++    }
++}
++
++#[cfg(test)]
++impl PreparedManagedCut {
++    pub(crate) fn started_attempt_for_test(&self)->Option<(&str,&str,&str)> {self.bound_attempt.as_ref().map(|binding|(binding.record.as_str(),binding.attempt_id.as_str(),binding.effect_id.as_str()))}
++}
++
++#[cfg(test)]
++#[derive(Clone,Copy)]
++pub(crate) enum ManagedModelPanicPoint {AfterCommit,AfterOriginalRemoval}
++#[cfg(test)]
++impl PreparedManagedCut {
++    pub(crate) fn model_panic_for_test(&mut self,point:ManagedModelPanicPoint) {match &mut self.model {PreparedManagedModel::Replacement(model)=>model.model_panic_for_test(point),PreparedManagedModel::Handoff(_)=>panic!("replacement model test seam")}}
++}
++#[cfg(test)]
++impl ManagedCutPostPublication {
++    pub(crate) fn retained_model_resources_for_test(&self)->(bool,bool,bool) {match self.model_cleanup.as_ref().expect("actual model cleanup") {PreparedManagedModel::Replacement(model)=>model.retained_model_resources_for_test(),PreparedManagedModel::Handoff(_)=>panic!("replacement model test seam")}}
++}
++#[cfg(test)]
++impl Orchestrator {
++    pub(crate) fn managed_capacity_for_test(&self,session:&SessionId)->ControlResult<(usize,usize)> {let runtime=self.participant_runtime(session)?;Ok((runtime.slots.available_permits(),runtime.replacement_slots.available_permits()))}
++}
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/publication.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/publication.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/publication.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/publication.rs
+@@ -8,15 +8,30 @@
+ 
+ /// Owned by precisely one live managed route. Removal, replacement or session
+ /// destruction invalidates every future continuation admission.
+-pub(crate) struct ManagedRoutePublication(PeerRouteTicket);
++pub(crate) struct ManagedRoutePublication {
++    ticket: PeerRouteTicket,
++    retire_on_drop: bool,
++}
+ impl ManagedRoutePublication {
++    // Cold metadata only. This ticket has no published route/IO owner. If
++    // preparation is abandoned, dropping it must not enter an already-held
++    // final ticket set. It is armed only by the actual model publication.
++    pub(crate) fn prepared() -> Self {
++        Self { ticket: PeerRouteTicket::initial(), retire_on_drop: false }
++    }
++    pub(crate) fn ticket(&self) -> PeerRouteTicket { self.ticket.clone() }
++    pub(crate) fn arm(mut self) -> Self { self.retire_on_drop = true; self }
++    pub(crate) fn retire_held(&mut self, tickets: &mut rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>) {
++        assert!(tickets.retire_if_current(&self.ticket), "preflighted exact original managed publication");
++        self.retire_on_drop = false;
++    }
+     pub(crate) fn new() -> Self {
+-        Self(PeerRouteTicket::initial())
++        Self { ticket: PeerRouteTicket::initial(), retire_on_drop: true }
+     }
+ }
+ impl Drop for ManagedRoutePublication {
+     fn drop(&mut self) {
+-        self.0.retire_if_current();
++        if self.retire_on_drop { self.ticket.retire_if_current(); }
+     }
+ }
+ 
+@@ -150,7 +165,7 @@
+         audio_diagnostic::result(&self.intent.replacement, Stage::PublicationLifetime, None);
+         let delivery = route
+             .publication
+-            .0
++            .ticket
+             .try_begin_delivery()
+             .ok_or(StreamControlError::Authority);
+         #[cfg(feature = "test-support")]
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement.rs
+@@ -2161,3 +2161,302 @@
+ 
+ #[cfg(test)]
+ pub(crate) mod metadata_test_support;
++
++
++// New managed-cut path. The old held API remains a separately recorded
++// unresolved boundary until every active host caller has migrated.
++pub(crate) struct ReplacementCutSeed {
++    owner: Arc<Orchestrator>,
++    runtime: Arc<ManagedParticipantSession>,
++    plan: ManagedAudioDeviceReplacementPlan,
++    guidance: ParticipantReplacementAuthority,
++    conversation: Arc<RwLock<Conversation>>,
++    session: Arc<RwLock<Session>>,
++    lifecycles: Vec<ConnectionLifecycleTicket>,
++    deadline: tokio::time::Instant,
++    cancellation: CancellationToken,
++    transports: BTreeMap<ConnectionId, Transport>,
++}
++pub(crate) struct PreparedReplacementCut {
++    owner: Arc<Orchestrator>,
++    runtime: Arc<ManagedParticipantSession>,
++    plan: ManagedAudioDeviceReplacementPlan,
++    conversation: Arc<RwLock<Conversation>>,
++    session: Arc<RwLock<Session>>,
++    lifecycles: Vec<ConnectionLifecycleTicket>,
++    deadline: tokio::time::Instant,
++    cancellation: CancellationToken,
++    model: Option<PreparedParticipantReplacementCommit>,
++    next_publication: Option<publication::ManagedRoutePublication>,
++    post: Option<Box<super::ManagedCutPostPublication>>,
++    model_committed: bool,
++    removed_original: Option<LiveRoute>,
++    released_temporary_slot: Option<OwnedSemaphorePermit>,
++    #[cfg(test)] model_panic: Option<super::managed_cut::ManagedModelPanicPoint>,
++    transports: BTreeMap<ConnectionId, Transport>,
++}
++impl ReplacementCutSeed {
++    pub(crate) fn capture(
++        owner: &Arc<Orchestrator>,
++        plan: &ManagedAudioDeviceReplacementPlan,
++        deadline: tokio::time::Instant,
++        cancellation: CancellationToken,
++        held: &(dyn Any + Send + Sync),
++    ) -> ControlResult<Self> {
++        let p = &plan.preparation;
++        owner.owns_replacement(p)?;
++        p.check()?;
++        let request = scope(p, ReplacementPhase::Commit, Some(&plan.media));
++        // The actual short planning grant exists in the caller. These calls
++        // occur before ANY media/model/registry guard, never with a fake held
++        // object. The returned memberships are guidance, not final authority.
++        let control = p.runtime.policy.current_replacement_control(&request, held)?;
++        let guidance = control.current(&request)?;
++        check_authority(&request, &guidance)?;
++        if plan.media.old_may_speak() && !guidance.may_send_audio { return Err(ParticipantControlError::Authority); }
++        let deadline = deadline_for(&p.principal, deadline.min(p.deadline).min(control.deadline));
++        if cancellation.is_cancelled() { return Err(ParticipantControlError::Cancelled); }
++        if tokio::time::Instant::now() >= deadline { return Err(ParticipantControlError::Deadline); }
++        let conversation = super::managed_cut::try_arc(&owner.conversations, &p.runtime.conversation)?
++            .ok_or_else(|| RvoipError::ConversationNotFound(p.runtime.conversation.clone()))?;
++        let session = super::managed_cut::try_arc(&owner.sessions, &p.runtime.session)?
++            .ok_or_else(|| RvoipError::SessionNotFound(p.runtime.session.clone()))?;
++        let mut lifecycles = p.source_lifecycles.clone();
++        lifecycles.push(p.candidate.clone());
++        lifecycles.sort_by(|a,b| a.connection_id.cmp(&b.connection_id));
++        for pair in lifecycles.windows(2) {
++            if pair[0].connection_id == pair[1].connection_id {
++                return Err(ParticipantControlError::Authority);
++            }
++        }
++        let mut transports = BTreeMap::new();
++        for id in [&p.intent.source, &p.intent.retained, &p.intent.replacement] {
++            if !lifecycles.iter().any(|ticket| &ticket.connection_id == id) { return Err(ParticipantControlError::Authority); }
++            match owner.connections.try_get(id) {
++                dashmap::try_result::TryResult::Present(entry) if entry.inbound_publication == InboundPublicationState::Published => {transports.insert(id.clone(), entry.transport);},
++                dashmap::try_result::TryResult::Locked => return Err(StreamControlError::MetadataBusy.into()),
++                _ => return Err(StreamControlError::NotReady.into()),
++            }
++        }
++        drop(control);
++        Ok(Self { owner: owner.clone(), runtime: p.runtime.clone(), plan: plan.clone(), guidance,
++            conversation, session, lifecycles, deadline, cancellation, transports })
++    }
++    pub(crate) fn scene(&self) -> ControlResult<Arc<crate::staged_streams::media_scene::GuardedMediaScene>> {
++        self.runtime.mixer.staged.clone().ok_or(ParticipantControlError::Unsupported)
++    }
++    pub(crate) fn audience(&self) -> AudioAudiencePlan { self.plan.media.audience().clone() }
++    pub(crate) fn deadline(&self) -> tokio::time::Instant { self.deadline }
++    pub(crate) fn cancellation(&self) -> CancellationToken { self.cancellation.clone() }
++    // Called only AFTER the complete synchronous audience metadata capture
++    // succeeds. No async work follows until the caller drops its planning read.
++    pub(crate) fn stage_once(self) -> ControlResult<PreparedReplacementCut> {
++        let p = &self.plan.preparation;
++        p.check()?;
++        if self.cancellation.is_cancelled() { return Err(ParticipantControlError::Cancelled); }
++        if tokio::time::Instant::now() >= self.deadline { return Err(ParticipantControlError::Deadline); }
++        let state = super::managed_cut::try_mutex(&self.runtime.state)?;
++        let pending = super::managed_cut::try_mutex(&p.state)?;
++        let conversation = super::managed_cut::try_read(&self.conversation)?;
++        let session = super::managed_cut::try_read(&self.session)?;
++        if conversation.state != ConversationState::Open
++            || matches!(session.state, SessionState::Ending | SessionState::Ended | SessionState::Failed)
++            || session.connections.contains_key(&p.intent.replacement)
++            || !session.connections.contains_key(&p.intent.source)
++            || !session.connections.contains_key(&p.intent.retained)
++            || state.ended || state.controller.revision() != p.intent.expected_revision
++            || p.phase.load(Ordering::Acquire) != ATTACHED
++            || !state.pending.get(&p.intent.replacement).is_some_and(|value|value.replacement_nonce == Some(p.nonce))
++            || pending.context.is_none() || pending.slot.is_none()
++            || !pending.ticket.binding().same_incarnation(self.plan.media.pending().binding())
++        { return Err(ParticipantTransitionError::Conflict.into()); }
++        let model = state.controller.stage_replacement(&self.guidance.actor,&self.guidance.target,p.intent.clone(),&pending.ticket,&self.guidance.endpoint)?;
++        let observation = model.observation();
++        let old = self.lifecycles.iter().find(|ticket| ticket.connection_id == p.intent.source).expect("captured original lifecycle").clone();
++        #[cfg(feature = "vcon")]
++        let records = vec![
++            (self.runtime.session.clone(), crate::records::RecordConnectionFact {participant:observation.participant.clone(),connection:observation.replaced.clone(),generation:old.generation,transport:self.transports[&observation.replaced],phase:crate::records::RecordConnectionPhase::LocallyRetired,correlation:Some(observation.operation_id.clone()),at:Utc::now()}),
++            (self.runtime.session.clone(), crate::records::RecordConnectionFact {participant:observation.participant.clone(),connection:observation.admitted.clone(),generation:p.candidate.generation,transport:self.transports[&observation.admitted],phase:crate::records::RecordConnectionPhase::LocallyAdmitted,correlation:Some(observation.operation_id.clone()),at:Utc::now()}),
++        ];
++        let post = super::managed_cut::ManagedModelPostFacts {owner:Arc::downgrade(&self.owner),
++            #[cfg(feature = "vcon")] records,
++            retiring:vec![old], events:vec![(self.runtime.events.clone(),ParticipantRuntimeEvent::ConnectionReplaced(observation.clone()))]};
++        drop(session);drop(conversation);drop(pending);drop(state);
++        Ok(PreparedReplacementCut { owner:self.owner, runtime:self.runtime, plan:self.plan,
++            conversation:self.conversation, session:self.session, lifecycles:self.lifecycles,
++            deadline:self.deadline, cancellation:self.cancellation, model:Some(model),
++            next_publication:Some(publication::ManagedRoutePublication::prepared()), post:Some(post.prebuild()), model_committed:false, removed_original:None, released_temporary_slot:None, #[cfg(test)] model_panic:None, transports:self.transports })
++    }
++}
++
++
++pub(crate) struct PreparedReplacementGuard<'a, 'b, 'c> {
++    owner: &'a Arc<Orchestrator>,
++    runtime: &'a Arc<ManagedParticipantSession>,
++    plan: &'a ManagedAudioDeviceReplacementPlan,
++    original_lifecycles: &'a [ConnectionLifecycleTicket],
++    deadline: tokio::time::Instant,
++    cancellation: &'a CancellationToken,
++    grant: &'b super::FinalControlGrant<'c>,
++    model: &'a mut Option<PreparedParticipantReplacementCommit>,
++    next_publication: &'a mut Option<publication::ManagedRoutePublication>,
++    post: &'a mut Option<Box<super::ManagedCutPostPublication>>,
++    model_committed: &'a mut bool,
++    removed_original: &'a mut Option<LiveRoute>,
++    released_temporary_slot: &'a mut Option<OwnedSemaphorePermit>,
++    old_index: usize,
++    candidate_index: usize,
++    #[cfg(test)] model_panic: &'a Option<super::managed_cut::ManagedModelPanicPoint>,
++    _mixer: tokio::sync::MutexGuard<'a, HashMap<ConnectionId, ConferenceMember>>,
++    state: std::sync::MutexGuard<'a, ManagedState>,
++    _registry: std::sync::MutexGuard<'a, ()>,
++    lifecycles: Vec<std::sync::MutexGuard<'a, ConnectionLifecycleState>>,
++    conversation: std::sync::RwLockWriteGuard<'a, Conversation>,
++    session: std::sync::RwLockWriteGuard<'a, Session>,
++    pending: std::sync::MutexGuard<'a, PendingReplacementState>,
++    index: Option<crate::orchestrator::dtmf_routing::BindingCommit<'a>>,
++}
++impl PreparedReplacementCut {
++    pub(crate) fn scene(&self) -> ControlResult<Arc<crate::staged_streams::media_scene::GuardedMediaScene>> {
++        self.runtime.mixer.staged.clone().ok_or(ParticipantControlError::Unsupported)
++    }
++    pub(crate) fn deadline(&self) -> tokio::time::Instant {self.deadline}
++    pub(crate) fn cancellation(&self) -> &CancellationToken {&self.cancellation}
++    pub(crate) fn record(&self) -> &str {&self.plan.preparation.intent.operation_id}
++    pub(crate) fn owner(&self) -> &Arc<Orchestrator> {&self.owner}
++    pub(crate) fn try_guard<'a,'b,'c>(&'a mut self, grant:&'b super::FinalControlGrant<'c>) -> std::result::Result<PreparedReplacementGuard<'a,'b,'c>,StreamControlError> {
++        use super::managed_cut::{try_mutex,try_write,try_lifecycles};
++        use crate::orchestrator::dtmf_routing::BindingChange;
++        let Self {owner,runtime,plan,conversation,session,lifecycles:original_lifecycles,deadline,cancellation,model,next_publication,post,model_committed,removed_original,released_temporary_slot,#[cfg(test)] model_panic,transports}=self;
++        let p=&plan.preparation;
++        owner.owns_replacement(p).map_err(handoff::media_error)?;
++        p.check().map_err(handoff::media_error)?;
++        let request=scope(p,ReplacementPhase::Commit,Some(&plan.media));
++        let super::FinalControlGrant::Replacement {authority,current,..}=grant else {return Err(StreamControlError::Authority);};
++        if cancellation.is_cancelled() || grant.cancellation().is_cancelled() {return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=(*deadline).min(grant.deadline()) {return Err(StreamControlError::Deadline);}
++        if !current.is_current(&request,grant.attempt()) {return Err(StreamControlError::Authority);}
++        check_authority(&request,authority).map_err(handoff::media_error)?;
++        if plan.media.old_may_speak()&&!authority.may_send_audio {return Err(StreamControlError::Authority);}
++        // Every final metadata acquisition is immediate. No reader/policy,
++        // transport callback or constructor occurs after taking this mixer.
++        let mixer=runtime.mixer.members.try_lock().map_err(|_|StreamControlError::MetadataBusy)?;
++        let state=try_mutex(&runtime.state)?;
++        let registry=try_mutex(&owner.connection_registry_lock)?;
++        let lifecycles=try_lifecycles(owner,original_lifecycles,&registry)?;
++        let conversation=try_write(conversation)?;
++        let session=try_write(session)?;
++        let pending=try_mutex(&p.state)?;
++        if state.ended || state.controller.revision()!=p.intent.expected_revision
++            || conversation.state!=ConversationState::Open
++            || matches!(session.state,SessionState::Ending|SessionState::Ended|SessionState::Failed)
++            || p.phase.load(Ordering::Acquire)!=ATTACHED
++            || !state.pending.get(&p.intent.replacement).is_some_and(|value|value.replacement_nonce==Some(p.nonce))
++            || pending.context.is_none() || pending.slot.is_none()
++            || !pending.ticket.binding().same_incarnation(plan.media.pending().binding())
++        {return Err(crate::stream_lifecycle::MediaTransitionError::Conflict.into());}
++        for id in [&p.intent.source,&p.intent.retained,&p.intent.replacement] {
++            let expected=if id==&p.intent.replacement {
++                if session.connections.contains_key(id) {return Err(StreamControlError::Authority);}
++                &p.candidate
++            } else {
++                if !session.connections.contains_key(id) {return Err(StreamControlError::NotReady);}
++                &state.routes.get(id).ok_or(StreamControlError::NotReady)?.lifecycle
++            };
++            if !original_lifecycles.iter().any(|ticket|ticket.connection_id==*id&&ticket.generation==expected.generation&&Arc::ptr_eq(&ticket.state,&expected.state)) {return Err(StreamControlError::NotReady);}
++            match owner.connections.try_get(id) {
++                dashmap::try_result::TryResult::Present(actual) if Some(&actual.transport)==transports.get(id)=>{},
++                dashmap::try_result::TryResult::Locked=>return Err(StreamControlError::MetadataBusy),
++                _=>return Err(StreamControlError::NotReady),
++            }
++        }
++        state.controller.validate_prepared_replacement(&authority.actor,&authority.target,&p.intent,&pending.ticket,&authority.endpoint,model.as_ref().ok_or(StreamControlError::Authority)?)
++            .map_err(|error|handoff::media_error(error.into()))?;
++        if *model_committed||model.is_none()||post.is_none()||next_publication.is_none()||removed_original.is_some()||released_temporary_slot.is_some(){return Err(StreamControlError::Authority);}
++        let old_index=original_lifecycles.iter().position(|ticket|ticket.connection_id==p.intent.source).ok_or(StreamControlError::Authority)?;
++        let candidate_index=original_lifecycles.iter().position(|ticket|ticket.connection_id==p.intent.replacement).ok_or(StreamControlError::Authority)?;
++        let changes=[
++            BindingChange {connection:p.intent.source.clone(),before:Some(runtime.session.clone()),after:None},
++            BindingChange {connection:p.intent.replacement.clone(),before:None,after:Some(runtime.session.clone())},
++        ];
++        let index=owner.sessions_by_connection.try_compound_change(&changes)?;
++        if cancellation.is_cancelled() || grant.cancellation().is_cancelled() {return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=(*deadline).min(grant.deadline()) {return Err(StreamControlError::Deadline);}
++        if !current.is_current(&request,grant.attempt()) {return Err(StreamControlError::Authority);}
++        Ok(PreparedReplacementGuard {owner,runtime,plan,original_lifecycles,deadline:*deadline,cancellation,grant,model,next_publication,post,model_committed,removed_original,released_temporary_slot,old_index,candidate_index,#[cfg(test)] model_panic,_mixer:mixer,state,_registry:registry,lifecycles,conversation,session,pending,index:Some(index)})
++    }
++}
++impl super::ManagedAudiencePublication for PreparedReplacementGuard<'_, '_, '_> {
++    fn tickets(&self)->Vec<rvoip_core_traits::peer_switch::PeerRouteTicket> {
++        self.state.routes.get(&self.plan.preparation.intent.source).map(|route|route.publication.ticket()).into_iter().collect()
++    }
++    fn quiescence_tickets(&self)->Vec<rvoip_core_traits::peer_switch::PeerRouteTicket> {self.tickets()}
++    fn model_committed(&self)->bool {*self.model_committed}
++    fn empty_post(&mut self)->super::ManagedCutPostPublication {
++        if *self.model_committed{return *self.post.take().expect("actual model commit retained its prebuilt post");}
++        super::ManagedCutPostPublication {cleanup:None,owner:Arc::downgrade(self.owner),
++            #[cfg(feature="vcon")] records:Vec::new(),
++            retiring:Vec::new(),events:Vec::new(),model_cleanup:None,audience:None}
++    }
++    fn check(&self,plan:&AudioAudiencePlan,routes:&rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>)->std::result::Result<(),StreamControlError> {
++        let p=&self.plan.preparation;
++        p.check().map_err(handoff::media_error)?;
++        if !self.plan.media.audience().same_intent(plan) {return Err(StreamControlError::Authority);}
++        if self.cancellation.is_cancelled()||self.grant.cancellation().is_cancelled(){return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=self.deadline.min(self.grant.deadline()){return Err(StreamControlError::Deadline);}
++        let request=scope(p,ReplacementPhase::Commit,Some(&self.plan.media));
++        let super::FinalControlGrant::Replacement{authority,current,..}=self.grant else{return Err(StreamControlError::Authority);};
++        if !current.is_current(&request,self.grant.attempt()){return Err(StreamControlError::Authority);}
++        check_authority(&request,authority).map_err(handoff::media_error)?;
++        if self.plan.media.old_may_speak()&&!authority.may_send_audio{return Err(StreamControlError::Authority);}
++        let old=self.state.routes.get(&p.intent.source).ok_or(StreamControlError::NotReady)?;
++        if !routes.is_current(&old.publication.ticket()){return Err(StreamControlError::NotReady);}
++        Ok(())
++    }
++    fn commit(&mut self,routes:&mut rvoip_core_traits::peer_switch::PeerRouteGuardSet<'_>)->(ManagedAudienceObservation,super::ManagedCutPostPublication) {
++        let observation=self.state.controller.commit_replacement(self.model.take().expect("same one-shot prepared replacement model"));
++        // The prebuilt actual post remains OUTER-owned before any routing
++        // tail can unwind. No allocation/Reader/IO is introduced here.
++        #[cfg(feature="vcon")]
++        for (_,fact) in &mut self.post.as_mut().expect("prevalidated cold post").records {fact.at=Utc::now();}
++        *self.model_committed=true;
++        *self.released_temporary_slot=self.pending.slot.take();
++        #[cfg(test)] if matches!(self.model_panic,Some(super::managed_cut::ManagedModelPanicPoint::AfterCommit)){panic!("controlled actual managed model committed unwind");}
++        self.index.take().expect("preflighted actual index guards").commit();
++        self.session.connections.remove(&observation.replaced);
++        *self.removed_original=self.state.routes.remove(&observation.replaced);
++        self.removed_original.as_mut().expect("validated original route").publication.retire_held(routes);
++        #[cfg(test)] if matches!(self.model_panic,Some(super::managed_cut::ManagedModelPanicPoint::AfterOriginalRemoval)){panic!("controlled original route retained outside final guards");}
++        let old=&mut self.lifecycles[self.old_index];old.active=false;old.retired=true;
++        if let Some(permit)=&old.peer_admission {permit.retire_delivery();}
++        old.generation=old.generation.saturating_add(1);
++        self.session.connections.insert(observation.admitted.clone(),ConnectionRef{id:observation.admitted.clone(),participant_id:observation.participant.clone()});
++        // All invariant checks/ticket work precede the single infallible slot
++        // transfer expression. No callback or unwind rendezvous sits between
++        // taking the retained route and inserting its SAME admitted permit.
++        let publication=self.next_publication.take().expect("prevalidated cold publication ticket").arm();
++        self.state.routes.insert(observation.admitted.clone(),{
++            let original=self.removed_original.take().expect("outer-owned original admitted slot");
++            LiveRoute {_slot:original._slot,lifecycle:self.plan.preparation.candidate.clone(),publication}
++        });
++        self.lifecycles[self.candidate_index].replacement_reservation=None;
++        self.state.pending.remove(&observation.admitted);
++        self.plan.preparation.phase.store(COMMITTED,Ordering::Release);
++        self.conversation.last_activity_at=Utc::now();
++        let post=*self.post.take().expect("actual same model publication post");
++        (ManagedAudienceObservation{handoff:None,replacement:Some(observation)},post)
++    }
++}
++
++impl PreparedReplacementCut {
++    pub(crate) fn map_published(&self,outcome:crate::staged_streams::audience::AudioAudienceOutcome,handle:crate::staged_streams::audience::AudioAudienceHandle)->super::managed_cut::ManagedPublishedValue {
++        let (outcome,handle)=self.plan.media.finish_managed_audience(outcome,handle);
++        super::managed_cut::ManagedPublishedValue::Replacement(outcome,handle)
++    }
++}
++
++#[cfg(test)]
++impl PreparedReplacementCut {
++    pub(crate) fn model_panic_for_test(&mut self,point:super::managed_cut::ManagedModelPanicPoint){self.model_panic=Some(point);}
++    pub(crate) fn retained_model_resources_for_test(&self)->(bool,bool,bool){(self.model_committed,self.removed_original.is_some(),self.released_temporary_slot.is_some())}
++}
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -2489,6 +2489,14 @@
+ pub(crate) mod replacement;
+ pub(crate) use replacement::ManagedAudienceContext;
+ mod publication_mixer;
++mod managed_cut;
++pub use managed_cut::{
++    FinalControlGrant, HandoffFinalCurrent, ManagedAttemptBinding, ManagedCutAttempt,
++    ManagedCutPostPublication, ManagedCutPostCompletion, ManagedCutPostFinishError, ManagedCutPreparationFacts, ManagedCutPublished,
++    ManagedCutResourceRequirements, ManagedReceiveResourceRequirement,
++    PreparedManagedCut, ReplacementFinalCurrent, StillUnpublishedManagedCut,
++};
++pub(crate) use managed_cut::{ManagedAudiencePublication, ManagedCutKind};
+ pub use replacement::{
+     CurrentReplacementPublication, DeviceReplacementAdapterRequest, DeviceReplacementAdapterRoute,
+     DeviceReplacementEndpointEvent, DeviceReplacementEvent, DeviceReplacementPreparation,
+@@ -2506,3 +2514,6 @@
+         self.source_frame_realm_for_preparation(session,conversation)
+     }
+ }
++
++#[cfg(test)]
++pub(crate) use managed_cut::ManagedModelPanicPoint;
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions/handoff.rs b/crates/foundation/rvoip-core/src/participant_transitions/handoff.rs
+--- a/crates/foundation/rvoip-core/src/participant_transitions/handoff.rs
++++ b/crates/foundation/rvoip-core/src/participant_transitions/handoff.rs
+@@ -50,6 +50,9 @@
+     next: ParticipantSession,
+     observation: ParticipantHandoffObservation,
+ }
++impl PreparedParticipantHandoff {
++    pub(crate) fn observation(&self) -> &ParticipantHandoffObservation { &self.observation }
++}
+ impl ParticipantSession {
+     pub fn replay_handoff(
+         &self,
+@@ -96,13 +99,13 @@
+         }
+         Ok(None)
+     }
+-    pub(crate) fn prepare_handoff(
+-        &self,
+-        actor: &Membership,
+-        outgoing: &Membership,
+-        incoming: &Membership,
+-        intent: ParticipantHandoffMutation,
+-    ) -> Result<PreparedParticipantHandoff> {
++    fn validate_handoff_candidate(
++        &self,
++        actor: &Membership,
++        outgoing: &Membership,
++        incoming: &Membership,
++        intent: &ParticipantHandoffMutation,
++    ) -> Result<()> {
+         if self
+             .replay_handoff(actor, outgoing, incoming, &intent)?
+             .is_some()
+@@ -149,6 +152,42 @@
+         }) {
+             return Err(ParticipantTransitionError::NotReady);
+         }
++        Ok(())
++    }
++    pub(crate) fn validate_prepared_handoff(
++        &self,
++        actor: &Membership,
++        outgoing: &Membership,
++        incoming: &Membership,
++        intent: &ParticipantHandoffMutation,
++        token: &PreparedParticipantHandoff,
++    ) -> Result<()> {
++        if token.expected != self.revision || token.next.tenant != self.tenant || token.next.conversation != self.conversation || token.next.session != self.session {
++            return Err(ParticipantTransitionError::Conflict);
++        }
++        let receipt = token.next.handoffs.get(&(actor.participant().clone(), intent.operation_id.clone()))
++            .ok_or(ParticipantTransitionError::OwnerMismatch)?;
++        if receipt.actor_identity != *actor.identity()
++            || receipt.actor_participant != *actor.participant()
++            || receipt.actor_epoch != actor.epoch()
++            || receipt.outgoing_identity != *outgoing.identity()
++            || receipt.incoming_identity != *incoming.identity()
++            || receipt.intent != *intent
++            || token.observation.outgoing_epoch != outgoing.epoch()
++            || token.observation.incoming_epoch != incoming.epoch()
++        { return Err(ParticipantTransitionError::OwnerMismatch); }
++        self.validate_handoff_candidate(actor, outgoing, incoming, intent)
++    }
++    pub(crate) fn prepare_handoff(
++        &self,
++        actor: &Membership,
++        outgoing: &Membership,
++        incoming: &Membership,
++        intent: ParticipantHandoffMutation,
++    ) -> Result<PreparedParticipantHandoff> {
++        self.validate_handoff_candidate(actor, outgoing, incoming, &intent)?;
++        let old = self.participants.get(outgoing.participant()).expect("validated outgoing participant");
++        let new = self.participants.get(incoming.participant()).expect("validated incoming participant");
+         let mut participants = self.participants.clone();
+         let mut appearance = new.appearance.clone();
+         appearance.change_role(
+diff --git a/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs b/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs
+--- a/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs
++++ b/crates/foundation/rvoip-core/src/participant_transitions/replacement.rs
+@@ -202,6 +202,9 @@
+     next: ParticipantSession,
+     observation: ParticipantReplacementObservation,
+ }
++impl PreparedParticipantReplacementCommit {
++    pub(crate) fn observation(&self) -> &ParticipantReplacementObservation { &self.observation }
++}
+ impl ParticipantSession {
+     pub fn prepare_replacement(
+         &self,
+@@ -305,15 +308,15 @@
+         }
+         Ok(Some(old.observation.clone()))
+     }
+-    pub(crate) fn stage_replacement(
++    fn validated_replacement_candidate(
+         &self,
+         actor: &Membership,
+         target: &Membership,
+-        intent: ParticipantReplacementMutation,
++        intent: &ParticipantReplacementMutation,
+         prepared: &PreparedParticipantReplacement,
+         endpoint: &EndpointBinding,
+-    ) -> Result<PreparedParticipantReplacementCommit> {
+-        if self.replay_replacement(actor, target, &intent)?.is_some() {
++    ) -> Result<ConnectionBinding> {
++        if self.replay_replacement(actor, target, intent)?.is_some() {
+             return Err(ParticipantTransitionError::Conflict);
+         }
+         self.check_member(target, true)?;
+@@ -322,7 +325,7 @@
+         }
+         if self.revision != intent.expected_revision
+             || self.revision >= MAX_REVISION
+-            || prepared.intent != intent
++            || prepared.intent != *intent
+             || prepared.membership_revision != target.revision()
+         {
+             return Err(ParticipantTransitionError::Conflict);
+@@ -361,6 +364,45 @@
+         let mut source = original.clone();
+         let mut candidate = prepared.candidate.clone();
+         source.commit_replacement(&mut candidate, target, &current.appearance, endpoint)?;
++        Ok(candidate)
++    }
++    /// Rerun the SAME pre-effect predicates against fresh authority while
++    /// retaining the original one-shot staged model. This never stages another
++    /// model, allocates another operation ID or changes participant state.
++    pub(crate) fn validate_prepared_replacement(
++        &self,
++        actor: &Membership,
++        target: &Membership,
++        intent: &ParticipantReplacementMutation,
++        prepared: &PreparedParticipantReplacement,
++        endpoint: &EndpointBinding,
++        token: &PreparedParticipantReplacementCommit,
++    ) -> Result<()> {
++        if token.expected != self.revision || token.next.tenant != self.tenant || token.next.conversation != self.conversation || token.next.session != self.session {
++            return Err(ParticipantTransitionError::Conflict);
++        }
++        let receipt = token.next.replacements.get(&(actor.participant().clone(), intent.operation_id.clone()))
++            .ok_or(ParticipantTransitionError::OwnerMismatch)?;
++        if receipt.actor_identity != *actor.identity()
++            || receipt.actor_epoch != actor.epoch()
++            || receipt.actor_participant != *actor.participant()
++            || receipt.target_identity != *target.identity()
++            || receipt.intent != *intent
++            || token.observation.membership_epoch != target.epoch()
++        { return Err(ParticipantTransitionError::OwnerMismatch); }
++        self.validated_replacement_candidate(actor, target, intent, prepared, endpoint)?;
++        Ok(())
++    }
++    pub(crate) fn stage_replacement(
++        &self,
++        actor: &Membership,
++        target: &Membership,
++        intent: ParticipantReplacementMutation,
++        prepared: &PreparedParticipantReplacement,
++        endpoint: &EndpointBinding,
++    ) -> Result<PreparedParticipantReplacementCommit> {
++        let candidate = self.validated_replacement_candidate(actor, target, &intent, prepared, endpoint)?;
++        let current = self.participants.get(target.participant()).expect("validated replacement target");
+         let observation = ParticipantReplacementObservation {
+             session: self.session.clone(),
+             participant: target.participant().clone(),
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
+@@ -0,0 +1,593 @@
++//! Actual managed model-token controls, sharing the existing World policy.
++use super::*;
++use crate::orchestrator::participant_control::{FinalControlGrant,ManagedAttemptBinding,ReplacementFinalCurrent,ManagedAudioDeviceReplacementPlan};
++
++struct FinalResource {
++    controller:Arc<StreamController>, owner:MediaOwner,
++    bindings:Vec<crate::stream_lifecycle::ReadyMediaBinding>,
++}
++/// Fresh fixture-policy tuples captured before final gates. World and Domain
++/// permission remains live; this does not model a Service purpose Writer.
++pub(super) struct ReplacementCutCurrent {
++    root:ReplacementGrant, plan:ManagedAudioDeviceReplacementPlan,
++    attempt:String, effect:String, resources:BTreeMap<ConnectionId,FinalResource>,
++}
++impl ReplacementCutCurrent {
++    pub(super) fn capture(room:&ManagedRoom,root:&ReplacementGrant,plan:&ManagedAudioDeviceReplacementPlan,attempt:&str,effect:&str)->Self {
++        assert!(Arc::ptr_eq(&room.world,&root.world));
++        let resources=room.nodes.iter().map(|(id,node)|(id.clone(),FinalResource {controller:node.controller.clone(),owner:room.world.owner(id).unwrap(),bindings:node.controller.active_bindings()})).collect();
++        Self {root:root.clone(),plan:plan.clone(),attempt:attempt.to_owned(),effect:effect.to_owned(),resources}
++    }
++    fn capture_for(room:&ManagedRoom,root:&ReplacementGrant,plan:&ManagedAudioDeviceReplacementPlan,prepared:&crate::orchestrator::participant_control::PreparedManagedCut,attempt:&str,effect:&str)->Self {
++        let mut witness=Self::capture(room,root,plan,attempt,effect);
++        for source in prepared.final_receive_source_controllers().unwrap() {
++            witness.resources.entry(source.connection.clone()).or_insert_with(||FinalResource {owner:room.world.owner(&source.connection).unwrap(),bindings:source.active_bindings(),controller:source});
++        }
++        witness
++    }
++    pub(super) fn binding(&self)->ManagedAttemptBinding<'_> {ManagedAttemptBinding {record:&self.root.intent.operation_id,attempt_id:&self.attempt,effect_id:&self.effect}}
++    pub(super) fn grant<'a>(&'a self,authority:&'a ParticipantReplacementAuthority,held:&'a(dyn Any+Send+Sync),cancel:&'a CancellationToken)->FinalControlGrant<'a> {
++        FinalControlGrant::Replacement {authority,attempt:self.binding(),held,current:self,cancellation:cancel,deadline:self.root.until}
++    }
++    fn live(&self,attempt:ManagedAttemptBinding<'_>)->bool {
++        attempt.record==self.root.intent.operation_id&&attempt.attempt_id==self.attempt&&attempt.effect_id==self.effect
++            &&self.root.world.allowed.load(Ordering::Acquire)&&self.root.domain.allowed.load(Ordering::Acquire)
++            &&tokio::time::Instant::now()<self.root.until
++    }
++    fn intent(&self,intent:&MediaControlIntent<'_>)->bool {
++        matches!(intent,MediaControlIntent::DeviceReplacement{plan} if self.plan.media().audience().same_intent(plan))
++    }
++    fn resource(&self,controller:&Arc<StreamController>)->Option<&FinalResource> {
++        self.resources.get(&controller.connection).filter(|resource|Arc::ptr_eq(&resource.controller,controller)&&!controller.shutdown.is_cancelled()
++            &&resource.owner.connection.require_current(&resource.owner.member,&resource.owner.presence).is_ok())
++    }
++}
++impl ReplacementFinalCurrent for ReplacementCutCurrent {
++    fn is_current(&self,scope:&ParticipantReplacementScope<'_>,attempt:ManagedAttemptBinding<'_>)->bool {
++        self.live(attempt)&&scope.phase==ReplacementPhase::Commit
++            &&scope.plan.is_some_and(|plan|self.plan.media().audience().same_intent(plan.audience()))
++            &&scope.conversation==self.root.domain.member.conversation()&&scope.session==&self.root.domain.session
++            &&scope.principal.ownership_key()==self.root.domain.principal.ownership_key()&&scope.principal.expires_at==self.root.domain.principal.expires_at&&scope.intent==&self.root.intent
++    }
++    fn media_is_current(&self,controller:&Arc<StreamController>,scope:&MediaScope<'_>,intent:&MediaControlIntent<'_>,attempt:ManagedAttemptBinding<'_>)->bool {
++        self.live(attempt)&&self.intent(intent)&&self.resource(controller).is_some_and(|resource|matches!(scope.purpose,MediaPurpose::Control)
++            &&scope.connection==resource.owner.connection.connection()&&scope.conversation==resource.owner.member.conversation()
++            &&scope.session==resource.owner.presence.session()&&resource.owner.actor.revalidate_principal(scope.principal,chrono::Utc::now()).is_ok()
++            &&self.plan.media().audience().expected_receiver_revisions().contains_key(scope.connection))
++    }
++    fn source_is_current(&self,controller:&Arc<StreamController>,source:&MediaSource,intent:&MediaControlIntent<'_>,attempt:ManagedAttemptBinding<'_>)->bool {
++        self.live(attempt)&&self.intent(intent)&&self.resource(controller).is_some_and(|resource|source.connection==*resource.owner.connection.connection()
++            &&source.conversation==*resource.owner.member.conversation()&&source.session==*resource.owner.presence.session()
++            &&source.participant==*resource.owner.member.participant()&&source.membership_epoch==resource.owner.member.epoch()
++            &&source.connection_generation==resource.owner.connection.generation()&&resource.bindings.iter().any(|binding|binding.negotiated.requested.logical_id==source.logical_id
++                &&binding.transport_id==source.transport_id&&binding.generation==source.stream_generation))
++    }
++    fn participant_source_is_current(&self,controller:&Arc<StreamController>,source:&MediaParticipantSource,intent:&MediaControlIntent<'_>,attempt:ManagedAttemptBinding<'_>)->bool {
++        self.live(attempt)&&self.intent(intent)&&self.resource(controller).is_some_and(|resource|source.connection==*resource.owner.connection.connection()
++            &&source.conversation==*resource.owner.member.conversation()&&source.session==*resource.owner.presence.session()
++            &&source.identity==*resource.owner.member.identity()&&source.participant==*resource.owner.member.participant()
++            &&source.membership_epoch==resource.owner.member.epoch()&&source.medium==Medium::Audio
++            &&resource.owner.member.revalidate_principal(&source.principal,chrono::Utc::now()).is_ok())
++    }
++}
++
++struct ModelReady {
++    root:Arc<DeviceReplacementPreparation>, grant:ReplacementGrant,
++    plan:ManagedAudioDeviceReplacementPlan, old:ConnectionId, retained:ConnectionId,
++    healthy_source:ConnectionId, healthy_target:ConnectionId,
++    _audio:crate::staged_streams::audio_subscriptions::AudioReplacementPreparation,
++    _probe:crate::staged_streams::endpoint_preparation::AudioEndpointPreparation,
++    _context:crate::staged_streams::audience::AudioAudienceHandle,
++}
++async fn model_ready(room:&mut ManagedRoom)->ModelReady {model_ready_with_future(room,false).await}
++async fn model_ready_with_future(room:&mut ManagedRoom,future:bool)->ModelReady {model_ready_with_external(room,future,None).await}
++async fn model_ready_with_external(room:&mut ManagedRoom,future:bool,external:Option<&Arc<StreamController>>)->ModelReady {
++    let alice=domain(&room.conversation,&room.session,"managed-cut-original","alice");
++    let old=room.initial(alice.clone()).await;
++    let retained=room.initial(domain(&room.conversation,&room.session,"managed-cut-retained","bob")).await;
++    let healthy_source=room.initial(domain(&room.conversation,&room.session,"managed-cut-healthy-source","carol")).await;
++    let healthy_target=room.initial(domain(&room.conversation,&room.session,"managed-cut-healthy-target","dave")).await;
++    room.select(&old,vec![AudioSubscription::Connection(retained.clone())]).await;
++    room.select(&retained,vec![AudioSubscription::Connection(old.clone())]).await;
++    if future {
++        let controller=room.nodes[&healthy_source].controller.clone();
++        let logical=desired(Medium::Audio).logical_id;
++        let held=PortCommand {world:room.world.clone(),connection:healthy_source.clone(),expected:controller.revision(),mutation:PortMutation::End(logical.clone()),until:deadline()};
++        controller.end_stream_with_held(&logical,held.expected,held.until,Arc::new(held)).await.unwrap();
++        room.select(&healthy_target,vec![AudioSubscription::Participant(controller.origin_member.participant().clone())]).await;
++    } else {room.select(&healthy_target,vec![AudioSubscription::Connection(healthy_source.clone())]).await;}
++    if let Some(external)=external {
++        // A real ended unrelated video remains historical in this retained
++        // connection. Audio-only publication must not demand that old worker.
++        let retained_controller=room.nodes[&retained].controller.clone();
++        let logical=desired(Medium::Video).logical_id;
++        let end=PortCommand {world:room.world.clone(),connection:retained.clone(),expected:retained_controller.revision(),mutation:PortMutation::End(logical.clone()),until:deadline()};
++        retained_controller.end_stream_with_held(&logical,end.expected,end.until,Arc::new(end)).await.unwrap();
++        room.select(&healthy_target,vec![AudioSubscription::Connection(retained.clone())]).await;
++        let controller=room.nodes[&healthy_target].controller.clone();
++        let change=crate::staged_streams::direct_subscriptions::DirectSubscriptionChange::Subscribe(vec![crate::staged_streams::direct_subscriptions::DirectSubscription::new(external,desired(Medium::Video).logical_id,desired(Medium::Video).logical_id)]);
++        let held=PortCommand {world:room.world.clone(),connection:healthy_target.clone(),expected:controller.revision(),mutation:PortMutation::Direct(change.clone()),until:deadline()};
++        controller.change_direct_subscriptions(held.expected,change,held.until,CancellationToken::new(),Some(&held)).await.unwrap();
++    }
++    let mut next=domain(&room.conversation,&room.session,"managed-cut-successor","alice");
++    let exact=Arc::get_mut(&mut next).unwrap();exact.principal=alice.principal.clone();exact.member=alice.member.clone();
++    let (root,grant,signal,context,probe)=room.prepare_move(&old,&retained,next).await;
++    let audio=room.prepare_audio(&root,&grant).await;
++    room.nodes.get_mut(&retained).unwrap().publish(6000).unwrap();
++    room.nodes.get_mut(&grant.intent.replacement).unwrap().hear(6000).await;
++    room.nodes.get_mut(&grant.intent.replacement).unwrap().publish(5200).unwrap();
++    assert!(audio.has_delivered_remote_audio()&&probe.has_duplex_io());
++    room.signal(&root,&grant,&signal,DeviceReplacementEndpointEvent::Answered);
++    room.signal(&root,&grant,&signal,DeviceReplacementEndpointEvent::MediaObserved);
++    assert_eq!(room.signal(&root,&grant,&signal,DeviceReplacementEndpointEvent::Dtmf {digits:"7".into()}),EndpointConfirmationObservation::Confirmed);
++    let plan=room.orch.plan_staged_device_replacement(&root,None).unwrap();
++    ModelReady {root,grant,plan,old,retained,healthy_source,healthy_target,_audio:audio,_probe:probe,_context:context}
++}
++fn command(ready:&ModelReady)->Command {Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()}}
++fn authority(ready:&ModelReady)->ParticipantReplacementAuthority {
++    ReplacementLease(ready.grant.clone()).current(&ParticipantReplacementScope {conversation:ready.grant.domain.member.conversation(),session:&ready.grant.domain.session,principal:&ready.grant.domain.principal,intent:&ready.grant.intent,phase:ReplacementPhase::Commit,plan:Some(ready.plan.media())}).unwrap()
++}
++async fn captured(room:&ManagedRoom,ready:&ModelReady)->crate::orchestrator::participant_control::ManagedCutPreparationFacts {
++    let held=command(ready);
++    loop {
++        match room.orch.capture_staged_replacement_cut_facts(&ready.plan,ready.grant.until,CancellationToken::new(),&held) {
++            Ok(facts)=>return facts,
++            Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))=> {
++                assert!(tokio::time::Instant::now()<ready.grant.until);
++                tokio::time::sleep_until((tokio::time::Instant::now()+Duration::from_millis(1)).min(ready.grant.until)).await;
++            }
++            Err(error)=>panic!("actual capture refused: {error:?}"),
++        }
++    }
++}
++struct ModelHold {release:Option<std::sync::mpsc::Sender<()>>,joined:Option<std::thread::JoinHandle<()>>}
++impl Drop for ModelHold {fn drop(&mut self){if let Some(release)=self.release.take(){let _=release.send(());}if let Some(joined)=self.joined.take(){let _=joined.join();}}}
++fn hold_model(room:&ManagedRoom)->ModelHold {
++    let owner=room.orch.clone();let session=room.session.clone();
++    let (release,released)=std::sync::mpsc::channel();let (ready,entered)=std::sync::mpsc::channel();
++    let joined=std::thread::spawn(move ||owner.with_managed_model_metadata_for_test(&session,|| {ready.send(()).unwrap();let _=released.recv_timeout(Duration::from_secs(3));}).unwrap());
++    entered.recv_timeout(Duration::from_secs(3)).unwrap();
++    ModelHold {release:Some(release),joined:Some(joined)}
++}
++async fn publish_ready(room:&ManagedRoom,ready:&ModelReady,mut prepared:crate::orchestrator::participant_control::PreparedManagedCut)->crate::orchestrator::participant_control::ManagedCutPublished {
++    use crate::orchestrator::participant_control::ManagedCutAttempt;
++    loop {
++        let witness=ReplacementCutCurrent::capture_for(room,&ready.grant,&ready.plan,&prepared,"actual-attempt","actual-effect");
++        let authority=authority(ready);let held=command(ready);let cancel=CancellationToken::new();
++        let attempt=room.orch.try_commit_prepared_managed_cut(prepared,witness.grant(&authority,&held,&cancel));
++        drop(held);drop(authority);drop(witness);
++        match attempt {
++            ManagedCutAttempt::StillUnpublished(returned)=> {assert!(tokio::time::Instant::now()<ready.grant.until);prepared=returned.into_prepared();tokio::time::sleep_until((tokio::time::Instant::now()+Duration::from_millis(1)).min(ready.grant.until)).await;}
++            ManagedCutAttempt::Published(published)=>return published,
++            ManagedCutAttempt::Refused {error,post}|ManagedCutAttempt::EffectPossible {error,post}=> {room.orch.finish_managed_cut_publication(post).await.unwrap();panic!("final managed publication refused: {error:?}");}
++        }
++    }
++}
++
++#[tokio::test]
++async fn managed_cold_model_token_survives_real_state_busy_and_preserves_healthy_io_then_commits_once() {
++    use crate::orchestrator::participant_control::{ManagedCutAttempt,ManagedCutPublished};
++    let mut room=ManagedRoom::new().await;
++    let work=catch_original(async {
++        let ready=model_ready(&mut room).await;
++        let prepared=room.orch.prepare_staged_managed_cut(captured(&room,&ready).await).await.unwrap();
++        let before=room.orch.participant_revision(&room.session).unwrap();
++        let allocations=room.route.allocations.load(Ordering::Acquire);
++        let hold=hold_model(&room);
++        let witness=ReplacementCutCurrent::capture(&room,&ready.grant,&ready.plan,"actual-attempt","actual-effect");
++        let role=authority(&ready);let held=command(&ready);let cancel=CancellationToken::new();
++        let returned=match room.orch.try_commit_prepared_managed_cut(prepared,witness.grant(&role,&held,&cancel)) {ManagedCutAttempt::StillUnpublished(returned)=>returned,_=>panic!("real held model must return unpublished")};
++        assert!(matches!(returned.reason(),StreamControlError::MetadataBusy));
++        let prepared=returned.into_prepared();
++        assert_eq!(prepared.started_attempt_for_test(),Some((ready.grant.intent.operation_id.as_str(),"actual-attempt","actual-effect")));
++        assert!(!ready.root.is_committed());assert_eq!(room.route.allocations.load(Ordering::Acquire),allocations);
++        room.nodes.get_mut(&ready.healthy_source).unwrap().publish(7300).unwrap();
++        room.nodes.get_mut(&ready.healthy_target).unwrap().hear(7300).await;
++        drop(hold);drop(held);drop(role);drop(witness);
++        assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before);
++        let published=publish_ready(&room,&ready,prepared).await;
++        let ManagedCutPublished::Replacement {outcome,post,..}=published else {panic!("wrong publication purpose")};
++        assert_eq!(outcome.replaced,ready.old);assert_eq!(outcome.admitted,ready.grant.intent.replacement);assert_eq!(outcome.retained,ready.retained);
++        assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before+1);assert!(ready.root.is_committed());
++        room.orch.finish_managed_cut_publication(post).await.unwrap();
++        assert_eq!(room.route.allocations.load(Ordering::Acquire),allocations);
++        assert_eq!(room.orch.session_of(&ready.old),None);assert_eq!(room.orch.session_of(&ready.grant.intent.replacement),Some(room.session.clone()));
++    }).await;
++    let clean=room.close_originals().await.into_iter().all(|value|value);
++    if let Err(error)=work {resume_unwind(error)}assert!(clean);
++}
++
++#[tokio::test]
++async fn managed_prepared_model_rejects_foreign_attempt_and_current_revocation_without_publication() {
++    use crate::orchestrator::participant_control::ManagedCutAttempt;
++    for revoke in [false,true] {
++        let mut room=ManagedRoom::new().await;
++        let work=catch_original(async {
++            let ready=model_ready(&mut room).await;
++            let prepared=room.orch.prepare_staged_managed_cut(captured(&room,&ready).await).await.unwrap();
++            let before=room.orch.participant_revision(&room.session).unwrap();let hold=hold_model(&room);
++            let witness=ReplacementCutCurrent::capture(&room,&ready.grant,&ready.plan,"actual-attempt","actual-effect");
++            let role=authority(&ready);let held=command(&ready);let cancel=CancellationToken::new();
++            let returned=match room.orch.try_commit_prepared_managed_cut(prepared,witness.grant(&role,&held,&cancel)) {ManagedCutAttempt::StillUnpublished(returned)=>returned,_=>panic!("real held model must return unpublished")};
++            let prepared=returned.into_prepared();drop(hold);
++            let foreign=ReplacementCutCurrent::capture(&room,&ready.grant,&ready.plan,if revoke {"actual-attempt"}else{"foreign-attempt"},"actual-effect");
++            if revoke {room.world.allowed.store(false,Ordering::Release);}
++            let refused=room.orch.try_commit_prepared_managed_cut(prepared,foreign.grant(&role,&held,&cancel));
++            drop(held);drop(role);drop(witness);drop(foreign);
++            let ManagedCutAttempt::Refused {post,..}=refused else {panic!("stale purpose/attempt must be a no-effect refusal")};
++            assert!(!ready.root.is_committed());assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before);
++            room.orch.finish_managed_cut_publication(post).await.unwrap();
++            room.world.allowed.store(true,Ordering::Release);
++            assert_eq!(room.orch.session_of(&ready.old),Some(room.session.clone()));
++        }).await;
++        room.world.allowed.store(true,Ordering::Release);
++        let clean=room.close_originals().await.into_iter().all(|value|value);
++        if let Err(error)=work {resume_unwind(error)}assert!(clean);
++    }
++}
++
++#[tokio::test]
++async fn managed_terminal_cleanup_capacity_is_reserved_before_effect_and_cancelled_observer_never_retires_twice() {
++    use crate::orchestrator::participant_control::ManagedCutPublished;
++    for reject_capacity in [true,false] {
++        let mut room=ManagedRoom::new().await;
++        let work=catch_original(async {
++            let ready=model_ready(&mut room).await;
++            let facts=captured(&room,&ready).await;
++            let before=room.orch.participant_revision(&room.session).unwrap();let allocations=room.route.allocations.load(Ordering::Acquire);
++            if reject_capacity {
++                let slots=room.orch.occupy_managed_cleanup_slots_for_test();assert!(!slots.is_empty());
++                assert!(room.orch.prepare_staged_managed_cut(facts).await.is_err(),"actual terminal capacity must reject before final effect");
++                assert!(!ready.root.is_committed());assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before);assert_eq!(room.route.allocations.load(Ordering::Acquire),allocations);
++                drop(slots);
++            } else {
++                // Independent real operation: no second capture/restage of a
++                // consumed model token after the negative-capacity case.
++                let prepared=room.orch.prepare_staged_managed_cut(facts).await.unwrap();
++                let ManagedCutPublished::Replacement {post,..}=publish_ready(&room,&ready,prepared).await else {panic!("wrong purpose")};
++                let receipt=room.orch.start_managed_cut_publication(post).unwrap();
++                drop(receipt); // Observer cancellation never cancels custody.
++                room.orch.drain_connection_lifecycle_tasks().await.unwrap();
++                assert!(!room.route.live.lock().unwrap().contains(&ready.old));
++                assert_eq!(room.route.ends.load(Ordering::Acquire),1,"the same original retirement was not redispatched");
++                assert!(ready.root.is_committed());assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before+1);
++            }
++        }).await;
++        let clean=room.close_originals().await.into_iter().all(|value|value);
++        if let Err(error)=work {resume_unwind(error)}assert!(clean);
++    }
++}
++
++#[derive(Clone)]
++enum HandoffApproval {
++    Audience(crate::staged_streams::audience::AudioAudiencePlan),
++    Cut(ManagedAudioHandoffPlan),
++}
++#[derive(Clone)]
++pub(super) struct HandoffCommand {
++    world:Arc<World>, actor:Arc<Domain>, outgoing:Arc<Domain>, incoming:Arc<Domain>,
++    approval:HandoffApproval, until:tokio::time::Instant,
++}
++impl HandoffCommand {
++    fn live(&self)->bool {self.world.allowed.load(Ordering::Acquire)&&self.actor.allowed.load(Ordering::Acquire)&&self.outgoing.allowed.load(Ordering::Acquire)&&self.incoming.allowed.load(Ordering::Acquire)&&tokio::time::Instant::now()<self.until}
++    fn matches(&self,intent:&MediaControlIntent<'_>)->bool {
++        match (&self.approval,intent) {
++            (HandoffApproval::Audience(expected),MediaControlIntent::AudioAudience {plan})=>expected.same_intent(plan)&&plan.handoff_request().is_none()&&plan.replacement_request().is_none(),
++            (HandoffApproval::Cut(expected),MediaControlIntent::Handoff {plan})=>expected.media().audience().same_intent(plan),
++            _=>false,
++        }
++    }
++    pub(super) fn media_control(&self,world:&Arc<World>,scope:&MediaScope<'_>,intent:&MediaControlIntent<'_>)->ControlResult<MediaControl> {
++        let plan=match &self.approval {HandoffApproval::Audience(plan)=>plan,HandoffApproval::Cut(plan)=>plan.media().audience()};
++        if !Arc::ptr_eq(world,&self.world)||!self.live()||!self.matches(intent)||!plan.expected_receiver_revisions().contains_key(scope.connection){return Err(StreamControlError::Authority);}
++        MediaControl::new(world.lease(scope)?,CancellationToken::new(),self.until)
++    }
++    fn scope_current(&self,scope:&ParticipantHandoffScope<'_>)->bool {
++        let HandoffApproval::Cut(plan)=&self.approval else {return false;};
++        self.live()&&scope.conversation==self.actor.member.conversation()&&scope.session==&self.actor.session
++            &&scope.principal.ownership_key()==self.actor.principal.ownership_key()&&scope.principal.expires_at==self.actor.principal.expires_at&&plan.same_intent(scope.plan)
++    }
++    fn authority(&self,scope:&ParticipantHandoffScope<'_>)->std::result::Result<ParticipantHandoffAuthority,ParticipantControlError> {
++        if !self.scope_current(scope){return Err(ParticipantControlError::Authority);}
++        Ok(ParticipantHandoffAuthority {actor:self.actor.member.clone(),outgoing:self.outgoing.member.clone(),incoming:self.incoming.member.clone(),incoming_may_send_audio:true,outgoing_may_receive_audio:true})
++    }
++}
++struct HandoffLease(HandoffCommand);
++impl ParticipantHandoffLease for HandoffLease {
++    fn current(&self,scope:&ParticipantHandoffScope<'_>)->std::result::Result<ParticipantHandoffAuthority,ParticipantControlError> {self.0.authority(scope)}
++}
++pub(super) fn handoff_control(world:&World,scope:&ParticipantHandoffScope<'_>,held:&(dyn Any+Send+Sync))->std::result::Result<ParticipantHandoffControl,ParticipantControlError> {
++    let command=held.downcast_ref::<HandoffCommand>().ok_or(ParticipantControlError::Authority)?;
++    if !std::ptr::eq(world,command.world.as_ref()){return Err(ParticipantControlError::Authority);}
++    command.authority(scope)?;
++    ParticipantHandoffControl::new(Box::new(HandoffLease(command.clone())),CancellationToken::new(),command.until)
++}
++struct HandoffCurrent {command:HandoffCommand,resources:BTreeMap<ConnectionId,FinalResource>,attempt:String,effect:String,record:String}
++impl HandoffCurrent {
++    fn capture(room:&ManagedRoom,command:&HandoffCommand)->Self {
++        let HandoffApproval::Cut(plan)=&command.approval else {panic!("actual handoff plan required")};
++        Self {command:command.clone(),resources:room.nodes.iter().map(|(id,node)|(id.clone(),FinalResource {controller:node.controller.clone(),owner:room.world.owner(id).unwrap(),bindings:node.controller.active_bindings()})).collect(),attempt:"actual-handoff-attempt".into(),effect:"actual-handoff-effect".into(),record:plan.media().request().operation_id.clone()}
++    }
++    fn binding(&self)->ManagedAttemptBinding<'_> {ManagedAttemptBinding {record:&self.record,attempt_id:&self.attempt,effect_id:&self.effect}}
++    fn live(&self,attempt:ManagedAttemptBinding<'_>)->bool {self.command.live()&&attempt.record==self.record&&attempt.attempt_id==self.attempt&&attempt.effect_id==self.effect}
++    fn resource(&self,controller:&Arc<StreamController>)->Option<&FinalResource> {self.resources.get(&controller.connection).filter(|resource|Arc::ptr_eq(&resource.controller,controller)&&!controller.shutdown.is_cancelled()&&resource.owner.connection.require_current(&resource.owner.member,&resource.owner.presence).is_ok())}
++    fn grant<'a>(&'a self,role:&'a ParticipantHandoffAuthority,cancel:&'a CancellationToken)->FinalControlGrant<'a> {FinalControlGrant::Handoff {authority:role,attempt:self.binding(),held:&self.command,current:self,cancellation:cancel,deadline:self.command.until}}
++}
++impl crate::orchestrator::participant_control::HandoffFinalCurrent for HandoffCurrent {
++    fn is_current(&self,scope:&ParticipantHandoffScope<'_>,attempt:ManagedAttemptBinding<'_>)->bool {self.live(attempt)&&self.command.scope_current(scope)}
++    fn media_is_current(&self,controller:&Arc<StreamController>,scope:&MediaScope<'_>,intent:&MediaControlIntent<'_>,attempt:ManagedAttemptBinding<'_>)->bool {
++        self.live(attempt)&&self.command.matches(intent)&&self.resource(controller).is_some_and(|resource|matches!(scope.purpose,MediaPurpose::Control)&&scope.connection==resource.owner.connection.connection()&&scope.conversation==resource.owner.member.conversation()&&scope.session==resource.owner.presence.session()&&resource.owner.actor.revalidate_principal(scope.principal,chrono::Utc::now()).is_ok())
++    }
++    fn source_is_current(&self,controller:&Arc<StreamController>,source:&MediaSource,intent:&MediaControlIntent<'_>,attempt:ManagedAttemptBinding<'_>)->bool {
++        self.live(attempt)&&self.command.matches(intent)&&self.resource(controller).is_some_and(|resource|source.connection==*resource.owner.connection.connection()&&source.conversation==*resource.owner.member.conversation()&&source.session==*resource.owner.presence.session()&&source.participant==*resource.owner.member.participant()&&source.membership_epoch==resource.owner.member.epoch()&&source.connection_generation==resource.owner.connection.generation()&&resource.bindings.iter().any(|binding|binding.negotiated.requested.logical_id==source.logical_id&&binding.transport_id==source.transport_id&&binding.generation==source.stream_generation))
++    }
++    fn participant_source_is_current(&self,controller:&Arc<StreamController>,source:&MediaParticipantSource,intent:&MediaControlIntent<'_>,attempt:ManagedAttemptBinding<'_>)->bool {
++        self.live(attempt)&&self.command.matches(intent)&&self.resource(controller).is_some_and(|resource|source.connection==*resource.owner.connection.connection()&&source.conversation==*resource.owner.member.conversation()&&source.session==*resource.owner.presence.session()&&source.identity==*resource.owner.member.identity()&&source.participant==*resource.owner.member.participant()&&source.membership_epoch==resource.owner.member.epoch()&&source.medium==Medium::Audio&&resource.owner.member.revalidate_principal(&source.principal,chrono::Utc::now()).is_ok())
++    }
++}
++
++#[tokio::test]
++async fn managed_handoff_same_model_cut_survives_busy_and_preserves_both_observe_and_leave_modes() {
++    use crate::orchestrator::participant_control::{ManagedCutAttempt,ManagedCutPublished};
++    use crate::staged_streams::handoff::{AudioHandoffRequest,OldHandoffDisposition};
++    for disposition in [OldHandoffDisposition::Observer,OldHandoffDisposition::Leave] {
++        let mut room=ManagedRoom::new().await;
++        let work=catch_original(async {
++            let outgoing=domain(&room.conversation,&room.session,"handoff-outgoing","alice");
++            let incoming=domain(&room.conversation,&room.session,"handoff-incoming","carol");
++            let old=room.initial(outgoing.clone()).await;
++            let retained=room.initial(domain(&room.conversation,&room.session,"handoff-retained","bob")).await;
++            let admitted=room.initial(incoming.clone()).await;
++            let healthy=room.initial(domain(&room.conversation,&room.session,"handoff-healthy","dave")).await;
++            let context_plan=room.orch.plan_staged_audio_audience(&room.session,crate::staged_streams::audience::AudioAudienceRequest {
++                operation_id:"actual-handoff-private".into(),expected_revision:room.orch.audio_audience_revision(&room.session).unwrap(),private_connections:BTreeSet::from([old.clone(),admitted.clone()]),
++                receivers:BTreeMap::from([(old.clone(),vec![AudioSubscription::Connection(admitted.clone())]),(admitted.clone(),vec![AudioSubscription::Connection(old.clone())]),(retained.clone(),vec![AudioSubscription::Connection(healthy.clone())])]),activate_muted:None,
++            }).unwrap();
++            let mut command=HandoffCommand {world:room.world.clone(),actor:outgoing.clone(),outgoing:outgoing.clone(),incoming:incoming.clone(),approval:HandoffApproval::Audience(context_plan.clone()),until:deadline()};
++            let (_,context)=room.orch.change_staged_audio_audience_with_held(&room.session,context_plan,command.until,CancellationToken::new(),&command).await.unwrap();
++            room.nodes.get_mut(&old).unwrap().publish(6100).unwrap();room.nodes.get_mut(&admitted).unwrap().hear(6100).await;
++            room.nodes.get_mut(&admitted).unwrap().publish(4300).unwrap();room.nodes.get_mut(&old).unwrap().hear(4300).await;
++            let before=room.orch.participant_revision(&room.session).unwrap();
++            let plan=room.orch.plan_staged_audio_handoff(&room.session,before,"actual-handoff-correlation".into(),ParticipantRole::Agent,&context,AudioHandoffRequest {operation_id:"actual-managed-handoff".into(),expected_revision:room.orch.audio_audience_revision(&room.session).unwrap(),old:old.clone(),retained:retained.clone(),admitted:admitted.clone(),old_disposition:disposition}).unwrap();
++            command.approval=HandoffApproval::Cut(plan.clone());
++            let facts=loop {match room.orch.capture_staged_handoff_cut_facts(&room.session,outgoing.principal.clone(),&plan,command.until,CancellationToken::new(),&command) {
++                Ok(facts)=>break facts,Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))=>{assert!(tokio::time::Instant::now()<command.until);tokio::time::sleep_until((tokio::time::Instant::now()+Duration::from_millis(1)).min(command.until)).await;},Err(error)=>panic!("actual Handoff capture refused: {error:?}"),
++            }};
++            let mut prepared=room.orch.prepare_staged_managed_cut(facts).await.unwrap();
++            let witness=HandoffCurrent::capture(&room,&command);let cancel=CancellationToken::new();
++            let role=command.authority(&ParticipantHandoffScope {conversation:&room.conversation,session:&room.session,principal:&outgoing.principal,plan:&plan}).unwrap();
++            let hold=hold_model(&room);
++            let returned=match room.orch.try_commit_prepared_managed_cut(prepared,witness.grant(&role,&cancel)){ManagedCutAttempt::StillUnpublished(returned)=>returned,_=>panic!("actual held Handoff model must stay unpublished")};
++            prepared=returned.into_prepared();assert_eq!(prepared.started_attempt_for_test(),Some(("actual-managed-handoff","actual-handoff-attempt","actual-handoff-effect")));
++            room.nodes.get_mut(&healthy).unwrap().publish(7700).unwrap();room.nodes.get_mut(&retained).unwrap().hear(7700).await;drop(hold);
++            assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before);
++            let published=loop {
++                let current=HandoffCurrent::capture(&room,&command);
++                match room.orch.try_commit_prepared_managed_cut(prepared,current.grant(&role,&cancel)) {
++                    ManagedCutAttempt::StillUnpublished(returned)=>{prepared=returned.into_prepared();assert!(tokio::time::Instant::now()<command.until);tokio::time::sleep_until((tokio::time::Instant::now()+Duration::from_millis(1)).min(command.until)).await;},
++                    ManagedCutAttempt::Published(published)=>break published,
++                    ManagedCutAttempt::Refused {error,post}|ManagedCutAttempt::EffectPossible {error,post}=>{drop(current);room.orch.finish_managed_cut_publication(post).await.unwrap();panic!("actual Handoff final refused: {error:?}")},
++                }
++            };
++            drop(witness);drop(role);
++            let ManagedCutPublished::Handoff {outcome,post,..}=published else {panic!("wrong purpose")};
++            assert_eq!(outcome.retained,retained);assert_eq!(outcome.admitted,admitted);assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before+1);
++            let observed=outcome.media.participant_handoff.as_ref().unwrap();
++            assert_eq!(observed.outgoing_role,if disposition==OldHandoffDisposition::Observer {Some(ParticipantRole::Observer)}else{None});
++            room.orch.finish_managed_cut_publication(post).await.unwrap();
++            assert_eq!(room.orch.session_of(&old),if disposition==OldHandoffDisposition::Leave {None}else{Some(room.session.clone())});
++            assert_eq!(room.orch.session_of(&admitted),Some(room.session.clone()));
++        }).await;
++        let clean=room.close_originals().await.into_iter().all(|value|value);
++        if let Err(error)=work {resume_unwind(error)}assert!(clean);
++    }
++}
++
++struct PanicBeforeEffect<'a>(&'a ReplacementCutCurrent);
++impl ReplacementFinalCurrent for PanicBeforeEffect<'_> {
++    fn is_current(&self,_:&ParticipantReplacementScope<'_>,_:ManagedAttemptBinding<'_>)->bool {panic!("controlled pre-effect role witness unwind")}
++    fn media_is_current(&self,c:&Arc<StreamController>,s:&MediaScope<'_>,i:&MediaControlIntent<'_>,a:ManagedAttemptBinding<'_>)->bool {self.0.media_is_current(c,s,i,a)}
++    fn source_is_current(&self,c:&Arc<StreamController>,s:&MediaSource,i:&MediaControlIntent<'_>,a:ManagedAttemptBinding<'_>)->bool {self.0.source_is_current(c,s,i,a)}
++    fn participant_source_is_current(&self,c:&Arc<StreamController>,s:&MediaParticipantSource,i:&MediaControlIntent<'_>,a:ManagedAttemptBinding<'_>)->bool {self.0.participant_source_is_current(c,s,i,a)}
++}
++#[tokio::test]
++async fn managed_pre_effect_witness_unwind_returns_refused_deferred_cleanup_without_republication() {
++    use crate::orchestrator::participant_control::ManagedCutAttempt;
++    let mut room=ManagedRoom::new().await;
++    let work=catch_original(async {
++        let ready=model_ready(&mut room).await;
++        let prepared=room.orch.prepare_staged_managed_cut(captured(&room,&ready).await).await.unwrap();
++        let before=room.orch.participant_revision(&room.session).unwrap();
++        let witness=ReplacementCutCurrent::capture(&room,&ready.grant,&ready.plan,"actual-attempt","actual-effect");
++        let role=authority(&ready);let held=command(&ready);let cancel=CancellationToken::new();
++        let panicking=PanicBeforeEffect(&witness);
++        let grant=FinalControlGrant::Replacement {authority:&role,attempt:witness.binding(),held:&held,current:&panicking,cancellation:&cancel,deadline:ready.grant.until};
++        let result=room.orch.try_commit_prepared_managed_cut(prepared,grant);
++        // The panic was caught before model publication; no linear retry token
++        // or success can be manufactured from the error. Cleanup is deferred.
++        let ManagedCutAttempt::Refused {post,..}=result else {panic!("preeffect unwind must be a terminal no-effect refusal")};
++        assert!(!ready.root.is_committed());assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before);
++        drop(panicking);drop(witness);drop(role);drop(held);
++        room.orch.finish_managed_cut_publication(post).await.unwrap();
++        assert_eq!(room.orch.session_of(&ready.old),Some(room.session.clone()));
++        room.nodes.get_mut(&ready.healthy_source).unwrap().publish(7200).unwrap();
++        room.nodes.get_mut(&ready.healthy_target).unwrap().hear(7200).await;
++    }).await;
++    let clean=room.close_originals().await.into_iter().all(|value|value);
++    if let Err(error)=work {resume_unwind(error)}assert!(clean);
++}
++
++enum PortMutation {Initialize,End(StreamId),Change(Vec<DesiredStream>),Direct(crate::staged_streams::direct_subscriptions::DirectSubscriptionChange)}
++pub(super) struct PortCommand {world:Arc<World>,connection:ConnectionId,expected:u64,mutation:PortMutation,until:tokio::time::Instant}
++impl PortCommand {
++    pub(super) fn media_control(&self,world:&Arc<World>,scope:&MediaScope<'_>,intent:&MediaControlIntent<'_>)->ControlResult<MediaControl> {
++        let exact=match (&self.mutation,intent) {
++            (PortMutation::Initialize,MediaControlIntent::Initialize)=>self.expected==0,
++            (PortMutation::End(original),MediaControlIntent::End {logical,expected})=>original==*logical&&self.expected==*expected,
++            (PortMutation::Change(original),MediaControlIntent::Change {desired,expected,replace})=>original.as_slice()==*desired&&self.expected==*expected&&replace.is_empty(),
++            (PortMutation::Direct(original),MediaControlIntent::DirectSubscriptions {change,expected})=>original==*change&&self.expected==*expected,
++            _=>false,
++        };
++        if !Arc::ptr_eq(world,&self.world)||scope.connection!=&self.connection||!matches!(scope.purpose,MediaPurpose::Control)||!exact||tokio::time::Instant::now()>=self.until{return Err(StreamControlError::Authority);}
++        MediaControl::new(world.lease(scope)?,CancellationToken::new(),self.until)
++    }
++}
++#[tokio::test]
++async fn managed_future_participant_source_needs_no_stream_worker_and_still_fences_exact_arc_epoch_and_revocation() {
++    use crate::orchestrator::participant_control::{ManagedCutPublished,ManagedReceiveResourceRequirement};
++    let mut room=ManagedRoom::new().await;
++    let work=catch_original(async {
++        let ready=model_ready_with_future(&mut room,true).await;
++        let prepared=room.orch.prepare_staged_managed_cut(captured(&room,&ready).await).await.unwrap();
++        let requirements=prepared.try_final_resource_requirements().unwrap();
++        let source=room.nodes[&ready.healthy_source].controller.clone();
++        assert!(source.active_bindings().is_empty(),"the source really has no active negotiated stream");
++        assert!(requirements.sources.iter().any(|requirement|matches!(requirement,ManagedReceiveResourceRequirement::Participant {connection,controller} if connection==&ready.healthy_source&&Arc::ptr_eq(controller,&source))));
++        assert!(!requirements.sources.iter().any(|requirement|matches!(requirement,ManagedReceiveResourceRequirement::Concrete {connection,..} if connection==&ready.healthy_source)),"no fabricated worker binding for future intent");
++        let witness=ReplacementCutCurrent::capture(&room,&ready.grant,&ready.plan,"actual-attempt","actual-effect");
++        let owner=room.world.owner(&ready.healthy_source).unwrap();let credential=source.credential_snapshot();
++        let descriptor=MediaParticipantSource {conversation:room.conversation.clone(),session:room.session.clone(),connection:ready.healthy_source.clone(),participant:owner.member.participant().clone(),membership_epoch:owner.member.epoch(),identity:owner.member.identity().clone(),principal:credential.principal.clone(),medium:Medium::Audio};
++        let intent=MediaControlIntent::DeviceReplacement {plan:ready.plan.media().audience()};
++        assert!(witness.participant_source_is_current(&source,&descriptor,&intent,witness.binding()));
++        let mut wrong_epoch=descriptor.clone();wrong_epoch.membership_epoch+=1;
++        assert!(!witness.participant_source_is_current(&source,&wrong_epoch,&intent,witness.binding()));
++        // A second real controller with the SAME logical ID/current owner is
++        // still foreign resource identity, not a second registered model root.
++        let held=PortCommand {world:room.world.clone(),connection:ready.healthy_source.clone(),expected:0,mutation:PortMutation::Initialize,until:ready.grant.until};
++        let foreign=StreamController::with_held_control(room.conversation.clone(),room.session.clone(),ready.healthy_source.clone(),credential.principal.as_ref().clone(),room.policy.clone(),Adapter::new(),Arc::new(StreamHandleAllocator::default()),4,8,CancellationToken::new(),&held).unwrap();
++        assert!(!Arc::ptr_eq(&source,&foreign));assert!(!witness.participant_source_is_current(&foreign,&descriptor,&intent,witness.binding()));
++        room.world.allowed.store(false,Ordering::Release);assert!(!witness.participant_source_is_current(&source,&descriptor,&intent,witness.binding()));room.world.allowed.store(true,Ordering::Release);
++        assert_eq!(foreign.shutdown(deadline()).await,0);drop(foreign);drop(held);drop(witness);
++        let ManagedCutPublished::Replacement {post,..}=publish_ready(&room,&ready,prepared).await else {panic!("wrong purpose")};
++        room.orch.finish_managed_cut_publication(post).await.unwrap();
++        // The retained future programme accepts a later, freshly negotiated
++        // logical identity; ended IDs are never reused.
++        let fresh=DesiredStream {logical_id:StreamId::from_string("managed-future-audio"),medium:Medium::Audio,direction:StreamDirection::Both};
++        let held=PortCommand {world:room.world.clone(),connection:ready.healthy_source.clone(),expected:source.revision(),mutation:PortMutation::Change(vec![fresh.clone()]),until:deadline()};
++        source.change_with_held(held.expected,&[fresh.clone()],&BTreeSet::new(),held.until,CancellationToken::new(),Arc::new(held)).await.unwrap();
++        let port=AdapterMediaPort(source.state.lock().unwrap().active[&fresh.logical_id].clone());
++        let mut packet=frame(&port,160);
++        let mut codec=rvoip_media_core::codec::factory::CodecFactory::create_codec(0,Some(8000),Some(1)).unwrap();
++        packet.payload=codec.encode(&rvoip_media_core::AudioFrame {samples:vec![6400;160],sample_rate:8000,channels:1,duration:Duration::from_millis(20),timestamp:160}).unwrap().into();
++        port.try_publish(&packet).unwrap();room.nodes.get_mut(&ready.healthy_target).unwrap().hear(6400).await;
++    }).await;
++    room.world.allowed.store(true,Ordering::Release);
++    let clean=room.close_originals().await.into_iter().all(|value|value);
++    if let Err(error)=work {resume_unwind(error)}assert!(clean);
++}
++
++async fn standalone_video_publisher(room:&mut ManagedRoom)->Arc<StreamController> {
++    // This is a real standalone StreamController under the same current
++    // fixture policy/session. It intentionally has NO managed SceneMember or
++    // participant-model token. That is a supported Direct publisher contract.
++    let domain=domain(&room.conversation,&room.session,"external-publisher","external");
++    let presence=crate::relationships::SessionAppearance::admit(&domain.member,room.session.clone(),None).unwrap();
++    let id=ConnectionId::from_string("actual-external-video-publisher");
++    let mut connection=crate::relationships::ConnectionBinding::prepare(&domain.member,&presence,&domain.endpoint,id.clone()).unwrap();
++    connection.observe_ready(&domain.member,&presence,&domain.endpoint,1).unwrap();connection.activate(&domain.member,&presence,&domain.endpoint).unwrap();
++    let owner=MediaOwner {actor:domain.member.clone(),member:domain.member.clone(),presence,endpoint:domain.endpoint.clone(),connection,may_control:true,may_route_source:true,send_media:BTreeSet::from([Medium::Video]),receive_media:BTreeSet::from([Medium::Video]),local:profile(),remote:profile()};
++    room.world.resources.lock().unwrap().insert(id.clone(),Resource {owner,proof:None,pending:None,probe_operation:None});
++    let held=PortCommand {world:room.world.clone(),connection:id.clone(),expected:0,mutation:PortMutation::Initialize,until:deadline()};
++    let backend=Adapter::new();
++    let controller=StreamController::with_held_control(room.conversation.clone(),room.session.clone(),id.clone(),domain.principal.clone(),room.policy.clone(),backend.clone(),Arc::new(StreamHandleAllocator::default()),4,8,CancellationToken::new(),&held).unwrap();
++    // Own it before any fallible setup, exactly like ManagedRoom.initial.
++    room.original_owners.lock().unwrap().push((controller.clone(),backend));
++    let held=PortCommand {world:room.world.clone(),connection:id,expected:0,mutation:PortMutation::Change(vec![desired(Medium::Video)]),until:deadline()};
++    controller.change_with_held(0,&[desired(Medium::Video)],&BTreeSet::new(),held.until,CancellationToken::new(),Arc::new(held)).await.unwrap();
++    controller
++}
++#[tokio::test]
++async fn managed_cut_preserves_exact_direct_publisher_outside_scene_without_new_source_control_permission() {
++    use crate::orchestrator::participant_control::{ManagedCutPublished,ManagedReceiveResourceRequirement};
++    let mut room=ManagedRoom::with_video(true).await;
++    let work=catch_original(async {
++        let source=standalone_video_publisher(&mut room).await;
++        let mut ingress=source.take_ingress(&desired(Medium::Video).logical_id).unwrap();
++        let ready=model_ready_with_external(&mut room,false,Some(&source)).await;
++        let destination=room.nodes[&ready.healthy_target].controller.clone();
++        let target_port=room.nodes[&ready.healthy_target].backend.port(Medium::Video);let mut output=target_port.take_egress().unwrap();
++        let prepared=room.orch.prepare_staged_managed_cut(captured(&room,&ready).await).await.unwrap();
++        assert!(!prepared.final_media_connections().contains(&source.connection),"receive-only external publisher must never acquire new CONTROL permission");
++        let requirements=prepared.try_final_resource_requirements().unwrap();
++        assert!(!room.nodes[&ready.retained].controller.active_bindings().iter().any(|binding|binding.negotiated.requested.medium==Medium::Video));
++        let retained_outputs=&requirements.controls.iter().find(|(connection,_,_)|connection==&ready.retained).unwrap().2;
++        assert!(!retained_outputs.is_empty()&&retained_outputs.iter().all(|binding|binding.negotiated.requested.medium==Medium::Audio),"ended unrelated video cannot become a ready-worker requirement");
++        let binding=requirements.sources.iter().find_map(|requirement|match requirement {ManagedReceiveResourceRequirement::Concrete {connection,controller,binding} if connection==&source.connection&&Arc::ptr_eq(controller,&source)=>Some(binding.clone()),_=>None}).expect("actual selected external source binding");
++        assert_eq!(binding.negotiated.requested.medium,Medium::Video);
++        let witness=ReplacementCutCurrent::capture_for(&room,&ready.grant,&ready.plan,&prepared,"actual-attempt","actual-effect");
++        let owner=room.world.owner(&source.connection).unwrap();
++        let descriptor=MediaSource {conversation:room.conversation.clone(),session:room.session.clone(),connection:source.connection.clone(),participant:owner.member.participant().clone(),membership_epoch:owner.member.epoch(),connection_generation:owner.connection.generation(),logical_id:binding.negotiated.requested.logical_id.clone(),transport_id:binding.transport_id.clone(),stream_generation:binding.generation};
++        let intent=MediaControlIntent::DeviceReplacement {plan:ready.plan.media().audience()};
++        assert!(witness.source_is_current(&source,&descriptor,&intent,witness.binding()));
++        let mut stale=descriptor.clone();stale.stream_generation+=1;assert!(!witness.source_is_current(&source,&stale,&intent,witness.binding()));
++        let held=PortCommand {world:room.world.clone(),connection:source.connection.clone(),expected:0,mutation:PortMutation::Initialize,until:ready.grant.until};
++        let foreign=StreamController::with_held_control(room.conversation.clone(),room.session.clone(),source.connection.clone(),source.credential_snapshot().principal.as_ref().clone(),room.policy.clone(),Adapter::new(),Arc::new(StreamHandleAllocator::default()),4,8,CancellationToken::new(),&held).unwrap();
++        assert!(!witness.source_is_current(&foreign,&descriptor,&intent,witness.binding()));assert_eq!(foreign.shutdown(deadline()).await,0);drop(foreign);drop(held);
++        room.world.allowed.store(false,Ordering::Release);assert!(!witness.source_is_current(&source,&descriptor,&intent,witness.binding()));room.world.allowed.store(true,Ordering::Release);
++        let mut expired=ReplacementCutCurrent::capture_for(&room,&ready.grant,&ready.plan,&prepared,"actual-attempt","actual-effect");expired.root.until=tokio::time::Instant::now();assert!(!expired.source_is_current(&source,&descriptor,&intent,expired.binding()));drop(expired);drop(witness);
++        let port=AdapterMediaPort(source.state.lock().unwrap().active[&binding.negotiated.requested.logical_id].clone());
++        port.try_publish(&frame(&port,61000)).unwrap();let before=receive(&mut ingress).await;
++        before.try_forward_to(&destination,&desired(Medium::Video).logical_id).unwrap();
++        outgoing(&mut output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,61000);Ok(())}).await.unwrap();
++        // A selected publisher outside the Scene still owns an actual source
++        // Port/ticket fence. Holding that exact PortState must stop the cut
++        // BEFORE effect while retaining the SAME model/attempt, not fabricate
++        // a Source CONTROL permission or require unrelated workers.
++        let current=ReplacementCutCurrent::capture_for(&room,&ready.grant,&ready.plan,&prepared,"actual-attempt","actual-effect");
++        let role=authority(&ready);let held=command(&ready);let cancel=CancellationToken::new();
++        let revision=room.orch.participant_revision(&room.session).unwrap();
++        let held_source_port=port.0.state.lock().unwrap();
++        let returned=match room.orch.try_commit_prepared_managed_cut(prepared,current.grant(&role,&held,&cancel)) {
++            crate::orchestrator::participant_control::ManagedCutAttempt::StillUnpublished(returned)=>returned,
++            _=>panic!("actual selected external PortState must retain the original unpublished cut"),
++        };
++        assert!(matches!(returned.reason(),StreamControlError::MetadataBusy));
++        let prepared=returned.into_prepared();
++        assert_eq!(prepared.started_attempt_for_test(),Some((ready.grant.intent.operation_id.as_str(),"actual-attempt","actual-effect")));
++        assert_eq!(room.orch.participant_revision(&room.session).unwrap(),revision);assert!(!ready.root.is_committed());
++        drop(held_source_port);drop(current);drop(role);drop(held);
++        let ManagedCutPublished::Replacement {post,..}=publish_ready(&room,&ready,prepared).await else {panic!("wrong purpose")};
++        room.orch.finish_managed_cut_publication(post).await.unwrap();
++        port.try_publish(&frame(&port,64000)).unwrap();let after=receive(&mut ingress).await;
++        after.try_forward_to(&destination,&desired(Medium::Video).logical_id).unwrap();
++        outgoing(&mut output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,64000);Ok(())}).await.unwrap();
++        assert!(!source.shutdown.is_cancelled());
++        room.nodes.get_mut(&ready.healthy_target).unwrap().drain();
++        room.nodes.get_mut(&ready.retained).unwrap().publish(6900).unwrap();room.nodes.get_mut(&ready.healthy_target).unwrap().hear(6900).await;
++    }).await;
++    room.world.allowed.store(true,Ordering::Release);
++    let clean=room.close_originals().await.into_iter().all(|value|value);
++    if let Err(error)=work {resume_unwind(error)}assert!(clean);
++}
++
++#[tokio::test]
++async fn managed_actual_model_and_removed_route_unwind_keep_original_slots_until_deferred_post_once() {
++    use crate::orchestrator::participant_control::{ManagedCutAttempt,ManagedModelPanicPoint};
++    for (point,removed) in [(ManagedModelPanicPoint::AfterCommit,false),(ManagedModelPanicPoint::AfterOriginalRemoval,true)] {
++        let mut room=ManagedRoom::new().await;
++        let work=catch_original(async {
++            let ready=model_ready(&mut room).await;
++            let mut prepared=room.orch.prepare_staged_managed_cut(captured(&room,&ready).await).await.unwrap();
++            prepared.model_panic_for_test(point);
++            let capacity=room.orch.managed_capacity_for_test(&room.session).unwrap();
++            let before=room.orch.participant_revision(&room.session).unwrap();
++            let witness=ReplacementCutCurrent::capture(&room,&ready.grant,&ready.plan,"actual-attempt","actual-effect");
++            let role=authority(&ready);let held=command(&ready);let cancel=CancellationToken::new();
++            let result=room.orch.try_commit_prepared_managed_cut(prepared,witness.grant(&role,&held,&cancel));
++            let ManagedCutAttempt::EffectPossible {post,..}=result else {panic!("actual model publication unwind must consume retry custody")};
++            // These are the actual semaphore permits and original route, not
++            // a copied observer bit. Final caller aliases still exist here.
++            assert_eq!(post.retained_model_resources_for_test(),(true,removed,true));
++            assert_eq!(room.orch.managed_capacity_for_test(&room.session).unwrap(),capacity,"no original/temp slot destructor ran beneath final aliases");
++            assert_eq!(room.orch.participant_revision(&room.session).unwrap(),before+1,"the actual one-shot model commit occurred once");
++            assert_eq!(room.route.ends.load(Ordering::Acquire),0,"terminal retirement must not start before alias release");
++            drop(held);drop(role);drop(witness);
++            let receipt=room.orch.start_managed_cut_publication(post).unwrap();
++            receipt.wait().await.unwrap();
++            assert_eq!(room.route.ends.load(Ordering::Acquire),1,"the same original retirement was consumed once");
++            assert_eq!(room.orch.managed_capacity_for_test(&room.session).unwrap().1,capacity.1+1,"temporary reservation retired by its original owned post");
++        }).await;
++        let clean=room.close_originals().await.into_iter().all(|value|value);
++        if let Err(error)=work {resume_unwind(error)}assert!(clean);
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -325,6 +325,9 @@
+             CancellationToken::new(),
+             g.until,
+         )
++    }
++    fn current_handoff_control(&self,scope:&ParticipantHandoffScope<'_>,held:&(dyn Any+Send+Sync))->std::result::Result<ParticipantHandoffControl,ParticipantControlError> {
++        managed_model_cut_controls::handoff_control(self,scope,held)
+     }
+ }
+ impl World {
+@@ -544,6 +547,12 @@
+         intent: &MediaControlIntent<'_>,
+         held: &(dyn Any + Send + Sync),
+     ) -> ControlResult<MediaControl> {
++        if let Some(command)=held.downcast_ref::<managed_model_cut_controls::PortCommand>() {
++            return command.media_control(&self.0,s,intent);
++        }
++        if let Some(command)=held.downcast_ref::<managed_model_cut_controls::HandoffCommand>() {
++            return command.media_control(&self.0,s,intent);
++        }
+         if let Some(root) = held.downcast_ref::<ReplacementGrant>() {
+             if let MediaControlIntent::PreparePrivateAudio {
+                 operation,
+@@ -1693,3 +1702,6 @@
+ #[cfg(feature = "test-support")]
+ #[path = "managed_adoption_quantum/replacement_duplex_barrier_controls.rs"]
+ mod replacement_duplex_barrier_controls;
++
++#[path="managed_adoption_quantum/managed_model_cut_controls.rs"]
++mod managed_model_cut_controls;

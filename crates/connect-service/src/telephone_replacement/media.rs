@@ -170,6 +170,13 @@ impl Policy {
         &self,
         read: &TelephoneReplacementMediaRead,
     ) -> ControlResult<(MediaOwner, MediaOwner)> {
+        self.raw_owners_in(read, None)
+    }
+    fn raw_owners_in(
+        &self,
+        read: &TelephoneReplacementMediaRead,
+        final_route: Option<(&rvoip_sip::adapter::SipFinalRouteView, &str)>,
+    ) -> ControlResult<(MediaOwner, MediaOwner)> {
         let runtime = self
             .runtime
             .upgrade()
@@ -181,11 +188,19 @@ impl Policy {
             || root.handle.cancellation().is_cancelled()
             || root.handle.is_committed()
             || tokio::time::Instant::now() >= root.deadline
-            || leg
-                .context
-                .negotiated_audio_codec()
-                .map_err(|_| StreamControlError::NotReady)?
-                != self.codec
+            || match final_route {
+                Some((view, record)) => !self.final_route_current(
+                    view,
+                    record,
+                    rvoip_sip::adapter::SipManagedRouteRole::ReplacementTarget,
+                ),
+                None => {
+                    leg.context
+                        .negotiated_audio_codec()
+                        .map_err(|_| StreamControlError::NotReady)?
+                        != self.codec
+                }
+            }
             || !read.allows_audio(&self.codec.name)
             || read
                 .candidate()
@@ -261,8 +276,47 @@ impl Policy {
         };
         Ok((owner, old))
     }
+    pub(crate) fn final_route_current(
+        &self,
+        view: &rvoip_sip::adapter::SipFinalRouteView,
+        record: &str,
+        role: rvoip_sip::adapter::SipManagedRouteRole,
+    ) -> bool {
+        self.leg.upgrade().is_some_and(|leg| {
+            view.scope().attempt_binding().0 == record
+                && view.scope().role() == role
+                && view.is_current_for(&leg.context, view.scope())
+                && view.codec() == &self.codec
+        })
+    }
+    pub(crate) fn final_route_context(
+        &self,
+    ) -> ControlResult<Arc<rvoip_sip::adapter::SipDeviceReplacementContext>> {
+        Ok(self
+            .leg
+            .upgrade()
+            .ok_or(StreamControlError::Cancelled)?
+            .context
+            .clone())
+    }
+    pub(crate) fn owner_with_final_route(
+        &self,
+        read: &TelephoneReplacementMediaRead,
+        view: &rvoip_sip::adapter::SipFinalRouteView,
+        record: &str,
+    ) -> ControlResult<MediaOwner> {
+        let (owner, old) = self.raw_owners_in(read, Some((view, record)))?;
+        self.owner_from_current_resources(owner, old)
+    }
     pub(super) fn owner(&self, read: &TelephoneReplacementMediaRead) -> ControlResult<MediaOwner> {
         let (owner, old) = self.raw_owners(read)?;
+        self.owner_from_current_resources(owner, old)
+    }
+    fn owner_from_current_resources(
+        &self,
+        owner: MediaOwner,
+        old: MediaOwner,
+    ) -> ControlResult<MediaOwner> {
         let proof = self
             .proof
             .try_lock()

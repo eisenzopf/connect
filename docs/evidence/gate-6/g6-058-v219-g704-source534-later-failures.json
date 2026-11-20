@@ -1,0 +1,106 @@
+{
+  "format": "connect/g6-058-checkpoint152-source534-later-failures/1",
+  "checkpoint": 152,
+  "recorded_at": "2026-11-20T14:10:57.893277+00:00",
+  "status": "ACTUAL_COMPLETE45_FLAT39PASS6FAIL_LATER_FAILURE_POINTS_UNCLASSIFIED",
+  "author": "/root/independent_batch_review",
+  "coordinator": "/root",
+  "G704": {
+    "generation": 534,
+    "completed": 45,
+    "passed": 39,
+    "failed": 6,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "same39_passed_and6_failed_case_labels_asG700": true,
+    "all9_test_builds_and_inventories_PASS": true,
+    "source_files": 6558,
+    "source_sha256": "301837ec0ca9f8574a37e4278df7f6fac4557ab7cd04cc054174149a8946dfb4",
+    "source_and_all9_binary_SHA_unchanged": true,
+    "original_tool": 13720,
+    "original_root": 13960,
+    "original_children": 64,
+    "natural_child_exit_counts": {
+      "0": 58,
+      "101": 6
+    },
+    "all_original_owners_natural_unforced_joined_fresh_PID_PGID_absent": true,
+    "overall_passed": false,
+    "scope_complete": true
+  },
+  "current_failure_points": {
+    "Core": {
+      "count": 1,
+      "required_source_capture_check": "PASSED_BEFORE_CURRENT_FAILURE",
+      "current_failure": "Pre-forward healthy-route publication returns Authority",
+      "location": "managed_model_cut_controls.rs:591",
+      "SceneCheck_source_stamp_contract": "UNDER_SOURCE_INVESTIGATION",
+      "fixture_fix_proved_complete": false
+    },
+    "Server": {
+      "count": 5,
+      "cold_preparation_probe": "PASSED_BEFORE_CURRENT_FAILURE",
+      "current_failure": "codec-source observed on provisional-replacement assertion",
+      "location": "groups.rs:712",
+      "private_preroll_vs_early_public_leak": "UNCLASSIFIED",
+      "full_intended_oracles_completed": false
+    }
+  },
+  "no_next_correction_state_or_success_inferred": true,
+  "proofs": {
+    "G704_actual_result": {
+      "path": ".local/gate-6/g704-source534-two-corrections-fortyfive-root/result.json",
+      "sha256": "56a1e3e055b2a80f2d6a554832d8a9525703a660f56d1d140622f20a4dee08d2"
+    },
+    "G704_original_Root_join": {
+      "path": ".local/gate-6/g704-source534-two-corrections-fortyfive-root/root-original-join.json",
+      "sha256": "51e8473bc560aacbda888f7b6b38259056064946ae95717b6f916ac7ee1ee53a"
+    },
+    "G704_independent_actual_audit": {
+      "path": ".local/gate-6/g704-actual45-independent-audit/receipt.json",
+      "sha256": "2ca6566feaf25845f2ed06c22ffca9ae9f1b8cd629cd6c5cd1be09ab50122522"
+    },
+    "G704_independent_actual_verdicts": {
+      "path": ".local/gate-6/g704-actual45-independent-audit/actual-verdicts.json",
+      "sha256": "0d387a39ce2b34a65f3c87f193fa1d0c2ae733678e04d09c0ed10d97246d277c"
+    },
+    "G704_bound_plan": {
+      "path": ".local/gate-6/g704-source534-two-corrections-fortyfive-root/plan.json",
+      "sha256": "2dd5c8a43bec4a1eebc79717869a8a537261ec40a7e9d326eb99b7f5972cd9b6"
+    },
+    "prior_G700_failed_actual_audit": {
+      "path": ".local/gate-6/g700-actual45-independent-audit/receipt.json",
+      "sha256": "6fd6c042892e96ae28733e39449de79b9ba115fd13654cb5f99ed4423f57c5ef"
+    },
+    "checkpoint151_Root_review": {
+      "path": ".local/gate-6/g703-checkpoint151-root-review/receipt.json",
+      "sha256": "ea93b50f9a90b97919fac364bdad3695006aecaaac11007c595a91ecb63f7d52"
+    },
+    "last_mobile230_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v230-component45-remaining-repairs534.json",
+      "sha256": "fbf98c66a31e73474f933c6ddd4b69fab2841bce004d7a5207caa6747d978ffb"
+    },
+    "last_mobile230_Root_sync": {
+      "path": ".local/gate-6/mobile230-component45-remaining-repairs534-root/coordinator-sync-receipt.json",
+      "sha256": "96cf2b17b6d5570f2f1e495bb296a31910a65a23fc1ca0a0391b7698f2bac9ae"
+    }
+  },
+  "earlier_failed_verdicts_regraded": false,
+  "last_verified_mobile_revision": 230,
+  "proposed_mobile_revision": 231,
+  "mobile_publication_and_readback": "PENDING_ROOT_ONLY",
+  "all7_readiness_scopes": "OPEN_UNCHANGED",
+  "ready_for_32": false,
+  "qualification": false,
+  "full_unit_qualified": false,
+  "matrix_credit": false,
+  "matrix_latest": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "parked": "G6-054"
+}

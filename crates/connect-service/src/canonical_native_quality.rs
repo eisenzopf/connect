@@ -6,6 +6,7 @@ use crate::{
     StoreInvocationAuthority,
 };
 use connect_protocol::{Error, Result};
+use rvoip_core::staged_streams::MediaActivation;
 use rvoip_core::{ids::ConnectionId, staged_streams::MediaOwner};
 use rvoip_uctp::v2::{
     auth_dispatch::{AuthorityLease, AuthorizedEnvelope, DispatchError},

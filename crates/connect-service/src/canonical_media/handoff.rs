@@ -14,11 +14,11 @@ pub(crate) struct HandoffInvocation {
     pub principal: AuthenticatedPrincipal,
     pub cancel: tokio_util::sync::CancellationToken,
 }
-impl ParticipantHandoffLease for HandoffInvocation {
-    fn current(
+impl HandoffInvocation {
+    pub(crate) fn final_role_scope_current(
         &self,
         scope: &ParticipantHandoffScope<'_>,
-    ) -> ParticipantResult<ParticipantHandoffAuthority> {
+    ) -> ParticipantResult<()> {
         if !self.read.current()
             || self.cancel.is_cancelled()
             || !self.plan.same_intent(scope.plan)
@@ -35,6 +35,16 @@ impl ParticipantHandoffLease for HandoffInvocation {
         if request.operation_id != self.read.context().operation_record_id {
             return Err(ParticipantControlError::Authority);
         }
+        Ok(())
+    }
+}
+impl ParticipantHandoffLease for HandoffInvocation {
+    fn current(
+        &self,
+        scope: &ParticipantHandoffScope<'_>,
+    ) -> ParticipantResult<ParticipantHandoffAuthority> {
+        self.final_role_scope_current(scope)?;
+        let request = self.plan.media().request();
         let outgoing = self
             .policy
             .entry(&request.old)

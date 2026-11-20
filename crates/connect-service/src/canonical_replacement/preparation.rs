@@ -239,6 +239,17 @@ impl Runtime {
         self.continuation_read_with_custody(root, started, phase, mutation)
             .await
     }
+    /// Real compatible planning Readers only, never a final publication Writer.
+    /// Used solely by grant-free managed-cut fact capture.
+    pub(super) async fn continuation_read_for_commit_preparation(
+        &self,
+        root: &Arc<PreparedReplacement>,
+        started: &Arc<StartedReplacement>,
+        plan: rvoip_core::orchestrator::participant_control::ManagedAudioDeviceReplacementPlan,
+    ) -> Result<Invocation> {
+        self.continuation_read_with_custody(root, started, Phase::Commit(plan), false)
+            .await
+    }
     async fn continuation_read_with_custody(
         &self,
         root: &Arc<PreparedReplacement>,
@@ -261,7 +272,7 @@ impl Runtime {
             .get()
             .cloned()
             .ok_or_else(Error::forbidden)?;
-        let commit_entry = matches!(&phase, Phase::Commit(_));
+        let commit_entry = mutation && matches!(&phase, Phase::Commit(_));
         let read = store_call(move || {
             if commit_entry {
                 store.try_native_replacement_commit_scene_write(&origin, &sources)
@@ -287,6 +298,9 @@ impl Runtime {
             read: Arc::new(read),
             phase,
             deadline,
+            final_turn: false,
+            managed_capture: false,
+            final_sip_route: None,
         })
     }
     async fn begin_continuation(

@@ -90,7 +90,7 @@ pub(crate) struct Runtime {
     pub(crate) replacements: Mutex<
         std::collections::BTreeMap<String, Arc<crate::canonical_replacement::PreparedReplacement>>,
     >,
-    pub(crate) consultation_jobs: Mutex<std::collections::BTreeSet<String>>,
+    pub(crate) consultation_jobs: Mutex<crate::canonical_media::final_post::OperationJobs>,
     pub(crate) consultation_initializer:
         std::sync::OnceLock<Arc<dyn crate::ConsultationInitializer>>,
     pub(crate) session_initializers: Mutex<crate::session_init::Registry>,
@@ -716,6 +716,33 @@ pub(crate) fn participant_role(value: &str) -> ParticipantRole {
 
 impl Drop for Runtime {
     fn drop(&mut self) {
+        // Last Runtime owner cannot discard retained fatal payloads inside the
+        // admitted container. Move them out before ordinary watcher/Core Drop.
+        let (failed, observed, begins) = {
+            let jobs = self
+                .consultation_jobs
+                .get_mut()
+                .unwrap_or_else(|p| p.into_inner());
+            (
+                jobs.take_failed(),
+                jobs.take_observed(),
+                jobs.take_unconfirmed_begin(),
+            )
+        };
+        if !failed.is_empty() || !observed.is_empty() || !begins.is_empty() {
+            self.retirement_failed
+                .store(true, std::sync::atomic::Ordering::Release);
+            self.stop.cancel();
+        }
+        for payload in failed {
+            payload.report_and_release();
+        }
+        for actual in observed {
+            actual.report_and_release();
+        }
+        for outcome in begins {
+            outcome.report_and_release();
+        }
         self.stop.cancel();
         if let Some(mut watcher) = self
             .media_authorization_watcher

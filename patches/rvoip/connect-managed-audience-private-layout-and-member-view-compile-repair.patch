@@ -1,0 +1,19 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -539,7 +539,6 @@
+     state: Arc<Mutex<AudienceState>>,
+     controller: Weak<StreamController>,
+     committed: bool,
+-    scene: Weak<GuardedMediaScene>,
+ }
+ impl PreparedPrivateAudience {
+     pub(super) fn reserve(
+@@ -1313,7 +1312,7 @@
+         && members.iter().all(|(id, m)| {
+             plan.controllers
+                 .get(id)
+-                .is_some_and(|old| Weak::ptr_eq(old, &Arc::downgrade(&m.controller)))
++                .is_some_and(|old| Weak::ptr_eq(old, &Arc::downgrade(m.view().controller)))
+         })
+ }
+ fn current(

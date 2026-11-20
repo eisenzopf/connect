@@ -62,6 +62,14 @@ fn adoption_pending(
     prepared.connection() == id && committed && !cancelled
 }
 
+mod final_control;
+pub(crate) mod final_post;
+mod final_resources;
+pub(crate) use final_resources::{
+    FinalPhysicalWitness, FinalResourceBank, FinalResourceOwner, FinalResourceWitness,
+    FinalTurnResources,
+};
+
 pub(crate) struct Connection {
     domain: Weak<Policy>,
     pub origin: Arc<NativeMediaOrigin>,
@@ -73,7 +81,7 @@ pub(crate) struct Connection {
     snapshots: Published<native_snapshots::Routes>,
     lifetime: Published<Option<connect_store::NativeConnectionLifetimeSnapshot>>,
     negotiated_remote: Published<EndpointMediaCapabilities>,
-    activation: Published<Option<Arc<dyn MediaActivation>>>,
+    activation: Published<Option<Arc<crate::canonical_replacement::Activation>>>,
     binding: Published<Option<ConnectionBinding>>,
     preparation: Published<
         Option<Arc<rvoip_core::staged_streams::endpoint_preparation::AudioEndpointPreparation>>,
@@ -330,12 +338,17 @@ impl Connection {
             }
         }
     }
-    pub(crate) fn activation(&self) -> ControlResult<Option<Arc<dyn MediaActivation>>> {
+    pub(crate) fn activation(
+        &self,
+    ) -> ControlResult<Option<Arc<crate::canonical_replacement::Activation>>> {
         // Immutable metadata publication is independent of control-side writes.
         Ok(self.activation.snapshot().map_err(denied)?.as_ref().clone())
     }
 
-    pub fn set_activation(&self, value: Arc<dyn MediaActivation>) -> ControlResult<()> {
+    pub fn set_activation(
+        &self,
+        value: Arc<crate::canonical_replacement::Activation>,
+    ) -> ControlResult<()> {
         let mut activation = self.activation.lock().map_err(denied)?;
         if activation
             .as_ref()
@@ -531,11 +544,34 @@ impl Policy {
         probe: impl FnOnce() -> (bool, ControlResult<MediaOwner>),
     ) -> Option<ControlResult<MediaOwner>> {
         use std::sync::atomic::Ordering;
-        let state = self.held_registry_probes.lock().ok()?.remove(operation)?;
-        state.store(1, Ordering::Release);
-        let Ok(_registry) = self.entries.lock() else {
-            return Some(Err(StreamControlError::Authority));
+        // A contended test probe is an explicit pre-effect metadata refusal,
+        // never an unarmed None and never a consumed/failed comparison.
+        let mut probes = match self.held_registry_probes.try_lock() {
+            Ok(probes) => probes,
+            Err(std::sync::TryLockError::WouldBlock) => {
+                return Some(Err(StreamControlError::MetadataBusy))
+            }
+            Err(std::sync::TryLockError::Poisoned(_)) => {
+                return Some(Err(StreamControlError::Authority))
+            }
         };
+        if !probes.contains_key(operation) {
+            return None;
+        }
+        let _registry = match self.entries.try_lock() {
+            Ok(registry) => registry,
+            Err(std::sync::TryLockError::WouldBlock) => {
+                return Some(Err(StreamControlError::MetadataBusy))
+            }
+            Err(std::sync::TryLockError::Poisoned(_)) => {
+                return Some(Err(StreamControlError::Authority))
+            }
+        };
+        let state = probes
+            .remove(operation)
+            .expect("same armed probe under guard");
+        drop(probes);
+        state.store(1, Ordering::Release);
         let (legacy_refused, current) = probe();
         state.store(
             if legacy_refused && current.is_ok() {

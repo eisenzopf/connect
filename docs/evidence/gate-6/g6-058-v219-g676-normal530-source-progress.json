@@ -1,0 +1,136 @@
+{
+  "format": "connect/g6-058-normal-source-preparation-progress/1",
+  "checkpoint": 146,
+  "recorded_at": "2026-11-20T08:43:55.745112+00:00",
+  "summary": "Corrected G676 normal530 source preparation passed and was independently audited. Root and both original children exited naturally with code0, were joined and freshly absent. The coherent batch has37 workspace files applied through official formatting and47 upstream afterimages prepared (39 changed existing files and8 additions); all4232 unchanged source bytes/modes retain original archive mtimes, and the complete original525 tree is preserved with its inodes, links and bytes. Its6542-file working seal is a preparation anchor, not a committed or runtime-qualified source. Backend/Orchestrator/SIP, ServiceV2, Store immutable-cutoffV2 and RTC/telephone fixture corrections are now applied and prepared, with source reviews complete and integrated compilation/runtime verification pending. The original G674 preparation failed before any compilation because two Git new-file mode headers were missing; its false verdict and failed partial tree remain preserved. The reviewed repair adds only those two metadata lines and changes no Rust payload. The focused45 component plan preserves the original13 cases and adds24 Core/Traits/SIP controls,2 Store cutoff controls,1 Service owner-custody unit and5 Server boundary controls; none has run on530 yet. The latest completed component scope remains G662 on525:13 completed,11PASS/2FAIL, no forced/incomplete/unrun cases; its failures and all older history are unchanged. Historical G657 retains its forced incomplete case and three unrun cases. No complete regression, shared379, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal Mac12/ARM6 releases or fresh launch preflight qualification is added. All seven readiness scopes remain open as recorded; whole Core-traits/SIP and all additive controls stay required. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 stays parked. Mobile224 remains the last verified readback; the next scoped update is pending Root.",
+  "normal530": {
+    "passed": true,
+    "scope": "source-preparation-only",
+    "changed_existing_upstream": 39,
+    "added_upstream": 8,
+    "workspace_files_applied_official_format": 37,
+    "upstream_afterimages": 47,
+    "equal_file_mtimes_restored": 4232,
+    "complete_original525_tree_preserved": true,
+    "Root_and_two_original_children_natural0_joined_fresh_absent": true,
+    "working_source_files": 6542,
+    "working_source_sha256": "80afba0df12d03a4e61908b22b572847a79cab0ccd0055927f4a5f807beb41db",
+    "base_revision": "784fbb709f2ee3f5ce14b0b33adee784cd39144d",
+    "committed_current_batch": false
+  },
+  "failedG674": {
+    "passed": false,
+    "original_prepare_exit": 1,
+    "raw_all_original_command_groups_joined": false,
+    "builds": 0,
+    "runtime_tests": 0,
+    "repaired_only_two_Git_new_file_mode_headers": true,
+    "not_regraded": true
+  },
+  "current_integration": "APPLIED_PREPARED_530_IMPLEMENTED_RUNTIME_UNVERIFIED",
+  "focused45": {
+    "status": "NOT_RUN",
+    "original13_prefix_preserved": true,
+    "additive24_Core_Traits_SIP": 24,
+    "Store_cutoff": 2,
+    "Service": 1,
+    "Server": 5,
+    "predicted_test_outcomes": null
+  },
+  "latest_completed_component": {
+    "run": "G662",
+    "source_generation": 525,
+    "completed": 13,
+    "passed": 11,
+    "failed": 2,
+    "forced": 0,
+    "unrun": 0,
+    "no_regrade": true
+  },
+  "required_readiness": [
+    "current committed generators/default shared379",
+    "complete affected full regression and OriginalV8",
+    "strict Firefox NORMAL3",
+    "original900=469+431 with two full62 Mac signed cases LAST",
+    "local ARM source preparation and original ARM11",
+    "normal Mac12 then ARM6 release artifacts",
+    "fresh capture/storage/process/browser/guest launch preflight"
+  ],
+  "proofs": {
+    "actual_normal530_receipt": {
+      "path": ".local/gate-6/g676-normal530-git-patch-metadata-corrected-root/normal530-runtime/receipt.json",
+      "sha256": "1b959858af50dc72dda2d57c40d2811083a815b434dc7989f52b56f18873d9b5"
+    },
+    "actual_root_join": {
+      "path": ".local/gate-6/g676-normal530-git-patch-metadata-corrected-root/root-original-join.json",
+      "sha256": "2c07eaed271625fcfe479fe5f04ff58102bf4266763add29cc387af7c5ca71ef"
+    },
+    "actual_root_verification": {
+      "path": ".local/gate-6/g676-normal530-git-patch-metadata-corrected-root/actual-root-verification.json",
+      "sha256": "500bbe484d0795515b72e53e1fecde1467568123b58d2bd691ac8b6ae682214b"
+    },
+    "independent_actual_preparation_audit": {
+      "path": ".local/gate-6/g676-actual-normal530-independent-epoch-audit/receipt.json",
+      "sha256": "e14102bf8b96839636607fc9ec828795832c3c4c720f53e017b8598c2b3e9f14"
+    },
+    "actual_working_source530": {
+      "path": ".local/gate-6/g676-normal530-git-patch-metadata-corrected-root/working-source530.json",
+      "sha256": "80afba0df12d03a4e61908b22b572847a79cab0ccd0055927f4a5f807beb41db"
+    },
+    "workspace_official_format_application": {
+      "path": ".local/gate-6/g672-coherent-batch-root-integration/format-receipt.json",
+      "sha256": "c43b6a8b12c216018fb10d0b42195f85064497662031463cd7a5bd4276b1c0de"
+    },
+    "ServiceV2_whole_source_review": {
+      "path": ".local/gate-6/g655-service-callers-independent-source-review/v2-receipt.json",
+      "sha256": "25641a96296e0c5231088ebf908aa66821e6ade643a8f7ac7e87c061e83ca58d"
+    },
+    "ServiceV2_targeted_source_review": {
+      "path": ".local/gate-6/g655-service-final-control-targeted-epoch-source-review/v2-receipt.json",
+      "sha256": "9b65fa72cf77e08a159d5c9ac3d06f80fe4bedfb6afb49c805c7fa2381baf19e"
+    },
+    "Store_cutoffV2_source_review": {
+      "path": ".local/gate-6/g655-native-final-cutoff-independent-epoch-source-review/v2-receipt.json",
+      "sha256": "5ef96a75b9b49c558cecbdc4862ddbf5465c147aaf3f754721983fe9a3203256"
+    },
+    "RTC_cleanup_fixture_source_review": {
+      "path": ".local/gate-6/g663-rtc-cleanup-fixture-independent-epoch-source-review/receipt.json",
+      "sha256": "702f8849ae440095f5f6b30e7e0b97b630edefaef4507b79872bd2e0421a0a39"
+    },
+    "phone_wait_fixture_source": {
+      "path": ".local/gate-6/g662-telephone-final-admission-attempt-local-wait-fixture-source-candidate-v2/manifest.json",
+      "sha256": "5202eba1c9a40feb4fbb70d9c32f4327f32ade87977799b8d139b8bd5a8bea56"
+    },
+    "failed_G674_original_join_restore": {
+      "path": ".local/gate-6/g674-normal530-coherent-batch-preparation-root/root-original-join-and-restore.json",
+      "sha256": "f8348cdd2199bd638bc836f0137ac2ea20fc7d0a9ad271fff52189955b3f17ad"
+    },
+    "Git_patch_metadata_repair_review": {
+      "path": ".local/gate-6/g675-orch-patch-metadata-independent-epoch-review/receipt.json",
+      "sha256": "ec40c3ab928e455d33da48fbb3ce931614bb33b82241a7abc3ceae24128e9775"
+    },
+    "focused45_inert_source_review": {
+      "path": ".local/gate-6/source530-focused45-independent-epoch-orchestration-review/receipt.json",
+      "sha256": "af3c987a24868e2459168dff965565d6fec653cb11457f44cd58fefae04d0284"
+    },
+    "last_actual_G662_component_audit": {
+      "path": ".local/gate-6/g662-actual-thirteen-independent-epoch-audit/receipt.json",
+      "sha256": "81ab085462baa6b929cd2b3739eced74b3082df022c6ee3ad94f146b7fe98922"
+    }
+  },
+  "qualification": false,
+  "matrix_credit": false,
+  "SourceReady32": false,
+  "matrix_baseline": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "mobile": {
+    "last_verified_revision": 224,
+    "next_scoped225": "PENDING_ROOT_NOT_PUBLISHED_BY_PROPOSAL"
+  },
+  "publication": false
+}
