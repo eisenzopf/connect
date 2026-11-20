@@ -20366,7 +20366,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-20T04:04:29.626272+00:00",
+  "updated_at": "2026-11-20T05:10:12.989293+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20581,6 +20581,189 @@
       "mapped_matrix_leaves_closed": false
     },
     "ready_for_32": false,
+    "matrix_credit": false
+  },
+  "v219_g633_source516_native_diagnostic": {
+    "status": "actual-isolated-Native2PASS-no-qualification",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g633-source516-native-catalog-diagnostic.json",
+    "sha256": "e83a09fcf337c22ce8b239655840f5752618db2abb6bc1f4c0dd9b3eaaabf91f",
+    "actual_Native": {
+      "completed": 2,
+      "passed": 2,
+      "failed": 0,
+      "Native_inventory_count": 211,
+      "Native_sha256": "40d1c5e8c254533173a463f607d8551a9dedad9f4f05d4b006a601f4ee3be083",
+      "all_original_owners_natural0_absent": true,
+      "source_binary_inputs_unchanged": true,
+      "original_main_both_transports_full_tail_pass": true,
+      "causal_variants": [
+        {
+          "transport": "quic",
+          "release_within_window": true,
+          "ordinary_rows": 3,
+          "source_state_busy_rows": 1,
+          "same_catalog_plans": 2,
+          "dropped": 0,
+          "counters_revision_unchanged": true
+        },
+        {
+          "transport": "quic",
+          "release_within_window": false,
+          "ordinary_rows": 25,
+          "source_state_busy_rows": 25,
+          "same_catalog_plans": 0,
+          "dropped": 0,
+          "counters_revision_unchanged": true
+        },
+        {
+          "transport": "wt",
+          "release_within_window": true,
+          "ordinary_rows": 3,
+          "source_state_busy_rows": 1,
+          "same_catalog_plans": 2,
+          "dropped": 0,
+          "counters_revision_unchanged": true
+        },
+        {
+          "transport": "wt",
+          "release_within_window": false,
+          "ordinary_rows": 25,
+          "source_state_busy_rows": 25,
+          "same_catalog_plans": 0,
+          "dropped": 0,
+          "counters_revision_unchanged": true
+        }
+      ]
+    },
+    "normal516_actual": {
+      "passed": true,
+      "changed_existing": 1,
+      "added_upstream": 0,
+      "equal_file_mtimes_restored": 4268,
+      "complete_old515_preserved": true,
+      "top_owner_limit": "No contemporaneous top-level PGID/liveps observation; do not claim one."
+    },
+    "getter_phase_correction": "The actual join concurrently polls catalog_snapshot_before during the held-source650ms; prior no-active-getter statement was mistaken. The sampled map-drop frame alone does not establish continuous ownership or sole cause.",
+    "causal_limit": "One historical hot-yield A failure and this paced B pass are contextual causal evidence, not a universal scheduling guarantee or production control-wait repair.",
+    "followups": {
+      "queued_forward_V2": {
+        "status": "prepared518-implemented-runtime-unverified",
+        "owner_agent": "/root/batch_build_review",
+        "new_Core_functions": 4
+      },
+      "audio_V2": {
+        "status": "prepared518-implemented-runtime-unverified",
+        "owner_agent": "/root/epoch_cause",
+        "new_Core_functions": 2
+      },
+      "normal518": {
+        "status": "actual-preparation-PASS-implemented-runtime-unverified",
+        "actual_receipt": {
+          "path": ".local/gate-6/source516-two-followups-normal518-registration-preparation-inert-candidate/normal518-runtime/receipt.json",
+          "sha256": "dbf7cb2f764eaa3d7d99f2756010ee56570489115e8fe95ebbc6ceaec64bf5d4"
+        },
+        "actual_audit": {
+          "path": ".local/gate-6/g634-normal518-registration-root/actual-independent-root-audit.json",
+          "sha256": "d4fb09c7a3fbc52b686a7eee92598b3281811142a6324b19d427482572af2d23"
+        },
+        "actual_source": {
+          "path": ".local/gate-6/g634-normal518-registration-root/working-source518.json",
+          "sha256": "1935a2f93d73e26be33c031eb14736aae45343da8f6cbc99539b739f13f3449b"
+        },
+        "changed_existing": 7,
+        "added_upstream": 0,
+        "equal_file_mtimes_restored": 4262,
+        "old516_complete_tree_preserved": true,
+        "source_file_count": 6501,
+        "Core_runtime_verified": false
+      },
+      "control_and_Service_split": {
+        "status": "design-authoring-not-sealed-or-runtime-verified",
+        "owner_agents": [
+          "/root/independent_batch_review",
+          "/root/batch_build_review",
+          "/root/epoch_cause"
+        ],
+        "scope": "Same original grant-free preparation/token, current final authority, complete nonwaiting final guards and all alias release before wait; no finalized compatible API or standalone closure claimed."
+      }
+    },
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "v219_g640_source520_Core_components": {
+    "status": "actual-Core-component10PASS-complete-control-boundary-pending",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g640-source520-Core-ten-components.json",
+    "sha256": "246c9b25ca219405f370a50ba23faffc4ffea200b316ed1d556555c477e8b13a",
+    "actual_Core_units": {
+      "completed": 10,
+      "passed": 10,
+      "failed": 0,
+      "selectors": [
+        "staged_streams::tests::reliable_data::scene_typed_data_adopted_source_metadata_busy_preserves_original_fifo_and_unrelated_video",
+        "staged_streams::tests::reliable_data::scene_typed_data_post_lookup_metadata_races_refuse_without_detaching_current_policy_guard",
+        "staged_streams::tests::original_ingress_custody::original_ingress_post_policy_port_metadata_busy_retains_same_original_without_authority",
+        "staged_streams::tests::original_ingress_custody::queued_forward_live_weak_context_preserves_nonblocking_audio_target_and_original_authorization_bounds",
+        "staged_streams::tests::guarded_mixer::source_contention::guarded_audio_encoder_current_payload_cache_avoids_port_wait_and_preserves_original_delivery_fences",
+        "staged_streams::tests::guarded_mixer::source_contention::guarded_audio_port_validation_releases_consumer_slot_before_real_port_wait_with_original_flight",
+        "staged_streams::tests::media_scene::subscriptions::control_guard_foundation::subscription_target_metadata_busy_releases_scene_and_commits_original_once",
+        "staged_streams::tests::media_scene::subscriptions::control_guard_foundation::subscription_sibling_metadata_busy_preserves_one_original_audio_plan",
+        "staged_streams::tests::media_scene::subscriptions::control_guard_foundation::end_stream_port_metadata_busy_keeps_consumer_free_and_recovers_original",
+        "staged_streams::tests::media_scene::subscriptions::control_guard_foundation::end_stream_port_metadata_busy_preserves_original_cancel_and_deadline"
+      ],
+      "current_Core_sha256": "52320d049c776007661ce27c7b266e6a1909fcee22ed5d37fd224a6b6a3fb870",
+      "current_features": [
+        "default",
+        "identity",
+        "media",
+        "opus",
+        "rtp",
+        "sip",
+        "test-support",
+        "uctp",
+        "vcon"
+      ],
+      "current_profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "inventory": 961,
+      "Root_and_13_original_children_natural0_unforced_joined_absent": true,
+      "source_binary_inputs_unchanged": true,
+      "qualified_scope": "Ten isolated Core controls only"
+    },
+    "G638_preserved": {
+      "build_exit": 101,
+      "diagnostic": "E0583 child module path",
+      "runtime_executed": 0,
+      "inventory_executed": false,
+      "not_regraded": true
+    },
+    "remaining_helpers": {
+      "DTMF_binding_index": {
+        "source_reviewed": true,
+        "applied": false,
+        "runtime": null,
+        "new_Core_control_functions": 3,
+        "active_callsite_changed": false
+      },
+      "final_route_tickets": {
+        "source_reviewed": true,
+        "applied": false,
+        "runtime": null,
+        "new_trait_control_functions": 5,
+        "active_callsite_changed": false
+      }
+    },
+    "remaining_integration": {
+      "Core_audience": "source-authoring-unsealed-unverified",
+      "managed_Orchestrator": "source-authoring-unsealed-unverified",
+      "Store_Service": "source-authoring-unsealed-unverified",
+      "full_control_boundary_complete": false
+    },
+    "qualification": false,
     "matrix_credit": false
   }
 }

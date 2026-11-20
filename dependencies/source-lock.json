@@ -2761,6 +2761,31 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-pending-visual-original-egress-cache-and-metadata-busy.patch",
       "sha256": "d3599978d59dd6be11d52126944ee83e05734482c8bd5bde89ee2ce97443ef0a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-catalog-busy-getter-timer-pacing-fixture.patch",
+      "sha256": "1281bf23b72ab3fc942bb5501fdecf4dcadecb6b57f1fb57cc44d4979fb342fc"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-queued-forward-and-common-admission-port-metadata-nonblocking.patch",
+      "sha256": "1967de82783508992ee7eb30c2bf3ea1d483e8568edf99756c10bc416e0299db"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-audio-encoder-current-payload-cache-and-consumer-slot-release.patch",
+      "sha256": "e74b0b0084980c480a90e6bf27ed4075ac60f2f32f002557e0a8b30eaa3e3090"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-control-subscription-end-stream-nonwaiting-guard-foundation.patch",
+      "sha256": "0867ad17eb52c1c6f0b632cc095172a28433b08cfe142cf9707dce88ac47958d"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-control-foundation-explicit-child-module-path.patch",
+      "sha256": "47ebe82b22208822a5de132680a107598fb4e62e52cfe18cdd652e8ba0333cde"
     }
   ]
 }

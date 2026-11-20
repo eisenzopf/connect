@@ -1,0 +1,608 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1267,7 +1267,7 @@
+             counters.record::<()>(VideoPhase::ForwardSourceAdmission, self.admitted_at, None);
+         }
+         let result = (|| {
+-            let source_result = source.admit_with_deadline(
++            let source_result = source.admit_original_or_queued(
+                 &self.source,
+                 &self.ticket,
+                 false,
+@@ -1284,6 +1284,7 @@
+                     .as_ref()
+                     .map(|weak| weak as &(dyn Any + Send + Sync)),
+                 pending.as_mut().map(|(_, _, deadline)| &mut **deadline),
++                AdmissionOwner::QueuedForward,
+             );
+             if let Some(counters) = &delivery {
+                 counters.record(
+@@ -1313,7 +1314,7 @@
+             if let Some(counters) = &delivery {
+                 counters.record::<()>(VideoPhase::ForwardTargetAdmission, self.admitted_at, None);
+             }
+-            let target_result = destination.admit_with_deadline(
++            let target_result = destination.admit_original_or_queued(
+                 &target,
+                 &ticket,
+                 true,
+@@ -1330,6 +1331,7 @@
+                     .then(|| _source_lease.packet_context())
+                     .flatten(),
+                 pending.as_mut().map(|(_, _, deadline)| &mut **deadline),
++                AdmissionOwner::QueuedForward,
+             );
+             if let Some(counters) = &delivery {
+                 counters.record(
+@@ -1452,6 +1454,9 @@
+     Original(&'a original_ingress::OriginalStamp),
+     QueuedVisual,
+     QueuedAudio,
++    // An actual original packet owns every forward attempt, including the
++    // non-detached unmanaged Audio/Data paths. Only acquisition refuses Busy.
++    QueuedForward,
+     // Actual managed encoded audio or PCM remains owned across a refused attempt.
+     RetainedAudio,
+ }
+@@ -3268,11 +3273,18 @@
+                 && held.is_none()
+                 && matches!(&consumer, audio_consumer::ConsumerCheck::Retained(_))
+                 && scene.retains_target());
++        // Actual queued forwarding must not wait for source/target metadata.
++        // The existing detached predicate stays unchanged: unmanaged Audio
++        // target and Data keep the SAME State guard across their current policy
++        // call and validation; no held/context grant or retry lifetime changes.
++        let queued_forward = matches!(owner, AdmissionOwner::QueuedForward);
+         let lock_state = || -> ControlResult<_> {
+-            if detached {
++            if detached || queued_forward {
+                 match self.state.try_lock() {
+                     Ok(state) => Ok(state),
+-                    Err(std::sync::TryLockError::WouldBlock) => Err(if original.is_some() {
++                    Err(std::sync::TryLockError::WouldBlock) => Err(if queued_forward && port.kind() == StreamKind::Data {
++                        StreamControlError::Backpressure
++                    } else if original.is_some() {
+                         StreamControlError::MetadataBusy
+                     } else if fresh_publication {
+                         // Existing ingress owners retry Backpressure using the
+@@ -3569,13 +3581,23 @@
+             None
+         };
+         let (scene_stamp, scene_guard) = self.scene_admission(scene)?;
+-        if port
+-            .state
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
+-            .messages_only
+-            && scene_stamp.is_none()
+-        {
++        let messages_only = {
++            // The early forwarding probe is not an exclusion lease. A reader
++            // may acquire this PortState during current_data; refuse that race
++            // before consumer admission/enqueue and unwind all current guards.
++            let state = match port.state.try_lock() {
++                Ok(state) => state,
++                Err(std::sync::TryLockError::WouldBlock) => return Err(match owner {
++                    AdmissionOwner::Original(_) | AdmissionOwner::QueuedAudio | AdmissionOwner::RetainedAudio => StreamControlError::MetadataBusy,
++                    AdmissionOwner::QueuedForward if port.kind() == StreamKind::Data => StreamControlError::Backpressure,
++                    _ if fresh_publication => StreamControlError::Backpressure,
++                    _ => StreamControlError::NotReady,
++                }),
++                Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++            };
++            state.messages_only
++        };
++        if messages_only && scene_stamp.is_none() {
+             return Err(StreamControlError::NotReady);
+         }
+ 
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
+@@ -603,3 +603,290 @@
+     }
+     assert!(observations.iter().all(|(_,pass)|*pass),"unchanged original microphone frame lost across VIDEO-only public hold: {observations:?}");
+ }
++
++
++struct OriginalPortMetadataPolicy {
++    inner: Arc<Policy>,
++    rendezvous: Arc<Mutex<Option<(std::sync::mpsc::SyncSender<()>, std::sync::mpsc::Receiver<()>)>>>,
++    first_expiry: Arc<Mutex<Option<chrono::DateTime<chrono::Utc>>>>,
++}
++struct OriginalPortExpiringLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    until: chrono::DateTime<chrono::Utc>,
++}
++impl MediaAuthorityLease for OriginalPortExpiringLease {
++    fn authority(&self) -> &MediaOwner { self.inner.authority() }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> { Some(self.until) }
++}
++impl MediaPolicy for OriginalPortMetadataPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current(scope)
++    }
++    fn current_original_ingress(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let rendezvous = self.rendezvous.lock().unwrap().take();
++        if let Some((request, acquired)) = rendezvous {
++            request.send(()).map_err(|_| StreamControlError::MetadataBusy)?;
++            acquired.recv_timeout(Duration::from_millis(500)).map_err(|_| StreamControlError::MetadataBusy)?;
++        }
++        let lease = self.inner.current(scope)?;
++        let expiry = self.first_expiry.lock().unwrap().take();
++        match expiry {
++            Some(until) => Ok(Box::new(OriginalPortExpiringLease { inner: lease, until })),
++            None => Ok(lease),
++        }
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn original_ingress_post_policy_port_metadata_busy_retains_same_original_without_authority() {
++    for medium in [Medium::Audio, Medium::Video] {
++      for expire_before_retry in [false, true] {
++        let rendezvous = Arc::new(Mutex::new(None));
++        let first_expiry = Arc::new(Mutex::new(None));
++        let f = Fixture::with_policy(8, Some(Box::new({
++            let rendezvous = rendezvous.clone(); let first_expiry = first_expiry.clone();
++            move |inner| Arc::new(OriginalPortMetadataPolicy { inner, rendezvous, first_expiry })
++        })));
++        f.start(&[medium]).await;
++        let port = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        let at = Instant::now();
++        let original_frame = frame(&port, 320);
++        let mut original = port.retain_original_ingress(original_frame.clone(), at).unwrap().unwrap();
++        let (request, requested) = std::sync::mpsc::sync_channel(1);
++        let (acquired, acquisition) = std::sync::mpsc::sync_channel(1);
++        let (release, released) = std::sync::mpsc::sync_channel(1);
++        *rendezvous.lock().unwrap() = Some((request, acquisition));
++        let held_port = port.0.clone();
++        let holder = std::thread::spawn(move || {
++            if requested.recv_timeout(Duration::from_secs(2)).is_err() { return false; }
++            let held = held_port.state.lock().unwrap();
++            let _ = acquired.send(());
++            let released = released.recv_timeout(Duration::from_secs(2)).is_ok();
++            drop(held);
++            released
++        });
++        let (returned, observed) = std::sync::mpsc::sync_channel(1);
++        if expire_before_retry {
++            *first_expiry.lock().unwrap() = Some(chrono::Utc::now() + chrono::Duration::milliseconds(80));
++        }
++        let runtime = tokio::runtime::Handle::current();
++        let worker = std::thread::spawn(move || {
++            let _entered = runtime.enter();
++            let result = original.try_publish_clocked(|_| None);
++            let _ = returned.send(());
++            (original, result)
++        });
++        let completed = observed.recv_timeout(Duration::from_millis(500));
++        let _ = release.send(());
++        let holder_released = holder.join().unwrap();
++        let (mut original, refused) = worker.join().unwrap();
++        assert!(holder_released);
++        assert!(completed.is_ok(), "original physical receive waited on post-policy PortState {medium:?}");
++        assert!(matches!(refused, Err(StreamControlError::MetadataBusy)), "{refused:?}");
++        assert!(input.try_recv().is_err());
++        drop(f.policy.0.try_write().expect("metadata refusal retained current authority"));
++        if expire_before_retry {
++            tokio::time::sleep(Duration::from_millis(100)).await;
++            assert!(matches!(original.try_publish_clocked(|_| None), Err(StreamControlError::Deadline)),
++                "post-policy Busy forgot its observed shorter grant");
++            assert!(input.try_recv().is_err());
++            continue;
++        }
++        original.try_publish_clocked(|_| None).unwrap();
++        let packet = receive(&mut input).await;
++        assert_eq!(packet.frame.payload, original_frame.payload);
++        assert_eq!(packet.frame.timestamp_rtp, original_frame.timestamp_rtp);
++        assert_eq!(packet.admitted_at, at);
++        assert!(matches!(original.try_publish_clocked(|_| None), Err(StreamControlError::Cancelled)));
++        assert!(input.try_recv().is_err(), "same original was published twice");
++    }
++    }
++}
++
++
++// Opt-in packet-context policy: the weak context identifies one actual live
++// fence reader, never permissions. Every source/recipient still derives its
++// own current grant; the queue itself retains only the existing weak metadata.
++struct QueuedForwardRead {
++    domain: Arc<()>,
++    source: ConnectionId,
++    current: AtomicBool,
++    until: Option<chrono::DateTime<chrono::Utc>>,
++    _fence: tokio::sync::OwnedRwLockReadGuard<()>,
++}
++struct QueuedForwardLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    read: Arc<QueuedForwardRead>,
++    weak: Weak<dyn Any + Send + Sync>,
++}
++impl MediaAuthorityLease for QueuedForwardLease {
++    fn authority(&self) -> &MediaOwner { self.inner.authority() }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        match (self.read.until, self.inner.expires_at()) {
++            (Some(a), Some(b)) => Some(a.min(b)),
++            (a, b) => a.or(b),
++        }
++    }
++    fn packet_context(&self) -> Option<&(dyn Any + Send + Sync)> { Some(&self.weak) }
++}
++struct QueuedForwardPolicy {
++    inner: Arc<Policy>,
++    domain: Arc<()>,
++    active: Arc<Mutex<Weak<QueuedForwardRead>>>,
++    hook: Arc<Mutex<Option<(std::sync::mpsc::SyncSender<()>, std::sync::mpsc::Receiver<()>)>>>,
++    packet_calls: Arc<AtomicUsize>,
++}
++impl QueuedForwardPolicy {
++    fn lease(&self, scope: &MediaScope<'_>, read: Arc<QueuedForwardRead>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let erased: Arc<dyn Any + Send + Sync> = read.clone();
++        Ok(Box::new(QueuedForwardLease { inner: self.inner.current(scope)?, read,
++            weak: Arc::downgrade(&erased) }))
++    }
++}
++impl MediaPolicy for QueuedForwardPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let active = self.active.lock().unwrap().upgrade();
++        if matches!(scope.purpose, MediaPurpose::Publish) {
++            if let Some(read) = active { return self.lease(scope, read); }
++        }
++        self.inner.current(scope)
++    }
++    fn current_packet(&self, scope: &MediaScope<'_>, context: &(dyn Any + Send + Sync)) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.packet_calls.fetch_add(1, Ordering::AcqRel);
++        let read = context.downcast_ref::<Weak<dyn Any + Send + Sync>>()
++            .and_then(Weak::upgrade).and_then(|read| read.downcast::<QueuedForwardRead>().ok())
++            .ok_or(StreamControlError::Authority)?;
++        let source = match scope.purpose {
++            MediaPurpose::Publish => scope.connection,
++            MediaPurpose::Receive { source } => &source.connection,
++            _ => return Err(StreamControlError::Authority),
++        };
++        if !Arc::ptr_eq(&read.domain, &self.domain) || &read.source != source
++            || !read.current.load(Ordering::Acquire)
++        { return Err(StreamControlError::Authority); }
++        if matches!(scope.purpose, MediaPurpose::Publish) {
++            if let Some((request, acquired)) = self.hook.lock().unwrap().take() {
++                request.send(()).map_err(|_| StreamControlError::NotReady)?;
++                acquired.recv_timeout(Duration::from_millis(500)).map_err(|_| StreamControlError::NotReady)?;
++            }
++        }
++        self.lease(scope, read)
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn queued_forward_live_weak_context_preserves_nonblocking_audio_target_and_original_authorization_bounds() {
++    for medium in [Medium::Audio, Medium::Video] {
++        for held_source in [true, false] {
++            for outcome in ["resume", "source-denied", "target-denied", "expired", "foreign-context", "stale-context"] {
++                let domain = Arc::new(());
++                let active = Arc::new(Mutex::new(Weak::new()));
++                let hook = Arc::new(Mutex::new(None));
++                let packet_calls = Arc::new(AtomicUsize::new(0));
++                let f = Fixture::with_policy(8, Some(Box::new({
++                    let domain = domain.clone(); let active = active.clone(); let hook = hook.clone(); let packet_calls = packet_calls.clone();
++                    move |inner| Arc::new(QueuedForwardPolicy { inner, domain, active, hook, packet_calls })
++                })));
++                f.start(&[medium]).await;
++                let source = f.aa.port(medium);
++                let logical = desired(medium).logical_id;
++                let mut input = f.a.take_ingress(&logical).unwrap();
++                let mut output = f.ba.port(medium).take_egress().unwrap();
++                let fence = Arc::new(RwLock::new(()));
++                let read = Arc::new(QueuedForwardRead {
++                    domain: domain.clone(), source: f.a.connection.clone(), current: AtomicBool::new(true),
++                    until: (outcome == "expired").then(|| chrono::Utc::now() + chrono::Duration::milliseconds(80)),
++                    _fence: fence.clone().try_read_owned().unwrap(),
++                });
++                *active.lock().unwrap() = Arc::downgrade(&read);
++                let original = frame(&source, 640);
++                source.try_publish(&original).unwrap();
++                let packet = receive(&mut input).await;
++                let actual = packet.custody.active().unwrap().downcast::<QueuedForwardRead>().ok().unwrap();
++                assert!(Arc::ptr_eq(&actual, &read), "source queue changed original live context identity");
++                drop(actual);
++                let before_calls = packet_calls.load(Ordering::Acquire);
++                let (request, requested) = std::sync::mpsc::sync_channel(1);
++                let (acquired, acquisition) = std::sync::mpsc::sync_channel(1);
++                let (release, released) = std::sync::mpsc::sync_channel(1);
++                let holder = if held_source {
++                    None
++                } else {
++                    // Source policy runs after early target lookup. Audio's
++                    // OrdinaryForward target is intentionally non-detached;
++                    // its later acquisition must refuse instead of waiting.
++                    *hook.lock().unwrap() = Some((request, acquisition));
++                    let target = f.b.clone();
++                    Some(std::thread::spawn(move || {
++                        if requested.recv_timeout(Duration::from_secs(2)).is_err() { return false; }
++                        let held = target.state.lock().unwrap();
++                        let _ = acquired.send(());
++                        let released = released.recv_timeout(Duration::from_secs(2)).is_ok();
++                        drop(held);
++                        released
++                    }))
++                };
++                let held = held_source.then(|| f.a.state.lock().unwrap());
++                assert!(f.a.inflight.available_permits() > 0 && f.b.inflight.available_permits() > 0);
++                let target = f.b.clone(); let target_logical = logical.clone();
++                let (returned, observed) = std::sync::mpsc::sync_channel(1);
++                let runtime = tokio::runtime::Handle::current();
++                let worker = std::thread::spawn(move || {
++                    let _entered = runtime.enter();
++                    let result = packet.try_forward_to(&target, &target_logical);
++                    let _ = returned.send(());
++                    (packet, result)
++                });
++                let completed = observed.recv_timeout(Duration::from_millis(500));
++                drop(held);
++                let _ = release.send(());
++                let holder_released = holder.map_or(true, |owner| owner.join().unwrap());
++                let (packet, refused) = worker.join().unwrap();
++                assert!(completed.is_ok() && holder_released, "actual queued forward waited on metadata {medium:?} held_source={held_source}");
++                assert!(matches!(refused, Err(StreamControlError::NotReady)), "{refused:?}");
++                assert_eq!(packet_calls.load(Ordering::Acquire) - before_calls, if held_source { 0 } else { 1 });
++                assert_eq!(packet.frame.payload, original.payload);
++                assert!(output.try_recv().is_err());
++                drop(f.policy.0.try_write().expect("metadata refusal retained a source/recipient permission"));
++                assert!(fence.clone().try_write_owned().is_err(), "test's real original fence reader died before paired retry");
++                match outcome {
++                    "source-denied" => { f.policy.0.write().await.revoked.insert("alice".into()); }
++                    "target-denied" => { f.policy.0.write().await.revoked.insert("bob".into()); }
++                    "expired" => { tokio::time::sleep(Duration::from_millis(100)).await; }
++                    "foreign-context" => {
++                        // A live reader from a different opt-in domain is not
++                        // the original source context, even with equal IDs.
++                        *active.lock().unwrap() = Weak::new();
++                        // Existing PacketCustody still has only its original
++                        // weak. A foreign direct context must be refused too.
++                        let foreign = Arc::new(QueuedForwardRead { domain: Arc::new(()),
++                            source: f.a.connection.clone(), current: AtomicBool::new(true), until: None,
++                            _fence: Arc::new(RwLock::new(())).try_read_owned().unwrap() });
++                        let erased: Arc<dyn Any + Send + Sync> = foreign;
++                        let weak = Arc::downgrade(&erased);
++                        let credential = f.a.credential_snapshot();
++                        let scope = f.a.scope(&credential.principal, MediaPurpose::Publish);
++                        assert!(matches!(f.a.policy.current_packet(&scope, &weak), Err(StreamControlError::Authority)));
++                        read.current.store(false, Ordering::Release);
++                    }
++                    "stale-context" => { read.current.store(false, Ordering::Release); }
++                    _ => {}
++                }
++                assert!(packet.admitted_at.elapsed() < Duration::from_millis(200), "test no longer isolates original grant from packet age");
++                let result = packet.try_forward_to(&f.b, &logical);
++                if outcome == "resume" {
++                    result.unwrap();
++                    let queued = output.try_recv().expect("same original queued output");
++                    queued.deliver(move |frame| async move { assert_eq!(frame.payload, original.payload); Ok(()) }).await.unwrap();
++                } else {
++                    if outcome == "expired" { assert!(matches!(result, Err(StreamControlError::Deadline)), "{result:?}"); }
++                    else { assert!(matches!(result, Err(StreamControlError::Authority)), "{result:?}"); }
++                    assert!(output.try_recv().is_err(), "context identity/expiry/current deny was bypassed");
++                }
++                assert!(output.try_recv().is_err() && input.try_recv().is_err());
++                drop(read);
++                drop(fence.clone().try_write_owned().expect("queue retained a strong original fence reader"));
++                drop(f.policy.0.try_write().expect("paired outcome retained current permission"));
++            }
++        }
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/reliable_data.rs
+@@ -814,3 +814,211 @@
+     assert_eq!(internal, vec![(DataAdmissionStage::Internal, true)]);
+     assert_eq!(internal_calls, [0, 0]);
+ }
++
++
++// Actual metadata exclusion controls; these keep the ordinary strict typed
++// message policy, original operation/context, one-use writer, and Data FIFO.
++async fn metadata_scene_with_independent_video(
++    f: &Fixture, independent_from_alice: bool,
++) -> (Arc<GuardedMediaScene>, Arc<Adapter>) {
++    for controller in [&f.a, &f.b] {
++        controller.change(controller.revision(), &[desired(Medium::Data), desired(Medium::Video)],
++            &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
++    }
++    let s = scene(f).await;
++    s.change_direct_subscriptions(&f.b.connection, f.b.revision(),
++        DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&f.a,
++            desired(Medium::Data).logical_id.clone(), desired(Medium::Data).logical_id)]),
++        deadline(), CancellationToken::new(), None).await.unwrap();
++    f.policy.0.write().await.owners.insert("charlie".into(), owner("charlie"));
++    let adapter = Adapter::new();
++    let third = StreamController::new(f.a.conversation.clone(), f.a.session.clone(),
++        ConnectionId::from_string("charlie"), principal("charlie"), f.a.policy.clone(),
++        adapter.clone(), f.a.handles.clone(), 8).unwrap();
++    third.change(0, &[desired(Medium::Video)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
++    let mut member = s.prepare(third.clone()).unwrap();
++    member.quiesce(deadline(), CancellationToken::new()).await.unwrap();
++    assert!(member.ready());
++    s.insert(third.connection.clone(), member, true);
++    s.change_direct_subscriptions(&third.connection, third.revision(),
++        DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++            if independent_from_alice { &f.a } else { &f.b },
++            desired(Medium::Video).logical_id.clone(), desired(Medium::Video).logical_id)]),
++        deadline(), CancellationToken::new(), None).await.unwrap();
++    // Adopt the Data receiver BEFORE exclusion: a skipped adoption read must
++    // not hide the later forwarding of an already-owned original input.
++    s.tick();
++    (s, adapter)
++}
++fn metadata_tick_worker(s: Arc<GuardedMediaScene>) -> (
++    std::thread::JoinHandle<()>, std::sync::mpsc::Receiver<()>,
++) {
++    let runtime = tokio::runtime::Handle::current();
++    let (sent, done) = std::sync::mpsc::sync_channel(1);
++    let worker = std::thread::spawn(move || {
++        let _entered = runtime.enter();
++        s.tick();
++        let _ = sent.send(());
++    });
++    (worker, done)
++}
++async fn metadata_deliver_original(output: &mut mpsc::Receiver<QueuedMedia>, expected: &StagedData) {
++    let packet = output.try_recv().expect("same original Data packet");
++    let admission = packet.admit_data().unwrap();
++    assert_eq!(admission.data().message(), expected.message());
++    assert_eq!(admission.data().operation_id(), expected.operation_id());
++    assert_eq!(admission.data().context::<Context>().unwrap().operation, "stable-operation");
++    let write = admission.begin_write().unwrap();
++    assert_eq!(write.frame().payload, expected.message().bytes);
++    drop(write);
++    assert!(admission.begin_write().is_err(), "writer used twice");
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn scene_typed_data_adopted_source_metadata_busy_preserves_original_fifo_and_unrelated_video() {
++    for source_state in [true, false] {
++        let (f, calls) = fixture_counted(DataProtocol::Json, true).await;
++        let (s, third) = metadata_scene_with_independent_video(&f, false).await;
++        let source = f.aa.port(Medium::Data);
++        let mut output = f.ba.port(Medium::Data).take_egress().unwrap();
++        let mut video = third.port(Medium::Video).take_egress().unwrap();
++        let messages = [message(101).with_operation_id("first-original").unwrap(),
++            message(102).with_operation_id("second-original").unwrap()];
++        for original in &messages { source.try_publish_data(original, None).unwrap(); }
++        let independent = f.ba.port(Medium::Video);
++        independent.try_publish(&frame(&independent, 19000)).unwrap();
++        let before = [calls[0].load(Ordering::Acquire), calls[1].load(Ordering::Acquire)];
++        let held = source_state.then(|| f.a.state.lock().unwrap());
++        let port_held = (!source_state).then(|| source.0.state.lock().unwrap());
++        assert!(f.a.inflight.available_permits() > 0, "public reader owns no control permit");
++        let (worker, done) = metadata_tick_worker(s.clone());
++        let completed = done.recv_timeout(Duration::from_millis(500));
++        // Release on both old-blocking and new-refused outcomes, then join the
++        // SAME original worker before inspecting or failing this control.
++        let healthy = video.try_recv();
++        drop((held, port_held));
++        worker.join().unwrap();
++        assert!(completed.is_ok(), "adopted Data source metadata blocked scene tick source_state={source_state}");
++        healthy.expect("independent video queued before exclusion released").deliver(|frame| async move {
++            assert_eq!(rvoip_rtp_core::RtpPacket::parse(&frame.payload).unwrap().header.timestamp, 19000);
++            Ok(())
++        }).await.unwrap();
++        assert!(output.try_recv().is_err());
++        assert_eq!(source.ingress_capacity().1, source.ingress_capacity().0 - 1, "second message dequeued before original retired");
++        assert_eq!(s.retained_visual_for_test(&f.a.connection, &desired(Medium::Data).logical_id), (1, 1, 0, 0));
++        assert_eq!(calls[1].load(Ordering::Acquire), before[1], "busy source gained target authorization");
++        drop(f.policy.0.try_write().expect("refusal retained message authority"));
++        // A current denial cannot gain IO or advance the original FIFO. The
++        // original reliable messages may recover only after current authority.
++        f.policy.0.write().await.revoked.insert("alice".into());
++        s.tick();
++        assert!(output.try_recv().is_err());
++        assert_eq!(source.ingress_capacity().1, source.ingress_capacity().0 - 1);
++        f.policy.0.write().await.revoked.remove("alice");
++        s.tick();
++        for original in &messages { metadata_deliver_original(&mut output, original).await; }
++        assert!(output.try_recv().is_err());
++        assert_eq!(source.ingress_capacity().1, source.ingress_capacity().0);
++        s.tick();
++        assert!(output.try_recv().is_err(), "recovery duplicated original messages");
++    }
++}
++
++struct MetadataDataPolicy {
++    inner: DataPolicy,
++    rendezvous: Arc<Mutex<Option<(std::sync::mpsc::SyncSender<()>, std::sync::mpsc::Receiver<()>)>>>,
++    source: Arc<Mutex<Weak<StreamController>>>,
++    state_was_held: Arc<AtomicUsize>,
++}
++impl MediaPolicy for MetadataDataPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current(scope)
++    }
++    fn current_data(&self, scope: &MediaScope<'_>, data: &StagedData,
++        held: Option<&(dyn Any + Send + Sync)>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if matches!(scope.purpose, MediaPurpose::Publish) {
++            let rendezvous = self.rendezvous.lock().unwrap().take();
++            if let Some((request, acquired)) = rendezvous {
++                let source = self.source.lock().unwrap().upgrade().unwrap();
++                self.state_was_held.store(usize::from(matches!(source.state.try_lock(),
++                    Err(std::sync::TryLockError::WouldBlock))), Ordering::Release);
++                request.send(()).map_err(|_| StreamControlError::Backpressure)?;
++                acquired.recv_timeout(Duration::from_millis(500)).map_err(|_| StreamControlError::Backpressure)?;
++            }
++        }
++        self.inner.current_data(scope, data, held)
++    }
++}
++#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
++async fn scene_typed_data_post_lookup_metadata_races_refuse_without_detaching_current_policy_guard() {
++    // Target State after early lookup; source/target PortState after the early
++    // messages_only probe. Each lock is actually acquired by a separate owner
++    // during the SAME source policy call, never a synthetic policy-Busy error.
++    for kind in ["target-state", "source-port", "target-port"] {
++        let rendezvous = Arc::new(Mutex::new(None));
++        let source_owner = Arc::new(Mutex::new(Weak::new()));
++        let state_was_held = Arc::new(AtomicUsize::new(0));
++        let calls = Arc::new([AtomicUsize::new(0), AtomicUsize::new(0)]);
++        let f = Fixture::with_policy(8, Some(Box::new({
++            let rendezvous = rendezvous.clone(); let source = source_owner.clone();
++            let state_was_held = state_was_held.clone(); let calls = calls.clone();
++            move |base| Arc::new(MetadataDataPolicy { inner: DataPolicy(base, calls),
++                rendezvous, source, state_was_held })
++        })));
++        *source_owner.lock().unwrap() = Arc::downgrade(&f.a);
++        {
++            let mut state = f.policy.0.write().await;
++            for owner in state.owners.values_mut() {
++                for caps in [&mut owner.local, &mut owner.remote] {
++                    for direction in [&mut caps.send, &mut caps.receive] {
++                        direction.iter_mut().find(|cap| cap.medium == Medium::Data).unwrap().formats =
++                            vec![MediaFormat::ReliableOrdered(DataProtocol::Json)];
++                    }
++                }
++            }
++        }
++        f.aa.mode.store(5, Ordering::Release); f.ba.mode.store(5, Ordering::Release);
++        f.start(&[Medium::Data]).await;
++        let (s, third) = metadata_scene_with_independent_video(&f, true).await;
++        let source = f.aa.port(Medium::Data); let target = f.ba.port(Medium::Data);
++        let mut output = target.take_egress().unwrap();
++        let mut video = third.port(Medium::Video).take_egress().unwrap();
++        let original = message(201).with_operation_id("raced-original").unwrap();
++        source.try_publish_data(&original, None).unwrap();
++        let independent = f.aa.port(Medium::Video);
++        independent.try_publish(&frame(&independent, 29000)).unwrap();
++        let (request, requested) = std::sync::mpsc::sync_channel(1);
++        let (acquired, acquisition) = std::sync::mpsc::sync_channel(1);
++        let (release, released) = std::sync::mpsc::sync_channel(1);
++        *rendezvous.lock().unwrap() = Some((request, acquisition));
++        let controller = f.b.clone(); let source_port = source.0.clone(); let target_port = target.0.clone();
++        let holder = std::thread::spawn(move || {
++            if requested.recv_timeout(Duration::from_secs(2)).is_err() { return false; }
++            let state = (kind == "target-state").then(|| controller.state.lock().unwrap());
++            let source = (kind == "source-port").then(|| source_port.state.lock().unwrap());
++            let target = (kind == "target-port").then(|| target_port.state.lock().unwrap());
++            let _ = acquired.send(());
++            let released = released.recv_timeout(Duration::from_secs(2)).is_ok();
++            drop((state, source, target));
++            released
++        });
++        let (worker, done) = metadata_tick_worker(s.clone());
++        let completed = done.recv_timeout(Duration::from_millis(500));
++        let healthy = video.try_recv();
++        let _ = release.send(());
++        let holder_released = holder.join().unwrap();
++        worker.join().unwrap();
++        assert!(holder_released, "actual metadata holder was not naturally released {kind}");
++        assert!(completed.is_ok(), "post-lookup Data metadata race blocked shared tick {kind}");
++        assert_eq!(state_was_held.load(Ordering::Acquire), 1, "Data State guard detached across current_data");
++        healthy.expect("independent video progressed while actual metadata held").deliver(|frame| async move {
++            assert_eq!(rvoip_rtp_core::RtpPacket::parse(&frame.payload).unwrap().header.timestamp, 29000);
++            Ok(())
++        }).await.unwrap();
++        assert!(output.try_recv().is_err());
++        assert_eq!(s.retained_visual_for_test(&f.a.connection, &desired(Medium::Data).logical_id), (1, 1, 0, 0));
++        drop(f.policy.0.try_write().expect("post-lookup refusal retained a current policy reader"));
++        s.tick();
++        metadata_deliver_original(&mut output, &original).await;
++        s.tick(); assert!(output.try_recv().is_err(), "raced original delivered twice");
++    }
++}

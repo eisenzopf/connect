@@ -1,0 +1,476 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -639,6 +639,11 @@
+ impl Port {
+     fn retire(&self) {
+         let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        self.retire_locked(&mut state);
++    }
++    // Final control publication already owns this EXACT PortState. Reentering
++    // the mutex after model/consumer effects would be a new metadata wait.
++    fn retire_locked(&self, state: &mut PortState) {
+         if matches!(
+             state.status,
+             PortStatus::Closed | PortStatus::Retired | PortStatus::Quarantined
+@@ -2353,6 +2358,8 @@
+ pub struct StreamController {
+     // Process-local incarnation only; historical observers retain Weak<()> and no controller.
+     subscription_commit_identity: Arc<()>,
++    #[cfg(test)]
++    control_metadata_observer:Mutex<Option<std::sync::mpsc::SyncSender<&'static str>>>,
+     published_video_protection: std::sync::OnceLock<Arc<published_video_protection::ProtectionSlot>>,
+     conversation: ConversationId,
+     session: SessionId,
+@@ -2804,6 +2811,8 @@
+         drop(lease);
+         Ok(Arc::new(Self {
+             subscription_commit_identity: Arc::new(()),
++            #[cfg(test)]
++            control_metadata_observer:Mutex::new(None),
+             published_video_protection: std::sync::OnceLock::new(),
+             conversation,
+             session,
+@@ -4851,25 +4860,36 @@
+         for ticket in tickets.all() {
+             drained.push(tokio::select! {biased;_=control_cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(StreamControlError::NotReady)?});
+         }
+-        {
+-            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+-            let scope = self.scope(&credential.principal, MediaPurpose::Control);
+-            let lease = control_read(self.policy.as_ref(), &scope, control.as_ref())?;
+-            let auth = lease.authority();
+-            Self::check(&scope, auth)?;
+-            if state.closed {
+-                return Err(StreamControlError::Cancelled);
+-            }
+-            if tokio::time::Instant::now() >= deadline {
+-                return Err(StreamControlError::Deadline);
+-            }
+-            let mut audio_commit = audio_selection.as_ref().map(|p| p.lock()).transpose()?;
+-            state.model.end_stream(&auth.current(), expected, logical)?;
+-            if let (Some(selection), Some(guard)) = (&audio_selection, audio_commit.as_mut()) {
+-                selection.commit(guard);
+-            }
+-            port.retire();
+-            state.active.remove(logical);
++        loop {
++            let outcome=(|| -> ControlResult<()> {
++                let mut state=self.try_control_state("end-stream-state")?;
++                let scope=self.scope(&credential.principal,MediaPurpose::Control);
++                // Preserve the original policy/Writer semantics. Moving this
++                // callback out of control metadata requires the later explicit
++                // final-admission integration; no owner-copy cache is used.
++                let lease=control_read(self.policy.as_ref(),&scope,control.as_ref())?;
++                let auth=lease.authority();
++                Self::check(&scope,auth)?;
++                if state.closed || self.shutdown.is_cancelled() || control_cancel.is_cancelled() {return Err(StreamControlError::Cancelled);}
++                if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++                self.check_credential_snapshot(&credential)?;
++                if !state.active.get(logical).is_some_and(|actual|Arc::ptr_eq(actual,&port)) {return Err(StreamControlError::NotReady);}
++                let mut port_state=control_metadata::try_lock(&port.state)
++                    .inspect_err(|error|self.note_control_metadata("end-stream-port",error))?;
++                let mut audio_commit=audio_selection.as_ref().map(|selection|selection.try_lock()).transpose()
++                    .inspect_err(|error|self.note_control_metadata("end-stream-consumer",error))?;
++                if control_cancel.is_cancelled() || self.shutdown.is_cancelled() {return Err(StreamControlError::Cancelled);}
++                if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++                state.model.end_stream(&auth.current(),expected,logical)?;
++                if let (Some(selection),Some(guard))=(&audio_selection,audio_commit.as_mut()) {selection.commit(guard);}
++                port.retire_locked(&mut port_state);
++                state.active.remove(logical);
++                Ok(())
++            })();
++            match outcome {
++                Err(StreamControlError::MetadataBusy)=>media_subscriptions::metadata_wait(self.shutdown.clone(),CancellationToken::new(),control_cancel.clone(),deadline).await?,
++                result=>{result?;break;},
++            }
+         }
+         drop(drained);
+         self.notify_selection_change();
+@@ -5110,3 +5130,5 @@
+ #[cfg(feature = "test-support")]
+ #[doc(hidden)]
+ pub mod video_boundary;
++
++mod control_metadata;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -558,6 +558,21 @@
+             .ok_or(MediaTransitionError::Capacity)?;
+         Ok(state)
+     }
++    pub(super) fn try_lock(&self) -> ControlResult<std::sync::MutexGuard<'_, ConsumerState>> {
++        let state = super::control_metadata::try_lock(&self.consumer.state)?;
++        if self.consumer.cancellation.is_cancelled()
++            || !state.active
++            || state.epoch != self.previous.epoch
++            || !self.previous.ticket.is_current()
++        {
++            return Err(StreamControlError::Cancelled);
++        }
++        state
++            .epoch
++            .checked_add(1)
++            .ok_or(MediaTransitionError::Capacity)?;
++        Ok(state)
++    }
+     pub(super) fn commit(&self, state: &mut ConsumerState) {
+         assert!(
+             self.next.commit_from(&self.previous.ticket),
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -1056,6 +1056,13 @@
+         }
+         Ok(AudioCommit(state))
+     }
++    pub(super) fn try_lock(&self) -> ControlResult<AudioCommit<'_>> {
++        let state = super::control_metadata::try_lock(&self.gate.state)?;
++        if self.gate.cancel.is_cancelled() || !self.old.ticket.is_current() {
++            return Err(StreamControlError::Cancelled);
++        }
++        Ok(AudioCommit(state))
++    }
+ }
+ pub(super) struct AudioCommit<'a>(std::sync::MutexGuard<'a, GateState>);
+ impl AudioCommit<'_> {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/control_metadata.rs b/crates/foundation/rvoip-core/src/staged_streams/control_metadata.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/control_metadata.rs
+@@ -0,0 +1,29 @@
++//! Control-only acquisition helpers. No permission, policy cache or new timer.
++use super::*;
++pub(super) fn try_lock<T>(mutex:&Mutex<T>)->ControlResult<std::sync::MutexGuard<'_,T>> {
++    match mutex.try_lock() {
++        Ok(guard)=>Ok(guard),
++        Err(std::sync::TryLockError::WouldBlock)=>Err(StreamControlError::MetadataBusy),
++        Err(std::sync::TryLockError::Poisoned(error))=>Ok(error.into_inner()),
++    }
++}
++impl StreamController {
++    pub(super) fn try_control_state(&self,stage:&'static str)->ControlResult<std::sync::MutexGuard<'_,State>> {
++        try_lock(&self.state).inspect_err(|error|self.note_control_metadata(stage,error))
++    }
++    pub(super) fn note_control_metadata(&self,stage:&'static str,error:&StreamControlError) {
++        #[cfg(test)]
++        if matches!(error,StreamControlError::MetadataBusy) {
++            self.observe_control_stage(stage);
++        }
++        #[cfg(not(test))]
++        let _=(stage,error);
++    }
++    #[cfg(test)]
++    pub(super) fn observe_control_stage(&self,stage:&'static str) {
++        if let Ok(slot)=self.control_metadata_observer.try_lock() {
++            if let Some(observer)=slot.as_ref() {let _=observer.try_send(stage);}
++        }
++    }
++
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -685,6 +685,30 @@
+         }
+         Ok(DirectCommit(routing))
+     }
++    pub(super) fn try_lock<'a>(
++        &self,
++        controller: &'a StreamController,
++    ) -> ControlResult<DirectCommit<'a>> {
++        let gate = &controller.direct_subscriptions;
++        let routing = super::control_metadata::try_lock(&gate.routing)?;
++        if gate.cancel.is_cancelled() || self.old.values().any(|r| !r.ticket.is_current()) {
++            return Err(StreamControlError::Cancelled);
++        }
++        for id in &self.changed {
++            match (self.private.get(id), routing.preparation.get(id)) {
++                (None, None) => {}
++                (Some(original), Some(current))
++                    if Arc::ptr_eq(original, current)
++                        && original.ticket.is_current()
++                        && original
++                            .preparation
++                            .as_ref()
++                            .is_some_and(|p| p.is_current()) => {}
++                _ => return Err(StreamControlError::Cancelled),
++            }
++        }
++        Ok(DirectCommit(routing))
++    }
+ }
+ pub(super) struct DirectCommit<'a>(std::sync::MutexGuard<'a, Routing>);
+ impl DirectCommit<'_> {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
+@@ -174,6 +174,7 @@
+         deadline,
+         &cancel,
+     )?;
++    let mut partial_audio=None;
+     let (audio, direct) = loop {
+         invocation(
+             &controller,
+@@ -191,7 +192,7 @@
+                     expected,
+                 )?;
+             }
+-            let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++            let state = controller.try_control_state("subscription-prepare-state")?;
+             let lease = control_read(controller.policy.as_ref(), &scope, control.as_ref())?;
+             StreamController::check(&scope, lease.authority())?;
+             if state.closed {
+@@ -206,7 +207,8 @@
+             } else {
+                 Vec::new()
+             };
+-            let audio = change
++            if partial_audio.is_none() {
++                partial_audio = change
+                 .audio
+                 .as_ref()
+                 .map(|change| {
+@@ -224,6 +226,9 @@
+                     )
+                 })
+                 .transpose()?;
++                #[cfg(test)]
++                if partial_audio.is_some() {controller.observe_control_stage("subscription-audio-prepared");}
++            }
+             let direct = change
+                 .direct
+                 .as_ref()
+@@ -238,10 +243,12 @@
+                 deadline,
+                 &cancel,
+             )?;
+-            Ok((audio, direct))
++            Ok((partial_audio.take(), direct))
+         });
+         match prepared {
+-            Err(StreamControlError::Backpressure) => {
++            Err(StreamControlError::Backpressure | StreamControlError::MetadataBusy) => {
++                #[cfg(test)]
++                controller.observe_control_stage("subscription-prepare-retry");
+                 metadata_wait(
+                     controller.shutdown.clone(),
+                     cancel.clone(),
+@@ -290,7 +297,7 @@
+         )?;
+         let committed = with_member(scene, &controller, |member| {
+             validate_members(member, &change)?;
+-            let mut state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++            let mut state = controller.try_control_state("subscription-commit-state")?;
+             let lease = control_read(controller.policy.as_ref(), &scope, control.as_ref())?;
+             StreamController::check(&scope, lease.authority())?;
+             if state.closed {
+@@ -327,15 +334,15 @@
+                 .selection
+                 .as_ref()
+                 .map(|p| {
+-                    p.lock(
++                    p.try_lock(
+                         scene.ok_or(StreamControlError::NotReady)?,
+                         &controller,
+                         expected,
+                     )
+                 })
+                 .transpose()?;
+-            let mut audio_commit = audio.as_ref().map(|p| p.lock()).transpose()?;
+-            let mut direct_commit = direct.as_ref().map(|p| p.lock(&controller)).transpose()?;
++            let mut audio_commit = audio.as_ref().map(|p| p.try_lock()).transpose()?;
++            let mut direct_commit = direct.as_ref().map(|p| p.try_lock(&controller)).transpose()?;
+             invocation(
+                 &controller,
+                 &credential,
+@@ -402,7 +409,7 @@
+             Ok(revision)
+         });
+         match committed {
+-            Err(StreamControlError::Backpressure) => {
++            Err(StreamControlError::Backpressure | StreamControlError::MetadataBusy) => {
+                 metadata_wait(
+                     controller.shutdown.clone(),
+                     cancel.clone(),
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs b/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/selection_intent.rs
+@@ -287,6 +287,23 @@
+             mutation: self,
+         })
+     }
++    pub(super) fn try_lock<'a>(
++        &'a self,
++        scene: &'a GuardedMediaScene,
++        target: &Arc<StreamController>,
++        expected: u64,
++    ) -> ControlResult<SelectionCommit<'a>> {
++        self.validate_scope(scene, target, expected)?;
++        let programs = super::control_metadata::try_lock(&scene.selections)?;
++        if !same_previous(programs.get(&target.connection), self.previous.as_ref()) {
++            return Err(MediaTransitionError::Conflict.into());
++        }
++        Ok(SelectionCommit {
++            programs,
++            connection: target.connection.clone(),
++            mutation: self,
++        })
++    }
+ }
+ pub(super) struct SelectionCommit<'a> {
+     programs: std::sync::MutexGuard<'a, BTreeMap<ConnectionId, Arc<SelectionProgram>>>,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -2086,3 +2086,5 @@
+     assert_eq!(s.f.b.revision(), expected);
+     assert_eq!(s.f.b.stream_open_budget(), budget);
+ }
++
++mod control_guard_foundation;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/control_guard_foundation.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/control_guard_foundation.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/control_guard_foundation.rs
+@@ -0,0 +1,138 @@
++//! Actual mutex/IO controls for the first guard foundation only. These do not
++//! qualify the unresolved Service Writer/policy or compound audience boundary.
++use super::*;
++
++async fn extra_video_member(s:&Scene,name:&str)->(Arc<StreamController>,Arc<Adapter>) {
++    s.f.policy.0.write().await.owners.insert(name.into(),owner(name));
++    let adapter=Adapter::new();
++    let controller=StreamController::new(s.f.a.conversation.clone(),s.f.a.session.clone(),ConnectionId::from_string(name),principal(name),s.f.a.policy.clone(),adapter.clone(),s.f.a.handles.clone(),16).unwrap();
++    controller.change(0,&[desired(Medium::Video)],&BTreeSet::new(),deadline(),CancellationToken::new()).await.unwrap();
++    let mut member=s.scene.prepare(controller.clone()).unwrap();
++    member.quiesce(deadline(),CancellationToken::new()).await.unwrap();
++    assert!(member.ready());s.scene.insert(controller.connection.clone(),member,true);
++    (controller,adapter)
++}
++async fn receive_alice_video(s:&Scene,target:&Arc<StreamController>) {
++    s.scene.change_direct_subscriptions(&target.connection,target.revision(),DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&s.f.a,desired(Medium::Video).logical_id.clone(),desired(Medium::Video).logical_id)]),deadline(),CancellationToken::new(),None).await.unwrap();
++}
++fn observe(controller:&Arc<StreamController>)->std::sync::mpsc::Receiver<&'static str> {
++    let (send,receive)=std::sync::mpsc::sync_channel(256);
++    *controller.control_metadata_observer.lock().unwrap()=Some(send);receive
++}
++fn control_thread<T:Send+'static,F:std::future::Future<Output=ControlResult<T>>>(make:impl FnOnce()->F+Send+'static)->(std::thread::JoinHandle<ControlResult<T>>,std::sync::mpsc::Receiver<()>) {
++    let runtime=tokio::runtime::Handle::current();let (send,done)=std::sync::mpsc::sync_channel(1);
++    let worker=std::thread::spawn(move||{let value=runtime.block_on(make());let _=send.send(());value});
++    (worker,done)
++}
++fn tick_thread(scene:Arc<GuardedMediaScene>)->(std::thread::JoinHandle<()>,std::sync::mpsc::Receiver<()>) {
++    let runtime=tokio::runtime::Handle::current();let(send,done)=std::sync::mpsc::sync_channel(1);
++    let worker=std::thread::spawn(move||{let _entered=runtime.enter();for _ in 0..8 {scene.tick();std::thread::yield_now();}let _=send.send(());});
++    (worker,done)
++}
++fn publication(s:&Scene,medium:Medium,sequence:u32)->ControlResult<()> {
++    let port=s.f.aa.port(medium);port.try_publish(&frame(&port,sequence))
++}
++async fn actual_video(packet:Option<QueuedMedia>)->(bool,Option<MediaFrame>) {
++    let captured=Arc::new(Mutex::new(None));let sink=captured.clone();
++    let result=match packet {
++        Some(packet)=>packet.deliver(move|frame|{let sink=sink.clone();async move{*sink.lock().unwrap()=Some(frame);Ok(())}}).await.is_ok(),
++        None=>false,
++    };
++    let frame=captured.lock().unwrap().take();(result,frame)
++}
++async fn cleanup(controllers:&[Arc<StreamController>])->Vec<usize> {
++    let mut remaining=Vec::new();for controller in controllers {remaining.push(controller.shutdown(deadline()).await);}remaining
++}
++
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn subscription_target_metadata_busy_releases_scene_and_commits_original_once() {
++    let s=Scene::new(&[Medium::Video]).await;
++    let (third,adapter)=extra_video_member(&s,"charlie").await;receive_alice_video(&s,&third).await;
++    let mut healthy=adapter.port(Medium::Video).take_egress().unwrap();
++    let mut target=s.f.ba.port(Medium::Video).take_egress().unwrap();s.scene.tick();
++    let before=s.f.b.revision();let opened=s.f.ba.prepare_calls.load(Ordering::Acquire);
++    let events=observe(&s.f.b);let held=s.f.b.state.lock().unwrap();
++    let scene=s.scene.clone();let receiver=s.f.b.connection.clone();let publisher=s.f.a.clone();
++    let(worker,_done)=control_thread(move||async move{scene.change_direct_subscriptions(&receiver,before,DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&publisher,desired(Medium::Video).logical_id.clone(),desired(Medium::Video).logical_id)]),deadline(),CancellationToken::new(),None).await});
++    let collision=events.recv_timeout(Duration::from_secs(2));
++    let published=publication(&s,Medium::Video,31000);let(tick,finished)=tick_thread(s.scene.clone());
++    let progressed=finished.recv_timeout(Duration::from_millis(500));
++    let io=actual_video(healthy.try_recv().ok()).await;
++    drop(held);let tick_join=tick.join();let outcome=worker.join();
++    let revision=s.f.b.revision();let no_old_target=target.try_recv().is_err();
++    let published_fresh=publication(&s,Medium::Video,32000);s.scene.tick();let fresh=actual_video(target.try_recv().ok()).await;
++    let no_duplicate=target.try_recv().is_err();let opens_after=s.f.ba.prepare_calls.load(Ordering::Acquire);
++    let remaining=cleanup(&[s.f.a.clone(),s.f.b.clone(),third]).await;
++    assert_eq!(collision.ok(),Some("subscription-prepare-state"));
++    assert!(published.is_ok()&&published_fresh.is_ok());
++    assert!(progressed.is_ok()&&tick_join.is_ok(),"one target metadata reader excluded healthy scene IO");
++    assert!(io.0&&io.1.as_ref().is_some_and(|frame|frame.timestamp_rtp==31000));
++    assert!(outcome.is_ok_and(|result|matches!(result,Ok(revision) if revision==before+1)),"same original routing command did not recover once");
++    assert_eq!(revision,before+1);assert_eq!(opened,opens_after,"physical prepare was reissued");
++    assert!(no_old_target,"new route captured a packet admitted before its original commit");
++    assert!(fresh.0&&fresh.1.as_ref().is_some_and(|frame|frame.timestamp_rtp==32000)&&no_duplicate);
++    assert!(remaining.iter().all(|count|*count==0));
++}
++
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn subscription_sibling_metadata_busy_preserves_one_original_audio_plan() {
++    let s=Scene::new(&[Medium::Audio,Medium::Video]).await;
++    let (source,_source_adapter)=extra_video_member(&s,"charlie").await;
++    let (healthy_target,healthy_adapter)=extra_video_member(&s,"dave").await;
++    receive_alice_video(&s,&healthy_target).await;
++    let mut healthy=healthy_adapter.port(Medium::Video).take_egress().unwrap();s.scene.tick();
++    let before=s.f.b.revision();let opened=s.f.ba.prepare_calls.load(Ordering::Acquire);
++    let events=observe(&s.f.b);let held=source.state.lock().unwrap();
++    let change=MediaSubscriptionChange {selection:None,audio:Some(AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Stream(MediaStreamRef {connection:s.f.a.connection.clone(),logical:desired(Medium::Audio).logical_id})])),direct:Some(DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&source,desired(Medium::Video).logical_id.clone(),desired(Medium::Video).logical_id)]))};
++    let scene=s.scene.clone();let receiver=s.f.b.connection.clone();
++    let(worker,_done)=control_thread(move||async move{scene.change_media_subscriptions(&receiver,before,change,deadline(),CancellationToken::new(),None).await});
++    let mut seen=Vec::new();let bound=Instant::now()+Duration::from_secs(1);
++    while seen.iter().filter(|event|**event=="subscription-prepare-retry").count()<2&&Instant::now()<bound {
++        match events.recv_timeout(bound.saturating_duration_since(Instant::now())) {Ok(event)=>seen.push(event),Err(_)=>break}
++    }
++    let published=publication(&s,Medium::Video,41000);let(tick,finished)=tick_thread(s.scene.clone());let progressed=finished.recv_timeout(Duration::from_millis(500));let io=actual_video(healthy.try_recv().ok()).await;
++    drop(held);let tick_join=tick.join();let outcome=worker.join();seen.extend(events.try_iter());
++    let revision=s.f.b.revision();let opens_after=s.f.ba.prepare_calls.load(Ordering::Acquire);
++    let remaining=cleanup(&[s.f.a.clone(),s.f.b.clone(),source,healthy_target]).await;
++    assert!(published.is_ok());
++    assert!(seen.iter().filter(|event|**event=="subscription-prepare-retry").count()>=2,"actual Direct source exclusion never retried");
++    assert_eq!(seen.iter().filter(|event|**event=="subscription-audio-prepared").count(),1,"sibling metadata retry recreated original AudioPlan ticket");
++    assert!(progressed.is_ok()&&tick_join.is_ok()&&io.0&&io.1.as_ref().is_some_and(|frame|frame.timestamp_rtp==41000));
++    assert!(outcome.is_ok_and(|result|matches!(result,Ok(revision) if revision==before+1)));assert_eq!(revision,before+1);assert_eq!(opened,opens_after);
++    assert!(remaining.iter().all(|count|*count==0));
++}
++
++async fn end_port_case(mode:&str) {
++    let s=Scene::new(&[Medium::Audio,Medium::Video]).await;
++    apply(&s,MediaSubscriptionChange {selection:None,audio:Some(AudioSubscriptionChange::Subscribe(vec![AudioSubscription::Stream(MediaStreamRef {connection:s.f.a.connection.clone(),logical:desired(Medium::Audio).logical_id})])),direct:None}).await.unwrap();
++    let(third,adapter)=extra_video_member(&s,"charlie").await;receive_alice_video(&s,&third).await;
++    let mut healthy=adapter.port(Medium::Video).take_egress().unwrap();s.scene.tick();
++    let port=s.f.ba.port(Medium::Audio);let original_ticket=port.0.ticket_snapshot();
++    let consumer=s.scene.members.lock().unwrap().get(&s.f.b.connection).unwrap().audio_consumer.clone();let original_consumer=consumer.stamp();
++    let before=s.f.b.revision();let opened=s.f.ba.prepare_calls.load(Ordering::Acquire);let events=observe(&s.f.b);
++    let held=port.0.state.lock().unwrap();let controller=s.f.b.clone();let logical=desired(Medium::Audio).logical_id;let until=deadline();
++    let(worker,done)=control_thread(move||async move{controller.end_stream(&logical,before,until).await});
++    let collision=events.recv_timeout(Duration::from_secs(1));
++    let audio_published=publication(&s,Medium::Audio,480);let video_published=publication(&s,Medium::Video,51000);let(tick,finished)=tick_thread(s.scene.clone());let progressed=finished.recv_timeout(Duration::from_millis(500));let io=actual_video(healthy.try_recv().ok()).await;
++    let returned=if mode=="cancel" {s.f.b.shutdown.cancel();Some(done.recv_timeout(Duration::from_millis(500)))} else if mode=="deadline" {Some(done.recv_timeout(until.saturating_duration_since(tokio::time::Instant::now())+Duration::from_millis(500)))} else {None};
++    drop(held);let tick_join=tick.join();let outcome=worker.join();
++    let state=s.f.b.state.lock().unwrap();let revision=state.model.revision();let same_port=state.active.get(&desired(Medium::Audio).logical_id).is_some_and(|actual|Arc::ptr_eq(actual,&port.0));drop(state);
++    let same_ticket=Arc::ptr_eq(&original_ticket,&port.0.ticket_snapshot());let port_current=[TicketSide::Ingress,TicketSide::Egress].into_iter().all(|side|original_ticket.ticket(side).is_current());let consumer_current=original_consumer.is_current();let opened_after=s.f.ba.prepare_calls.load(Ordering::Acquire);
++    let remaining=cleanup(&[s.f.a.clone(),s.f.b.clone(),third]).await;
++    assert!(audio_published.is_ok()&&video_published.is_ok());
++    assert_eq!(collision.ok(),Some("end-stream-port"),"actual final retirement PortState exclusion was not reached");
++    assert!(progressed.is_ok()&&tick_join.is_ok()&&io.0&&io.1.as_ref().is_some_and(|frame|frame.timestamp_rtp==51000),"retirement metadata held audio consumer and blocked healthy actual video");
++    assert_eq!(opened,opened_after,"end-stream reissued physical prepare");
++    let outcome=outcome.expect("same original control thread panicked");
++    match mode {
++        "recover"=>{assert!(outcome.is_ok());assert_eq!(revision,before+1);assert!(!same_port&&!consumer_current);},
++        "cancel"=>{assert!(matches!(outcome,Err(StreamControlError::Cancelled)));assert_eq!(revision,before);assert!(same_port&&same_ticket&&port_current&&consumer_current);assert!(returned.unwrap().is_ok());},
++        "deadline"=>{assert!(matches!(outcome,Err(StreamControlError::Deadline)));assert!(tokio::time::Instant::now()>=until);assert_eq!(revision,before);assert!(same_port&&same_ticket&&port_current&&consumer_current);assert!(returned.unwrap().is_ok());},
++        _=>unreachable!(),
++    }
++    assert!(remaining.iter().all(|count|*count==0));
++}
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn end_stream_port_metadata_busy_keeps_consumer_free_and_recovers_original() {end_port_case("recover").await;}
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn end_stream_port_metadata_busy_preserves_original_cancel_and_deadline() {for mode in ["cancel","deadline"] {end_port_case(mode).await;}}

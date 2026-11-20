@@ -1,0 +1,230 @@
+{
+  "format": "connect/g6-058-v219-g633-source516-native-diagnostic/1",
+  "status": "actual-isolated-Native2PASS-no-qualification",
+  "recorded_at": "2026-11-20T04:43:25.059615+00:00",
+  "tracker_revision": 140,
+  "summary": "G633 passed both exact Native catalog diagnostic tests on prepared source516. The original main passed on QUIC and WebTransport through its full counter, revision, current-policy, camera/screen and cleanup tail. The causal control reached all four variants: in each release variant, one ordinary SourceStateBusy observation preceded two unchanged-catalog plans within the same 650ms window; each full-held variant recorded 25 SourceStateBusy observations and no successful plan. All four recorded unchanged attempt/operation/revision counters, zero dropped rows and no overflow. The five original children and Root closed naturally, source and current CargoJSON-bound binary stayed unchanged, and the actual execution audit accepted this isolated 2/2 scope. Normal516 independently passed with one fixture file changed, the complete old515 tree preserved and4,268 equal file mtimes restored; its missing contemporaneous top-level PGID observation remains explicit. The only source516 change is the reviewed fixture getter pacing: diagnosed Busy waits1ms clamped to the original cutoff; all original650/1100/650 windows and hard assertions remain. Correction: tokio::join!(catalog_snapshot_before(&s, until), observe) does run the getter throughout the held-source window. The earlier statement that no getter was active there was mistaken. G629 sampled the getter while Members was retained during map destruction; that sample and this historical hot-yield A / paced B comparison support fixture competition as contextual evidence, not continuous-holder or universal-cause proof. G626 remains failed16/17, G623 failed6/7, G620 failed5/7 and fullG618 failed3,280/3,282; those records are not regraded. G626 ten Core controls and its original RTC/catalog scopes retain only their earlier scoped passes. Normal518 has now passed and been independently audited: the two reviewed QueuedForwardV2/common-Port acquisition and audio payload-cache/consumer-slot follow-ups are implemented but runtime-unverified. Seven existing upstream files changed, none were added, the complete old516 tree was preserved and4,262 equal file mtimes were restored. The current source has6,501 files; no Core runtime result is claimed. Their six new Core controls remain unverified. The broader Core/managed/Service authority-and-control critical-section split is still design/authoring work, with no completed or verified API claimed. Next: run the six actual source518 unit controls, complete and review the remaining foundations, then commit and repeat current shared379, the complete regression and OriginalV8 on one seal. Strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain pending. This isolated lane does not supply default shipping, full regression, original media or matrix qualification. Matrix remains v218:1/32 cells and399/432 checks; not ready for32. G6-054 stays parked and execution remains local Mac/native ARM.",
+  "tested_source": {
+    "head_base": "6905d66deee558a7ae129f0e41a715a5c48963c1",
+    "seal_path": ".local/gate-6/g632-normal516-registration-root/working-source516.json",
+    "seal_sha256": "a8419cd9f4f82c7fb12e7939e6cd40e075e668d012ef591b6e59325a2d82fd12",
+    "workspace_sha256": "21ab32da05e452d965620cc25f84b26cd6e7258b32a6c3c25945e06bccd735f7",
+    "files": 6499,
+    "generation": 516,
+    "source_lock_sha256": "cdc5f2629b40d045c3c9dd1695d29ecce964ed87dfb08ced1fbf75f00ccd71af",
+    "prepared": {
+      "rvoip": "387911b303a7a063d73ae24e3e15ec5073de229798e82db704694a210f1cfb8e",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    }
+  },
+  "actual_G633": {
+    "completed": 2,
+    "passed": 2,
+    "failed": 0,
+    "Native_inventory_count": 211,
+    "Native_sha256": "40d1c5e8c254533173a463f607d8551a9dedad9f4f05d4b006a601f4ee3be083",
+    "all_original_owners_natural0_absent": true,
+    "source_binary_inputs_unchanged": true,
+    "original_main_both_transports_full_tail_pass": true,
+    "causal_variants": [
+      {
+        "transport": "quic",
+        "release_within_window": true,
+        "ordinary_rows": 3,
+        "source_state_busy_rows": 1,
+        "same_catalog_plans": 2,
+        "dropped": 0,
+        "counters_revision_unchanged": true
+      },
+      {
+        "transport": "quic",
+        "release_within_window": false,
+        "ordinary_rows": 25,
+        "source_state_busy_rows": 25,
+        "same_catalog_plans": 0,
+        "dropped": 0,
+        "counters_revision_unchanged": true
+      },
+      {
+        "transport": "wt",
+        "release_within_window": true,
+        "ordinary_rows": 3,
+        "source_state_busy_rows": 1,
+        "same_catalog_plans": 2,
+        "dropped": 0,
+        "counters_revision_unchanged": true
+      },
+      {
+        "transport": "wt",
+        "release_within_window": false,
+        "ordinary_rows": 25,
+        "source_state_busy_rows": 25,
+        "same_catalog_plans": 0,
+        "dropped": 0,
+        "counters_revision_unchanged": true
+      }
+    ]
+  },
+  "normal516_actual": {
+    "passed": true,
+    "changed_existing": 1,
+    "added_upstream": 0,
+    "equal_file_mtimes_restored": 4268,
+    "complete_old515_preserved": true,
+    "top_owner_limit": "No contemporaneous top-level PGID/liveps observation; do not claim one."
+  },
+  "getter_phase_correction": "The actual join concurrently polls catalog_snapshot_before during the held-source650ms; prior no-active-getter statement was mistaken. The sampled map-drop frame alone does not establish continuous ownership or sole cause.",
+  "causal_limit": "One historical hot-yield A failure and this paced B pass are contextual causal evidence, not a universal scheduling guarantee or production control-wait repair.",
+  "followups": {
+    "queued_forward_V2": {
+      "status": "prepared518-implemented-runtime-unverified",
+      "owner_agent": "/root/batch_build_review",
+      "new_Core_functions": 4
+    },
+    "audio_V2": {
+      "status": "prepared518-implemented-runtime-unverified",
+      "owner_agent": "/root/epoch_cause",
+      "new_Core_functions": 2
+    },
+    "normal518": {
+      "status": "actual-preparation-PASS-implemented-runtime-unverified",
+      "actual_receipt": {
+        "path": ".local/gate-6/source516-two-followups-normal518-registration-preparation-inert-candidate/normal518-runtime/receipt.json",
+        "sha256": "dbf7cb2f764eaa3d7d99f2756010ee56570489115e8fe95ebbc6ceaec64bf5d4"
+      },
+      "actual_audit": {
+        "path": ".local/gate-6/g634-normal518-registration-root/actual-independent-root-audit.json",
+        "sha256": "d4fb09c7a3fbc52b686a7eee92598b3281811142a6324b19d427482572af2d23"
+      },
+      "actual_source": {
+        "path": ".local/gate-6/g634-normal518-registration-root/working-source518.json",
+        "sha256": "1935a2f93d73e26be33c031eb14736aae45343da8f6cbc99539b739f13f3449b"
+      },
+      "changed_existing": 7,
+      "added_upstream": 0,
+      "equal_file_mtimes_restored": 4262,
+      "old516_complete_tree_preserved": true,
+      "source_file_count": 6501,
+      "Core_runtime_verified": false
+    },
+    "control_and_Service_split": {
+      "status": "design-authoring-not-sealed-or-runtime-verified",
+      "owner_agents": [
+        "/root/independent_batch_review",
+        "/root/batch_build_review",
+        "/root/epoch_cause"
+      ],
+      "scope": "Same original grant-free preparation/token, current final authority, complete nonwaiting final guards and all alias release before wait; no finalized compatible API or standalone closure claimed."
+    }
+  },
+  "proofs": {
+    "G633_result": {
+      "path": ".local/gate-6/g633-source516-native-two-diagnostic-root/result.json",
+      "sha256": "e260b8c15fbd6a28e82ea614a2ac887f12a8e816f3bc5ee38d4c061e06bf59bd"
+    },
+    "G633_join": {
+      "path": ".local/gate-6/g633-source516-native-two-diagnostic-root/root-original-join.json",
+      "sha256": "ac96ed2375919d783c600ed1671de3d3f541ceb26bd7fec54eb6571cfdac4861"
+    },
+    "G633_actual_audit": {
+      "path": ".local/gate-6/g633-actual-native-two-independent-epoch-audit/receipt.json",
+      "sha256": "356bf97386f327b91b7c7e8f5ebb912bc1bd38d00c1d42938b3e01e8b50bd941"
+    },
+    "G633_main_log": {
+      "path": ".local/gate-6/g633-source516-native-two-diagnostic-root/original-catalog-one-shot.log",
+      "sha256": "a59f06564638cafc3aa17cde3ea4fe8bfe5680bf5d744e6d5b15ec00f670a55f"
+    },
+    "G633_causal_log": {
+      "path": ".local/gate-6/g633-source516-native-two-diagnostic-root/catalog-native.log",
+      "sha256": "b78c5f16e969ebf48c356e7a1805ef5e796ccd8e9d65daef79a2ee9bee50c34c"
+    },
+    "normal516_receipt": {
+      "path": ".local/gate-6/g630-native-getter-normal516-registration-preparation-inert-candidate/normal516-runtime/receipt.json",
+      "sha256": "7c5819d2ee551046c6bdcc8ebc61d633c75dd7437a3fa9366355e96638ea2309"
+    },
+    "normal516_join": {
+      "path": ".local/gate-6/g632-normal516-registration-root/root-original-join.json",
+      "sha256": "52e81c143f30a87a7fc515f99652eba24e0b6134bb9f5e1e8cd34c009caeea09"
+    },
+    "normal516_audit": {
+      "path": ".local/gate-6/g632-actual-normal516-independent-batch-audit/receipt.json",
+      "sha256": "286dec5672ee8e537090c39b246cd903a39f41b45c598e78c5484d4571865526"
+    },
+    "source516": {
+      "path": ".local/gate-6/g632-normal516-registration-root/working-source516.json",
+      "sha256": "a8419cd9f4f82c7fb12e7939e6cd40e075e668d012ef591b6e59325a2d82fd12"
+    },
+    "pacing_source": {
+      "path": ".local/gate-6/g629-native-catalog-getter-busy-timer-backoff-source-candidate/manifest.json",
+      "sha256": "70d5432df4e4017edfe3c1fb5fe8786d0a25526b69b4e2ec65440fbed21c0e06"
+    },
+    "pacing_review": {
+      "path": ".local/gate-6/g629-native-getter-pacing-independent-batch-source-review/receipt.json",
+      "sha256": "86ecd4498d0cf8dd39530eebe37eba459482413598d913f705dc6027a64882d8"
+    },
+    "G626_actual_audit": {
+      "path": ".local/gate-6/g626-actual-focused17-independent-batch-audit/receipt.json",
+      "sha256": "2e69bef93f4d56f9529bad5d03d58ac657f41231c366855a0a5599e76ceff1e3"
+    },
+    "G618_actual_audit": {
+      "path": ".local/gate-6/g618-actual-full3282-independent-audit/receipt.json",
+      "sha256": "4a0d50b21ac50d370936fab803c51b639355ae4186525ebca3ce7570b193d37a"
+    },
+    "Data_V2_source": {
+      "path": ".local/gate-6/g626-queued-forward-admission-metadata-nonblocking-source-candidate-v2/manifest.json",
+      "sha256": "00578fcf0bd8d5d137276aca5d859c1a1c268f9d77fe864c8576cb6aaab6daab"
+    },
+    "Audio_V2_source": {
+      "path": ".local/gate-6/g626-audio-encoder-current-payload-cache-and-consumer-slot-source-candidate-v2/manifest.json",
+      "sha256": "6758799824ddaf8415780a973bc26205361d093153c59bf6dd4a27b254c21462"
+    },
+    "normal518_inert_proposal": {
+      "path": ".local/gate-6/source516-two-followups-normal518-registration-preparation-inert-candidate/manifest.json",
+      "sha256": "7e75d0c2140f15af8eac4899897668cd9ae30186afeaad81e4817aeb05c3941b"
+    },
+    "Control_design": {
+      "path": ".local/gate-6/g626-control-critical-section-repair-source-design/manifest.json",
+      "sha256": "7038f7487ffb05c0dde968561d7a23581554cf57139dbc3c78ed73056813bb69"
+    },
+    "mobile218": {
+      "path": ".local/gate-6/mobile218-g626-terminal-root/readback.json",
+      "sha256": "3a58491abd841abfe7f6ba56049c1efda078a5ebe22a31630bef1b3c6d44e783"
+    },
+    "normal518_receipt": {
+      "path": ".local/gate-6/source516-two-followups-normal518-registration-preparation-inert-candidate/normal518-runtime/receipt.json",
+      "sha256": "dbf7cb2f764eaa3d7d99f2756010ee56570489115e8fe95ebbc6ceaec64bf5d4"
+    },
+    "normal518_join": {
+      "path": ".local/gate-6/g634-normal518-registration-root/root-original-join.json",
+      "sha256": "ecbe5d8ae92ec81eec9272f3eeea50f6bd083b22454ab18469b5bf09346d8489"
+    },
+    "normal518_audit": {
+      "path": ".local/gate-6/g634-normal518-registration-root/actual-independent-root-audit.json",
+      "sha256": "d4fb09c7a3fbc52b686a7eee92598b3281811142a6324b19d427482572af2d23"
+    },
+    "source518": {
+      "path": ".local/gate-6/g634-normal518-registration-root/working-source518.json",
+      "sha256": "1935a2f93d73e26be33c031eb14736aae45343da8f6cbc99539b739f13f3449b"
+    }
+  },
+  "historical_failures_preserved": [
+    "G6183280/3282",
+    "G6205/7",
+    "G6236/7",
+    "G62616/17",
+    "G629failedsampled-diagnostic"
+  ],
+  "matrix_baseline": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "changed": false
+  },
+  "ready_for_32": false,
+  "qualification": false,
+  "full_unit_qualified": false,
+  "matrix_credit": false,
+  "mobile219_publication": "PROPOSAL_ONLY_ROOT_PUBLICATION_AND_READBACK_PENDING"
+}

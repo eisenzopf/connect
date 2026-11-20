@@ -1,0 +1,18 @@
+{
+  "format": "connect/mobile-progress-scoped-readback/1",
+  "recorded_at": "2026-11-20T05:13:17.840856+00:00",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "content_revision": 220,
+  "repository_checkpoint": 141,
+  "replaced_root_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "paragraph_count": 422,
+  "unrelated_owner_paragraphs_preserved": 419,
+  "verified": true,
+  "raw_readback_private": ".local/gate-6/mobile220-g640-core-ten-pass-root/readback.json",
+  "raw_readback_sha256": "421104c43942a81de6172af8f5ba82177033cff2d8a94b48c7600eb663a02712",
+  "scope": "Actual G640Core10/10 onsource520; G633separateNative2/2 on516; G638failedcompile0runtime preserved. Fullcontrolboundary/helperintegration/fullregression/media/matrixremainpending."
+}

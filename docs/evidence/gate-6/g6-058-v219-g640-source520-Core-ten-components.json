@@ -1,0 +1,193 @@
+{
+  "format": "connect/g6-058-v219-g640-source520-Core-ten-components/1",
+  "status": "actual-Core-component10PASS-complete-control-boundary-pending",
+  "recorded_at": "2026-11-20T05:10:12.989293+00:00",
+  "tracker_revision": 141,
+  "summary": "G640 passed all ten exact Core unit controls on prepared source520: the four QueuedForward/common-Port controls, two encoder payload-cache/consumer-slot controls, and four subscription/end-stream guard controls. The original Core build/profile, current CargoJSON artifact and961-name inventory were verified; every test reported exactly1pass/0fail/0ignored. Root and all thirteen original children closed naturally and source/binary/input guards held. This is a Core component result only: the retained17 suite, default shipping check, Native tests, SDK/Python, full regression and original media were not run by this lane. G638 remains a failed Core build with E0583 and zero unit runtime; its explicit child-module path repair changed no test body or production behavior. Normal518,519 and520 preparation completed. The two source518 production follow-ups and source519 guard foundation now have scoped Core runtime evidence; source520 adds only the explicit test-child path. The current tested source has6,505 declared files and retains the original feature/profile/deadline contracts. G633 remains a separate source516 Native2/2 diagnostic pass, including both original main full tails and all four causal variants. Its held-window getter correction and limited historical A/B interpretation are preserved. G626 failed16/17, G623 failed6/7, G620 failed5/7 and fullG618 failed3,280/3,282 remain immutable historical failures; no later focused result regrades them. Two additional low-level guard foundations are source-reviewed but unapplied and unrun: the exact DTMF binding-index batch guard and the final route-ticket guard set. Neither has an active caller change or establishes complete control isolation. The broader Core audience, managed Orchestrator and Store/Service cold-preparation/final-admission integration remains in source authoring: the same original model/attempt token, current purpose authority, complete nonwaiting final fences and release of every grant alias before waiting are still required. Next: finish and review that integration, run its actual controls, then commit and repeat current shared379, the complete regression and OriginalV8 on one seal. Strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain separate pending scopes. Matrix remains v218:1/32 cells and399/432 checks; not ready for32. G6-054 stays parked and execution remains local Mac/native ARM.",
+  "tested_source": {
+    "base_HEAD": "6905d66deee558a7ae129f0e41a715a5c48963c1",
+    "seal_path": ".local/gate-6/g639-normal520-preparation-root/working-source520.json",
+    "seal_sha256": "cd0345aeb76082977d1205a412270e4c97bb9ee3e473cac05ace20258761f886",
+    "workspace_sha256": "0f08ecde850d732b7a930c3134211948aed021ea67a9c03aaa84e45c00118f11",
+    "files": 6505,
+    "generation": 520,
+    "source_lock_sha256": "1aafda9bf6accfd4aa7542f9ee08a554d81be72d4c76e19f515f75f1b8f3a5c9",
+    "prepared": {
+      "rvoip": "293de8927f6f297e9cb7cd514ad8df180240e31d8b63b45bdcb64a0830083af0",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    }
+  },
+  "actual_Core_units": {
+    "completed": 10,
+    "passed": 10,
+    "failed": 0,
+    "selectors": [
+      "staged_streams::tests::reliable_data::scene_typed_data_adopted_source_metadata_busy_preserves_original_fifo_and_unrelated_video",
+      "staged_streams::tests::reliable_data::scene_typed_data_post_lookup_metadata_races_refuse_without_detaching_current_policy_guard",
+      "staged_streams::tests::original_ingress_custody::original_ingress_post_policy_port_metadata_busy_retains_same_original_without_authority",
+      "staged_streams::tests::original_ingress_custody::queued_forward_live_weak_context_preserves_nonblocking_audio_target_and_original_authorization_bounds",
+      "staged_streams::tests::guarded_mixer::source_contention::guarded_audio_encoder_current_payload_cache_avoids_port_wait_and_preserves_original_delivery_fences",
+      "staged_streams::tests::guarded_mixer::source_contention::guarded_audio_port_validation_releases_consumer_slot_before_real_port_wait_with_original_flight",
+      "staged_streams::tests::media_scene::subscriptions::control_guard_foundation::subscription_target_metadata_busy_releases_scene_and_commits_original_once",
+      "staged_streams::tests::media_scene::subscriptions::control_guard_foundation::subscription_sibling_metadata_busy_preserves_one_original_audio_plan",
+      "staged_streams::tests::media_scene::subscriptions::control_guard_foundation::end_stream_port_metadata_busy_keeps_consumer_free_and_recovers_original",
+      "staged_streams::tests::media_scene::subscriptions::control_guard_foundation::end_stream_port_metadata_busy_preserves_original_cancel_and_deadline"
+    ],
+    "current_Core_sha256": "52320d049c776007661ce27c7b266e6a1909fcee22ed5d37fd224a6b6a3fb870",
+    "current_features": [
+      "default",
+      "identity",
+      "media",
+      "opus",
+      "rtp",
+      "sip",
+      "test-support",
+      "uctp",
+      "vcon"
+    ],
+    "current_profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    },
+    "inventory": 961,
+    "Root_and_13_original_children_natural0_unforced_joined_absent": true,
+    "source_binary_inputs_unchanged": true,
+    "qualified_scope": "Ten isolated Core controls only"
+  },
+  "G638_preserved": {
+    "build_exit": 101,
+    "diagnostic": "E0583 child module path",
+    "runtime_executed": 0,
+    "inventory_executed": false,
+    "not_regraded": true
+  },
+  "separate_G633_scope": "source516 Native2/2diagnostic, all4causal variants; historical getter-phase correction retained, no universal cause/full qualification",
+  "remaining_helpers": {
+    "DTMF_binding_index": {
+      "source_reviewed": true,
+      "applied": false,
+      "runtime": null,
+      "new_Core_control_functions": 3,
+      "active_callsite_changed": false
+    },
+    "final_route_tickets": {
+      "source_reviewed": true,
+      "applied": false,
+      "runtime": null,
+      "new_trait_control_functions": 5,
+      "active_callsite_changed": false
+    }
+  },
+  "remaining_integration": {
+    "Core_audience": "source-authoring-unsealed-unverified",
+    "managed_Orchestrator": "source-authoring-unsealed-unverified",
+    "Store_Service": "source-authoring-unsealed-unverified",
+    "full_control_boundary_complete": false
+  },
+  "proofs": {
+    "G640_result": {
+      "path": ".local/gate-6/g640-source520-core-ten-units-root/result.json",
+      "sha256": "46fa793aed492d868301b7db5cd2a50f4bc7a9e58e9abc26f061b69ce8b1fd1d"
+    },
+    "G640_join": {
+      "path": ".local/gate-6/g640-source520-core-ten-units-root/root-original-join.json",
+      "sha256": "05b8a8760cc45d6f8f559b7bb1e22aca3230e5bcff3d5e990d3a6e3f74311a9f"
+    },
+    "G640_audit": {
+      "path": ".local/gate-6/g640-actual-Core-ten-independent-epoch-audit/receipt.json",
+      "sha256": "882f7cad2c775629d08a139d6d2d62ab2ed478062befc0fd87441eda8ec5098c"
+    },
+    "source520": {
+      "path": ".local/gate-6/g639-normal520-preparation-root/working-source520.json",
+      "sha256": "cd0345aeb76082977d1205a412270e4c97bb9ee3e473cac05ace20258761f886"
+    },
+    "normal520_receipt": {
+      "path": ".local/gate-6/g639-normal520-preparation-root/normal520-runtime/receipt.json",
+      "sha256": "dc22ff61950255d26de80a2fb1a16a2154b42b7d7f3992e997a71135a9bf917a"
+    },
+    "normal520_verification": {
+      "path": ".local/gate-6/g639-normal520-preparation-root/actual-root-verification.json",
+      "sha256": "1f6292d62e68b3c5193c589ea90c110ce9afc221f61f0cf9754ba659350e2add"
+    },
+    "G638_failed_result": {
+      "path": ".local/gate-6/g638-source519-core-ten-units-root/result.json",
+      "sha256": "6d48e91d14207b861a36b22e01a6676c2ab44a4a6d6124488adfd20acdb02aa3"
+    },
+    "path_fix_source": {
+      "path": ".local/gate-6/g638-foundation-child-module-path-source-candidate/manifest.json",
+      "sha256": "d73a196ade1da3b991b07787d40c79f0cf8de3d4926a1666862b3d74f3d9a4e4"
+    },
+    "path_fix_review": {
+      "path": ".local/gate-6/g638-foundation-child-path-independent-epoch-source-review/receipt.json",
+      "sha256": "537a83248dea047718d35489c85d4242c026f28bd643051210c0b3002c1024a1"
+    },
+    "G633_actual_audit": {
+      "path": ".local/gate-6/g633-actual-native-two-independent-epoch-audit/receipt.json",
+      "sha256": "356bf97386f327b91b7c7e8f5ebb912bc1bd38d00c1d42938b3e01e8b50bd941"
+    },
+    "G626_actual_audit": {
+      "path": ".local/gate-6/g626-actual-focused17-independent-batch-audit/receipt.json",
+      "sha256": "2e69bef93f4d56f9529bad5d03d58ac657f41231c366855a0a5599e76ceff1e3"
+    },
+    "G618_actual_audit": {
+      "path": ".local/gate-6/g618-actual-full3282-independent-audit/receipt.json",
+      "sha256": "4a0d50b21ac50d370936fab803c51b639355ae4186525ebca3ce7570b193d37a"
+    },
+    "index_guard_source": {
+      "path": ".local/gate-6/g639-dtmf-index-nonwaiting-batch-source-candidate/manifest.json",
+      "sha256": "25ff797527a0b5b169a82f4c84fe20893bd716b39d938bc16e26cf85d577f010"
+    },
+    "index_guard_review": {
+      "path": ".local/gate-6/g639-dtmf-index-independent-source-review/receipt.json",
+      "sha256": "bbd6570a9e6e42f9a52a954bb06d0e97897985a2e8329b070c7fd6601c03e55a"
+    },
+    "ticket_guard_source": {
+      "path": ".local/gate-6/g639-final-route-ticket-guard-source-candidate/manifest.json",
+      "sha256": "2d71c7fc553a9efc81ae1b470f1b6c50ce3471a7011f193686c8fd8f4dbd04d3"
+    },
+    "ticket_guard_review": {
+      "path": ".local/gate-6/g639-final-ticket-guards-independent-epoch-source-review/receipt.json",
+      "sha256": "d2726d14a8656abb2c463144dd4b170a3adf7700fc2d771b4e65a4b69bd6a7fd"
+    },
+    "mobile219_public_readback": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-g633.json",
+      "sha256": "323193a30b43c39dde47c328118e28fd0f05c2333416a660b9bf80861990857c"
+    }
+  },
+  "historical_failures_preserved": [
+    "G6183280/3282",
+    "G6205/7",
+    "G6236/7",
+    "G62616/17",
+    "G638compile101/runtime0"
+  ],
+  "remaining_UNRUN": [
+    "default-four shipping check on this batch",
+    "retained17 original focused suite on this batch",
+    "Native selectors on source520",
+    "full regression",
+    "SDK/Python",
+    "OriginalV8/media",
+    "original900",
+    "strictFirefoxNORMAL3",
+    "localARM11",
+    "normalreleases/preflight",
+    "matrix32"
+  ],
+  "matrix_baseline": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "changed": false
+  },
+  "ready_for_32": false,
+  "qualification": false,
+  "full_unit_qualified": false,
+  "matrix_credit": false,
+  "mobile_next_publication": "PROPOSAL_ONLY_ROOT_SCOPE_AND_READBACK_PENDING"
+}

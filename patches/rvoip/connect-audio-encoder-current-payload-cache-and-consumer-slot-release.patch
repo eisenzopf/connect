@@ -1,0 +1,283 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -467,13 +467,12 @@
+                         .any(|new| Arc::ptr_eq(&old.source, &new.source))
+             });
+         if changed {
+-            let Some(pt) = self
+-                .port
+-                .state
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
+-                .payload_type
+-            else {
++            // This exact port's negotiated payload type was captured when
++            // these codecs were prepared/refreshed. observe_ready forbids
++            // changing it once ready, and a port/epoch change rebuilds codecs
++            // before replacing the member's port. History reset needs no
++            // second PortState read while the mixer owns its member registry.
++            let Some(pt) = self.codecs.info.payload_type else {
+                 return None;
+             };
+             let Ok(codecs) = Codecs::new(&self.port.binding.negotiated.format, pt, rate) else {
+@@ -570,3 +569,43 @@
+         })
+     }
+ }
++
++// Isolate the actual final-encoder boundary with ONE already captured target
++// quantum. The test supplies no PCM, descriptor, ticket, grant or deadline;
++// normal current admission still precedes the rendezvous, and returned output
++// must pass ordinary QueuedMedia delivery. No callback exists in shipping.
++#[cfg(test)]
++impl GuardedAudioMixer {
++    pub(in crate::staged_streams) fn encode_retained_audio_for_test(
++        &self,
++        connection: &ConnectionId,
++        before_encode: impl FnOnce(),
++    ) -> ControlResult<Option<QueuedMedia>> {
++        let mut members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        let member = members.get_mut(connection).ok_or(StreamControlError::NotReady)?;
++        let Some(mut quantum) = member.target_pending.pop_front() else {
++            return Ok(None);
++        };
++        let mut phase = AudioStage::TargetPendingSourceDeferred;
++        let current = match quantum.admit(&member.controller, &mut phase) {
++            Ok(current) => current,
++            Err(problem) => {
++                if matches!(&problem, StreamControlError::NotReady | StreamControlError::MetadataBusy)
++                    && tokio::time::Instant::now() < quantum.deadline
++                    && quantum.current(&member.controller, &member.port)
++                {
++                    member.target_pending.push_front(quantum);
++                } else {
++                    // Match ordinary target output: a permanent refusal ends
++                    // the programme, never a later permission-based replay.
++                    member.target_pending.clear();
++                }
++                return Err(problem);
++            }
++        };
++        before_encode();
++        let queued = member.encode_pending(quantum, self.rate);
++        drop(current);
++        Ok(queued)
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -1442,14 +1442,20 @@
+         &self,
+         ports: &[PortPreparation],
+     ) -> ControlResult<()> {
+-        let slot = self
+-            .audio_consumer
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner());
+-        let Some(consumer) = slot.as_ref() else {
+-            return Ok(());
++        // Upgrade the same registered consumer under its slot guard, then
++        // release only that slot before any PortState or codec work. The
++        // original Candidate still owns the inflight permit throughout this
++        // validation; this metadata read never grants media authority.
++        let consumer = {
++            let slot = self
++                .audio_consumer
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            match slot.as_ref() {
++                None => return Ok(()),
++                Some(consumer) => consumer.upgrade().ok_or(StreamControlError::NotReady)?,
++            }
+         };
+-        let consumer = consumer.upgrade().ok_or(StreamControlError::NotReady)?;
+         for selected in ports
+             .iter()
+             .filter(|port| port.port.0.binding.negotiated.requested.medium == Medium::Audio)
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -550,6 +550,14 @@
+         connection: &ConnectionId,
+     ) -> Option<(usize, bool, usize, usize)> {
+         self.audio.audio_queue_state_for_test(connection)
++    }
++    #[cfg(test)]
++    pub(super) fn encode_retained_audio_for_test(
++        &self,
++        connection: &ConnectionId,
++        before_encode: impl FnOnce(),
++    ) -> ControlResult<Option<QueuedMedia>> {
++        self.audio.encode_retained_audio_for_test(connection, before_encode)
+     }
+     /// Correlate worker timing with the existing terminal scene summary.
+     /// Diagnostic identity only; never an authority or routing decision.
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/source_contention.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/source_contention.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/source_contention.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/source_contention.rs
+@@ -398,3 +398,163 @@
+         assert_eq!(mixer.audio_queue_state_for_test(&controller.connection), Some((1, false, 0, 0)));
+     }
+ }
++
++// Actual source PCM is captured normally while only the original target's
++// bounded output is full. The encoder probe below consumes that exact quantum,
++// not a constructed frame or a new admission interval.
++async fn encoder_metadata_scene(pt: u8) -> (
++    Scene,
++    Vec<mpsc::OwnedPermit<QueuedMedia>>,
++    mpsc::Receiver<QueuedMedia>,
++    mpsc::Receiver<QueuedMedia>,
++) {
++    let s = Scene::new(
++        &[("a", "alice", audio(), pt), ("b", "bob", audio(), pt), ("c", "carol", audio(), pt)],
++        8000,
++    ).await;
++    for index in 0..3 { s.bind(index, true).await; }
++    let out_a = s.port(0).take_egress().unwrap();
++    let out_c = s.port(2).take_egress().unwrap();
++    let mut full = Vec::new();
++    let egress = s.port(0).0.egress.clone();
++    while let Ok(permit) = egress.clone().try_reserve_owned() { full.push(permit); }
++    s.publish(1, 900);
++    s.mixer.tick();
++    assert_eq!(s.mixer.audio_queue_state_for_test(&s.controllers[0].connection).unwrap().3, 1);
++    (s, full, out_a, out_c)
++}
++
++#[tokio::test]
++async fn guarded_audio_encoder_current_payload_cache_avoids_port_wait_and_preserves_original_delivery_fences() {
++    // Exercise both the fixed PCMU payload and a negotiated dynamic PCMU PT.
++    // Every case resets the encoder on its first original contributor set.
++    for pt in [0, 96] {
++        for outcome in [0, 1, 2] {
++            let (s, full, mut out_a, mut out_c) = encoder_metadata_scene(pt).await;
++            let began = Instant::now();
++            let mixer = s.mixer.clone();
++            let connection = s.controllers[0].connection.clone();
++            let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
++            let (encode_tx, encode_rx) = std::sync::mpsc::channel();
++            let (done_tx, done_rx) = std::sync::mpsc::sync_channel(1);
++            let runtime = tokio::runtime::Handle::current();
++            let worker = std::thread::spawn(move || {
++                let _runtime = runtime.enter();
++                let queued = mixer.encode_retained_audio_for_test(&connection, || {
++                    let _ = entered_tx.send(());
++                    let _ = encode_rx.recv_timeout(Duration::from_secs(3));
++                });
++                let _ = done_tx.send(());
++                queued
++            });
++            // The exact original quantum has completed ordinary source/target
++            // admission BEFORE this thread takes the real encoder PortState.
++            let entered = entered_rx.recv_timeout(Duration::from_millis(500)).is_ok();
++            let port = s.port(0).0.clone();
++            let held = entered.then(|| port.state.lock().unwrap_or_else(|p| p.into_inner()));
++            let _ = encode_tx.send(());
++            let returned_while_held = done_rx.recv_timeout(Duration::from_millis(500)).is_ok();
++            let after = returned_while_held.then(|| s.mixer.audio_queue_state_for_test(&s.controllers[0].connection).unwrap());
++            let healthy = if returned_while_held { record_healthy_audio(&mut out_c).await } else { (false, Vec::new()) };
++            let no_idle_reader = s.policy.0.try_write().is_ok();
++            let revoked = if outcome == 1 && returned_while_held {
++                match s.policy.0.try_write() {
++                    Ok(mut policy) => { policy.revoked.insert("bob".into()); true },
++                    Err(_) => false,
++                }
++            } else { outcome != 1 };
++            if outcome == 2 && returned_while_held {
++                tokio::time::sleep(Duration::from_millis(210)).await;
++            }
++            // Always release and join the SAME original worker before asserting,
++            // including the old blocking PortState encoder counterfactual.
++            drop(held);
++            let joined = worker.join();
++            assert!(entered && returned_while_held && joined.is_ok(), "final encoder waited on actual PortState");
++            let queued = joined.unwrap().unwrap().expect("original retained PCM disappeared");
++            assert!(healthy.0 && no_idle_reader && revoked);
++            assert_healthy_audio(&healthy.1, 900);
++            assert_eq!(after.unwrap().3, 0, "same quantum was not consumed exactly once");
++            assert_eq!(queued.frame.payload_type, Some(pt), "cached negotiated PT changed");
++            assert!(queued.admitted_at <= began, "encoder invented a new original admission");
++            assert!(queued.original_realtime_deadline().unwrap() <= queued.admitted_at + Duration::from_millis(200));
++            drop(full);
++            if outcome == 0 {
++                heard(queued, 900).await;
++            } else {
++                let submitted = Arc::new(AtomicBool::new(false));
++                let observed = submitted.clone();
++                let result = queued.deliver(move |_| {
++                    observed.store(true, Ordering::Release);
++                    async { Ok(()) }
++                }).await;
++                if outcome == 1 { assert!(matches!(result, Err(StreamControlError::Authority))); }
++                else { assert!(matches!(result, Err(StreamControlError::Deadline))); }
++                assert!(!submitted.load(Ordering::Acquire), "revoked/expired original reached IO");
++            }
++            s.policy.0.try_write().unwrap().revoked.clear();
++            s.mixer.tick();
++            assert!(out_a.try_recv().is_err() && out_c.try_recv().is_err(), "original PCM replayed");
++            s.publish_at(1, 1000, 160);
++            s.mixer.tick();
++            heard(out_a.try_recv().expect("fresh target audio did not recover"), 1000).await;
++            heard(out_c.try_recv().expect("healthy peer did not recover"), 1000).await;
++            s.mixer.tick();
++            assert!(out_a.try_recv().is_err() && out_c.try_recv().is_err());
++        }
++    }
++}
++
++#[tokio::test]
++async fn guarded_audio_port_validation_releases_consumer_slot_before_real_port_wait_with_original_flight() {
++    let (s, full, mut out_a, mut out_c) = encoder_metadata_scene(96).await;
++    let controller = s.controllers[0].clone();
++    let consumer = controller.audio_consumer.lock().unwrap().as_ref().unwrap().upgrade().unwrap();
++    let original_count = Arc::strong_count(&consumer);
++    let revision = controller.revision();
++    let port = s.port(0).clone();
++    let held = port.0.state.lock().unwrap_or_else(|p| p.into_inner());
++    let validator = controller.clone();
++    let selected = vec![PortPreparation { port: port.clone(), is_new: false }];
++    let (entered_tx, entered_rx) = std::sync::mpsc::sync_channel(1);
++    let worker = std::thread::spawn(move || {
++        let flight = validator.inflight.clone().try_acquire_owned();
++        let acquired = flight.is_ok();
++        let _ = entered_tx.send(acquired);
++        let result = validator.validate_audio_consumer_ports(&selected);
++        drop(flight);
++        result
++    });
++    let entered = entered_rx.recv_timeout(Duration::from_millis(500)).ok() == Some(true);
++    // The only additional strong owner here is the actual validator upgrade.
++    // Seeing it proves entry beyond the slot lookup and into real PortState
++    // exclusion, without sleeping or supplying a synthetic callback result.
++    let until = Instant::now() + Duration::from_millis(500);
++    while entered && Arc::strong_count(&consumer) == original_count && Instant::now() < until {
++        std::thread::yield_now();
++    }
++    let actual_validator_owner = Arc::strong_count(&consumer) == original_count + 1;
++    let same_consumer = controller.audio_consumer.try_lock().ok().is_some_and(|slot| {
++        slot.as_ref().and_then(Weak::upgrade).is_some_and(|current| Arc::ptr_eq(&current, &consumer))
++    });
++    let same_stamp = if same_consumer {
++        controller.current_consumer_stamp(&port.0).ok().flatten().is_some_and(|stamp| stamp.is_current())
++    } else { false };
++    let original_flight_held = controller.inflight.clone().try_acquire_owned().is_err();
++    let healthy = record_healthy_audio(&mut out_c).await;
++    let no_idle_reader = s.policy.0.try_write().is_ok();
++    drop(held);
++    let joined = worker.join();
++    assert!(entered && actual_validator_owner && same_consumer && same_stamp && original_flight_held, "PortState validator retained the consumer slot or changed original ownership");
++    assert!(joined.is_ok() && joined.unwrap().is_ok());
++    assert!(healthy.0 && no_idle_reader);
++    assert_healthy_audio(&healthy.1, 900);
++    assert_eq!(controller.revision(), revision, "metadata validation changed the model");
++    assert!(controller.inflight.clone().try_acquire_owned().is_ok());
++    assert_eq!(Arc::strong_count(&consumer), original_count);
++    drop(full);
++    s.mixer.tick();
++    heard(out_a.try_recv().expect("same original receiver PCM lost during validation"), 900).await;
++    s.mixer.tick();
++    assert!(out_a.try_recv().is_err() && out_c.try_recv().is_err());
++}

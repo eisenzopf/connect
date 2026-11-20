@@ -1,0 +1,18 @@
+{
+  "format": "connect/mobile-progress-scoped-readback/1",
+  "recorded_at": "2026-11-20T04:48:30.682326+00:00",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "content_revision": 219,
+  "repository_checkpoint": 140,
+  "replaced_root_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "paragraph_count": 422,
+  "unrelated_owner_paragraphs_preserved": 419,
+  "verified": true,
+  "raw_readback_private": ".local/gate-6/mobile219-g633-native-pass-root/readback.json",
+  "raw_readback_sha256": "92893d997e39a8998466a8c64e87fd5a9dd4c3f10ac231549b4f4f9bdf396555",
+  "scope": "Actual G6332/2/all4 catalog variants, preparation518 only and six unverified production controls; four authored foundation controls pending review; no full/matrix promotion."
+}

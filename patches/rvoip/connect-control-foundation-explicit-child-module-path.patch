@@ -1,0 +1,8 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -2087,4 +2087,5 @@
+     assert_eq!(s.f.b.stream_open_budget(), budget);
+ }
+ 
++#[path = "subscriptions/control_guard_foundation.rs"]
+ mod control_guard_foundation;

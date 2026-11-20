@@ -1,0 +1,66 @@
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -60,19 +60,51 @@
+ ) -> Result<Option<rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan>, rvoip_core::orchestrator::participant_control::ParticipantControlError> {
+     use rvoip_core::orchestrator::participant_control::ParticipantControlError;
+     use rvoip_core::staged_streams::subscription_plan::{CatalogReadDiagnosticsForTest, MediaSelectionChange};
+-    loop {
+-        if Instant::now() >= until { return Ok(None); }
++    let began = Instant::now();
++    let mut attempts = 0u64;
++    let mut busy_members = 0u64;
++    let mut busy_target = 0u64;
++    let mut busy_source = 0u64;
++    let mut total_call = Duration::ZERO;
++    let mut longest_call = Duration::ZERO;
++    let mut rows = Vec::new();
++    let mut last = None;
++    let result = loop {
++        if Instant::now() >= until { break Ok(None); }
+         let mut diagnostics = CatalogReadDiagnosticsForTest::default();
+-        match s.native.core.orch.plan_staged_media_selection_diagnosed_for_test(
++        let started = Instant::now();
++        let attempt = s.native.core.orch.plan_staged_media_selection_diagnosed_for_test(
+             &s.native.core.session, &s.second_id, 3, &MediaSelectionChange::Reconcile, &mut diagnostics,
+-        ) {
+-            Ok(plan) => return Ok((Instant::now() <= until).then_some(plan)),
+-            Err(ParticipantControlError::Media(StreamControlError::Backpressure)) if diagnostics.busy_leaf.is_some() => {
+-                tokio::task::yield_now().await;
+-            }
+-            Err(error) => return Err(error),
+-        }
+-    }
++        );
++        let completed = Instant::now();
++        // Decide the existing cutoff/result before collecting diagnostics.
++        let (terminal, outcome) = match attempt {
++            Ok(plan) => (Some(Ok((Instant::now() <= until).then_some(plan))), "snapshot"),
++            Err(ParticipantControlError::Media(StreamControlError::Backpressure)) if diagnostics.busy_leaf.is_some() => (None, "diagnosed-busy"),
++            Err(error) => (Some(Err(error)), "terminal-error"),
++        };
++        attempts = attempts.saturating_add(1);
++        let elapsed = completed.saturating_duration_since(started);
++        total_call = total_call.saturating_add(elapsed);
++        longest_call = longest_call.max(elapsed);
++        match &diagnostics.busy_leaf {
++            Some(rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::Members) => busy_members = busy_members.saturating_add(1),
++            Some(rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::TargetState) => busy_target = busy_target.saturating_add(1),
++            Some(rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::SourceState(_)) => busy_source = busy_source.saturating_add(1),
++            None => {},
++        }
++        let row = (started, completed, elapsed, diagnostics.busy_leaf, outcome);
++        if rows.len() < 32 { rows.push(row.clone()); }
++        last = Some(row);
++        if let Some(terminal) = terminal { break terminal; }
++        // The diagnosed read has returned and dropped every Core guard. Give
++        // the independent ordinary poller a timer-backed interval to compete;
++        // repeated yield_now alone can immediately reacquire SceneMembers.
++        // This is pacing ONLY the same Busy getter, never a renewed window.
++        tokio::time::sleep_until((Instant::now() + Duration::from_millis(1)).min(until)).await;
++    };
++    eprintln!("catalog getter began={began:?} until={until:?} ended={:?} attempts={attempts} busy_members={busy_members} busy_target={busy_target} busy_source={busy_source} total_call={total_call:?} longest_call={longest_call:?} rows_truncated={} rows={rows:?} last={last:?} result={:?}", Instant::now(), attempts > rows.len() as u64, result.as_ref().map(|plan| plan.is_some()));
++    result
+ }
+ 
+ #[cfg(feature = "test-support")]
