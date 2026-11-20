@@ -1,6 +1,6 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-20T19:53:27.330947+00:00",
+  "updated": "2026-11-20T20:41:17.763244+00:00",
   "run_status": "G677 completed all nine current build groups on source530: the Traits library compiled, while eight Core-dependent groups failed with the same two audience errors (E0063 missing an accidentally added unused legacy field and E0609 direct field access on generic MemberRead). No inventories or runtime tests ran; all45 selected component controls remain unrun. Root and all10 original children closed naturally and were freshly absent, with the6544-file source seal unchanged. The reviewed repair removes only the unused PreparedPrivateAudience.scene field and uses m.view().controller for the same Weak pointer check. It preserves the required deferred AudiencePostPublication.scene and actual current-scene Weak binding, every assertion and all selected test identities. Root registered and normally prepared this one-file change as531; preparation and independent audit passed with4278 unchanged bytes/modes restored to original mtimes, the complete original530 tree retained, and no added upstream files. The6545-file working seal records applied source preparation, not a committed or runtime-qualified batch. Coherent managed Core/Orchestrator/Store/Service/SIP integration remains applied but compile/runtime-unverified; the same nine-build/45-component lane is pending, followed by all required affected regressions. G674 packaging failure and G677 compile failures retain their original failed verdicts. The latest completed component scope remains G662 on525:13 completed,11PASS/2FAIL; historical G657 retains one forced incomplete case and three unrun cases. Root cache-only housekeeping recovered host headroom to about21GiB while retaining protected current artifacts; it adds no behavior evidence. No current shared379, complete full regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal Mac12/ARM6 releases or fresh launch preflight qualification is added. All seven readiness scopes, whole current Core-traits/SIP inventories and additive controls remain required. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 stays parked. Mobile225 remains the last verified readback; the next scoped226 update is pending Root.",
   "blockers": [
     {
@@ -20366,7 +20366,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-20T19:53:27.330947+00:00",
+  "updated_at": "2026-11-20T20:41:17.763244+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20410,9 +20410,9 @@
     "ready_for_32": false
   },
   "current_preparation_checkpoint": {
-    "status": "Normal543 is applied, prepared and independently audited. G748 completed all six causal unit functions on unchanged6586-file source543:4PASS/2FAIL, with zero ignored, incomplete or unrun functions. All four new controls passed: Store same-started Writer epochs, selection-clock races, Native Model and corrected Native TOCTOU. Both Native controls completed QUIC and WebTransport and their full original tails. The exact no-op revision3 fixture correction is now verified by the TOCTOU pass; prior G743/G746 failures remain historical failures. The two affected old catalog controls still fail. The main control records an unchanged plan inside its fixed650ms recovery window, but the unchanged strict helper rejects an earlier StorageUnavailable with no typed leaf at future_subscriptions.rs1110. The variant control fails the same strict helper at line1335 in its first QUIC release variant; its offending background rows were not logged, so the precise leaf and cause remain unproven and the other three causal variants are unreached. None remains rejected; no deadline, frame, quiet, authorization or diagnostic requirement is waived. All six original Cargo owners closed naturally and were freshly absent; source, prepared dependencies and current artifacts stayed fixed. Expanded test-support typed diagnostics are under authoring and unapplied, with no repaired-runtime credit. The current production batch can be committed for review with both known catalog failures documented; no code-batch commit or all-six pass is claimed by this proposal. G735 remains failed41/45 on historical source539; mixed-audio behavior is not newly qualified. The49-case component run, current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile240 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g748-source543-six-causal-units.json",
-    "sha256": "f55a59a1518a56bd6051654973ed3402acc766a124eaee171522ef05f913c5f7"
+    "status": "Normal544 is applied, prepared and independently audited, including seven existing upstream exact-acquisition diagnostic afterimages and unchanged ten formatted workspace paths. G752 completed all six current causal unit functions on unchanged6589-file source544:6PASS/0FAIL, with zero ignored, incomplete or unrun functions. Both old catalog controls now pass: the main control observes actual unchanged recovery inside the original650ms window, and all four QUIC/WebTransport release versus full-exclusion variants retain actual source-lock Busy, unchanged counters, zero dropped/overflowed background rows and no full-window recovery credit while held. Exact typed Core/Native metadata labels are observed; anonymous None remains rejected. Both new Native Model and TOCTOU controls complete QUIC and WebTransport and their full original media/currentness/once/deadline/shutdown tails. Store passes three same-started Writer epoch turns with old-stamp refusal, disjoint-source currentness, unchanged SQL and fresh recovery; the selection-clock race/saturation unit passes. All six original Cargo owners closed naturally and were freshly absent; source, prepared dependencies and three current artifacts stayed fixed. The earlier pre-Cargo storage admission refusal dispatched no Cargo owner and is not a functional test failure. G7484PASS/2FAIL and the earlier G743/G746 failed results retain their historical verdicts. These six scoped passes establish their causal controls, not mixed-audio qualification or a regrade of G735: its historical41PASS/4FAIL and four media failures remain unresolved pending the49-case component run. Current544 diagnostic code is pending Root batch commit; no future code commit or49-case result is claimed. Current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile241 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g752-source544-six-causal-passes.json",
+    "sha256": "408c684927c805de59427b83e6aebb3cb63859266b07997b75517787273b3d13"
   },
   "v219_g550_current_failure_frontiers": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
@@ -21009,5 +21009,19 @@
     "matrix_credit": false,
     "evidence": "docs/evidence/gate-6/g6-058-v219-g748-source543-six-causal-units.json",
     "sha256": "f55a59a1518a56bd6051654973ed3402acc766a124eaee171522ef05f913c5f7"
+  },
+  "v219_g752_source544_six_causal_passes": {
+    "status": "actualG752-current544-six-causal-functions6PASS0FAIL-scoped-only",
+    "prepared_generation": 544,
+    "actual_unit_functions_completed": 6,
+    "actual_unit_passed": 6,
+    "actual_unit_failed": 0,
+    "same49": "UNRUN_NEXT",
+    "retained_G735": "FAILED41PASS4FAIL_NOT_REGRADED_FOUR_MEDIA_FAILURES_UNRESOLVED",
+    "current_code_commit": "ROOT_PENDING",
+    "qualification": false,
+    "matrix_credit": false,
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g752-source544-six-causal-passes.json",
+    "sha256": "408c684927c805de59427b83e6aebb3cb63859266b07997b75517787273b3d13"
   }
 }

@@ -1,0 +1,513 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -488,12 +488,29 @@
+     // but never wait for its registry or participant model on an async caller.
+     fn try_staged_route_scene(
+         &self, session: &SessionId, connection: &ConnectionId,
++        #[cfg(feature = "test-support")] mut diagnostics: Option<&mut crate::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest>,
+     ) -> ControlResult<(Arc<ManagedParticipantSession>, Arc<crate::staged_streams::media_scene::GuardedMediaScene>)> {
+-        let runtime = self.try_participant_runtime(session)?
++        let runtime = self.try_participant_runtime(session).map_err(|error| {
++            #[cfg(feature = "test-support")]
++            if matches!(&error,ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy)) {
++                if let Some(diagnostics)=diagnostics.as_deref_mut() {
++                    diagnostics.busy_leaf=Some(crate::staged_streams::subscription_plan::CatalogBusyLeafForTest::ParticipantRegistry);
++                }
++            }
++            error
++        })?
+             .ok_or_else(|| RvoipError::InvalidState("participant control is not enabled"))?;
+         let scene = runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?.clone();
+         {
+-            let state = participant_model_state(&runtime, true)?;
++            let state = participant_model_state(&runtime, true).map_err(|error| {
++                #[cfg(feature = "test-support")]
++                if matches!(&error,ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy)) {
++                    if let Some(diagnostics)=diagnostics.as_deref_mut() {
++                        diagnostics.busy_leaf=Some(crate::staged_streams::subscription_plan::CatalogBusyLeafForTest::ParticipantModel);
++                    }
++                }
++                error
++            })?;
+             if state.ended || !state.routes.contains_key(connection) {
+                 return Err(ParticipantTransitionError::Inactive.into());
+             }
+@@ -511,7 +528,9 @@
+         loop {
+             if cancellation.is_cancelled() { return Err(ParticipantControlError::Cancelled); }
+             if tokio::time::Instant::now() >= deadline { return Err(ParticipantControlError::Deadline); }
+-            match self.try_staged_route_scene(session, connection) {
++            match self.try_staged_route_scene(session, connection,
++                #[cfg(feature = "test-support")] None,
++            ) {
+                 Err(ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy)) => {
+                     tokio::select! { biased;
+                         _=cancellation.cancelled()=>return Err(ParticipantControlError::Cancelled),
+@@ -635,7 +654,9 @@
+         expected: u64,
+         input: &crate::staged_streams::subscription_plan::MediaSelectionChange,
+     ) -> ControlResult<crate::staged_streams::subscription_plan::MediaSubscriptionPlan> {
+-        let (_runtime, scene) = self.try_staged_route_scene(session, connection)?;
++        let (_runtime, scene) = self.try_staged_route_scene(session, connection,
++                #[cfg(feature = "test-support")] None,
++            )?;
+         Ok(scene.plan_selection(connection, expected, input)?)
+     }
+     /// Same read and current-state checks, with caller-owned failure diagnostics.
+@@ -649,7 +670,9 @@
+         diagnostics: &mut crate::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
+     ) -> ControlResult<crate::staged_streams::subscription_plan::MediaSubscriptionPlan> {
+         *diagnostics = Default::default();
+-        let (_runtime, scene) = self.try_staged_route_scene(session, connection)?;
++        let (_runtime, scene) = self.try_staged_route_scene(session, connection,
++                #[cfg(feature = "test-support")] Some(&mut *diagnostics),
++            )?;
+         Ok(scene.plan_selection_diagnosed_for_test(connection, expected, input, diagnostics)?)
+     }
+     /// Read-only validation of opaque planned source bindings. The callbacks
+@@ -667,7 +690,9 @@
+             &crate::staged_streams::MediaParticipantSource,
+         ) -> crate::staged_streams::ControlResult<()>,
+     ) -> ControlResult<()> {
+-        let (_runtime, scene) = self.try_staged_route_scene(session, connection)?;
++        let (_runtime, scene) = self.try_staged_route_scene(session, connection,
++                #[cfg(feature = "test-support")] None,
++            )?;
+         Ok(scene.validate_selection_sources(connection, plan, receive, participant)?)
+     }
+     /// Plan exact sources onto one existing compatible direct sink per medium.
+@@ -680,7 +705,9 @@
+         expected: u64,
+         input: &crate::staged_streams::subscription_plan::MediaSelectionChange,
+     ) -> ControlResult<crate::staged_streams::subscription_plan::MediaSubscriptionPlan> {
+-        let (_runtime, scene) = self.try_staged_route_scene(session, connection)?;
++        let (_runtime, scene) = self.try_staged_route_scene(session, connection,
++                #[cfg(feature = "test-support")] None,
++            )?;
+         Ok(scene.plan_selection_existing_ports(connection, expected, input)?)
+     }
+     pub fn audio_audience_revision(&self, session: &SessionId) -> ControlResult<u64> {
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -9,6 +9,9 @@
+ #[cfg(feature = "test-support")]
+ #[derive(Clone, Debug, PartialEq, Eq)]
+ pub enum CatalogBusyLeafForTest {
++    ParticipantRegistry,
++    ParticipantModel,
++    SelectionProgram,
+     Members,
+     TargetState,
+     SourceState(ConnectionId),
+@@ -284,7 +287,15 @@
+         if state.closed || state.model.revision() != expected {
+             return Err(MediaTransitionError::Conflict.into());
+         }
+-        let previous = super::control_metadata::try_lock(&self.selections)?
++        let previous = super::control_metadata::try_lock(&self.selections).map_err(|error| {
++            #[cfg(feature = "test-support")]
++            if matches!(&error, StreamControlError::MetadataBusy) {
++                if let Some(diagnostics)=diagnostics.as_deref_mut() {
++                    diagnostics.busy_leaf=Some(CatalogBusyLeafForTest::SelectionProgram);
++                }
++            }
++            error
++        })?
+             .get(target_id)
+             .cloned();
+         let mut next = previous.as_deref().cloned().unwrap_or_default();
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1179,7 +1179,9 @@
+             .envelope()
+             .expected_revision()
+             .ok_or(NativeOfferError::Invalid)?;
+-        if broker.try_is_busy()? {
++        if broker.try_is_busy(
++            #[cfg(feature = "test-support")] None,
++        )? {
+             return Err(NativeOfferError::Conflict);
+         }
+         if !a.supports_native_negotiation()
+@@ -1201,7 +1203,9 @@
+             tracing::debug!(target: "rvoip_uctp::native_subscription_preflight", stage = "receiver-confirmation", expected_revision = expected, flow_current = flow.current(), "Native subscription preflight is not ready");
+             return Err(NativeOfferError::NotReady);
+         }
+-        let defaults = broker.subscription_media()?;
++        let defaults = broker.subscription_media(
++            #[cfg(feature = "test-support")] None,
++        )?;
+         let input = parse(a.envelope(), route.member.participant(), &defaults)?;
+         let selection = core
+             .plan_staged_media_selection(&route.session, id, expected, &input)
+@@ -1367,7 +1371,9 @@
+         let changed = core
+             .staged_media_selection_clock(&route.session)
+             .map_err(super::native_subscriptions::core_error)?;
+-        let (_, broker, flow, _) = self.try_subscription_parts(id, &origin)?;
++        let (_, broker, flow, _) = self.try_subscription_parts(id, &origin,
++            #[cfg(feature = "test-support")] None,
++        )?;
+         let runtime = NativeSubscriptionRuntime::spawn(
+             core, self, id.clone(), origin, policy, changed,
+             flow.subscription_changed.clone(), broker.subscription_changed.clone(),
+@@ -1421,6 +1427,7 @@
+         &self,
+         id: &ConnectionId,
+         origin: &Arc<super::native_requests::NativeRequestOrigin>,
++        #[cfg(feature = "test-support")] mut diagnostics: Option<&mut super::native_subscriptions::NativeCatalogReadDiagnosticsForTest>,
+     ) -> std::result::Result<
+         (
+             Arc<StreamController>,
+@@ -1437,10 +1444,18 @@
+         let route = match self.routes.try_get(id) {
+             dashmap::try_result::TryResult::Present(route) => route.value().clone(),
+             dashmap::try_result::TryResult::Absent => return Err(NativeOfferError::NotReady),
+-            dashmap::try_result::TryResult::Locked => return Err(NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable)),
++            dashmap::try_result::TryResult::Locked => {
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostics)=diagnostics.as_deref_mut() { diagnostics.native_busy_leaf=Some(super::native_subscriptions::NativeCatalogBusyLeafForTest::RouteRegistry); }
++                return Err(NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable));
++            }
+         };
+         let installed = route.installation.try_lock().map_err(|error| match error {
+-            std::sync::TryLockError::WouldBlock => NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable),
++            std::sync::TryLockError::WouldBlock => {
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostics)=diagnostics.as_deref_mut() { diagnostics.native_busy_leaf=Some(super::native_subscriptions::NativeCatalogBusyLeafForTest::Installation); }
++                NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable)
++            }
+             std::sync::TryLockError::Poisoned(_) => NativeOfferError::Authority,
+         })?;
+         let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
+@@ -1615,18 +1630,30 @@
+         core: &rvoip_core::orchestrator::Orchestrator,
+         id: &ConnectionId,
+         origin: &Arc<super::native_requests::NativeRequestOrigin>,
+-        #[cfg(feature = "test-support")] diagnostics: &mut rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
++        #[cfg(feature = "test-support")] diagnostics: &mut super::native_subscriptions::NativeCatalogReadDiagnosticsForTest,
+     ) -> std::result::Result<
+         Option<super::native_subscriptions::NativeSubscriptionPlan>,
+         super::native_negotiation::NativeOfferError,
+     > {
+         use super::{native_negotiation::NativeOfferError, native_subscriptions::*};
+-        let (controller, broker, flow, session) = self.try_subscription_parts(id, origin)?;
+-        if broker.try_is_busy()? {
++        #[cfg(feature = "test-support")]
++        { *diagnostics=Default::default(); }
++        let (controller, broker, flow, session) = self.try_subscription_parts(id, origin,
++            #[cfg(feature = "test-support")] Some(&mut *diagnostics),
++        )?;
++        if broker.try_is_busy(
++            #[cfg(feature = "test-support")] Some(&mut *diagnostics),
++        )? {
+             return Err(NativeOfferError::Conflict);
+         }
+-        let (expected, bindings) = controller.try_subscription_metadata().map_err(|error| catalog_error(error.into()))?;
+-        if !flow.try_confirmed_at(expected).map_err(|error| catalog_error(error.into()))? {
++        let snapshot=controller.try_subscription_metadata();
++        #[cfg(feature = "test-support")]
++        if let Err(error)=&snapshot { diagnostics.stream_busy(error,NativeCatalogBusyLeafForTest::ReceiverSnapshot); }
++        let (expected, bindings) = snapshot.map_err(|error| catalog_error(error.into()))?;
++        let confirmed=flow.try_confirmed_at(expected);
++        #[cfg(feature = "test-support")]
++        if let Err(error)=&confirmed { diagnostics.stream_busy(error,NativeCatalogBusyLeafForTest::FlowConfirmation); }
++        if !confirmed.map_err(|error| catalog_error(error.into()))? {
+             return Err(NativeOfferError::NotReady);
+         }
+         #[cfg(feature = "test-support")]
+@@ -1634,7 +1661,7 @@
+             .plan_staged_media_selection_diagnosed_for_test(
+                 &session, id, expected,
+                 &rvoip_core::staged_streams::subscription_plan::MediaSelectionChange::Reconcile,
+-                diagnostics,
++                &mut diagnostics.core,
+             )
+             .map_err(catalog_error)?;
+         #[cfg(not(feature = "test-support"))]
+@@ -1649,17 +1676,24 @@
+         if !selection.requires_reconciliation() {
+             return Ok(None);
+         }
+-        if controller.try_subscription_metadata().map_err(|error| catalog_error(error.into()))?.0 != expected {
++        let recheck=controller.try_subscription_metadata();
++        #[cfg(feature = "test-support")]
++        if let Err(error)=&recheck { diagnostics.stream_busy(error,NativeCatalogBusyLeafForTest::ReceiverRecheck); }
++        if recheck.map_err(|error| catalog_error(error.into()))?.0 != expected {
+             return Err(NativeOfferError::Conflict);
+         }
+-        let media = broker.plan_reconciliation(&selection, &bindings)?;
++        let media = broker.plan_reconciliation(&selection, &bindings,
++            #[cfg(feature = "test-support")] Some(&mut *diagnostics),
++        )?;
+         let resources = media.selected().len() != bindings.len()
+             || media
+                 .selected()
+                 .iter()
+                 .any(|s| !bindings.iter().any(|b| &b.negotiated == s));
+         Ok(Some(NativeSubscriptionPlan {
+-            defaults: broker.subscription_media()?,
++            defaults: broker.subscription_media(
++                #[cfg(feature = "test-support")] Some(&mut *diagnostics),
++            )?,
+             selection,
+             media,
+             resources,
+@@ -1706,7 +1740,9 @@
+     > {
+         use super::{native_negotiation::NativeOfferError, native_subscriptions::*};
+         let (controller, broker, flow, session) =
+-            self.try_subscription_parts(id, &invocation.origin)?;
++            self.try_subscription_parts(id, &invocation.origin,
++                #[cfg(feature = "test-support")] None,
++            )?;
+         let expected = invocation.plan().selection.expected_revision();
+         if controller.try_subscription_metadata().map_err(|error| catalog_error(error.into()))?.0 != expected {
+             return Err(NativeOfferError::Conflict);
+@@ -2867,7 +2903,9 @@
+         let changed = core
+             .staged_media_selection_clock(&self.route.session)
+             .map_err(|_| super::auth_dispatch::DispatchError::Authority)?;
+-        let (_, broker, flow, _) = adapter.try_subscription_parts(&connection, &origin)
++        let (_, broker, flow, _) = adapter.try_subscription_parts(&connection, &origin,
++            #[cfg(feature = "test-support")] None,
++        )
+             .map_err(|_| super::auth_dispatch::DispatchError::StorageUnavailable)?;
+         let runtime = super::native_subscriptions::NativeSubscriptionRuntime::spawn(
+             core, adapter, connection, origin, policy, changed,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -332,17 +332,32 @@
+         Ok(requested && self.profile.video_feedback)
+     }
+ 
+-    pub(crate) fn try_is_busy(&self) -> Result<bool, NativeOfferError> {
++    pub(crate) fn try_is_busy(
++        &self,
++        #[cfg(feature = "test-support")] diagnostics: Option<&mut super::native_subscriptions::NativeCatalogReadDiagnosticsForTest>,
++    ) -> Result<bool, NativeOfferError> {
+         if self.request_slot.available_permits() == 0 { return Ok(true); }
+         let current = self.current.try_lock().map_err(|error| match error {
+-            std::sync::TryLockError::WouldBlock => NativeOfferError::Dispatch(DispatchError::StorageUnavailable),
++            std::sync::TryLockError::WouldBlock => {
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostics)=diagnostics { diagnostics.native_busy_leaf=Some(super::native_subscriptions::NativeCatalogBusyLeafForTest::NegotiationCurrent); }
++                NativeOfferError::Dispatch(DispatchError::StorageUnavailable)
++            }
+             std::sync::TryLockError::Poisoned(_) => NativeOfferError::Authority,
+         })?;
+         Ok(current.as_ref().and_then(Weak::upgrade).is_some())
+     }
+-    fn try_subscription_retained(&self) -> Result<std::sync::MutexGuard<'_, Option<RetainedPeer>>, NativeOfferError> {
++    fn try_subscription_retained(
++        &self,
++        #[cfg(feature = "test-support")] diagnostics: Option<&mut super::native_subscriptions::NativeCatalogReadDiagnosticsForTest>,
++        #[cfg(feature = "test-support")] leaf: super::native_subscriptions::NativeCatalogBusyLeafForTest,
++    ) -> Result<std::sync::MutexGuard<'_, Option<RetainedPeer>>, NativeOfferError> {
+         self.retained.try_lock().map_err(|error| match error {
+-            std::sync::TryLockError::WouldBlock => NativeOfferError::Dispatch(DispatchError::StorageUnavailable),
++            std::sync::TryLockError::WouldBlock => {
++                #[cfg(feature = "test-support")]
++                if let Some(diagnostics)=diagnostics { diagnostics.native_busy_leaf=Some(leaf); }
++                NativeOfferError::Dispatch(DispatchError::StorageUnavailable)
++            }
+             std::sync::TryLockError::Poisoned(_) => NativeOfferError::Authority,
+         })
+     }
+@@ -508,8 +523,12 @@
+     /// this neither grants source authority nor allocates a receive port.
+     pub(crate) fn subscription_media(
+         &self,
++        #[cfg(feature = "test-support")] diagnostics: Option<&mut super::native_subscriptions::NativeCatalogReadDiagnosticsForTest>,
+     ) -> Result<std::collections::BTreeSet<Medium>, NativeOfferError> {
+-        let retained = self.try_subscription_retained()?;
++        let retained = self.try_subscription_retained(
++            #[cfg(feature = "test-support")] diagnostics,
++            #[cfg(feature = "test-support")] super::native_subscriptions::NativeCatalogBusyLeafForTest::RetainedSubscriptionMedia,
++        )?;
+         let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+         let remote = retained.future_capabilities();
+         Ok(self
+@@ -541,7 +560,10 @@
+         {
+             return Err(NativeOfferError::Scope);
+         }
+-        let retained = self.try_subscription_retained()?;
++        let retained = self.try_subscription_retained(
++            #[cfg(feature = "test-support")] None,
++            #[cfg(feature = "test-support")] super::native_subscriptions::NativeCatalogBusyLeafForTest::RetainedSubscriptionMedia,
++        )?;
+         let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+         NativeOfferPlan::subscription(
+             input,
+@@ -570,8 +592,12 @@
+         &self,
+         input: &rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan,
+         bindings: &[ReadyMediaBinding],
++        #[cfg(feature = "test-support")] diagnostics: Option<&mut super::native_subscriptions::NativeCatalogReadDiagnosticsForTest>,
+     ) -> Result<NativeOfferPlan, NativeOfferError> {
+-        let retained = self.try_subscription_retained()?;
++        let retained = self.try_subscription_retained(
++            #[cfg(feature = "test-support")] diagnostics,
++            #[cfg(feature = "test-support")] super::native_subscriptions::NativeCatalogBusyLeafForTest::RetainedReconciliation,
++        )?;
+         let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+         NativeOfferPlan::subscription(
+             input,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
+@@ -121,7 +121,7 @@
+             let plan = if read_catalog {
+                 catalog_retry = false;
+                 #[cfg(feature = "test-support")]
+-                let mut diagnostics = rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest::default();
++                let mut diagnostics = NativeCatalogReadDiagnosticsForTest::default();
+                 #[cfg(feature = "test-support")]
+                 let catalog_started = Instant::now();
+                 let plan = adapter.plan_native_reconciliation(
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
+@@ -211,6 +211,49 @@
+     pub operation: String,
+     pub lease: super::auth_dispatch::AuthorityLease,
+ }
++/// Exact native preflight acquisition occupied on the original catalog read.
++/// Absent outside test support; it conveys no permission or retry decision.
++#[cfg(feature = "test-support")]
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum NativeCatalogBusyLeafForTest {
++    /// The actual Core catalog/admission acquisition reported its own leaf.
++    Core(rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest),
++    /// Exact native route registry shard.
++    RouteRegistry,
++    /// Exact route installation metadata.
++    Installation,
++    /// Current native negotiation metadata, not an occupied request permit.
++    NegotiationCurrent,
++    /// Receiver Controller.State before the Core catalog read.
++    ReceiverSnapshot,
++    /// Original receiver NativeFlow confirmation metadata.
++    FlowConfirmation,
++    /// Receiver Controller.State revision recheck after the Core catalog read.
++    ReceiverRecheck,
++    /// Retained negotiation metadata used to plan reconciliation.
++    RetainedReconciliation,
++    /// Retained negotiation metadata used for default subscription media.
++    RetainedSubscriptionMedia,
++}
++/// Caller-owned observations of that same read, never an extra probe.
++#[cfg(feature = "test-support")]
++#[derive(Clone, Debug, Default)]
++pub struct NativeCatalogReadDiagnosticsForTest {
++    /// The Core portion is filled only by Core's actual failed acquisition.
++    pub core: rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
++    /// The native portion is filled only at the actual native failed read.
++    pub native_busy_leaf: Option<NativeCatalogBusyLeafForTest>,
++}
++#[cfg(feature = "test-support")]
++impl NativeCatalogReadDiagnosticsForTest {
++    /// Exact original leaf, preserving anonymous results as None.
++    pub fn busy_leaf(&self) -> Option<NativeCatalogBusyLeafForTest> {
++        self.native_busy_leaf.clone().or_else(||self.core.busy_leaf.clone().map(NativeCatalogBusyLeafForTest::Core))
++    }
++    pub(crate) fn stream_busy(&mut self, error: &rvoip_core::staged_streams::StreamControlError, leaf: NativeCatalogBusyLeafForTest) {
++        if matches!(error,rvoip_core::staged_streams::StreamControlError::MetadataBusy) { self.native_busy_leaf=Some(leaf); }
++    }
++}
+ /// Installed by the host that owns current grants and its operation journal.
+ /// Metadata and wake hints never replace this fresh authorization step.
+ #[async_trait::async_trait]
+@@ -238,7 +281,7 @@
+         &self,
+         _connection: &ConnectionId,
+         _started: tokio::time::Instant,
+-        _diagnostics: &rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
++        _diagnostics: &NativeCatalogReadDiagnosticsForTest,
+         _result: &Result<Option<NativeSubscriptionPlan>, NativeOfferError>,
+     ) {
+     }
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -26,7 +26,7 @@
+ struct CatalogObserved {
+     started: Instant,
+     at: Instant,
+-    leaf: Option<rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest>,
++    leaf: Option<NativeCatalogBusyLeafForTest>,
+     outcome: CatalogObservedOutcome,
+ }
+ #[cfg(feature = "test-support")]
+@@ -80,7 +80,7 @@
+         // Decide the existing cutoff/result before collecting diagnostics.
+         let (terminal, outcome) = match attempt {
+             Ok(plan) => (Some(Ok((Instant::now() <= until).then_some(plan))), "snapshot"),
+-            Err(ParticipantControlError::Media(StreamControlError::Backpressure)) if diagnostics.busy_leaf.is_some() => (None, "diagnosed-busy"),
++            Err(ParticipantControlError::Media(StreamControlError::Backpressure | StreamControlError::MetadataBusy)) if diagnostics.busy_leaf.is_some() => (None, "diagnosed-busy"),
+             Err(error) => (Some(Err(error)), "terminal-error"),
+         };
+         attempts = attempts.saturating_add(1);
+@@ -91,6 +91,9 @@
+             Some(rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::Members) => busy_members = busy_members.saturating_add(1),
+             Some(rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::TargetState) => busy_target = busy_target.saturating_add(1),
+             Some(rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::SourceState(_)) => busy_source = busy_source.saturating_add(1),
++            Some(rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::ParticipantRegistry
++                | rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::ParticipantModel
++                | rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::SelectionProgram) => {},
+             None => {},
+         }
+         let row = (started, completed, elapsed, diagnostics.busy_leaf, outcome);
+@@ -416,14 +419,14 @@
+         &self,
+         connection: &ConnectionId,
+         started: Instant,
+-        diagnostics: &rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
++        diagnostics: &NativeCatalogReadDiagnosticsForTest,
+         result: &Result<Option<NativeSubscriptionPlan>, NativeOfferError>,
+     ) {
+         let Some(probe) = self.catalog_probe.get().filter(|p| &p.connection == connection) else { return; };
+         let observed = CatalogObserved {
+             started,
+             at: Instant::now(),
+-            leaf: diagnostics.busy_leaf.clone(),
++            leaf: diagnostics.busy_leaf(),
+             outcome: match result {
+                 Ok(Some(plan)) => CatalogObservedOutcome::Planned {
+                     same_catalog: probe.before.same_catalog(plan.selection()),
+@@ -1312,7 +1315,7 @@
+                         _ => break,
+                     };
+                     let source_busy = row.started >= held_at && row.at <= until
+-                        && row.leaf == Some(CatalogBusyLeafForTest::SourceState(source_id.clone()))
++                        && row.leaf == Some(NativeCatalogBusyLeafForTest::Core(CatalogBusyLeafForTest::SourceState(source_id.clone())))
+                         && matches!(row.outcome, CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)));
+                     if rows.len() < 128 { rows.push(row); } else { observation_overflow = true; }
+                     if release_within_window && source_busy && release_at.is_none() && Instant::now() < until {
+@@ -1330,9 +1333,16 @@
+             drop(release_tx);
+             let available = available.unwrap();
+             let saw_source_busy = rows.iter().any(|r| r.started >= held_at && r.at <= until
+-                && r.leaf == Some(CatalogBusyLeafForTest::SourceState(source_id.clone()))
++                && r.leaf == Some(NativeCatalogBusyLeafForTest::Core(CatalogBusyLeafForTest::SourceState(source_id.clone())))
+                 && matches!(r.outcome, CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable))));
+-            let recovered_snapshot = catalog_window_snapshot(&rows, &before, release_at.unwrap_or(held_at), until).unwrap();
++            let recovered_result = catalog_window_snapshot(&rows, &before, release_at.unwrap_or(held_at), until);
++            if recovered_result.is_err() {
++                // Owned original rows only, after the holder join and whole
++                // original window. Preserve the SAME error/unwrap below.
++                let recovery_status=recovered_result.as_ref().map(|snapshot|snapshot.is_some());
++                eprintln!("catalog rejected original-window kind={kind} release_within_window={release_within_window} held_at={held_at:?} until={until:?} release_at={release_at:?} result={recovery_status:?} direct_leaf={:?} released_by_signal={released_by_signal} overflow={observation_overflow} rows={rows:?}",direct_diagnostics.busy_leaf);
++            }
++            let recovered_snapshot = recovered_result.unwrap();
+             let recovered = recovered_snapshot.is_some();
+             let successful_during_full_exclusion = !release_within_window && rows.iter().any(|r| r.started >= held_at && r.at <= until
+                 && matches!(r.outcome, CatalogObservedOutcome::Planned { .. } | CatalogObservedOutcome::NoPlan));
+@@ -1468,7 +1478,8 @@
+             else {assert!(matches!(result,Err(ParticipantControlError::Deadline)));}
+         }
+         assert!(!overflow&&policy.catalog_probe.get().unwrap().dropped.load(Ordering::Acquire)==0);
+-        assert!(busy_rows.iter().any(|row|matches!(row.outcome,CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)))));
++        assert!(busy_rows.iter().any(|row|row.leaf==Some(NativeCatalogBusyLeafForTest::Core(rvoip_core::staged_streams::subscription_plan::CatalogBusyLeafForTest::ParticipantModel))
++            && matches!(row.outcome,CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)))));
+         let recovered_until=Instant::now()+Duration::from_millis(650);
+         let mut actual=None;
+         while Instant::now()<recovered_until {

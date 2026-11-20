@@ -2901,6 +2901,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-native-toctou-authorized-noop-expectation.patch",
       "sha256": "2b90b3951ce743e0a6b5ec2b547b6d082f41a85d9a647eba52b5c5117bdee40b"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-catalog-exact-try-acquisition-diagnostics.patch",
+      "sha256": "2ab8c3f6d56cbebc3f084499d9ab184fee09022efc5a8a7c803e8cfee3ada25f"
     }
   ]
 }

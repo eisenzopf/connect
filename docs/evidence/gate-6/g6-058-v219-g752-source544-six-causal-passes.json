@@ -1,0 +1,128 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 162,
+  "status": "ACTUAL_G752_CURRENT544_SIX_CAUSAL_FUNCTIONS6PASS0FAIL_SCOPED_ONLY",
+  "prepared_batch": {
+    "generation": 544,
+    "source_files": 6589,
+    "source_sha256": "9e596f7bd81ac12516abec3ab76cc6c833f18cb89bdc173db8957f85fa3e0878",
+    "normal544": "PASS_INDEPENDENTLY_AUDITED",
+    "exact_existing_diagnostic_afterimages": 7,
+    "workspace_formatted_paths_unchanged": 10,
+    "new_test_identities": 0,
+    "production_authorization_retry_algorithm_changes": false
+  },
+  "actual_G752": {
+    "completed": 6,
+    "passed": 6,
+    "failed": 0,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun_functions": 0,
+    "old_catalog_main": "PASS_BOTH_TRANSPORTS_ORIGINAL650ms_RECOVERY",
+    "old_catalog_variants": "PASS_ALL4_QUIC_WT_RELEASE_AND_FULL_WINDOW_EXCLUSION",
+    "NativeModel_and_TOCTOU": "PASS_BOTH_QUIC_WT_FULL_TAILS",
+    "Store": "PASS_REAL_THREE_SAME_STARTED_WRITER_EPOCH_TURNS",
+    "Clock": "PASS_REGISTRATION_READ_RACES_AND_SATURATION",
+    "all_six_originals_natural0_unforced_fresh_PID_PGID_absent": true,
+    "source_prepared_three_current_artifacts_fixed": true
+  },
+  "strict_typed_metadata_evidence": {
+    "actual_Core_Native_labels_observed": true,
+    "anonymous_None_rejection": "UNCHANGED",
+    "source_held_fullwindow_negative_and_exact650ms_recovery": "PRESERVED",
+    "source_ID_equality": "ACTUAL_ASSERTIONS_DEBUG_IDS_REDACTED",
+    "background_drop_overflow": 0
+  },
+  "preCargo_storage_floor_refusal": "ADMISSION_ONLY_NO_CARGO_OWNER_NOT_FUNCTIONAL_TEST_FAILURE",
+  "historical_G7484PASS2FAIL_G743_G746_verdicts_preserved": true,
+  "historical_G735": {
+    "passed": 41,
+    "failed": 4,
+    "verdict": "FAILED",
+    "regraded": false,
+    "four_media_failures": "UNRESOLVED_PENDING_CURRENT49"
+  },
+  "mixed_audio_qualification": false,
+  "current544_code_batch_commit": "ROOT_PENDING_NOT_CLAIMED",
+  "current49_component": "UNRUN_NEXT",
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 240,
+  "mobile241": "PROPOSAL_ONLY",
+  "recorded_at": "2026-11-20T20:41:17.763244+00:00",
+  "proofs": {
+    "G752_actual_Root_cohort_summary": {
+      "path": ".local/gate-6/g752-source544-six-causal-units-root/cohort-result.json",
+      "sha256": "a115aebd61900198480ae68b174c1ad53333f0338085bbdd2060b41b71e41448"
+    },
+    "normal544_actual_preparation": {
+      "path": ".local/gate-6/g751-normal544-exact-metadata-diagnostics-root/normal544-runtime/receipt.json",
+      "sha256": "fa0d53efd7826f2b4f6401704a492fe258de0d6970ff54bebc687bce265132ac"
+    },
+    "normal544_actual_independent_audit": {
+      "path": ".local/gate-6/g751-actual-normal544-independent-audit/receipt.json",
+      "sha256": "acc9dab3ae4c59d1b7543ae4d0e1ad777dcf29da86d45ed483573652242528b5"
+    },
+    "G752_four_Native_actual_audit": {
+      "path": ".local/gate-6/g752-actual-four-native-independent-audit/receipt.json",
+      "sha256": "ec12ecab4b23f9f1ff46b200ac9cae2e743b49b9202358e0e80a56ef6f1b960d"
+    },
+    "G752_all_six_actual_audit": {
+      "path": ".local/gate-6/g752-actual-six-causal-units-independent-audit/receipt.json",
+      "sha256": "9d910f873fe54e8306233d33007d5c78e80ff79056eb74ccdd04a5ff2d54097f"
+    },
+    "G752_actual_six_verdicts": {
+      "path": ".local/gate-6/g752-actual-six-causal-units-independent-audit/actual-verdicts.json",
+      "sha256": "4d0aeb8e134e470e1d12ca2cd223d0dc923da2a0bc9e40c155726168cbc84299"
+    },
+    "G752_main_catalog_PASS": {
+      "path": ".local/gate-6/g752-source544-six-causal-units-root/old-catalog/result.json",
+      "sha256": "a03f695cc014ff6175bed77b4c7aaf527695283a59d811ce275a9b74278174c4"
+    },
+    "G752_four_catalog_variants_PASS": {
+      "path": ".local/gate-6/g752-source544-six-causal-units-root/old-catalog-variants/result.json",
+      "sha256": "0dc26e3ec1734b79421ebf3a41b549fd44cb1086288bc857e1cc4d048fe55ff5"
+    },
+    "G752_TOCTOU_PASS": {
+      "path": ".local/gate-6/g752-source544-six-causal-units-root/native-toctou/result.json",
+      "sha256": "22692fc3fcd8df15dc95769c25b63574d40a8915cb2177f7fcd354490b4d554d"
+    },
+    "G752_NativeModel_PASS": {
+      "path": ".local/gate-6/g752-source544-six-causal-units-root/native-model/result.json",
+      "sha256": "5b0dbdb05df70f1df8b568cacc389b7f2f4626eb2bc20dcf6fd1b11c66cc25c0"
+    },
+    "G752_Store_PASS": {
+      "path": ".local/gate-6/g752-source544-six-causal-units-root/store/result.json",
+      "sha256": "b6cc40d57ee9b6d12054b374dcd3f97afda8400e54413ef9b0ca7acf0cc8b902"
+    },
+    "G752_Clock_PASS": {
+      "path": ".local/gate-6/g752-source544-six-causal-units-root/clock/result.json",
+      "sha256": "d746eb144dac1db8f3140b20c75a2f7b30781c1bb0b79f7d1522777d438df489"
+    },
+    "exact_acquisition_diagnostics_source_review": {
+      "path": ".local/gate-6/g748-native-catalog-exact-try-diagnostics-independent-epoch-source-review/receipt.json",
+      "sha256": "891484df4c198db7a0501880601aa5c061146cdd5a0eb1ed7a5551412e2b3383"
+    },
+    "G748_prior_fourPASS_twoFAIL_actual_audit": {
+      "path": ".local/gate-6/g748-actual-six-causal-units-independent-audit/receipt.json",
+      "sha256": "c919e8cefbdd60374452a16f40b2c2f9465a9c2f065e997bf5593df4bc4d117e"
+    },
+    "retained_G735_actual_failed_audit": {
+      "path": ".local/gate-6/g735-actual45-independent-audit/receipt.json",
+      "sha256": "7094d3456ab319fec487c1100245df28100e843e0b803029d8920ce69652dee9"
+    },
+    "last_mobile240_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v240-source543-six-causal-units.json",
+      "sha256": "f361a6ed2abd0a9c17688d32875501a525fb89ae3389ff1812ed7adeae91432b"
+    }
+  }
+}
