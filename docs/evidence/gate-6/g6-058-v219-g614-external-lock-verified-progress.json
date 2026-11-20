@@ -1,0 +1,134 @@
+{
+  "format": "connect/g6-058-g614-lock-focused-progress/1",
+  "checkpoint": 137,
+  "updated_at": "2026-11-20T00:23:04.322304+00:00",
+  "status": "APPLIED_LOCK_AND_FOCUSED_COMPONENT_VERIFIED_NOT_QUALIFIED",
+  "summary": "The standalone external Rust SDK lock correction is applied and focused-verified on base25cc / prepared source509, working seal5a6fbf0b. G614 normal preparation and the exact original locked/offline jobs12 external build passed; the current opt0/debug2 default-feature executable was inventoried and all three original portable controls passed individually with1pass/0fail/0ignored. Root and all six original children closed naturally; source/binary guards stayed unchanged, and independent actual audit accepted this exact scope. The only product-file change is examples/rust-sdk-journey/Cargo.lock:27 additions match existing root-lock versions/sources/checksums, with all355 previous package identities and versions unchanged. G606 remains failed: six original build groups passed, the seventh stopped101 before compilation on the stale standalone lock, and all eleven inventories and469 runtimes were unrun. G612 task-cache recovery processed4299 objects and left174 untouched; actual D2 free increased18,343,284,736bytes (17.08GiB), with source and published binaries preserved and original owners naturally joined. Its30GiB stop observation was32,216,154,112bytes; final controller free was32,200,949,760bytes, slightly below30GiB after evidence writes. This was partial-selection stop success, not all4473 processed. G613 isolated preflight-contract controls passed10/10 and were independently audited; they do not qualify431 scripts,900 tests or matrix cells. Mobile210 is verified with419 unrelated paragraphs preserved. Next: commit this reviewed lock-only product correction and progress, then G615 original seven-build/eleven-inventory validation on the committed source, current379/full3282/originalV8 and remaining strict Firefox NORMAL3/original900/localARM11/releases/preflight. G615 has not run. Historical full3252 on6eb and G582script431 retain their original scopes. Last complete matrix remains v218:1/32 cells and399/432 checks; stableIDs, owner assignments, failure maps and historical verdicts are unchanged. Not ready for32; G6-054 stays parked and execution stays local Mac/native ARM.",
+  "tested_source": {
+    "head_base": "25cc2e232f776037b34db57e3171ac8cadefbba4",
+    "working_source_receipt": ".local/gate-6/g614-external-lock-fix-focused-root/working-source.json",
+    "working_source_receipt_sha256": "5a6fbf0b221c899ed30da0479593ce2026835b4460020e2f3ec6e7647577f543",
+    "workspace_sha256": "42657e9156479da85dd16979cc2f26b86779b3bf1b345e33f6d43c795f08351f",
+    "files": 6489,
+    "generation": 509,
+    "source_lock_sha256": "0a3c2071d543def1d2458666f41df3e17e8a85aff2618103a47964de526b07a8",
+    "prepared": {
+      "rvoip": "4f3c80800f9f70f21aecf584c417be61b154deaf240cde767085d26d5ed43cc2",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "future_postcommit_head": "TBD_ROOT_COMMIT_NOT_INVENTED"
+  },
+  "G606_preserved": {
+    "six_builds_exit0": true,
+    "external_build_exit101_before_compiler": true,
+    "inventories_executed": 0,
+    "inventories_required": 11,
+    "all469_runtimes": "UNRUN",
+    "qualification": false
+  },
+  "G611_lock": {
+    "path": "examples/rust-sdk-journey/Cargo.lock",
+    "applied_sha256": "eeb6072777f7f6cafde6e7a4eca9dbcc052735a8d025df7dbabe157673893ca2",
+    "packages_added": 27,
+    "previous_package_identities_retained": 355,
+    "existing_versions_sources_checksums_unchanged": true,
+    "additions_root_lock_aligned": true,
+    "only_product_file_change": true,
+    "author": "/root/batch_build_review",
+    "independent_reviewer": "/root/independent_batch_review",
+    "coordinator": "/root"
+  },
+  "G612_recovery": {
+    "processed": 4299,
+    "untouched": 174,
+    "all_selected_processed": false,
+    "actual_D2_before_bytes": 13857665024,
+    "actual_controller_final_bytes": 32200949760,
+    "actual_net_gain_bytes": 18343284736,
+    "actual_net_gain_GiB": 17.083515,
+    "last_replacement_stop_observed_bytes": 32216154112,
+    "target_bytes": 32212254720,
+    "target_reached_at_stop": true,
+    "controller_final_at_or_above_target": false,
+    "difference_explained": "Final evidence writes consumed about15MB after the threshold stop; do not claim a30GiB final floor.",
+    "elapsed_seconds": 1809.893,
+    "original_tool": 5097,
+    "source_unchanged_before_lock_application": true,
+    "actual_audit_accepted": true,
+    "build_test_matrix_credit": false
+  },
+  "G613_controls": {
+    "scope": "Isolated preflight contract projection controls only",
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "actual_audit_accepted": true,
+    "scripts431_or_qualification900_credit": false
+  },
+  "G614_focused": {
+    "normal_prepare_exit0": true,
+    "exact_original_locked_offline_jobs12_build_exit0": true,
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 2,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": true
+    },
+    "features": [],
+    "actual_executable_sha256": "d8b432da2d1aedc4a898ad44fb0be68a883066b32bda9f9c2b567695197ef9db",
+    "inventory_names": 69,
+    "portable_controls_passed": 3,
+    "per_case_required_summary": "ok1passed0failed0ignored",
+    "original_root_and_six_children_naturally_joined": true,
+    "source_and_binary_unchanged": true,
+    "independent_actual_audit_accepted": true,
+    "full_unit_qualified": false,
+    "original469_or_900_qualified": false,
+    "media_or_matrix_qualified": false
+  },
+  "mobile": {
+    "revision": 210,
+    "readback_path": ".local/gate-6/mobile210-lock-fix-progress-root/readback.json",
+    "readback_sha256": "50614e2023bd5db0f8ab6970a5e57d3222a6830934a9d5f27765d9bb9fde859a",
+    "changed_paragraphs": 3,
+    "unrelated_paragraphs_preserved": 419,
+    "raw_document_not_published": true,
+    "prior_tracked206_retained_historical": true
+  },
+  "future_verification": {
+    "G615_original7_builds_11_inventories": "UNRUN_ON_FUTURE_COMMITTED_SOURCE",
+    "current379_full3282_originalV8": "PENDING",
+    "strictFirefox_NORMAL3_original900_ARM11_releases_preflight": "PENDING",
+    "no_new_gates_or_criteria": true
+  },
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "unchanged": true,
+    "credit_from_this_checkpoint": false
+  },
+  "proofs": {
+    ".local/gate-6/g606-original469-seven-build-inventory-root/result.json": "7aceb855db50a283e8302a0e2ec82b4e44d2f1fbb8b43d6bc8455b770ed7541d",
+    ".local/gate-6/g606-original469-seven-build-inventory-root/outer-original-tool-join.json": "4ecd502e2234fb79d6f93fb33773159d6ecd35b42e75190dfe549acd5aebb3ae",
+    ".local/gate-6/g611-external-lock-investigation/manifest.json": "c7dd1c98a786a3f7daa13d40dc12c63d7cd6bfc03e4e33aefeb6cd0007e82829",
+    ".local/gate-6/g611-external-lock-independent-source-and-metadata-review/receipt.json": "9c3e5553a12df01d2d461519fc54157cf2032920af525ba9f5a2f39f12827007",
+    ".local/gate-6/g612-post-g606-transparent-object-recovery-root/receipt.json": "0634924c7e5b3f075ab029205b6dd0e264eeb5caee55364b10b670af8d39d4cc",
+    ".local/gate-6/g612-post-g606-transparent-object-recovery-root/completed.json": "a300573ac1e007ba4cc32ff3de2f619223daee5bce23ae7978ceb5d66a3e70c2",
+    ".local/gate-6/g612-post-g606-transparent-object-recovery-root/outer-original-tool-join.json": "e8bef62733e347929a7f5e4f9548a3504b8ecf935d1f393382451e8ce44c25d1",
+    ".local/gate-6/g612-actual-current-object-recovery-independent-audit/receipt.json": "421e2a2e9018ae5382da75024bcb7ba8f192f064861df2a292c996e861029ea8",
+    ".local/gate-6/g613-downstream-contract-controls-root/result.json": "95ee5f92d2aedd53a5d7b2c639db5078d96279288cf5ca861b3258440f32e3dc",
+    ".local/gate-6/g613-downstream-contract-controls-root/outer-original-tool-join.json": "0491c7742d4b6e4d5fac25da792cfc227cb72748f25ab47034bba38c39a3233d",
+    ".local/gate-6/g613-actual-isolated-contract-controls-independent-epoch-audit/receipt.json": "549a41c73fc9b19ad16986ae7adb5c8e3159ca5a51b3b89cc5e79ee54ca5527f",
+    ".local/gate-6/g614-external-lock-fix-focused-root/result.json": "d238ad8b27dbc9f55ca18640541c5009f80a382d6e89dab6f38eb8b697cb5f4f",
+    ".local/gate-6/g614-external-lock-fix-focused-root/application.json": "abf1f43154e609d76fee4cfa3cf481c54cd9ec361c58749431ff16b27d8c5397",
+    ".local/gate-6/g614-external-lock-fix-focused-root/outer-original-tool-join.json": "7796544e85053fb34b621781aa52242459a3f61d4973fc2d5fc0310839a878f5",
+    ".local/gate-6/g614-external-lock-fix-focused-root/artifact-external.json": "aba3223d8b5930259f32dbe57617c26c3b20e5d20916b7db34ed9c38d9fc49cd",
+    ".local/gate-6/g614-external-lock-fix-focused-root/working-source.json": "5a6fbf0b221c899ed30da0479593ce2026835b4460020e2f3ec6e7647577f543",
+    ".local/gate-6/g614-actual-external-lock-focused-independent-audit/receipt.json": "5e0254f5303137cf453d8e630ed7a2e2c7f9a4ca3ec8ec40bcab3d4bbf486dbf",
+    ".local/gate-6/mobile210-lock-fix-progress-root/readback.json": "50614e2023bd5db0f8ab6970a5e57d3222a6830934a9d5f27765d9bb9fde859a"
+  }
+}

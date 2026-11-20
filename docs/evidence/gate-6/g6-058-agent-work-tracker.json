@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-19T20:14:21.520095+00:00",
-  "revision": 136,
+  "updated_at": "2026-11-20T00:23:04.322304+00:00",
+  "revision": 137,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
@@ -9,10 +9,10 @@
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
     "sync_status": "verified",
-    "content_revision": 206,
-    "verified_at": "2026-11-19T20:25:11.053Z",
-    "readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-capacity584.json",
-    "readback_evidence_sha256": "91c6ed39d8878199d73543d85754e165eed37e8fa11d2158fc496f1a030cb29c",
+    "content_revision": 210,
+    "verified_at": "2026-11-20T00:20:17.930150+00:00",
+    "readback_evidence": ".local/gate-6/mobile210-lock-fix-progress-root/readback.json",
+    "readback_evidence_sha256": "50614e2023bd5db0f8ab6970a5e57d3222a6830934a9d5f27765d9bb9fde859a",
     "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v217-postrun.json",
     "postrun_readback_sha256": "38f14c1573fdf5ebda4f410f61e51012782ec12a6bafe8c3ad0edf5870ff6230"
   },
@@ -5688,6 +5688,13 @@
       "event": "G580 reviewedcurrent capacity sourcebinding applied; G58130PASS and G582wholeoriginalScript431PASS (168Py263Node,supplemental263notextra). G582actualauditaccepted81f1; explicit17mapping source-reviewed, rawliteralfalse/noqual. G576historical3252PASS/G577NEVERSTARTED/G5782fails preserved. Freshfull3282/originalV8/remaininggates pending; mobile206proposalonly.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g582-current-script-capacity-progress.json",
       "by": "/root"
+    },
+    {
+      "at": "2026-11-20T00:23:04.322304+00:00",
+      "revision": 137,
+      "event": "G606 six build0/external lock101/all11inventories+469runtimesunrun retained. Reviewed lock-only correction applied; G614 original locked externalbuild/list/portable3 allPASS/currentartifact/source/naturalowners/audit accepted. G612actual+17.08GiB/4299processed174untouched, G61310controlsPASS; mobile210verified. G6157/11 and remaining qualification pending; no matrix promotion.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g614-external-lock-verified-progress.json",
+      "by": "/root"
     }
   ],
   "tracking_review": {
@@ -7317,11 +7324,11 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Current prepared source509 / dirty seal6e484 on base6eb passes G581 whole idle/plateau controls30/30 and G582 fresh whole original-script commands431/431: Python168 and Node263. The supplemental Node263 reporter run is separate identity evidence, not extra checks. G582 source remained unchanged and all original owners closed naturally; independent actual audit accepted the result and released the freeze. The 30 focused checks overlap the 431 and are not added to them. Three reviewed Python harness/control files refresh the exact current Cargo.lock source binding while retaining main/Tokio/default512 and every capacity, ownership and cleanup rule; actual protected-source mutation negatives pass. Original 408 occurrence accounting is explicit: all 159 legacy Python IDs are literal, and232 literal Node occurrences plus 17 independently source-proven annotation mappings preserve 249 legacy Node IDs; the frozen/current browser-failure file is byte-identical10160. The raw literal flag stays false, and the original qualification has not run. G576 full 3,252/3,252 on committed6eb remains a historical pass; G577 was abandoned without starting after G578 exposed two Python failures. G578 raw collector failure and167 Python cases with two failures remain immutable, with corrected offline inventory preserved. G567 remains the latest three-case real-media diagnostic pass, with no original V8 or matrix credit. Next: commit this verified batch, run current shared379/generator prerequisites and fresh additive full 3,282 (Rust 1,951, Node 1,246, Python 85=retained 55+whole idle/plateau 30), then original V8 on one exact final seal, strict Firefox NORMAL3, original qualification, local ARM11 and normal releases/preflight. Last full matrix remains v218: 1/32 cells and 399/432 checks. Not ready for32; G6-054 remains parked and execution stays local Mac/native ARM.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g582-current-script-capacity-progress.json",
-    "sha256": "6af445307943cf3af295a3f43de95ed28b4fcd7131848386ccf475e752bdf4d3"
+    "status": "The standalone external Rust SDK lock correction is applied and focused-verified on base25cc / prepared source509, working seal5a6fbf0b. G614 normal preparation and the exact original locked/offline jobs12 external build passed; the current opt0/debug2 default-feature executable was inventoried and all three original portable controls passed individually with1pass/0fail/0ignored. Root and all six original children closed naturally; source/binary guards stayed unchanged, and independent actual audit accepted this exact scope. The only product-file change is examples/rust-sdk-journey/Cargo.lock:27 additions match existing root-lock versions/sources/checksums, with all355 previous package identities and versions unchanged. G606 remains failed: six original build groups passed, the seventh stopped101 before compilation on the stale standalone lock, and all eleven inventories and469 runtimes were unrun. G612 task-cache recovery processed4299 objects and left174 untouched; actual D2 free increased18,343,284,736bytes (17.08GiB), with source and published binaries preserved and original owners naturally joined. Its30GiB stop observation was32,216,154,112bytes; final controller free was32,200,949,760bytes, slightly below30GiB after evidence writes. This was partial-selection stop success, not all4473 processed. G613 isolated preflight-contract controls passed10/10 and were independently audited; they do not qualify431 scripts,900 tests or matrix cells. Mobile210 is verified with419 unrelated paragraphs preserved. Next: commit this reviewed lock-only product correction and progress, then G615 original seven-build/eleven-inventory validation on the committed source, current379/full3282/originalV8 and remaining strict Firefox NORMAL3/original900/localARM11/releases/preflight. G615 has not run. Historical full3252 on6eb and G582script431 retain their original scopes. Last complete matrix remains v218:1/32 cells and399/432 checks; stableIDs, owner assignments, failure maps and historical verdicts are unchanged. Not ready for32; G6-054 stays parked and execution stays local Mac/native ARM.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g614-external-lock-verified-progress.json",
+    "sha256": "b894ac33300753fd478f67a34fb880726795a57bc5fd3211b9a28ebe202b0eeb"
   },
-  "updated": "2026-11-19T20:14:21.520095+00:00",
+  "updated": "2026-11-20T00:23:04.322304+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -7350,5 +7357,24 @@
     "content_revision": 206,
     "sync_status": "proposed-not-published",
     "source": "mobile206-three-paragraph-proposal.txt"
+  },
+  "v219_g614_external_lock_verified": {
+    "status": "component-verified-no-qualification",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g614-external-lock-verified-progress.json",
+    "sha256": "b894ac33300753fd478f67a34fb880726795a57bc5fd3211b9a28ebe202b0eeb",
+    "focused_portable_passed": 3,
+    "G612_actual_audit": ".local/gate-6/g612-actual-current-object-recovery-independent-audit/receipt.json",
+    "G613_actual_audit": ".local/gate-6/g613-actual-isolated-contract-controls-independent-epoch-audit/receipt.json",
+    "G614_actual_audit": ".local/gate-6/g614-actual-external-lock-focused-independent-audit/receipt.json",
+    "owner_agent": "/root/batch_build_review",
+    "independent_reviewer": "/root/independent_batch_review",
+    "coordinator": "/root",
+    "ready_for_32": false,
+    "matrix_credit": false,
+    "prior_mobile_readback": {
+      "revision": 206,
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v219-capacity584.json",
+      "sha256": "91c6ed39d8878199d73543d85754e165eed37e8fa11d2158fc496f1a030cb29c"
+    }
   }
 }
