@@ -1,0 +1,253 @@
+--- a/crates/foundation/rvoip-core-traits/src/peer_switch.rs
++++ b/crates/foundation/rvoip-core-traits/src/peer_switch.rs
+@@ -59,6 +59,149 @@
+ #[must_use]
+ pub struct PeerQuiescenceGuard {
+     ticket: PeerRouteTicket,
++}
++
++/// A final control turn could not acquire or fence the exact original switch.
++/// These results never confer authority or create a replacement generation.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum PeerRouteGuardError {
++    MetadataBusy,
++    ForeignState,
++    Stale,
++    AlreadyPaused,
++    DeliveryBusy,
++}
++
++struct HeldRouteState<'a> {
++    identity: &'a Arc<Mutex<State>>,
++    state: std::sync::MutexGuard<'a, State>,
++    // Only a pause installed by THIS final turn may be undone by its Drop.
++    paused_here: Option<u64>,
++}
++
++/// Try-only complete switch guard set for one synchronous final control turn.
++///
++/// Include every switch that the turn will inspect, commit or retire before
++/// calling `try_quiesce`. The set borrows the caller's exact tickets, deduplicates
++/// shared switch allocations and never stages a generation. Do not await or
++/// invoke policy/adapter callbacks while holding this set. Ordinary ticket
++/// methods acquire the same mutex and must not be called beneath it.
++#[must_use]
++pub struct PeerRouteGuardSet<'a> {
++    states: Vec<HeldRouteState<'a>>,
++}
++
++impl<'a> PeerRouteGuardSet<'a> {
++    pub fn try_acquire(tickets: &'a [PeerRouteTicket]) -> Result<Self, PeerRouteGuardError> {
++        let mut original = tickets.iter().collect::<Vec<_>>();
++        original.sort_by_key(|ticket| Arc::as_ptr(&ticket.state) as usize);
++        original.dedup_by(|a, b| Arc::ptr_eq(&a.state, &b.state));
++        let mut states = Vec::with_capacity(original.len());
++        for ticket in original {
++            let state = match ticket.state.try_lock() {
++                Ok(state) => state,
++                Err(std::sync::TryLockError::WouldBlock) => {
++                    return Err(PeerRouteGuardError::MetadataBusy);
++                }
++                Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++            };
++            states.push(HeldRouteState {
++                identity: &ticket.state,
++                state,
++                paused_here: None,
++            });
++        }
++        Ok(Self { states })
++    }
++
++    fn get(&self, ticket: &PeerRouteTicket) -> Result<&State, PeerRouteGuardError> {
++        self.states.iter().find(|held| Arc::ptr_eq(held.identity, &ticket.state))
++            .map(|held| &*held.state).ok_or(PeerRouteGuardError::ForeignState)
++    }
++
++    fn get_mut(&mut self, ticket: &PeerRouteTicket) -> Result<&mut HeldRouteState<'a>, PeerRouteGuardError> {
++        self.states.iter_mut().find(|held| Arc::ptr_eq(held.identity, &ticket.state))
++            .ok_or(PeerRouteGuardError::ForeignState)
++    }
++
++    pub fn is_current(&self, ticket: &PeerRouteTicket) -> bool {
++        self.get(ticket).is_ok_and(|state| !state.retired && state.current == ticket.generation)
++    }
++
++    pub fn committed_at(&self, ticket: &PeerRouteTicket) -> Option<std::time::Instant> {
++        let state = self.get(ticket).ok()?;
++        (!state.retired && state.current == ticket.generation).then_some(state.committed_at)
++    }
++
++    /// Pause only idle, currently unpaused original generations. Validate the
++    /// WHOLE set before changing any admission bit, so a Busy later in the set
++    /// cannot stop an unrelated peer. Existing owned freezes are not passed to
++    /// this method and are never adopted or unpaused by this guard set.
++    pub fn try_quiesce(&mut self, tickets: &[PeerRouteTicket]) -> Result<(), PeerRouteGuardError> {
++        for ticket in tickets {
++            let state = self.get(ticket)?;
++            if state.retired || state.current != ticket.generation {
++                return Err(PeerRouteGuardError::Stale);
++            }
++            if state.paused {
++                return Err(PeerRouteGuardError::AlreadyPaused);
++            }
++            if state.deliveries != 0 {
++                return Err(PeerRouteGuardError::DeliveryBusy);
++            }
++        }
++        for ticket in tickets {
++            let held = self.get_mut(ticket)?;
++            if held.paused_here.is_none() {
++                held.state.paused = true;
++                held.paused_here = Some(ticket.generation);
++                held.state.changes.send_replace(held.state.current);
++            }
++        }
++        Ok(())
++    }
++
++    pub fn can_commit(&self, next: &PeerRouteTicket, expected: &PeerRouteTicket) -> bool {
++        Arc::ptr_eq(&next.state, &expected.state) && self.get(expected).is_ok_and(|state| {
++            !state.retired && state.deliveries == 0
++                && state.current == expected.generation && next.generation > state.current
++        })
++    }
++
++    /// Same generation transition as `commit_from`, using the already-held
++    /// original switch. All fallible final preflight belongs before this call.
++    pub fn commit_from(&mut self, next: &PeerRouteTicket, expected: &PeerRouteTicket) -> bool {
++        if !self.can_commit(next, expected) { return false; }
++        let held = self.get_mut(expected).expect("preflighted exact route state");
++        held.state.current = next.generation;
++        held.state.committed_at = std::time::Instant::now();
++        held.state.paused = false;
++        held.state.changes.send_replace(next.generation);
++        true
++    }
++
++    /// Same permanent retirement rule as the ordinary method; an old ticket
++    /// cannot retire its successor. No mutex is acquired after publication.
++    pub fn retire_if_current(&mut self, ticket: &PeerRouteTicket) -> bool {
++        let Ok(held) = self.get_mut(ticket) else { return false; };
++        if held.state.retired || held.state.current != ticket.generation { return false; }
++        held.state.retired = true;
++        held.state.idle.send_replace(held.state.deliveries);
++        held.state.changes.send_replace(held.state.current);
++        true
++    }
++}
++
++impl Drop for PeerRouteGuardSet<'_> {
++    fn drop(&mut self) {
++        for held in &mut self.states {
++            if held.paused_here.is_some_and(|generation| {
++                !held.state.retired && held.state.current == generation
++            }) {
++                held.state.paused = false;
++            }
++        }
++    }
+ }
+ 
+ impl Drop for PeerQuiescenceGuard {
+@@ -494,3 +637,100 @@
+         assert!(next.commit_from(&second));
+     }
+ }
++
++#[cfg(test)]
++mod final_guard_tests {
++    use super::*;
++
++    #[test]
++    fn final_guard_busy_releases_all_prior_metadata_guards() {
++        let a = PeerRouteTicket::initial();
++        let b = PeerRouteTicket::initial();
++        let mut tickets = vec![a, b];
++        tickets.sort_by_key(|ticket| Arc::as_ptr(&ticket.state) as usize);
++        let busy = tickets[1].state.lock().unwrap();
++        assert!(matches!(PeerRouteGuardSet::try_acquire(&tickets), Err(PeerRouteGuardError::MetadataBusy)));
++        // The first actual switch was acquired before the contended second one.
++        assert!(tickets[0].state.try_lock().is_ok());
++        let healthy_send = tickets[0].try_begin_delivery().unwrap();
++        drop(healthy_send);
++        drop(busy);
++        assert!(tickets[1].try_begin_delivery().is_some());
++    }
++
++    #[test]
++    fn final_guard_delivery_busy_never_partially_pauses_other_peers() {
++        let a = PeerRouteTicket::initial();
++        let b = PeerRouteTicket::initial();
++        let sending = b.try_begin_delivery().unwrap();
++        let tickets = vec![a.clone(), b.clone()];
++        let mut held = PeerRouteGuardSet::try_acquire(&tickets).unwrap();
++        assert_eq!(held.try_quiesce(&tickets), Err(PeerRouteGuardError::DeliveryBusy));
++        assert!(!held.get(&a).unwrap().paused);
++        assert!(!held.get(&b).unwrap().paused);
++        drop(held);
++        assert!(a.try_begin_delivery().is_some());
++        drop(sending);
++        let mut held = PeerRouteGuardSet::try_acquire(&tickets).unwrap();
++        held.try_quiesce(&tickets).unwrap();
++        assert!(held.get(&a).unwrap().paused && held.get(&b).unwrap().paused);
++        drop(held);
++        assert!(a.try_begin_delivery().is_some());
++        assert!(b.try_begin_delivery().is_some());
++    }
++
++    #[tokio::test]
++    async fn final_guard_preserves_an_existing_original_pause_on_refusal() {
++        let original = PeerRouteTicket::initial();
++        let freeze = original.quiesce().await.unwrap();
++        let tickets = vec![original.clone()];
++        let mut held = PeerRouteGuardSet::try_acquire(&tickets).unwrap();
++        assert_eq!(held.try_quiesce(&tickets), Err(PeerRouteGuardError::AlreadyPaused));
++        assert!(held.is_current(&original));
++        drop(held);
++        assert!(original.is_current());
++        assert!(!original.is_active());
++        assert!(original.try_begin_delivery().is_none());
++        drop(freeze);
++        assert!(original.try_begin_delivery().is_some());
++    }
++
++    #[test]
++    fn final_guard_deduplicates_switches_and_commits_only_the_original_successor() {
++        let original = PeerRouteTicket::initial();
++        let next = original.stage().unwrap();
++        let later = original.stage().unwrap();
++        let foreign = PeerRouteTicket::initial();
++        let tickets = vec![original.clone(), original.clone(), next.clone(), later.clone()];
++        let mut held = PeerRouteGuardSet::try_acquire(&tickets).unwrap();
++        assert_eq!(held.states.len(), 1);
++        held.try_quiesce(&[original.clone(), original.clone()]).unwrap();
++        assert!(!held.can_commit(&foreign, &original));
++        assert!(!held.can_commit(&original, &original));
++        assert!(!held.is_current(&foreign));
++        assert!(held.can_commit(&next, &original));
++        assert!(held.commit_from(&next, &original));
++        assert!(held.is_current(&next));
++        assert!(!held.retire_if_current(&original));
++        assert!(!held.commit_from(&later, &original));
++        assert!(!held.commit_from(&original, &next));
++        drop(held);
++        assert!(next.try_begin_delivery().is_some());
++        assert!(original.try_begin_delivery().is_none());
++    }
++
++    #[test]
++    fn final_guard_retirement_preserves_successor_and_stale_cleanup_rules() {
++        let original = PeerRouteTicket::initial();
++        let next = original.stage().unwrap();
++        let tickets = vec![original.clone(), next.clone()];
++        let mut held = PeerRouteGuardSet::try_acquire(&tickets).unwrap();
++        assert!(held.retire_if_current(&original));
++        assert!(!held.can_commit(&next, &original));
++        assert!(!held.retire_if_current(&original));
++        drop(held);
++        assert!(original.try_begin_delivery().is_none());
++        assert!(next.try_begin_delivery().is_none());
++        assert!(!next.commit_from(&original));
++    }
++}

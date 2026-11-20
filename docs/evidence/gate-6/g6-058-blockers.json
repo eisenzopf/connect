@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-20T02:58:34.371424+00:00",
-  "run_status": "G623 completed all seven focused tests on prepared source512: six passed and one failed; independent actual audit accepted complete failed custody. All three builds, the default four-library shipping check and both inventories passed. Three Core duplex controls, the Core three-lock diagnostic control, the original RTC no-answer/voicemail/silent-loss control (all three modes), and the original catalog control (both transports and its full counter/revision/current-policy/camera/screen cleanup tail) passed. The new Native catalog control failed in its first QUIC release variant with24 MembersBusy observations; the other three variants were unreached. G620 remains failed5/7, including its earlier catalog failure whose later counter/media assertions were unreached. G618 remains complete failed3,280/3,282; its two original failures now have scoped component passes, not matrix-leaf closure. G615 seven builds/eleven inventories (runtime0) and G617 shared379 retain their source509 scopes. Normal512 preparation passed with one upstream fixture change, old511 tree preserved and4,268 unchanged file mtimes restored; its four pure exception controls are Root-recorded passes with the audit evidence limit retained. The tested working source is ca7d2bb9,6,493files on baseacb. Source analysis found real Members-to-controller metadata waits: public readers need not hold inflight. Epoch scene-tick and Batch audio nonblocking proposals are source-reviewed but not registered, built or runtime-verified; Primary pending-video/Data retention work remains under revision to preserve valid fresh recipients and reliable FIFO. No production causal repair pass is claimed. Mobile216 readback is verified with419 unrelated paragraphs preserved. Next: finish and review the complete wait/retention batch, register/prepare it normally and run its actual causal controls before committing and repeating the complete current-source regression and OriginalV8 on one seal. Current shared379, strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain separate pending scopes. Matrix stays v218:1/32 cells and399/432 checks; historical verdicts, stable IDs, owners and failure maps remain unchanged. Not ready for32; G6-054 stays parked and execution remains local Mac/native ARM.",
+  "run_status": "G644 passed eight exact guard foundation unit tests on prepared source522: five Core-traits route-ticket guards and three Core DTMF binding-index guards. Both original builds and current artifact profiles passed; the two inventories contain 71 Core-traits and 964 Core tests. Every selected test passed exactly once with zero failures or ignored tests. Root and all thirteen original children closed naturally and source, prepared dependencies and binaries remained unchanged. These are eight primitive control passes only; active Core audience, managed Orchestrator and Store/SIP/Service caller integration remains unsealed and unverified. The Root Native/RTC physical-resource snapshot implementation is also unsealed, with tests being added. The source520 ten controls were not rerun, and the whole 71-test Core-traits suite was not executed by this lane. The next full affected cohort must append all 71 current Core-traits tests to the retained scopes and derive its total from actual inventories. Current shared379, complete regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain pending on the eventual committed seal. Historical failed runs and scoped passes retain their original source identities and verdicts. Matrix remains v218: 1/32 cells and 399/432 checks; not ready for32, with no new qualification or matrix credit. G6-054 remains parked.",
   "blockers": [
     {
       "id": "B01",
@@ -20366,7 +20366,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-20T05:10:12.989293+00:00",
+  "updated_at": "2026-11-20T05:48:32.724165+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20410,9 +20410,9 @@
     "ready_for_32": false
   },
   "current_preparation_checkpoint": {
-    "status": "G626 completed all seventeen focused tests on prepared source515: sixteen passed and one failed; independent actual audit accepted complete failed custody. All three builds, the default four-library shipping check and both inventories passed. All ten new Core scene/audio/pending controls passed, as did the retained duplex and catalog Core controls, the original RTC control in all three modes, and the original catalog control on both transports through its full strict tail. The new Native catalog control still failed in its first QUIC release variant: twenty-four MembersBusy rows, direct SourceStateBusy, no release signal, no dropped observations, and unchanged recorded attempt/operation/revision counters. The other three variants were unreached. This remains an open control-path contention frontier; no final catalog repair or historical matrix cause is claimed. Normal515 preparation passed with six existing upstream files changed, no added upstream files, the complete old512 tree preserved and4,263 equal file mtimes restored. Tested source e8dd199b has6,497 files on baseacb; Root and all23 original children closed naturally, with source and current binaries unchanged. Three remaining source-only follow-ups are explicit: Batch queued-Data/common final PortState acquisition with three controls is independently source-reviewed; Epoch encoder payload-cache/consumer-slot release with two controls is independently source-reviewed; Primary control critical-section repair is approved for authoring and awaits final source review. None is in the G626-tested source or runtime-verified. G618 remains failed3,280/3,282, G620 failed5/7 and G623 failed6/7. G615 seven builds/eleven inventories with runtime0 and G617 shared379 retain their older source509 scopes. Mobile217 verified the earlier live-run update with419 unrelated paragraphs preserved; publishing this final checkpoint remains Root work. Next: finish and review the complete follow-up batch, prepare normally, run its actual controls, then commit and repeat current shared379, the complete regression and OriginalV8 on one seal. Strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain separate pending scopes. Matrix remains v218:1/32 cells and399/432 checks; all stable IDs, owners, failure maps and historical verdicts stay unchanged. Not ready for32; G6-054 stays parked and execution stays local Mac/native ARM.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g626-source515-focused-frontiers.json",
-    "sha256": "e93f62f731e933759425313b762a91c0ddc8e83e4f64981784496bbb38bdcb74"
+    "status": "G644 passed eight exact guard foundation unit tests on prepared source522: five Core-traits route-ticket guards and three Core DTMF binding-index guards. Both original builds and current artifact profiles passed; the two inventories contain 71 Core-traits and 964 Core tests. Every selected test passed exactly once with zero failures or ignored tests. Root and all thirteen original children closed naturally and source, prepared dependencies and binaries remained unchanged. These are eight primitive control passes only; active Core audience, managed Orchestrator and Store/SIP/Service caller integration remains unsealed and unverified. The Root Native/RTC physical-resource snapshot implementation is also unsealed, with tests being added. The source520 ten controls were not rerun, and the whole 71-test Core-traits suite was not executed by this lane. The next full affected cohort must append all 71 current Core-traits tests to the retained scopes and derive its total from actual inventories. Current shared379, complete regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain pending on the eventual committed seal. Historical failed runs and scoped passes retain their original source identities and verdicts. Matrix remains v218: 1/32 cells and 399/432 checks; not ready for32, with no new qualification or matrix credit. G6-054 remains parked.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g644-source522-eight-guard-components.json",
+    "sha256": "29d2db96b4bd909f20b55ea02d62eac03bb00fcdfed5eb6c5b89aa181c0e97c8"
   },
   "v219_g550_current_failure_frontiers": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
@@ -20763,6 +20763,22 @@
       "Store_Service": "source-authoring-unsealed-unverified",
       "full_control_boundary_complete": false
     },
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "v219_g644_source522_guard_components": {
+    "status": "actual-eight-primitive-guard-controls-PASS-active-integration-pending",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g644-source522-eight-guard-components.json",
+    "sha256": "29d2db96b4bd909f20b55ea02d62eac03bb00fcdfed5eb6c5b89aa181c0e97c8",
+    "actual": {
+      "completed": 8,
+      "passed": 8,
+      "failed": 0
+    },
+    "generation": 522,
+    "primitive_helpers_applied": true,
+    "active_caller_integration_verified": false,
+    "next_full_whole_Core_traits_required": 71,
     "qualification": false,
     "matrix_credit": false
   }

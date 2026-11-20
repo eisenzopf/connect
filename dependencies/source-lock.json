@@ -2786,6 +2786,16 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-control-foundation-explicit-child-module-path.patch",
       "sha256": "47ebe82b22208822a5de132680a107598fb4e62e52cfe18cdd652e8ba0333cde"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-final-route-ticket-try-guard-foundation.patch",
+      "sha256": "18a8b87ba96604c4bc78e5eddc5287ae9a1e3d4c78f6ed5a71173e7ceba36c35"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-managed-dtmf-binding-index-nonwaiting-batch.patch",
+      "sha256": "e80ccf72a0cb5956b8ce1fa6c41017f5e6db21a99d6651362e6ac7aba96b5910"
     }
   ]
 }

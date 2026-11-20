@@ -1,0 +1,114 @@
+{
+  "format": "connect/g6-058-source522-eight-guard-component-progress/1",
+  "checkpoint": 142,
+  "recorded_at": "2026-11-20T05:48:32.724165+00:00",
+  "summary": "G644 passed eight exact guard foundation unit tests on prepared source522: five Core-traits route-ticket guards and three Core DTMF binding-index guards. Both original builds and current artifact profiles passed; the two inventories contain 71 Core-traits and 964 Core tests. Every selected test passed exactly once with zero failures or ignored tests. Root and all thirteen original children closed naturally and source, prepared dependencies and binaries remained unchanged. These are eight primitive control passes only; active Core audience, managed Orchestrator and Store/SIP/Service caller integration remains unsealed and unverified. The Root Native/RTC physical-resource snapshot implementation is also unsealed, with tests being added. The source520 ten controls were not rerun, and the whole 71-test Core-traits suite was not executed by this lane. The next full affected cohort must append all 71 current Core-traits tests to the retained scopes and derive its total from actual inventories. Current shared379, complete regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain pending on the eventual committed seal. Historical failed runs and scoped passes retain their original source identities and verdicts. Matrix remains v218: 1/32 cells and 399/432 checks; not ready for32, with no new qualification or matrix credit. G6-054 remains parked.",
+  "source": {
+    "generation": 522,
+    "base_revision": "d44d91f6dfe3d728519803121b312a169ad18d79",
+    "files": 6509,
+    "workspace_sha256": "36a10f7a863df88d003cba6d1cb1cdacb934920337e1583b59dd563474390bc3",
+    "seal_sha256": "df41618bf418259844778e48266d49b81b54212a6f79e6cdaae3e4e3cc562d2f",
+    "prepared": {
+      "rvoip": "7bdce5c01264820911a551ea423e956076bd7126e1b71c7f1549c43967181a92",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    }
+  },
+  "actual": {
+    "builds_passed": 2,
+    "inventories": {
+      "rvoip-core": 964,
+      "rvoip-core-traits": 71
+    },
+    "tests_passed": 8,
+    "tests_failed": 0,
+    "test_selectors": [
+      "peer_switch::final_guard_tests::final_guard_busy_releases_all_prior_metadata_guards",
+      "peer_switch::final_guard_tests::final_guard_delivery_busy_never_partially_pauses_other_peers",
+      "peer_switch::final_guard_tests::final_guard_preserves_an_existing_original_pause_on_refusal",
+      "peer_switch::final_guard_tests::final_guard_deduplicates_switches_and_commits_only_the_original_successor",
+      "peer_switch::final_guard_tests::final_guard_retirement_preserves_successor_and_stale_cleanup_rules",
+      "orchestrator::dtmf_routing::received::managed_binding_commit_tests::managed_binding_commit_deduplicates_actual_same_cross_shards_and_same_key",
+      "orchestrator::dtmf_routing::received::managed_binding_commit_tests::managed_binding_commit_real_epoch_and_shard_exclusion_refuse_before_any_effect",
+      "orchestrator::dtmf_routing::received::managed_binding_commit_tests::managed_binding_commit_abandoned_before_effect_and_wrong_original_leave_index_and_epoch_current"
+    ],
+    "original_children_natural_unforced_joined": 13,
+    "root_natural_unforced_joined": true,
+    "current_source_and_binaries_unchanged": true
+  },
+  "helpers": {
+    "final_route_tickets": {
+      "applied": true,
+      "primitive_tests_passed": 5,
+      "active_callsite_integration_verified": false
+    },
+    "DTMF_binding_index": {
+      "applied": true,
+      "primitive_tests_passed": 3,
+      "active_callsite_integration_verified": false
+    }
+  },
+  "remaining_integration": {
+    "Core_audience": "source-authoring-unsealed-unverified",
+    "managed_Orchestrator": "source-authoring-unsealed-unverified",
+    "Store_Service_SIP": "source-authoring-unsealed-unverified",
+    "Native_RTC_resource_witness": "Root-source-authoring-unsealed-tests-being-added"
+  },
+  "next_full_scope": {
+    "preserve_all_retained_scopes": true,
+    "append_whole_current_Core_traits_inventory": 71,
+    "derive_total_from_actual_inventories": true,
+    "predicted_or_actual_full_pass_count": null
+  },
+  "not_executed_by_this_lane": [
+    "source520 ten-control rerun",
+    "whole Core964 or Core-traits71 runtime",
+    "active caller/control-boundary integration",
+    "default shipping",
+    "Native/SDK/Python/full regression",
+    "shared379",
+    "OriginalV8",
+    "Firefox NORMAL3",
+    "original900",
+    "ARM11",
+    "normal releases",
+    "matrix"
+  ],
+  "proofs": {
+    "actual_result": {
+      "path": ".local/gate-6/g644-source522-ticket-index-eight-units-root/result.json",
+      "sha256": "8eafff69c8429735814706e534a162ec7e28ce8ede4e2dec60e5c23db03e8877"
+    },
+    "original_join": {
+      "path": ".local/gate-6/g644-source522-ticket-index-eight-units-root/root-original-join.json",
+      "sha256": "26dd6a1057d8d8d617500e21c78a2c9961e304cc5f0d534f80714f94b6e717d3"
+    },
+    "actual_audit": {
+      "path": ".local/gate-6/g644-actual-eight-guard-units-independent-batch-audit/receipt.json",
+      "sha256": "d0fd3371177fbb68e1a757d68580d3607d1ba6282139da1908dec89e1f964627"
+    },
+    "source522": {
+      "path": ".local/gate-6/g643-normal522-preparation-root/working-source522.json",
+      "sha256": "df41618bf418259844778e48266d49b81b54212a6f79e6cdaae3e4e3cc562d2f"
+    },
+    "normal522_receipt": {
+      "path": ".local/gate-6/g643-normal522-preparation-root/normal522-runtime/receipt.json",
+      "sha256": "14b658cab623f95958146d07905f5a2949d9bde4d2ffbff376d762aa36bb6f59"
+    },
+    "normal522_verification": {
+      "path": ".local/gate-6/g643-normal522-preparation-root/actual-root-verification.json",
+      "sha256": "520611e361e2d45b428a28aa2dde5570eb9ffc62b3e19a58d5afccbe04e731fe"
+    }
+  },
+  "qualification": false,
+  "matrix_credit": false,
+  "SourceReady32": false,
+  "matrix_baseline": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432
+  },
+  "publication": false
+}

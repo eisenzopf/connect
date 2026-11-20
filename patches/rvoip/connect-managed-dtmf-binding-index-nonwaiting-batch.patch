@@ -1,0 +1,162 @@
+--- a/crates/foundation/rvoip-core/Cargo.toml
++++ b/crates/foundation/rvoip-core/Cargo.toml
+@@ -18,7 +18,7 @@
+ base64.workspace = true
+ bytes.workspace = true
+ chrono.workspace = true
+-dashmap.workspace = true
++dashmap = { workspace = true, features = ["raw-api"] }
+ rvoip-infra-common.workspace = true
+ # Codec backends are forwarded by this crate's matching public features. This
+ # keeps a dependency's advertised feature profile exact instead of allowing an
+--- a/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing/received.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/dtmf_routing/received.rs
+@@ -84,6 +84,97 @@
+         });
+     }
+ }
++/// One exact logical index transition. Repeated keys describe a sequential
++/// transition (including remove+insert of the SAME key), not a second guard.
++#[derive(Clone)]
++pub(in crate::orchestrator) struct BindingChange {
++    pub(in crate::orchestrator) connection: ConnectionId,
++    pub(in crate::orchestrator) before: Option<SessionId>,
++    pub(in crate::orchestrator) after: Option<SessionId>,
++}
++/// Owns the exact epoch and unique shard guards acquired before publication.
++/// The erased closure keeps their concrete hashbrown types private without
++/// introducing a dependency version or changing any ordinary index lookup.
++pub(in crate::orchestrator) struct BindingCommit<'a> {
++    apply: Option<Box<dyn FnOnce() + 'a>>,
++}
++impl BindingCommit<'_> {
++    pub(in crate::orchestrator) fn commit(mut self) {
++        if let Some(apply)=self.apply.take() {apply();}
++    }
++}
++impl DtmfBindingIndex {
++    pub(in crate::orchestrator) fn try_compound_change<'a>(
++        &'a self,
++        changes: &[BindingChange],
++    ) -> std::result::Result<BindingCommit<'a>, crate::staged_streams::StreamControlError> {
++        use crate::staged_streams::StreamControlError;
++        use std::collections::{BTreeMap, BTreeSet};
++        use std::hash::BuildHasher;
++        if changes.is_empty() { return Ok(BindingCommit { apply: None }); }
++        let mut combined = BTreeMap::<ConnectionId, (Option<SessionId>, Option<SessionId>, usize)>::new();
++        for change in changes {
++            if let Some((_, last, invalidations)) = combined.get_mut(&change.connection) {
++                if *last != change.before { return Err(StreamControlError::Authority); }
++                *last = change.after.clone();
++                *invalidations += 1;
++            } else {
++                combined.insert(change.connection.clone(), (change.before.clone(), change.after.clone(), 1));
++            }
++        }
++        let mut epochs = match self.epochs.try_lock() {
++            Ok(value) => value,
++            Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
++            Err(std::sync::TryLockError::WouldBlock) => return Err(StreamControlError::MetadataBusy),
++        };
++        // Deduplicate BEFORE acquisition: two keys can share a shard, and one
++        // replacement can be represented by two operations on the same key.
++        let indices = combined.keys().map(|id| self.map.determine_map(id)).collect::<BTreeSet<_>>();
++        let mut guards = Vec::with_capacity(indices.len());
++        for index in indices {
++            let guard = self.map.shards()[index].try_write().ok_or(StreamControlError::MetadataBusy)?;
++            guards.push((index, guard));
++        }
++        let hasher = self.map.hasher().clone();
++        let mut prepared = Vec::with_capacity(combined.len());
++        let mut reserve = vec![0usize; guards.len()];
++        for (id, (before, after, invalidations)) in combined {
++            let hash = hasher.hash_one(&id);
++            let shard = self.map.determine_map(&id);
++            let position = guards.binary_search_by_key(&shard, |(index, _)| *index).expect("exact deduplicated shard");
++            let actual = guards[position].1.get(hash, |(key, _)| key == &id).map(|(_, value)| value.get().clone());
++            if actual != before { return Err(StreamControlError::Authority); }
++            if after.is_some() && actual.is_none() { reserve[position] += 1; }
++            prepared.push((id, after, invalidations, hash, position));
++        }
++        // Any allocation is before the first model/index/route publication.
++        // The already-held mutation closure below performs no lock acquisition.
++        for ((_, shard), additional) in guards.iter_mut().zip(reserve) {
++            shard.try_reserve(additional, |(key, _)| hasher.hash_one(key))
++                .map_err(|_| StreamControlError::Model(crate::stream_lifecycle::MediaTransitionError::Capacity))?;
++        }
++        Ok(BindingCommit { apply: Some(Box::new(move || {
++            for (id, after, invalidations, hash, position) in prepared {
++                if let Some(token) = epochs.get(&id).and_then(Weak::upgrade) {
++                    // Preserve the number of original per-operation epoch
++                    // invalidations even when one physical shard/key is held.
++                    for _ in 0..invalidations {
++                        let _ = token.fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| value.checked_add(1));
++                    }
++                } else { epochs.remove(&id); }
++                let shard = &mut guards[position].1;
++                match after {
++                    Some(value) => match shard.get_mut(hash, |(key, _)| key == &id) {
++                        Some((_, original)) => *original = dashmap::SharedValue::new(value),
++                        None => { shard.insert(hash, (id, dashmap::SharedValue::new(value)), |(key, _)| hasher.hash_one(key)); }
++                    },
++                    None => { shard.remove_entry(hash, |(key, _)| key == &id); }
++                }
++            }
++        })) })
++    }
++}
++
+ struct Stamp {
+     core: Weak<Orchestrator>,
+     adapter: Weak<dyn ConnectionAdapter>,
+@@ -587,3 +678,50 @@
+         assert!(index.epochs.lock().unwrap().len() <= 1);
+     }
+ }
++
++
++#[cfg(test)]
++mod managed_binding_commit_tests {
++    use super::*;
++    use crate::staged_streams::StreamControlError;
++    fn id(value:usize)->ConnectionId {ConnectionId::from_string(format!("compound-index-{value}"))}
++    fn pair(index:&DtmfBindingIndex,same:bool)->(ConnectionId,ConnectionId) {
++        let first=id(0);let shard=index.map.determine_map(&first);
++        let second=(1..4096).map(id).find(|candidate|(index.map.determine_map(candidate)==shard)==same).expect("bounded actual same/cross-shard keys");
++        (first,second)
++    }
++    fn changes(old:&ConnectionId,new:&ConnectionId,sid:&SessionId)->Vec<BindingChange> {
++        vec![BindingChange {connection:old.clone(),before:Some(sid.clone()),after:None},BindingChange {connection:new.clone(),before:None,after:Some(sid.clone())}]
++    }
++    #[test]
++    fn managed_binding_commit_deduplicates_actual_same_cross_shards_and_same_key() {
++        for case in ["same-shard","cross-shard","same-key"] {
++            let index=DtmfBindingIndex::default();let(old,mut new)=pair(&index,case!="cross-shard");if case=="same-key" {new=old.clone();}
++            let sid=SessionId::from_string("compound-session");index.insert(old.clone(),sid.clone());
++            let old_epoch=index.token(&old).unwrap();let new_epoch=index.token(&new).unwrap();let before=old_epoch.load(Ordering::Acquire);
++            assert_eq!(index.get(&old).map(|value|value.clone()),Some(sid.clone()));
++            let prepared=index.try_compound_change(&changes(&old,&new,&sid)).expect("deduplicated guard set must not self-Busy");
++            assert!(matches!(index.map.try_get(&old),dashmap::try_result::TryResult::Locked));
++            prepared.commit();
++            assert_eq!(index.get(&new).map(|value|value.clone()),Some(sid));
++            if old!=new {assert!(!index.contains_key(&old));assert_eq!(old_epoch.load(Ordering::Acquire),before+1);assert_eq!(new_epoch.load(Ordering::Acquire),2);}
++            else {assert_eq!(old_epoch.load(Ordering::Acquire),before+2);}
++        }
++    }
++    #[test]
++    fn managed_binding_commit_real_epoch_and_shard_exclusion_refuse_before_any_effect() {
++        let index=DtmfBindingIndex::default();let(old,new)=pair(&index,true);let sid=SessionId::from_string("busy-session");index.insert(old.clone(),sid.clone());let epoch=index.token(&old).unwrap();let before=epoch.load(Ordering::Acquire);let change=changes(&old,&new,&sid);
++        let held=index.epochs.lock().unwrap();index.try_compound_change(&[]).expect("no index effect must not acquire epochs").commit();assert!(matches!(index.try_compound_change(&change),Err(StreamControlError::MetadataBusy)));drop(held);
++        let held=index.map.shards()[index.map.determine_map(&old)].write();assert!(matches!(index.try_compound_change(&change),Err(StreamControlError::MetadataBusy)));drop(held);
++        assert_eq!(index.get(&old).map(|value|value.clone()),Some(sid));assert!(!index.contains_key(&new));assert_eq!(epoch.load(Ordering::Acquire),before);
++        index.try_compound_change(&change).unwrap().commit();assert!(!index.contains_key(&old));assert!(index.contains_key(&new));assert_eq!(epoch.load(Ordering::Acquire),before+1);
++    }
++    #[test]
++    fn managed_binding_commit_abandoned_before_effect_and_wrong_original_leave_index_and_epoch_current() {
++        let index=DtmfBindingIndex::default();let(old,new)=pair(&index,false);let sid=SessionId::from_string("cancel-session");index.insert(old.clone(),sid.clone());let epoch=index.token(&old).unwrap();let before=epoch.load(Ordering::Acquire);let change=changes(&old,&new,&sid);
++        let prepared=index.try_compound_change(&change).unwrap();drop(prepared);
++        assert_eq!(index.get(&old).map(|value|value.clone()),Some(sid.clone()));assert!(!index.contains_key(&new));assert_eq!(epoch.load(Ordering::Acquire),before);
++        let wrong=vec![BindingChange {connection:old.clone(),before:Some(SessionId::from_string("foreign-session")),after:None}];assert!(matches!(index.try_compound_change(&wrong),Err(StreamControlError::Authority)));
++        assert_eq!(index.get(&old).map(|value|value.clone()),Some(sid));assert!(!index.contains_key(&new));assert_eq!(epoch.load(Ordering::Acquire),before);
++    }
++}

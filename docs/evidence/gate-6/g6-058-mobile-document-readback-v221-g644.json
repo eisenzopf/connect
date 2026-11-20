@@ -1,0 +1,18 @@
+{
+  "format": "connect/mobile-progress-scoped-readback/1",
+  "recorded_at": "2026-11-20T05:53:59.951054+00:00",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "content_revision": 221,
+  "repository_checkpoint": 142,
+  "replaced_root_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "paragraph_count": 422,
+  "unrelated_owner_paragraphs_preserved": 419,
+  "verified": true,
+  "raw_readback_private": ".local/gate-6/mobile221-g644-eight-guard-pass-root/readback.json",
+  "raw_readback_sha256": "5fd339ba43bd3d14569389a8920644d738d940ed9334ad3b605c242ca8221e56",
+  "scope": "Actual G644 five ticket and three DTMF-index guard units on source522 only. All active caller/RTC integration, full/media/matrix remain pending. Matrix1/32 unchanged."
+}

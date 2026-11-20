@@ -1,19 +1,19 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-20T05:10:12.989293+00:00",
-  "revision": 141,
+  "updated_at": "2026-11-20T05:48:32.724165+00:00",
+  "revision": 142,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint141-mobile220-scoped-readback",
-    "content_revision": 220,
-    "readback_evidence": ".local/gate-6/mobile220-g640-core-ten-pass-root/readback.json",
-    "readback_evidence_sha256": "421104c43942a81de6172af8f5ba82177033cff2d8a94b48c7600eb663a02712",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v220-g640.json",
-    "postrun_readback_sha256": "7c9c14d4b44d2ceddf268c0e016f944b9e5a1c60df57e1f824cdf7bd6483180f"
+    "sync_status": "verified-checkpoint142-mobile221-scoped-readback",
+    "content_revision": 221,
+    "readback_evidence": ".local/gate-6/mobile221-g644-eight-guard-pass-root/readback.json",
+    "readback_evidence_sha256": "5fd339ba43bd3d14569389a8920644d738d940ed9334ad3b605c242ca8221e56",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v221-g644.json",
+    "postrun_readback_sha256": "cd1a4a977612694b6ecd6e24efb4bb6a7451c8ea20ff4e9d4ef37889dd79af1e"
   },
   "baseline": {
     "run": "v215",
@@ -1384,7 +1384,7 @@
         "V219-WSS-INGRESS"
       ],
       "status": "in-progress",
-      "implementation_state": "G640 source520 actualCore10/10 component PASS only. G638compile101/runtime0 preserved after explicitmodulepathfix. G633Native2/2 stays separate516diagnostic; oldG62616/17/fullG618failures immutable. Two new index/ticket guard foundations source-reviewed/unapplied/unrun; broader Core/audience/managed/StoreService integration still authoring. No full/defaultshipping/media/matrix qualification.",
+      "implementation_state": "G644 passed eight exact guard foundation unit tests on prepared source522: five Core-traits route-ticket guards and three Core DTMF binding-index guards. Both original builds and current artifact profiles passed; the two inventories contain 71 Core-traits and 964 Core tests. Every selected test passed exactly once with zero failures or ignored tests. Root and all thirteen original children closed naturally and source, prepared dependencies and binaries remained unchanged. These are eight primitive control passes only; active Core audience, managed Orchestrator and Store/SIP/Service caller integration remains unsealed and unverified. The Root Native/RTC physical-resource snapshot implementation is also unsealed, with tests being added. The source520 ten controls were not rerun, and the whole 71-test Core-traits suite was not executed by this lane. The next full affected cohort must append all 71 current Core-traits tests to the retained scopes and derive its total from actual inventories. Current shared379, complete regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain pending on the eventual committed seal. Historical failed runs and scoped passes retain their original source identities and verdicts. Matrix remains v218: 1/32 cells and 399/432 checks; not ready for32, with no new qualification or matrix credit. G6-054 remains parked.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1502,6 +1502,11 @@
         {
           "evidence": "docs/evidence/gate-6/g6-058-v219-g484-component-progress.json",
           "result": "focused-exact-three-store-regressions-pass",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g644-source522-eight-guard-components.json",
+          "result": "G644 8/8 primitive guard units PASS only on source522; 2 builds and inventories964/71 verified. Active caller integration, whole traits71 and full qualification pending.",
           "matrix_result": false
         }
       ],
@@ -6002,6 +6007,13 @@
       "event": "G640 ten exact Core controlsPASS onprepared520, currentCargoJSON/inventory961 and alloriginalowners audited. G638compile101/runtime0 preserved. Two unintegrated guard helpers source-only; fullcontrolboundary and retained/full/media/qualifications pending, no matrixpromotion.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g640-source520-Core-ten-components.json",
       "by": "/root"
+    },
+    {
+      "at": "2026-11-20T05:48:32.724165+00:00",
+      "revision": 142,
+      "event": "G644 eight primitive guard controls PASS on source522; two current artifacts and 964/71 inventories audited. Whole traits71 joins next full cohort. Active callers/resource witnesses remain unsealed; no source520 rerun/full/media/matrix qualification.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g644-source522-eight-guard-components.json",
+      "by": "/root"
     }
   ],
   "tracking_review": {
@@ -7631,11 +7643,11 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "G626 completed all seventeen focused tests on prepared source515: sixteen passed and one failed; independent actual audit accepted complete failed custody. All three builds, the default four-library shipping check and both inventories passed. All ten new Core scene/audio/pending controls passed, as did the retained duplex and catalog Core controls, the original RTC control in all three modes, and the original catalog control on both transports through its full strict tail. The new Native catalog control still failed in its first QUIC release variant: twenty-four MembersBusy rows, direct SourceStateBusy, no release signal, no dropped observations, and unchanged recorded attempt/operation/revision counters. The other three variants were unreached. This remains an open control-path contention frontier; no final catalog repair or historical matrix cause is claimed. Normal515 preparation passed with six existing upstream files changed, no added upstream files, the complete old512 tree preserved and4,263 equal file mtimes restored. Tested source e8dd199b has6,497 files on baseacb; Root and all23 original children closed naturally, with source and current binaries unchanged. Three remaining source-only follow-ups are explicit: Batch queued-Data/common final PortState acquisition with three controls is independently source-reviewed; Epoch encoder payload-cache/consumer-slot release with two controls is independently source-reviewed; Primary control critical-section repair is approved for authoring and awaits final source review. None is in the G626-tested source or runtime-verified. G618 remains failed3,280/3,282, G620 failed5/7 and G623 failed6/7. G615 seven builds/eleven inventories with runtime0 and G617 shared379 retain their older source509 scopes. Mobile217 verified the earlier live-run update with419 unrelated paragraphs preserved; publishing this final checkpoint remains Root work. Next: finish and review the complete follow-up batch, prepare normally, run its actual controls, then commit and repeat current shared379, the complete regression and OriginalV8 on one seal. Strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain separate pending scopes. Matrix remains v218:1/32 cells and399/432 checks; all stable IDs, owners, failure maps and historical verdicts stay unchanged. Not ready for32; G6-054 stays parked and execution stays local Mac/native ARM.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g626-source515-focused-frontiers.json",
-    "sha256": "e93f62f731e933759425313b762a91c0ddc8e83e4f64981784496bbb38bdcb74"
+    "status": "G644 passed eight exact guard foundation unit tests on prepared source522: five Core-traits route-ticket guards and three Core DTMF binding-index guards. Both original builds and current artifact profiles passed; the two inventories contain 71 Core-traits and 964 Core tests. Every selected test passed exactly once with zero failures or ignored tests. Root and all thirteen original children closed naturally and source, prepared dependencies and binaries remained unchanged. These are eight primitive control passes only; active Core audience, managed Orchestrator and Store/SIP/Service caller integration remains unsealed and unverified. The Root Native/RTC physical-resource snapshot implementation is also unsealed, with tests being added. The source520 ten controls were not rerun, and the whole 71-test Core-traits suite was not executed by this lane. The next full affected cohort must append all 71 current Core-traits tests to the retained scopes and derive its total from actual inventories. Current shared379, complete regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal releases and preflight remain pending on the eventual committed seal. Historical failed runs and scoped passes retain their original source identities and verdicts. Matrix remains v218: 1/32 cells and 399/432 checks; not ready for32, with no new qualification or matrix credit. G6-054 remains parked.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g644-source522-eight-guard-components.json",
+    "sha256": "29d2db96b4bd909f20b55ea02d62eac03bb00fcdfed5eb6c5b89aa181c0e97c8"
   },
-  "updated": "2026-11-20T02:58:34.371424+00:00",
+  "updated": "2026-11-20T05:48:32.724165+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -7971,6 +7983,22 @@
       "Store_Service": "source-authoring-unsealed-unverified",
       "full_control_boundary_complete": false
     },
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "v219_g644_source522_guard_components": {
+    "status": "actual-eight-primitive-guard-controls-PASS-active-integration-pending",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g644-source522-eight-guard-components.json",
+    "sha256": "29d2db96b4bd909f20b55ea02d62eac03bb00fcdfed5eb6c5b89aa181c0e97c8",
+    "actual": {
+      "completed": 8,
+      "passed": 8,
+      "failed": 0
+    },
+    "generation": 522,
+    "primitive_helpers_applied": true,
+    "active_caller_integration_verified": false,
+    "next_full_whole_Core_traits_required": 71,
     "qualification": false,
     "matrix_credit": false
   }
