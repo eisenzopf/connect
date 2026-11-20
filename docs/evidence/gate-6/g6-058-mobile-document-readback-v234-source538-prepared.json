@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 155,
+  "mobile_content_revision": 234,
+  "recorded_at": "2026-11-20T16:30:26.487278+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "Source538 reviewed observer mapping and actual-published fixture projection applied/prepared/audited only; corrected45compile/runtimeUNRUN; G71439/45 and G7210/1 remainFAILED",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile234-source538-prepared-root/before-write.json",
+  "private_before_sha256": "6e13e00cce7f2d6975cffc43a39f78be04f17d0646fb78ad4205d63dbfeadf8c",
+  "private_write": ".local/gate-6/mobile234-source538-prepared-root/write.json",
+  "private_write_sha256": "6055cdc5aedc3741f42f66513bf03b058dd946e71d9879454c83110310e890a5",
+  "private_readback": ".local/gate-6/mobile234-source538-prepared-root/readback.json",
+  "private_readback_sha256": "ac9a1792a73ccea70b11ba7913ff9fc2d8cd901d94c9bb129e3717cefd2bec98"
+}

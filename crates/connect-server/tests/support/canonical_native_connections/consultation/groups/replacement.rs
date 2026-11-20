@@ -1106,9 +1106,11 @@ async fn exercise_replacement_with_av_transfer(
                 .await
             };
             #[cfg(feature = "test-support")]
+            let mut final_control_observation = None;
+            #[cfg(feature = "test-support")]
             if let ActivationAudit::FinalControl(case) = activation_audit {
                 let probe = final_control_probe.as_ref().unwrap();
-                let negative = final_control::verify(
+                let observed = final_control::verify(
                     &f,
                     &key.id,
                     &command,
@@ -1118,7 +1120,7 @@ async fn exercise_replacement_with_av_transfer(
                     case,
                 )
                 .await;
-                if negative {
+                if observed.negative {
                     for peer in peers {
                         let _ = peer.client.shutdown().await;
                     }
@@ -1136,6 +1138,7 @@ async fn exercise_replacement_with_av_transfer(
                     super::sdk_movements::shutdown_joined(movement_controller);
                     continue;
                 }
+                final_control_observation = Some(observed);
             }
             #[cfg(feature = "test-support")]
             if let Some((armed, original_bindings)) = fault_audit {
@@ -1396,6 +1399,10 @@ async fn exercise_replacement_with_av_transfer(
                 );
                 tokio::time::sleep(Duration::from_millis(20)).await;
             };
+            #[cfg(feature = "test-support")]
+            if let Some(observed) = &final_control_observation {
+                observed.validate_completed(&done);
+            }
             if let Some(probe) = sdk_probe {
                 super::sdk_movements::replacement_completed(
                     &f,
@@ -1436,6 +1443,27 @@ async fn exercise_replacement_with_av_transfer(
             assert_eq!(done.result.as_ref().unwrap()["generation"], 2);
             peers[1].live = false;
             wait_slots(&f, 2).await;
+            #[cfg(feature = "test-support")]
+            if let Some(observed) = &final_control_observation {
+                let packets = probe_sequences(
+                    &mut peers,
+                    0,
+                    &[2],
+                    "replace-moved-remote-reaches-only-target",
+                    true,
+                )
+                .await;
+                observed.validate_public(&done, &packets);
+            } else {
+                probe(
+                    &mut peers,
+                    0,
+                    &[2],
+                    "replace-moved-remote-reaches-only-target",
+                )
+                .await;
+            }
+            #[cfg(not(feature = "test-support"))]
             probe(
                 &mut peers,
                 0,

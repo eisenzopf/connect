@@ -1,0 +1,122 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 153,
+  "recorded_at": "2026-11-20T14:54:14.006243+00:00",
+  "status": "SOURCE_BATCH_APPLIED_PREPARED536_NEXT45_COMPILE_RUNTIME_UNRUN",
+  "latest_actual_component_run": {
+    "id": "G704",
+    "generation": 534,
+    "builds_passed": 9,
+    "inventories_passed": 9,
+    "completed": 45,
+    "passed": 39,
+    "failed": 6,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "verdict": "FAILED_UNCHANGED",
+    "same_case_verdicts_as": "G700",
+    "Core_external_source_failure": "Authority before healthy-route publication after required-source capture",
+    "five_Server_failures": "provisional-receiver assertion after successful cold-preparation probe",
+    "retrospective_regrade": false
+  },
+  "applied_prepared_source_batch": {
+    "DirectV2": {
+      "generation": 535,
+      "library_change": "Exact private scoped single-pass Direct guard supplies target scene admission only for honest outside-Scene Video source None; Some-source isolation and target gates retained",
+      "original_and_queued_common_path": true,
+      "audio_data_screen_unchanged": true,
+      "actual_preparation_audit": "ACCEPTED_PREPARATION_ONLY"
+    },
+    "observerV3": {
+      "generation": 536,
+      "scope": "Typed private/public Core test-support metadata and five existing Server observers using real SDK sequence cuts",
+      "workspace_paths": 5,
+      "new_workspace_files_mode0644": 1,
+      "upstream_test_support_afterimages": 2,
+      "original_five_Server_cases_and23_assertion_macros_preserved": true,
+      "original_bounded_cutoff_seconds": 5,
+      "official_format_exit_code": 0,
+      "actual_preparation_audit": "ACCEPTED_PREPARATION_ONLY",
+      "complete_old535_tree_preserved": true,
+      "unchanged_mtimes_restored": 4277,
+      "source_files": 6563
+    },
+    "prepared": {
+      "rvoip": "400ab784cb6b7335ee77d09f6f39403640d0a684eb2b9013b7dfa5cd204dc072",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "source_lock_sha256": "de401ee70ca691048919afb940b0f146b979a7d9a6864efd64896e64fd472e70",
+    "held_never_applied": [
+      "DirectV1",
+      "observerV1",
+      "observerV2"
+    ],
+    "next45_compilation_runtime": "UNRUN"
+  },
+  "proofs": {
+    "G704_failed_actual_result": {
+      "path": ".local/gate-6/g704-source534-two-corrections-fortyfive-root/result.json",
+      "sha256": "56a1e3e055b2a80f2d6a554832d8a9525703a660f56d1d140622f20a4dee08d2"
+    },
+    "G704_failed_actual_independent_audit": {
+      "path": ".local/gate-6/g704-actual45-independent-audit/receipt.json",
+      "sha256": "2ca6566feaf25845f2ed06c22ffca9ae9f1b8cd629cd6c5cd1be09ab50122522"
+    },
+    "DirectV2_source_candidate": {
+      "path": ".local/gate-6/g704-exact-direct-unmanaged-video-scene-admission-source-candidate-v2/manifest.json",
+      "sha256": "58167b0cbe08bd66749167fda40f12d73206adcb7c8c44000c08377b7d0180dd"
+    },
+    "DirectV2_nonauthor_source_review": {
+      "path": ".local/gate-6/g704-exact-direct-scene-admission-independent-source-review/v2-receipt.json",
+      "sha256": "75e6ff8be151bf3c423125fb28ca51273b583d37383852a489e76a49b3439aea"
+    },
+    "normal535_actual_preparation_audit": {
+      "path": ".local/gate-6/g708-actual-normal535-independent-audit/receipt.json",
+      "sha256": "c22f4507a8e443e4b474aa03fcadd3b3683f53212a08f05b6c90d65814684413"
+    },
+    "observerV3_source_candidate": {
+      "path": ".local/gate-6/g704-final-control-private-public-observer-source-candidate-v3/manifest.json",
+      "sha256": "3458444504a0b6f6a5db2d122d266f71c8fa7f2c0956368370d8b68522198fbc"
+    },
+    "observerV3_nonauthor_source_review": {
+      "path": ".local/gate-6/g704-final-control-private-public-observer-independent-batch-source-review/v3-receipt.json",
+      "sha256": "74faca529e3b9f6113c55f3558efc533b00c6d2afa54f87afea5fbb6189bd54b"
+    },
+    "workspaceV3_actual_application": {
+      "path": ".local/gate-6/g709-native-private-public-observer-v3-root/apply-receipt.json",
+      "sha256": "95cdab34ab2920040488f3fa0a6a7b260f4b66312243b216929064844cd47a88"
+    },
+    "workspaceV3_actual_official_format": {
+      "path": ".local/gate-6/g709-native-private-public-observer-v3-root/format-receipt.json",
+      "sha256": "b4d3d0ce15efd3a831c1412f0084afc9d9b1053fed4efd61f631e761fb6cce0e"
+    },
+    "normal536_actual_preparation": {
+      "path": ".local/gate-6/g710-normal536-private-audio-observation-root/normal536-runtime/receipt.json",
+      "sha256": "e27fb0e931590f21d76c8783b7b41e91d20695032d7a8cecf68d9f8181415183"
+    },
+    "normal536_original_owner_join": {
+      "path": ".local/gate-6/g710-normal536-private-audio-observation-root/root-original-join.json",
+      "sha256": "c4845517c36257feb46e9066876762f004ced922d81301b18841c8feb08ec38e"
+    },
+    "normal536_workspace_independent_actual_audit": {
+      "path": ".local/gate-6/g710-actual-normal536-workspace-independent-audit/receipt.json",
+      "sha256": "309ce5eb0dc08682d4ac57c316c54589ab6db26a83aad63474ef2799d49d6e6c"
+    },
+    "last_mobile231_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v231-component45-later-failures534.json",
+      "sha256": "ffa6820de24102fd2bdd7eb51ab5130bed7ff76d83afbfb6e56ec6c7e7df827c"
+    }
+  },
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 231,
+  "mobile232": "PROPOSAL_ONLY"
+}

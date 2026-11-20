@@ -1,0 +1,53 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
+@@ -752,8 +752,49 @@
+         assert_eq!(prepared.started_attempt_for_test(),Some((ready.grant.intent.operation_id.as_str(),"actual-attempt","actual-effect")));
+         assert_eq!(room.orch.participant_revision(&room.session).unwrap(),revision);assert!(!ready.root.is_committed());
+         drop(held_source_port);drop(current);drop(role);drop(held);
+-        let ManagedCutPublished::Replacement {post,..}=publish_ready(&room,&ready,prepared).await else {panic!("wrong purpose")};
++        // Capture the SAME currently authorized Active resource view while its
++        // original old owner still exists. This is metadata, not a future grant.
++        let actual_candidate=room.world.owner(&transferred.connection).unwrap();
++        assert_eq!(actual_candidate.connection.state(),crate::relationships::BindingState::Active);
++        assert!(actual_candidate.connection.same_incarnation(&transferred.origin_binding));
++        assert!(actual_candidate.connection.same_incarnation(ready.root.prepared_binding().binding()));
++        assert!(transferred.is_bound_to(&actual_candidate.member,&actual_candidate.endpoint));
++        let candidate_port=transferred.state.lock().unwrap().active[&desired(Medium::Video).logical_id].clone();
++        assert_eq!(candidate_port.binding.connection_generation,actual_candidate.connection.generation());
++        let ManagedCutPublished::Replacement {outcome,post,..}=publish_ready(&room,&ready,prepared).await else {panic!("wrong purpose")};
+         room.orch.finish_managed_cut_publication(post).await.unwrap();
++        // Mirror the existing managed success fixture's host projection ONLY
++        // after actual model publication and owned cleanup. Never use the
++        // retired original endpoint to re-activate this published incarnation.
++        assert!(ready.root.is_committed());
++        assert_eq!((&outcome.replaced,&outcome.admitted,&outcome.retained),(&ready.old,&transferred.connection,&ready.retained));
++        let published=outcome.media.participant_replacement.as_ref().expect("genuine participant replacement observation");
++        assert_eq!((&published.session,&published.participant,published.membership_epoch),(&room.session,actual_candidate.member.participant(),actual_candidate.member.epoch()));
++        assert_eq!((&published.operation_id,&published.correlation_id),(&ready.grant.intent.operation_id,&ready.grant.intent.correlation_id));
++        assert_eq!((&published.replaced,&published.admitted,&published.retained),(&ready.old,&transferred.connection,&ready.retained));
++        assert_eq!((&published.endpoint,&published.device,published.generation),(actual_candidate.connection.endpoint(),actual_candidate.connection.device(),actual_candidate.connection.generation()));
++        assert_eq!(published.revision,ready.grant.intent.expected_revision+1);
++        assert_eq!(room.orch.participant_revision(&room.session).unwrap(),published.revision);
++        assert_eq!(room.orch.session_of(&ready.old),None);
++        assert_eq!(room.orch.session_of(&transferred.connection),Some(room.session.clone()));
++        assert!(room.nodes[&ready.old].controller.shutdown.is_cancelled());
++        {
++            let state=transferred.state.lock().unwrap();
++            assert!(!state.closed&&!transferred.shutdown.is_cancelled());
++            assert!(Arc::ptr_eq(&state.active[&desired(Medium::Video).logical_id],&candidate_port));
++            state.model.authorize_binding(&actual_candidate.current()).unwrap();
++        }
++        {
++            let mut resources=room.world.resources.lock().unwrap();
++            let candidate=resources.get_mut(&transferred.connection).unwrap();
++            assert!(candidate.owner.connection.same_incarnation(&actual_candidate.connection));
++            assert!(candidate.pending.as_ref().is_some_and(|pending|pending.binding().same_incarnation(&actual_candidate.connection)));
++            assert!(candidate.proof.as_ref().is_some_and(|proof|proof.is_committed()&&proof.belongs_to(&transferred)));
++            *candidate=Resource {owner:actual_candidate,proof:None,pending:None,probe_operation:None};
++        }
++        let projected=room.world.owner(&transferred.connection).unwrap();
++        assert_eq!(projected.connection.state(),crate::relationships::BindingState::Active);
++        assert!(projected.connection.same_incarnation(&transferred.origin_binding));
+         assert!(!transferred.direct_subscriptions.selected_at(&source,&desired(Medium::Video).logical_id,&desired(Medium::Video).logical_id,before.admitted_at),"the new receiver route was not active for this pre-cut packet");
+         let old_result=before.try_forward_to(&transferred,&desired(Medium::Video).logical_id);
+         match old_result {

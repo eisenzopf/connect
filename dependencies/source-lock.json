@@ -2856,6 +2856,26 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-managed-external-direct-receiver-transfer-fixture.patch",
       "sha256": "c0011fc19d616d451610b3a70600bc494419c4751bce38e7265557a4580ee2e9"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-exact-direct-unmanaged-video-scene-admission.patch",
+      "sha256": "be921df3af90216bd12b2f3e5aec6411125fca5159a380f620db1970305e3864"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-test-support-private-audio-preparation-observation.patch",
+      "sha256": "38099b773d99a169118c7b0d12bfc6a843a1d22c249b83a9dab2a8a6598a5b24"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-test-external-postcut-exact-refusal-diagnostics.patch",
+      "sha256": "0bdd59e5123e6413438ba6eb610d5691a7390bc1c23c2d343956d05a9bb72dbe"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-test-external-published-candidate-host-projection.patch",
+      "sha256": "8e3197c9b35a7d5440fe037f50e2036c0e4d0476c75a365bba9970d61f709193"
     }
   ]
 }

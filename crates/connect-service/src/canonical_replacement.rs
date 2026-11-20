@@ -951,3 +951,35 @@ impl Runtime {
         }
     }
 }
+
+#[cfg(feature = "test-support")]
+impl Runtime {
+    pub(crate) fn replacement_audio_observer_for_test(
+        &self,
+        record: &str,
+    ) -> Result<crate::CanonicalReplacementAudioObserverForTest> {
+        fn lock<T>(value: &std::sync::Mutex<T>) -> Result<std::sync::MutexGuard<'_, T>> {
+            value.try_lock().map_err(|error| match error {
+                std::sync::TryLockError::WouldBlock => {
+                    Error::new("authority-busy", "Private preparation metadata busy")
+                }
+                std::sync::TryLockError::Poisoned(_) => Error::storage(),
+            })
+        }
+        let root =
+            { lock(&self.replacements)?.get(record).cloned() }.ok_or_else(Error::forbidden)?;
+        let allocated = { lock(&root.allocated)?.clone() }.ok_or_else(Error::forbidden)?;
+        let started = { lock(&allocated.started)?.clone() }.ok_or_else(Error::forbidden)?;
+        let preparation = started
+            .policy
+            .readiness
+            .as_ref()
+            .and_then(|gate| gate.audio_preroll.get())
+            .ok_or_else(Error::forbidden)?;
+        Ok(crate::CanonicalReplacementAudioObserverForTest {
+            model: Arc::downgrade(&root.handle),
+            cancellation: root.handle.cancellation(),
+            audio: preparation.observer_for_test(),
+        })
+    }
+}

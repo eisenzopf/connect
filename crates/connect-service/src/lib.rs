@@ -92,6 +92,59 @@ pub mod readiness;
 pub mod resources;
 pub mod tasks;
 
+/// Actual private preparation state for bounded isolated downstream controls.
+/// This is metadata only and cannot authorize a packet or publish a route.
+#[cfg(feature = "test-support")]
+pub struct CanonicalReplacementAudioObservationForTest {
+    /// Actual original model state; None means that exact model owner is gone.
+    pub committed: Option<bool>,
+    /// Actual original preparation cancellation, retained without renewal.
+    pub cancelled: bool,
+    /// None means the exact target Controller/Port/gate is gone or Port retired.
+    pub audio: Option<
+        rvoip_core::staged_streams::audio_subscriptions::AudioReplacementPreparationObservation,
+    >,
+}
+/// Test-only original structural observation, with no strong resource/Root or grant.
+#[cfg(feature = "test-support")]
+pub struct CanonicalReplacementAudioObserverForTest {
+    pub(crate) model: std::sync::Weak<
+        rvoip_core::orchestrator::participant_control::DeviceReplacementPreparation,
+    >,
+    pub(crate) cancellation: tokio_util::sync::CancellationToken,
+    pub(crate) audio:
+        rvoip_core::staged_streams::audio_subscriptions::AudioReplacementPreparationObserver,
+}
+#[cfg(feature = "test-support")]
+impl CanonicalReplacementAudioObserverForTest {
+    /// Try-only copied actual metadata. No registry absence becomes retirement,
+    /// and a lost model owner is never copied into a false committed bit.
+    pub fn snapshot(&self) -> Result<CanonicalReplacementAudioObservationForTest> {
+        let model = self.model.upgrade();
+        let committed = model.as_ref().map(|model| model.is_committed());
+        let audio = self
+            .audio
+            .observation_for_test()
+            .map_err(|error| match error {
+                rvoip_core::staged_streams::StreamControlError::MetadataBusy => {
+                    Error::new("authority-busy", "Private preparation metadata busy")
+                }
+                _ => Error::forbidden(),
+            })?;
+        if committed != model.as_ref().map(|model| model.is_committed()) {
+            return Err(Error::new(
+                "authority-busy",
+                "Publication changed during observation",
+            ));
+        }
+        Ok(CanonicalReplacementAudioObservationForTest {
+            committed,
+            cancelled: self.cancellation.is_cancelled(),
+            audio,
+        })
+    }
+}
+
 pub struct Service {
     pub(crate) assurance_policy: std::sync::OnceLock<Arc<canonical_assurance::Policy>>,
     /// Process-local readiness; no credentials or message contents.
@@ -467,6 +520,18 @@ impl Service {
             .ok_or_else(Error::forbidden)?
             .media
             .arm_preparation_custody_probe_for_test(operation, phase)
+    }
+    /// Capture exact original private structural observation metadata once.
+    /// This grants no IO and does not own or prolong the actual preparation.
+    #[cfg(feature = "test-support")]
+    pub fn canonical_replacement_audio_observer_for_test(
+        &self,
+        record: &str,
+    ) -> Result<CanonicalReplacementAudioObserverForTest> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .replacement_audio_observer_for_test(record)
     }
     /// Exclude the ACTUAL participant runtime model state for bounded host
     /// interleaving tests. This creates no policy grant or media readiness.

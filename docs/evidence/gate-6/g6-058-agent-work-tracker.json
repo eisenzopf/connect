@@ -1,19 +1,19 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-20T14:10:57.893277+00:00",
-  "revision": 152,
+  "updated_at": "2026-11-20T16:27:39.572359+00:00",
+  "revision": 155,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint152-mobile231-scoped-readback",
-    "content_revision": 231,
-    "readback_evidence": ".local/gate-6/mobile231-component45-later-failures534-root/readback.json",
-    "readback_evidence_sha256": "c38f0062e483594235e6448373b807123448556d2d1b76ea298bd1d903fb5602",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v231-component45-later-failures534.json",
-    "postrun_readback_sha256": "ffa6820de24102fd2bdd7eb51ab5130bed7ff76d83afbfb6e56ec6c7e7df827c"
+    "sync_status": "verified-checkpoint155-mobile234-scoped-readback",
+    "content_revision": 234,
+    "readback_evidence": ".local/gate-6/mobile234-source538-prepared-root/readback.json",
+    "readback_evidence_sha256": "ac9a1792a73ccea70b11ba7913ff9fc2d8cd901d94c9bb129e3717cefd2bec98",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v234-source538-prepared.json",
+    "postrun_readback_sha256": "2877505771e8eaa6381be6e580ccc446e048971e5a2123fe7108b6805744d11a"
   },
   "baseline": {
     "run": "v215",
@@ -588,7 +588,7 @@
       "status": "combined-workload-verified",
       "implementation_state": "Both current full62 signing profiles pass quality/handoffs/Data/Session ends/67scleanup/10sidle. Ownerjoins65.918857/64.914006s. Complete361 remains360/361 because new snapshot concurrency test fails3vs4.",
       "proposed_fix": "Batch both current Session refreshes, then both original End submissions, then both waits. Preserve the same Client, logical IDs, topology CAS, first failure and original 67-second cutoff.",
-      "required_evidence": "Same-helper regression and actual concurrent workload meet original62\u201367s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
+      "required_evidence": "Same-helper regression and actual concurrent workload meet original62–67s boundary; current snapshot/receipt, sibling joins and scope checks preserved; old/new authority behavior equivalent.",
       "coordinator_review": {
         "status": "Scoped combined-workload assertions accepted; matrix verification pending",
         "root_cause_confirmed": false,
@@ -1384,7 +1384,7 @@
         "V219-WSS-INGRESS"
       ],
       "status": "in-progress",
-      "implementation_state": "G704 completed all45 selected component tests on source534 after all nine current test builds and nine inventories passed:39 tests passed and six failed, with no ignored, incomplete or unrun cases. The same39 case identities passed and the same six failed as in G700, so the overall result is unchanged. Root and all64 original children exited naturally, were joined and freshly absent; the6558-file source, prepared dependencies and all nine binary hashes remained unchanged. The failed cases now reach later points. The Core external-source control passes its required-source capture check, then a pre-forward healthy-route publication returns Authority at managed_model_cut_controls.rs591. Source analysis is examining the SceneCheck/source-stamp contract; the fixture correction is not thereby proved complete. All five Server controls now pass the cold-preparation probe, then fail the groups.rs712 assertion reporting codec-source on provisional-replacement. Whether that observation is authorized private preroll or an early public leak remains unclassified; no conclusion or acceptance change is inferred. Later assertions and complete control-boundary behavior remain unverified. G70039/45, G69631/45 and all older failed results retain their original verdicts. No next correction state, successful repair, full regression or media qualification is claimed by this checkpoint. Current shared379, complete affected regressions including whole Core-traits/SIP, OriginalV8 and all seven recorded readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile231 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+      "implementation_state": "G714 remains the last completed45-case component run:39PASS/6FAIL after all nine builds and nine inventories passed, with no ignored, incomplete or unrun cases. Source536 and all nine binaries stayed fixed; all original owners closed naturally. The failed run is not regraded. The later G721 diagnostic ran only the original Core external-source selector on source537:its actual Core test build passed, but the unit failed0PASS/1FAIL/0ignored. At the219us original refusal, target Port/ticket/Direct/Scene checks were current while the fixture candidate still used a Preparing/provisional World owner despite committed proof and actual publication; its owner/policy projection refused Authority. This identifies the fixture projection frontier without proving a corrected media boundary. Two reviewed fixture/observer changes are now applied and prepared. The workspace observer maps retained wire identity through the immutable connection_offers Core mapping, checks the same root/session/conversation/generation/live runtime lifetime, and drops SQLite custody before await; official formatting and normal537 preparation were audited. Normal538 then prepared the exact single Core test-file projection correction:it captures the genuine current candidate before publication and projects that same owner only after actual Published outcome, completed owned post and exact model/route/Port checks, removing stale provisional fixture metadata. Production permission/currentness predicates, all45 selectors, original IO/negative/cleanup oracles and original5s Server bound remain unchanged. The complete old537 tree and4278 unchanged source mtimes were preserved; both preparation commands closed naturally, and the current6569-file source/prepared/lock audit passed. The full45 compilation/runtime after this batch is UNRUN; no successful repair is claimed. G71439/45, G70439/45, G70039/45, G69631/45 and all earlier failed results retain their verdicts. Current shared379, complete affected regressions including whole Core-traits/SIP, OriginalV8 and all seven readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile234 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1558,6 +1558,21 @@
           "evidence": "docs/evidence/gate-6/g6-058-v219-g704-source534-later-failures.json",
           "result": "G704 complete45=39PASS6FAIL after9builds/9inventoriesPASS; flatcaseverdicts versusG700, laterCoreAuthority/Serverprovisionalreceiver failurepoints unclassified. No correction/full/matrix qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g710-source536-prepared-frontiers.json",
+          "result": "G704 FAILED39/45 unchanged. Reviewed Direct535 and observer536 batch applied/formatted/normally prepared and independently audited; next45 compilation/runtime UNRUN. No full/media/matrix qualification.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g714-source536-later-failures.json",
+          "result": "G714 complete45 FAILED39PASS6FAIL after9builds/9inventoriesPASS; same case verdicts asG704. Core reaches fresh64000 candidateAuthority; fiveServer stop at Coreconnection/runtimeepoch observer mismatch. No complete repair/full/matrix qualification.",
+          "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g722-source538-prepared-frontiers.json",
+          "result": "G714 remains FAILED39/45; G721 diagnosticCore unit FAILED0/1 after buildPASS. Reviewed observer identity mapping and genuine-published candidate fixture projection applied/prepared538 and independently audited. Corrected full45 compile/runtime UNRUN; no qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -1565,7 +1580,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-20T14:10:57.893277+00:00",
+      "updated_at": "2026-11-20T16:27:39.572359+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -1923,6 +1938,44 @@
         "prepared_generation": 534,
         "qualification": false,
         "matrix_credit": false
+      },
+      "current_frontiers_checkpoint153": {
+        "status": "actualG704-flat39PASS6FAIL-sourcebatch-prepared536-next45-unrun",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g710-source536-prepared-frontiers.json",
+        "sha256": "aa5ee76d0c514505b01a8dbd72507442550854d486115bd576070fbb152ba49b",
+        "actual_tests_completed": 45,
+        "actual_tests_passed": 39,
+        "actual_tests_failed": 6,
+        "prepared_generation": 536,
+        "repair_compilation_runtime": "UNRUN",
+        "qualification": false,
+        "matrix_credit": false
+      },
+      "current_frontiers_checkpoint154": {
+        "status": "actualG714-complete45-flat39PASS6FAIL-later-frontiers",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g714-source536-later-failures.json",
+        "sha256": "890eca74f040e9c42d23da88db1d0733a99ff44fd025f81d6e360de4cf30932c",
+        "actual_tests_completed": 45,
+        "actual_tests_passed": 39,
+        "actual_tests_failed": 6,
+        "prepared_generation": 536,
+        "next_repair_state": "INVESTIGATION_ONLY_UNAPPLIED",
+        "qualification": false,
+        "matrix_credit": false
+      },
+      "current_frontiers_checkpoint155": {
+        "status": "actualG71439PASS6FAIL-andG7210PASS1FAIL-batchprepared538-runtimeUNRUN",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g722-source538-prepared-frontiers.json",
+        "sha256": "b8d6af57f155a7daa7b53bc79857a20f0e0d71bea6a2dd60eb6009bc637dae86",
+        "actual_tests_completed": 45,
+        "actual_tests_passed": 39,
+        "actual_tests_failed": 6,
+        "diagnostic_Core_unit_passed": 0,
+        "diagnostic_Core_unit_failed": 1,
+        "prepared_generation": 538,
+        "repair_compile_runtime": "UNRUN",
+        "qualification": false,
+        "matrix_credit": false
       }
     },
     {
@@ -2091,7 +2144,7 @@
         "V219-RTC-FENCE"
       ],
       "status": "component-verified",
-      "implementation_state": "ActualOLD65\u219210/55; fixed65/65 includes4new+61retained; sync pertarget140queue+1current; exact original age/clock/gates/cleanup.",
+      "implementation_state": "ActualOLD65→10/55; fixed65/65 includes4new+61retained; sync pertarget140queue+1current; exact original age/clock/gates/cleanup.",
       "required_evidence": "Fresh combined615/currentARM+normalrelease and full32; no summing overlapping50+65 or treating source counter as actual39-bin cause.",
       "verification_runs": [
         {
@@ -5665,7 +5718,7 @@
     },
     {
       "at": "2026-11-12T18:37:09.203299+00:00",
-      "action": "Recorded complete26 actual295/296, exact authority/frame-loss RCA, old DataGate counter, Store66 actual211/213 including all10 new controls and Core65 zero-test compile failure. Added assigned DC1\u2013DC7 correction plan; all145 mappings preserved. No matrix promotion."
+      "action": "Recorded complete26 actual295/296, exact authority/frame-loss RCA, old DataGate counter, Store66 actual211/213 including all10 new controls and Core65 zero-test compile failure. Added assigned DC1–DC7 correction plan; all145 mappings preserved. No matrix promotion."
     },
     {
       "at": "2026-11-12T19:02:22.996051+00:00",
@@ -6167,7 +6220,7 @@
     {
       "at": "2026-11-20T11:23:14.363092+00:00",
       "revision": 149,
-      "event": "G691 all3 compiler metadata checksPASS/zeroerrors/source6550 unchanged/originalowners naturally closed; no runtime credit. Reviewed G69458194 old orphan objects cleaned with actual free17.187\u219262.293GiB. Same9build45 remains UNRUN and all7 readiness scopes open.",
+      "event": "G691 all3 compiler metadata checksPASS/zeroerrors/source6550 unchanged/originalowners naturally closed; no runtime credit. Reviewed G69458194 old orphan objects cleaned with actual free17.187→62.293GiB. Same9build45 remains UNRUN and all7 readiness scopes open.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g691-source532-metadata-pass.json",
       "by": "/root"
     },
@@ -6190,6 +6243,27 @@
       "revision": 152,
       "event": "G704 complete45=39PASS6FAIL, samecaseverdicts asG700; all9builds/inventoriesPASS/source6558+9binaries fixed/originalownersnaturallyclosed. Core advances pastsourcecapture toL591Authority; fiveServer controls passcoldprobe thenfailprovisionalreceiverassertion. Classification/sourcecontract open; no nextfix/full/matrix claim.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g704-source534-later-failures.json",
+      "by": "/root"
+    },
+    {
+      "at": "2026-11-20T14:54:14.006243+00:00",
+      "revision": 153,
+      "event": "DirectV2 normally prepared535; observerV3 workspace5 applied/formatted and Core test-support2 normally prepared536; actual preparation/workspace audit accepted. G70439/45 remains failed; next45 compile/runtime UNRUN. No new qualification.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g710-source536-prepared-frontiers.json",
+      "by": "/root"
+    },
+    {
+      "at": "2026-11-20T16:04:40.675083+00:00",
+      "revision": 154,
+      "event": "G714 complete45=39PASS6FAIL; all9builds/inventoriesPASS/source6565+9binariesfixed/root+64childrennaturallyclosed. Core advances to fresh64000 actualcandidateAuthority at695; fiveServer stop at observer166 identity-domain mismatch, no new media verdict. Next batch under investigation/unapplied; all qualification unchanged.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g714-source536-later-failures.json",
+      "by": "/root"
+    },
+    {
+      "at": "2026-11-20T16:27:39.572359+00:00",
+      "revision": 155,
+      "event": "G721 diagnosticCore unit remains FAILED0/1 with fixtureWorldprojection refusal despite actualPort/Direct/Scene current. Reviewed observermapping applied/formatted and test-only candidateprojection normallyprepared538/audited; current6569source exact. G71439/45 unchanged; corrected full45 compile/runtime UNRUN; no qualification.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g722-source538-prepared-frontiers.json",
       "by": "/root"
     }
   ],
@@ -7820,11 +7894,11 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "G704 completed all45 selected component tests on source534 after all nine current test builds and nine inventories passed:39 tests passed and six failed, with no ignored, incomplete or unrun cases. The same39 case identities passed and the same six failed as in G700, so the overall result is unchanged. Root and all64 original children exited naturally, were joined and freshly absent; the6558-file source, prepared dependencies and all nine binary hashes remained unchanged. The failed cases now reach later points. The Core external-source control passes its required-source capture check, then a pre-forward healthy-route publication returns Authority at managed_model_cut_controls.rs591. Source analysis is examining the SceneCheck/source-stamp contract; the fixture correction is not thereby proved complete. All five Server controls now pass the cold-preparation probe, then fail the groups.rs712 assertion reporting codec-source on provisional-replacement. Whether that observation is authorized private preroll or an early public leak remains unclassified; no conclusion or acceptance change is inferred. Later assertions and complete control-boundary behavior remain unverified. G70039/45, G69631/45 and all older failed results retain their original verdicts. No next correction state, successful repair, full regression or media qualification is claimed by this checkpoint. Current shared379, complete affected regressions including whole Core-traits/SIP, OriginalV8 and all seven recorded readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile231 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g704-source534-later-failures.json",
-    "sha256": "e8c385399874cfa172e88924fdaf8ff126553ba13730d148ba2c79838ef4036a"
+    "status": "G714 remains the last completed45-case component run:39PASS/6FAIL after all nine builds and nine inventories passed, with no ignored, incomplete or unrun cases. Source536 and all nine binaries stayed fixed; all original owners closed naturally. The failed run is not regraded. The later G721 diagnostic ran only the original Core external-source selector on source537:its actual Core test build passed, but the unit failed0PASS/1FAIL/0ignored. At the219us original refusal, target Port/ticket/Direct/Scene checks were current while the fixture candidate still used a Preparing/provisional World owner despite committed proof and actual publication; its owner/policy projection refused Authority. This identifies the fixture projection frontier without proving a corrected media boundary. Two reviewed fixture/observer changes are now applied and prepared. The workspace observer maps retained wire identity through the immutable connection_offers Core mapping, checks the same root/session/conversation/generation/live runtime lifetime, and drops SQLite custody before await; official formatting and normal537 preparation were audited. Normal538 then prepared the exact single Core test-file projection correction:it captures the genuine current candidate before publication and projects that same owner only after actual Published outcome, completed owned post and exact model/route/Port checks, removing stale provisional fixture metadata. Production permission/currentness predicates, all45 selectors, original IO/negative/cleanup oracles and original5s Server bound remain unchanged. The complete old537 tree and4278 unchanged source mtimes were preserved; both preparation commands closed naturally, and the current6569-file source/prepared/lock audit passed. The full45 compilation/runtime after this batch is UNRUN; no successful repair is claimed. G71439/45, G70439/45, G70039/45, G69631/45 and all earlier failed results retain their verdicts. Current shared379, complete affected regressions including whole Core-traits/SIP, OriginalV8 and all seven readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile234 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g722-source538-prepared-frontiers.json",
+    "sha256": "b8d6af57f155a7daa7b53bc79857a20f0e0d71bea6a2dd60eb6009bc637dae86"
   },
-  "updated": "2026-11-20T14:10:57.893277+00:00",
+  "updated": "2026-11-20T16:27:39.572359+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -8336,5 +8410,73 @@
     ],
     "actual_last_readback_revision": 230,
     "publication_transform": "Prefix first paragraph Revision231 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
+  },
+  "v219_g710_source536_prepared_frontiers": {
+    "status": "actualG704-flat39PASS6FAIL-sourcebatch-prepared536-next45-unrun",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g710-source536-prepared-frontiers.json",
+    "sha256": "aa5ee76d0c514505b01a8dbd72507442550854d486115bd576070fbb152ba49b",
+    "actual_tests_completed": 45,
+    "actual_tests_passed": 39,
+    "actual_tests_failed": 6,
+    "prepared_generation": 536,
+    "repair_compilation_runtime": "UNRUN",
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "mobile232_proposal": {
+    "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
+    "paragraphs": [
+      "Checkpoint153: the latest completed run remains G704 at39PASS/6FAIL across45 tests, after nine builds and nine inventories passed. The same six cases failed as G700. These historical results remain failed; no repaired runtime result is claimed.",
+      "Two reviewed changes are now applied and prepared. The Video fix admits an outside-Scene source through its exact Direct guard while preserving target gates. The five Server controls now use typed private/public preparation metadata and real SDK sequence cuts, preserving their23 assertions and original5s cutoff. Official formatting and normal535/536 preparation passed; the next45 compile/runtime checks are unrun.",
+      "Matrix remains1/32 cells and399/432 checks, with no new credit and not ready for32. Current shared379, complete affected regressions, OriginalV8 and all seven recorded readiness scopes remain open; G6-054 stays parked. Mobile231 remains the last verified readback. This mobile232 text is a proposal only; publication and scoped readback are not claimed."
+    ],
+    "actual_last_readback_revision": 231,
+    "publication_transform": "Prefix first paragraph Revision232 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
+  },
+  "v219_g714_source536_later_failures": {
+    "status": "actualG714-complete45-flat39PASS6FAIL-later-frontiers",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g714-source536-later-failures.json",
+    "sha256": "890eca74f040e9c42d23da88db1d0733a99ff44fd025f81d6e360de4cf30932c",
+    "actual_tests_completed": 45,
+    "actual_tests_passed": 39,
+    "actual_tests_failed": 6,
+    "prepared_generation": 536,
+    "next_repair_state": "INVESTIGATION_ONLY_UNAPPLIED",
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "mobile233_proposal": {
+    "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
+    "paragraphs": [
+      "Checkpoint154: G714 completed all45 component tests after nine builds and nine inventories passed:39PASS/6FAIL, with no ignored, incomplete or unrun cases. These are the same39 passing and six failing cases as G704. All original owners closed naturally; source536 and all nine binaries stayed fixed. The overall run remains failed.",
+      "The Core external-source control now passes its pre-cut negatives, real Busy/same-token commit and fresh64000 delivery to the healthy receiver, then candidate forwarding is refused with Authority. All five Server controls stop at an observer assertion comparing a Core connection identity with a runtime-epoch identity; that domain mismatch gives no new private/public media verdict. Remaining tails are unverified. Both frontiers are under investigation; no next repair is applied or verified.",
+      "Matrix remains1/32 cells and399/432 checks, with no new credit and not ready for32. Current shared379, complete affected regressions, OriginalV8 and all seven recorded readiness scopes remain open; G6-054 stays parked. Mobile232 remains the last verified readback. This mobile233 text is a proposal only; publication and scoped readback are not claimed."
+    ],
+    "actual_last_readback_revision": 232,
+    "publication_transform": "Prefix first paragraph Revision233 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
+  },
+  "v219_g722_source538_prepared_frontiers": {
+    "status": "actualG71439PASS6FAIL-andG7210PASS1FAIL-batchprepared538-runtimeUNRUN",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g722-source538-prepared-frontiers.json",
+    "sha256": "b8d6af57f155a7daa7b53bc79857a20f0e0d71bea6a2dd60eb6009bc637dae86",
+    "actual_tests_completed": 45,
+    "actual_tests_passed": 39,
+    "actual_tests_failed": 6,
+    "diagnostic_Core_unit_passed": 0,
+    "diagnostic_Core_unit_failed": 1,
+    "prepared_generation": 538,
+    "repair_compile_runtime": "UNRUN",
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "mobile234_proposal": {
+    "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
+    "paragraphs": [
+      "Checkpoint155: the latest complete component run remains G714 at39PASS/6FAIL across45 tests after all nine builds and inventories passed. A later diagnostic ran only the original Core external-source unit:its build passed but the test failed0/1. Neither failed result is regraded.",
+      "The diagnostic found current Port/Direct/Scene checks alongside a stale provisional fixture-owner projection. The reviewed test correction now projects the same genuine candidate only after actual publication/post completion and exact model/route/Port checks. The observer identity-domain mapping is also applied and formatted. Normal537/538 preparation and the current6569-file source audit passed; production permissions and original oracles are unchanged. Corrected full45 compile/runtime remains unrun.",
+      "Matrix remains1/32 cells and399/432 checks, with no new credit and not ready for32. Current shared379, complete affected regressions, OriginalV8 and all seven readiness scopes remain open; G6-054 stays parked. Mobile233 remains the last verified readback. This mobile234 text is a proposal only; publication and scoped readback are not claimed."
+    ],
+    "actual_last_readback_revision": 233,
+    "publication_transform": "Prefix first paragraph Revision234 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
   }
 }

@@ -1,0 +1,108 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 154,
+  "recorded_at": "2026-11-20T16:04:40.675083+00:00",
+  "status": "ACTUAL_G714_COMPLETE45_FLAT39PASS6FAIL_LATER_FAILURE_POINTS",
+  "actual_component_run": {
+    "id": "G714",
+    "generation": 536,
+    "completed": 45,
+    "passed": 39,
+    "failed": 6,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "builds_passed": 9,
+    "inventories_passed": 9,
+    "verdict": "FAILED",
+    "same39_pass_and6_fail_case_identities_asG704": true,
+    "source_files": 6565,
+    "source_sha256": "a3504dcaeb42387bced1ff71f827135b4ec4529f94e66e53187cb7127a16993f",
+    "source_prepared_and9binaries_unchanged": true,
+    "root_and64children_natural_unforced_joined_fresh_PID_PGID_absent": true,
+    "child_exit_counts": {
+      "0": 58,
+      "101": 6
+    }
+  },
+  "frontiers": {
+    "Core_external_source": {
+      "failure": "Fresh64000 transferred-candidate forwarding returns Authority at managed_model_cut_controls.rs695",
+      "earlier_checks_reached": [
+        "pre-cut original packet cannot borrow later candidate activation",
+        "real source-Port Busy retains same prepared token/attempt and commits after release",
+        "fresh64000 forwards and dequeues at existing healthy receiver"
+      ],
+      "unreached": [
+        "fresh64000 candidate delivery",
+        "remaining post-cut negative controls"
+      ],
+      "complete_library_boundary_verified": false
+    },
+    "Server_five_controls": {
+      "failure": "observer.rs166 compares actual Core connection identity against retained runtime-epoch identity",
+      "classification": "Harness identity-domain mismatch; no new private/public media verdict",
+      "remaining_observer_and_final_control_tails": "UNVERIFIED"
+    }
+  },
+  "next_repair_batch": {
+    "status": "INVESTIGATION_ONLY_NO_NEXT_CANDIDATE_APPLIED",
+    "runtime_pass_claim": false
+  },
+  "historical_failed_verdicts_preserved": [
+    "G70439/45",
+    "G70039/45",
+    "G69631/45",
+    "all earlier failures"
+  ],
+  "proofs": {
+    "G714_actual_result": {
+      "path": ".local/gate-6/g714-source536-direct-native-observer-fortyfive-root/result.json",
+      "sha256": "a65e9987c4b8b9c90571af9b168fd7804ee613036fcb8da447d37b1cb69116d3"
+    },
+    "G714_original_root_join": {
+      "path": ".local/gate-6/g714-source536-direct-native-observer-fortyfive-root/root-original-join.json",
+      "sha256": "f16284e534d6013a9f88a139d077f22736d093b17cc4c57783af876063503d7e"
+    },
+    "G714_actual_independent_audit": {
+      "path": ".local/gate-6/g714-actual45-independent-audit/receipt.json",
+      "sha256": "799a68f5513977415001c2ad77ca75ad9d10224ae14ede0035ac6af7231f3431"
+    },
+    "G714_actual_raw_verdicts": {
+      "path": ".local/gate-6/g714-actual45-independent-audit/actual-verdicts.json",
+      "sha256": "f146a5d56fa555d6e364c752e6b7c0383273cd1d580efb185cbf58d2587886df"
+    },
+    "G714_bound_plan": {
+      "path": ".local/gate-6/g714-source536-direct-native-observer-fortyfive-root/plan.json",
+      "sha256": "43117a5980a8f330973a67436b303251e69f9151e9496dcc1dc9ecb69adacb5c"
+    },
+    "G704_prior_failed_actual_audit": {
+      "path": ".local/gate-6/g704-actual45-independent-audit/receipt.json",
+      "sha256": "2ca6566feaf25845f2ed06c22ffca9ae9f1b8cd629cd6c5cd1be09ab50122522"
+    },
+    "normal536_actual_preparation_workspace_audit": {
+      "path": ".local/gate-6/g710-actual-normal536-workspace-independent-audit/receipt.json",
+      "sha256": "309ce5eb0dc08682d4ac57c316c54589ab6db26a83aad63474ef2799d49d6e6c"
+    },
+    "checkpoint153_Root_review": {
+      "path": ".local/gate-6/g713-checkpoint153-root-review/receipt.json",
+      "sha256": "8e8223d0b1b35f2a5c8ff86bb164978d383e8bce9db64aaa72220f3286f80a15"
+    },
+    "last_mobile232_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v232-source536-prepared.json",
+      "sha256": "9bbcd61f54052d4ce80d32a81d74c15750083f73a1fc5183fc9aec0936ff1681"
+    }
+  },
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 232,
+  "mobile233": "PROPOSAL_ONLY"
+}

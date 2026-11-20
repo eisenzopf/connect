@@ -1,0 +1,241 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -3594,16 +3594,14 @@
+         let guard = ticket
+             .try_begin_delivery()
+             .ok_or(StreamControlError::NotReady)?;
+-        let direct_guard = if sending && medium != Medium::Audio {
+-            Some(direct.ok_or(StreamControlError::Authority)?.begin(
+-                self,
+-                port,
+-                source.ok_or(StreamControlError::Authority)?,
+-            )?)
++        let (direct_guard,(scene_stamp,scene_guard)) = if sending && medium != Medium::Audio {
++            let (guard,stamp,scene_guard)=direct.ok_or(StreamControlError::Authority)?.begin_with_scene(
++                self,port,source.ok_or(StreamControlError::Authority)?,scene,
++            )?;
++            (Some(guard),(stamp,scene_guard))
+         } else {
+-            None
++            (None,self.scene_admission(scene)?)
+         };
+-        let (scene_stamp, scene_guard) = self.scene_admission(scene)?;
+         let messages_only = {
+             // The early forwarding probe is not an exclusion lease. A reader
+             // may acquire this PortState during current_data; refuse that race
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -16,6 +16,22 @@
+ pub(super) struct DirectDeliveryGuard {
+     _current: PeerDeliveryGuard,
+     _original: Option<PeerDeliveryGuard>,
++}
++/// Borrowed proof of this exact already-admitted receiver route. It grants no
++/// policy permission and cannot outlive its actual delivery guard.
++pub(super) struct DirectSceneAdmission<'a> {
++    _delivery: &'a DirectDeliveryGuard,
++    _stamp: &'a DirectStamp,
++    _port: &'a Port,
++    _source: &'a MediaSource,
++    target: &'a StreamController,
++}
++impl DirectSceneAdmission<'_> {
++    pub(super) fn matches(&self, target: &StreamController, port: &Port, source: &MediaSource) -> bool {
++        std::ptr::eq(self.target, target)
++            && std::ptr::eq(self._port, port)
++            && std::ptr::eq(self._source, source)
++    }
+ }
+ 
+ #[derive(Clone)]
+@@ -310,6 +326,23 @@
+ 
+     pub(super) fn delivery_ticket(&self) -> PeerRouteTicket {
+         self.ticket.clone()
++    }
++
++    /// The common packet admission has already validated its actual source
++    /// and target policy/port inputs. Consume this route's existing checks ONCE
++    /// and keep any external-source scene proof inside this lexical guard turn.
++    pub(super) fn begin_with_scene(
++        &self, target: &StreamController, port: &Port, source: &MediaSource,
++        scene: super::scene_consumer::SceneCheck<'_>,
++    ) -> ControlResult<(DirectDeliveryGuard, Option<super::scene_consumer::SceneStamp>, Option<PeerDeliveryGuard>)> {
++        let guard=self.begin(target,port,source)?;
++        let (stamp,scene_guard)=if port.binding.negotiated.requested.medium==Medium::Video && scene.has_unmanaged_source() {
++            let proof=DirectSceneAdmission {_delivery:&guard,_stamp:self,_port:port,_source:source,target};
++            target.scene_admission_with_direct(scene,Some((&proof,port,source)))?
++        } else {
++            target.scene_admission(scene)?
++        };
++        Ok((guard,stamp,scene_guard))
+     }
+ 
+     pub(super) fn begin(
+--- a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+@@ -154,6 +154,10 @@
+         self.retained.is_none() && self.source.is_some() && self.admitted.is_some()
+     }
+ 
++    pub(super) fn has_unmanaged_source(&self) -> bool {
++        matches!(self.source, Some(None))
++    }
++
+     pub(super) fn frozen_receive<'b>(&self, target: Option<&'b SceneStamp>) -> SceneCheck<'b>
+     where
+         'a: 'b,
+@@ -223,6 +227,13 @@
+     pub(super) fn scene_admission(
+         &self,
+         check: SceneCheck<'_>,
++    ) -> ControlResult<(Option<SceneStamp>, Option<PeerDeliveryGuard>)> {
++        self.scene_admission_with_direct(check, None)
++    }
++    pub(super) fn scene_admission_with_direct(
++        &self,
++        check: SceneCheck<'_>,
++        direct: Option<(&super::direct_subscriptions::DirectSceneAdmission<'_>, &Port, &MediaSource)>,
+     ) -> ControlResult<(Option<SceneStamp>, Option<PeerDeliveryGuard>)> {
+         let slot = self
+             .scene_consumer
+@@ -239,12 +250,15 @@
+             return Ok((None, None));
+         };
+         if let Some(source) = check.source {
+-            let source = source.ok_or(StreamControlError::Authority)?;
+-            if source.scene != owner.scene
+-                || source.cancel.is_cancelled()
+-                || !source.ticket.is_current()
+-                || source.owner.strong_count() == 0
+-            {
++            if let Some(source) = source {
++                if source.scene != owner.scene
++                    || source.cancel.is_cancelled()
++                    || !source.ticket.is_current()
++                    || source.owner.strong_count() == 0
++                {
++                    return Err(StreamControlError::Authority);
++                }
++            } else if !direct.is_some_and(|(proof, port, source)| proof.matches(self, port, source)) {
+                 return Err(StreamControlError::Authority);
+             }
+         }
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
+@@ -555,6 +555,72 @@
+     controller.change_with_held(0,&[desired(Medium::Video)],&BTreeSet::new(),held.until,CancellationToken::new(),Arc::new(held)).await.unwrap();
+     controller
+ }
++
++// This checks proof scoping only; foreign gate metadata is NEVER installed on
++// the actual external publisher or used to authorize any successful packet.
++fn external_direct_scene_proof_negatives(
++    source:&Arc<StreamController>,target:&Arc<StreamController>,
++    port:&AdapterMediaPort,descriptor:&MediaSource,foreign:&Arc<StreamController>,
++) {
++    use crate::staged_streams::scene_consumer::{SceneCheck,SceneConsumer};
++    let now=Instant::now();
++    let stamp=target.direct_subscriptions.stamp(source,&descriptor.logical_id,&port.binding().negotiated.requested.logical_id,now).unwrap();
++    // The scope proof never escapes begin_with_scene; all callers must run
++    // the actual begin checks for their exact source/target/receiver inputs.
++    assert!(stamp.begin_with_scene(target,&port.0,descriptor,SceneCheck::receive(None,now)).is_ok());
++    let mut wrong=descriptor.clone();wrong.logical_id=StreamId::from_string("unselected-external-logical");
++    assert!(matches!(stamp.begin_with_scene(target,&port.0,&wrong,SceneCheck::receive(None,now)),Err(StreamControlError::Authority)));
++    wrong=descriptor.clone();wrong.connection=ConnectionId::from_string("unselected-external-source");
++    assert!(matches!(stamp.begin_with_scene(target,&port.0,&wrong,SceneCheck::receive(None,now)),Err(StreamControlError::Authority)));
++    assert!(matches!(stamp.begin_with_scene(foreign,&port.0,descriptor,SceneCheck::receive(None,now)),Err(StreamControlError::Authority)));
++    let other_port=target.state.lock().unwrap().active.values().find(|port|port.binding.negotiated.requested.medium==Medium::Audio).cloned().unwrap();
++    assert!(matches!(stamp.begin_with_scene(target,&other_port,descriptor,SceneCheck::receive(None,now)),Err(StreamControlError::Authority)),"an unselected receiver logical ID cannot use the route");
++    let actual_scene=target.scene_consumer.lock().unwrap().as_ref().and_then(Weak::upgrade).unwrap();
++    let foreign_scene=SceneConsumer::new(actual_scene.scene.wrapping_add(1));foreign_scene.activate();
++    *foreign.scene_consumer.lock().unwrap()=Some(Arc::downgrade(&foreign_scene));
++    let foreign_stamp=foreign.current_scene_stamp().unwrap().unwrap();
++    assert!(matches!(stamp.begin_with_scene(target,&port.0,descriptor,SceneCheck::receive(Some(&foreign_stamp),now)),Err(StreamControlError::Authority)),"an exact Direct proof cannot override a present cross-scene stamp");
++    *foreign.scene_consumer.lock().unwrap()=None;
++    assert!(source.current_scene_stamp().unwrap().is_none(),"the real publisher must remain honestly unmanaged");
++}
++async fn external_direct_packet(port:&AdapterMediaPort,input:&mut mpsc::Receiver<MediaPacket>,timestamp:u32)->MediaPacket {
++    port.try_publish(&frame(port,timestamp)).unwrap();receive(input).await
++}
++async fn external_direct_post_cut_negatives(
++    room:&ManagedRoom,source:&Arc<StreamController>,target:&Arc<StreamController>,
++    wrong_source:&Arc<StreamController>,port:&AdapterMediaPort,input:&mut mpsc::Receiver<MediaPacket>,
++    output:&mut mpsc::Receiver<QueuedMedia>,
++) {
++    let packet=external_direct_packet(port,input,67000).await;
++    packet.try_forward_to(target,&desired(Medium::Video).logical_id).unwrap();
++    let replaced=outgoing(output).await;
++    // Replace, then restore the SAME textual selection. A retired original
++    // route ticket cannot revive merely because its IDs match once more.
++    for publisher in [wrong_source,source] {
++        let change=crate::staged_streams::direct_subscriptions::DirectSubscriptionChange::Subscribe(vec![crate::staged_streams::direct_subscriptions::DirectSubscription::new(publisher,desired(Medium::Video).logical_id,desired(Medium::Video).logical_id)]);
++        let held=PortCommand {world:room.world.clone(),connection:target.connection.clone(),expected:target.revision(),mutation:PortMutation::Direct(change.clone()),until:deadline()};
++        target.change_direct_subscriptions(held.expected,change,held.until,CancellationToken::new(),Some(&held)).await.unwrap();
++        if Arc::ptr_eq(publisher,wrong_source) {assert!(matches!(packet.try_forward_to(target,&desired(Medium::Video).logical_id),Err(StreamControlError::Authority)),"wrong selected source cannot borrow the external route");}
++    }
++    assert!(!replaced.direct.as_ref().unwrap().is_current(),"the original receiver route really was retired");
++    let calls=AtomicUsize::new(0);
++    assert!(replaced.deliver(|_|async {calls.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());
++    assert_eq!(calls.load(Ordering::Acquire),0);
++    let packet=external_direct_packet(port,input,70000).await;packet.try_forward_to(target,&desired(Medium::Video).logical_id).unwrap();
++    outgoing(output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,70000);Ok(())}).await.unwrap();
++    let packet=external_direct_packet(port,input,73000).await;packet.try_forward_to(target,&desired(Medium::Video).logical_id).unwrap();let revoked=outgoing(output).await;
++    room.world.allowed.store(false,Ordering::Release);
++    let calls=AtomicUsize::new(0);let result=revoked.deliver(|_|async {calls.fetch_add(1,Ordering::AcqRel);Ok(())}).await;
++    room.world.allowed.store(true,Ordering::Release);
++    assert!(matches!(result,Err(StreamControlError::Authority)),"dequeue must re-read actual current source/receive permission: {result:?}");assert_eq!(calls.load(Ordering::Acquire),0);
++    let packet=external_direct_packet(port,input,76000).await;packet.try_forward_to(target,&desired(Medium::Video).logical_id).unwrap();
++    outgoing(output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,76000);Ok(())}).await.unwrap();
++    let packet=external_direct_packet(port,input,79000).await;packet.try_forward_to(target,&desired(Medium::Video).logical_id).unwrap();let cancelled=outgoing(output).await;
++    target.retire();assert!(cancelled.original_delivery_invalidated());
++    let calls=AtomicUsize::new(0);assert!(cancelled.deliver(|_|async {calls.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());assert_eq!(calls.load(Ordering::Acquire),0);
++    assert!(!source.shutdown.is_cancelled());
++}
++
+ #[tokio::test]
+ async fn managed_cut_preserves_exact_direct_publisher_outside_scene_without_new_source_control_permission() {
+     use crate::orchestrator::participant_control::{ManagedCutPublished,ManagedReceiveResourceRequirement};
+@@ -583,11 +649,17 @@
+         let mut stale=descriptor.clone();stale.stream_generation+=1;assert!(!witness.source_is_current(&source,&stale,&intent,witness.binding()));
+         let held=PortCommand {world:room.world.clone(),connection:source.connection.clone(),expected:0,mutation:PortMutation::Initialize,until:ready.grant.until};
+         let foreign=StreamController::with_held_control(room.conversation.clone(),room.session.clone(),source.connection.clone(),source.credential_snapshot().principal.as_ref().clone(),room.policy.clone(),Adapter::new(),Arc::new(StreamHandleAllocator::default()),4,8,CancellationToken::new(),&held).unwrap();
+-        assert!(!witness.source_is_current(&foreign,&descriptor,&intent,witness.binding()));assert_eq!(foreign.shutdown(deadline()).await,0);drop(foreign);drop(held);
++        assert!(!witness.source_is_current(&foreign,&descriptor,&intent,witness.binding()));
++        external_direct_scene_proof_negatives(&source,&destination,&target_port,&descriptor,&foreign);
++        assert_eq!(foreign.shutdown(deadline()).await,0);drop(foreign);drop(held);
++        assert!(!source.shutdown.is_cancelled()&&source.current_scene_stamp().unwrap().is_none());
+         room.world.allowed.store(false,Ordering::Release);assert!(!witness.source_is_current(&source,&descriptor,&intent,witness.binding()));room.world.allowed.store(true,Ordering::Release);
+         let mut expired=ReplacementCutCurrent::capture_for(&room,&ready.grant,&ready.plan,&prepared,"actual-attempt","actual-effect");expired.root.until=tokio::time::Instant::now();assert!(!expired.source_is_current(&source,&descriptor,&intent,expired.binding()));drop(expired);drop(witness);
+         let port=AdapterMediaPort(source.state.lock().unwrap().active[&binding.negotiated.requested.logical_id].clone());
+         port.try_publish(&frame(&port,61000)).unwrap();let before=receive(&mut ingress).await;
++        assert!(before.scene.is_none()&&source.current_scene_stamp().unwrap().is_none());
++        assert!(room.orch.session_of(&source.connection).is_none());
++        assert!(matches!(before.try_forward_to(&room.nodes[&ready.healthy_source].controller,&desired(Medium::Video).logical_id),Err(StreamControlError::Authority)),"a managed target without this explicit selection must refuse");
+         before.try_forward_to(&destination,&desired(Medium::Video).logical_id).unwrap();
+         outgoing(&mut output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,61000);Ok(())}).await.unwrap();
+         // A selected publisher outside the Scene still owns an actual source
+@@ -609,6 +681,14 @@
+         drop(held_source_port);drop(current);drop(role);drop(held);
+         let ManagedCutPublished::Replacement {post,..}=publish_ready(&room,&ready,prepared).await else {panic!("wrong purpose")};
+         room.orch.finish_managed_cut_publication(post).await.unwrap();
++        assert!(!transferred.direct_subscriptions.selected_at(&source,&desired(Medium::Video).logical_id,&desired(Medium::Video).logical_id,before.admitted_at),"the new receiver route was not active for this pre-cut packet");
++        let old_result=before.try_forward_to(&transferred,&desired(Medium::Video).logical_id);
++        match old_result {
++            Err(StreamControlError::Authority)=>{},
++            Err(StreamControlError::Deadline)=>assert!(before.admitted_at.elapsed()>Duration::from_millis(200),"age classification must use the original actual bound"),
++            other=>panic!("pre-cut packet borrowed a later receiver activation: {other:?}"),
++        }
++        assert!(transferred_output.try_recv().is_err());
+         port.try_publish(&frame(&port,64000)).unwrap();let after=receive(&mut ingress).await;
+         after.try_forward_to(&destination,&desired(Medium::Video).logical_id).unwrap();
+         outgoing(&mut output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,64000);Ok(())}).await.unwrap();
+@@ -617,6 +697,8 @@
+         assert!(!source.shutdown.is_cancelled());
+         room.nodes.get_mut(&ready.healthy_target).unwrap().drain();
+         room.nodes.get_mut(&ready.retained).unwrap().publish(6900).unwrap();room.nodes.get_mut(&ready.healthy_target).unwrap().hear(6900).await;
++        external_direct_post_cut_negatives(&room,&source,&destination,&room.nodes[&ready.healthy_source].controller,&port,&mut ingress,&mut output).await;
++        assert!(source.current_scene_stamp().unwrap().is_none()&&room.orch.session_of(&source.connection).is_none());
+     }).await;
+     room.world.allowed.store(true,Ordering::Release);
+     let clean=room.close_originals().await.into_iter().all(|value|value);

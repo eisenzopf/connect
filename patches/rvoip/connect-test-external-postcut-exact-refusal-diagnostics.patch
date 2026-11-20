@@ -1,0 +1,95 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/managed_model_cut_controls.rs
+@@ -619,6 +619,79 @@
+     target.retire();assert!(cancelled.original_delivery_invalidated());
+     let calls=AtomicUsize::new(0);assert!(cancelled.deliver(|_|async {calls.fetch_add(1,Ordering::AcqRel);Ok(())}).await.is_err());assert_eq!(calls.load(Ordering::Acquire),0);
+     assert!(!source.shutdown.is_cancelled());
++}
++
++
++// Failure-only fixture diagnostics. Never runs on successful packet admission,
++// authorizes no packet and never replaces the original forwarding Result.
++fn external_post_cut_refusal_diagnostics(
++    room:&ManagedRoom,ready:&ModelReady,source:&Arc<StreamController>,
++    target:&Arc<StreamController>,descriptor:&MediaSource,packet:&MediaPacket,
++    original:&StreamControlError,
++) {
++    let logical=desired(Medium::Video).logical_id;
++    eprintln!("EXTERNAL_POSTCUT stage=original error={original:?} age_us={} source_shutdown={} target_shutdown={} packet_scene={} source_scene={:?} session_member={}",packet.admitted_at.elapsed().as_micros(),source.shutdown.is_cancelled(),target.shutdown.is_cancelled(),packet.scene.is_some(),source.current_scene_stamp().map(|s|s.is_some()),room.orch.session_of(&source.connection).is_some());
++    for (name,id) in [("external",&source.connection),("old",&ready.old),("candidate",&target.connection)] {
++        match room.world.raw(id) {
++            Err(error)=>eprintln!("EXTERNAL_POSTCUT stage=raw name={name} error={error:?}"),
++            Ok(raw)=> {
++                eprintln!("EXTERNAL_POSTCUT stage=raw name={name} state={:?} generation={} proof_present={} proof_committed={:?} proof_target={:?} pending={} pending_target={:?}",raw.owner.connection.state(),raw.owner.connection.generation(),raw.proof.is_some(),raw.proof.as_ref().map(|p|p.is_committed()),raw.proof.as_ref().map(|p|p.belongs_to(target)),raw.pending.is_some(),raw.pending.as_ref().map(|p|p.binding().same_incarnation(&target.origin_binding)));
++                if name=="candidate" {
++                    if let (Some(proof),Some(pending))=(&raw.proof,&raw.pending) {
++                        match room.world.owner(&pending.intent().source) {
++                            Err(error)=>eprintln!("EXTERNAL_POSTCUT stage=provisional-source-owner error={error:?}"),
++                            Ok(old)=>eprintln!("EXTERNAL_POSTCUT stage=provisional-resources result={:?}",proof.current_replacement_resources(raw.owner.clone(),&old,pending).map(|owner|(owner.connection.state(),owner.connection.generation(),owner.connection.same_incarnation(&target.origin_binding)))),
++                        }
++                    }
++                }
++            }
++        }
++        eprintln!("EXTERNAL_POSTCUT stage=current-owner name={name} result={:?}",room.world.owner(id).map(|owner|(owner.connection.state(),owner.connection.generation(),owner.connection.same_incarnation(&target.origin_binding))));
++    }
++    let credential=target.credential_snapshot();
++    let scope=target.scope(&credential.principal,MediaPurpose::Receive {source:descriptor});
++    // WorldLease has no packet_context override; actual video forwarding uses
++    // current_queued -> current -> World::lease for this exact target scope.
++    let current=target.policy.current_queued(&scope);
++    match &current {
++        Err(error)=>eprintln!("EXTERNAL_POSTCUT stage=target-policy error={error:?}"),
++        Ok(lease)=> {
++            let owner=lease.authority();
++            eprintln!("EXTERNAL_POSTCUT stage=target-policy state={:?} generation={} current={:?} scope={:?} route={} send_video={} receive_video={}",owner.connection.state(),owner.connection.generation(),owner.connection.require_current(&owner.member,&owner.presence),StreamController::check(&scope,owner),owner.may_route_source,owner.send_media.contains(&Medium::Video),owner.receive_media.contains(&Medium::Video));
++            let model=target.state.try_lock().map(|state|(
++                state.model.authorize_binding(&owner.current()),state.closed,state.model.revision(),
++                state.model.streams().get(&logical).map(|s|(s.state,s.permits(true),s.source_muted,s.generation)),
++            )).map_err(|error|error.to_string());
++            eprintln!("EXTERNAL_POSTCUT stage=target-model result={model:?}");
++        }
++    }
++    drop(current);
++    let lookup=target.state.try_lock().map(|state|state.active.get(&logical).cloned())
++        .map_err(|error|error.to_string());
++    let port=match lookup {
++        Err(error)=>{eprintln!("EXTERNAL_POSTCUT stage=target-port-lookup busy_or_poison={error}");return;},
++        Ok(port)=>port,
++    };
++    let Some(port)=port else {eprintln!("EXTERNAL_POSTCUT stage=target-port-lookup absent=true");return;};
++    let physical=port.state.try_lock().map(|state|(state.status,state.ready,state.messages_only))
++        .map_err(|error|error.to_string());
++    eprintln!("EXTERNAL_POSTCUT stage=target-port result={physical:?} handle={} generation={} connection_generation={}",port.binding.stream_local_id,port.binding.generation,port.binding.connection_generation);
++    let ticket=port.ticket(TicketSide::Egress);
++    eprintln!("EXTERNAL_POSTCUT stage=target-port-ticket current={} identity={:?}",ticket.is_current(),port.require_ticket(TicketSide::Egress,&ticket));
++    match target.direct_subscriptions.stamp(source,&descriptor.logical_id,&logical,packet.admitted_at) {
++        Err(error)=>eprintln!("EXTERNAL_POSTCUT stage=direct-stamp error={error:?}"),
++        Ok(stamp)=> {
++            eprintln!("EXTERNAL_POSTCUT stage=direct-current current={} begin={:?}",stamp.is_current(),stamp.begin(target,&port,descriptor).map(|guard|{drop(guard);}));
++            match target.current_scene_stamp() {
++                Err(error)=>eprintln!("EXTERNAL_POSTCUT stage=target-scene error={error:?}"),
++                Ok(scene)=> {
++                    eprintln!("EXTERNAL_POSTCUT stage=target-scene present={} active_at_packet={:?}",scene.is_some(),scene.as_ref().map(|scene|scene.active_at(packet.admitted_at)));
++                    let check=scene_consumer::SceneCheck::receive(packet.scene.as_ref(),packet.admitted_at).frozen_receive(scene.as_ref());
++                    eprintln!("EXTERNAL_POSTCUT stage=direct-scene result={:?}",stamp.begin_with_scene(target,&port,descriptor,check).map(|guards|{drop(guards);}));
++                }
++            }
++        }
++    }
+ }
+ 
+ #[tokio::test]
+@@ -692,7 +765,11 @@
+         port.try_publish(&frame(&port,64000)).unwrap();let after=receive(&mut ingress).await;
+         after.try_forward_to(&destination,&desired(Medium::Video).logical_id).unwrap();
+         outgoing(&mut output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,64000);Ok(())}).await.unwrap();
+-        after.try_forward_to(&transferred,&desired(Medium::Video).logical_id).unwrap();
++        let actual_forward=after.try_forward_to(&transferred,&desired(Medium::Video).logical_id);
++        if let Err(error)=&actual_forward {
++            external_post_cut_refusal_diagnostics(&room,&ready,&source,&transferred,&descriptor,&after,error);
++        }
++        actual_forward.unwrap();
+         outgoing(&mut transferred_output).await.deliver(|frame|async move {assert_eq!(frame.timestamp_rtp,64000);Ok(())}).await.unwrap();
+         assert!(!source.shutdown.is_cancelled());
+         room.nodes.get_mut(&ready.healthy_target).unwrap().drain();

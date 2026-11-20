@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 154,
+  "mobile_content_revision": 233,
+  "recorded_at": "2026-11-20T16:09:20.281821+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "Actual G714 FAILED39PASS6FAIL/all9builds9inventoriesPASS; later Core695 and fiveServer observer166 failure frontiers; no new repair or qualification",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile233-source536-G714-root/before-write.json",
+  "private_before_sha256": "e0dfb01e515302693acbb368f21d487429e91ea80b5809686a96f236b390e5a0",
+  "private_write": ".local/gate-6/mobile233-source536-G714-root/write.json",
+  "private_write_sha256": "cfb2aebb4a564aec5c94ed963488f1061e7f89f68b8a9936235c273176d4e977",
+  "private_readback": ".local/gate-6/mobile233-source536-G714-root/readback.json",
+  "private_readback_sha256": "6e13e00cce7f2d6975cffc43a39f78be04f17d0646fb78ad4205d63dbfeadf8c"
+}

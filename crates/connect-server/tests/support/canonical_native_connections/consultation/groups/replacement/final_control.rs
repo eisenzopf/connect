@@ -1,5 +1,19 @@
 //! Actual signed Service replacement under actual Orchestrator participant-model exclusion.
 use super::*;
+#[path = "final_control/observer.rs"]
+mod observer;
+pub(super) struct Outcome {
+    pub negative: bool,
+    evidence: observer::Evidence,
+}
+impl Outcome {
+    pub(super) fn validate_completed(&self, done: &OperationRecord) {
+        self.evidence.validate_completed(done);
+    }
+    pub(super) fn validate_public(&self, done: &OperationRecord, packets: &[NativeProbeSequence]) {
+        self.evidence.validate_public(done, packets);
+    }
+}
 #[derive(Clone, Copy, Debug)]
 pub(super) enum Case {
     Resume,
@@ -31,11 +45,11 @@ pub(super) async fn verify(
     f: &Fixture,
     key: &str,
     command: &TransitionCommand,
-    _candidate: &str,
+    candidate_runtime: &str,
     peers: &mut [Peer],
     custody: &connect_service::canonical_media_projection_fixture::PreparationCustodyProbe,
     case: Case,
-) -> bool {
+) -> Outcome {
     tokio::time::timeout(Duration::from_secs(5), custody.entered())
         .await
         .expect("reader-free cold preparation did not enter");
@@ -43,7 +57,27 @@ pub(super) async fn verify(
     let original = status(f, key, &command.operation_id).await;
     let before:usize=rusqlite::Connection::open(&f.config.database).unwrap().query_row("SELECT count(*) FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit'",[&original.record_id],|r|r.get(0)).unwrap();
     assert_eq!(before, 0, "cold preparation started a final attempt");
+    // Preserve the once-chosen five-second publication cutoff. These short
+    // control observations preserve >10 fresh frames and the same measured
+    // 300ms minimum/200ms quiet tail, while reserving decision time explicitly.
+    let media_until = original_until
+        .checked_sub(Duration::from_millis(500))
+        .unwrap();
+    let mut evidence = observer::Evidence::begin(
+        f,
+        &original.record_id,
+        &command.operation_id,
+        candidate_runtime,
+        peers,
+        media_until,
+    )
+    .await;
     if matches!(case, Case::BeginFault) {
+        evidence.live_duplex(f, peers, media_until).await;
+        assert!(
+            tokio::time::Instant::now() + Duration::from_millis(250) < original_until,
+            "actual SQL fault must be submitted before the original cutoff"
+        );
         // Actual SQLite transaction has begun before this INSERT trigger
         // refuses. Public storage errors cannot prove pre-DML retry eligibility.
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
@@ -83,7 +117,7 @@ pub(super) async fn verify(
             .unwrap()
             .execute_batch("DROP TRIGGER fixture_final_begin_failure")
             .unwrap();
-        probe(peers, 0, &[1], "post-begin-failure-original-media").await;
+        evidence.cancelled_original(f, peers, original_until).await;
         tokio::time::sleep_until(original_until).await;
         assert_eq!(custody.actual_begin_submissions(), 1);
         assert_eq!(custody.actual_unpublished_returns(), 0);
@@ -93,7 +127,10 @@ pub(super) async fn verify(
             "uncertainty cannot become a fresh persisted Started/NotSubmitted"
         );
         eprintln!("SERVICE_FINAL_BEGIN real_sql_trigger_after_begin=true submissions=1 actual_core_calls=0 original_ids_retained=true");
-        return true;
+        return Outcome {
+            negative: true,
+            evidence,
+        };
     }
     let service = f.server.service.clone();
     let session = command.session_id.clone();
@@ -154,8 +191,18 @@ pub(super) async fn verify(
         }
     };
     drop(writer);
-    probe(peers, 0, &[1], "final-control-held-old-media").await;
-    probe(peers, 1, &[0], "final-control-held-remote-media").await;
+    evidence.live_duplex(f, peers, media_until).await;
+    assert!(
+        holder
+            .owner
+            .as_ref()
+            .is_some_and(|owner| !owner.is_finished()),
+        "actual model exclusion ended during pre-cut observations"
+    );
+    assert!(
+        tokio::time::Instant::now() + Duration::from_millis(250) < original_until,
+        "Resume/Revoke decision must retain margin before original expiry"
+    );
     let negative = !matches!(case, Case::Resume);
     if matches!(case, Case::Revoke) {
         let admin = f.server.store.authenticate(&f.admin).unwrap();
@@ -165,6 +212,10 @@ pub(super) async fn verify(
             .await
             .unwrap()
             .unwrap();
+        assert!(
+            tokio::time::Instant::now() < original_until,
+            "revocation must actually finish before expiry, not substitute an expiry control"
+        );
     } else if matches!(case, Case::Expire) {
         tokio::time::sleep_until(original_until + Duration::from_millis(1)).await;
     }
@@ -216,7 +267,7 @@ pub(super) async fn verify(
             drop(db);
             tokio::task::yield_now().await;
         }
-        probe(peers, 0, &[1], "refused-final-keeps-original-media").await;
+        evidence.cancelled_original(f, peers, until).await;
     }
     if matches!(case, Case::Resume) {
         tokio::time::timeout(Duration::from_secs(3), async {
@@ -239,5 +290,5 @@ pub(super) async fn verify(
         "actual latest Writer still has an alias after final turn"
     );
     eprintln!("SERVICE_FINAL_CONTROL case={case:?} actual_unpublished={} writer_free=true original_attempt={} original_effect={} holder_joined={joined} negative={negative}",custody.actual_unpublished_returns(),started.0,started.1);
-    negative
+    Outcome { negative, evidence }
 }

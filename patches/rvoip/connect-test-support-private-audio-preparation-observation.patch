@@ -1,0 +1,105 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions/preroll.rs
+@@ -147,6 +147,12 @@
+ impl AudioReplacementPreparation {
+     pub fn sources(&self) -> &[MediaSource] {
+         &self.sources
++    }
++    /// Structural observation metadata, not ownership of this preparation.
++    /// Dropping the ORIGINAL preparation still closes it at the same time.
++    #[cfg(feature = "test-support")]
++    pub fn observer_for_test(&self) -> AudioReplacementPreparationObserver {
++        AudioReplacementPreparationObserver { binding: self.binding.clone(), sources: self.sources.clone() }
+     }
+     pub fn is_current(&self) -> bool {
+         self.binding.is_current()
+@@ -478,3 +484,54 @@
+         }
+     }
+ }
++
++/// Exact original private structural metadata for a downstream isolated observer.
++/// It retains only the original binding's Weak resources, tickets, cancellation
++/// and fixed deadline, not the preparation object whose Drop closes the route.
++#[cfg(feature = "test-support")]
++pub struct AudioReplacementPreparationObserver {
++    binding: Arc<AudioPrerollBinding>,
++    sources: Vec<MediaSource>,
++}
++#[cfg(feature = "test-support")]
++impl AudioReplacementPreparationObserver {
++    /// Try-only actual state for a downstream isolated media-boundary observer.
++    /// The copied result is diagnostic metadata, never an authorization lease.
++    #[cfg(feature = "test-support")]
++    pub fn observation_for_test(&self) -> ControlResult<Option<AudioReplacementPreparationObservation>> {
++        let Some(target) = self.binding.target.upgrade() else { return Ok(None); };
++        let Some(port) = self.binding.target_port.upgrade() else { return Ok(None); };
++        let Some(gate) = self.binding.target_subscription.gate.upgrade() else { return Ok(None); };
++        // Pin exact already-selected resources BEFORE taking ticket guards;
++        // temporary Weak upgrades inside current_cut cannot become last-owner
++        // destructors while those guards are held.
++        let _source_owners = self.binding.sources.iter().filter_map(|source| source.owner.upgrade()).collect::<Vec<_>>();
++        let _source_ports = self.binding.sources.iter().filter_map(|source| source.port.upgrade()).collect::<Vec<_>>();
++        let originals = self.binding.cut_tickets();
++        let tickets = rvoip_core_traits::peer_switch::PeerRouteGuardSet::try_acquire(&originals)
++            .map_err(|error| match error {
++                rvoip_core_traits::peer_switch::PeerRouteGuardError::MetadataBusy => StreamControlError::MetadataBusy,
++                _ => StreamControlError::NotReady,
++            })?;
++        let state = crate::staged_streams::control_metadata::try_lock(&target.state)?;
++        let programme = crate::staged_streams::control_metadata::try_lock(&gate.state)?;
++        let physical = crate::staged_streams::control_metadata::try_lock(&port.state)?;
++        if matches!(physical.status, PortStatus::Retired | PortStatus::Closed) {
++            return Ok(None);
++        }
++        let logical = &port.binding.negotiated.requested.logical_id;
++        let stream = state.model.streams().get(logical).ok_or(StreamControlError::NotReady)?;
++        let exact = state.active.get(logical).is_some_and(|actual| Arc::ptr_eq(actual, &port));
++        Ok(Some(AudioReplacementPreparationObservation {
++            target_connection: target.connection.clone(),
++            target: port.binding.clone(),
++            native_egress: AdapterMediaPort(port.clone()).native_egress_identity(),
++            private_current: exact && !state.closed && self.binding.current_cut(&tickets),
++            source_muted: stream.source_muted,
++            ordinary_programme_empty: programme.program.selections.is_empty(),
++            sources: self.sources.clone(),
++        }))
++    }
++
++
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -8,7 +8,30 @@
+ use crate::ids::ParticipantId;
+ use preroll::AudioPrerollBinding;
+ pub use preroll::{AudioReplacementPreparation, AudioReplacementPreparationAttempt};
++#[cfg(feature = "test-support")]
++pub use preroll::AudioReplacementPreparationObserver;
+ use rvoip_core_traits::peer_switch::PeerDeliveryGuard;
++
++/// Actual private preparation metadata for isolated downstream observations.
++/// This owns no Controller, Port, ticket guard, reader or permission grant.
++#[cfg(feature = "test-support")]
++#[derive(Clone)]
++pub struct AudioReplacementPreparationObservation {
++    /// Exact original target Controller identity.
++    pub target_connection: ConnectionId,
++    /// Exact original prepared receiving resource.
++    pub target: ReadyMediaBinding,
++    /// Actual live native writer identity, if this preparation is native.
++    pub native_egress: Option<NativeEgressIdentity>,
++    /// Whether the complete original private ticket closure remains current.
++    pub private_current: bool,
++    /// Actual target stream publication mute, read from its current model.
++    pub source_muted: bool,
++    /// Actual target ordinary programme has no selections.
++    pub ordinary_programme_empty: bool,
++    /// Exact original selected source descriptors; not receive permission.
++    pub sources: Vec<MediaSource>,
++}
+ 
+ #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+ pub struct MediaStreamRef {

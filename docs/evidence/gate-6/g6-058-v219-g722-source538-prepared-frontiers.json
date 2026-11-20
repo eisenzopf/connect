@@ -1,0 +1,132 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 155,
+  "status": "REVIEWED_OBSERVER_AND_FIXTURE_BATCH_APPLIED_PREPARED538_FULL45_RUNTIME_UNRUN",
+  "latest_full_component_run": {
+    "id": "G714",
+    "generation": 536,
+    "completed": 45,
+    "passed": 39,
+    "failed": 6,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "builds_passed": 9,
+    "inventories_passed": 9,
+    "verdict": "FAILED_UNCHANGED"
+  },
+  "diagnostic_unit": {
+    "id": "G721",
+    "generation": 537,
+    "Core_test_build": "PASS",
+    "completed": 1,
+    "passed": 0,
+    "failed": 1,
+    "ignored": 0,
+    "verdict": "FAILED",
+    "packet_age_us_observed": 219,
+    "observation": "Actual target Port/ticket/Direct/Scene checks pass while stale Preparing/provisional fixture World owner/policy projection returns Authority",
+    "no_repaired_runtime_credit": true
+  },
+  "applied_prepared_batch": {
+    "workspace_observer_mapping": {
+      "files": 1,
+      "immutable_offer_Core_identity_vs_runtime_epoch_corrected": true,
+      "same_root_session_conversation_generation_live_lifetime_bound": true,
+      "SQLite_custody_ends_before_await": true,
+      "official_format_exit": 0,
+      "formatted_sha256": "23cfafdecaf3b3e8962c7e6f0e736fba90c2469e50dad272bb81d47e528ebad0"
+    },
+    "Core_test_projection": {
+      "generation": 538,
+      "changed_existing_TEST_files": 1,
+      "added_files": 0,
+      "genuine_prepublication_owner_captured": true,
+      "same_owner_projected_only_after_actual_published_post_and_exact_model_route_Port_checks": true,
+      "production_predicates_changed": false
+    },
+    "actual_preparation_audit": "ACCEPTED_PREPARATION_ONLY",
+    "complete_old537_tree_preserved": true,
+    "unchanged_mtimes_restored": 4278,
+    "source_files": 6569,
+    "source_lock_sha256": "05fe4e3a96622ad78e937880d370016ec3e5e9f9ccc8b6bb400375c2ccc0aa27",
+    "prepared": {
+      "rvoip": "8ae14fde4c10244e4ed7cc369974b21537b8583e1a34e6aea2ab989c043492c8",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "full45_compile_runtime": "UNRUN"
+  },
+  "original45_selectors_IO_negative_cleanup_oracles_and5s_bound_unchanged": true,
+  "historical_failures_preserved": true,
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 233,
+  "mobile234": "PROPOSAL_ONLY",
+  "recorded_at": "2026-11-20T16:27:39.572359+00:00",
+  "proofs": {
+    "G714_failed_actual_result": {
+      "path": ".local/gate-6/g714-source536-direct-native-observer-fortyfive-root/result.json",
+      "sha256": "a65e9987c4b8b9c90571af9b168fd7804ee613036fcb8da447d37b1cb69116d3"
+    },
+    "G714_failed_actual_audit": {
+      "path": ".local/gate-6/g714-actual45-independent-audit/receipt.json",
+      "sha256": "799a68f5513977415001c2ad77ca75ad9d10224ae14ede0035ac6af7231f3431"
+    },
+    "G721_failed_causal_unit_result": {
+      "path": ".local/gate-6/g721-source537-exact-core-refusal-causal-unit-root/result.json",
+      "sha256": "a4f2a8cfac419119d269f2e08dbd91a5a9b29ffa1a1a18f48d53e25b2ab18793"
+    },
+    "G721_failed_causal_unit_audit": {
+      "path": ".local/gate-6/g721-actual-core-causal-unit-independent-audit/receipt.json",
+      "sha256": "8d166698e9c28bdfb6ff02cd337cef100483e187c926cd1112f7bed9793ffc3c"
+    },
+    "observer_mapping_source_review": {
+      "path": ".local/gate-6/g714-observer-retained-core-mapping-independent-source-review/receipt.json",
+      "sha256": "fe4db84261d56b6e39f46544e9efe6cf801a4dc8838f74c29bb23b81af8be5e2"
+    },
+    "observer_mapping_actual_apply": {
+      "path": ".local/gate-6/g719-observer-core-identity-root/apply-receipt.json",
+      "sha256": "8358c3ee467df9b97c55606d80dca98b6a6c026fb0921bae717f55ae45b8fb64"
+    },
+    "observer_mapping_actual_format": {
+      "path": ".local/gate-6/g719-observer-core-identity-root/format-receipt.json",
+      "sha256": "05918dd508e4e44a5a5cfeb0d56d1aadf138d90689a79cca129340f6e4e41ddd"
+    },
+    "normal537_diagnostic_preparation_audit": {
+      "path": ".local/gate-6/g720-actual-normal537-observer-independent-audit/receipt.json",
+      "sha256": "398467532930b99b5955bbf8ef595efa4de674e211d321a4d1797f740d855064"
+    },
+    "projection_source_candidate": {
+      "path": ".local/gate-6/g721-external-genuine-publication-fixture-projection-source-candidate/manifest.json",
+      "sha256": "a97f588e652abd2df5eeb08c862e19c98a41624c25e6300e447e2f80542f3918"
+    },
+    "projection_nonauthor_source_review": {
+      "path": ".local/gate-6/g721-external-publication-projection-independent-epoch-source-review/receipt.json",
+      "sha256": "4d288687ba08e038709636924e328b11fd7976d0d6159b95014646250efb5e52"
+    },
+    "normal538_actual_preparation": {
+      "path": ".local/gate-6/g722-normal538-published-candidate-fixture-root/normal538-runtime/receipt.json",
+      "sha256": "e8083f4db11796454b53f4b413c92021c78be8d14be6af5a8721a187113de9c4"
+    },
+    "normal538_original_owner_join": {
+      "path": ".local/gate-6/g722-normal538-published-candidate-fixture-root/root-original-join.json",
+      "sha256": "7ca21d1aaf201f1214fa4dd63dd8de87b523693272c43f248b01bec7205eb760"
+    },
+    "normal538_actual_preparation_audit": {
+      "path": ".local/gate-6/g722-actual-normal538-independent-audit/receipt.json",
+      "sha256": "601924177e5c5df5310ca3520bcdd5d089c4dd4806fd8afd63d15b35369fd70f"
+    },
+    "last_mobile233_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v233-source536-G714.json",
+      "sha256": "b8c82e14c6d43bd34c81977ce1469cdabec72be5d47e8330ee7a4cad52749bd6"
+    }
+  }
+}
