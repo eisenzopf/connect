@@ -1,0 +1,116 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 159,
+  "status": "ACTUAL_G735_COMPLETE45_FAILED41PASS4FAIL_REGRESSION_FROM42OF45",
+  "actual_component_run": {
+    "id": "G735",
+    "generation": 539,
+    "committed_base": "7162da46cefff79800f363d247e617a37d2c0bce",
+    "source_files": 6578,
+    "source_sha256": "16b638efd6486b64694e41d943f1c3fee35c13060c801b04a9666b5e0d06bff1",
+    "completed": 45,
+    "passed": 41,
+    "failed": 4,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "builds_passed": 9,
+    "inventories_passed": 9,
+    "verdict": "FAILED",
+    "comparison_toG724": "REGRESSION_42PASS3FAIL_TO41PASS4FAIL",
+    "lost_previous_PASS": "Server Expire",
+    "all_other_case_verdicts_unchanged": true,
+    "full_Core_external_and_realBeginFault_PASS_retained": true,
+    "source_prepared_and9binary_hashes_unchanged": true,
+    "root_and64children_natural_unforced_joined_fresh_PID_PGID_absent": true,
+    "child_exit_counts": {
+      "0": 60,
+      "101": 4
+    }
+  },
+  "failure_frontiers": {
+    "Resume": {
+      "measured_quiet": "PASS",
+      "fresh_public_frames": 4,
+      "required": "greater than10",
+      "location": "observer.rs579"
+    },
+    "Revoke": {
+      "measured_quiet": "PASS",
+      "fresh_public_frames": 5,
+      "required": "greater than10",
+      "location": "observer.rs579"
+    },
+    "Expire": {
+      "measured_quiet": "PASS",
+      "fresh_public_frames": 2,
+      "required": "greater than10",
+      "location": "observer.rs579",
+      "prior_G724": "PASS_NOW_REGRESSED"
+    },
+    "Unwind": {
+      "measured_quiet": "FAIL",
+      "location": "observer.rs568",
+      "maximum_event_wait_us_observed": 4640557,
+      "maximum_scene_wake_gap_us_observed": 4648561
+    },
+    "remaining_four_control_tails": "UNVERIFIED",
+    "exact_fresh_count_and_stall_causes": "UNPROVEN",
+    "sole_metadata_lock_or_Writer_epoch_churn_attribution": false
+  },
+  "G732_two_new_regression_units": "TWO_SCOPED_PASSES_RETAINED_NOT_AGGREGATE45_CREDIT",
+  "next_source_fix_plans": "UNDER_INVESTIGATION_UNAPPLIED",
+  "all45_thresholds_quiet_original5s_authorization_and_sequence_oracles": "UNCHANGED",
+  "all_historical_failures_preserved": true,
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 237,
+  "mobile238": "PROPOSAL_ONLY",
+  "recorded_at": "2026-11-20T18:19:05.492420+00:00",
+  "proofs": {
+    "G735_actual_failed_result": {
+      "path": ".local/gate-6/g735-source539-model-nonblocking-fortyfive-root/result.json",
+      "sha256": "5e838ed9a5708b0594f23010dba5c9aaa5ac2427ac70bd9ccb74cc4467fa20e7"
+    },
+    "G735_original_root_join": {
+      "path": ".local/gate-6/g735-source539-model-nonblocking-fortyfive-root/root-original-join.json",
+      "sha256": "719b98c33730484eacf63c086574457e72666f60ef6a5ae509fc6a963f5079d0"
+    },
+    "G735_actual_independent_audit": {
+      "path": ".local/gate-6/g735-actual45-independent-audit/receipt.json",
+      "sha256": "7094d3456ab319fec487c1100245df28100e843e0b803029d8920ce69652dee9"
+    },
+    "G735_actual_raw_verdicts": {
+      "path": ".local/gate-6/g735-actual45-independent-audit/actual-verdicts.json",
+      "sha256": "089a0afbb1d33980c27b4a9df7a08359a2c5853255c3512fb84677de1860bd62"
+    },
+    "G735_bound_plan": {
+      "path": ".local/gate-6/g735-source539-model-nonblocking-fortyfive-root/plan.json",
+      "sha256": "28f6051c58dc4f2ba543fba3d2c87fcb06e0ce3a8928a8c96e91ecd1adc0ee19"
+    },
+    "G724_prior_failed_actual_audit": {
+      "path": ".local/gate-6/g724-actual45-independent-audit/receipt.json",
+      "sha256": "b93aeb5c5d54a517571e3c6cde3811e4d853fccb11fa9b837a8524774691a7c9"
+    },
+    "G732_two_unit_actual_audit": {
+      "path": ".local/gate-6/g732-actual-two-causal-units-independent-audit/receipt.json",
+      "sha256": "b434df3bd00b85ae28f684a9302861182c888278f744fb77cbb840ea542034dd"
+    },
+    "normal539_actual_preparation_audit": {
+      "path": ".local/gate-6/g729-actual-normal539-combined-independent-audit/receipt.json",
+      "sha256": "93ecabd2193699b24a61473c63cc3e987aaab43b669f1af9329b6f0273c8b50b"
+    },
+    "last_mobile237_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v237-source539-two-unit-passes.json",
+      "sha256": "114cf78ab95d93a2de27d00c6c95e8155a59d856cbfd179836f4ec6286c8d8af"
+    }
+  }
+}

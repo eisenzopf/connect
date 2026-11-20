@@ -1,19 +1,19 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-20T17:26:40.117085+00:00",
-  "revision": 158,
+  "updated_at": "2026-11-20T18:19:05.492420+00:00",
+  "revision": 159,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint158-mobile237-scoped-readback",
-    "content_revision": 237,
-    "readback_evidence": ".local/gate-6/mobile237-source539-two-unit-passes-root/readback.json",
-    "readback_evidence_sha256": "aefe7e0ea58c6b3751c8e4e39e4fff00ac6e21186d91542b6a39a5c464c27b77",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v237-source539-two-unit-passes.json",
-    "postrun_readback_sha256": "114cf78ab95d93a2de27d00c6c95e8155a59d856cbfd179836f4ec6286c8d8af"
+    "sync_status": "verified-checkpoint159-mobile238-scoped-readback",
+    "content_revision": 238,
+    "readback_evidence": ".local/gate-6/mobile238-source539-fortyfive-regression-root/readback.json",
+    "readback_evidence_sha256": "6685b59642a4e9ed79981dac4833b459a6aab86e8488e03e99b0af360f9d527e",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v238-source539-fortyfive-regression.json",
+    "postrun_readback_sha256": "1841a757f10c043ca4683966f2e64b1bd19a16ccb0de6889bc74aa586279be11"
   },
   "baseline": {
     "run": "v215",
@@ -1384,7 +1384,7 @@
         "V219-WSS-INGRESS"
       ],
       "status": "in-progress",
-      "implementation_state": "G732 verified the two new model-observation regression units on unchanged source539. The Core test build passed and its exact held-model role-watcher selector passed1/0/0ignored; the Service test build passed and its exact scalar-wait/initializer selector passed1/0/0ignored. Both original Cargo owners closed naturally, unforced and freshly absent; current CargoJSON manifests/features/opt0debug2 test profiles and executable hashes were verified. The6576-file source and prepared dependencies stayed unchanged. These are two distinct unit passes only. The Core control directly proves initial modelBusy/read-snapshot behavior, four-worker/timer progress while the actual model is held, real policy-reader release/revocation, same-mutation recovery/replay and missing/terminal handling. The second/final mutation acquisition race closures remain source-verified rather than separately forced by this unit. The Service control proves a real Store/session projection, typed scalar Busy and live existence without reinitialization, original cutoff/cancel behavior, concurrent async progress releasing the original model holder, and terminal/missing distinction. The next same45 component run is UNRUN; G724 remains the latest completed component verdict at42PASS/3FAIL, with Resume/Revoke/Unwind measured-quiet failures and their remaining tails unverified. Neither unit retroactively regrades G724 or proves the sole cause of its prior stalls, whole-role/all-lock freedom or complete media/control behavior. The reviewed539 batch remains applied/prepared; no new code change is inferred from the unit outcomes. Current shared379, complete affected regressions including whole Core-traits/SIP and both new test identities, OriginalV8 and all seven recorded readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile237 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+      "implementation_state": "G735 completed all45 selected component tests on committed source539 after all nine builds and nine inventories passed:41PASS/4FAIL, with no ignored, incomplete or unrun cases. This is an overall regression from G72442/45:Server Expire lost its prior pass, while every other case verdict stayed the same. The Core external-source control and real post-BEGIN SQL-fault control remain full passes; the two new G732 Core/Service regression-unit passes remain separate scoped evidence. Root and all64 original children closed naturally, were joined and freshly absent; the6578-file source, prepared dependencies and nine binary hashes stayed fixed. Resume, Revoke and Expire now pass measured quiet in the first live-duplex phase but fail the unchanged greater-than-ten fresh public decoded-frame requirement, observing4,5 and2 frames respectively at observer.rs579. Unwind still fails the unchanged quiet cutoff at observer.rs568; its diagnostic records a4.64s maximum event wait and about4.65s scene wake gap. The remaining control tails for all four failed cases are unverified. Exact fresh-window count and scheduling-stall causes remain unproven; source metadata locks or Writer epoch churn are not established as sole causes. Two source-fix plans are being investigated and remain unapplied. No frame threshold, quiet predicate, original5s publication bound, authorization or native sequence oracle is relaxed. G735 remains failed, and G72442/45 plus all earlier failed results retain their historical verdicts. Current shared379, complete affected regressions including whole Core-traits/SIP and both new test identities, OriginalV8 and all seven recorded readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile238 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1588,6 +1588,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v219-g732-source539-two-unit-passes.json",
           "result": "G732 actualnewCore1PASS+Service1PASS aftercurrenttestbuildsPASS/source6576unchanged/originalownersnatural. Scoped initialBusy/scalar-yield/revocation/replay/terminal proofs only; later2mutationraceclosures source-only. Same45UNRUN/G72442of45FAILED retained; no broaderqualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g735-source539-fortyfive-regression.json",
+          "result": "G735 complete45 FAILED41PASS4FAIL after9builds/9inventoriesPASS, regressionfromG72442/45. Resume/Revoke/Expire quietPASSbutfreshpubliccounts4/5/2FAIL; UnwindquietFAIL4.64seventwait. AllfourtailsUNVERIFIED/causesunproven/plansunapplied. TwoG732unitsPASSretained separately; no qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -1595,7 +1600,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-20T17:26:40.117085+00:00",
+      "updated_at": "2026-11-20T18:19:05.492420+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -2029,6 +2034,20 @@
         "latest_component_tests_failed": 3,
         "prepared_generation": 539,
         "same45_runtime": "UNRUN",
+        "qualification": false,
+        "matrix_credit": false
+      },
+      "current_frontiers_checkpoint159": {
+        "status": "actualG73541PASS4FAIL-regression-freshcount3-quiet1-unproven-causes",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g735-source539-fortyfive-regression.json",
+        "sha256": "2f17457a7a31341b2d9e8658374cf2103bcf410beac302d8f5b4e6948fa41efa",
+        "actual_tests_completed": 45,
+        "actual_tests_passed": 41,
+        "actual_tests_failed": 4,
+        "prepared_generation": 539,
+        "overall_vsG724": "REGRESSION_FROM42PASS3FAIL",
+        "new_unit_scoped_passes_retained": 2,
+        "next_source_fixes": "INVESTIGATION_UNAPPLIED",
         "qualification": false,
         "matrix_credit": false
       }
@@ -6341,6 +6360,13 @@
       "event": "G732 newCore+Service2unitsPASS aftercurrentbuilds/profiles/artifacts source5396576unchanged; bothCargoownersnatural0freshabsent. Scope2only/same45UNRUN/G72442of45FAILED remains; no full/readiness/matrix credit.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g732-source539-two-unit-passes.json",
       "by": "/root"
+    },
+    {
+      "at": "2026-11-20T18:19:05.492420+00:00",
+      "revision": 159,
+      "event": "G735 actual45=41PASS4FAIL regressionfromG72442/45; all9builds/inventoriesPASS/source6578+9binarySHAsfixed/root+64childrennatural. ThreequietPASSfreshcountFAIL/UnwindquietFAIL; exactcausesunproven/plansunapplied. G7322unitPASSretained separately; no full/readiness/matrix credit.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g735-source539-fortyfive-regression.json",
+      "by": "/root"
     }
   ],
   "tracking_review": {
@@ -7970,11 +7996,11 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "G732 verified the two new model-observation regression units on unchanged source539. The Core test build passed and its exact held-model role-watcher selector passed1/0/0ignored; the Service test build passed and its exact scalar-wait/initializer selector passed1/0/0ignored. Both original Cargo owners closed naturally, unforced and freshly absent; current CargoJSON manifests/features/opt0debug2 test profiles and executable hashes were verified. The6576-file source and prepared dependencies stayed unchanged. These are two distinct unit passes only. The Core control directly proves initial modelBusy/read-snapshot behavior, four-worker/timer progress while the actual model is held, real policy-reader release/revocation, same-mutation recovery/replay and missing/terminal handling. The second/final mutation acquisition race closures remain source-verified rather than separately forced by this unit. The Service control proves a real Store/session projection, typed scalar Busy and live existence without reinitialization, original cutoff/cancel behavior, concurrent async progress releasing the original model holder, and terminal/missing distinction. The next same45 component run is UNRUN; G724 remains the latest completed component verdict at42PASS/3FAIL, with Resume/Revoke/Unwind measured-quiet failures and their remaining tails unverified. Neither unit retroactively regrades G724 or proves the sole cause of its prior stalls, whole-role/all-lock freedom or complete media/control behavior. The reviewed539 batch remains applied/prepared; no new code change is inferred from the unit outcomes. Current shared379, complete affected regressions including whole Core-traits/SIP and both new test identities, OriginalV8 and all seven recorded readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile237 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g732-source539-two-unit-passes.json",
-    "sha256": "f117564ea43d5202b22111d94739c94d8817c40a21cef41c79e5f8a965ad3610"
+    "status": "G735 completed all45 selected component tests on committed source539 after all nine builds and nine inventories passed:41PASS/4FAIL, with no ignored, incomplete or unrun cases. This is an overall regression from G72442/45:Server Expire lost its prior pass, while every other case verdict stayed the same. The Core external-source control and real post-BEGIN SQL-fault control remain full passes; the two new G732 Core/Service regression-unit passes remain separate scoped evidence. Root and all64 original children closed naturally, were joined and freshly absent; the6578-file source, prepared dependencies and nine binary hashes stayed fixed. Resume, Revoke and Expire now pass measured quiet in the first live-duplex phase but fail the unchanged greater-than-ten fresh public decoded-frame requirement, observing4,5 and2 frames respectively at observer.rs579. Unwind still fails the unchanged quiet cutoff at observer.rs568; its diagnostic records a4.64s maximum event wait and about4.65s scene wake gap. The remaining control tails for all four failed cases are unverified. Exact fresh-window count and scheduling-stall causes remain unproven; source metadata locks or Writer epoch churn are not established as sole causes. Two source-fix plans are being investigated and remain unapplied. No frame threshold, quiet predicate, original5s publication bound, authorization or native sequence oracle is relaxed. G735 remains failed, and G72442/45 plus all earlier failed results retain their historical verdicts. Current shared379, complete affected regressions including whole Core-traits/SIP and both new test identities, OriginalV8 and all seven recorded readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile238 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g735-source539-fortyfive-regression.json",
+    "sha256": "2f17457a7a31341b2d9e8658374cf2103bcf410beac302d8f5b4e6948fa41efa"
   },
-  "updated": "2026-11-20T17:26:40.117085+00:00",
+  "updated": "2026-11-20T18:19:05.492420+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -8624,5 +8650,29 @@
     ],
     "actual_last_readback_revision": 236,
     "publication_transform": "Prefix first paragraph Revision237 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
+  },
+  "v219_g735_source539_fortyfive_regression": {
+    "status": "actualG73541PASS4FAIL-regression-freshcount3-quiet1-unproven-causes",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g735-source539-fortyfive-regression.json",
+    "sha256": "2f17457a7a31341b2d9e8658374cf2103bcf410beac302d8f5b4e6948fa41efa",
+    "actual_tests_completed": 45,
+    "actual_tests_passed": 41,
+    "actual_tests_failed": 4,
+    "prepared_generation": 539,
+    "overall_vsG724": "REGRESSION_FROM42PASS3FAIL",
+    "new_unit_scoped_passes_retained": 2,
+    "next_source_fixes": "INVESTIGATION_UNAPPLIED",
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "mobile238_proposal": {
+    "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
+    "paragraphs": [
+      "Checkpoint159: G735 completed all45 component tests after nine builds and nine inventories passed:41PASS/4FAIL, with no ignored, incomplete or unrun cases. This regresses from G72442/45 because Expire lost its pass; all other case verdicts are unchanged. Core external-source and real post-BEGIN fault controls still pass, and the two new regression-unit passes remain separate evidence. Source539 and binaries stayed fixed; original owners closed naturally.",
+      "Resume, Revoke and Expire now pass quiet but fail the unchanged fresh-public-frame requirement with4,5 and2 frames. Unwind still fails quiet with an observed4.64s event wait. All four remaining tails are unverified. Exact causes remain unproven; neither metadata locks nor Writer epoch churn is a proved sole cause. Two source-fix plans remain under investigation and unapplied; thresholds, quiet and original5s bounds stay unchanged.",
+      "Matrix remains1/32 cells and399/432 checks, with no new credit and not ready for32. Current shared379, complete affected regressions, OriginalV8 and all seven readiness scopes remain open; G6-054 stays parked. Mobile237 remains the last verified readback. This mobile238 text is a proposal only; publication and scoped readback are not claimed."
+    ],
+    "actual_last_readback_revision": 237,
+    "publication_transform": "Prefix first paragraph Revision238 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
   }
 }
