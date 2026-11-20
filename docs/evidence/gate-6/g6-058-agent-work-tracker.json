@@ -1,19 +1,19 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-20T16:27:39.572359+00:00",
-  "revision": 155,
+  "updated_at": "2026-11-20T16:48:46.742430+00:00",
+  "revision": 156,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint155-mobile234-scoped-readback",
-    "content_revision": 234,
-    "readback_evidence": ".local/gate-6/mobile234-source538-prepared-root/readback.json",
-    "readback_evidence_sha256": "ac9a1792a73ccea70b11ba7913ff9fc2d8cd901d94c9bb129e3717cefd2bec98",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v234-source538-prepared.json",
-    "postrun_readback_sha256": "2877505771e8eaa6381be6e580ccc446e048971e5a2123fe7108b6805744d11a"
+    "sync_status": "verified-checkpoint156-mobile235-scoped-readback",
+    "content_revision": 235,
+    "readback_evidence": ".local/gate-6/mobile235-source538-fortyfive-root/readback.json",
+    "readback_evidence_sha256": "82f72acad78e3dcb7aa1135e089aeb4a4e7f4a8c4f501a1262842a0b7a037ab6",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v235-source538-fortyfive.json",
+    "postrun_readback_sha256": "78967e55dff3a2fded22bc810a81cdd3ed5b9ee69423311784644f9e7cfa6c08"
   },
   "baseline": {
     "run": "v215",
@@ -1384,7 +1384,7 @@
         "V219-WSS-INGRESS"
       ],
       "status": "in-progress",
-      "implementation_state": "G714 remains the last completed45-case component run:39PASS/6FAIL after all nine builds and nine inventories passed, with no ignored, incomplete or unrun cases. Source536 and all nine binaries stayed fixed; all original owners closed naturally. The failed run is not regraded. The later G721 diagnostic ran only the original Core external-source selector on source537:its actual Core test build passed, but the unit failed0PASS/1FAIL/0ignored. At the219us original refusal, target Port/ticket/Direct/Scene checks were current while the fixture candidate still used a Preparing/provisional World owner despite committed proof and actual publication; its owner/policy projection refused Authority. This identifies the fixture projection frontier without proving a corrected media boundary. Two reviewed fixture/observer changes are now applied and prepared. The workspace observer maps retained wire identity through the immutable connection_offers Core mapping, checks the same root/session/conversation/generation/live runtime lifetime, and drops SQLite custody before await; official formatting and normal537 preparation were audited. Normal538 then prepared the exact single Core test-file projection correction:it captures the genuine current candidate before publication and projects that same owner only after actual Published outcome, completed owned post and exact model/route/Port checks, removing stale provisional fixture metadata. Production permission/currentness predicates, all45 selectors, original IO/negative/cleanup oracles and original5s Server bound remain unchanged. The complete old537 tree and4278 unchanged source mtimes were preserved; both preparation commands closed naturally, and the current6569-file source/prepared/lock audit passed. The full45 compilation/runtime after this batch is UNRUN; no successful repair is claimed. G71439/45, G70439/45, G70039/45, G69631/45 and all earlier failed results retain their verdicts. Current shared379, complete affected regressions including whole Core-traits/SIP, OriginalV8 and all seven readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile234 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+      "implementation_state": "G724 completed all45 selected component tests on the committed source538 batch after all nine builds and nine inventories passed:42PASS/3FAIL, with no ignored, incomplete or unrun cases. All previous39 passing case identities remain passing. The full Core external-source control and the Server Expire and real post-BEGIN SQL-fault controls now pass their complete original tails. Resume, Revoke and Unwind still fail the unchanged observer.rs529 measured-quiet assertion in their first live-duplex window; the remaining tails for those three cases are unverified. Root and all64 original children closed naturally, were joined and freshly absent; the6571-file source, prepared dependencies and nine binary hashes stayed fixed. The run remains failed. In the two passing Server cases, each live phase completed in about702–705ms with20 real sends,18–20 fresh decoded public/private frames where required and zero outgoing-muted delivery; maximum observed scene wake gaps were about28ms. The three failures recorded scene wake gaps of about4.4–4.7s, but their failed-phase send/public/private counters were not printed. This timing comparison does not prove the sole blocking cause or a comfort-noise explanation. Source review confirms the100ms native custodian can call unchanged_native_role_hint and other role/revision getters that take blocking Core participant-model locks. A production nonblocking correction is under investigation; neither that correction nor the reviewed source-only quiet-failure diagnostics is applied. The quiet predicate, original5s publication bound and all original oracles remain unchanged. G71439/45, G70439/45, G70039/45, G69631/45 and the G7210/1 diagnostic retain their historical failed verdicts. Current shared379, complete affected regressions including whole Core-traits/SIP, OriginalV8 and all seven recorded readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile235 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1573,6 +1573,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v219-g722-source538-prepared-frontiers.json",
           "result": "G714 remains FAILED39/45; G721 diagnosticCore unit FAILED0/1 after buildPASS. Reviewed observer identity mapping and genuine-published candidate fixture projection applied/prepared538 and independently audited. Corrected full45 compile/runtime UNRUN; no qualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g724-source538-fortyfive-frontiers.json",
+          "result": "G724 complete45 FAILED42PASS3FAIL after9builds/9inventoriesPASS. Core external-source and ServerExpire/realBeginFault fullPASS; Resume/Revoke/Unwind measuredquiet cutoff fails and remainingtailsUNVERIFIED. Productionblockingrolepath confirmedsource/solecauseunproven; no appliednewfix/full/matrix qualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -1580,7 +1585,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-20T16:27:39.572359+00:00",
+      "updated_at": "2026-11-20T16:48:46.742430+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -1974,6 +1979,18 @@
         "diagnostic_Core_unit_failed": 1,
         "prepared_generation": 538,
         "repair_compile_runtime": "UNRUN",
+        "qualification": false,
+        "matrix_credit": false
+      },
+      "current_frontiers_checkpoint156": {
+        "status": "actualG724-complete45-42PASS3FAIL-threeNativeQuiet-frontiers",
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g724-source538-fortyfive-frontiers.json",
+        "sha256": "56a8b896e1b87fc9bff487551043dce799bd2b96eea295e00cc96e6d8601936c",
+        "actual_tests_completed": 45,
+        "actual_tests_passed": 42,
+        "actual_tests_failed": 3,
+        "prepared_generation": 538,
+        "next_repair_state": "SOURCE_INVESTIGATION_UNAPPLIED",
         "qualification": false,
         "matrix_credit": false
       }
@@ -6265,6 +6282,13 @@
       "event": "G721 diagnosticCore unit remains FAILED0/1 with fixtureWorldprojection refusal despite actualPort/Direct/Scene current. Reviewed observermapping applied/formatted and test-only candidateprojection normallyprepared538/audited; current6569source exact. G71439/45 unchanged; corrected full45 compile/runtime UNRUN; no qualification.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g722-source538-prepared-frontiers.json",
       "by": "/root"
+    },
+    {
+      "at": "2026-11-20T16:48:46.742430+00:00",
+      "revision": 156,
+      "event": "G724 complete45=42PASS3FAIL; all9builds/inventoriesPASS/source6571+9binariesfixed/root+64childrennatural. Core and ServerExpire/realBeginFault tailsPASS; threeServer failfirstliveDuplex measuredquiet. Wakegap/sourceblockingrolepath evidence notsolecauseproof; nextproduction/diagnosticchangesunapplied. No full/matrix qualification.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g724-source538-fortyfive-frontiers.json",
+      "by": "/root"
     }
   ],
   "tracking_review": {
@@ -7894,11 +7918,11 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "G714 remains the last completed45-case component run:39PASS/6FAIL after all nine builds and nine inventories passed, with no ignored, incomplete or unrun cases. Source536 and all nine binaries stayed fixed; all original owners closed naturally. The failed run is not regraded. The later G721 diagnostic ran only the original Core external-source selector on source537:its actual Core test build passed, but the unit failed0PASS/1FAIL/0ignored. At the219us original refusal, target Port/ticket/Direct/Scene checks were current while the fixture candidate still used a Preparing/provisional World owner despite committed proof and actual publication; its owner/policy projection refused Authority. This identifies the fixture projection frontier without proving a corrected media boundary. Two reviewed fixture/observer changes are now applied and prepared. The workspace observer maps retained wire identity through the immutable connection_offers Core mapping, checks the same root/session/conversation/generation/live runtime lifetime, and drops SQLite custody before await; official formatting and normal537 preparation were audited. Normal538 then prepared the exact single Core test-file projection correction:it captures the genuine current candidate before publication and projects that same owner only after actual Published outcome, completed owned post and exact model/route/Port checks, removing stale provisional fixture metadata. Production permission/currentness predicates, all45 selectors, original IO/negative/cleanup oracles and original5s Server bound remain unchanged. The complete old537 tree and4278 unchanged source mtimes were preserved; both preparation commands closed naturally, and the current6569-file source/prepared/lock audit passed. The full45 compilation/runtime after this batch is UNRUN; no successful repair is claimed. G71439/45, G70439/45, G70039/45, G69631/45 and all earlier failed results retain their verdicts. Current shared379, complete affected regressions including whole Core-traits/SIP, OriginalV8 and all seven readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile234 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g722-source538-prepared-frontiers.json",
-    "sha256": "b8d6af57f155a7daa7b53bc79857a20f0e0d71bea6a2dd60eb6009bc637dae86"
+    "status": "G724 completed all45 selected component tests on the committed source538 batch after all nine builds and nine inventories passed:42PASS/3FAIL, with no ignored, incomplete or unrun cases. All previous39 passing case identities remain passing. The full Core external-source control and the Server Expire and real post-BEGIN SQL-fault controls now pass their complete original tails. Resume, Revoke and Unwind still fail the unchanged observer.rs529 measured-quiet assertion in their first live-duplex window; the remaining tails for those three cases are unverified. Root and all64 original children closed naturally, were joined and freshly absent; the6571-file source, prepared dependencies and nine binary hashes stayed fixed. The run remains failed. In the two passing Server cases, each live phase completed in about702–705ms with20 real sends,18–20 fresh decoded public/private frames where required and zero outgoing-muted delivery; maximum observed scene wake gaps were about28ms. The three failures recorded scene wake gaps of about4.4–4.7s, but their failed-phase send/public/private counters were not printed. This timing comparison does not prove the sole blocking cause or a comfort-noise explanation. Source review confirms the100ms native custodian can call unchanged_native_role_hint and other role/revision getters that take blocking Core participant-model locks. A production nonblocking correction is under investigation; neither that correction nor the reviewed source-only quiet-failure diagnostics is applied. The quiet predicate, original5s publication bound and all original oracles remain unchanged. G71439/45, G70439/45, G70039/45, G69631/45 and the G7210/1 diagnostic retain their historical failed verdicts. Current shared379, complete affected regressions including whole Core-traits/SIP, OriginalV8 and all seven recorded readiness scopes remain open. Matrix stays v218:1/32 cells and399/432 checks, no new credit and not ready for32; G6-054 remains parked. Mobile235 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g724-source538-fortyfive-frontiers.json",
+    "sha256": "56a8b896e1b87fc9bff487551043dce799bd2b96eea295e00cc96e6d8601936c"
   },
-  "updated": "2026-11-20T16:27:39.572359+00:00",
+  "updated": "2026-11-20T16:48:46.742430+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -8478,5 +8502,27 @@
     ],
     "actual_last_readback_revision": 233,
     "publication_transform": "Prefix first paragraph Revision234 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
+  },
+  "v219_g724_source538_fortyfive_frontiers": {
+    "status": "actualG724-complete45-42PASS3FAIL-threeNativeQuiet-frontiers",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g724-source538-fortyfive-frontiers.json",
+    "sha256": "56a8b896e1b87fc9bff487551043dce799bd2b96eea295e00cc96e6d8601936c",
+    "actual_tests_completed": 45,
+    "actual_tests_passed": 42,
+    "actual_tests_failed": 3,
+    "prepared_generation": 538,
+    "next_repair_state": "SOURCE_INVESTIGATION_UNAPPLIED",
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "mobile235_proposal": {
+    "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
+    "paragraphs": [
+      "Checkpoint156: G724 completed all45 component tests after nine builds and nine inventories passed:42PASS/3FAIL, with no ignored, incomplete or unrun cases. All previous39 passes remain. The full Core external-source control and Server Expire/real post-BEGIN fault controls now pass. Source538, binaries and original owners stayed fixed and closed naturally. The overall run remains failed.",
+      "Resume, Revoke and Unwind fail the unchanged measured-quiet cutoff in their first live-duplex window; later tails are unverified. Passing cases show real public/private frames and muted-zero phases in about0.7s; failing cases record4.4–4.7s wake gaps without failed-phase counters. A blocking custodian-to-Core role-lookup path is confirmed in source, but sole causal attribution is unproven. A production correction and reviewed diagnostic logging remain unapplied; no oracle or5s bound is relaxed.",
+      "Matrix remains1/32 cells and399/432 checks, with no new credit and not ready for32. Current shared379, complete affected regressions, OriginalV8 and all seven readiness scopes remain open; G6-054 stays parked. Mobile234 remains the last verified readback. This mobile235 text is a proposal only; publication and scoped readback are not claimed."
+    ],
+    "actual_last_readback_revision": 234,
+    "publication_transform": "Prefix first paragraph Revision235 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
   }
 }

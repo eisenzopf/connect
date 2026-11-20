@@ -1,0 +1,137 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 156,
+  "status": "ACTUAL_G724_COMPLETE45_42PASS3FAIL_NO_FULL_QUALIFICATION",
+  "actual_component_run": {
+    "id": "G724",
+    "generation": 538,
+    "source_files": 6571,
+    "source_sha256": "c8837951357aa46f842655b63aa3b55bb65b2b3796e624de9a1fe7ed87e97203",
+    "committed_base": "a8a20fd6c0e2181879ad6224d3f5b45178b19dec",
+    "completed": 45,
+    "passed": 42,
+    "failed": 3,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "builds_passed": 9,
+    "inventories_passed": 9,
+    "verdict": "FAILED",
+    "all_prior39_PASS_retained": true,
+    "new_full_PASS_cases": [
+      "Core external-source selected control",
+      "Server Expire",
+      "Server real post-BEGIN SQL-fault"
+    ],
+    "failed_cases": [
+      "Server Resume",
+      "Server Revoke",
+      "Server Unwind"
+    ],
+    "source_prepared_and9binaries_unchanged": true,
+    "root_and64children_natural_unforced_joined_fresh_PID_PGID_absent": true,
+    "child_exit_counts": {
+      "0": 61,
+      "101": 3
+    }
+  },
+  "remaining_frontier": {
+    "failure": "observer.rs529 unchanged measured-quiet cutoff in first live-duplex window",
+    "three_remaining_final_control_tails": "UNVERIFIED",
+    "failed_phase_send_public_private_counters": "ABSENT_FROM_CURRENT_RAW_LOGS",
+    "comparison": {
+      "passing_live_phase_elapsed_ms_range": [
+        702,
+        705
+      ],
+      "passing_each_phase_real_sends": 20,
+      "passing_fresh_decoded_frames_where_required_range": [
+        18,
+        20
+      ],
+      "passing_outgoing_muted_deliveries": 0,
+      "passing_maximum_scene_wake_gap_ms_approx": 28,
+      "failed_maximum_scene_wake_gap_seconds_approx_range": [
+        4.4,
+        4.7
+      ]
+    },
+    "confirmed_source_path": "100ms native custodian -> role reconcile -> unchanged_native_role_hint/other role+revision getters -> blocking Core participant-model State lock",
+    "sole_actual_failure_cause": "UNPROVEN",
+    "production_correction": "UNDER_INVESTIGATION_UNAPPLIED",
+    "quiet_failure_diagnostics": "SOURCE_REVIEWED_UNAPPLIED",
+    "quiet_predicate_original5s_and_all_oracles": "UNCHANGED"
+  },
+  "all_historical_failures_preserved": true,
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 234,
+  "mobile235": "PROPOSAL_ONLY",
+  "recorded_at": "2026-11-20T16:48:46.742430+00:00",
+  "proofs": {
+    "G724_actual_result": {
+      "path": ".local/gate-6/g724-source538-fixture-corrections-fortyfive-root/result.json",
+      "sha256": "3a77744e831a7b74e72f996af3eff3140b5a24651710ed17823adddde1f70e96"
+    },
+    "G724_original_root_join": {
+      "path": ".local/gate-6/g724-source538-fixture-corrections-fortyfive-root/root-original-join.json",
+      "sha256": "811e0aff90f45c89ce634a5d7d7e78ebd2e7f3d29dc5b273c703d484776f4dcf"
+    },
+    "G724_actual_independent_audit": {
+      "path": ".local/gate-6/g724-actual45-independent-audit/receipt.json",
+      "sha256": "b93aeb5c5d54a517571e3c6cde3811e4d853fccb11fa9b837a8524774691a7c9"
+    },
+    "G724_raw_verdicts": {
+      "path": ".local/gate-6/g724-actual45-independent-audit/actual-verdicts.json",
+      "sha256": "5e71bb2e474ca3942a205de694fd54be841e9a15974a3f39b1af723abbb7f927"
+    },
+    "G724_bound_plan": {
+      "path": ".local/gate-6/g724-source538-fixture-corrections-fortyfive-root/plan.json",
+      "sha256": "6889a75e88c46e5f8e1624745e2771e7686fbc56266d33c9a89f9689e4f3820a"
+    },
+    "G714_prior_failed_actual_audit": {
+      "path": ".local/gate-6/g714-actual45-independent-audit/receipt.json",
+      "sha256": "799a68f5513977415001c2ad77ca75ad9d10224ae14ede0035ac6af7231f3431"
+    },
+    "normal538_actual_preparation_audit": {
+      "path": ".local/gate-6/g722-actual-normal538-independent-audit/receipt.json",
+      "sha256": "601924177e5c5df5310ca3520bcdd5d089c4dd4806fd8afd63d15b35369fd70f"
+    },
+    "raw_fivecase_comparison": {
+      "path": ".local/gate-6/g724-native-observer-quiet-failure-phase-diagnostics-source-candidate/actual-case-comparison-supplement.json",
+      "sha256": "b782b76acf455237a8a2845baabf45b4e3dcb7537c64738497cc7c1a0932223a"
+    },
+    "unapplied_quiet_diagnostic_source_candidate": {
+      "path": ".local/gate-6/g724-native-observer-quiet-failure-phase-diagnostics-source-candidate/manifest.json",
+      "sha256": "cf268a875eee1b5f7497ce5a27fe736da049fed01fa0376c68ed4b4a1d6d2dbb"
+    },
+    "unapplied_quiet_diagnostic_source_review": {
+      "path": ".local/gate-6/g724-native-quiet-diagnostics-independent-batch-source-review/receipt.json",
+      "sha256": "e5c37d10ed3f77ead43c8b57ffc73b579aafbab9197590e9f77ee5d8624ead79"
+    },
+    "blocking_role_hint_current_source": {
+      "path": "crates/connect-service/src/canonical_media/roles.rs",
+      "sha256": "75a8a364ab4c3f10ba7d101b05f5c7e2b3ef006d4b7a4b9bd91dc1eb92a1b93c"
+    },
+    "native100ms_custodian_current_source": {
+      "path": "crates/connect-service/src/canonical_native.rs",
+      "sha256": "fb6015af2f5ff39e8ce577ef977cf3f5e325d594e7fa20fedad32ebbe73b955a"
+    },
+    "Core_blocking_role_revision_getters_current_source": {
+      "path": ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs",
+      "sha256": "df34eeb99e6dcf4175879d4cee420e5a79b55826bbc77d40c54388cf307c14ca"
+    },
+    "last_mobile234_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v234-source538-prepared.json",
+      "sha256": "2877505771e8eaa6381be6e580ccc446e048971e5a2123fe7108b6805744d11a"
+    }
+  }
+}

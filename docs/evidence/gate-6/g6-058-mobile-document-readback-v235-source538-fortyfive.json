@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 156,
+  "mobile_content_revision": 235,
+  "recorded_at": "2026-11-20T16:55:49.716101+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "ActualG724FAILED42PASS3FAIL/all9builds9inventoriesPASS; Core11+Native2/4nowPASS; three firstliveDuplexquiet failures unchanged; confirmedblockingcodepathnotsoleactualcauseproof; nextfixesunapplied",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile235-source538-fortyfive-root/before-write.json",
+  "private_before_sha256": "ac9a1792a73ccea70b11ba7913ff9fc2d8cd901d94c9bb129e3717cefd2bec98",
+  "private_write": ".local/gate-6/mobile235-source538-fortyfive-root/write.json",
+  "private_write_sha256": "1de5206642f23221094f909b00a8ae56b72522c77a8c1b50c6a03795e4695a1d",
+  "private_readback": ".local/gate-6/mobile235-source538-fortyfive-root/readback.json",
+  "private_readback_sha256": "82f72acad78e3dcb7aa1135e089aeb4a4e7f4a8c4f501a1262842a0b7a037ab6"
+}
