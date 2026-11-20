@@ -1,0 +1,110 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 161,
+  "status": "ACTUAL_G748_SIX_COMPLETE4PASS2FAIL_FOUR_NEW_CONTROLS_PASS_TWO_OLD_CATALOG_FAIL",
+  "prepared_batch": {
+    "generation": 543,
+    "source_files": 6586,
+    "source_sha256": "40d82d13d87a1b91da94affabf44876c501082cdf7143c58919d26566775d00f",
+    "normal543": "PASS_INDEPENDENTLY_AUDITED",
+    "production_byte_equivalent_to541": true,
+    "workspace_formatted_paths_unchanged": 10,
+    "exact3_noop_fixture_correction": "APPLIED_PREPARED_ACTUAL_TOCTOU_PASS"
+  },
+  "actual_G748": {
+    "completed": 6,
+    "passed": 4,
+    "failed": 2,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun_functions": 0,
+    "four_new_functions": "ALL_PASS",
+    "NativeModel_and_TOCTOU": "BOTH_QUIC_WT_AND_FULL_TAILS_PASS",
+    "old_catalog_functions": "BOTH_FAIL",
+    "all_six_originals_natural_unforced_fresh_PID_PGID_absent": true,
+    "source_prepared_current_artifacts_fixed": true
+  },
+  "old_catalog_failure_frontiers": {
+    "main": {
+      "location": "future_subscriptions.rs1110",
+      "actual_unchanged_plan_inside650ms": true,
+      "rejected_row": "StorageUnavailable_with_leafNone",
+      "later_original_tails": "UNREACHED",
+      "None_waived": false
+    },
+    "variants": {
+      "location": "future_subscriptions.rs1335",
+      "reached": "FIRST_QUIC_RELEASE_VARIANT",
+      "strict_helper_rejection": true,
+      "offending_background_rows": "NOT_LOGGED",
+      "precise_leaf_and_cause": "UNPROVEN",
+      "remaining_three_variants": "UNREACHED"
+    }
+  },
+  "expanded_typed_diagnostics": "UNDER_AUTHORING_UNAPPLIED",
+  "actual_all_six_PASS": false,
+  "current_code_batch_commit": "ROOT_FUTURE_ACTION_NOT_CLAIMED",
+  "prior_G743_G746_failed_verdicts_preserved": true,
+  "G735": "FAILED41PASS4FAIL_NOT_REGRADED",
+  "mixed_audio_qualification": false,
+  "new49_component": "UNRUN",
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 239,
+  "mobile240": "PROPOSAL_ONLY",
+  "recorded_at": "2026-11-20T19:53:27.330947+00:00",
+  "proofs": {
+    "normal543_actual_preparation": {
+      "path": ".local/gate-6/g747-normal543-authorized-noop-fixture-root/normal543-runtime/receipt.json",
+      "sha256": "704db80cbae9164db8d848510141a53c2d9973c320546379fdae25be92a1e5cc"
+    },
+    "normal543_actual_independent_audit": {
+      "path": ".local/gate-6/g747-actual-normal543-independent-audit/receipt.json",
+      "sha256": "b0023c56aabe1f0a88579d5398084e9a468ee933d449804f781e28430e34428a"
+    },
+    "G748_actual_cohort": {
+      "path": ".local/gate-6/g748-source543-six-causal-units-root/cohort-result.json",
+      "sha256": "8f2ea197828d87521d321f28aebc026283f8786570e4c384db1908db637f643f"
+    },
+    "G748_actual_independent_audit": {
+      "path": ".local/gate-6/g748-actual-six-causal-units-independent-audit/receipt.json",
+      "sha256": "c919e8cefbdd60374452a16f40b2c2f9465a9c2f065e997bf5593df4bc4d117e"
+    },
+    "G748_actual_six_verdicts": {
+      "path": ".local/gate-6/g748-actual-six-causal-units-independent-audit/actual-verdicts.json",
+      "sha256": "1c6ed1c853c615b45603bc6c003b9eee4028da0c9f7b43021afe9e62be5cf477"
+    },
+    "G743_prior_three_PASS_one_FAIL_audit": {
+      "path": ".local/gate-6/g743-actual-native-causal-units-independent-audit/receipt.json",
+      "sha256": "5332394431ee85233fba5a1d4c3e96cebe9675d955b5f061526a31246a3fac85"
+    },
+    "G746_actual_failed_noop_diagnostic_audit": {
+      "path": ".local/gate-6/g746-actual-native-toctou-noop-independent-epoch-audit/receipt.json",
+      "sha256": "9bc9653f9ba859d020616cf04b3082cc4965dda2cda9b3e0d05f0131481b2831"
+    },
+    "G747_exact3_fixture_source_candidate": {
+      "path": ".local/gate-6/g746-native-toctou-authorized-noop-expectation-source-candidate/manifest.json",
+      "sha256": "ec596ec0940f02268728c1bd0f419b3f24a014c2749dfa7ad3d16a36ddaf0410"
+    },
+    "G747_exact3_fixture_independent_source_review": {
+      "path": ".local/gate-6/g746-native-toctou-authorized-noop-independent-epoch-source-review/receipt.json",
+      "sha256": "faecd0ab9676539aa6e8fd5fa900a8be863257455e28590fbe04993dec5ae857"
+    },
+    "retained_G735_actual_failed_audit": {
+      "path": ".local/gate-6/g735-actual45-independent-audit/receipt.json",
+      "sha256": "7094d3456ab319fec487c1100245df28100e843e0b803029d8920ce69652dee9"
+    },
+    "last_mobile239_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v239-source541-four-causal-units.json",
+      "sha256": "1eef0bb968489230621e991a65cb5503db1053ef6e1d468d38fe83f065d944d5"
+    }
+  }
+}

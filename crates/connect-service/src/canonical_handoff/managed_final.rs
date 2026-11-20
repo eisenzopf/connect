@@ -215,6 +215,7 @@ impl Runtime {
         let mut turn_resources: Option<FinalTurnResources> = None;
         let mut post = PostCustody::new(self, lease.attempt_binding())?;
         let mut prepared = Some(cut);
+        let mut after_unpublished = false;
         let mut attempt: Option<connect_store::NativeHandoffAttempt> = None;
         loop {
             let step: Result<Turn> = async {
@@ -223,6 +224,13 @@ impl Runtime {
                     || tokio::time::Instant::now() >= until
                 {
                     return Err(Error::forbidden());
+                }
+                if after_unpublished {
+                    // Availability only, AFTER a genuine same-token Still return.
+                    // No grant/role/Writer/bank exists here; full final fences
+                    // still decide permission and commit after this hint.
+                    let observed = self.observe_managed_retry_model(sid);
+                    observed?;
                 }
                 let requirements = prepared
                     .as_ref()
@@ -415,7 +423,10 @@ impl Runtime {
                 drop(turn_resources.take());
             }
             match step {
-                Ok(Turn::Still(same)) => prepared = Some(same),
+                Ok(Turn::Still(same)) => {
+                    prepared = Some(same);
+                    after_unpublished = true;
+                }
                 Ok(Turn::BeforeEntryBusy) => {}
                 Ok(Turn::Published {
                     outcome,

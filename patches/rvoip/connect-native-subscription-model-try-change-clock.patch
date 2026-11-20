@@ -1,0 +1,1422 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -258,7 +258,7 @@
+     _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ 
+-// Only periodic role projection opts into immediate model acquisition.
++// Periodic role and subscription observations opt into immediate model acquisition.
+ // Ordinary APIs preserve their existing wait/poison behavior.
+ fn participant_model_state(runtime:&ManagedParticipantSession,immediate:bool)
+     ->ControlResult<std::sync::MutexGuard<'_,ManagedState>> {
+@@ -484,6 +484,45 @@
+         Ok(scene.weak_media_owners_for_test(connection)?)
+     }
+ 
++    // Keep the actual runtime resource pinned through the delegated operation,
++    // but never wait for its registry or participant model on an async caller.
++    fn try_staged_route_scene(
++        &self, session: &SessionId, connection: &ConnectionId,
++    ) -> ControlResult<(Arc<ManagedParticipantSession>, Arc<crate::staged_streams::media_scene::GuardedMediaScene>)> {
++        let runtime = self.try_participant_runtime(session)?
++            .ok_or_else(|| RvoipError::InvalidState("participant control is not enabled"))?;
++        let scene = runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?.clone();
++        {
++            let state = participant_model_state(&runtime, true)?;
++            if state.ended || !state.routes.contains_key(connection) {
++                return Err(ParticipantTransitionError::Inactive.into());
++            }
++        }
++        Ok((runtime, scene))
++    }
++    // Only pre-effect admission acquisition repeats. The existing invocation,
++    // held authority, IDs and original cutoff remain owned by the caller. No
++    // delegated mutation error can enter this loop, and no Core guard crosses
++    // the timer. This replaces the original blocking model wait, not its scope.
++    async fn wait_staged_route_scene(
++        &self, session: &SessionId, connection: &ConnectionId,
++        deadline: tokio::time::Instant, cancellation: &CancellationToken,
++    ) -> ControlResult<(Arc<ManagedParticipantSession>, Arc<crate::staged_streams::media_scene::GuardedMediaScene>)> {
++        loop {
++            if cancellation.is_cancelled() { return Err(ParticipantControlError::Cancelled); }
++            if tokio::time::Instant::now() >= deadline { return Err(ParticipantControlError::Deadline); }
++            match self.try_staged_route_scene(session, connection) {
++                Err(ParticipantControlError::Media(crate::staged_streams::StreamControlError::MetadataBusy)) => {
++                    tokio::select! { biased;
++                        _=cancellation.cancelled()=>return Err(ParticipantControlError::Cancelled),
++                        _=tokio::time::sleep_until(deadline)=>return Err(ParticipantControlError::Deadline),
++                        _=tokio::time::sleep(Duration::from_millis(2))=>{},
++                    }
++                }
++                result => return result,
++            }
++        }
++    }
+     /// Trusted process-internal routing; public callers retain their durable
+     /// operation receipt and pass the exact current signed invocation guard.
+     pub async fn change_staged_audio_subscriptions(
+@@ -496,18 +535,7 @@
+         cancellation: CancellationToken,
+         held: Option<&(dyn Any + Send + Sync)>,
+     ) -> ControlResult<u64> {
+-        let runtime = self.participant_runtime(session)?;
+-        let scene = runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?;
+-        {
+-            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-            if state.ended || !state.routes.contains_key(connection) {
+-                return Err(ParticipantTransitionError::Inactive.into());
+-            }
+-        }
++        let (_runtime, scene) = self.wait_staged_route_scene(session, connection, deadline, &cancellation).await?;
+         Ok(scene
+             .change_subscriptions(connection, expected, change, deadline, cancellation, held)
+             .await?)
+@@ -522,18 +550,7 @@
+         cancellation: CancellationToken,
+         held: Option<&(dyn Any + Send + Sync)>,
+     ) -> ControlResult<u64> {
+-        let runtime = self.participant_runtime(session)?;
+-        let scene = runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?;
+-        {
+-            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-            if state.ended || !state.routes.contains_key(connection) {
+-                return Err(ParticipantTransitionError::Inactive.into());
+-            }
+-        }
++        let (_runtime, scene) = self.wait_staged_route_scene(session, connection, deadline, &cancellation).await?;
+         Ok(scene
+             .change_direct_subscriptions(connection, expected, change, deadline, cancellation, held)
+             .await?)
+@@ -550,18 +567,7 @@
+         cancellation: CancellationToken,
+         held: Option<&(dyn Any + Send + Sync)>,
+     ) -> ControlResult<u64> {
+-        let runtime = self.participant_runtime(session)?;
+-        let scene = runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?;
+-        {
+-            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-            if state.ended || !state.routes.contains_key(connection) {
+-                return Err(ParticipantTransitionError::Inactive.into());
+-            }
+-        }
++        let (_runtime, scene) = self.wait_staged_route_scene(session, connection, deadline, &cancellation).await?;
+         Ok(scene
+             .change_media_subscriptions(connection, expected, change, deadline, cancellation, held)
+             .await?)
+@@ -579,20 +585,8 @@
+         cancellation: CancellationToken,
+         held: Arc<dyn Any + Send + Sync>,
+     ) -> ControlResult<()> {
+-        let runtime = self.participant_runtime(session)?;
+-        let scene = runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?
+-            .clone();
+-        {
+-            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-            if state.ended || !state.routes.contains_key(connection) {
+-                return Err(ParticipantTransitionError::Inactive.into());
+-            }
+-        }
+-        let controller = scene.controller(connection)?;
++        let (_runtime, scene) = self.wait_staged_route_scene(session, connection, deadline, &cancellation).await?;
++        let controller = scene.wait_controller(connection, deadline, &cancellation).await?;
+         Ok(controller
+             .change_selected_and_subscriptions(
+                 expected,
+@@ -619,20 +613,8 @@
+         cancellation: CancellationToken,
+         held: Arc<dyn Any + Send + Sync>,
+     ) -> ControlResult<crate::staged_streams::QuarantinedSubscriptionMedia> {
+-        let runtime = self.participant_runtime(session)?;
+-        let scene = runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?
+-            .clone();
+-        {
+-            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-            if state.ended || !state.routes.contains_key(connection) {
+-                return Err(ParticipantTransitionError::Inactive.into());
+-            }
+-        }
+-        let controller = scene.controller(connection)?;
++        let (_runtime, scene) = self.wait_staged_route_scene(session, connection, deadline, &cancellation).await?;
++        let controller = scene.wait_controller(connection, deadline, &cancellation).await?;
+         Ok(controller
+             .stage_selected_subscriptions_with_held(
+                 expected,
+@@ -653,18 +635,7 @@
+         expected: u64,
+         input: &crate::staged_streams::subscription_plan::MediaSelectionChange,
+     ) -> ControlResult<crate::staged_streams::subscription_plan::MediaSubscriptionPlan> {
+-        let runtime = self.participant_runtime(session)?;
+-        let scene = runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?;
+-        {
+-            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-            if state.ended || !state.routes.contains_key(connection) {
+-                return Err(ParticipantTransitionError::Inactive.into());
+-            }
+-        }
++        let (_runtime, scene) = self.try_staged_route_scene(session, connection)?;
+         Ok(scene.plan_selection(connection, expected, input)?)
+     }
+     /// Same read and current-state checks, with caller-owned failure diagnostics.
+@@ -678,18 +649,7 @@
+         diagnostics: &mut crate::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest,
+     ) -> ControlResult<crate::staged_streams::subscription_plan::MediaSubscriptionPlan> {
+         *diagnostics = Default::default();
+-        let runtime = self.participant_runtime(session)?;
+-        let scene = runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?;
+-        {
+-            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-            if state.ended || !state.routes.contains_key(connection) {
+-                return Err(ParticipantTransitionError::Inactive.into());
+-            }
+-        }
++        let (_runtime, scene) = self.try_staged_route_scene(session, connection)?;
+         Ok(scene.plan_selection_diagnosed_for_test(connection, expected, input, diagnostics)?)
+     }
+     /// Read-only validation of opaque planned source bindings. The callbacks
+@@ -707,18 +667,7 @@
+             &crate::staged_streams::MediaParticipantSource,
+         ) -> crate::staged_streams::ControlResult<()>,
+     ) -> ControlResult<()> {
+-        let runtime = self.participant_runtime(session)?;
+-        let scene = runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?;
+-        {
+-            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-            if state.ended || !state.routes.contains_key(connection) {
+-                return Err(ParticipantTransitionError::Inactive.into());
+-            }
+-        }
++        let (_runtime, scene) = self.try_staged_route_scene(session, connection)?;
+         Ok(scene.validate_selection_sources(connection, plan, receive, participant)?)
+     }
+     /// Plan exact sources onto one existing compatible direct sink per medium.
+@@ -731,18 +680,7 @@
+         expected: u64,
+         input: &crate::staged_streams::subscription_plan::MediaSelectionChange,
+     ) -> ControlResult<crate::staged_streams::subscription_plan::MediaSubscriptionPlan> {
+-        let runtime = self.participant_runtime(session)?;
+-        let scene = runtime
+-            .mixer
+-            .staged
+-            .as_ref()
+-            .ok_or(ParticipantControlError::Unsupported)?;
+-        {
+-            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
+-            if state.ended || !state.routes.contains_key(connection) {
+-                return Err(ParticipantTransitionError::Inactive.into());
+-            }
+-        }
++        let (_runtime, scene) = self.try_staged_route_scene(session, connection)?;
+         Ok(scene.plan_selection_existing_ports(connection, expected, input)?)
+     }
+     pub fn audio_audience_revision(&self, session: &SessionId) -> ControlResult<u64> {
+@@ -1175,6 +1113,16 @@
+             .as_ref()
+             .ok_or(ParticipantControlError::Unsupported)?;
+         Ok(scene.selection_changes())
++    }
++    /// Metadata clock plus wake hints for committed selector/source changes.
++    /// A clean generation is never current authority or media readiness.
++    pub fn staged_media_selection_clock(
++        &self, session: &SessionId,
++    ) -> ControlResult<Arc<crate::staged_streams::subscription_plan::SelectionChangeSignal>> {
++        let runtime = self.try_participant_runtime(session)?
++            .ok_or_else(|| RvoipError::InvalidState("participant control is not enabled"))?;
++        let scene = runtime.mixer.staged.as_ref().ok_or(ParticipantControlError::Unsupported)?;
++        Ok(scene.selection_change_clock())
+     }
+     fn participant_terminal_revision(&self, session: &SessionId) -> Option<u64> {
+         self.session(session).and_then(|record| {
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -571,7 +571,7 @@
+         held: Option<&(dyn Any + Send + Sync)>,
+     ) -> ControlResult<u64> {
+         super::media_subscriptions::change(
+-            self.controller(target)?,
++            self.wait_controller(target, deadline, &cancel).await?,
+             Some(self),
+             expected,
+             super::media_subscriptions::MediaSubscriptionChange {
+@@ -584,6 +584,29 @@
+             held,
+         )
+         .await
++    }
++    pub(crate) async fn wait_controller(
++        &self, target: &ConnectionId, deadline: tokio::time::Instant,
++        cancel: &CancellationToken,
++    ) -> ControlResult<Arc<StreamController>> {
++        loop {
++            if cancel.is_cancelled() { return Err(StreamControlError::Cancelled); }
++            if tokio::time::Instant::now() >= deadline { return Err(StreamControlError::Deadline); }
++            match self.try_controller(target) {
++                Err(StreamControlError::MetadataBusy) => {
++                    tokio::select! { biased;
++                        _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++                        _=tokio::time::sleep_until(deadline)=>return Err(StreamControlError::Deadline),
++                        _=tokio::time::sleep(Duration::from_millis(2))=>{},
++                    }
++                }
++                result=>return result,
++            }
++        }
++    }
++    pub(crate) fn try_controller(&self, target: &ConnectionId) -> ControlResult<Arc<StreamController>> {
++        Ok(super::control_metadata::try_lock(&self.members)?
++            .get(target).ok_or(StreamControlError::NotReady)?.controller.clone())
+     }
+     pub(crate) fn controller(&self, target: &ConnectionId) -> ControlResult<Arc<StreamController>> {
+         Ok(self
+--- a/crates/foundation/rvoip-core/src/staged_streams/consultation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/consultation.rs
+@@ -212,7 +212,8 @@
+         loop {
+             // Register before inspecting state so neither a decoded frame nor a
+             // departure can be lost between inspection and sleeping.
+-            let membership = self.selection_changed.notified();
++            let selection_changes = self.selection_changed.notifier();
++            let membership = selection_changes.notified();
+             tokio::pin!(membership);
+             membership.as_mut().enable();
+             let (consumer, primary_lifetime, remote_lifetime) = {
+--- a/crates/foundation/rvoip-core/src/staged_streams/credential_rebind.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/credential_rebind.rs
+@@ -173,6 +173,7 @@
+             };
+         }
+         drop(drained);
++        self.notify_selection_change();
+         Ok(previous.revision + 1)
+     }
+ }
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -533,7 +533,7 @@
+     pub(super) rate: u32,
+     pub(super) selections:
+         Mutex<BTreeMap<ConnectionId, Arc<super::selection_intent::SelectionProgram>>>,
+-    pub(super) selection_changed: Arc<tokio::sync::Notify>,
++    pub(super) selection_changed: Arc<super::subscription_plan::SelectionChangeSignal>,
+     pub(super) members: Mutex<HashMap<ConnectionId, SceneMember>>,
+     pub(super) audiences: Arc<Mutex<super::audience::AudienceState>>,
+     // Any committed audience or member change bounds delayed physical input.
+@@ -613,13 +613,16 @@
+             policy,
+             rate,
+             selections: Mutex::new(BTreeMap::new()),
+-            selection_changed: Arc::new(tokio::sync::Notify::new()),
++            selection_changed: Arc::new(super::subscription_plan::SelectionChangeSignal::default()),
+             members: Mutex::new(HashMap::new()),
+             audiences: Arc::new(Mutex::new(super::audience::AudienceState::default())),
+             disclosure_changed_at: Mutex::new(std::time::Instant::now()),
+         })
+     }
+     pub(crate) fn selection_changes(&self) -> Arc<tokio::sync::Notify> {
++        self.selection_changed.notifier()
++    }
++    pub(crate) fn selection_change_clock(&self) -> Arc<super::subscription_plan::SelectionChangeSignal> {
+         self.selection_changed.clone()
+     }
+     pub(crate) fn prepare(&self, controller: Arc<StreamController>) -> ControlResult<SceneMember> {
+@@ -968,8 +971,11 @@
+         cancel: CancellationToken,
+         held: Option<&(dyn Any + Send + Sync)>,
+     ) -> ControlResult<u64> {
+-        let controller = {
+-            let members = self.members.lock().unwrap_or_else(|p| p.into_inner());
++        let controller = loop {
++            if cancel.is_cancelled() { return Err(StreamControlError::Cancelled); }
++            if tokio::time::Instant::now() >= deadline { return Err(StreamControlError::Deadline); }
++            let admitted=(|| -> ControlResult<Arc<StreamController>> {
++            let members = super::control_metadata::try_lock(&self.members)?;
+             let target = members.get(target).ok_or(StreamControlError::NotReady)?;
+             if let direct_subscriptions::DirectSubscriptionChange::Subscribe(items) = &change {
+                 for selection in items {
+@@ -982,7 +988,18 @@
+                     }
+                 }
+             }
+-            target.controller.clone()
++            Ok(target.controller.clone())
++            })();
++            match admitted {
++                Err(StreamControlError::MetadataBusy)=>{
++                    tokio::select! { biased;
++                        _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++                        _=tokio::time::sleep_until(deadline)=>return Err(StreamControlError::Deadline),
++                        _=tokio::time::sleep(Duration::from_millis(2))=>{},
++                    }
++                }
++                result=>break result?,
++            }
+         };
+         controller
+             .change_direct_subscriptions(expected, change, deadline, cancel, held)
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
+@@ -26,7 +26,7 @@
+         held: Option<&(dyn Any + Send + Sync)>,
+     ) -> ControlResult<u64> {
+         super::media_subscriptions::change(
+-            self.controller(target)?,
++            self.wait_controller(target, deadline, &cancel).await?,
+             Some(self),
+             expected,
+             change,
+@@ -47,7 +47,7 @@
+ ) -> ControlResult<T> {
+     match scene {
+         Some(scene) => {
+-            let members = scene.members.lock().unwrap_or_else(|p| p.into_inner());
++            let members = super::control_metadata::try_lock(&scene.members)?;
+             let target = members
+                 .get(&controller.connection)
+                 .ok_or(StreamControlError::NotReady)?;
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -17,6 +17,40 @@
+ #[derive(Clone, Debug, Default)]
+ pub struct CatalogReadDiagnosticsForTest {
+     pub busy_leaf: Option<CatalogBusyLeafForTest>,
++}
++/// A metadata change clock paired with the existing wake hint. Neither the
++/// generation nor a notification grants authority or proves media readiness.
++pub struct SelectionChangeSignal {
++    generation: std::sync::atomic::AtomicU64,
++    changed: Arc<tokio::sync::Notify>,
++}
++impl Default for SelectionChangeSignal {
++    fn default() -> Self {
++        Self {
++            generation: std::sync::atomic::AtomicU64::new(1),
++            changed: Arc::new(tokio::sync::Notify::new()),
++        }
++    }
++}
++impl SelectionChangeSignal {
++    /// Current metadata generation. Saturation stays permanently dirty.
++    pub fn generation(&self) -> u64 {
++        self.generation.load(std::sync::atomic::Ordering::Acquire)
++    }
++    /// Register before reading the generation; always reread actual metadata.
++    pub fn notifier(&self) -> Arc<tokio::sync::Notify> {
++        self.changed.clone()
++    }
++    /// Publish a metadata hint after the actual state change. No permission is
++    /// inferred from the counter, including a hint issued without a mutation.
++    pub fn notify_waiters(&self) {
++        let _ = self.generation.fetch_update(
++            std::sync::atomic::Ordering::Release,
++            std::sync::atomic::Ordering::Relaxed,
++            |value| Some(value.saturating_add(1)),
++        );
++        self.changed.notify_waiters();
++    }
+ }
+ #[derive(Clone, PartialEq, Eq)]
+ pub enum MediaSelection {
+@@ -250,10 +284,7 @@
+         if state.closed || state.model.revision() != expected {
+             return Err(MediaTransitionError::Conflict.into());
+         }
+-        let previous = self
+-            .selections
+-            .lock()
+-            .unwrap_or_else(|p| p.into_inner())
++        let previous = super::control_metadata::try_lock(&self.selections)?
+             .get(target_id)
+             .cloned();
+         let mut next = previous.as_deref().cloned().unwrap_or_default();
+@@ -662,3 +693,27 @@
+         })
+     }
+ }
++
++
++#[cfg(test)]
++mod selection_clock_tests {
++    use super::SelectionChangeSignal;
++    #[tokio::test]
++    async fn committed_change_clock_survives_notification_registration_and_read_races() {
++        let signal=SelectionChangeSignal::default();
++        let before=signal.generation();
++        // notify_waiters deliberately retains no permit for a later waiter;
++        // the committed generation must still expose this exact lost-hint race.
++        signal.notify_waiters();
++        let notify=signal.notifier();let waiting=notify.notified();tokio::pin!(waiting);
++        waiting.as_mut().enable();
++        assert_ne!(before,signal.generation());
++        let captured=signal.generation();
++        signal.notify_waiters();
++        tokio::time::timeout(std::time::Duration::from_secs(1),&mut waiting).await.unwrap();
++        assert_ne!(captured,signal.generation(),"a read cannot acknowledge a change committed during it");
++        signal.generation.store(u64::MAX,std::sync::atomic::Ordering::Release);
++        signal.notify_waiters();
++        assert_eq!(signal.generation(),u64::MAX,"clock exhaustion must remain dirty rather than alias an old clean generation");
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2391,7 +2391,7 @@
+     audio_preparation: Mutex<Option<Weak<endpoint_preparation::Probe>>>,
+     scene_consumer: Mutex<Option<Weak<scene_consumer::SceneConsumer>>>,
+     direct_subscriptions: Arc<direct_subscriptions::DirectGate>,
+-    selection_changed: Mutex<Option<Weak<tokio::sync::Notify>>>,
++    selection_changed: Mutex<Option<Weak<subscription_plan::SelectionChangeSignal>>>,
+     cleanup_lock: tokio::sync::Mutex<()>,
+     inflight: Arc<Semaphore>,
+     shutdown: CancellationToken,
+@@ -3005,6 +3005,15 @@
+             .unwrap_or_else(|p| p.into_inner())
+             .model
+             .revision()
++    }
++    /// Coherent committed receiver metadata without waiting for control model
++    /// publication. This is neither authority nor a port-readiness observation.
++    pub fn try_subscription_metadata(&self) -> ControlResult<(u64, Vec<ReadyMediaBinding>)> {
++        let state = control_metadata::try_lock(&self.state)?;
++        if state.closed || self.shutdown.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        Ok((state.model.revision(), state.active.values().map(|port| port.binding.clone()).collect()))
+     }
+     /// Current binding metadata only; never permission for publication or IO.
+     pub fn active_bindings(&self) -> Vec<ReadyMediaBinding> {
+--- a/crates/uctp/rvoip-uctp/src/native_flow.rs
++++ b/crates/uctp/rvoip-uctp/src/native_flow.rs
+@@ -33,6 +33,7 @@
+     state: Mutex<State>,
+     lifetime: CancellationToken,
+     pub(crate) changed: Notify,
++    pub(crate) subscription_changed: Arc<rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal>,
+ }
+ impl NativeFlow {
+     pub(crate) fn observe_ready(
+@@ -94,6 +95,7 @@
+             }),
+             lifetime,
+             changed: Notify::new(),
++            subscription_changed: Arc::new(rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal::default()),
+         })
+     }
+     pub(crate) fn current(&self) -> bool {
+@@ -138,6 +140,7 @@
+             }
+         }
+         drop(s);
++        self.subscription_changed.notify_waiters();
+         self.changed.notify_waiters();
+         Ok(())
+     }
+@@ -149,6 +152,7 @@
+         s.confirmed_revision = Some(revision);
+         s.confirmed_offer = Some(offer.to_owned());
+         drop(s);
++        self.subscription_changed.notify_waiters();
+         self.changed.notify_waiters();
+     }
+     // Gate controls change no wire bindings. Confirmation remains valid only
+@@ -163,7 +167,16 @@
+             s.confirmed_revision = Some(revision);
+         }
+         drop(s);
+-        self.changed.notify_waiters();
++        self.subscription_changed.notify_waiters();
++        self.changed.notify_waiters();
++    }
++    pub(crate) fn try_confirmed_at(&self, revision: u64) -> ControlResult<bool> {
++        let state = match self.state.try_lock() {
++            Ok(state) => state,
++            Err(std::sync::TryLockError::WouldBlock) => return Err(StreamControlError::MetadataBusy),
++            Err(std::sync::TryLockError::Poisoned(_)) => return Err(StreamControlError::Authority),
++        };
++        Ok(self.current() && state.confirmed_revision == Some(revision))
+     }
+     pub(crate) fn confirmed_at(&self, revision: u64) -> bool {
+         self.current()
+@@ -253,7 +266,8 @@
+         }
+         drop(s);
+         if changed {
+-            self.changed.notify_waiters();
++            self.subscription_changed.notify_waiters();
++        self.changed.notify_waiters();
+         }
+     }
+     pub(crate) fn configure_quality(&self, expected: u64, interval: Duration) -> bool {
+@@ -264,6 +278,7 @@
+         s.quality_interval = interval;
+         reset_quality(&mut s);
+         drop(s);
++        self.subscription_changed.notify_waiters();
+         self.changed.notify_waiters();
+         true
+     }
+@@ -365,6 +380,7 @@
+         s.epoch.cancel();
+         s.epoch = self.lifetime.child_token();
+         drop(s);
++        self.subscription_changed.notify_waiters();
+         self.changed.notify_waiters();
+     }
+ }
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -566,6 +566,32 @@
+             .get(id)
+             .map(|r| r.value().clone())
+             .ok_or(DispatchError::Closed)?;
++        let peer = route.peer.upgrade().ok_or(DispatchError::Closed)?;
++        if route.cancel.is_cancelled()
++            || route.physical.context.lifetime.is_cancelled()
++            || !a.peer_admission().is_some_and(|p| Arc::ptr_eq(p, &peer))
++        {
++            return Err(DispatchError::Authority);
++        }
++        peer.validate_binding(
++            a.principal(),
++            route.member.identity(),
++            route.endpoint.device(),
++        )
++        .map_err(|_| DispatchError::Authority)?;
++        Ok(route)
++    }
++    fn try_data_route(
++        &self,
++        id: &ConnectionId,
++        a: &super::auth_dispatch::AuthorizedEnvelope,
++    ) -> std::result::Result<Arc<Route>, super::auth_dispatch::DispatchError> {
++        use super::auth_dispatch::DispatchError;
++        let route = match self.routes.try_get(id) {
++            dashmap::try_result::TryResult::Present(route) => route.value().clone(),
++            dashmap::try_result::TryResult::Absent => return Err(DispatchError::Closed),
++            dashmap::try_result::TryResult::Locked => return Err(DispatchError::StorageUnavailable),
++        };
+         let peer = route.peer.upgrade().ok_or(DispatchError::Closed)?;
+         if route.cancel.is_cancelled()
+             || route.physical.context.lifetime.is_cancelled()
+@@ -1140,26 +1166,24 @@
+         super::native_negotiation::NativeOfferError,
+     > {
+         use super::{native_negotiation::NativeOfferError, native_subscriptions::*};
+-        let route = self.data_route(id, a)?;
+-        let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
+-        let installed = installed.as_ref().ok_or_else(|| {
+-            tracing::debug!(target: "rvoip_uctp::native_subscription_preflight", stage = "receiver-installation", "Native subscription preflight is not ready");
+-            NativeOfferError::NotReady
+-        })?;
+-        let broker = installed
+-            .backend
+-            .negotiation
+-            .as_ref()
+-            .ok_or(NativeOfferError::Unsupported)?;
++        let route = self.try_data_route(id, a)?;
++        let (controller, broker, flow) = {
++            let installed = route.installation.try_lock().map_err(|error| match error {
++                std::sync::TryLockError::WouldBlock => NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable),
++                std::sync::TryLockError::Poisoned(_) => NativeOfferError::Authority,
++            })?;
++            let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++            (installed.controller.clone(), installed.backend.negotiation.clone().ok_or(NativeOfferError::Unsupported)?, installed.backend.flow.clone())
++        };
+         let expected = a
+             .envelope()
+             .expected_revision()
+             .ok_or(NativeOfferError::Invalid)?;
+-        if broker.is_busy() {
++        if broker.try_is_busy()? {
+             return Err(NativeOfferError::Conflict);
+         }
+         if !a.supports_native_negotiation()
+-            || !installed.controller.matches_data_credential(a.principal())
++            || !controller.matches_data_credential(a.principal())
+             || a.envelope().scope(super::Scope::Conversation)
+                 != broker.scope().wire_conversation.as_deref()
+             || a.envelope().scope(super::Scope::Session)
+@@ -1169,11 +1193,12 @@
+         {
+             return Err(NativeOfferError::Scope);
+         }
+-        if expected != installed.controller.revision() {
++        let (revision, bindings) = controller.try_subscription_metadata().map_err(|error| catalog_error(error.into()))?;
++        if expected != revision {
+             return Err(NativeOfferError::Conflict);
+         }
+-        if !installed.backend.flow.confirmed_at(expected) {
+-            tracing::debug!(target: "rvoip_uctp::native_subscription_preflight", stage = "receiver-confirmation", expected_revision = expected, flow_current = installed.backend.flow.current(), "Native subscription preflight is not ready");
++        if !flow.try_confirmed_at(expected).map_err(|error| catalog_error(error.into()))? {
++            tracing::debug!(target: "rvoip_uctp::native_subscription_preflight", stage = "receiver-confirmation", expected_revision = expected, flow_current = flow.current(), "Native subscription preflight is not ready");
+             return Err(NativeOfferError::NotReady);
+         }
+         let defaults = broker.subscription_media()?;
+@@ -1187,13 +1212,18 @@
+         if selection.requires_reconciliation()
+             && route
+                 .subscriptions
+-                .lock()
+-                .unwrap_or_else(|p| p.into_inner())
++                .try_lock()
++                .map_err(|error| match error {
++                    std::sync::TryLockError::WouldBlock => NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable),
++                    std::sync::TryLockError::Poisoned(_) => NativeOfferError::Authority,
++                })?
+                 .is_none()
+         {
+             return Err(NativeOfferError::Unsupported);
+         }
+-        let bindings = installed.controller.active_bindings();
++        if controller.try_subscription_metadata().map_err(|error| catalog_error(error.into()))?.0 != expected {
++            return Err(NativeOfferError::Conflict);
++        }
+         let media = broker.plan_subscriptions(a, &selection, &bindings)?;
+         let resources = media.selected().len() != bindings.len()
+             || media
+@@ -1243,9 +1273,12 @@
+                 result => break result?,
+             }
+         };
+-        let route = self.data_route(id, &a)?;
++        let route = self.try_data_route(id, &a)?;
+         let (controller, broker, flow) = {
+-            let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++            let installed = route.installation.try_lock().map_err(|error| match error {
++                std::sync::TryLockError::WouldBlock => NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable),
++                std::sync::TryLockError::Poisoned(_) => NativeOfferError::Authority,
++            })?;
+             let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
+             (
+                 installed.controller.clone(),
+@@ -1332,10 +1365,13 @@
+         let route = self.data_route(id, a)?;
+         let origin = self.native_request_origin(id, a)?;
+         let changed = core
+-            .staged_media_selection_changes(&route.session)
++            .staged_media_selection_clock(&route.session)
+             .map_err(super::native_subscriptions::core_error)?;
+-        let runtime =
+-            NativeSubscriptionRuntime::spawn(core, self, id.clone(), origin, policy, changed);
++        let (_, broker, flow, _) = self.try_subscription_parts(id, &origin)?;
++        let runtime = NativeSubscriptionRuntime::spawn(
++            core, self, id.clone(), origin, policy, changed,
++            flow.subscription_changed.clone(), broker.subscription_changed.clone(),
++        );
+         if let Some(old) = route
+             .subscriptions
+             .lock()
+@@ -1365,6 +1401,48 @@
+         }
+         let route = self.routes.get(id).ok_or(NativeOfferError::NotReady)?;
+         let installed = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
++        if !origin.belongs_to(&installed.controller) {
++            return Err(NativeOfferError::Scope);
++        }
++        let broker = installed
++            .backend
++            .negotiation
++            .clone()
++            .ok_or(NativeOfferError::Unsupported)?;
++        Ok((
++            installed.controller.clone(),
++            broker,
++            installed.backend.flow.clone(),
++            route.session.clone(),
++        ))
++    }
++    fn try_subscription_parts(
++        &self,
++        id: &ConnectionId,
++        origin: &Arc<super::native_requests::NativeRequestOrigin>,
++    ) -> std::result::Result<
++        (
++            Arc<StreamController>,
++            Arc<super::native_negotiation::NativeNegotiation>,
++            Arc<crate::native_flow::NativeFlow>,
++            SessionId,
++        ),
++        super::native_negotiation::NativeOfferError,
++    > {
++        use super::native_negotiation::NativeOfferError;
++        if !origin.current() {
++            return Err(NativeOfferError::Cancelled);
++        }
++        let route = match self.routes.try_get(id) {
++            dashmap::try_result::TryResult::Present(route) => route.value().clone(),
++            dashmap::try_result::TryResult::Absent => return Err(NativeOfferError::NotReady),
++            dashmap::try_result::TryResult::Locked => return Err(NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable)),
++        };
++        let installed = route.installation.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable),
++            std::sync::TryLockError::Poisoned(_) => NativeOfferError::Authority,
++        })?;
+         let installed = installed.as_ref().ok_or(NativeOfferError::NotReady)?;
+         if !origin.belongs_to(&installed.controller) {
+             return Err(NativeOfferError::Scope);
+@@ -1543,12 +1621,12 @@
+         super::native_negotiation::NativeOfferError,
+     > {
+         use super::{native_negotiation::NativeOfferError, native_subscriptions::*};
+-        let (controller, broker, flow, session) = self.reconciliation_parts(id, origin)?;
+-        if broker.is_busy() {
++        let (controller, broker, flow, session) = self.try_subscription_parts(id, origin)?;
++        if broker.try_is_busy()? {
+             return Err(NativeOfferError::Conflict);
+         }
+-        let expected = controller.revision();
+-        if !flow.confirmed_at(expected) {
++        let (expected, bindings) = controller.try_subscription_metadata().map_err(|error| catalog_error(error.into()))?;
++        if !flow.try_confirmed_at(expected).map_err(|error| catalog_error(error.into()))? {
+             return Err(NativeOfferError::NotReady);
+         }
+         #[cfg(feature = "test-support")]
+@@ -1571,7 +1649,9 @@
+         if !selection.requires_reconciliation() {
+             return Ok(None);
+         }
+-        let bindings = controller.active_bindings();
++        if controller.try_subscription_metadata().map_err(|error| catalog_error(error.into()))?.0 != expected {
++            return Err(NativeOfferError::Conflict);
++        }
+         let media = broker.plan_reconciliation(&selection, &bindings)?;
+         let resources = media.selected().len() != bindings.len()
+             || media
+@@ -1626,9 +1706,9 @@
+     > {
+         use super::{native_negotiation::NativeOfferError, native_subscriptions::*};
+         let (controller, broker, flow, session) =
+-            self.reconciliation_parts(id, &invocation.origin)?;
++            self.try_subscription_parts(id, &invocation.origin)?;
+         let expected = invocation.plan().selection.expected_revision();
+-        if controller.revision() != expected {
++        if controller.try_subscription_metadata().map_err(|error| catalog_error(error.into()))?.0 != expected {
+             return Err(NativeOfferError::Conflict);
+         }
+         let guard = broker.begin_server(invocation.clone(), policy, slot)?;
+@@ -2785,10 +2865,13 @@
+         let origin = self.request_origin(adapter)?;
+         let connection = origin.request_scope(0).origin.media.connection.clone();
+         let changed = core
+-            .staged_media_selection_changes(&self.route.session)
++            .staged_media_selection_clock(&self.route.session)
+             .map_err(|_| super::auth_dispatch::DispatchError::Authority)?;
++        let (_, broker, flow, _) = adapter.try_subscription_parts(&connection, &origin)
++            .map_err(|_| super::auth_dispatch::DispatchError::StorageUnavailable)?;
+         let runtime = super::native_subscriptions::NativeSubscriptionRuntime::spawn(
+             core, adapter, connection, origin, policy, changed,
++            flow.subscription_changed.clone(), broker.subscription_changed.clone(),
+         );
+         if let Some(old) = self
+             .route
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -182,6 +182,7 @@
+     current: Mutex<Option<Weak<Operation>>>,
+     pub(crate) request_slot: Arc<tokio::sync::Semaphore>,
+     retained: Mutex<Option<RetainedPeer>>,
++    pub(crate) subscription_changed: Arc<rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal>,
+ }
+ pub(crate) struct NegotiationGuard {
+     broker: Arc<NativeNegotiation>,
+@@ -294,6 +295,8 @@
+                 declaration_generation: 0,
+             });
+         }
++        drop(retained);
++        self.broker.subscription_changed.notify_waiters();
+     }
+     pub(crate) fn error(&self, error: StreamControlError) -> NativeOfferError {
+         self.operation
+@@ -329,6 +332,20 @@
+         Ok(requested && self.profile.video_feedback)
+     }
+ 
++    pub(crate) fn try_is_busy(&self) -> Result<bool, NativeOfferError> {
++        if self.request_slot.available_permits() == 0 { return Ok(true); }
++        let current = self.current.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => NativeOfferError::Dispatch(DispatchError::StorageUnavailable),
++            std::sync::TryLockError::Poisoned(_) => NativeOfferError::Authority,
++        })?;
++        Ok(current.as_ref().and_then(Weak::upgrade).is_some())
++    }
++    fn try_subscription_retained(&self) -> Result<std::sync::MutexGuard<'_, Option<RetainedPeer>>, NativeOfferError> {
++        self.retained.try_lock().map_err(|error| match error {
++            std::sync::TryLockError::WouldBlock => NativeOfferError::Dispatch(DispatchError::StorageUnavailable),
++            std::sync::TryLockError::Poisoned(_) => NativeOfferError::Authority,
++        })
++    }
+     pub(crate) fn is_busy(&self) -> bool {
+         if self.request_slot.available_permits() == 0 {
+             return true;
+@@ -362,6 +379,7 @@
+             current: Mutex::new(None),
+             request_slot: Arc::new(tokio::sync::Semaphore::new(1)),
+             retained: Mutex::new(None),
++            subscription_changed: Arc::new(rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal::default()),
+         })
+     }
+     pub(crate) fn plan(&self, a: &AuthorizedEnvelope) -> Result<NativeOfferPlan, NativeOfferError> {
+@@ -407,11 +425,11 @@
+         remote: EndpointMediaCapabilities,
+         current: impl FnOnce() -> bool,
+     ) -> Result<(), NativeOfferError> {
+-        let mut retained = self
++        let mut guard = self
+             .retained
+             .try_lock()
+             .map_err(|_| NativeOfferError::NotReady)?;
+-        let retained = retained.as_mut().ok_or(NativeOfferError::NotReady)?;
++        let retained = guard.as_mut().ok_or(NativeOfferError::NotReady)?;
+         if retained.declaration_generation >= super::MAX_SAFE_REVISION {
+             return Err(NativeOfferError::Capacity);
+         }
+@@ -420,6 +438,8 @@
+         }
+         retained.declared = Some(remote);
+         retained.declaration_generation += 1;
++        drop(guard);
++        self.subscription_changed.notify_waiters();
+         Ok(())
+     }
+     fn stamp_declaration(mut plan: NativeOfferPlan, generation: u64) -> NativeOfferPlan {
+@@ -489,7 +509,7 @@
+     pub(crate) fn subscription_media(
+         &self,
+     ) -> Result<std::collections::BTreeSet<Medium>, NativeOfferError> {
+-        let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++        let retained = self.try_subscription_retained()?;
+         let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+         let remote = retained.future_capabilities();
+         Ok(self
+@@ -521,7 +541,7 @@
+         {
+             return Err(NativeOfferError::Scope);
+         }
+-        let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++        let retained = self.try_subscription_retained()?;
+         let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+         NativeOfferPlan::subscription(
+             input,
+@@ -551,7 +571,7 @@
+         input: &rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan,
+         bindings: &[ReadyMediaBinding],
+     ) -> Result<NativeOfferPlan, NativeOfferError> {
+-        let retained = self.retained.lock().unwrap_or_else(|p| p.into_inner());
++        let retained = self.try_subscription_retained()?;
+         let retained = retained.as_ref().ok_or(NativeOfferError::NotReady)?;
+         NativeOfferPlan::subscription(
+             input,
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
+@@ -17,7 +17,9 @@
+     connection: ConnectionId,
+     origin: Arc<NativeRequestOrigin>,
+     policy: Arc<dyn NativeSubscriptionPolicy>,
+-    changed: Arc<tokio::sync::Notify>,
++    changed: Arc<rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal>,
++    flow_changed: Arc<rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal>,
++    broker_changed: Arc<rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal>,
+     cancel: CancellationToken,
+     task: Mutex<Option<tokio::task::JoinHandle<()>>>,
+     quiet: Arc<tokio::sync::Notify>,
+@@ -29,7 +31,9 @@
+         connection: ConnectionId,
+         origin: Arc<NativeRequestOrigin>,
+         policy: Arc<dyn NativeSubscriptionPolicy>,
+-        changed: Arc<tokio::sync::Notify>,
++        changed: Arc<rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal>,
++        flow_changed: Arc<rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal>,
++        broker_changed: Arc<rvoip_core::staged_streams::subscription_plan::SelectionChangeSignal>,
+     ) -> Arc<Self> {
+         let runtime = Arc::new(Self {
+             core: Arc::downgrade(core),
+@@ -39,6 +43,8 @@
+             origin,
+             policy,
+             changed,
++            flow_changed,
++            broker_changed,
+             task: Mutex::new(None),
+             quiet: Arc::new(tokio::sync::Notify::new()),
+         });
+@@ -66,6 +72,9 @@
+         let mut committed_plan: Option<NativeSubscriptionPlan> = None;
+         let mut retry = false;
+         let mut authorization_pending = false;
++        let mut observed_clock: Option<(u64, u64, u64, bool)> = None;
++        let mut force_catalog = true;
++        let mut catalog_retry = false;
+         loop {
+             let Some(runtime) = weak.upgrade() else {
+                 return;
+@@ -79,7 +88,17 @@
+             let Some(adapter) = runtime.adapter.upgrade() else {
+                 return;
+             };
+-            let changed = runtime.changed.notified();
++            // Register every hint BEFORE observing its clock. A change while
++            // reading remains dirty because only the PRE-read stamp is saved.
++            let scene_notify = runtime.changed.notifier();
++            let flow_notify = runtime.flow_changed.notifier();
++            let broker_notify = runtime.broker_changed.notifier();
++            let changed = scene_notify.notified();
++            let flow_changed = flow_notify.notified();
++            let broker_changed = broker_notify.notified();
++            tokio::pin!(flow_changed, broker_changed);
++            flow_changed.as_mut().enable();
++            broker_changed.as_mut().enable();
+             tokio::pin!(changed);
+             changed.as_mut().enable();
+             let policy_changes = runtime
+@@ -89,19 +108,34 @@
+             let policy_changed = policy_changes.notified();
+             tokio::pin!(policy_changed);
+             policy_changed.as_mut().enable();
+-            // A failed read schedules another fresh catalog read. It cannot
+-            // force an engine effect when the recovered catalog is unchanged.
+-            let mut catalog_retry = false;
+-            #[cfg(feature = "test-support")]
+-            let mut diagnostics = rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest::default();
+-            #[cfg(feature = "test-support")]
+-            let catalog_started = Instant::now();
+-            let plan = adapter.plan_native_reconciliation(
+-                &core, &runtime.connection, &runtime.origin,
+-                #[cfg(feature = "test-support")] &mut diagnostics,
++            let clock = (
++                runtime.changed.generation(), runtime.flow_changed.generation(),
++                runtime.broker_changed.generation(), runtime.origin.ready(),
+             );
+-            #[cfg(feature = "test-support")]
+-            runtime.policy.catalog_plan_observed_for_test(&runtime.connection, catalog_started, &diagnostics, &plan);
++            // Clock/hints select a metadata read, never a permission. The old
++            // bounded origin/currentness/expiry checks remain on EVERY pass.
++            let read_catalog = force_catalog || catalog_retry || retry
++                || authorization_pending || known.is_some() || pending.is_some()
++                || observed_clock != Some(clock)
++                || clock.0 == u64::MAX || clock.1 == u64::MAX || clock.2 == u64::MAX;
++            let plan = if read_catalog {
++                catalog_retry = false;
++                #[cfg(feature = "test-support")]
++                let mut diagnostics = rvoip_core::staged_streams::subscription_plan::CatalogReadDiagnosticsForTest::default();
++                #[cfg(feature = "test-support")]
++                let catalog_started = Instant::now();
++                let plan = adapter.plan_native_reconciliation(
++                    &core, &runtime.connection, &runtime.origin,
++                    #[cfg(feature = "test-support")] &mut diagnostics,
++                );
++                #[cfg(feature = "test-support")]
++                runtime.policy.catalog_plan_observed_for_test(&runtime.connection, catalog_started, &diagnostics, &plan);
++                // Busy and all other failed reads cannot acknowledge a clock.
++                // NotReady is real pending metadata, not a permanent idle state.
++                if plan.is_ok() { observed_clock = Some(clock); force_catalog = false; }
++                else { force_catalog = true; }
++                plan
++            } else { Ok(None) };
+             let wanted = match plan {
+                 Ok(Some(plan))
+                     if runtime.origin.ready()
+@@ -120,6 +154,7 @@
+                 }
+                 Ok(Some(_)) | Ok(None) => None,
+                 Err(NativeOfferError::Conflict)
++                | Err(NativeOfferError::NotReady)
+                 | Err(NativeOfferError::Capacity)
+                 | Err(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)) => {
+                     catalog_retry = true;
+@@ -240,9 +275,13 @@
+             drop(core);
+             tokio::select! {biased;
+                 _=runtime.cancel.cancelled()=>return,
+-                _=&mut changed=>{},
+-                _=&mut policy_changed=>{last=None;},
+-                _=tokio::time::sleep(if retry || catalog_retry || !runtime.origin.ready(){Duration::from_millis(25)}else{Duration::from_millis(500)})=>{},
++                // Even an explicit same-generation hint requests a real read.
++                _=&mut changed=>{force_catalog=true;},
++                _=&mut flow_changed=>{force_catalog=true;},
++                _=&mut broker_changed=>{force_catalog=true;},
++                _=&mut policy_changed=>{last=None;force_catalog=true;},
++                _=tokio::time::sleep_until(runtime.origin.deadline().min(Instant::now() +
++                    if retry || catalog_retry || authorization_pending || known.is_some() || pending.is_some() || !runtime.origin.ready(){Duration::from_millis(25)}else{Duration::from_millis(500)}))=>{},
+             }
+         }
+     }
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
+@@ -187,7 +187,7 @@
+         staged_streams::StreamControlError,
+     };
+     match e {
+-        E::Media(StreamControlError::Backpressure) => {
++        E::Media(StreamControlError::Backpressure | StreamControlError::MetadataBusy) => {
+             NativeOfferError::Dispatch(super::auth_dispatch::DispatchError::StorageUnavailable)
+         }
+         e => core_error(e),
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -162,6 +162,11 @@
+     (before, observations)
+ }
+ 
++#[cfg(feature = "test-support")]
++struct ReconcileAdmissionPause {
++    entered: Mutex<Option<tokio::sync::oneshot::Sender<(String, bool, u64)>>>,
++    release: tokio::sync::Notify,
++}
+ struct FreshProof {
+     domain: Arc<Grants>,
+     wire_domain: Arc<WirePolicy>,
+@@ -172,6 +177,10 @@
+     operation: String,
+     proposal: Mutex<Option<Envelope>>,
+     fail_routing: Arc<AtomicBool>,
++    #[cfg(feature = "test-support")]
++    model_entries: Arc<AtomicUsize>,
++    #[cfg(feature = "test-support")]
++    model_deadline: Arc<Mutex<Option<Instant>>>,
+ }
+ struct ErrorObservation {
+     domain: std::sync::Weak<Grants>,
+@@ -195,6 +204,12 @@
+     changed_errors: AtomicUsize,
+     #[cfg(feature = "test-support")]
+     catalog_probe: std::sync::OnceLock<CatalogProbe>,
++    #[cfg(feature = "test-support")]
++    reconcile_pause: std::sync::OnceLock<Arc<ReconcileAdmissionPause>>,
++    #[cfg(feature = "test-support")]
++    model_entries: Arc<AtomicUsize>,
++    #[cfg(feature = "test-support")]
++    model_deadline: Arc<Mutex<Option<Instant>>>,
+ }
+ impl Policy {
+     fn new(s: &Scene) -> Arc<Self> {
+@@ -215,6 +230,12 @@
+             changed_errors: AtomicUsize::new(0),
+             #[cfg(feature = "test-support")]
+             catalog_probe: std::sync::OnceLock::new(),
++            #[cfg(feature = "test-support")]
++            reconcile_pause: std::sync::OnceLock::new(),
++            #[cfg(feature = "test-support")]
++            model_entries: Arc::new(AtomicUsize::new(0)),
++            #[cfg(feature = "test-support")]
++            model_deadline: Arc::new(Mutex::new(None)),
+         })
+     }
+ }
+@@ -295,9 +316,24 @@
+             operation: operation.clone(),
+             proposal: Mutex::new(None),
+             fail_routing: self.fail_routing.clone(),
++            #[cfg(feature = "test-support")]
++            model_entries: self.model_entries.clone(),
++            #[cfg(feature = "test-support")]
++            model_deadline: self.model_deadline.clone(),
+         };
+         validate(&p, scope)?;
+         self.reads.fetch_add(1, Ordering::AcqRel);
++        #[cfg(feature = "test-support")]
++        if let Some(pause)=self.reconcile_pause.get() {
++            let entered=pause.entered.lock().unwrap().take();
++            if let Some(entered)=entered {
++                let release=pause.release.notified();tokio::pin!(release);
++                release.as_mut().enable();
++                let _=entered.send((operation.clone(),plan.changes_resources(),plan.selection().expected_revision()));
++                release.await;
++                validate(&p,scope)?;
++            }
++        }
+         Ok(NativeSubscriptionAuthority {
+             operation,
+             lease: AuthorityLease::holding(p),
+@@ -594,6 +630,11 @@
+         };
+         if !matches {
+             return Err(StreamControlError::Authority);
++        }
++        #[cfg(feature = "test-support")]
++        {
++            p.model_entries.fetch_add(1,Ordering::AcqRel);
++            *p.model_deadline.lock().unwrap()=Some(inv.deadline());
+         }
+         if !plan.changes_resources() && p.fail_routing.swap(false, Ordering::AcqRel) {
+             return Err(rvoip_core::stream_lifecycle::MediaTransitionError::Conflict.into());
+@@ -1030,11 +1071,15 @@
+         assert!(before.same_catalog(&available),"blocked policy leaves the SAME authoritative catalog available");
+         drop(available);
+         let source=s.controller();let orch=s.native.core.orch.clone();
++        let changes=orch.staged_media_selection_changes(&s.native.core.session).unwrap();
+         let session=s.native.core.session.clone();let target=s.second_id.clone();
+         // One joined bounded owner holds the ACTUAL source model mutex, so
+         // both the explicit read and ordinary pollers see real exclusion.
+         let busy=tokio::task::spawn_blocking(move ||source.with_model_state_exclusion_for_test(||{
+             let result=orch.plan_staged_media_selection(&session,&target,3,&MediaSelectionChange::Reconcile).map(drop);
++            // Ask the SAME real runtime to observe this ACTUAL exclusion. Busy
++            // keeps that read pending; idle catalog polling is unnecessary.
++            changes.notify_waiters();
+             // SAME original interval covers at least two catalog-poll deadlines.
+             std::thread::sleep(Duration::from_millis(1100));
+             result
+@@ -1304,3 +1349,233 @@
+         }
+     }
+ }
++
++
++// Real participant-model exclusion is outside the scene/controller catalog
++// locks exercised above. Four native observations must not occupy all four
++// reactor workers, and an admitted source must keep delivering while held.
++#[cfg(feature = "test-support")]
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_participant_model_busy_defers_native_catalog_without_stalling_io_or_reconciling_twice() {
++    use rvoip_core::orchestrator::participant_control::ParticipantControlError;
++    use rvoip_core::staged_streams::subscription_plan::MediaSelectionChange;
++    for kind in ["quic", "wt"] {
++        let (mut s, mut other, policy) = setup(kind).await;
++        let receiver=s.native.adapters[&s.kind].media_controller(&s.second_id).unwrap();
++        other.send(s.f.sign(select(receiver.revision()))).await;
++        assert_eq!(other.read().await.kind(),"ack");
++        let (_, source_callback)=s.prepared(add_video(&s,1,false)).await;
++        let source_video=subscriptions::stream_handle(&source_callback,"future_camera");
++        s.confirm(&source_callback).await;s.wait(3).await;
++        let callback=other.read().await;
++        let target_video=subscriptions::stream_handle(&callback,"future_camera");
++        other.send(s.f.sign(s.confirmation(&callback))).await;
++        core_fixture::until(||receiver.revision()==3).await;
++        core_fixture::until(||policy.operations.lock().unwrap().iter().any(|(_,v)|matches!(v,Ok(3)))).await;
++        send(&s.wire,subscriptions::video_sequence(source_video,1,19001));
++        assert_eq!(received(&other).await.rtp.packet().header.timestamp,19001);
++        let (before,mut rows)=observed_catalog_baseline(&s,&policy,kind,"participant-model-control").await;
++        let attempts=policy.attempts.load(Ordering::Acquire);
++        let operations=policy.operations.lock().unwrap().len();
++        let changes=s.native.core.orch.staged_media_selection_changes(&s.native.core.session).unwrap();
++        let orch=s.native.core.orch.clone();let session=s.native.core.session.clone();
++        let held=Arc::new(AtomicBool::new(true));let held_owner=held.clone();
++        let (entered_tx,entered_rx)=tokio::sync::oneshot::channel();
++        let (release_tx,release_rx)=std::sync::mpsc::sync_channel(1);
++        let owner=std::thread::spawn(move || {
++            let result=orch.with_participant_model_state_exclusion_for_test(&session,||{
++                let _=entered_tx.send(());
++                release_rx.recv_timeout(Duration::from_secs(3)).is_ok()
++            });
++            held_owner.store(false,Ordering::Release);result
++        });
++        let entered=entered_rx.await.is_ok();
++        let until=Instant::now()+Duration::from_millis(650);
++        let mut readers=Vec::new();
++        for _ in 0..4 {
++            let orch=s.native.core.orch.clone();let session=s.native.core.session.clone();
++            let target=s.second_id.clone();let held=held.clone();let before=before.clone();
++            readers.push(tokio::spawn(async move {
++                let mut answers=Vec::new();
++                answers.push(orch.plan_staged_media_selection(&session,&target,3,&MediaSelectionChange::Reconcile).map(drop));
++                let mut diagnostic=Default::default();
++                answers.push(orch.plan_staged_media_selection_diagnosed_for_test(&session,&target,3,&MediaSelectionChange::Reconcile,&mut diagnostic).map(drop));
++                answers.push(orch.plan_staged_media_selection_on_existing_ports(&session,&target,3,&MediaSelectionChange::Reconcile).map(drop));
++                answers.push(orch.validate_staged_media_selection_sources(&session,&target,&before,|_,_|Ok(()),|_|Ok(())));
++                (answers,held.load(Ordering::Acquire))
++            }));
++        }
++        let commands_started=Arc::new(AtomicUsize::new(0));
++        let command_cancel=CancellationToken::new();
++        let mut commands=Vec::new();
++        for index in 0..5 {
++            let orch=s.native.core.orch.clone();let session=s.native.core.session.clone();
++            let target=s.second_id.clone();let started=commands_started.clone();let held=held.clone();
++            let cancel=if index%2==0 {command_cancel.clone()} else {CancellationToken::new()};
++            commands.push(tokio::spawn(async move {
++                let empty=rvoip_core::staged_streams::media_subscriptions::MediaSubscriptionChange { selection:None,audio:None,direct:None };
++                started.fetch_add(1,Ordering::Release);
++                // Distinct actual APIs, same original caller-owned cutoff. The
++                // intentionally invalid effect inputs cannot mutate on a fuse
++                // regression; only their PRE-effect admission is under test.
++                let result=match index {
++                    0=>orch.change_staged_audio_subscriptions(&session,&target,3,rvoip_core::staged_streams::audio_subscriptions::AudioSubscriptionChange::Subscribe(Vec::new()),until,cancel,None).await.map(drop),
++                    1=>orch.change_staged_direct_subscriptions(&session,&target,3,rvoip_core::staged_streams::direct_subscriptions::DirectSubscriptionChange::Subscribe(Vec::new()),until,cancel,None).await.map(drop),
++                    2=>orch.change_staged_media_subscriptions(&session,&target,3,empty.clone(),until,cancel,None).await.map(drop),
++                    3=>orch.change_staged_media_and_subscriptions_with_held(&session,&target,3,&[],&BTreeSet::new(),&empty,until,cancel,Arc::new(())).await,
++                    _=>orch.stage_staged_media_and_subscriptions_with_held(&session,&target,3,&[],&BTreeSet::new(),&empty,until,cancel,Arc::new(())).await.map(drop),
++                };
++                (index,result,held.load(Ordering::Acquire))
++            }));
++        }
++        changes.notify_waiters();
++        let heartbeat=tokio::time::timeout_at(until,async {
++            tokio::time::sleep(Duration::from_millis(1)).await;
++            held.load(Ordering::Acquire)
++        }).await;
++        send(&s.wire,subscriptions::video_sequence(source_video,2,19002));
++        let delivered=tokio::time::timeout_at(until,received(&other)).await;
++        let io_while_held=held.load(Ordering::Acquire);
++        let all_commands_pending=commands_started.load(Ordering::Acquire)==5
++            && commands.iter().all(|command|!command.is_finished());
++        command_cancel.cancel();
++        let mut outcomes=Vec::new();for reader in readers {outcomes.push(reader.await);}
++        let mut command_outcomes=Vec::new();for command in commands {command_outcomes.push(command.await);}
++        let (busy_rows,overflow)=drain_catalog_rows(&mut rows);
++        let release_sent=release_tx.send(()).is_ok();let joined=owner.join();
++        // Original owner is closed before every assertion, including regressions.
++        assert!(entered&&release_sent&&matches!(joined,Ok(Ok(true))),"actual model holder fuse elapsed kind={kind}");
++        assert!(matches!(heartbeat,Ok(true))&&io_while_held,"real model observers occupied the reactor kind={kind}");
++        let packet=delivered.expect("admitted IO must finish before actual model release");
++        assert_eq!((packet.stream_local_id,packet.rtp.packet().header.timestamp),(target_video,19002));
++        for outcome in outcomes {
++            let (answers,while_held)=outcome.unwrap();assert!(while_held);
++            assert_eq!(answers.len(),4);
++            assert!(answers.into_iter().all(|answer|matches!(answer,Err(ParticipantControlError::Media(StreamControlError::MetadataBusy)))));
++        }
++        assert!(all_commands_pending,"all five actual commands must yield PRE-effect while the real model remains held");
++        for command in command_outcomes {
++            let(index,result,while_held)=command.unwrap();assert!(while_held);
++            if index%2==0 {assert!(matches!(result,Err(ParticipantControlError::Cancelled)));}
++            else {assert!(matches!(result,Err(ParticipantControlError::Deadline)));}
++        }
++        assert!(!overflow&&policy.catalog_probe.get().unwrap().dropped.load(Ordering::Acquire)==0);
++        assert!(busy_rows.iter().any(|row|matches!(row.outcome,CatalogObservedOutcome::Refused(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)))));
++        let recovered_until=Instant::now()+Duration::from_millis(650);
++        let mut actual=None;
++        while Instant::now()<recovered_until {
++            match tokio::time::timeout_at(recovered_until,rows.recv()).await {
++                Ok(Some(CatalogObserved{outcome:CatalogObservedOutcome::Planned{selection,..},..}))=>actual=Some(selection),
++                Ok(Some(_))=>{},
++                _=>break,
++            }
++        }
++        let actual=actual.expect("same pending catalog did not recover inside the original650ms window");
++        assert!(before.same_catalog(&actual));
++        assert_eq!(receiver.revision(),3);
++        assert_eq!(policy.attempts.load(Ordering::Acquire),attempts);
++        assert_eq!(policy.operations.lock().unwrap().len(),operations);
++        // Same actual selectors stay idle when metadata is unchanged; periodic
++        // cheap lifetime/currentness checks must not read the full Core model.
++        let _=drain_catalog_rows(&mut rows);
++        tokio::time::sleep(Duration::from_millis(650)).await;
++        let (idle,overflow)=drain_catalog_rows(&mut rows);
++        assert!(idle.is_empty()&&!overflow,"unchanged idle state must not poll the Core catalog kind={kind} rows={idle:?}");
++        s.grants.0.write().await.denied=true;
++        send(&s.wire,subscriptions::video_sequence(source_video,3,19003));
++        assert!(tokio::time::timeout(Duration::from_millis(75),received(&other)).await.is_err(),"clean clock must never grant revoked media");
++        s.grants.0.write().await.denied=false;
++        send(&s.wire,subscriptions::video_sequence(source_video,4,19004));
++        assert_eq!(received(&other).await.rtp.packet().header.timestamp,19004);
++        s.wire.server.shutdown().await.unwrap();other.server.shutdown().await.unwrap();
++    }
++}
++
++
++// The catalog succeeds first; ONLY THEN does the real model become occupied.
++// This is the race that an immediate mutation-Busy/public-error retry loses.
++#[cfg(feature = "test-support")]
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_reconciliation_waits_same_operation_when_model_becomes_busy_after_catalog_read() {
++    for kind in ["quic", "wt"] {
++        let (mut s,mut other,policy)=setup(kind).await;
++        let receiver=s.native.adapters[&s.kind].media_controller(&s.second_id).unwrap();
++        other.send(s.f.sign(select(receiver.revision()))).await;
++        assert_eq!(other.read().await.kind(),"ack");
++        let (_,source_callback)=s.prepared(add_video(&s,1,true)).await;
++        let source_video=subscriptions::stream_handle(&source_callback,"future_camera");
++        s.confirm(&source_callback).await;s.wait(3).await;
++        let callback=other.read().await;
++        let target_video=subscriptions::stream_handle(&callback,"future_camera");
++        other.send(s.f.sign(s.confirmation(&callback))).await;
++        core_fixture::until(||receiver.revision()==3).await;
++        core_fixture::until(||policy.operations.lock().unwrap().iter().any(|(_,v)|matches!(v,Ok(3)))).await;
++        send(&s.wire,subscriptions::video_sequence(source_video,1,29001));
++        assert_eq!(received(&other).await.rtp.packet().header.timestamp,29001);
++        let attempts=policy.attempts.load(Ordering::Acquire);
++        let operations=policy.operations.lock().unwrap().len();
++        let model_entries=policy.model_entries.load(Ordering::Acquire);
++        let (entered_tx,entered_rx)=tokio::sync::oneshot::channel();
++        let pause=Arc::new(ReconcileAdmissionPause {entered:Mutex::new(Some(entered_tx)),release:tokio::sync::Notify::new()});
++        assert!(policy.reconcile_pause.set(pause.clone()).is_ok());
++        let until=Instant::now()+Duration::from_secs(3);
++        // End only the screen: the original camera/receiver IO stays live.
++        // Retained compatible receive ports make the real change routing-only.
++        let (_,source_change)=s.prepared(add_video(&s,2,false)).await;
++        s.confirm(&source_change).await;s.wait(4).await;
++        let admitted=tokio::time::timeout_at(until,entered_rx).await;
++        let (operation,resources,expected)=admitted.expect("real changed catalog must enter fresh policy").unwrap();
++        assert!(!resources&&expected==3,"test must exercise actual routing-only post-catalog admission");
++        let orch=s.native.core.orch.clone();let session=s.native.core.session.clone();
++        let held=Arc::new(AtomicBool::new(true));let held_owner=held.clone();
++        let (held_tx,held_rx)=tokio::sync::oneshot::channel();
++        let (release_tx,release_rx)=std::sync::mpsc::sync_channel(1);
++        let owner=std::thread::spawn(move || {
++            let result=orch.with_participant_model_state_exclusion_for_test(&session,||{
++                let _=held_tx.send(());
++                release_rx.recv_timeout(until.saturating_duration_since(Instant::now())).is_ok()
++            });
++            held_owner.store(false,Ordering::Release);result
++        });
++        let entered=tokio::time::timeout_at(until,held_rx).await.is_ok_and(|v|v.is_ok());
++        // Deliver the SAME fresh authority callback to the actual runtime. It
++        // must remain in its original command until the real model is free.
++        pause.release.notify_one();
++        let heartbeat=tokio::time::timeout_at(until,async {
++            tokio::time::sleep(Duration::from_millis(1)).await;
++            held.load(Ordering::Acquire)
++        }).await;
++        send(&s.wire,subscriptions::video_sequence(source_video,2,29002));
++        let delivered=tokio::time::timeout_at(until,received(&other)).await;
++        let while_held=held.load(Ordering::Acquire);
++        let unchanged=(receiver.try_subscription_metadata().map(|v|v.0),
++            policy.attempts.load(Ordering::Acquire),policy.operations.lock().unwrap().len(),
++            policy.model_entries.load(Ordering::Acquire));
++        let release_sent=release_tx.send(()).is_ok();let joined=owner.join();
++        // The only real holder is joined before assertions or panic paths.
++        assert!(entered&&release_sent&&matches!(joined,Ok(Ok(true))));
++        assert!(matches!(heartbeat,Ok(true))&&while_held,"post-catalog model wait stalled the reactor");
++        let packet=delivered.expect("original healthy camera must progress before model release");
++        assert_eq!((packet.stream_local_id,packet.rtp.packet().header.timestamp),(target_video,29002));
++        assert!(matches!(unchanged.0,Ok(3)));
++        assert_eq!((unchanged.1,unchanged.2,unchanged.3),(attempts+1,operations,model_entries),"same command must remain pre-effect with no error observation/readmission while model held");
++        tokio::time::timeout_at(until,async {
++            loop {
++                if policy.operations.lock().unwrap().iter().any(|(id,result)|id==&operation&&matches!(result,Ok(4))) {break;}
++                tokio::time::sleep(Duration::from_millis(1)).await;
++            }
++        }).await.expect("original SAME operation must finish after real model release");
++        let published_at=Instant::now();
++        let actual_deadline=policy.model_deadline.lock().unwrap().expect("actual same invocation deadline");
++        assert!(published_at<actual_deadline&&published_at<until);
++        assert_eq!(receiver.revision(),4);
++        assert_eq!(policy.attempts.load(Ordering::Acquire),attempts+1);
++        assert_eq!(policy.model_entries.load(Ordering::Acquire),model_entries+1);
++        let actual=policy.operations.lock().unwrap().clone();
++        assert_eq!(actual.len(),operations+1);
++        assert_eq!(actual.iter().filter(|(id,_)|id==&operation).count(),1,"no second logical attempt or duplicate engine commit");
++        send(&s.wire,subscriptions::video_sequence(source_video,3,29003));
++        assert_eq!(received(&other).await.rtp.packet().header.timestamp,29003);
++        s.wire.server.shutdown().await.unwrap();other.server.shutdown().await.unwrap();
++    }
++}

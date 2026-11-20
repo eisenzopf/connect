@@ -472,3 +472,124 @@ fn native_prepared_shorter_cutoff_rolls_back_at_actual_dml_and_commit_boundaries
         );
     }
 }
+
+#[test]
+fn same_started_writer_readmission_revokes_exact_old_epoch_without_sql_mutation_and_fresh_read_recovers(
+) {
+    let m = scene();
+    let preparation = prepare(&m);
+    let attempt = begin(&m, &preparation);
+    let original_ids = {
+        let ids = attempt.attempt_binding();
+        (ids.0.to_owned(), ids.1.to_owned(), ids.2.to_owned())
+    };
+    let sources = m.sources.clone();
+    let store = Arc::new(m.f.store);
+    let register = |target: &Arc<crate::NativeMediaOrigin>| {
+        let weak = Arc::downgrade(&store);
+        let target_copy = target.clone();
+        store
+            .register_native_media_snapshot_for(target, None, move || {
+                weak.upgrade()
+                    .ok_or_else(Error::forbidden)?
+                    .try_native_media_read(&target_copy, None)
+            })
+            .unwrap()
+    };
+    let affected = register(&sources[0]);
+    let disjoint = register(&sources[2]);
+    let mut watcher = store.start_media_authorization_watcher().unwrap();
+    let admit = |snapshot: &crate::NativeMediaSnapshot| {
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        loop {
+            match snapshot.admit() {
+                Ok(read) => break read,
+                Err(error)
+                    if error.code == "authority-busy" && std::time::Instant::now() < until =>
+                {
+                    std::thread::sleep(std::time::Duration::from_millis(1))
+                }
+                Err(error) => panic!("actual current snapshot refused: {error:?}"),
+            }
+        }
+    };
+    let sql_before = Store::inspect_snapshot(store.path()).unwrap();
+    for turn in 0..3 {
+        let original = admit(&affected);
+        let epoch = original.packet_epoch().unwrap();
+        let stamp = original.snapshot_stamp().unwrap();
+        assert!(original.current() && epoch.current());
+        // Keep only metadata, never a Reader blocking the tested Writer.
+        drop(original);
+        let healthy = admit(&disjoint);
+        let healthy_epoch = healthy.packet_epoch().unwrap();
+        assert!(healthy_epoch.current());
+        drop(healthy);
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        let read = loop {
+            match store.try_native_replacement_commit_attempt_scene_write(
+                &attempt.admission(),
+                &sources,
+                &wait(),
+            ) {
+                Ok(read) => break read,
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "authority-busy" | "storage-unavailable"
+                    ) && std::time::Instant::now() < until =>
+                {
+                    std::thread::sleep(std::time::Duration::from_millis(1))
+                }
+                Err(error) => panic!("same started Writer admission refused: {error:?}"),
+            }
+        };
+        assert!(read.current());
+        assert!(!epoch.current(),"announced exact old-source Writer invalidates its original queued epoch even without SQL mutation");
+        let (revocation, _) = epoch.sample_at_for_test(std::time::Instant::now());
+        assert!(revocation.revoked && revocation.until_minus_sample_ns>0,
+            "observe actual invalidation while original epoch deadline still live, never infer it from expiry: {revocation:?}");
+        assert_eq!(
+            revocation.first_revocation_state,
+            "first_transition_before_original_deadline_cause_uncertain"
+        );
+        assert!(
+            healthy_epoch.current(),
+            "a disjoint source must not inherit old/candidate invalidation"
+        );
+        assert!(
+            affected.admit_original(stamp).is_err(),
+            "held same-started Writer cannot lend stale queued authority"
+        );
+        drop(read);
+        assert_eq!(
+            Store::inspect_snapshot(store.path()).unwrap(),
+            sql_before,
+            "same-started readmission cannot mutate operation/effect/lease/journal counts"
+        );
+        let fresh = admit(&affected);
+        assert!(fresh.current() && fresh.packet_epoch().unwrap().current());
+        assert!(fresh.snapshot_stamp().unwrap() != stamp);
+        assert!(
+            !epoch.current(),
+            "refresh never revives the original queued epoch"
+        );
+        assert!(
+            affected.admit_original(stamp).is_err(),
+            "old packet cannot borrow the fresh generation"
+        );
+        assert!(healthy_epoch.current());
+        drop(fresh);
+        let ids = attempt.attempt_binding();
+        assert_eq!(
+            (ids.0, ids.1, ids.2),
+            (
+                original_ids.0.as_str(),
+                original_ids.1.as_str(),
+                original_ids.2.as_str()
+            )
+        );
+        eprintln!("SAME_STARTED_WRITER_EPOCH turn={turn} old_revoked=true disjoint_current=true sql_unchanged=true fresh_recovered=true old_stamp_refused=true same_attempt=true");
+    }
+    watcher.shutdown().unwrap();
+}

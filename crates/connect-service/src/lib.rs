@@ -1279,7 +1279,8 @@ pub use canonical_records::http::CanonicalHttpRecordResponse;
 pub mod canonical_media_projection_fixture {
     pub use crate::canonical_media::continuation_fixture::ReplacementProjectionPause;
     pub use crate::canonical_media::preparation_custody_fixture::{
-        PreparationCustodyObservation, PreparationCustodyPhase, PreparationCustodyProbe,
+        PreparationCustodyCountersForTest, PreparationCustodyObservation, PreparationCustodyPhase,
+        PreparationCustodyProbe,
     };
     pub use crate::canonical_media::route_enrollment_fixture::{
         RouteEnrollmentBoundary, RouteEnrollmentMark, RouteEnrollmentPause,

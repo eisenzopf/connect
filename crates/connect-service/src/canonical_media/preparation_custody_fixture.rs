@@ -45,7 +45,10 @@ pub(crate) struct Probe {
     observation: Mutex<Option<PreparationCustodyObservation>>,
     original_route: Mutex<Option<(Arc<NativeMediaOrigin>, Arc<NativeMediaOrigin>)>>,
     cutoff: Mutex<Option<tokio::time::Instant>>,
-    actual_unpublished: std::sync::atomic::AtomicUsize,
+    actual_unpublished: Arc<std::sync::atomic::AtomicUsize>,
+    final_writer_calls: Arc<std::sync::atomic::AtomicUsize>,
+    final_writer_returned: Arc<std::sync::atomic::AtomicUsize>,
+    model_retry_busy: Arc<std::sync::atomic::AtomicUsize>,
     begin_submissions: std::sync::atomic::AtomicUsize,
     begin_unconfirmed: std::sync::atomic::AtomicBool,
     final_read: arc_swap::ArcSwapOption<FinalRead>,
@@ -71,12 +74,44 @@ impl FinalRead {
         }
     }
 }
+/// Per-original-operation numeric counters only; no resource/grant/Probe owner.
+#[derive(Clone)]
+pub struct PreparationCustodyCountersForTest {
+    unpublished: Arc<std::sync::atomic::AtomicUsize>,
+    writer_calls: Arc<std::sync::atomic::AtomicUsize>,
+    writer_returned: Arc<std::sync::atomic::AtomicUsize>,
+    model_busy: Arc<std::sync::atomic::AtomicUsize>,
+}
+impl PreparationCustodyCountersForTest {
+    /// (actual opaque Still returns, writer API calls, returned Writer reads,
+    /// actual model-metadata Busy observations). Calls are NOT invalidations.
+    pub fn snapshot(&self) -> (usize, usize, usize, usize) {
+        use std::sync::atomic::Ordering::Acquire;
+        (
+            self.unpublished.load(Acquire),
+            self.writer_calls.load(Acquire),
+            self.writer_returned.load(Acquire),
+            self.model_busy.load(Acquire),
+        )
+    }
+}
 pub struct PreparationCustodyProbe {
     probe: Arc<Probe>,
     owner: Weak<Policy>,
     key: String,
 }
 impl PreparationCustodyProbe {
+    /// Copy numeric ownership only; dropping this does not release the original
+    /// rendezvous or retain its operation/resource/authority aliases.
+    pub fn counters_for_test(&self) -> PreparationCustodyCountersForTest {
+        PreparationCustodyCountersForTest {
+            unpublished: self.probe.actual_unpublished.clone(),
+            writer_calls: self.probe.final_writer_calls.clone(),
+            writer_returned: self.probe.final_writer_returned.clone(),
+            model_busy: self.probe.model_retry_busy.clone(),
+        }
+    }
+
     pub async fn entered(&self) {
         self.probe.entered.cancelled().await;
     }
@@ -225,6 +260,18 @@ impl Probe {
             panic!("controlled Service panic after actual managed publication/post custody");
         }
     }
+    pub(crate) fn note_final_writer_call(&self) {
+        self.final_writer_calls
+            .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+    }
+    pub(crate) fn note_final_writer_returned(&self) {
+        self.final_writer_returned
+            .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+    }
+    pub(crate) fn note_model_retry_busy(&self) {
+        self.model_retry_busy
+            .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+    }
     /// Only the real opaque Core StillUnpublished return records this witness.
     pub(crate) fn note_actual_unpublished(&self) {
         self.actual_unpublished
@@ -290,7 +337,10 @@ impl Policy {
             observation: Mutex::new(None),
             original_route: Mutex::new(None),
             cutoff: Mutex::new(None),
-            actual_unpublished: std::sync::atomic::AtomicUsize::new(0),
+            actual_unpublished: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            final_writer_calls: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            final_writer_returned: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            model_retry_busy: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             begin_submissions: std::sync::atomic::AtomicUsize::new(0),
             begin_unconfirmed: std::sync::atomic::AtomicBool::new(false),
             final_read: arc_swap::ArcSwapOption::empty(),

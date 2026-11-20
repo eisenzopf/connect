@@ -1,0 +1,79 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_diagnostic.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_diagnostic.rs
+@@ -29,8 +29,11 @@
+     PublicationBinding,
+     PublicationLifetime,
+     PublicationTicket,
+-}
+-const NAMES: [&str; 21] = [
++    QueuedEpochRefused,
++    QueuedSourceCustodyRefused,
++    PendingEpochRefused,
++}
++const NAMES: [&str; 24] = [
+     "ingress-retain",
+     "ingress-preparation",
+     "ingress-publish",
+@@ -52,6 +55,9 @@
+     "publication-binding",
+     "publication-lifetime",
+     "publication-ticket",
++    "queued-epoch-refused",
++    "queued-source-custody-refused",
++    "pending-epoch-refused",
+ ];
+ const OUTCOMES: [&str; 8] = [
+     "ok",
+@@ -87,7 +93,7 @@
+     initial_revision: u64,
+     initial_origin_binding_generation: u64,
+     initial_audio_ports: Vec<(String, u64, u64, bool, bool)>,
+-    stages: [Counts; 21],
++    stages: [Counts; 24],
+     summary_events: [AtomicU64; SUMMARY_CAPACITY],
+     summary_samples: [AtomicU64; SUMMARY_CAPACITY],
+ }
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio/pending_target.rs
+@@ -165,10 +165,10 @@
+     }
+ 
+     fn current(&self, target: &Arc<StreamController>, port: &Arc<Port>) -> bool {
+-        self.authorization_epochs
+-            .iter()
+-            .flatten()
+-            .all(|epoch| epoch.current())
++        let epochs_current = self.authorization_epochs.iter().flatten().all(|epoch| epoch.current());
++        #[cfg(feature = "test-support")]
++        if !epochs_current {audio_diagnostic::result(&target.connection,audio_diagnostic::Stage::PendingEpochRefused,Some(&StreamControlError::Authority));}
++        epochs_current
+             && !target.shutdown.is_cancelled()
+             && Arc::ptr_eq(port, &self.target)
+             && self
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1536,14 +1536,18 @@
+     }
+ 
+     fn require_authorization_epochs(&self) -> ControlResult<()> {
+-        if self
+-            .authorization_epochs
+-            .iter()
+-            .all(|epoch| epoch.current())
+-            && self.sources.iter().all(|source| source.custody.current())
+-        {
++        let epochs_current = self.authorization_epochs.iter().all(|epoch| epoch.current());
++        // Preserve original short-circuit order; no snapshot is reread to
++        // diagnose an error and no later grant can repair this original epoch.
++        let source_custody_current = epochs_current && self.sources.iter().all(|source| source.custody.current());
++        if epochs_current && source_custody_current {
+             Ok(())
+         } else {
++            #[cfg(feature = "test-support")]
++            if let Some(observation)=audio_diagnostic::original_frame(&self.target,&self.frame) {
++                observation.finish(if !epochs_current {audio_diagnostic::Stage::QueuedEpochRefused}
++                    else {audio_diagnostic::Stage::QueuedSourceCustodyRefused},Some(&StreamControlError::Authority));
++            }
+             Err(StreamControlError::Authority)
+         }
+     }

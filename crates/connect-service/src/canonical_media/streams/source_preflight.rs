@@ -153,7 +153,7 @@ impl Policy {
         )
         .map_err(|error| match error {
             rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(
-                StreamControlError::Backpressure,
+                StreamControlError::Backpressure | StreamControlError::MetadataBusy,
             ) => Error::new("authority-busy", "Subscription source metadata is busy"),
             rvoip_core::orchestrator::participant_control::ParticipantControlError::Media(
                 StreamControlError::Unsupported,

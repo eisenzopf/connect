@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 161,
+  "mobile_content_revision": 240,
+  "recorded_at": "2026-11-20T19:55:22.241718+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "Actual current543 all6 causal controls4PASS2FAIL; all4newPASS, two old strict catalog classifier failures; exactNoOp fixture correction verified; 49/full7/matrix unqualified",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile240-source543-six-causal-units-root/before-write.json",
+  "private_before_sha256": "a46738280be58536bd503a4f4b2879711301868ba1b4b134be347a8501cbcb74",
+  "private_write": ".local/gate-6/mobile240-source543-six-causal-units-root/write.json",
+  "private_write_sha256": "fb82aef485185ff794bd128d59ef1ecac6ab4ff2820a4af34f845ff5a602f52a",
+  "private_readback": ".local/gate-6/mobile240-source543-six-causal-units-root/readback.json",
+  "private_readback_sha256": "566e3085c0dc368d0015783ac5dbe93f22ed1bf57c946a272accfdf30d1ced0f"
+}

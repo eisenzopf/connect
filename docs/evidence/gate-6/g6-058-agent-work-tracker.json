@@ -1,19 +1,19 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-20T19:26:09.876791+00:00",
-  "revision": 160,
+  "updated_at": "2026-11-20T19:53:27.330947+00:00",
+  "revision": 161,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint160-mobile239-scoped-readback",
-    "content_revision": 239,
-    "readback_evidence": ".local/gate-6/mobile239-source541-four-causal-units-root/readback.json",
-    "readback_evidence_sha256": "a46738280be58536bd503a4f4b2879711301868ba1b4b134be347a8501cbcb74",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v239-source541-four-causal-units.json",
-    "postrun_readback_sha256": "1eef0bb968489230621e991a65cb5503db1053ef6e1d468d38fe83f065d944d5"
+    "sync_status": "verified-checkpoint161-mobile240-scoped-readback",
+    "content_revision": 240,
+    "readback_evidence": ".local/gate-6/mobile240-source543-six-causal-units-root/readback.json",
+    "readback_evidence_sha256": "566e3085c0dc368d0015783ac5dbe93f22ed1bf57c946a272accfdf30d1ced0f",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v240-source543-six-causal-units.json",
+    "postrun_readback_sha256": "f361a6ed2abd0a9c17688d32875501a525fb89ae3389ff1812ed7adeae91432b"
   },
   "baseline": {
     "run": "v215",
@@ -1384,7 +1384,7 @@
         "V219-WSS-INGRESS"
       ],
       "status": "in-progress",
-      "implementation_state": "Normal541 is applied, prepared and independently audited: 16 existing upstream afterimages and 10 formatted workspace paths, with both canonical patches registered and the complete prior539 tree preserved. On the unchanged6582-file source, four new causal units completed: Store, selection clock and Native Model passed; Native TOCTOU failed, for3PASS/1FAIL with zero ignored. The Store control passed three same-started Writer turns with old-epoch refusal, disjoint-source currentness, unchanged SQL and fresh recovery. The clock control passed notification-registration/read-race and saturation checks. Native Model passed both QUIC and WebTransport, including held-model media/timer/pending-command progress, recovery, unchanged idle and revocation tails. TOCTOU passed its first QUIC held-phase owner/media/timer/pending assertions, then failed the unchanged3s same-operation recovery wait at future_subscriptions.rs1567 after3.11s; its remaining publication tail and WebTransport variant were not reached. Its final operation result was not captured. A source-derived possible fixture mismatch between a valid no-op revision3 and the test's expected revision4 remains unconfirmed; a failure-only diagnostic candidate is source-only and unapplied. Both old catalog controls remain unrun. The four original Cargo owners closed naturally and were freshly absent; source, prepared dependencies and actual current artifacts stayed fixed. G735 remains failed at41/45 on historical source539; neither its four failures nor mixed-audio behavior is newly qualified. The new49-case component run, current shared379, complete affected/full regressions, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile239 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+      "implementation_state": "Normal543 is applied, prepared and independently audited. G748 completed all six causal unit functions on unchanged6586-file source543:4PASS/2FAIL, with zero ignored, incomplete or unrun functions. All four new controls passed: Store same-started Writer epochs, selection-clock races, Native Model and corrected Native TOCTOU. Both Native controls completed QUIC and WebTransport and their full original tails. The exact no-op revision3 fixture correction is now verified by the TOCTOU pass; prior G743/G746 failures remain historical failures. The two affected old catalog controls still fail. The main control records an unchanged plan inside its fixed650ms recovery window, but the unchanged strict helper rejects an earlier StorageUnavailable with no typed leaf at future_subscriptions.rs1110. The variant control fails the same strict helper at line1335 in its first QUIC release variant; its offending background rows were not logged, so the precise leaf and cause remain unproven and the other three causal variants are unreached. None remains rejected; no deadline, frame, quiet, authorization or diagnostic requirement is waived. All six original Cargo owners closed naturally and were freshly absent; source, prepared dependencies and current artifacts stayed fixed. Expanded test-support typed diagnostics are under authoring and unapplied, with no repaired-runtime credit. The current production batch can be committed for review with both known catalog failures documented; no code-batch commit or all-six pass is claimed by this proposal. G735 remains failed41/45 on historical source539; mixed-audio behavior is not newly qualified. The49-case component run, current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile240 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1598,6 +1598,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v219-g743-source541-four-causal-units.json",
           "result": "Normal541 prepared/audited. Fournewunits3PASS1FAIL:Store,Clock,NativeModelPASS;TOCTOUfirstQUICrecovery3sTimeout afterheldmedia/timer/pendingassertions; laterWT/tailsunreached. Actualoutcomeabsent/possiblefixturemismatchunconfirmed/diagnosticsourceonly. BotholdcatalogUNRUN/same49UNRUN/G735failed41of45retained/noqualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g748-source543-six-causal-units.json",
+          "result": "G748 source543 all6complete4PASS2FAIL; all4new Store/Clock/NativeModel/TOCTOUPASS bothNativeQUIC+WT/fulltails. TwoOLDcatalogFAIL stricthelper rejects untyped refusal; mainrecoveryinside650ms, variantoffendingrowsabsent/precisecauseunproven/3variantsunreached. Typeddiagnosticsunapplied; G735failed41/45retained/49UNRUN/noqualification.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -1605,7 +1610,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-20T19:26:09.876791+00:00",
+      "updated_at": "2026-11-20T19:53:27.330947+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -2069,6 +2074,20 @@
         "matrix_credit": false,
         "evidence": "docs/evidence/gate-6/g6-058-v219-g743-source541-four-causal-units.json",
         "sha256": "8e0206b65e692885ce6d67f031ab907ea92200d3a2bafb10ef7035ccb23654b7"
+      },
+      "current_frontiers_checkpoint161": {
+        "status": "actualG748-six-complete4PASS2FAIL-four-new-pass-two-oldcatalog-fail",
+        "prepared_generation": 543,
+        "actual_unit_functions_completed": 6,
+        "actual_unit_passed": 4,
+        "actual_unit_failed": 2,
+        "same49": "UNRUN",
+        "retained_G735": "FAILED41PASS4FAIL_NOT_REGRADED",
+        "expanded_typed_diagnostics": "UNDER_AUTHORING_UNAPPLIED",
+        "qualification": false,
+        "matrix_credit": false,
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g748-source543-six-causal-units.json",
+        "sha256": "f55a59a1518a56bd6051654973ed3402acc766a124eaee171522ef05f913c5f7"
       }
     },
     {
@@ -6393,6 +6412,13 @@
       "event": "Normal541 actualprepared/audited16upstream+10workspace; fournewunits3PASS1FAIL. TOCTOUfirstQUICrecoveryTimeout; oldcatalog2/new49/full/readinessunrun. G735failed41/45retained; no matrixcredit.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g743-source541-four-causal-units.json",
       "by": "/root"
+    },
+    {
+      "at": "2026-11-20T19:53:27.330947+00:00",
+      "revision": 161,
+      "event": "Normal543 actualprepared/audited; G748 all6complete4PASS2FAIL, all4new controlsPASS; twooldcatalogstrictdiagnosticfailures remain. Newtypeddiagnosticsunapplied; no49/full/readiness/matrixcredit, oldfailedhistoryretained.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g748-source543-six-causal-units.json",
+      "by": "/root"
     }
   ],
   "tracking_review": {
@@ -8022,11 +8048,11 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Normal541 is applied, prepared and independently audited: 16 existing upstream afterimages and 10 formatted workspace paths, with both canonical patches registered and the complete prior539 tree preserved. On the unchanged6582-file source, four new causal units completed: Store, selection clock and Native Model passed; Native TOCTOU failed, for3PASS/1FAIL with zero ignored. The Store control passed three same-started Writer turns with old-epoch refusal, disjoint-source currentness, unchanged SQL and fresh recovery. The clock control passed notification-registration/read-race and saturation checks. Native Model passed both QUIC and WebTransport, including held-model media/timer/pending-command progress, recovery, unchanged idle and revocation tails. TOCTOU passed its first QUIC held-phase owner/media/timer/pending assertions, then failed the unchanged3s same-operation recovery wait at future_subscriptions.rs1567 after3.11s; its remaining publication tail and WebTransport variant were not reached. Its final operation result was not captured. A source-derived possible fixture mismatch between a valid no-op revision3 and the test's expected revision4 remains unconfirmed; a failure-only diagnostic candidate is source-only and unapplied. Both old catalog controls remain unrun. The four original Cargo owners closed naturally and were freshly absent; source, prepared dependencies and actual current artifacts stayed fixed. G735 remains failed at41/45 on historical source539; neither its four failures nor mixed-audio behavior is newly qualified. The new49-case component run, current shared379, complete affected/full regressions, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile239 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g743-source541-four-causal-units.json",
-    "sha256": "8e0206b65e692885ce6d67f031ab907ea92200d3a2bafb10ef7035ccb23654b7"
+    "status": "Normal543 is applied, prepared and independently audited. G748 completed all six causal unit functions on unchanged6586-file source543:4PASS/2FAIL, with zero ignored, incomplete or unrun functions. All four new controls passed: Store same-started Writer epochs, selection-clock races, Native Model and corrected Native TOCTOU. Both Native controls completed QUIC and WebTransport and their full original tails. The exact no-op revision3 fixture correction is now verified by the TOCTOU pass; prior G743/G746 failures remain historical failures. The two affected old catalog controls still fail. The main control records an unchanged plan inside its fixed650ms recovery window, but the unchanged strict helper rejects an earlier StorageUnavailable with no typed leaf at future_subscriptions.rs1110. The variant control fails the same strict helper at line1335 in its first QUIC release variant; its offending background rows were not logged, so the precise leaf and cause remain unproven and the other three causal variants are unreached. None remains rejected; no deadline, frame, quiet, authorization or diagnostic requirement is waived. All six original Cargo owners closed naturally and were freshly absent; source, prepared dependencies and current artifacts stayed fixed. Expanded test-support typed diagnostics are under authoring and unapplied, with no repaired-runtime credit. The current production batch can be committed for review with both known catalog failures documented; no code-batch commit or all-six pass is claimed by this proposal. G735 remains failed41/45 on historical source539; mixed-audio behavior is not newly qualified. The49-case component run, current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile240 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g748-source543-six-causal-units.json",
+    "sha256": "f55a59a1518a56bd6051654973ed3402acc766a124eaee171522ef05f913c5f7"
   },
-  "updated": "2026-11-20T19:26:09.876791+00:00",
+  "updated": "2026-11-20T19:53:27.330947+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -8724,5 +8750,29 @@
     ],
     "actual_last_readback_revision": 238,
     "publication_transform": "Prefix first paragraph Revision239 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
+  },
+  "v219_g748_source543_six_causal_units": {
+    "status": "actualG748-six-complete4PASS2FAIL-four-new-pass-two-oldcatalog-fail",
+    "prepared_generation": 543,
+    "actual_unit_functions_completed": 6,
+    "actual_unit_passed": 4,
+    "actual_unit_failed": 2,
+    "same49": "UNRUN",
+    "retained_G735": "FAILED41PASS4FAIL_NOT_REGRADED",
+    "expanded_typed_diagnostics": "UNDER_AUTHORING_UNAPPLIED",
+    "qualification": false,
+    "matrix_credit": false,
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g748-source543-six-causal-units.json",
+    "sha256": "f55a59a1518a56bd6051654973ed3402acc766a124eaee171522ef05f913c5f7"
+  },
+  "mobile240_proposal": {
+    "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
+    "paragraphs": [
+      "Checkpoint161: normal543 is applied, prepared and independently audited. G748 completed six causal unit functions:4PASS/2FAIL, with zero ignored, incomplete or unrun functions. All four new controls passed; Native Model and corrected TOCTOU completed both QUIC and WebTransport and their full tails. Original owners closed naturally; source and current artifacts stayed fixed.",
+      "Both old catalog controls still fail. The main control recovered inside650ms, but its strict helper rejects an earlier StorageUnavailable without a typed leaf. The first variant fails that helper without logging its offending rows, so its precise cause and remaining variants are unverified. Expanded typed diagnostics are under authoring and unapplied. No None leaf, threshold or deadline is waived; no all-six pass is claimed. G735 remains failed41/45; the49-case run is unrun.",
+      "Matrix remains1/32 cells and399/432 checks, with no new credit and not ready for32. All seven readiness scopes remain open; shared379, complete affected/full regression and OriginalV8 are still required. G6-054 stays parked. Mobile239 remains the last verified readback. This mobile240 text is a proposal only; publication and scoped readback are not claimed."
+    ],
+    "actual_last_readback_revision": 239,
+    "publication_transform": "Prefix first paragraph Revision240 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
   }
 }

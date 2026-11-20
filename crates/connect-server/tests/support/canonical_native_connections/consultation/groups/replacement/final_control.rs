@@ -68,6 +68,7 @@ pub(super) async fn verify(
         &original.record_id,
         &command.operation_id,
         candidate_runtime,
+        custody,
         peers,
         media_until,
     )
@@ -191,7 +192,26 @@ pub(super) async fn verify(
         }
     };
     drop(writer);
+    let held_writer_before = custody.counters_for_test().snapshot();
     evidence.live_duplex(f, peers, media_until).await;
+    let held_writer_after = custody.counters_for_test().snapshot();
+    assert_eq!(
+        (
+            held_writer_after.0,
+            held_writer_after.1,
+            held_writer_after.2
+        ),
+        (
+            held_writer_before.0,
+            held_writer_before.1,
+            held_writer_before.2
+        ),
+        "same held model must not churn Core attempts/purpose Writers after genuine Started+Still"
+    );
+    assert!(
+        held_writer_after.3 > held_writer_before.3,
+        "actual held model must defer before reacquiring Writer"
+    );
     assert!(
         holder
             .owner

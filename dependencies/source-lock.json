@@ -2881,6 +2881,26 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-participant-role-observer-model-try-acquisition.patch",
       "sha256": "660bab6b811e16c539714c2163cc9731cabe0e094432842a06da9ace0e33177a"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-subscription-model-try-change-clock.patch",
+      "sha256": "d91fddd2edbc7ce5c02776504b9745761085cfc42a24740eba37257cb9ec92ea"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-test-observe-queued-audio-epoch-refusal-leaves.patch",
+      "sha256": "cbddd78875bbf2b9d95f4f85767917ee383b17b6af40357cca5324c865f03471"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-toctou-recovery-phase-diagnostic.patch",
+      "sha256": "53f0c386b794b4141aff9d6d858ef46809138990c5ed659d128c07052bcb5d4b"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-toctou-authorized-noop-expectation.patch",
+      "sha256": "2b90b3951ce743e0a6b5ec2b547b6d082f41a85d9a647eba52b5c5117bdee40b"
     }
   ]
 }

@@ -6,6 +6,9 @@ use rvoip_uctp::substrate::{pack_rtp_datagram, unpack_rtp_datagram, RtpDatagram,
 
 pub(super) struct Evidence {
     readiness: NativeReplacementReadiness,
+    custody_counters:
+        connect_service::canonical_media_projection_fixture::PreparationCustodyCountersForTest,
+    audio_diagnostics: rvoip_core::staged_streams::audio_diagnostic::AudioDiagnostics,
     observation: connect_service::CanonicalReplacementAudioObserverForTest,
     candidate_runtime: String,
     retained_runtime: String,
@@ -20,6 +23,7 @@ impl Evidence {
         record: &str,
         operation: &str,
         candidate_runtime: &str,
+        custody: &connect_service::canonical_media_projection_fixture::PreparationCustodyProbe,
         peers: &mut [Peer],
         until: tokio::time::Instant,
     ) -> Self {
@@ -85,8 +89,30 @@ impl Evidence {
                 Err(error) => panic!("exact original preparation observation refused: {error:?}"),
             }
         };
+        let audio_diagnostics = loop {
+            match f
+                .server
+                .service
+                .canonical_paused_audio_diagnostic_for_test(&retained_runtime, &old_runtime)
+            {
+                Ok(diagnostic) => break diagnostic,
+                Err(error)
+                    if error.code == "authority-busy" && tokio::time::Instant::now() < until =>
+                {
+                    tokio::time::sleep_until(
+                        until.min(tokio::time::Instant::now() + Duration::from_millis(1)),
+                    )
+                    .await
+                }
+                Err(error) => {
+                    panic!("exact original public source/receiver diagnostic refused: {error:?}")
+                }
+            }
+        };
         let mut result = Self {
             readiness,
+            custody_counters: custody.counters_for_test(),
+            audio_diagnostics,
             observation,
             candidate_runtime: candidate_runtime.into(),
             retained_generation: retained.2,
@@ -345,6 +371,8 @@ impl Evidence {
         }
         self.state(f, until, closed).await;
         let start = tokio::time::Instant::now();
+        let writer_before = self.custody_counters.snapshot();
+        let audio_before = self.audio_diagnostics.snapshot();
         assert!(start < until);
         let send_until = start + Duration::from_millis(400);
         let minimum_tail = if source.is_some() {
@@ -559,12 +587,13 @@ impl Evidence {
                 }
             }
         }
-        if !quiet {
-            // All readers, raw forbidden-route checks and the SAME source phase
-            // ran unchanged. Energy/sample totals permit RMS reconstruction
-            // without logging payloads or treating low amplitude as silence.
-            eprintln!("SERVICE_PRIVATE_OBSERVER_QUIET_FAILURE phase={name} source={source:?} public={public:?} closed={closed} elapsed_ms={} original_budget_at_start_ms={} send_ms=400 minimum_tail_ms={} quiet_ms=200 since_last_marked_ms={} attempts={attempts} local_enqueues={enqueued} packets={packets} fresh_public={counts:?} fresh_private={private} raw_public={raw_public:?} raw_private={raw_private} historical={historical:?} phase_packets={phase_packets:?} phase_marked={phase_marked:?} phase_audible={phase_audible:?} phase_peak={phase_peak:?} phase_energy={phase_energy:?} phase_samples={phase_samples:?} phase_last_sequence={phase_last_sequence:?} maximum_loop_gap_us={maximum_loop_gap_us} maximum_event_wait_us={maximum_event_wait_us} maximum_enqueue_us={maximum_enqueue_us}",start.elapsed().as_millis(),until.duration_since(start).as_millis(),minimum_tail.duration_since(start).as_millis(),last_marked.elapsed().as_millis());
-        }
+        let writer_after = self.custody_counters.snapshot();
+        let audio_after = self.audio_diagnostics.snapshot();
+        eprintln!("SERVICE_PRIVATE_OBSERVER_CUSTODY phase={name} writer_before={writer_before:?} writer_after={writer_after:?} audio_before={} audio_after={}",serde_json::to_string(&audio_before).unwrap(),serde_json::to_string(&audio_after).unwrap());
+        // Emit copied local counters BEFORE the quiet, structural-state and
+        // fresh-frame assertions. A measured quiet boundary can still fail the
+        // unchanged minimum frame counts; report both passes and failures.
+        eprintln!("SERVICE_PRIVATE_OBSERVER_PHASE_DIAGNOSTIC quiet={quiet} phase={name} source={source:?} public={public:?} closed={closed} elapsed_ms={} original_budget_at_start_ms={} send_ms=400 minimum_tail_ms={} quiet_ms=200 since_last_marked_ms={} attempts={attempts} local_enqueues={enqueued} packets={packets} fresh_public={counts:?} fresh_private={private} raw_public={raw_public:?} raw_private={raw_private} historical={historical:?} phase_packets={phase_packets:?} phase_marked={phase_marked:?} phase_audible={phase_audible:?} phase_peak={phase_peak:?} phase_energy={phase_energy:?} phase_samples={phase_samples:?} phase_last_sequence={phase_last_sequence:?} maximum_loop_gap_us={maximum_loop_gap_us} maximum_event_wait_us={maximum_event_wait_us} maximum_enqueue_us={maximum_enqueue_us}",start.elapsed().as_millis(),until.duration_since(start).as_millis(),minimum_tail.duration_since(start).as_millis(),last_marked.elapsed().as_millis());
         assert!(
             quiet,
             "same original source did not reach measured quiet before cutoff"

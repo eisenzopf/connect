@@ -1,0 +1,69 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -210,6 +210,8 @@
+     model_entries: Arc<AtomicUsize>,
+     #[cfg(feature = "test-support")]
+     model_deadline: Arc<Mutex<Option<Instant>>>,
++    #[cfg(feature = "test-support")]
++    last_observed: Mutex<Option<(String, Result<(u64, bool), NativeOfferError>)>>,
+ }
+ impl Policy {
+     fn new(s: &Scene) -> Arc<Self> {
+@@ -236,6 +238,8 @@
+             model_entries: Arc::new(AtomicUsize::new(0)),
+             #[cfg(feature = "test-support")]
+             model_deadline: Arc::new(Mutex::new(None)),
++            #[cfg(feature = "test-support")]
++            last_observed: Mutex::new(None),
+         })
+     }
+ }
+@@ -347,6 +351,10 @@
+         held: Option<&AuthorityLease>,
+         no_effect: Option<&NativeSubscriptionNoEffect>,
+     ) -> Result<(), DispatchError> {
++        #[cfg(feature = "test-support")]
++        {
++            *self.last_observed.lock().unwrap()=Some((operation.into(),result.as_ref().map(|outcome|(outcome.revision,outcome.resources_changed)).map_err(|error|*error)));
++        }
+         let lease = held.ok_or(DispatchError::Authority)?;
+         if let Some(metadata) = lease.authority::<ErrorObservation>() {
+             assert!(metadata.domain.ptr_eq(&Arc::downgrade(&self.domain)));
+@@ -1559,12 +1567,35 @@
+         assert_eq!((packet.stream_local_id,packet.rtp.packet().header.timestamp),(target_video,29002));
+         assert!(matches!(unchanged.0,Ok(3)));
+         assert_eq!((unchanged.1,unchanged.2,unchanged.3),(attempts+1,operations,model_entries),"same command must remain pre-effect with no error observation/readmission while model held");
+-        tokio::time::timeout_at(until,async {
++        let recovery=tokio::time::timeout_at(until,async {
+             loop {
+                 if policy.operations.lock().unwrap().iter().any(|(id,result)|id==&operation&&matches!(result,Ok(4))) {break;}
+                 tokio::time::sleep(Duration::from_millis(1)).await;
+             }
+-        }).await.expect("original SAME operation must finish after real model release");
++        }).await;
++        if recovery.is_err() {
++            let operations_now=policy.operations.lock().unwrap().clone();
++            let observed=policy.last_observed.lock().unwrap().clone();
++            let actual_deadline=*policy.model_deadline.lock().unwrap();
++            let attempts_now=policy.attempts.load(Ordering::Acquire);
++            let entries_now=policy.model_entries.load(Ordering::Acquire);
++            let reads_now=policy.reads.load(Ordering::Acquire);
++            let bindings=|controller:&StreamController|controller.try_subscription_metadata().map(|(revision,ports)|(
++                revision,ports.into_iter().map(|port|(
++                    port.negotiated.requested.logical_id.as_str().to_owned(),
++                    port.transport_id.as_str().to_owned(),port.generation,port.connection_generation,
++                    port.source_ready,port.sink_ready,
++                )).collect::<Vec<_>>()
++            ));
++            let target_now=bindings(&receiver);
++            let source_now=bindings(&s.controller());
++            let participant_revision=s.native.core.orch.try_participant_revision(&s.native.core.session);
++            let generation=s.native.core.orch.staged_media_selection_clock(&s.native.core.session).map(|clock|clock.generation());
++            // Every successful/poisoned metadata guard above has dropped before
++            // this failure-only IO. The original Result/oracle below is intact.
++            eprintln!("native TOCTOU recovery kind={kind} operation={operation} resources={resources} expected={expected} now={:?} until={until:?} invocation_deadline={actual_deadline:?} held={} attempts_before={attempts} attempts_now={attempts_now} entries_before={model_entries} entries_now={entries_now} reads_now={reads_now} operations_before={operations} operations_now={operations_now:?} last_observed={observed:?} target={target_now:?} source={source_now:?} participant_revision={participant_revision:?} generation={generation:?}",Instant::now(),held.load(Ordering::Acquire));
++        }
++        recovery.expect("original SAME operation must finish after real model release");
+         let published_at=Instant::now();
+         let actual_deadline=policy.model_deadline.lock().unwrap().expect("actual same invocation deadline");
+         assert!(published_at<actual_deadline&&published_at<until);

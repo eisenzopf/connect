@@ -75,6 +75,7 @@ impl Runtime {
         #[cfg(feature = "test-support")]
         post.observe_for_test(control_probe.clone());
         let mut prepared = Some(cut);
+        let mut after_unpublished = false;
         let mut attempt: Option<Arc<connect_store::TelephoneReplacementCommitAttempt>> = None;
         loop {
             let mut deferred = None;
@@ -84,6 +85,21 @@ impl Runtime {
                     || tokio::time::Instant::now() >= until
                 {
                     return Err(Error::forbidden());
+                }
+                if after_unpublished {
+                    // Availability only, AFTER a genuine same-token Still return.
+                    // No grant/role/Writer/bank exists here; full final fences
+                    // still decide permission and commit after this hint.
+                    let observed = self.observe_managed_retry_model(
+                        root.handle.prepared_binding().appearance().session(),
+                    );
+                    #[cfg(feature = "test-support")]
+                    if observed.as_ref().is_err_and(|e| e.code == "authority-busy") {
+                        if let Some(probe) = &control_probe {
+                            probe.note_model_retry_busy();
+                        }
+                    }
+                    observed?;
                 }
                 let requirements = prepared
                     .as_ref()
@@ -152,6 +168,10 @@ impl Runtime {
                     until.saturating_duration_since(tokio::time::Instant::now()),
                 );
                 let _cancel_wait = wait.cancel_on_drop();
+                #[cfg(feature = "test-support")]
+                if let Some(probe) = &control_probe {
+                    probe.note_final_writer_call();
+                }
                 let read = if let Some(original) = attempt.as_ref() {
                     let original = original.clone();
                     let store = self.media.store.clone();
@@ -188,6 +208,10 @@ impl Runtime {
                     attempt = Some(original);
                     read
                 };
+                #[cfg(feature = "test-support")]
+                if let Some(probe) = &control_probe {
+                    probe.note_final_writer_returned();
+                }
                 let mut i = Invocation {
                     runtime: self.clone(),
                     root: root.clone(),
@@ -356,7 +380,10 @@ impl Runtime {
                 drop(turn_resources.take());
             }
             match step {
-                Ok(Turn::Still(same)) => prepared = Some(same),
+                Ok(Turn::Still(same)) => {
+                    prepared = Some(same);
+                    after_unpublished = true;
+                }
                 Ok(Turn::BeforeEntryBusy) => {}
                 Ok(Turn::Published {
                     outcome,

@@ -1,0 +1,31 @@
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -1528,7 +1528,9 @@
+         assert!(policy.reconcile_pause.set(pause.clone()).is_ok());
+         let until=Instant::now()+Duration::from_secs(3);
+         // End only the screen: the original camera/receiver IO stays live.
+-        // Retained compatible receive ports make the real change routing-only.
++        // Reconciliation retains the ended-screen sink and upserts the same
++        // camera mapping/intent. Its fresh authorized routing commit is a
++        // no-op: exactly the captured revision3, not an artificial increment.
+         let (_,source_change)=s.prepared(add_video(&s,2,false)).await;
+         s.confirm(&source_change).await;s.wait(4).await;
+         let admitted=tokio::time::timeout_at(until,entered_rx).await;
+@@ -1569,7 +1571,7 @@
+         assert_eq!((unchanged.1,unchanged.2,unchanged.3),(attempts+1,operations,model_entries),"same command must remain pre-effect with no error observation/readmission while model held");
+         let recovery=tokio::time::timeout_at(until,async {
+             loop {
+-                if policy.operations.lock().unwrap().iter().any(|(id,result)|id==&operation&&matches!(result,Ok(4))) {break;}
++                if policy.operations.lock().unwrap().iter().any(|(id,result)|id==&operation&&matches!(result,Ok(3))) {break;}
+                 tokio::time::sleep(Duration::from_millis(1)).await;
+             }
+         }).await;
+@@ -1599,7 +1601,7 @@
+         let published_at=Instant::now();
+         let actual_deadline=policy.model_deadline.lock().unwrap().expect("actual same invocation deadline");
+         assert!(published_at<actual_deadline&&published_at<until);
+-        assert_eq!(receiver.revision(),4);
++        assert_eq!(receiver.revision(),3);
+         assert_eq!(policy.attempts.load(Ordering::Acquire),attempts+1);
+         assert_eq!(policy.model_entries.load(Ordering::Acquire),model_entries+1);
+         let actual=policy.operations.lock().unwrap().clone();
