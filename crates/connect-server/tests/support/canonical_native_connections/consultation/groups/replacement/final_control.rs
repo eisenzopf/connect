@@ -84,6 +84,11 @@ pub(super) async fn verify(
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
         db.execute_batch("CREATE TRIGGER fixture_final_begin_failure BEFORE INSERT ON operation_effects WHEN NEW.provider='native-replacement-commit' BEGIN SELECT RAISE(ABORT,'controlled real post-BEGIN final begin failure'); END;").unwrap();
         drop(db);
+        // Force one genuine try_connection WouldBlock/Ok(None), not a result stub.
+        // The scoped raw holder drops before the existing async retry pause.
+        let binding = custody.native_begin_binding_for_test();
+        assert_eq!(binding.0, original.record_id);
+        custody.exclude_next_native_begin_entry_for_test();
         custody.release();
         custody.left().await;
         tokio::time::timeout_at(original_until, async {
@@ -93,11 +98,30 @@ pub(super) async fn verify(
         })
         .await
         .expect("real failed begin did not preserve original uncertain attribution");
-        assert_eq!(
-            custody.actual_begin_submissions(),
-            1,
-            "first begin cannot replay from a generic storage error"
+        let observed = custody.native_begin_snapshot_for_test();
+        assert!(
+            observed.none >= 1,
+            "real pre-entry Busy path was not exercised"
         );
+        assert_eq!(observed.pre_entry_busy, observed.none);
+        assert_eq!(observed.exclusion_holds, 1);
+        assert_eq!(observed.scope_refusals, 0);
+        assert_eq!(observed.some, 0);
+        assert_eq!(observed.errors, 1);
+        assert_eq!(observed.calls, observed.none + 1);
+        assert_eq!(custody.actual_begin_submissions(), observed.calls);
+        assert_eq!(
+            observed.sql_begins, 1,
+            "exactly one actual post-BEGIN attempt"
+        );
+        assert_eq!(observed.before_dml, 1);
+        assert_eq!(observed.insert_errors, 1);
+        assert_eq!(
+            observed.controlled_trigger_errors, 1,
+            "actual INSERT must report SQLite 1811 and the controlled trigger text"
+        );
+        assert_eq!(observed.binding_mismatches, 0);
+        assert_eq!(observed.unconfirmed, 1);
         assert_eq!(
             custody.actual_unpublished_returns(),
             0,
@@ -111,6 +135,14 @@ pub(super) async fn verify(
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
         let count:usize=db.query_row("SELECT count(*) FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit'",[&original.record_id],|r|r.get(0)).unwrap();
         assert_eq!(count, 0, "actual failed transaction must roll back");
+        let effects: usize = db
+            .query_row(
+                "SELECT count(*) FROM operation_effects WHERE id=?1",
+                [&binding.2],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(effects, 0, "original effect INSERT must roll back");
         drop(db);
         // Removing the fault must not cause resubmission during the SAME
         // original publication interval: the owned outcome stays uncertain.
@@ -120,14 +152,32 @@ pub(super) async fn verify(
             .unwrap();
         evidence.cancelled_original(f, peers, original_until).await;
         tokio::time::sleep_until(original_until).await;
-        assert_eq!(custody.actual_begin_submissions(), 1);
+        assert_eq!(
+            custody.native_begin_snapshot_for_test(),
+            observed,
+            "no call/SQL entry/outcome after uncertainty, even after removing the fault"
+        );
+        assert_eq!(custody.actual_begin_submissions(), observed.calls);
+        assert_eq!(custody.native_begin_binding_for_test(), binding);
         assert_eq!(custody.actual_unpublished_returns(), 0);
         let count:usize=rusqlite::Connection::open(&f.config.database).unwrap().query_row("SELECT count(*) FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit'",[&original.record_id],|r|r.get(0)).unwrap();
         assert_eq!(
             count, 0,
             "uncertainty cannot become a fresh persisted Started/NotSubmitted"
         );
-        eprintln!("SERVICE_FINAL_BEGIN real_sql_trigger_after_begin=true submissions=1 actual_core_calls=0 original_ids_retained=true");
+        let effects: usize = rusqlite::Connection::open(&f.config.database)
+            .unwrap()
+            .query_row(
+                "SELECT count(*) FROM operation_effects WHERE id=?1",
+                [&binding.2],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            effects, 0,
+            "uncertainty must not recreate the original effect"
+        );
+        eprintln!("SERVICE_FINAL_BEGIN real_sql_trigger_after_begin=true typed={observed:?} actual_core_calls=0 original_ids_retained=true");
         return Outcome {
             negative: true,
             evidence,

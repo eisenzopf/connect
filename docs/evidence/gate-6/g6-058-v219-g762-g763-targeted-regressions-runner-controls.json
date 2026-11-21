@@ -1,0 +1,164 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "checkpoint": 165,
+  "recorded_at": "2026-11-21T02:17:51.530645+00:00",
+  "status": "TWO_TARGETED_REGRESSIONS_PASS_RUNNER18_AND_CORRECTED31_PASS_FRESH49_UNRUN",
+  "source": {
+    "base_head": "90deff50979c3a42dd0f66851aaa455f659ba0be",
+    "files": 6596,
+    "sha256": "0d1e53ab52c6f12c7d4744b5a0a3cb7de25ae5c75a7c209813da985502bb9729",
+    "workspace_change": "eight changed and one new test/test-support file",
+    "upstream_generation": 544,
+    "upstream_changes": false,
+    "production_retry_or_authorization_or_publication_limit_changes": false
+  },
+  "targeted_regressions": {
+    "Store": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "original_exec": 78172,
+      "original_pid_pgid": 60515,
+      "natural_exit": 0
+    },
+    "Server": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "original_exec": 22222,
+      "original_pid_pgid": 60875,
+      "natural_exit": 0,
+      "typed_counts": {
+        "calls": 2,
+        "none": 1,
+        "pre_entry_busy": 1,
+        "sql_begins": 1,
+        "before_dml": 1,
+        "insert_errors": 1,
+        "controlled_trigger_errors": 1,
+        "some": 0,
+        "errors": 1,
+        "exclusion_holds": 1,
+        "binding_mismatches": 0,
+        "unconfirmed": 1,
+        "scope_refusals": 0
+      },
+      "actual_Core_post_starts": 0,
+      "rollback_and_original_no_replay_media_tails": "PASS"
+    }
+  },
+  "runner_controls": {
+    "two_helpers": {
+      "executed": 18,
+      "passed": 18,
+      "failed": 0,
+      "actual_pid_pgid": 62366,
+      "natural_exit": 0
+    },
+    "three_drivers_original_attempt": {
+      "executed": 31,
+      "passed": 30,
+      "failed": 1,
+      "actual_pid_pgid": 62400,
+      "natural_exit": 1,
+      "cause": "harness blanketNoTERM contradicts original shared timeout TERM+5s contract"
+    },
+    "three_drivers_harness_corrected": {
+      "executed": 31,
+      "passed": 31,
+      "failed": 0,
+      "actual_pid_pgid": 62577,
+      "natural_exit": 0,
+      "driver_and_plan_bytes_unchanged": true
+    },
+    "scope": "AST-only fake process/OS negative controls; no project runtime credit"
+  },
+  "latest_complete_component": {
+    "run": "G759",
+    "completed": 49,
+    "passed": 48,
+    "failed": 1,
+    "historical_verdict": "FAILED_NOT_REGRADED"
+  },
+  "fresh49": {
+    "status": "UNRUN_NEXT_AFTER_BATCH_COMMIT",
+    "builds_required": 9,
+    "inventories_required": 9,
+    "functions_required": 49
+  },
+  "historical_exact_G759_call_outcomes": "UNLOGGED_UNPROVEN_NOT_INFERRED_FROM_NEW_FORCED_NONE_CASE",
+  "all7_readiness_scopes": "OPEN",
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "host_capture": "root-only BPF; userTerminalactionpending; currentregressionsnotblocked",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 244,
+  "mobile244": "VERIFIED_SCOPED_READBACK",
+  "proofs": [
+    {
+      "path": ".local/gate-6/g762-native-begin-observation-root/source-review.json",
+      "sha256": "8df45a598b2b59e7e98872ffab14ea75e100e3c2371077db7fad07029b5ef851"
+    },
+    {
+      "path": ".local/gate-6/g762-native-begin-observation-readiness12-independent-review/receipt.json",
+      "sha256": "020b55f48d59b3b347e1163d5fd458ffc934bbabf708425031d6eb438c8bcd21"
+    },
+    {
+      "path": ".local/gate-6/g762-native-begin-observation-root/store-unit/result.json",
+      "sha256": "fc9a428ea85ae586c5320020b41be8e6242962b9d8dda42a33bde9884f03c99e"
+    },
+    {
+      "path": ".local/gate-6/g762-native-begin-observation-store-unit-independent-audit/receipt.json",
+      "sha256": "b5ce0fe18af4ceff5a7ec17b0b3791e8c47ff83ec369cf38ad260a601146e7c9"
+    },
+    {
+      "path": ".local/gate-6/g762-native-begin-observation-root/server-case/result.json",
+      "sha256": "7ad300b58a4c429d4eb79e71829519a60635c2908a7358b396374d6c1b158a30"
+    },
+    {
+      "path": ".local/gate-6/g762-native-begin-observation-server-case-independent-audit/receipt.json",
+      "sha256": "cba1b443da9a0976b79d8d354201f6480b63cf387fe923b55a5d6a4920c3bc8a"
+    },
+    {
+      "path": ".local/gate-6/g763-runner-pure-controls-root/corrected-cohort-result.json",
+      "sha256": "cde7fae2fc7a1ad0a5e3cac267843909f43b348f1808fb24a78689f5c2d9fe9b"
+    },
+    {
+      "path": ".local/gate-6/g762-original900-firefox-original-group-finally-inert-successor/manifest.json",
+      "sha256": "e1aa3461631bcbd3c6027d9bafc72bcd575eb5038ce68766e1ca071d58f016e3"
+    },
+    {
+      "path": ".local/gate-6/g762-original900-firefox-observation-exception-controls-supplement/manifest.json",
+      "sha256": "7c1830dfc892e6df4ba8b95a17e4f5f3bd327a7e1095f13d8c00857fbc2fcb88"
+    },
+    {
+      "path": ".local/gate-6/source544-readiness12-original-group-finally-inert-successor-v2/manifest.json",
+      "sha256": "723e9e13907e5a7c3d28f7888a5d9b2a52b9e842fdf710819037704b6f7dfcf9"
+    },
+    {
+      "path": ".local/gate-6/source544-readiness12-shared-timeout-harness-only-supplement/manifest.json",
+      "sha256": "9b94e2fca15d6d85684c64ea800e95be6109ae6fc88e249f3923bd24902963c3"
+    },
+    {
+      "path": ".local/gate-6/g763-helper18-readiness12-independent-audit/receipt.json",
+      "sha256": "d67a1fa5c492c32cf38d22484e25c08cd269803e9a9517b5e05e942026132483"
+    },
+    {
+      "path": ".local/gate-6/g763-corrected31-pure-controls-independent-audit/receipt.json",
+      "sha256": "f2b1a733b1a64c39928db66a45432053ce4fdac69b8f6d7a4e20d9cfbd79744d"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v244-targeted-regressions-runner-controls.json",
+      "sha256": "f7abaa7e79795ab58d32978f5ea3e33dd28cdbbeb06547173858334013756f11"
+    }
+  ],
+  "pending_independent_runner_audits": false
+}

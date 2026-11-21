@@ -242,8 +242,24 @@ impl Runtime {
                         until.saturating_duration_since(tokio::time::Instant::now()),
                     );
                     let _cancel_wait = wait.cancel_on_drop();
+                    #[cfg(feature = "test-support")]
+                    let begin_observation = control_probe
+                        .as_ref()
+                        .and_then(|probe| probe.native_begin_observation());
                     post.begin_issued();
                     let result = store_call(move || {
+                        #[cfg(feature = "test-support")]
+                        if let Some(observation) = begin_observation {
+                            return store.with_native_prepared_begin_observation_for_test(
+                                observation,
+                                &wait,
+                                || {
+                                    store.try_begin_prepared_native_replacement_commit_with_wait(
+                                        &facts, &read, &wait,
+                                    )
+                                },
+                            );
+                        }
                         store.try_begin_prepared_native_replacement_commit_with_wait(
                             &facts, &read, &wait,
                         )

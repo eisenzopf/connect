@@ -37,6 +37,8 @@ pub use media_authorization::OwnedWatcher as MediaAuthorizationWatcher;
 mod media_end;
 mod membership;
 mod messages;
+#[cfg(any(test, feature = "test-support"))]
+pub mod native_prepared_begin_observation_for_test;
 mod operational;
 mod operations;
 mod transitions;

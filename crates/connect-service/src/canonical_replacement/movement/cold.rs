@@ -228,6 +228,7 @@ impl Runtime {
                 .or_else(||self.media.take_preparation_custody_probe_for_test(root.operation_id(),crate::canonical_media::preparation_custody_fixture::PreparationCustodyPhase::ManagedPostPanic));
             #[cfg(feature = "test-support")]
             if let Some(probe) = &control_probe {
+                probe.install_native_begin_observation(prepared.attempt_binding());
                 probe.pause(&self.stop, &cancel, until, None).await;
             }
             return Ok(ColdCommit {

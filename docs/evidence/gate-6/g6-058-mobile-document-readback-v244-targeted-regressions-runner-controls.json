@@ -1,0 +1,23 @@
+{
+  "format": "connect/mobile-checkpoint-readback/1",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "verification": {
+    "status": "VERIFIED_SCOPED_MOBILE244_READBACK",
+    "revision": 244,
+    "paragraphs": 422,
+    "changed_paragraph_indices": [
+      2,
+      3,
+      9
+    ],
+    "unrelated_paragraphs_text_styles_structure_preserved": 419,
+    "source_revision_guard": "AHj4eMRAwaz6AV4_iooMyVj-_gqyta7wdSkRHceVKdCaD1N42dK9Tgr6-nhtDqY-XMNjr2-MEp1OOPn_agGs8p_1yZfUzlXnkzadJQz7jEE",
+    "readback_revision": "AHj4eMTz_rdVRSBqu1sVQcP2_PQuU3c5AWXJjE476dnXBbKzhuYwef78c2tld75-zhhDfs-RANcHCa1QJdGmfCO2mJE6m4c3WiPQobchyX0",
+    "recorded_at": "2026-11-21T02:20:07.002691+00:00",
+    "readback_sha256": "395673b33725bb807f06b260254b99b4f3096bcba6729ac2c963d8af4a09bfd7",
+    "request_sha256": "c7d9190c52888456b52a106bd9440f0fead2fc51f4cdc592a7b39f418d277adb",
+    "matrix_credit": false
+  },
+  "raw_verification_path": ".local/gate-6/mobile244-targeted-regressions-runner-controls-root/verification.json",
+  "raw_verification_sha256": "6c9aa206dff966fae3c3ff93c7cf8544cbb2eca13e9b9f6316a4139fc8b1dce5"
+}

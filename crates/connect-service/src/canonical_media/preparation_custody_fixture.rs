@@ -49,6 +49,7 @@ pub(crate) struct Probe {
     final_writer_calls: Arc<std::sync::atomic::AtomicUsize>,
     final_writer_returned: Arc<std::sync::atomic::AtomicUsize>,
     model_retry_busy: Arc<std::sync::atomic::AtomicUsize>,
+    native_begin: arc_swap::ArcSwapOption<connect_store::native_prepared_begin_observation_for_test::NativePreparedBeginObservationForTest>,
     begin_submissions: std::sync::atomic::AtomicUsize,
     begin_unconfirmed: std::sync::atomic::AtomicBool,
     final_read: arc_swap::ArcSwapOption<FinalRead>,
@@ -114,6 +115,35 @@ impl PreparationCustodyProbe {
 
     pub async fn entered(&self) {
         self.probe.entered.cancelled().await;
+    }
+    /// Arm one actual raw Store mutex hold; installed before this cold rendezvous.
+    pub fn exclude_next_native_begin_entry_for_test(&self) {
+        self.probe
+            .native_begin
+            .load_full()
+            .expect("Native begin observer not installed")
+            .exclude_next_entry();
+    }
+    /// Actual typed Store/SQLite observations from the original prepared tuple.
+    pub fn native_begin_snapshot_for_test(
+        &self,
+    ) -> connect_store::native_prepared_begin_observation_for_test::NativePreparedBeginSnapshotForTest
+    {
+        self.probe
+            .native_begin
+            .load_full()
+            .expect("Native begin observer not installed")
+            .snapshot()
+    }
+    /// Original immutable IDs captured before final admission, not authority.
+    pub fn native_begin_binding_for_test(&self) -> (String, String, String) {
+        let observer = self
+            .probe
+            .native_begin
+            .load_full()
+            .expect("Native begin observer not installed");
+        let (record, attempt, effect) = observer.binding();
+        (record.into(), attempt.into(), effect.into())
     }
     pub fn actual_begin_submissions(&self) -> usize {
         self.probe
@@ -215,11 +245,24 @@ impl Drop for Leaving {
     }
 }
 impl Probe {
+    pub(crate) fn install_native_begin_observation(&self, binding: (&str, &str, &str)) {
+        assert!(
+            self.native_begin.load_full().is_none(),
+            "Native preparation observer installed twice"
+        );
+        self.native_begin.store(Some(Arc::new(connect_store::native_prepared_begin_observation_for_test::NativePreparedBeginObservationForTest::new(binding))));
+    }
+    pub(crate) fn native_begin_observation(&self) -> Option<Arc<connect_store::native_prepared_begin_observation_for_test::NativePreparedBeginObservationForTest>>{
+        self.native_begin.load_full()
+    }
     pub(crate) fn note_begin_submission(&self) {
         self.begin_submissions
             .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
     }
-    pub(crate) fn note_begin_unconfirmed(&self) {
+    pub(crate) fn note_begin_unconfirmed(&self, binding: (&str, &str, &str)) {
+        if let Some(observer) = self.native_begin.load_full() {
+            observer.note_unconfirmed(binding);
+        }
         self.begin_unconfirmed
             .store(true, std::sync::atomic::Ordering::Release);
     }
@@ -341,6 +384,7 @@ impl Policy {
             final_writer_calls: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             final_writer_returned: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             model_retry_busy: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            native_begin: arc_swap::ArcSwapOption::empty(),
             begin_submissions: std::sync::atomic::AtomicUsize::new(0),
             begin_unconfirmed: std::sync::atomic::AtomicBool::new(false),
             final_read: arc_swap::ArcSwapOption::empty(),

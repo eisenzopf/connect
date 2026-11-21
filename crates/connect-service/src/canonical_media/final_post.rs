@@ -305,7 +305,7 @@ impl<'a> PostCustody<'a> {
                 .store(true, Ordering::Release);
             #[cfg(feature = "test-support")]
             if let Some(probe) = &self.probe {
-                probe.note_begin_unconfirmed();
+                probe.note_begin_unconfirmed((&self.binding.0, &self.binding.1, &self.binding.2));
             }
         }
         let Some(post) = self.post.take() else {

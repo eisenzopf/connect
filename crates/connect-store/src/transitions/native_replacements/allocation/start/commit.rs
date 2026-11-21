@@ -601,6 +601,10 @@ impl Store {
         preparation: Option<&NativeReplacementCommitPreparation>,
         control_wait: Option<&crate::AuthorityWait>,
     ) -> Result<Option<NativeReplacementCommitAttempt>> {
+        #[cfg(any(test, feature = "test-support"))]
+        if let Some(preparation) = preparation {
+            crate::native_prepared_begin_observation_for_test::entry(preparation.attempt_binding());
+        }
         if let Some(wait) = control_wait {
             wait.check()?;
         }
@@ -615,13 +619,19 @@ impl Store {
         observe_commit_entry_probe("begin-sql");
         let mut c = match self.try_connection() {
             Ok(connection) => connection,
-            Err(error) if error.code == "authority-busy" => return Ok(None),
+            Err(error) if error.code == "authority-busy" => {
+                #[cfg(any(test, feature = "test-support"))]
+                crate::native_prepared_begin_observation_for_test::pre_entry_busy();
+                return Ok(None);
+            }
             Err(error) => return Err(error),
         };
         c.bind_available_mutation_authority(self, &read.media.interval)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
+        #[cfg(any(test, feature = "test-support"))]
+        crate::native_prepared_begin_observation_for_test::sql_begin();
         let facts = self.native_commit_preparation_facts(&tx, &origin, read, true, None)?;
         let prepared = match preparation {
             Some(prepared) => {
@@ -677,7 +687,13 @@ impl Store {
                 return Err(Error::forbidden());
             }
         }
-        tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,'native-replacement-commit',?1,'none','prepared',?3)",params![effect,p.record,expected]).map_err(|_|Error::storage())?;
+        #[cfg(any(test, feature = "test-support"))]
+        crate::native_prepared_begin_observation_for_test::before_dml();
+        tx.execute("INSERT INTO operation_effects(id,operation_record_id,provider,correlation_key,idempotency_mode,state,observation_json) VALUES(?1,?2,'native-replacement-commit',?1,'none','prepared',?3)",params![effect,p.record,expected]).map_err(|_error| {
+            #[cfg(any(test, feature = "test-support"))]
+            crate::native_prepared_begin_observation_for_test::insert_error(&_error);
+            Error::storage()
+        })?;
         tx.execute("INSERT INTO native_replacement_steps(operation_record_id,phase,attempt_id,effect_id) VALUES(?1,'commit',?2,?3)",params![p.record,attempt,effect]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE native_replacement_steps SET started=1 WHERE operation_record_id=?1 AND phase='commit'",[&p.record]).map_err(|_|Error::storage())?;
         tx.execute("UPDATE operation_effects SET state='submitting',attempt=1,submission_generation=1 WHERE id=?1",[&effect]).map_err(|_|Error::storage())?;

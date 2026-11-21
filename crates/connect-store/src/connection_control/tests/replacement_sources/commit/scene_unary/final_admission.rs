@@ -397,6 +397,92 @@ fn native_prepared_final_begin_original_wait_refuses_before_dml_and_rolls_back_b
             "actual transaction rollback/no new step/effect/journal: {stage}"
         );
     }
+    // Same existing selector: a real raw connection holder produces typed None
+    // before BEGIN; normal return releases the holder and panic clears TLS.
+    {
+        use crate::native_prepared_begin_observation_for_test::NativePreparedBeginObservationForTest;
+        let m = scene();
+        let p = prepare(&m);
+        let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(1));
+        let read =
+            m.f.store
+                .try_native_replacement_commit_scene_write_with_wait(
+                    &m.origin,
+                    &m.sources,
+                    p.expires_at(),
+                    &wait,
+                )
+                .unwrap();
+        let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+        let observation = Arc::new(NativePreparedBeginObservationForTest::new(
+            p.attempt_binding(),
+        ));
+        observation.exclude_next_entry();
+        let result =
+            m.f.store
+                .with_native_prepared_begin_observation_for_test(observation.clone(), &wait, || {
+                    m.f.store
+                        .try_begin_prepared_native_replacement_commit_with_wait(&p, &read, &wait)
+                })
+                .unwrap();
+        assert!(result.is_none());
+        let observed = observation.snapshot();
+        assert_eq!(
+            (
+                observed.calls,
+                observed.pre_entry_busy,
+                observed.none,
+                observed.sql_begins,
+                observed.exclusion_holds
+            ),
+            (1, 1, 1, 0, 1)
+        );
+        assert_eq!(
+            (
+                observed.some,
+                observed.errors,
+                observed.binding_mismatches,
+                observed.scope_refusals
+            ),
+            (0, 0, 0, 0)
+        );
+        let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _: crate::Result<Option<()>> =
+                m.f.store.with_native_prepared_begin_observation_for_test(
+                    observation.clone(),
+                    &wait,
+                    || panic!("scoped observation cleanup"),
+                );
+        }));
+        assert!(panic.is_err());
+        // Successful snapshot proves the earlier real holder was released;
+        // this callback-only panic held no connection and cannot poison Store.
+        assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+        let after_panic = observation.snapshot();
+        let fresh = Arc::new(NativePreparedBeginObservationForTest::new(
+            p.attempt_binding(),
+        ));
+        let expired = crate::AuthorityWait::new(std::time::Duration::ZERO);
+        let result = m.f.store.with_native_prepared_begin_observation_for_test(
+            fresh.clone(),
+            &expired,
+            || {
+                m.f.store
+                    .try_begin_prepared_native_replacement_commit_with_wait(&p, &read, &expired)
+            },
+        );
+        assert!(result.is_err());
+        assert_eq!(fresh.snapshot().calls, 1);
+        assert_eq!(fresh.snapshot().errors, 1);
+        assert_eq!(fresh.snapshot().scope_refusals, 0);
+        assert_eq!(
+            observation.snapshot(),
+            after_panic,
+            "old TLS observation cannot leak into a later call"
+        );
+        drop(read);
+        assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    }
     let m = scene();
     let read =
         m.f.store

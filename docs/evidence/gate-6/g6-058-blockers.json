@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-21T01:17:01.236649+00:00",
-  "run_status": "G677 completed all nine current build groups on source530: the Traits library compiled, while eight Core-dependent groups failed with the same two audience errors (E0063 missing an accidentally added unused legacy field and E0609 direct field access on generic MemberRead). No inventories or runtime tests ran; all45 selected component controls remain unrun. Root and all10 original children closed naturally and were freshly absent, with the6544-file source seal unchanged. The reviewed repair removes only the unused PreparedPrivateAudience.scene field and uses m.view().controller for the same Weak pointer check. It preserves the required deferred AudiencePostPublication.scene and actual current-scene Weak binding, every assertion and all selected test identities. Root registered and normally prepared this one-file change as531; preparation and independent audit passed with4278 unchanged bytes/modes restored to original mtimes, the complete original530 tree retained, and no added upstream files. The6545-file working seal records applied source preparation, not a committed or runtime-qualified batch. Coherent managed Core/Orchestrator/Store/Service/SIP integration remains applied but compile/runtime-unverified; the same nine-build/45-component lane is pending, followed by all required affected regressions. G674 packaging failure and G677 compile failures retain their original failed verdicts. The latest completed component scope remains G662 on525:13 completed,11PASS/2FAIL; historical G657 retains one forced incomplete case and three unrun cases. Root cache-only housekeeping recovered host headroom to about21GiB while retaining protected current artifacts; it adds no behavior evidence. No current shared379, complete full regression, OriginalV8, strict Firefox NORMAL3, original900, local ARM11, normal Mac12/ARM6 releases or fresh launch preflight qualification is added. All seven readiness scopes, whole current Core-traits/SIP inventories and additive controls remain required. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 stays parked. Mobile225 remains the last verified readback; the next scoped226 update is pending Root.",
+  "updated": "2026-11-21T02:17:51.530645+00:00",
+  "run_status": "Both targeted regressions passed on the reviewed nine-file correction. The Store unit exercised real pre-entry busy, no SQL entry, mutex release and observer cleanup after a callback panic, alongside its original cancellation, deadline and rollback cases. The signed Service regression then recorded two API calls: one genuine pre-entry busy/Ok(None), followed by exactly one SQL BEGIN and one INSERT failure matching SQLite 1811 and the controlled trigger. It verified the same operation tuple, zero Core/post starts, rollback and unchanged counters after removing the trigger through the original cutoff, with the original public/private/muted/cancelled media assertions intact. Both original owners closed naturally and their PID/groups were freshly absent; the 6596-file source stayed fixed. Production retry decisions, authorization and publication limits are unchanged. Five carried runner cleanup functions were also corrected and checked with 18 helper and 31 driver fake-process unit controls. The first driver-control attempt remains failed 30/31: its harness both required and prohibited the original shared timeout TERM/5-second grace. The reviewed harness-only correction passed the same 31 cases without changing driver bytes, plans or bounds. These are scoped controls, not Firefox/900 qualification or matrix passes. G759 remains the latest complete component run at 48/49, failed; the fresh nine-build/nine-inventory/49-check batch is next after this commit. All seven readiness scopes remain open. macOS also reset BPF capture access to root-only; the requested Terminal step is pending for later host capture checks and did not block these regressions. Matrix remains v218: 1/32 cells and 399/432 checks, with no new run or credit. G6-054 remains parked. Mobile244 is the verified scoped readback: only three coordinator paragraphs changed, with 419 unrelated paragraphs preserved.",
   "blockers": [
     {
       "id": "B01",
@@ -20366,7 +20366,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-21T01:17:01.236649+00:00",
+  "updated_at": "2026-11-21T02:17:51.530645+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20410,9 +20410,9 @@
     "ready_for_32": false
   },
   "current_preparation_checkpoint": {
-    "status": "G759 completed all 49 selected component tests: 48 passed and one failed, with zero ignored, incomplete or unrun cases. All nine builds and nine inventories passed. The corrected Store cutoff test passed, and all four historical G735 media failure cases passed again on this source. The sole failure is the real post-BEGIN SQL failure control: its API dispatch counter was two, while the test required one. Source inspection confirms that this counter increments before SQL entry and also counts a definite pre-entry authority-busy result, which legitimately returns Ok(None) for retry. The historical log does not distinguish those outcomes, so an unsafe SQL replay is not proven or ruled out by that count alone. The next correction must separately witness definite pre-entry busy, actual SQL entry and the actual injected INSERT failure, while requiring exactly one post-BEGIN attempt, no dispatch after uncertainty, the same operation IDs, no Core invocation, real rollback, and the original publication and media limits. No corrective code has yet been applied or tested for this failure. Root and all 68 original children ended naturally and were joined; source and binary hashes stayed fixed. This is component evidence only. All seven readiness scopes remain open. Matrix remains v218: 1/32 cells and 399/432 checks; no new matrix run or credit. G6-054 remains parked. Mobile243 is the verified scoped readback: only three coordinator paragraphs changed, with 419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g759-complete49-begin-fault-accounting.json",
-    "sha256": "cf6170b1a88b5081ac6feea85121cb5b8789163f40d7068d3169691e60900069"
+    "status": "Both targeted regressions passed on the reviewed nine-file correction. The Store unit exercised real pre-entry busy, no SQL entry, mutex release and observer cleanup after a callback panic, alongside its original cancellation, deadline and rollback cases. The signed Service regression then recorded two API calls: one genuine pre-entry busy/Ok(None), followed by exactly one SQL BEGIN and one INSERT failure matching SQLite 1811 and the controlled trigger. It verified the same operation tuple, zero Core/post starts, rollback and unchanged counters after removing the trigger through the original cutoff, with the original public/private/muted/cancelled media assertions intact. Both original owners closed naturally and their PID/groups were freshly absent; the 6596-file source stayed fixed. Production retry decisions, authorization and publication limits are unchanged. Five carried runner cleanup functions were also corrected and checked with 18 helper and 31 driver fake-process unit controls. The first driver-control attempt remains failed 30/31: its harness both required and prohibited the original shared timeout TERM/5-second grace. The reviewed harness-only correction passed the same 31 cases without changing driver bytes, plans or bounds. These are scoped controls, not Firefox/900 qualification or matrix passes. G759 remains the latest complete component run at 48/49, failed; the fresh nine-build/nine-inventory/49-check batch is next after this commit. All seven readiness scopes remain open. macOS also reset BPF capture access to root-only; the requested Terminal step is pending for later host capture checks and did not block these regressions. Matrix remains v218: 1/32 cells and 399/432 checks, with no new run or credit. G6-054 remains parked. Mobile244 is the verified scoped readback: only three coordinator paragraphs changed, with 419 unrelated paragraphs preserved.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g762-g763-targeted-regressions-runner-controls.json",
+    "sha256": "3915a76459bb07b28002eb50e38385fcddfda63526a24aef56f5dc25f0486131"
   },
   "v219_g550_current_failure_frontiers": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
@@ -21053,5 +21053,20 @@
     "matrix_credit": false,
     "evidence": "docs/evidence/gate-6/g6-058-v219-g759-complete49-begin-fault-accounting.json",
     "sha256": "cf6170b1a88b5081ac6feea85121cb5b8789163f40d7068d3169691e60900069"
+  },
+  "v219_g762_g763_targeted_regressions_runner_controls": {
+    "status": "TWO_TARGETED_REGRESSIONS_PASS_RUNNER18_AND_CORRECTED31_PASS_FRESH49_UNRUN",
+    "prepared_generation": 544,
+    "targeted_Store": "PASS1_0_0",
+    "targeted_Server": "PASS1_0_0",
+    "runner_helper_controls": "PASS18",
+    "runner_driver_controls": "PASS31_corrected_harness",
+    "old_runner31": "FAILED30OF31_RETAINED",
+    "latest_complete49": "G759_FAILED48OF49_RETAINED",
+    "fresh49": "UNRUN_NEXT_AFTER_COMMIT",
+    "qualification": false,
+    "matrix_credit": false,
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g762-g763-targeted-regressions-runner-controls.json",
+    "sha256": "3915a76459bb07b28002eb50e38385fcddfda63526a24aef56f5dc25f0486131"
   }
 }
