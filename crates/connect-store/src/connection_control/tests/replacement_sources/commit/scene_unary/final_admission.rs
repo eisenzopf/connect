@@ -414,18 +414,27 @@ fn native_prepared_final_begin_original_wait_refuses_before_dml_and_rolls_back_b
 
 #[test]
 fn native_prepared_shorter_cutoff_rolls_back_at_actual_dml_and_commit_boundaries() {
-    for stage in ["prepared-begin-before-dml", "prepared-begin-before-commit"] {
+    for stage in [
+        "expired-before-entry",
+        "prepared-begin-before-dml",
+        "prepared-begin-before-commit",
+    ] {
+        // The preparation deliberately expires at base + 1 policy second.
+        // Wall-clock setup can otherwise consume that interval before the
+        // requested SQL boundary. Step the existing thread-local policy clock
+        // at the real boundary; the monotonic AuthorityWait remains untouched.
+        let base = crate::now();
+        let clock = std::rc::Rc::new(crate::test_clock::Clock::at(base));
         let m = scene();
         let planning =
             m.f.store
                 .try_native_replacement_scene_read(&m.origin, &m.sources)
                 .unwrap();
         let longer = planning.expires_at();
-        let p = m
-            .f
-            .store
-            .prepare_native_replacement_commit_until(m.origin.clone(), &planning, crate::now() + 1)
-            .unwrap();
+        let p =
+            m.f.store
+                .prepare_native_replacement_commit_until(m.origin.clone(), &planning, base + 1)
+                .unwrap();
         assert!(p.expires_at() < longer);
         drop(planning);
         let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(10));
@@ -442,27 +451,45 @@ fn native_prepared_shorter_cutoff_rolls_back_at_actual_dml_and_commit_boundaries
         let expires = p.expires_at();
         let hit = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let observed = hit.clone();
+        let boundary_clock = clock.clone();
+        let expired_before_entry = stage == "expired-before-entry";
+        if expired_before_entry {
+            clock.set(expires);
+        }
+        let probe = if expired_before_entry {
+            "prepared-begin-before-dml"
+        } else {
+            stage
+        };
         let result = Store::with_native_replacement_commit_entry_probe_for_test(
-            stage,
+            probe,
             move || {
+                assert_eq!(crate::now(), base, "boundary entered before expiry");
                 observed.store(true, std::sync::atomic::Ordering::Release);
-                while crate::now() < expires {
-                    std::thread::sleep(std::time::Duration::from_millis(1));
-                }
+                boundary_clock.set(expires);
             },
             || {
                 m.f.store
                     .try_begin_prepared_native_replacement_commit_with_wait(&p, &read, &wait)
             },
         );
-        assert!(hit.load(std::sync::atomic::Ordering::Acquire));
+        assert_eq!(
+            hit.load(std::sync::atomic::Ordering::Acquire),
+            !expired_before_entry,
+            "exact requested boundary: {stage}"
+        );
+        assert_eq!(crate::now(), expires, "same original cutoff: {stage}");
         assert!(
             wait.check().is_ok() && read.current(),
             "longer read/wait must still be valid"
         );
-        assert!(
-            result.is_err(),
-            "short original preparation cutoff must refuse: {stage}"
+        assert_eq!(
+            result
+                .err()
+                .expect("original preparation cutoff must refuse")
+                .code,
+            "forbidden",
+            "only the shorter original policy cutoff expired: {stage}"
         );
         drop(read);
         assert_eq!(

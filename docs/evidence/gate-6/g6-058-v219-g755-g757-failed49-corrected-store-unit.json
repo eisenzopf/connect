@@ -1,0 +1,135 @@
+{
+  "format": "connect/gate6-current-component-frontiers/1",
+  "checkpoint": 163,
+  "status": "ACTUAL_G755_FAILED49_48PASS1FAIL_THEN_CORRECTED_STORE_UNIT_PASS_RETEST49_UNRUN",
+  "actual_G755": {
+    "completed": 49,
+    "passed": 48,
+    "failed": 1,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "builds_passed": 9,
+    "inventories_passed": 9,
+    "verdict": "FAILED",
+    "all5_Service_controls": "PASS",
+    "four_historical_G735_media_failures": "CURRENT_G755_PASS_HISTORICAL_G735_NOT_REGRADED",
+    "root_and68_original_children": "NATURAL_UNFORCED_JOINED_FRESH_PID_PGID_ABSENT",
+    "source_files": 6591,
+    "run_source_sha256": "df9552867a65434f2bc877eb470ebb19c984be3a7b0346be13e1b6cdb6ac8757",
+    "run_source_and9binary_hashes_fixed_at_completion": true,
+    "sole_failure": "Store_shorter_cutoff_requested_hook_not_reached",
+    "exact_old_returned_error_and_policytime": "NOT_LOGGED_UNPROVEN"
+  },
+  "corrective_test_only_change": {
+    "status": "APPLIED_OFFICIALLY_FORMATTED",
+    "file": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/scene_unary/final_admission.rs",
+    "sha256": "91ced5779892c57ef07bd251f2f65d6d96a5d1b565fd93950123142fbd23fd6c",
+    "existing_threadlocal_Rc_policy_clock": "PINNED_BEFORE_FIXTURE_AND_HELD_THROUGH_ASSERTIONS",
+    "same_original_cutoff": "base+1",
+    "two_actual_SQL_boundaries": "PRESERVED",
+    "new_preentry_expiry_negative": "HOOK_FALSE_TYPED_FORBIDDEN_FULL_SNAPSHOT_ROLLBACK",
+    "real10s_monotonic_wait_longer_current_read": "UNCHANGED",
+    "production_dependencies_media5s_or_test_identity_changes": false
+  },
+  "actual_G757": {
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 1848,
+    "runtime_seconds": 3.12,
+    "synchronous_subcases": "PREENTRY_EXPIRED_AND_TWO_REAL_SQL_BOUNDARIES_ALL_ASSERTIONS_EXECUTED_IN_ONE_TEST",
+    "original_Cargo_PID_PGID": 57602,
+    "original_exec_session": 79639,
+    "natural0_unforced_fresh_absent": true,
+    "source_files": 6591,
+    "working_source_sha256": "2ff3147e5401e5184a77b82f2ffcf5831f95fcd3f0e223e453a310b0c67b1291",
+    "current_unique_CargoJSON_opt0_debug2_defaultStore_binarySHA_verified": true
+  },
+  "source_truth": "Old_G755_immutable_seal_plus_exact_one_reviewed_formatted_TEST_delta; no false oldbytes_current_claim",
+  "G754_storage_failure": {
+    "status": "ENOSPC_REMAINS_FAILED",
+    "completed_builds": 8,
+    "runtime_cases": 0,
+    "result_file": "EMPTY_NOT_SYNTHESIZED_AS_SUCCESS",
+    "later_recovery": "SEPARATE_NO_MEDIA_CREDIT"
+  },
+  "Root_media_numeric_receipt_limit": "Scoped phase counters and terminal SceneWake observations only; not exact global before_write accounting or phase-specific terminal maxima, no sole-cause attribution",
+  "historical_failures_preserved": true,
+  "fresh49_component_retest": "UNRUN",
+  "all7_readiness_scopes": "UNCHANGED_OPEN",
+  "matrix": {
+    "baseline": "v218",
+    "cells": "1/32",
+    "checks": "399/432",
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 241,
+  "mobile242": "PROPOSAL_ONLY",
+  "recorded_at": "2026-11-21T00:49:24.444047+00:00",
+  "proofs": {
+    "G755_actual_failed49_result": {
+      "path": ".local/gate-6/g755-source544-storage-recovered49-root/result.json",
+      "sha256": "01625f238cc32c9603773e53fe48c2549a755e48048008e1dabf3ed593796e74"
+    },
+    "G755_Root_original_join_review": {
+      "path": ".local/gate-6/g755-source544-storage-recovered49-root/root-original-join-and-review.json",
+      "sha256": "940baa68ca1df4f1b73b796e39876e70d780e0c4275099de4355548e12855e73"
+    },
+    "G755_actual_independent49_audit": {
+      "path": ".local/gate-6/g755-actual49-independent-audit/receipt.json",
+      "sha256": "22aed86e5af60e25d1439dfd72247ef0ebe847cdf3034d23785db66371f375b4"
+    },
+    "G755_actual49_verdicts": {
+      "path": ".local/gate-6/g755-actual49-independent-audit/actual-verdicts.json",
+      "sha256": "2e0340f83208fa4fed3dd30d6be3515e27abb13cd164951b1eb55a4fe3dfccc7"
+    },
+    "G755_current9binary_snapshot_before_correction_recompile": {
+      "path": ".local/gate-6/g755-actual49-independent-audit/current-nine-binary-observations.json",
+      "sha256": "255585ddbd5cb273fb1764e310a4ea1d421e6fa9cd4d31ea316be2c7cf0b04ef"
+    },
+    "G755_Root_scoped_numeric_media_review": {
+      "path": ".local/gate-6/g755-media-phase-numeric-review-root/receipt.json",
+      "sha256": "e61e2492b21dee784bcc752b64ccf304bcaf19ce1167056339cbe1a67b8a1b37"
+    },
+    "G756_test_only_source_review": {
+      "path": ".local/gate-6/g756-store-shorter-cutoff-independent-source-review/receipt.json",
+      "sha256": "ba7d6ed8ff02180bb1b373e597504cccc2f4aeb998ccf96de837e23471740f26"
+    },
+    "G756_exact_comment_correction_addendum": {
+      "path": ".local/gate-6/g756-store-shorter-cutoff-independent-source-review/comment-wording-addendum.json",
+      "sha256": "3056d7f208de123081bda550a7090834cb85277ba6bf7736e481381944f117a6"
+    },
+    "G757_actual_corrected_Store_unit_PASS": {
+      "path": ".local/gate-6/g757-store-cutoff-clock-unit-root/result.json",
+      "sha256": "1f41e9831323b47c05f53e34a7bb2059cce746d75f66b1526ab96ca3e1388b0e"
+    },
+    "G757_actual_corrected_Store_unit_audit": {
+      "path": ".local/gate-6/g757-actual-store-cutoff-unit-independent-audit/receipt.json",
+      "sha256": "62b832bbfc8f2f69755ac133ed8f8a7b4a0eb21147d69fd07dfa6bbe14ea6771"
+    },
+    "G757_applied_test_source_review": {
+      "path": ".local/gate-6/g757-store-cutoff-clock-unit-root/apply-review.json",
+      "sha256": "a032d62829ab26131e8402c886c2b3bb58072a522b802391d1956345d0b6b146"
+    },
+    "G754_actual_storage_failure_stderr": {
+      "path": ".local/gate-6/g754-source544-current49-root/component-canonical-runtime-build.stderr",
+      "sha256": "359fd1d7c43e417f13df96ec00d7f774f46e57ea9043003f123b1f188dfdc547"
+    },
+    "G752_prior_current_six_causal_PASS_audit": {
+      "path": ".local/gate-6/g752-actual-six-causal-units-independent-audit/receipt.json",
+      "sha256": "9d910f873fe54e8306233d33007d5c78e80ff79056eb74ccdd04a5ff2d54097f"
+    },
+    "normal544_actual_independent_audit": {
+      "path": ".local/gate-6/g751-actual-normal544-independent-audit/receipt.json",
+      "sha256": "acc9dab3ae4c59d1b7543ae4d0e1ad777dcf29da86d45ed483573652242528b5"
+    },
+    "last_mobile241_verified_public_proof": {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v241-source544-six-causal-passes.json",
+      "sha256": "7043417ce300cb83f8aaa4029d815fd860a50a711476b10eb09981d6e7a577ab"
+    }
+  }
+}

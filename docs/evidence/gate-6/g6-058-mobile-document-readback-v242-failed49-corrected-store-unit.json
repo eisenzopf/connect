@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-mobile-scoped-readback/1",
+  "checkpoint_revision": 163,
+  "mobile_content_revision": 242,
+  "recorded_at": "2026-11-21T00:52:04.710683+00:00",
+  "coordinator": "/root",
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
+  "tab_id": "t.0",
+  "paragraph_count_before": 422,
+  "paragraph_count_after": 422,
+  "changed_paragraphs": [
+    2,
+    3,
+    9
+  ],
+  "unrelated_paragraphs_preserved": 419,
+  "fresh_revision_guarded_write": true,
+  "each_replacement_occurrences": 1,
+  "scope": "Actual G755complete49:48PASS1FAIL/all4historicalmediafailurescurrentPASS. Reviewedtest-onlyStoreclockfixexactunitPASS; fresh49/all7/matrixunqualified.",
+  "qualification": false,
+  "matrix_credit": false,
+  "ready_for_32": false,
+  "private_before": ".local/gate-6/mobile242-failed49-corrected-store-unit-root/before-write.json",
+  "private_before_sha256": "991d02507611d34d8985dc2301352fb912d1354f81b33863ab6d0b3f097dee7a",
+  "private_write": ".local/gate-6/mobile242-failed49-corrected-store-unit-root/write.json",
+  "private_write_sha256": "340fb9ab9f43f22840c5f22772485a46c22dd9032224223bda2adae90ffd44ec",
+  "private_readback": ".local/gate-6/mobile242-failed49-corrected-store-unit-root/readback.json",
+  "private_readback_sha256": "4340140617d9291ca159b7c04474d7b6b4eef6ce25ed290e23505ee7b1757cf2"
+}

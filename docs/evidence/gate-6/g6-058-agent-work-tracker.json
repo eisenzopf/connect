@@ -1,19 +1,19 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-20T20:41:17.763244+00:00",
-  "revision": 162,
+  "updated_at": "2026-11-21T00:49:24.444047+00:00",
+  "revision": 163,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint162-mobile241-scoped-readback",
-    "content_revision": 241,
-    "readback_evidence": ".local/gate-6/mobile241-source544-six-causal-passes-root/readback.json",
-    "readback_evidence_sha256": "991d02507611d34d8985dc2301352fb912d1354f81b33863ab6d0b3f097dee7a",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v241-source544-six-causal-passes.json",
-    "postrun_readback_sha256": "7043417ce300cb83f8aaa4029d815fd860a50a711476b10eb09981d6e7a577ab"
+    "sync_status": "verified-checkpoint163-mobile242-scoped-readback",
+    "content_revision": 242,
+    "readback_evidence": ".local/gate-6/mobile242-failed49-corrected-store-unit-root/readback.json",
+    "readback_evidence_sha256": "4340140617d9291ca159b7c04474d7b6b4eef6ce25ed290e23505ee7b1757cf2",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v242-failed49-corrected-store-unit.json",
+    "postrun_readback_sha256": "927dd66c6b9036e3ea87c0bd0e84e611c88e8b0b0665d8436beb479383595151"
   },
   "baseline": {
     "run": "v215",
@@ -1384,7 +1384,7 @@
         "V219-WSS-INGRESS"
       ],
       "status": "in-progress",
-      "implementation_state": "Normal544 is applied, prepared and independently audited, including seven existing upstream exact-acquisition diagnostic afterimages and unchanged ten formatted workspace paths. G752 completed all six current causal unit functions on unchanged6589-file source544:6PASS/0FAIL, with zero ignored, incomplete or unrun functions. Both old catalog controls now pass: the main control observes actual unchanged recovery inside the original650ms window, and all four QUIC/WebTransport release versus full-exclusion variants retain actual source-lock Busy, unchanged counters, zero dropped/overflowed background rows and no full-window recovery credit while held. Exact typed Core/Native metadata labels are observed; anonymous None remains rejected. Both new Native Model and TOCTOU controls complete QUIC and WebTransport and their full original media/currentness/once/deadline/shutdown tails. Store passes three same-started Writer epoch turns with old-stamp refusal, disjoint-source currentness, unchanged SQL and fresh recovery; the selection-clock race/saturation unit passes. All six original Cargo owners closed naturally and were freshly absent; source, prepared dependencies and three current artifacts stayed fixed. The earlier pre-Cargo storage admission refusal dispatched no Cargo owner and is not a functional test failure. G7484PASS/2FAIL and the earlier G743/G746 failed results retain their historical verdicts. These six scoped passes establish their causal controls, not mixed-audio qualification or a regrade of G735: its historical41PASS/4FAIL and four media failures remain unresolved pending the49-case component run. Current544 diagnostic code is pending Root batch commit; no future code commit or49-case result is claimed. Current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile241 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+      "implementation_state": "G755 completed all49 selected component tests after all nine builds and nine inventories passed:48PASS/1FAIL, with zero ignored, incomplete or unrun cases. All five Service controls passed, including current passes for all four historical G735 media failures; these are scoped current-run results and do not regrade G735. Root and all68 original children closed naturally, were joined and freshly absent; the6591-file run source and nine binary hashes stayed fixed at completion. The sole failure was the Store shorter-cutoff test at its hook-not-reached assertion. Its raw log did not record the returned error or policy time, so the exact old stop reason remains unproven. The test-only correction now pins the existing thread-local policy clock before fixture setup and advances it to the same original base+1 cutoff at each actual SQL boundary. It preserves the real10s monotonic AuthorityWait, longer current read, both real SQL probes, typed Forbidden and full rollback snapshots, and adds an expired-before-entry negative requiring that no hook runs. The approved comment and official formatting are applied; no production code, dependency, media5s bound or test identity changes. G757 then passed the one corrected Store test,1PASS/0FAIL/0ignored, covering all three synchronous cases. Its original Cargo owner closed naturally and was freshly absent; the current6591-file source differs from G755 only in that reviewed formatted test file, with lock and prepared dependencies unchanged. This single-unit pass does not turn G755 into a49-case pass. A fresh full49 component retest remains unrun. The earlier G754 ENOSPC attempt retains its storage failure after eight completed builds and zero runtime cases; its empty result file is not synthesized as a successful receipt. G748 and all earlier failed results remain failed. Current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile242 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1608,6 +1608,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v219-g752-source544-six-causal-passes.json",
           "result": "G752 current544 all6causalfunctions6PASS0FAIL/0ignored/incomplete/unrun. Botholdcatalog strict650ms/all4negativevariantsPASS; NativeModel+TOCTOUbothQUICWT/fulltailsPASS; Store3realWriterturns/ClockPASS. Ownersnaturallyclosed/source6589+3binarySHAsfixed. Scopedonly/G748failedretained/G73541of45fourmediafailuresunresolved/49UNRUN/noqualification.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g755-g757-failed49-corrected-store-unit.json",
+          "result": "G75549completeFAILED48PASS1FAIL after9build9inventoryPASS; all5Service/current4historicalG735mediafailuresPASS. SoleStorehookmiss/olderrorunlogged; testonlydeterministicclockcorrectionapplied/formatted/G757exactunitPASS1_0_0. OldG754ENOSPC8build0runtime retained; fresh49UNRUN/all7open/no matrixcredit.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -1615,7 +1620,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-20T20:41:17.763244+00:00",
+      "updated_at": "2026-11-21T00:49:24.444047+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -2107,6 +2112,21 @@
         "matrix_credit": false,
         "evidence": "docs/evidence/gate-6/g6-058-v219-g752-source544-six-causal-passes.json",
         "sha256": "408c684927c805de59427b83e6aebb3cb63859266b07997b75517787273b3d13"
+      },
+      "current_frontiers_checkpoint163": {
+        "status": "actualG75549FAILED48PASS1FAIL_correctedStoreG757unitPASS_fresh49UNRUN",
+        "prepared_generation": 544,
+        "actual_component_completed": 49,
+        "actual_component_passed": 48,
+        "actual_component_failed": 1,
+        "corrective_Store_unit": "PASS1_0_0",
+        "fresh49_retest": "UNRUN",
+        "all5_Service_currentPASS": true,
+        "four_G735_media_failures_currentG755PASS_historical_not_regraded": true,
+        "qualification": false,
+        "matrix_credit": false,
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g755-g757-failed49-corrected-store-unit.json",
+        "sha256": "f2efd79ec500281a59c84857d44b3b9603610cb6731a3a0b8f15e185dba8a8f3"
       }
     },
     {
@@ -6445,6 +6465,13 @@
       "event": "Normal544 prepared/audited; G752 all6causalfunctionsPASS with strictlabels/windows/negativecontrols. G748failedhistoryandG73541/45retained, fourmediafailurespending49. CodecommitRootpending/no mixedaudio/full/readiness/matrixcredit.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g752-source544-six-causal-passes.json",
       "by": "/root"
+    },
+    {
+      "at": "2026-11-21T00:49:24.444047+00:00",
+      "revision": 163,
+      "event": "ActualG75549FAILED48/49/all5ServicePASS; oneStorehookmiss. Approvedtestonlyclockfixapplied/formatted thenG757unitPASS; full49retestUNRUN. G754ENOSPC/G735/G748/history retained; no full/readiness/matrixcredit.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g755-g757-failed49-corrected-store-unit.json",
+      "by": "/root"
     }
   ],
   "tracking_review": {
@@ -8074,11 +8101,11 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Normal544 is applied, prepared and independently audited, including seven existing upstream exact-acquisition diagnostic afterimages and unchanged ten formatted workspace paths. G752 completed all six current causal unit functions on unchanged6589-file source544:6PASS/0FAIL, with zero ignored, incomplete or unrun functions. Both old catalog controls now pass: the main control observes actual unchanged recovery inside the original650ms window, and all four QUIC/WebTransport release versus full-exclusion variants retain actual source-lock Busy, unchanged counters, zero dropped/overflowed background rows and no full-window recovery credit while held. Exact typed Core/Native metadata labels are observed; anonymous None remains rejected. Both new Native Model and TOCTOU controls complete QUIC and WebTransport and their full original media/currentness/once/deadline/shutdown tails. Store passes three same-started Writer epoch turns with old-stamp refusal, disjoint-source currentness, unchanged SQL and fresh recovery; the selection-clock race/saturation unit passes. All six original Cargo owners closed naturally and were freshly absent; source, prepared dependencies and three current artifacts stayed fixed. The earlier pre-Cargo storage admission refusal dispatched no Cargo owner and is not a functional test failure. G7484PASS/2FAIL and the earlier G743/G746 failed results retain their historical verdicts. These six scoped passes establish their causal controls, not mixed-audio qualification or a regrade of G735: its historical41PASS/4FAIL and four media failures remain unresolved pending the49-case component run. Current544 diagnostic code is pending Root batch commit; no future code commit or49-case result is claimed. Current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile241 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g752-source544-six-causal-passes.json",
-    "sha256": "408c684927c805de59427b83e6aebb3cb63859266b07997b75517787273b3d13"
+    "status": "G755 completed all49 selected component tests after all nine builds and nine inventories passed:48PASS/1FAIL, with zero ignored, incomplete or unrun cases. All five Service controls passed, including current passes for all four historical G735 media failures; these are scoped current-run results and do not regrade G735. Root and all68 original children closed naturally, were joined and freshly absent; the6591-file run source and nine binary hashes stayed fixed at completion. The sole failure was the Store shorter-cutoff test at its hook-not-reached assertion. Its raw log did not record the returned error or policy time, so the exact old stop reason remains unproven. The test-only correction now pins the existing thread-local policy clock before fixture setup and advances it to the same original base+1 cutoff at each actual SQL boundary. It preserves the real10s monotonic AuthorityWait, longer current read, both real SQL probes, typed Forbidden and full rollback snapshots, and adds an expired-before-entry negative requiring that no hook runs. The approved comment and official formatting are applied; no production code, dependency, media5s bound or test identity changes. G757 then passed the one corrected Store test,1PASS/0FAIL/0ignored, covering all three synchronous cases. Its original Cargo owner closed naturally and was freshly absent; the current6591-file source differs from G755 only in that reviewed formatted test file, with lock and prepared dependencies unchanged. This single-unit pass does not turn G755 into a49-case pass. A fresh full49 component retest remains unrun. The earlier G754 ENOSPC attempt retains its storage failure after eight completed builds and zero runtime cases; its empty result file is not synthesized as a successful receipt. G748 and all earlier failed results remain failed. Current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile242 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g755-g757-failed49-corrected-store-unit.json",
+    "sha256": "f2efd79ec500281a59c84857d44b3b9603610cb6731a3a0b8f15e185dba8a8f3"
   },
-  "updated": "2026-11-20T20:41:17.763244+00:00",
+  "updated": "2026-11-21T00:49:24.444047+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -8824,5 +8851,30 @@
     ],
     "actual_last_readback_revision": 240,
     "publication_transform": "Prefix first paragraph Revision241 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
+  },
+  "v219_g755_g757_failed49_corrected_store_unit": {
+    "status": "actualG75549FAILED48PASS1FAIL_correctedStoreG757unitPASS_fresh49UNRUN",
+    "prepared_generation": 544,
+    "actual_component_completed": 49,
+    "actual_component_passed": 48,
+    "actual_component_failed": 1,
+    "corrective_Store_unit": "PASS1_0_0",
+    "fresh49_retest": "UNRUN",
+    "all5_Service_currentPASS": true,
+    "four_G735_media_failures_currentG755PASS_historical_not_regraded": true,
+    "qualification": false,
+    "matrix_credit": false,
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g755-g757-failed49-corrected-store-unit.json",
+    "sha256": "f2efd79ec500281a59c84857d44b3b9603610cb6731a3a0b8f15e185dba8a8f3"
+  },
+  "mobile242_proposal": {
+    "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
+    "paragraphs": [
+      "Checkpoint163: G755 completed all49 component tests after nine builds and nine inventories passed:48PASS/1FAIL, with no ignored, incomplete or unrun cases. All five Service controls passed, including current passes for the four historical G735 media failures; historical failures remain unchanged. Original owners closed naturally and run source/artifacts stayed fixed.",
+      "The sole failure was a Store test hook not reached; its exact old error and policy time were unlogged. The approved test-only clock correction preserves the original cutoff, both real SQL boundaries, longer read/real10s wait and full rollback checks, and adds a pre-entry expiry negative. Applied and formatted, it passed its exact Store unit. G755 remains failed; the fresh49 retest is unrun. No production or media-bound change is claimed. The earlier G754 ENOSPC/zero-runtime failure is also retained.",
+      "Matrix remains1/32 cells and399/432 checks, with no new credit and not ready for32. All seven readiness scopes remain open; shared379, complete affected/full regression and OriginalV8 are still required. G6-054 stays parked. Mobile241 remains the last verified readback. This mobile242 text is a proposal only; publication and scoped readback are not claimed."
+    ],
+    "actual_last_readback_revision": 241,
+    "publication_transform": "Prefix first paragraph Revision242 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
   }
 }
