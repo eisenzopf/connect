@@ -706,3 +706,173 @@ fn same_started_writer_readmission_revokes_exact_old_epoch_without_sql_mutation_
     }
     watcher.shutdown().unwrap();
 }
+
+#[test]
+fn native_cold_commit_metadata_actual_sql_exclusion_preserves_facts_and_one_begin() {
+    let m = scene();
+    let stable = counts(&m);
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let planning =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    {
+        let _sql = m.f.store.connection().unwrap();
+        let error =
+            m.f.store
+                .prepare_native_replacement_commit(m.origin.clone(), &planning)
+                .err()
+                .unwrap();
+        assert_eq!(
+            error.code, "authority-busy",
+            "actual initial SQL mutex exclusion"
+        );
+    }
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    let prepared =
+        m.f.store
+            .prepare_native_replacement_commit_until(m.origin.clone(), &planning, crate::now() + 5)
+            .unwrap();
+    let ids = prepared.attempt_binding();
+    let ids = (ids.0.to_owned(), ids.1.to_owned(), ids.2.to_owned());
+    drop(planning);
+    let planning =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    {
+        let _sql = m.f.store.connection().unwrap();
+        let error =
+            m.f.store
+                .revalidate_prepared_native_replacement_commit(&prepared, &planning)
+                .err()
+                .unwrap();
+        assert_eq!(
+            error.code, "authority-busy",
+            "actual revalidation SQL mutex exclusion"
+        );
+    }
+    assert_eq!(counts(&m), stable);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    m.f.store
+        .revalidate_prepared_native_replacement_commit(&prepared, &planning)
+        .unwrap();
+    assert_eq!(
+        prepared.attempt_binding(),
+        (ids.0.as_str(), ids.1.as_str(), ids.2.as_str())
+    );
+    drop(planning);
+    let attempt = begin(&m, &prepared);
+    assert_eq!(attempt.attempt_binding(), prepared.attempt_binding());
+    let after = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let record = record(&m);
+    let rows:(u64,u64,u64)=m.f.store.connection().unwrap().query_row(
+        "SELECT count(*),min(e.attempt),min(e.submission_generation) FROM native_replacement_steps s JOIN operation_effects e ON e.id=s.effect_id WHERE s.operation_record_id=?1 AND s.phase='commit'",
+        [&record], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+    assert_eq!(rows, (1, 1, 1));
+    let read =
+        m.f.store
+            .try_native_replacement_commit_scene_write(&m.origin, &m.sources)
+            .unwrap();
+    assert!(m
+        .f
+        .store
+        .try_begin_prepared_native_replacement_commit(&prepared, &read)
+        .is_err());
+    drop(read);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), after);
+}
+
+#[test]
+fn native_cold_commit_metadata_sql_fault_and_changed_or_expired_facts_stay_terminal() {
+    use rusqlite::hooks::{AuthAction, AuthContext, Authorization};
+    let m = scene();
+    let prepared = prepare(&m);
+    let planning =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    {
+        let sql = m.f.store.connection().unwrap();
+        sql.flush_prepared_statement_cache();
+        sql.authorizer(Some(|action: AuthContext<'_>| {
+            if matches!(
+                action.action,
+                AuthAction::Read {
+                    table_name: "native_replacement_steps",
+                    ..
+                }
+            ) {
+                Authorization::Deny
+            } else {
+                Authorization::Allow
+            }
+        }));
+    }
+    let initial =
+        m.f.store
+            .prepare_native_replacement_commit(m.origin.clone(), &planning)
+            .err()
+            .unwrap();
+    let revalidate =
+        m.f.store
+            .revalidate_prepared_native_replacement_commit(&prepared, &planning)
+            .err()
+            .unwrap();
+    {
+        let sql = m.f.store.connection().unwrap();
+        sql.authorizer(None::<fn(AuthContext<'_>) -> Authorization>);
+        sql.flush_prepared_statement_cache();
+    }
+    assert_eq!(
+        initial.code, "storage-unavailable",
+        "actual denied SQLite read is not Busy"
+    );
+    assert_eq!(revalidate.code, "storage-unavailable");
+    drop(planning);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+
+    for change in ["cancel", "revoked", "expired"] {
+        let base = crate::now();
+        let clock = crate::test_clock::Clock::at(base);
+        let m = scene();
+        let prepared = prepare(&m);
+        let record = record(&m);
+        if change == "expired" {
+            clock.set(prepared.expires_at());
+        } else {
+            let sql = m.f.change_fixture();
+            if change == "cancel" {
+                sql.execute(
+                    "UPDATE operations SET cancel_requested=1 WHERE record_id=?1",
+                    [&record],
+                )
+                .unwrap();
+            } else {
+                sql.execute(
+                    "UPDATE credentials SET revoked=1 WHERE id=?1",
+                    [&m.f.keys[2]],
+                )
+                .unwrap();
+            }
+        }
+        let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+        let actual =
+            m.f.store
+                .try_native_replacement_scene_read(&m.origin, &m.sources)
+                .and_then(|planning| {
+                    m.f.store
+                        .revalidate_prepared_native_replacement_commit(&prepared, &planning)
+                });
+        assert!(actual.is_err(), "changed planning facts: {change}");
+        assert_ne!(
+            actual.unwrap_err().code,
+            "authority-busy",
+            "permanent refusal cannot acquire retry eligibility"
+        );
+        assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+        let count:u64=m.f.store.connection().unwrap().query_row("SELECT count(*) FROM native_replacement_steps WHERE operation_record_id=?1 AND phase='commit'",[&record],|r|r.get(0)).unwrap();
+        assert_eq!(count, 0, "no Commit begin after terminal planning refusal");
+    }
+}

@@ -1,0 +1,92 @@
+--- a/crates/sip/rvoip-sip/src/adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapter.rs
+@@ -6917,9 +6917,9 @@
+         assert_eq!(route.stream.codec().name, "g.711-a");
+         assert!(route.stream.try_frames_out().is_ok());
+ 
+-        // Exercise the actual stream pump and RTP writer. A nonzero initial
+-        // duration is valid; continuation/end packets must not synthesize
+-        // duplicate tones, and queued audio must follow the completed tone.
++        // Raw telephone-event bytes on either media pump cannot mint control.
++        // An audio barrier proves those frames were consumed before the typed
++        // DTMF command; subsequent audio must follow its completed RTP schedule.
+         for fenced in [false, true] {
+             let output = route.stream.try_frames_out().unwrap();
+             let peer_output = route.stream.try_peer_frames_out().unwrap();
+@@ -6961,31 +6961,58 @@
+                 }
+             };
+             let source = rvoip_core::ids::StreamId::new();
+-            for payload in [[5, 10, 0, 160], [5, 10, 1, 64], [5, 0x8a, 3, 32]] {
++            let mut tone_timestamp = None;
++            let mut tone_ends = 0;
++            tokio::time::timeout(Duration::from_secs(5), async {
++                for payload in [[5, 10, 0, 160], [5, 10, 1, 64], [5, 0x8a, 3, 32]] {
++                    send(rvoip_core::stream::MediaFrame {
++                        source_clock: None,
++                        stream_id: source.clone(),
++                        kind: rvoip_core::stream::StreamKind::Audio,
++                        payload: bytes::Bytes::copy_from_slice(&payload),
++                        timestamp_rtp: 1_000,
++                        captured_at: chrono::Utc::now(),
++                        payload_type: Some(101),
++                    })
++                    .await;
++                }
+                 send(rvoip_core::stream::MediaFrame {
+                     source_clock: None,
+                     stream_id: source.clone(),
+                     kind: rvoip_core::stream::StreamKind::Audio,
+-                    payload: bytes::Bytes::copy_from_slice(&payload),
+-                    timestamp_rtp: 1_000,
++                    payload: bytes::Bytes::from(vec![0x00; 160]),
++                    timestamp_rtp: 0,
+                     captured_at: chrono::Utc::now(),
+-                    payload_type: Some(101),
++                    payload_type: Some(8),
+                 })
+                 .await;
+-            }
+-            send(rvoip_core::stream::MediaFrame {
+-                source_clock: None,
+-                stream_id: source,
+-                kind: rvoip_core::stream::StreamKind::Audio,
+-                payload: bytes::Bytes::from(vec![0x00; 160]),
+-                timestamp_rtp: 2_000,
+-                captured_at: chrono::Utc::now(),
+-                payload_type: Some(8),
+-            })
+-            .await;
+-            let mut tone_timestamp = None;
+-            let mut tone_ends = 0;
+-            tokio::time::timeout(Duration::from_secs(5), async {
++                loop {
++                    let (length, _) = capture.recv_from(&mut packet).await.unwrap();
++                    if length < 12 || packet[0] >> 6 != 2 {
++                        continue;
++                    }
++                    let payload_type = packet[1] & 0x7f;
++                    assert_ne!(
++                        payload_type, 101,
++                        "raw media payloads cannot authorize a DTMF schedule"
++                    );
++                    if payload_type == 8 {
++                        break;
++                    }
++                }
++                ConnectionAdapter::send_dtmf(adapter.as_ref(), connection_id.clone(), "5", 100)
++                    .await
++                    .expect("typed DTMF schedule completed its RTP writes");
++                send(rvoip_core::stream::MediaFrame {
++                    source_clock: None,
++                    stream_id: source,
++                    kind: rvoip_core::stream::StreamKind::Audio,
++                    payload: bytes::Bytes::from(vec![0x00; 160]),
++                    timestamp_rtp: 2_000,
++                    captured_at: chrono::Utc::now(),
++                    payload_type: Some(8),
++                })
++                .await;
+                 loop {
+                     let (length, _) = capture.recv_from(&mut packet).await.unwrap();
+                     if length < 12 || packet[0] >> 6 != 2 {

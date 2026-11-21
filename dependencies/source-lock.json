@@ -2906,6 +2906,46 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-native-catalog-exact-try-acquisition-diagnostics.patch",
       "sha256": "2ab8c3f6d56cbebc3f084499d9ab184fee09022efc5a8a7c803e8cfee3ada25f"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-test-native-dtmf-egress-failure-phases.patch",
+      "sha256": "8f914c6e363123efd634f89bcbcd9dd1e649211923f649ea947d404a6b40e6f0"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-sip-activation-tone-fixture-explicit-control.patch",
+      "sha256": "3df38d86d6c16c80426ae0defeb4abd1d3a45e042df4eeb567f8d6bbdda62763"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-scene-committed-camera-first-adoption.patch",
+      "sha256": "fd25588d38d3d4cdd65e237a9b38e11b5a2a89b27111712b62a37c6f8f95e635"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-terminal-exact-consumers-retirement-before-map-wait.patch",
+      "sha256": "db346b63fd36d5bbf2d2a66d23e8ebb6223cd9267f0a55ae3da5f3dffc3d7b67"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-native-dtmf-source-metadata-pending-with-strict-io-poll.patch",
+      "sha256": "27c5695a628cf697a45858778fc4db1657e0389715399c785523afbaf7a56345"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-test-scene-egress-cache-observer-privacy.patch",
+      "sha256": "67e1ee320ece04acdb97f2b8c1b59b8d46d0b0d7857ce7233b5ad1b572370de9"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-test-g780-regression-fixtures.patch",
+      "sha256": "0054cdcbf1a6efded3feff0e18e88060dbedd295e566121c798b9ce603de30c6"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-test-first-camera-and-recipient-rebind-fixtures.patch",
+      "sha256": "f95e32344919f431f4439bf016e8ca61be79646696d8baa929d11184feb10bcb"
     }
   ]
 }

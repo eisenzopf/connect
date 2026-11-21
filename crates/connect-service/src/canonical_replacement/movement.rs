@@ -6,6 +6,7 @@ use super::{
     start::StartedReplacement,
 };
 mod cold;
+mod cold_metadata;
 mod commit_admission;
 mod final_current;
 mod managed_final;

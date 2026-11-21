@@ -1,0 +1,90 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient.rs
+@@ -279,6 +279,11 @@
+ }
+ impl RecipientScene {
+     async fn new(kinds: &[Medium], count: usize) -> Self {
++        Self::with_candidate_kinds(kinds, kinds, count).await
++    }
++    // Existing callers keep identical publisher/healthy/candidate media. The
++    // first-camera regression needs a candidate that has NEVER owned Video.
++    async fn with_candidate_kinds(kinds: &[Medium], candidate_kinds: &[Medium], count: usize) -> Self {
+         assert!((1..=2).contains(&count));
+         let blocked = Arc::new(std::sync::atomic::AtomicBool::new(false));
+         let source_expiry = Arc::new(Mutex::new(None));
+@@ -321,7 +326,7 @@
+             controller
+                 .change(
+                     controller.revision(),
+-                    &kinds.iter().map(|k| desired(*k)).collect::<Vec<_>>(),
++                    &candidate_kinds.iter().map(|k| desired(*k)).collect::<Vec<_>>(),
+                     &BTreeSet::new(),
+                     deadline(),
+                     CancellationToken::new(),
+@@ -348,13 +353,14 @@
+             assert!(member.ready());
+             scene.insert(controller.connection.clone(), member, true);
+         }
+-        for controller in std::iter::once(&f.b).chain(candidates.iter().map(|(c, _)| c)) {
++        for (controller, receiver_kinds) in std::iter::once((&f.b, kinds))
++            .chain(candidates.iter().map(|(c, _)| (c, candidate_kinds))) {
+             scene
+                 .change_direct_subscriptions(
+                     &controller.connection,
+                     controller.revision(),
+                     DirectSubscriptionChange::Subscribe(
+-                        kinds
++                        receiver_kinds
+                             .iter()
+                             .map(|medium| {
+                                 DirectSubscription::new(
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient/pending_diagnostics.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient/pending_diagnostics.rs
+@@ -462,11 +462,12 @@
+ 
+ #[tokio::test]
+ async fn scene_pending_visual_committed_receiver_before_first_adoption_flows_during_control() {
+-    let f = RecipientScene::new(&[Medium::Data, Medium::Video], 1).await;
++    let f = RecipientScene::with_candidate_kinds(&[Medium::Data, Medium::Video], &[Medium::Data], 1).await;
+     let (target, adapter) = &f.candidates[0];
+-    target.change(target.revision(), &[desired(Medium::Data)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
+-    f.scene.tick();
+     let logical = desired(Medium::Video).logical_id;
++    // Removal tombstones a logical ID; this candidate must add its FIRST
++    // camera rather than attempt to resurrect a previously ended "video".
++    assert!(!target.state.lock().unwrap().model.streams().contains_key(&logical));
+     assert_eq!(f.scene.cached_egress_contains_for_test(&target.connection, &logical), Some(false));
+     target.change(target.revision(), &[desired(Medium::Data), desired(Medium::Video)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
+     f.scene.change_direct_subscriptions(
+@@ -475,14 +476,18 @@
+         deadline(), CancellationToken::new(), None,
+     ).await.unwrap();
+     let port = adapter.port(Medium::Video);
++    assert_eq!(port.binding().generation, 1, "actual first camera binding");
+     let ticket = port.0.ticket(TicketSide::Egress);
+     let mut output = port.take_egress().unwrap();
+     let mut healthy = f.f.ba.port(Medium::Video).take_egress().unwrap();
+     assert!(ticket.is_current() && ticket.committed_at().is_some());
+     assert_eq!(f.scene.cached_egress_contains_for_test(&target.connection, &logical), Some(false));
+     let flight = target.inflight.clone().try_acquire_owned().unwrap();
++    let before_publish = Instant::now();
++    assert!(ticket.committed_at().is_some_and(|at| at <= before_publish));
+     f.publish(Medium::Video, 9000);
+     f.scene.tick();
++    assert_eq!(f.scene.cached_egress_contains_for_test(&target.connection, &logical), Some(false), "held control must still prevent first camera adoption");
+     expect_timestamp(&mut output, 9000).await;
+     expect_timestamp(&mut healthy, 9000).await;
+     assert!(ticket.is_current());
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
+@@ -1003,7 +1003,8 @@
+         if mode=="cancel" {cancel.cancel();}
+         if mode=="recipient-rebind" {
+             let recipient=s.native.adapters[&s.kind].media_controller(&s.second_id).unwrap();
+-            let principal=original.principal().clone();
++            // Rebind the registration's sealed recipient, preserving its principal bytes.
++            let principal=registration.scope().principal.clone();
+             assert!(recipient.matches_data_credential(&principal));
+             let previous=recipient.credential_revision();let stream_revision=recipient.revision();
+             let guard=Arc::new(s.grants.0.clone().read_owned().await);

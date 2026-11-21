@@ -1,0 +1,81 @@
+{
+  "format": "connect/g6-058-fixture-lifecycle-followthrough/1",
+  "updated": "2026-11-21T10:08:32.316288+00:00",
+  "run_status": "G785 completed 69 checks: 67 passed, two failed (65/67 retained checks and 2/2 existing DTMF contract controls). All nine builds and inventories passed; all five original G771 failures and the cleanup regression pass. Two fixture setup failures remain: re-creating an ended camera stream ID, and using the source credential for a recipient rebind. Both whole-fixture corrections are reviewed and registered together as patch 552, awaiting normal preparation and the complete 69-check retest. No production behavior, test identities, quality limits or deadlines changed. Matrix remains v218: 1/32 cells and 399/432 checks; G6-054 stays parked; local Mac/native ARM only.",
+  "actual_focused": {
+    "run": "G785",
+    "generation": 551,
+    "completed": 69,
+    "passed": 67,
+    "failed": 2,
+    "retained67": {
+      "passed": 65,
+      "failed": 2
+    },
+    "additional_existing2": {
+      "passed": 2,
+      "failed": 0
+    },
+    "ignored": 0,
+    "unrun": 0,
+    "build_groups_passed": 9,
+    "inventories_passed": 9,
+    "all_original_process_groups_closed": 89,
+    "source_and_binaries_unchanged": true,
+    "result_sha256": "3260f734a25af8a7e8b6019bb84d2f262bc71ff924f124ded19d9fd9546f7733",
+    "root_join_sha256": "9f158315bbe0bb1278b1235e6a4999fde8fa65766b9343df1c87b69b74e98fd1",
+    "independent_audit_sha256": "dd976125f283a5580b94043ecc76376a233897e7800a7f149f18c4b079008317"
+  },
+  "remaining_current_controls": [
+    {
+      "failure": "Camera first-adoption fixture",
+      "owner": "fixture_blockers; coordinator root",
+      "cause": "The stream model correctly retains removed video as Ended and rejects reuse of that logical ID before allocation.",
+      "correction": "Start only the candidate Data-only while source/healthy receivers use Data+Video, then add its first real Video generation. Preserve and strengthen actual empty cache, committed ticket, held inflight, publish9000, healthy receiver and no-queue assertions. Existing helper defaults are byte-equivalent.",
+      "status": "reviewed-registered-unverified"
+    },
+    {
+      "failure": "Native recipient rebind fixture",
+      "owner": "batch_build_review; coordinator root",
+      "cause": "The source observation principal belongs to native_0; the recipient controller correctly rejects it as native_1 credential authority.",
+      "correction": "Clone registration.scope().principal, the actual sealed recipient credential, before the real held-owner rebind. All four modes, identity/epoch increments, stale-registration refusal, no-IO, deadlines, count and cleanup assertions stay unchanged.",
+      "status": "reviewed-registered-unverified"
+    }
+  ],
+  "all_original_five_passed": true,
+  "cleanup_regression_passed": true,
+  "existing_before_writer_exactClosed_control_passed": true,
+  "existing_postIO_SubmissionUnknown_control_passed": true,
+  "registered_generation": 552,
+  "prepared_generation": 551,
+  "normal552": "pending",
+  "combined_patch": {
+    "path": "patches/rvoip/connect-test-first-camera-and-recipient-rebind-fixtures.patch",
+    "sha256": "f95e32344919f431f4439bf016e8ca61be79646696d8baa929d11184feb10bcb",
+    "test_files": 3,
+    "production_changes": 0,
+    "new_test_functions": 0
+  },
+  "source_lock_sha256": "86763f82f4034046b04f36d9fb7ca6ddd333aeab9695ddd6b0f81f50f07c0df3",
+  "next_focused": {
+    "total": 69,
+    "retained": 67,
+    "existing_contract_controls": 2,
+    "status": "unrun"
+  },
+  "mobile": {
+    "revision": 251,
+    "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+    "unrelated419_and_all_styles_unchanged": true
+  },
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "qualification": false,
+  "matrix_credit": false,
+  "readiness": "Original seven readiness scopes remain. No READY32 claim. Mac capture still root-only."
+}

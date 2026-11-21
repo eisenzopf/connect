@@ -1,0 +1,226 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
+@@ -63,8 +63,75 @@
+     adapter: std::sync::Weak<dyn rvoip_core::adapter::ConnectionAdapter>,
+     poll: Box<SourcePoll>,
+     cancel: tokio_util::sync::CancellationToken,
++    #[cfg(feature = "test-support")]
++    diagnostics: std::sync::OnceLock<SourceStateDiagnostics>,
++}
++/// Owned scalar observations of this original source's metadata-only polls.
++/// No snapshot is an IO grant or a coherent ordering across concurrent callers.
++#[cfg(feature = "test-support")]
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct NativeDtmfSourceStateDiagnosticsForTest {
++    /// Actual source_state results that were Ok.
++    pub ok: u64,
++    /// Actual source_state results that were NotReady.
++    pub not_ready: u64,
++    /// Actual source_state results that were Refused.
++    pub refused: u64,
++    /// Actual source_state results containing another error.
++    pub other: u64,
++    /// Last recorded tag:0=unobserved,1=Ok,2=NotReady,3=Refused,4=other.
++    pub last_tag: u8,
++}
++#[cfg(feature = "test-support")]
++#[derive(Default)]
++struct SourceStateDiagnostics {
++    ok: std::sync::atomic::AtomicU64,
++    not_ready: std::sync::atomic::AtomicU64,
++    refused: std::sync::atomic::AtomicU64,
++    other: std::sync::atomic::AtomicU64,
++    last_tag: std::sync::atomic::AtomicU8,
++}
++#[cfg(feature = "test-support")]
++impl SourceStateDiagnostics {
++    fn record(&self, result: &Result<(), rvoip_core::dtmf::DtmfWriteError>) {
++        use rvoip_core::dtmf::DtmfWriteError;
++        use std::sync::atomic::Ordering;
++        let (counter, tag) = match result {
++            Ok(()) => (&self.ok, 1),
++            Err(DtmfWriteError::NotReady) => (&self.not_ready, 2),
++            Err(DtmfWriteError::Refused) => (&self.refused, 3),
++            Err(_) => (&self.other, 4),
++        };
++        counter.fetch_add(1, Ordering::Relaxed);
++        self.last_tag.store(tag, Ordering::Release);
++    }
++    fn snapshot(&self) -> NativeDtmfSourceStateDiagnosticsForTest {
++        use std::sync::atomic::Ordering;
++        let last_tag = self.last_tag.load(Ordering::Acquire);
++        NativeDtmfSourceStateDiagnosticsForTest {
++            ok: self.ok.load(Ordering::Relaxed),
++            not_ready: self.not_ready.load(Ordering::Relaxed),
++            refused: self.refused.load(Ordering::Relaxed),
++            other: self.other.load(Ordering::Relaxed),
++            last_tag,
++        }
++    }
+ }
+ impl NativeDtmfObservation {
++    /// Opt in ONLY this already captured original; never polls or grants IO.
++    /// Returns false for an observation with no actual bound source origin.
++    #[cfg(feature = "test-support")]
++    pub fn enable_source_state_diagnostics_for_test(&self) -> bool {
++        let Some(origin) = &self.origin else { return false; };
++        origin.diagnostics.get_or_init(SourceStateDiagnostics::default);
++        true
++    }
++    /// Copy already recorded scalar outcomes without a new source query.
++    /// None means disabled/unbound, never healthy or authorized.
++    #[cfg(feature = "test-support")]
++    pub fn source_state_diagnostics_for_test(&self) -> Option<NativeDtmfSourceStateDiagnosticsForTest> {
++        self.origin.as_ref()?.diagnostics.get().map(SourceStateDiagnostics::snapshot)
++    }
+     pub(crate) fn bind_origin(
+         &mut self,
+         adapter: std::sync::Weak<dyn rvoip_core::adapter::ConnectionAdapter>,
+@@ -78,6 +145,8 @@
+             adapter,
+             poll: Box::new(poll),
+             cancel,
++            #[cfg(feature = "test-support")]
++            diagnostics: std::sync::OnceLock::new(),
+         }));
+     }
+     fn poll_source(
+@@ -94,10 +163,15 @@
+         (origin.poll)(io)
+     }
+     fn source_state(&self) -> Result<(), rvoip_core::dtmf::DtmfWriteError> {
+-        match self.poll_source(&mut || std::task::Poll::Ready(Ok(()))) {
++        let result = match self.poll_source(&mut || std::task::Poll::Ready(Ok(()))) {
+             std::task::Poll::Ready(result) => result,
+             std::task::Poll::Pending => Err(rvoip_core::dtmf::DtmfWriteError::NotReady),
+-        }
++        };
++        #[cfg(feature = "test-support")]
++        if let Some(diagnostics) = self.origin.as_ref().and_then(|origin| origin.diagnostics.get()) {
++            diagnostics.record(&result);
++        }
++        result
+     }
+     pub(crate) fn current_source(&self) -> bool {
+         self.source_state().is_ok()
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -474,6 +474,9 @@
+         HashMap<ConnectionId, Arc<rvoip_uctp::v2::native_dtmf_egress::NativeDtmfRegistration>>,
+     >,
+     dtmf_pending: Mutex<HashMap<String, rvoip_uctp::v2::native_dtmf_egress::NativeDtmfSubmission>>,
++    dtmf_failure_phases: Mutex<Vec<(&'static str, String)>>,
++    #[cfg(feature = "test-support")]
++    dtmf_source_diagnostics: AtomicBool,
+     dtmf_hook: AtomicBool,
+     dtmf_sink: AtomicBool,
+     dtmf_expired: AtomicBool,
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
+@@ -1,5 +1,14 @@
+ //! Attributed native control observations on real signed TLS connections.
+ use super::*;
++// Error-only bounded fixture metadata. No authority, IO or currentness probe.
++fn failure_phase(record: &Record, stage: &'static str, error: &impl std::fmt::Debug) {
++    let error = format!("{error:?}");
++    if let Ok(mut phases) = record.dtmf_failure_phases.lock() {
++        if phases.len() < 16 {
++            phases.push((stage, error));
++        }
++    }
++}
+ fn request(digits: &str, duration_ms: u64, method: &str) -> Value {
+     let mut v = envelope(
+         "dtmf.send",
+@@ -161,6 +170,12 @@
+         })
+     }
+ }
++#[cfg(feature = "test-support")]
++fn source_diagnostics(o: &NativeDtmfObservation) -> Option<NativeDtmfSourceStateDiagnosticsForTest> {
++    o.source_state_diagnostics_for_test()
++}
++#[cfg(not(feature = "test-support"))]
++fn source_diagnostics(_: &NativeDtmfObservation) -> Option<()> { None }
+ impl NativeDtmfSink for Installed {
+     fn observe(
+         &self,
+@@ -170,6 +185,10 @@
+         let p = current
+             .authority::<Current>()
+             .ok_or(DispatchError::Authority)?;
++        #[cfg(feature = "test-support")]
++        if self.record.dtmf_source_diagnostics.load(Ordering::Acquire) {
++            let _ = o.enable_source_state_diagnostics_for_test();
++        }
+         if !self.record.dtmf_sink.load(Ordering::Acquire) {
+             return Err(DispatchError::Unsupported);
+         }
+@@ -203,7 +222,11 @@
+                     Some(current),
+                     deadline(),
+                     CancellationToken::new(),
+-                )?;
++                );
++                if let Err(error) = &pending {
++                    failure_phase(&self.record, "prepare-delivery", &(error, source_diagnostics(o)));
++                }
++                let pending = pending?;
+                 self.record
+                     .dtmf_pending
+                     .lock()
+@@ -257,11 +280,18 @@
+     } else {
+         adapter.receive_native_dtmf(id, &a, selected, &installed)
+     };
++    if let Err(error) = &observed {
++        failure_phase(&handler.record, "receive-native-dtmf", error);
++    }
+     let o = observed.map_err(|_| DispatchError::Authority)?;
+     let key = format!("{}/{}", o.connection(), o.operation_id());
+     let pending = handler.record.dtmf_pending.lock().unwrap().remove(&key);
+     if let Some(pending) = pending {
+-        let _local_submission = pending.written().await?;
++        let local_submission = pending.written().await;
++        if let Err(error) = &local_submission {
++            failure_phase(&handler.record, "pending-written", error);
++        }
++        let _local_submission = local_submission?;
+     }
+     let mut reply = envelope(
+         "ack",
+@@ -389,6 +419,8 @@
+     for kind in ["quic", "wt"] {
+         let mut s = Scene::new(kind, false).await;
+         s.record.dtmf_enable.store(true, Ordering::Release);
++        #[cfg(feature = "test-support")]
++        s.record.dtmf_source_diagnostics.store(true, Ordering::Release);
+         let (_, callback) = s.prepared(s.offer(0, false)).await;
+         s.confirm(&callback).await;
+         s.wait(1).await;
+@@ -403,9 +435,22 @@
+         let v = request("5#", 100, "info");
+         let operation = v["operation_id"].clone();
+         s.wire.send(s.f.sign(v)).await;
+-        let received = tokio::time::timeout(Duration::from_secs(2), target.read())
+-            .await
+-            .expect("authorized DTMF must reach the negotiated recipient");
++        let received = tokio::time::timeout(Duration::from_secs(2), target.read()).await;
++        if received.is_err() {
++            let key = format!("{}/{}", s.id, operation.as_str().unwrap());
++            let phases = s.record.dtmf_failure_phases.try_lock()
++                .map(|phases| phases.clone()).map_err(|_| "unavailable");
++            let seen = s.record.dtmf_seen.try_lock()
++                .map(|seen| seen.get(&key).map(|o| (o.operation_id().to_owned(), o.connection().clone(), o.stream_revision(), o.credential_revision(), source_diagnostics(o))))
++                .map_err(|_| "unavailable");
++            let pending = s.record.dtmf_pending.try_lock()
++                .map(|pending| pending.contains_key(&key)).map_err(|_| "unavailable");
++            let count = s.record.dtmf_count.load(Ordering::Acquire);
++            // Every diagnostic guard/PoisonError has gone before file IO.
++            // Concurrent snapshots are phase evidence, not a causal leaf guess.
++            eprintln!("native DTMF recipient timeout: kind={kind} operation={operation} source={} target={} observation_count={count} seen={seen:?} pending={pending:?} failure_phases={phases:?}", s.id, s.second_id);
++        }
++        let received = received.expect("authorized DTMF must reach the negotiated recipient");
+         assert_eq!(received.kind(), "dtmf.received");
+         s.f.verify_server(&received).await;
+         assert_eq!(received.scope(Scope::Connection), Some("native_1"));

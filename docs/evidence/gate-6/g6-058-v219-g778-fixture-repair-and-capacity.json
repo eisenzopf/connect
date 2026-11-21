@@ -1,0 +1,29 @@
+{
+  "format": "connect/g6-058-fixture-and-capacity/1",
+  "updated": "2026-11-21T07:47:53.349572+00:00",
+  "run_status": "The failed G777 run is retained at five passed build groups, one fixture compile failure and three ENOSPC failures; all 67 runtime checks were unrun. The camera regression privacy repair is reviewed and registered as patch550: a cfg(test) observer reads the same actual cache and both assertions still require Some(false). Root then removed exactly 11,610 reviewed, unused external Cargo library and executable cache files. Actual filesystem recovery was 24,647,786,496 bytes (22.95 GiB), leaving 24,704,131,072 bytes (23.01 GiB) available. All 12,782 unselected entries, current compiler outputs, five completed test binaries, original Native544 diagnostic binary, source, private evidence, databases and VM were preserved. No active warm-target libraries or incremental caches were deleted. Next: normal550 preparation, then the complete original 67-function focused batch with unchanged nine build recipes/features/profiles/oracles and a larger measured starting reserve. No runtime or matrix pass is claimed. Matrix remains v218: 1/32 cells and 399/432 checks; G6-054 stays parked; local Mac/native ARM only.",
+  "fixture_patch_generation": 550,
+  "normal_preparation": "pending",
+  "runtime": "unrun",
+  "actual_cache_cleanup": {
+    "recorded_at": "2026-11-21T07:46:10.639362+00:00",
+    "selected": 11610,
+    "removed": 11610,
+    "complete": true,
+    "error": null,
+    "source_unchanged": true,
+    "current5binaries_and_originalNative544_preserved": true,
+    "all_current_output_identities_preserved": true,
+    "union_remainder_preserved": 12782,
+    "before_available_bytes": 56344576,
+    "after_available_bytes": 24704131072,
+    "actual_reclaimed_bytes": 24647786496,
+    "twenty_GiB_headroom": true,
+    "combined_manifest_sha256": "3d4d50df6be9de0fe7fee826100c4b0a2b8a2db0f57305d2d861d362c880cdde",
+    "no_DB_VM_source_logs_evidence_dylib_or_active_target_deletions": true
+  },
+  "cleanup_receipt_sha256": "83ef4c891141ad0d2e5792b0511dbfc45e1b1a74c1722ec72375d8b57e6d892e",
+  "cleanup_join_sha256": "d3a27d9147912aff549f5ff0ba8b7ce02351eadf18e98bbea78a1fe142d33633",
+  "fixture_review": ".local/gate-6/g778-source550-fixture-and-capacity-root/fixture-privacy-root-review-and-registration.json",
+  "matrix_credit": false
+}

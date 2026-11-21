@@ -1,0 +1,128 @@
+{
+  "format": "connect/g6-058-focused69-verified/1",
+  "updated": "2026-11-21T10:34:37.051905+00:00",
+  "run_status": "G787 independently verified all 69 focused checks passed: all 67 retained checks plus two existing DTMF contract controls, zero failures/ignored/unrun. All nine build groups and inventories passed. All five original G771 failures and the three corrected regression fixtures pass, including all four Native DTMF terminal modes. Source 552, current binaries and all 89 naturally closed original process groups were verified. This is component evidence, not matrix qualification. Next: batch commit/push with CI skipped, then the original seven readiness scopes on final committed source. Matrix remains v218: 1/32 cells and 399/432 checks; G6-054 stays parked; testing remains local Mac/native ARM.",
+  "actual_focused": {
+    "run": "G787",
+    "generation": 552,
+    "completed": 69,
+    "passed": 69,
+    "failed": 0,
+    "retained67": {
+      "passed": 67,
+      "failed": 0
+    },
+    "existing_contract2": {
+      "passed": 2,
+      "failed": 0
+    },
+    "ignored": 0,
+    "unrun": 0,
+    "build_groups_passed": 9,
+    "inventories_passed": 9,
+    "original_process_groups_closed_naturally": 89,
+    "source_unchanged": true,
+    "binaries_unchanged": true,
+    "result_sha256": "9b5c25ff9aa8fce13a6ac030b9c8d71eff8aef7453e6fc964bbda4396eb627ef",
+    "root_join_sha256": "d1754da6f2c48890d05c9f3110b72b174b76fc60b321e941d8e33d729507dac8",
+    "independent_audit_sha256": "cfb4ae318c4c9e8ec31c596149ff279411a76d377799d5ca112d83841d834fd6",
+    "source_snapshot_sha256": "a02129ee06063388400b2f1bacebfbab397053a2caa295a912f81a81926cd527",
+    "source_files": 6614
+  },
+  "original_five_failures": "All five original tests pass; no historical result is regraded. Exact historical DTMF timeout leaf remains unproven.",
+  "corrected_regression_controls": [
+    {
+      "test": "staged_streams::tests::media_scene::transient::pending_diagnostics::scene_pending_visual_committed_receiver_before_first_adoption_flows_during_control",
+      "status": "PASSED",
+      "log_sha256": "1d774907ff90417348c6eb048c49c39fa32e58825d20f87b145fa7412f72554c"
+    },
+    {
+      "test": "staged_streams::tests::media_scene::subscriptions::control_guard_foundation::terminal_scene_cleanup_cancels_both_originals_before_retirement_metadata_wait",
+      "status": "PASSED",
+      "log_sha256": "448da0f7e8b5ba2baa7defa8d0de4c22a90b2dedfa6f3220d95d861e38d18c3b"
+    },
+    {
+      "test": "peer_native::canonical_media::native_offers::dtmf::native_dtmf_pending_source_metadata_cancel_deadline_and_retirement_never_lend_io",
+      "status": "PASSED",
+      "log_sha256": "c680c97c0d8ac5b2da2365f6db9dd046caa4f3b0a81704ea7717b4c9f5bc99f3"
+    },
+    {
+      "test": "peer_native::canonical_media::native_offers::dtmf::native_dtmf_egress_cancellation_or_deadline_before_writer_releases_reader_and_keeps_output_usable",
+      "status": "PASSED",
+      "log_sha256": "a50eb26c808d81d5116666aceb7b82f56657eb90b4eb0c4638377554da91fec0"
+    },
+    {
+      "test": "v2::auth_peer::exchange::tests::native_lifecycle_revision_or_credential_retirement_aborts_sink_before_releasing_reader",
+      "status": "PASSED",
+      "log_sha256": "4aeb3378134d7de4e7833c69cd5fdd919981933b8b6e4a5fec10ad9b5a370979"
+    }
+  ],
+  "normal_preparation": {
+    "generation": 552,
+    "passed": true,
+    "receipt_sha256": "61fd3550c4985ad066a5c82f16613a8880fd4ac0ee23926fa976c2bd668b883f",
+    "audit_sha256": "2eb8b17375caea3ed6b2f61bd790f4800972cad40a9da0f715b12a57d0aa172f",
+    "preserved_unchanged_mtimes": 4276,
+    "prepared": {
+      "rvoip": "3d46eaf853cfe2a70a2430407f00f4c5f9df2529985dcd4b8251f7c5e3f16302",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    }
+  },
+  "source_lock_sha256": "86763f82f4034046b04f36d9fb7ca6ddd333aeab9695ddd6b0f81f50f07c0df3",
+  "remaining_original_readiness_scopes": [
+    {
+      "number": 1,
+      "scope": "Generators/contracts and default shared379",
+      "final_committed_source_verification": "pending"
+    },
+    {
+      "number": 2,
+      "scope": "Complete affected full regression, then original V8 three cases",
+      "final_committed_source_verification": "pending"
+    },
+    {
+      "number": 3,
+      "scope": "Strict Firefox NORMAL3",
+      "final_committed_source_verification": "pending"
+    },
+    {
+      "number": 4,
+      "scope": "Original900 including both signed full62 programmes",
+      "final_committed_source_verification": "pending"
+    },
+    {
+      "number": 5,
+      "scope": "Local ARM SourcePrep then ARM11",
+      "final_committed_source_verification": "pending"
+    },
+    {
+      "number": 6,
+      "scope": "Normal matching Mac12 then ARM6 release artifacts",
+      "final_committed_source_verification": "pending"
+    },
+    {
+      "number": 7,
+      "scope": "Fresh launch preflight; stop at READY32",
+      "final_committed_source_verification": "pending"
+    }
+  ],
+  "mobile": {
+    "revision": 252,
+    "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+    "unrelated419_and_all_styles_unchanged": true
+  },
+  "origin_main_check": {
+    "fetch_succeeded": true,
+    "commits_missing": 0
+  },
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "qualification": false,
+  "ready_for_32": false,
+  "matrix_credit": false
+}

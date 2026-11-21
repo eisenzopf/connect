@@ -1,0 +1,87 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -31,11 +31,27 @@
+ // committed port; retain the original destination. A KNOWN post-admission
+ // successor is a permanent refusal for this packet, never a future grant.
+ fn cached_original_egress(
++    target: &StreamController,
+     egress: &BTreeMap<StreamId, Weak<Port>>,
+     logical: &StreamId,
+     admitted: Instant,
+ ) -> Result<Option<OriginalRealtimeDestination>, ()> {
+-    let Some(port) = egress.get(logical).and_then(Weak::upgrade) else { return Ok(None); };
++    let port = match egress.get(logical).and_then(Weak::upgrade) {
++        Some(port) => port,
++        None => {
++            // A committed receiver may precede its first scene adoption while
++            // another control owns inflight. Read only its current weak-cache
++            // candidate; the ORIGINAL packet still rejects any later commit.
++            let state = match target.state.try_lock() {
++                Ok(state) => state,
++                Err(std::sync::TryLockError::WouldBlock) => return Ok(None),
++                Err(std::sync::TryLockError::Poisoned(_)) => return Err(()),
++            };
++            if state.closed || target.shutdown.is_cancelled() { return Err(()); }
++            let Some(port) = state.active.get(logical).cloned() else { return Ok(None); };
++            port
++        }
++    };
+     let ticket = port.ticket(TicketSide::Egress);
+     match ticket.committed_at() {
+         None => Ok(None),
+@@ -130,7 +146,7 @@
+                             None
+                         } else {
+                             Some(RealtimeDestination {
+-                                original: cached_original_egress(egress, &logical, packet.admitted_at).ok()?,
++                                original: cached_original_egress(target, egress, &logical, packet.admitted_at).ok()?,
+                                 deadline: tokio::time::Instant::from_std(packet.admitted_at)
+                                     + Duration::from_millis(200),
+                             })
+@@ -305,7 +321,7 @@
+                 }
+                 if realtime.original.is_none() {
+                     let Some((_, egress)) = controllers.iter().find(|(owner, _)| Arc::ptr_eq(owner, &target)) else { return false; };
+-                    match cached_original_egress(egress, &destination.logical, self.packet.admitted_at) {
++                    match cached_original_egress(&target, egress, &destination.logical, self.packet.admitted_at) {
+                         Ok(Some(original)) => realtime.original = Some(original),
+                         Ok(None) => { blocked.push(destination.clone()); return true; },
+                         Err(()) => return false,
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient/pending_diagnostics.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient/pending_diagnostics.rs
+@@ -458,3 +458,35 @@
+         }
+     }
+ }
++
++
++#[tokio::test]
++async fn scene_pending_visual_committed_receiver_before_first_adoption_flows_during_control() {
++    let f = RecipientScene::new(&[Medium::Audio, Medium::Video], 1).await;
++    let (target, adapter) = &f.candidates[0];
++    target.change(target.revision(), &[desired(Medium::Audio)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
++    f.scene.tick();
++    let logical = desired(Medium::Video).logical_id;
++    assert!(!f.scene.members.lock().unwrap()[&target.connection].egress.contains_key(&logical));
++    target.change(target.revision(), &[desired(Medium::Audio), desired(Medium::Video)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
++    f.scene.change_direct_subscriptions(
++        &target.connection, target.revision(),
++        DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&f.f.a, logical.clone(), logical.clone())]),
++        deadline(), CancellationToken::new(), None,
++    ).await.unwrap();
++    let port = adapter.port(Medium::Video);
++    let ticket = port.0.ticket(TicketSide::Egress);
++    let mut output = port.take_egress().unwrap();
++    let mut healthy = f.f.ba.port(Medium::Video).take_egress().unwrap();
++    assert!(ticket.is_current() && ticket.committed_at().is_some());
++    assert!(!f.scene.members.lock().unwrap()[&target.connection].egress.contains_key(&logical));
++    let flight = target.inflight.clone().try_acquire_owned().unwrap();
++    f.publish(Medium::Video, 9000);
++    f.scene.tick();
++    expect_timestamp(&mut output, 9000).await;
++    expect_timestamp(&mut healthy, 9000).await;
++    assert!(ticket.is_current());
++    assert_eq!(f.retained(), (0, 0, 0, 0));
++    assert!(output.try_recv().is_err() && healthy.try_recv().is_err());
++    drop(flight);
++}

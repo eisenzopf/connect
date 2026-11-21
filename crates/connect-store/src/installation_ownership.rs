@@ -382,6 +382,16 @@ impl Store {
         Ok(held())
     }
 
+    /// Isolated immediate SQL-read fixture paired with the real mutex holder.
+    /// It neither returns a connection/authority guard nor mutates any rows.
+    #[cfg(feature = "test-support")]
+    pub fn try_primary_sql_read_for_test(&self) -> Result<()> {
+        self.try_connection()?
+            .query_row("SELECT 1", [], |row| row.get::<_, i64>(0))
+            .map(|_| ())
+            .map_err(|_| Error::storage())
+    }
+
     /// Isolated live-subscription fixture: withdraw only Video from the exact
     /// current participant acceptance. Endpoint capabilities remain immutable;
     /// Audio and the original physical connection are unchanged.

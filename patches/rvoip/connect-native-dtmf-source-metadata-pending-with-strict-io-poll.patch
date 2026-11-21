@@ -1,0 +1,600 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+@@ -296,6 +296,11 @@
+     pub fn is_ready(&self) -> bool {
+         self.initial.strong_count() == 0
+     }
++    pub(super) fn sealed_principal(&self) -> &AuthenticatedPrincipal { self.principal.as_ref() }
++    pub(super) fn sealed_credential_revision(&self) -> u64 { self.revision }
++    pub(super) fn lifetime_current(&self) -> bool {
++        !self.origin.lifetime.is_cancelled() && Instant::now() < self.origin.deadline
++    }
+     pub fn current(&self) -> bool {
+         !self.origin.lifetime.is_cancelled()
+             && Instant::now() < self.origin.deadline
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+@@ -7,9 +7,17 @@
+     relationships::{EndpointBinding, Membership},
+     staged_streams::StreamController,
+ };
++pub(crate) enum NativeLifecycleIoPoll {
++    MetadataBusy,
++    Io(std::task::Poll<Result<(), DispatchError>>),
++}
+ pub(crate) trait NativeLifecycleFence: Send + Sync {
+     fn current(&self) -> bool;
+     fn cancellation(&self) -> CancellationToken;
++    fn has_strict_io_poll(&self) -> bool { false }
++    fn poll_io(&self, io: &mut dyn FnMut() -> std::task::Poll<Result<(), DispatchError>>) -> NativeLifecycleIoPoll {
++        NativeLifecycleIoPoll::Io(io())
++    }
+ }
+ #[derive(Clone)]
+ pub(in crate::v2) struct NativeLifecycleOrigin {
+@@ -42,8 +50,21 @@
+     pub(crate) fn ready(&self) -> bool {
+         self.route.is_ready()
+     }
++    pub(crate) fn sealed_principal(&self) -> &AuthenticatedPrincipal { self.route.sealed_principal() }
++    pub(crate) fn sealed_credential_revision(&self) -> u64 { self.route.sealed_credential_revision() }
++    pub(crate) fn lifetime_current(&self) -> bool { self.route.lifetime_current() }
+     pub(crate) fn current(&self) -> bool {
+-        self.route.current() && self.fence.current()
++        (if self.fence.has_strict_io_poll() { self.route.lifetime_current() } else { self.route.current() })
++            && self.fence.current()
++    }
++    pub(crate) fn has_strict_io_poll(&self) -> bool { self.fence.has_strict_io_poll() }
++    pub(crate) fn poll_io(&self, io: &mut dyn FnMut() -> std::task::Poll<Result<(), DispatchError>>) -> NativeLifecycleIoPoll {
++        // Default fences retain their original caller's current() checks.
++        // Only the typed DTMF fence supplies metadata admission around IO.
++        if self.fence.has_strict_io_poll() {
++            if !self.route.lifetime_current() { return NativeLifecycleIoPoll::Io(std::task::Poll::Ready(Err(DispatchError::Closed))); }
++            self.fence.poll_io(io)
++        } else { NativeLifecycleIoPoll::Io(io()) }
+     }
+     pub(crate) fn incarnation(&self) -> uuid::Uuid {
+         self.route.incarnation()
+@@ -151,4 +172,8 @@
+     fn cancellation(&self) -> CancellationToken {
+         self.event_cancellation()
+     }
++    fn has_strict_io_poll(&self) -> bool { NativeLifecycleOrigin::has_strict_io_poll(self) }
++    fn poll_io(&self, io: &mut dyn FnMut() -> std::task::Poll<Result<(), DispatchError>>) -> NativeLifecycleIoPoll {
++        NativeLifecycleOrigin::poll_io(self, io)
++    }
+ }
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -642,20 +642,33 @@
+                 if !ready() || !io._guard.current() {
+                     return std::task::Poll::Ready(Err(DispatchError::Closed));
+                 }
+-                touched.store(true, Ordering::Release);
+-                if let Some(started) = &job.started {
+-                    started.store(true, Ordering::Release);
++                let mut poll = || {
++                    touched.store(true, Ordering::Release);
++                    if let Some(started) = &job.started { started.store(true, Ordering::Release); }
++                    std::future::Future::poll(sending.as_mut(), cx)
++                };
++                match job.native_fence.as_ref().map(|origin| origin.poll_io(&mut poll)) {
++                    Some(crate::v2::auth_dispatch::lifecycle::NativeLifecycleIoPoll::MetadataBusy) => std::task::Poll::Pending,
++                    Some(crate::v2::auth_dispatch::lifecycle::NativeLifecycleIoPoll::Io(result)) => result,
++                    None => poll(),
+                 }
+-                std::future::Future::poll(sending.as_mut(), cx)
+             });
+-            tokio::select! {biased;
+-                _=answer.permit.cancel.cancelled()=>Err(DispatchError::Closed),
+-                _=async{match &job.cancel{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>Err(DispatchError::Closed),
+-                _=stop.cancelled()=>Err(DispatchError::Closed),
+-                _=job.lifetime.cancelled()=>Err(DispatchError::Closed),
+-                _=async{match &job.authority{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>Err(DispatchError::Authority),
+-                _=tokio::time::sleep_until(job.deadline)=>Err(DispatchError::Closed),
+-                result=sending=>result,
++            tokio::pin!(sending);
++            let mut probe = job.native_fence.as_ref().filter(|origin| origin.has_strict_io_poll()).map(|_| {
++                let mut tick = tokio::time::interval(std::time::Duration::from_millis(5));
++                tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip); tick
++            });
++            loop {
++                tokio::select! {biased;
++                    _=answer.permit.cancel.cancelled()=>break Err(DispatchError::Closed),
++                    _=async{match &job.cancel{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>break Err(DispatchError::Closed),
++                    _=stop.cancelled()=>break Err(DispatchError::Closed),
++                    _=job.lifetime.cancelled()=>break Err(DispatchError::Closed),
++                    _=async{match &job.authority{Some(t)=>t.cancelled().await,None=>std::future::pending().await}}=>break Err(DispatchError::Authority),
++                    _=tokio::time::sleep_until(job.deadline)=>break Err(DispatchError::Closed),
++                    _=async{match &mut probe{Some(t)=>{t.tick().await;},None=>std::future::pending().await}}=>{},
++                    result=&mut sending=>break result,
++                }
+             }?;
+             }
+             Ok(())
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1020,6 +1020,8 @@
+         let source_adapter: Arc<dyn ConnectionAdapter> = self.clone();
+         event.bind_origin(
+             Arc::downgrade(&source_adapter),
++            Arc::downgrade(&controller),
++            Arc::downgrade(&flow),
+             move |io| {
+                 use rvoip_core::dtmf::DtmfWriteError;
+                 let refuse = || std::task::Poll::Ready(Err(DtmfWriteError::Refused));
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf.rs
+@@ -62,6 +62,8 @@
+ struct SourceOrigin {
+     adapter: std::sync::Weak<dyn rvoip_core::adapter::ConnectionAdapter>,
+     poll: Box<SourcePoll>,
++    controller: std::sync::Weak<rvoip_core::staged_streams::StreamController>,
++    flow: std::sync::Weak<crate::native_flow::NativeFlow>,
+     cancel: tokio_util::sync::CancellationToken,
+     #[cfg(feature = "test-support")]
+     diagnostics: std::sync::OnceLock<SourceStateDiagnostics>,
+@@ -132,9 +134,31 @@
+     pub fn source_state_diagnostics_for_test(&self) -> Option<NativeDtmfSourceStateDiagnosticsForTest> {
+         self.origin.as_ref()?.diagnostics.get().map(SourceStateDiagnostics::snapshot)
+     }
++    /// Isolated metadata exclusion inside the actual original source poll.
++    /// This grants no signal IO; the trusted fixture must bound its callback.
++    #[cfg(feature = "test-support")]
++    pub fn with_source_metadata_exclusion_for_test<T>(
++        &self,
++        held: impl FnOnce() -> T,
++    ) -> Result<T, rvoip_core::dtmf::DtmfWriteError> {
++        use rvoip_core::dtmf::DtmfWriteError;
++        let mut held = Some(held);
++        let mut value = None;
++        let result = self.poll_source(&mut || {
++            value = Some(held.take().expect("one actual source metadata callback")());
++            std::task::Poll::Ready(Ok(()))
++        });
++        match result {
++            std::task::Poll::Ready(Ok(())) => value.ok_or(DtmfWriteError::Refused),
++            std::task::Poll::Ready(Err(error)) => Err(error),
++            std::task::Poll::Pending => Err(DtmfWriteError::NotReady),
++        }
++    }
+     pub(crate) fn bind_origin(
+         &mut self,
+         adapter: std::sync::Weak<dyn rvoip_core::adapter::ConnectionAdapter>,
++        controller: std::sync::Weak<rvoip_core::staged_streams::StreamController>,
++        flow: std::sync::Weak<crate::native_flow::NativeFlow>,
+         poll: impl Fn(&mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll) -> rvoip_core::dtmf::DtmfIoPoll
+             + Send
+             + Sync
+@@ -144,12 +168,14 @@
+         self.origin = Some(std::sync::Arc::new(SourceOrigin {
+             adapter,
+             poll: Box::new(poll),
++            controller,
++            flow,
+             cancel,
+             #[cfg(feature = "test-support")]
+             diagnostics: std::sync::OnceLock::new(),
+         }));
+     }
+-    fn poll_source(
++    pub(crate) fn poll_source(
+         &self,
+         io: &mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll,
+     ) -> rvoip_core::dtmf::DtmfIoPoll {
+@@ -162,7 +188,7 @@
+         }
+         (origin.poll)(io)
+     }
+-    fn source_state(&self) -> Result<(), rvoip_core::dtmf::DtmfWriteError> {
++    pub(crate) fn source_state(&self) -> Result<(), rvoip_core::dtmf::DtmfWriteError> {
+         let result = match self.poll_source(&mut || std::task::Poll::Ready(Ok(()))) {
+             std::task::Poll::Ready(result) => result,
+             std::task::Poll::Pending => Err(rvoip_core::dtmf::DtmfWriteError::NotReady),
+@@ -173,9 +199,19 @@
+         }
+         result
+     }
+-    pub(crate) fn current_source(&self) -> bool {
+-        self.source_state().is_ok()
+-    }
++    pub(crate) fn shares_controller(&self, controller: &std::sync::Arc<rvoip_core::staged_streams::StreamController>) -> bool {
++        self.origin.as_ref().is_some_and(|origin| origin.controller.ptr_eq(&std::sync::Arc::downgrade(controller)))
++    }
++    pub(crate) fn shares_flow(&self, flow: &std::sync::Arc<crate::native_flow::NativeFlow>) -> bool {
++        self.origin.as_ref().is_some_and(|origin| origin.flow.ptr_eq(&std::sync::Arc::downgrade(flow)))
++    }
++    pub(crate) fn shared_flow_epoch(&self, flow: &std::sync::Arc<crate::native_flow::NativeFlow>) -> Option<tokio_util::sync::CancellationToken> {
++        self.origin.as_ref().filter(|origin| origin.flow.ptr_eq(&std::sync::Arc::downgrade(flow))).map(|origin| origin.cancel.clone())
++    }
++    /// Historical source-only boolean, for the actual-lock counterfactual.
++    /// It is not a whole-call baseline or an authorization API.
++    #[cfg(feature = "test-support")]
++    pub fn source_current_baseline_for_test(&self) -> bool { self.source_state().is_ok() }
+     /// Bind actual sealed native ingress to Core metadata and immutable intent.
+     /// No old invocation/permission is retained. The caller must journal the
+     /// original operation and supply independent current source/recipient
+--- a/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_dtmf_egress.rs
+@@ -64,32 +64,63 @@
+ struct DeliveryFence {
+     controller: Weak<StreamController>,
+     flow: Weak<NativeFlow>,
++    principal: rvoip_core::identity::AuthenticatedPrincipal,
+     revision: u64,
++    credential_revision: u64,
+     audio: Vec<ReadyMediaBinding>,
+     source: NativeDtmfObservation,
+     epoch: CancellationToken,
+ }
++impl DeliveryFence {
++    fn poll(&self, io: &mut dyn FnMut() -> rvoip_core::dtmf::DtmfIoPoll) -> rvoip_core::dtmf::DtmfIoPoll {
++        use rvoip_core::dtmf::DtmfWriteError;
++        let refuse = || std::task::Poll::Ready(Err(DtmfWriteError::Refused));
++        if self.epoch.is_cancelled() { return refuse(); }
++        let (Some(controller), Some(flow)) = (self.controller.upgrade(), self.flow.upgrade()) else { return refuse(); };
++        let same_controller = self.source.shares_controller(&controller);
++        let same_flow = self.source.shares_flow(&flow);
++        // A shared mutex is entered only ONCE. Reuse source custody only for
++        // the exact original target tuple; independent flow/controller axes
++        // dedup independently, including same-controller/different-flow.
++        if same_controller && (self.source.stream_revision() != self.revision
++            || self.source.credential_revision() != self.credential_revision
++            || !rvoip_core::staged_streams::reliable_data::same_credential(self.source.principal(), &self.principal)
++            || self.source.audio_bindings().len() != self.audio.len()
++            || self.source.audio_bindings().iter().zip(&self.audio).any(|(a,b)| !crate::staged_media::same_binding(a,b))) {
++            return refuse();
++        }
++        if same_flow && self.source.stream_revision() != self.revision { return refuse(); }
++        self.source.poll_source(&mut || {
++            let mut target = || {
++                if self.epoch.is_cancelled() { return refuse(); }
++                if same_controller { io() } else {
++                    controller.poll_dtmf_source_io(&self.principal, self.revision, self.credential_revision, &self.audio, io)
++                }
++            };
++            if same_flow { target() } else { flow.poll_dtmf_source_io(self.revision, &self.epoch, &mut target) }
++        })
++    }
++}
+ impl NativeLifecycleFence for DeliveryFence {
+     fn current(&self) -> bool {
+-        if self.epoch.is_cancelled() || !self.source.current_source() {
+-            return false;
+-        }
+-        let (Some(c), Some(f)) = (self.controller.upgrade(), self.flow.upgrade()) else {
+-            return false;
+-        };
+-        c.revision() == self.revision
+-            && f.confirmed_at(self.revision)
+-            && !self.audio.is_empty()
+-            && self.audio.iter().all(|old| {
+-                c.active_bindings()
+-                    .iter()
+-                    .any(|new| crate::staged_media::same_binding(old, new))
+-            })
+-            && !self.epoch.is_cancelled()
+-            && self.source.current_source()
+-    }
+-    fn cancellation(&self) -> CancellationToken {
+-        self.epoch.child_token()
++        // Pending eligibility is NOT IO authority. Every physical poll below
++        // must reacquire all actual source/recipient guards lexically.
++        matches!(self.poll(&mut || std::task::Poll::Ready(Ok(()))),
++            std::task::Poll::Ready(Ok(())) | std::task::Poll::Ready(Err(rvoip_core::dtmf::DtmfWriteError::NotReady)))
++    }
++    fn cancellation(&self) -> CancellationToken { self.epoch.child_token() }
++    fn has_strict_io_poll(&self) -> bool { true }
++    fn poll_io(&self, io: &mut dyn FnMut() -> std::task::Poll<Result<(), DispatchError>>) -> super::auth_dispatch::lifecycle::NativeLifecycleIoPoll {
++        use super::auth_dispatch::lifecycle::NativeLifecycleIoPoll;
++        use rvoip_core::dtmf::DtmfWriteError;
++        let mut outcome = None;
++        let polled = self.poll(&mut || io().map(|result| { outcome = Some(result); Ok(()) }));
++        match polled {
++            std::task::Poll::Ready(Ok(())) => NativeLifecycleIoPoll::Io(std::task::Poll::Ready(outcome.unwrap_or(Err(DispatchError::Closed)))),
++            std::task::Poll::Ready(Err(DtmfWriteError::NotReady)) => NativeLifecycleIoPoll::MetadataBusy,
++            std::task::Poll::Ready(Err(_)) => NativeLifecycleIoPoll::Io(std::task::Poll::Ready(Err(DispatchError::Closed))),
++            std::task::Poll::Pending => NativeLifecycleIoPoll::Io(std::task::Poll::Pending),
++        }
+     }
+ }
+ struct CoreTargetFence {
+@@ -397,12 +428,15 @@
+         requested: Instant,
+         caller: CancellationToken,
+     ) -> Result<NativeDtmfSubmission, DispatchError> {
+-        if caller.is_cancelled()
+-            || !self.origin.ready()
+-            || !self.origin.current()
+-            || !source.current_source()
+-        {
++        if caller.is_cancelled() || !self.origin.ready() || !self.origin.lifetime_current() {
+             return Err(DispatchError::Closed);
++        }
++        if !rvoip_core::staged_streams::reliable_data::same_credential(&self.scope.principal, self.origin.sealed_principal()) {
++            return Err(DispatchError::Closed);
++        }
++        match source.source_state() {
++            Ok(()) | Err(rvoip_core::dtmf::DtmfWriteError::NotReady) => {}
++            Err(_) => return Err(DispatchError::Closed),
+         }
+         let reservation = self
+             .sender
+@@ -414,19 +448,25 @@
+             })?;
+         let c = self.controller.upgrade().ok_or(DispatchError::Closed)?;
+         let flow = self.flow.upgrade().ok_or(DispatchError::Closed)?;
+-        let revision = c.revision();
+-        let audio = c
+-            .active_bindings()
+-            .into_iter()
+-            .filter(|b| b.negotiated.requested.medium == Medium::Audio)
+-            .collect::<Vec<_>>();
++        // The sealed recipient route cannot borrow a later credential epoch,
++        // even if a rebind preserves the same principal bytes.
++        let credential_revision = self.origin.sealed_credential_revision();
++        let (revision, audio) = if source.shares_controller(&c) {
++            if !rvoip_core::staged_streams::reliable_data::same_credential(source.principal(), &self.scope.principal) { return Err(DispatchError::Closed); }
++            (source.stream_revision(), source.audio_bindings().to_vec())
++        } else {
++            (c.revision(), c.active_bindings().into_iter()
++                .filter(|b| b.negotiated.requested.medium == Medium::Audio).collect::<Vec<_>>())
++        };
+         let fence = Arc::new(DeliveryFence {
+             controller: Arc::downgrade(&c),
+             flow: Arc::downgrade(&flow),
+             revision,
++            credential_revision,
++            principal: self.origin.sealed_principal().clone(),
+             audio,
+             source: source.clone(),
+-            epoch: flow.epoch(),
++            epoch: source.shared_flow_epoch(&flow).unwrap_or_else(|| flow.epoch()),
+         });
+         let origin = self.origin.with_fence(fence.clone());
+         if !origin.current() {
+@@ -436,7 +476,7 @@
+             recipient: &self.scope,
+             audio_bindings: &fence.audio,
+             stream_revision: revision,
+-            credential_revision: c.credential_revision(),
++            credential_revision,
+         };
+         let authority = policy.authorize(&scope, source, held)?;
+         let deadline = requested.min(Instant::now() + Duration::from_secs(1));
+@@ -475,7 +515,9 @@
+         })
+     }
+     pub async fn next_delivery(&self) -> Result<HandlerDelivery, DispatchError> {
+-        if !self.origin.current() {
++        // Dequeue is metadata, never permission. Both native signal variants
++        // enforce their real current guards at the sole physical writer.
++        if !self.origin.lifetime_current() || !self.flow.upgrade().is_some_and(|flow| flow.current()) {
+             return Err(DispatchError::Closed);
+         }
+         let mut receiver = self.receiver.lock().await;
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
+@@ -826,3 +826,209 @@
+     s.wire.server.shutdown().await.unwrap();
+     target.server.shutdown().await.unwrap();
+ }
++
++// Trusted fixture control backed by its ACTUAL current owned domain Reader.
++// Only the exact same-principal, once-chosen recipient rebind is authorized.
++#[cfg(feature = "test-support")]
++struct RecipientRebindControl {
++    domain: Arc<Grants>,
++    guard: Arc<OwnedRwLockReadGuard<State>>,
++    connection: ConnectionId,
++    principal: AuthenticatedPrincipal,
++    credential_revision: u64,
++    stream_revision: u64,
++    until: Instant,
++}
++#[cfg(feature = "test-support")]
++struct RecipientRebindLease { owner: MediaOwner, _guard: Arc<OwnedRwLockReadGuard<State>> }
++#[cfg(feature = "test-support")]
++impl MediaAuthorityLease for RecipientRebindLease { fn authority(&self) -> &MediaOwner { &self.owner } }
++#[cfg(feature = "test-support")]
++pub(super) fn recipient_rebind_control(
++    domain: &Grants, scope: &MediaScope<'_>, intent: &MediaControlIntent<'_>, held: &(dyn Any + Send + Sync),
++) -> Option<ControlResult<MediaControl>> {
++    let original = held.downcast_ref::<RecipientRebindControl>()?;
++    Some((|| {
++        if !Arc::ptr_eq(&domain.0,&original.domain.0) || original.guard.denied
++            || scope.connection != &original.connection || !matches!(scope.purpose,MediaPurpose::Control)
++            || Instant::now()>=original.until
++            || !rvoip_core::staged_streams::reliable_data::same_credential(scope.principal,&original.principal) {
++            return Err(StreamControlError::Authority);
++        }
++        match intent {
++            MediaControlIntent::RebindCredential {previous,expected_credential_revision,expected_stream_revision}
++                if *expected_credential_revision==original.credential_revision
++                    && *expected_stream_revision==original.stream_revision
++                    && rvoip_core::staged_streams::reliable_data::same_credential(previous,&original.principal)=>{},
++            _=>return Err(StreamControlError::Authority),
++        }
++        let owner=credential_owner(original.guard.owners.get(scope.connection).ok_or(StreamControlError::Authority)?.clone(),scope.principal)?;
++        if !owner.may_control || owner.member.conversation()!=scope.conversation || owner.presence.session()!=scope.session
++            || owner.connection.connection()!=scope.connection {return Err(StreamControlError::Authority);}
++        owner.actor.revalidate_principal(scope.principal,Utc::now()).map_err(|_|StreamControlError::Authority)?;
++        owner.connection.require_current(&owner.member,&owner.presence).map_err(|_|StreamControlError::Authority)?;
++        MediaControl::new(Box::new(RecipientRebindLease {owner,_guard:original.guard.clone()}),CancellationToken::new(),original.until)
++    })())
++}
++
++#[cfg(feature = "test-support")]
++struct DtmfSourceMetadataHolder {
++    release: Option<std::sync::mpsc::Sender<()>>,
++    thread: Option<std::thread::JoinHandle<()>>,
++}
++#[cfg(feature = "test-support")]
++impl DtmfSourceMetadataHolder {
++    fn new(original: NativeDtmfObservation, controller: Arc<StreamController>, flow: bool) -> Self {
++        let (release, released) = std::sync::mpsc::channel();
++        let (entered, ready) = std::sync::mpsc::channel();
++        let thread = std::thread::spawn(move || {
++            let mut held = || {
++                entered.send(()).unwrap();
++                released.recv_timeout(Duration::from_secs(2)).unwrap();
++            };
++            let until = std::time::Instant::now() + Duration::from_secs(1);
++            loop {
++                let result = if flow {
++                    original.with_source_metadata_exclusion_for_test(|| held())
++                        .map(|()| std::task::Poll::Ready(Ok(())))
++                } else {
++                    Ok(controller.poll_dtmf_source_io(
++                        original.principal(), original.stream_revision(), original.credential_revision(),
++                        original.audio_bindings(), &mut || { held(); std::task::Poll::Ready(Ok(())) },
++                    ))
++                };
++                match result {
++                    Ok(std::task::Poll::Ready(Ok(()))) => break,
++                    Ok(std::task::Poll::Ready(Err(rvoip_core::dtmf::DtmfWriteError::NotReady)))
++                    | Err(rvoip_core::dtmf::DtmfWriteError::NotReady)
++                        if std::time::Instant::now() < until => std::thread::yield_now(),
++                    other => panic!("actual source holder admission: {other:?}"),
++                }
++            }
++        });
++        let holder = Self { release: Some(release), thread: Some(thread) };
++        ready.recv_timeout(Duration::from_secs(1)).unwrap();
++        holder
++    }
++    fn close(&mut self) {
++        if let Some(release) = self.release.take() { let _ = release.send(()); }
++        if let Some(thread) = self.thread.take() { thread.join().unwrap(); }
++    }
++}
++#[cfg(feature = "test-support")]
++impl Drop for DtmfSourceMetadataHolder { fn drop(&mut self) { self.close(); } }
++
++#[cfg(feature = "test-support")]
++async fn source_busy_delivery(queued: bool, flow: bool, self_recipient: bool) {
++    let (mut s, mut target, remote) = delivery_pair().await;
++    let registration = if self_recipient {
++        s.grants.0.write().await.dtmf_forward_allowed.insert((s.id.clone(),s.id.clone()));
++        s.record.dtmf_registrations.lock().unwrap()[&s.id].clone()
++    } else { remote };
++    let original = observation(&mut s).await;
++    assert!(original.enable_source_state_diagnostics_for_test());
++    let controller = s.controller();
++    let installed = Installed { domain: s.grants.clone(), record: s.record.clone() };
++    let original_until = Instant::now() + Duration::from_secs(1);
++    let mut holder;
++    let submission;
++    if queued {
++        s.record.dtmf_pause_delivery.store(true,Ordering::Release);
++        submission = registration.prepare_delivery(&original,&installed,None,original_until,CancellationToken::new()).unwrap();
++        tokio::time::timeout_at(original_until,s.record.dtmf_delivery_entered.notified()).await.unwrap();
++        holder = DtmfSourceMetadataHolder::new(original.clone(),controller.clone(),flow);
++        s.record.dtmf_pause_delivery.store(false,Ordering::Release);
++        s.record.dtmf_delivery_release.notify_one();
++    } else {
++        holder = DtmfSourceMetadataHolder::new(original.clone(),controller.clone(),flow);
++        submission = registration.prepare_delivery(&original,&installed,None,original_until,CancellationToken::new())
++            .expect("metadata contention must keep the same original pending, never Closed");
++    }
++    // This evaluates the exact historical boolean on the REAL held source.
++    // It demonstrates the old collapse without simulating its lock outcome.
++    let historical_closed = !original.source_current_baseline_for_test();
++    let metadata = original.prepare_core_route(&s.native.core.orch,s.second_id.clone());
++    let snapshot = original.source_state_diagnostics_for_test().unwrap();
++    let mut written = Box::pin(submission.written());
++    tokio::select! { biased;
++        result = &mut written => panic!("held actual source prematurely completed: {result:?}"),
++        _ = async {if self_recipient {no_signal(&mut s.wire).await}else{no_signal(&mut target).await}} => {}
++    }
++    holder.close();
++    assert!(historical_closed && matches!(metadata,Err(rvoip_core::dtmf::DtmfWriteError::NotReady)));
++    assert!(snapshot.not_ready >= 2 && snapshot.last_tag == 2 && snapshot.refused == 0);
++    let (frame,receipt) = tokio::time::timeout_at(original_until,async {
++        let frame = if self_recipient {s.wire.read().await}else{target.read().await};
++        let receipt = written.await.unwrap();
++        (frame,receipt)
++    }).await.expect("same original source did not recover within its unchanged bound");
++    assert_eq!(frame.kind(),"dtmf.received");s.f.verify_server(&frame).await;
++    assert_eq!(frame.scope(Scope::Connection),Some(if self_recipient {"native_0"}else{"native_1"}));
++    assert_eq!(frame.original()["operation_id"],json!(original.operation_id()));
++    assert_eq!(frame.original()["payload"]["digits"],json!(original.digits()));
++    assert_eq!(receipt.as_str(),frame.id());
++    assert_eq!(s.record.dtmf_count.load(Ordering::Acquire),1,"no new signed operation or second observation");
++    if self_recipient {no_signal(&mut s.wire).await}else{no_signal(&mut target).await}
++    controller.retire();
++    assert!(!original.source_current_baseline_for_test());
++    assert!(matches!(registration.prepare_delivery(&original,&installed,None,original_until,CancellationToken::new()),Err(DispatchError::Closed)));
++    if self_recipient {no_signal(&mut s.wire).await}else{no_signal(&mut target).await}
++    s.wire.server.shutdown().await.unwrap();target.server.shutdown().await.unwrap();
++}
++#[cfg(feature = "test-support")]
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn native_dtmf_real_source_metadata_busy_during_prepare_and_queued_writer_preserves_same_operation() {
++    for queued in [false,true] {for flow in [false,true] {source_busy_delivery(queued,flow,false).await;}}
++}
++#[cfg(feature = "test-support")]
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn native_dtmf_same_controller_recipient_dedups_actual_source_and_flow_guards() {
++    for queued in [false,true] {for flow in [false,true] {source_busy_delivery(queued,flow,true).await;}}
++}
++#[cfg(feature = "test-support")]
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn native_dtmf_pending_source_metadata_cancel_deadline_and_retirement_never_lend_io() {
++    for mode in ["cancel","deadline","retire","recipient-rebind"] {
++        let (mut s,mut target,registration) = delivery_pair().await;
++        let original = observation(&mut s).await;let controller = s.controller();
++        let installed = Installed {domain:s.grants.clone(),record:s.record.clone()};
++        let mut holder = DtmfSourceMetadataHolder::new(original.clone(),controller.clone(),true);
++        let cancel = CancellationToken::new();
++        let until = Instant::now()+Duration::from_millis(if mode=="deadline" {80}else{1_000});
++        let submission = registration.prepare_delivery(&original,&installed,None,until,cancel.clone()).unwrap();
++        no_signal(&mut target).await;
++        let retiring = if mode=="retire" {
++            let c=controller.clone();Some(std::thread::spawn(move||c.retire()))
++        }else{None};
++        if mode=="cancel" {cancel.cancel();}
++        if mode=="recipient-rebind" {
++            let recipient=s.native.adapters[&s.kind].media_controller(&s.second_id).unwrap();
++            let principal=original.principal().clone();
++            assert!(recipient.matches_data_credential(&principal));
++            let previous=recipient.credential_revision();let stream_revision=recipient.revision();
++            let guard=Arc::new(s.grants.0.clone().read_owned().await);
++            let held=RecipientRebindControl {domain:s.grants.clone(),guard,connection:s.second_id.clone(),principal:principal.clone(),credential_revision:previous,stream_revision,until};
++            let next=recipient.rebind_credential_with_held(principal.clone(),previous,stream_revision,until,CancellationToken::new(),&held).await.unwrap();
++            drop(held);
++            assert_eq!(next,previous+1);assert_eq!(recipient.credential_revision(),previous+1);
++            assert!(recipient.matches_data_credential(&principal),"principal bytes unchanged; only actual credential epoch advanced");
++            holder.close();
++        }
++        if mode=="retire" {
++            tokio::time::timeout_at(until,async {while !controller.retirement_requested_for_test(){tokio::task::yield_now().await;}}).await.unwrap();
++            holder.close();
++            retiring.unwrap().join().unwrap();
++        }
++        assert_eq!(tokio::time::timeout_at(until+Duration::from_millis(100),submission.written()).await.unwrap(),Err(DispatchError::Closed));
++        if mode=="deadline" {assert!(Instant::now()>=until);}
++        holder.close();
++        no_signal(&mut target).await;
++        tokio::time::timeout(Duration::from_secs(1),async {while s.grants.0.try_write().is_err(){tokio::task::yield_now().await;}}).await.unwrap();
++        if mode=="retire" || mode=="recipient-rebind" {
++            assert!(matches!(registration.prepare_delivery(&original,&installed,None,deadline(),CancellationToken::new()),Err(DispatchError::Closed)),"old registration must not borrow a later identical-principal credential epoch");
++            no_signal(&mut target).await;
++        }
++        assert_eq!(s.record.dtmf_count.load(Ordering::Acquire),1);
++        s.wire.server.shutdown().await.unwrap();target.server.shutdown().await.unwrap();
++    }
++}
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers.rs
+@@ -169,6 +169,10 @@
+         intent: &MediaControlIntent<'_>,
+         held: &(dyn Any + Send + Sync),
+     ) -> ControlResult<MediaControl> {
++        #[cfg(feature = "test-support")]
++        if let Some(control) = dtmf::recipient_rebind_control(self, s, intent, held) {
++            return control;
++        }
+         if let Some(control) = audiences::held(self, s, intent, held) {
+             return control;
+         }

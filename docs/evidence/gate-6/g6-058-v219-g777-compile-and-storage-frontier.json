@@ -1,0 +1,42 @@
+{
+  "format": "connect/g6-058-compile-and-storage-frontier/1",
+  "updated": "2026-11-21T07:20:33.005580+00:00",
+  "run_status": "G777 completed all nine build attempts on unchanged prepared source549: five passed and four failed. No inventories or runtime regressions ran; all 67 selected functions are unrun. Core exposed two E0616 compiler diagnostics in the new camera test, which accessed a private cache field. A reviewed test-only accessor repair is registered as patch550 and retains the exact existing-member/absent-cache assertions. The SIP, Service and canonical-runtime build failures are ENOSPC: the local ARM Mac build target exhausted disk space while writing LLVM output, an archive, query cache and metadata. The 11 GiB starting reserve was insufficient for this changed feature-profile batch. All original Root and ten child groups ended naturally, were joined and freshly absent; source and the five completed binary hashes stayed fixed. Next: recover sufficient measured build headroom, normally prepare fixture patch550, then rerun the complete 67-check batch before commit/full affected verification. This is a failed prerequisite build run, not a media runtime or matrix result. Historical G771 remains 4,258 passed / five failed; matrix remains v218: 1/32 cells and 399/432 checks. G6-054 stays parked. Local Mac/native ARM only.",
+  "run": "G777",
+  "build_groups_attempted": 9,
+  "build_groups_passed": 5,
+  "build_groups_failed": 4,
+  "runtime_functions_selected": 67,
+  "runtime_functions_completed": 0,
+  "runtime_functions_unrun": 67,
+  "failure_mapping": [
+    {
+      "group": "core-build65",
+      "category": "test-fixture-compile",
+      "diagnostics": "E0616 private SceneMember.egress field twice",
+      "solution": "cfg(test) actual-cache observer; Some(false) required, missing member still refuses",
+      "owner": "batch_build_review; Root reviewer/coordinator",
+      "status": "reviewed-registered550-not-prepared-unrun"
+    },
+    {
+      "groups": [
+        "component-sip-build",
+        "component-service-build",
+        "component-canonical-runtime-build"
+      ],
+      "category": "runner-storage",
+      "diagnostics": "No space left on device; LLVM/archive/query-cache/full.rmeta writes",
+      "solution": "Recover measured headroom from obsolete build caches while retaining current artifacts; no profile/feature/test-oracle relaxation",
+      "owner": "fixture_blockers + batch_build_review; Root cleanup/coordinator",
+      "status": "capacity-recovery-in-progress"
+    }
+  ],
+  "result_sha256": "2937322da5f24fb2029c7b6866e231e067b3ec0c8fe4e00e0b77fb851c005e69",
+  "join_sha256": "a52b9626686f0744ac964644d6b4660c7569639faaeee8ff537ca8732ffa5ca8",
+  "source_unchanged": true,
+  "current5binaries_unchanged": true,
+  "source_lock_registered": 550,
+  "prepared_generation": 549,
+  "qualification": false,
+  "matrix_credit": false
+}

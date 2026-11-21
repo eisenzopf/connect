@@ -1,0 +1,71 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient/pending_diagnostics.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient/pending_diagnostics.rs
+@@ -462,13 +462,13 @@
+ 
+ #[tokio::test]
+ async fn scene_pending_visual_committed_receiver_before_first_adoption_flows_during_control() {
+-    let f = RecipientScene::new(&[Medium::Audio, Medium::Video], 1).await;
++    let f = RecipientScene::new(&[Medium::Data, Medium::Video], 1).await;
+     let (target, adapter) = &f.candidates[0];
+-    target.change(target.revision(), &[desired(Medium::Audio)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
++    target.change(target.revision(), &[desired(Medium::Data)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
+     f.scene.tick();
+     let logical = desired(Medium::Video).logical_id;
+     assert_eq!(f.scene.cached_egress_contains_for_test(&target.connection, &logical), Some(false));
+-    target.change(target.revision(), &[desired(Medium::Audio), desired(Medium::Video)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
++    target.change(target.revision(), &[desired(Medium::Data), desired(Medium::Video)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
+     f.scene.change_direct_subscriptions(
+         &target.connection, target.revision(),
+         DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(&f.f.a, logical.clone(), logical.clone())]),
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/control_guard_foundation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/control_guard_foundation.rs
+@@ -227,14 +227,28 @@
+         let(worker,done)=control_thread(move||async move {if clear {scene.clear();}else {scene.remove(&id);}Ok::<_,StreamControlError>(())});
+         let bound=Instant::now()+Duration::from_secs(1);
+         while !(consumer.cancel.is_cancelled()&&audio.cancellation.is_cancelled())&&Instant::now()<bound {std::thread::yield_now();}
+-        let cancelled=consumer.cancel.is_cancelled()&&audio.cancellation.is_cancelled();
+-        let pending=done.try_recv().is_err();
++        let scene_cancelled=consumer.cancel.is_cancelled();let audio_cancelled=audio.cancellation.is_cancelled();
++        let cancelled=scene_cancelled&&audio_cancelled;
++        // Notifications intentionally precede extraction. Observe the actual
++        // original's absence using the SAME deadline, not a later cutoff.
++        // Scene.members is the first declared/last dropped extraction guard:
++        // acquiring it after removal proves the other map guards have dropped.
++        let mut extracted=false;
++        while Instant::now()<bound {
++            if let Ok(members)=s.scene.members.try_lock() {
++                if !members.contains_key(&departed.connection) {extracted=true;break;}
++            }
++            std::thread::yield_now();
++        }
++        // A disconnected worker is not evidence of pending full retirement.
++        let pending=matches!(done.try_recv(),Err(std::sync::mpsc::TryRecvError::Empty));
+         let free_members=s.scene.members.try_lock().is_ok();let free_audiences=s.scene.audiences.try_lock().is_ok();let free_selection=s.scene.selections.try_lock().is_ok();
+         drop(held);let result=worker.join();
+         let absent=!s.scene.members.lock().unwrap().contains_key(&departed.connection);
+         let remaining=cleanup(&[s.f.a.clone(),s.f.b.clone()]).await;
+-        assert!(cancelled&&pending,"both original notifications must precede held Scene retirement; notification is NOT completion");
+-        assert!(free_members&&free_audiences&&free_selection,"retirement retained a shared registry");
++        let mode=if clear {"clear"} else {"remove"};
++        assert!(cancelled&&extracted&&pending,"mode={mode} scene_cancelled={scene_cancelled} audio_cancelled={audio_cancelled} extracted={extracted} pending={pending}: both original notifications and real extraction must precede held Scene retirement; notification is NOT completion");
++        assert!(free_members&&free_audiences&&free_selection,"mode={mode} scene_cancelled={scene_cancelled} audio_cancelled={audio_cancelled} extracted={extracted} pending={pending} free_members={free_members} free_audiences={free_audiences} free_selection={free_selection}: retirement retained a shared registry");
+         assert!(result.is_ok_and(|result|result.is_ok())&&absent);assert!(remaining.iter().all(|count|*count==0));
+     }
+ }
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/dtmf.rs
+@@ -1019,7 +1019,12 @@
+             holder.close();
+             retiring.unwrap().join().unwrap();
+         }
+-        assert_eq!(tokio::time::timeout_at(until+Duration::from_millis(100),submission.written()).await.unwrap(),Err(DispatchError::Closed));
++        let outcome = tokio::time::timeout_at(until+Duration::from_millis(100),submission.written()).await.unwrap();
++        // The writer can claim its permit while strict source metadata is Busy.
++        // Cancellation may beat its eventual physical pre-IO Closed acknowledgement.
++        eprintln!("native-dtmf-held-source-terminal mode={mode} outcome={outcome:?}");
++        assert!(matches!(&outcome, Err(DispatchError::Closed) | Err(DispatchError::SubmissionUnknown)),
++            "terminal source metadata mode={mode} must refuse without a new operation: {outcome:?}");
+         if mode=="deadline" {assert!(Instant::now()>=until);}
+         holder.close();
+         no_signal(&mut target).await;

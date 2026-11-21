@@ -1,0 +1,111 @@
+{
+  "format": "connect/g6-058-current-failure-batch/1",
+  "updated": "2026-11-21T06:28:54.133829+00:00",
+  "run_status": "All five prerequisite-failure corrections are now applied or registered and source-reviewed: explicit SIP tone control; cancellation before cleanup waits with exact original consumer and pending-bookkeeping identities; camera delivery before first scene-cache adoption during an unconfirmed upgrade; retry of pure cold Store planning contention; and Native DTMF temporary-metadata handling with strict source/recipient guards around every physical write poll. The DTMF change retains the original sealed recipient credential epoch and includes a real same-principal rebind refusal control. The exact historical G771 DTMF failure leaf remains unproven. Thirteen new regression test functions are authored, but the combined batch is not compiled or run yet. Next: normal dependency preparation, focused original-failure/new-control regressions, then complete affected regressions and the remaining original readiness checks. Historical G771 remains 4,258 passed, five failed, zero ignored; Native diagnostic remains 173/174. Matrix remains v218: 1/32 cells and 399/432 checks. G6-054 stays parked; testing stays local Mac/native ARM.",
+  "full_prerequisite": {
+    "run": "G771",
+    "passed": 4258,
+    "failed": 5,
+    "ignored": 0,
+    "strict_pass": false
+  },
+  "native_diagnostic": {
+    "run": "G774",
+    "passed": 173,
+    "failed": 1,
+    "ignored": 0,
+    "matrix_credit": false
+  },
+  "failures": [
+    {
+      "failure": "SIP activation receipt/tone fixture",
+      "owner": "epoch_cause; coordinator root",
+      "cause": "Raw PT101 audio is correctly rejected; fixture must use typed send_dtmf.",
+      "status": "registered-unverified",
+      "fix": "Explicit typed control after actual same-channel audio barrier; original RTP schedule assertions retained."
+    },
+    {
+      "failure": "Core removal during blocked audio callback",
+      "owner": "batch_build_review; coordinator root",
+      "cause": "Audio registry lock prevents reaching cancellation before callback release.",
+      "status": "registered-unverified",
+      "fix": "Cancel both exact original consumers outside registries, then extract only matching incarnations; clear also drains exact captured orphan preparation/selection metadata and refuses successor Arc identities."
+    },
+    {
+      "failure": "Native signed DTMF recipient delivery timeout",
+      "owner": "epoch_cause; coordinator root",
+      "cause": "Direct source contract gap: temporary source metadata NotReady was treated as Closed. Exact historical timeout leaf remains unproven.",
+      "status": "registered-unverified; historical leaf unresolved",
+      "fix": "Pending eligibility is separate from IO authority; source/recipient Flow, Controller, credential and Port guards enclose each physical poll. Preserve sealed recipient credential identity, original deadlines, cancellation and partial-write uncertainty."
+    },
+    {
+      "failure": "Native subscription preserves old camera during unconfirmed upgrade",
+      "owner": "root; original candidate readiness12_current_binding",
+      "cause": "First committed camera missing from scene egress cache while inflight upgrade prevents cache adoption.",
+      "status": "registered-unverified",
+      "fix": "Try-read committed port only for absent/unupgradeable cache, preserving original packet admission and ticket temporal fences."
+    },
+    {
+      "failure": "Managed final metadata busy recovery",
+      "owner": "epoch_cause; coordinator root",
+      "cause": "Pure cold planning Store authority-busy currently cancels replacement.",
+      "status": "implemented-unverified",
+      "fix": "Retry only pure planning reads after dropping real role/authority guards; preserve original IDs/deadline/cancellation and one-shot staging."
+    }
+  ],
+  "registered_source_lock_rows": 549,
+  "prepared": "pending complete batch",
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "readiness": "Seven original requirements apply to final batch; readiness not achieved.",
+  "verification_inputs": {
+    "component-result.json": {
+      "private_local_path": ".local/gate-6/g771-readiness2-full-root/cohort/component-result.json",
+      "sha256": "5371d8c2132af4be1d79774b01127314ca8af4a79390a4279478cb969c3489cc"
+    },
+    "receipt.json": {
+      "private_local_path": ".local/gate-6/g771-actual-full-readiness12-independent-audit/receipt.json",
+      "sha256": "cdcb8b237ec3011f1269b633e22e6df252d8aef0b3f8cff1434ead3e15125181"
+    },
+    "native-diagnostic545-result.json": {
+      "private_local_path": ".local/gate-6/g774-native-dtmf-diagnostic545-root/native-diagnostic545-result.json",
+      "sha256": "802287c3640714a98eac82b7eaa91a33cdfea85dbb4a0112ee08bd6023a3a0bc"
+    },
+    "root-original-join-and-review.json": {
+      "private_local_path": ".local/gate-6/g774-native-dtmf-diagnostic545-root/root-original-join-and-review.json",
+      "sha256": "cdafb2674549ed79a19d0be7450665260f4e20d78f553f21306b07f69c2f0070"
+    },
+    ".local/gate-6/g774-cold-and-sip-independent-fixture-review/receipt.json": {
+      "private_local_path": ".local/gate-6/g774-cold-and-sip-independent-fixture-review/receipt.json",
+      "sha256": "1250fbbeeda3a07fef2caee1f23e816a5b1a663eb946690467c5086d23c0c911"
+    },
+    ".local/gate-6/g774-subscription-committed-camera-root-source-review/receipt.json": {
+      "private_local_path": ".local/gate-6/g774-subscription-committed-camera-root-source-review/receipt.json",
+      "sha256": "23f64985a3ce65f99ed267006fcafc2bf8dc1cf08028e178b127f1a5feae62a3"
+    },
+    "verification.json": {
+      "private_local_path": ".local/gate-6/mobile247-g775-partial-batch-root/verification.json",
+      "sha256": "c2014ae9c6b4dc6488b83024cd09227bbc428416870de5ca663049339ec3a51d"
+    },
+    "core-v3-root-source-review-and-registration.json": {
+      "private_local_path": ".local/gate-6/g775-five-failure-batch-root/core-v3-root-source-review-and-registration.json",
+      "sha256": "4b9ac60e5ee6c698e18a2f2ec59f08e4ffe705f1e30673ed52b1980fbbed1209"
+    },
+    "native-v4-root-source-review-and-registration.json": {
+      "private_local_path": ".local/gate-6/g775-five-failure-batch-root/native-v4-root-source-review-and-registration.json",
+      "sha256": "9da3a6b58f628b705677342695c6333609d9eb5a3a8f0accb0bae06e48fddd0d"
+    },
+    "native-v4-peer": {
+      "private_local_path": ".local/gate-6/g774-native-dtmf-strict-io-independent-batch-source-review/v4-receipt.json",
+      "sha256": "ff434f8cc305fbfa0095d56cb7426f2fdfa53b0ff5218c46dda4d267c5028188"
+    }
+  },
+  "mobile_revision": 247,
+  "new_regression_functions": 13,
+  "source_lock_sha256": "f4d6a471f8c328b2b7cfe3ff20c91947ffb681f226b973379a33593fbe506bbc"
+}

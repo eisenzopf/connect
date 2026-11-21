@@ -1,0 +1,40 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -603,6 +603,17 @@
+     _memory_owner: rvoip_infra_common::memory_diagnostics::ObjectGuard,
+ }
+ impl GuardedMediaScene {
++    /// Actual per-member adoption cache only; None refuses a missing member.
++    /// No current-port fallback, Weak upgrade, routing or authority is queried.
++    #[cfg(test)]
++    pub(super) fn cached_egress_contains_for_test(
++        &self,
++        connection: &ConnectionId,
++        logical: &StreamId,
++    ) -> Option<bool> {
++        self.members.lock().unwrap().get(connection)
++            .map(|member| member.egress.contains_key(logical))
++    }
+     #[cfg(test)]
+     pub(super) fn audio_queue_state_for_test(
+         &self,
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient/pending_diagnostics.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/transient/pending_diagnostics.rs
+@@ -467,7 +467,7 @@
+     target.change(target.revision(), &[desired(Medium::Audio)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
+     f.scene.tick();
+     let logical = desired(Medium::Video).logical_id;
+-    assert!(!f.scene.members.lock().unwrap()[&target.connection].egress.contains_key(&logical));
++    assert_eq!(f.scene.cached_egress_contains_for_test(&target.connection, &logical), Some(false));
+     target.change(target.revision(), &[desired(Medium::Audio), desired(Medium::Video)], &BTreeSet::new(), deadline(), CancellationToken::new()).await.unwrap();
+     f.scene.change_direct_subscriptions(
+         &target.connection, target.revision(),
+@@ -479,7 +479,7 @@
+     let mut output = port.take_egress().unwrap();
+     let mut healthy = f.f.ba.port(Medium::Video).take_egress().unwrap();
+     assert!(ticket.is_current() && ticket.committed_at().is_some());
+-    assert!(!f.scene.members.lock().unwrap()[&target.connection].egress.contains_key(&logical));
++    assert_eq!(f.scene.cached_egress_contains_for_test(&target.connection, &logical), Some(false));
+     let flight = target.inflight.clone().try_acquire_owned().unwrap();
+     f.publish(Medium::Video, 9000);
+     f.scene.tick();

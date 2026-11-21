@@ -78,57 +78,57 @@ impl Runtime {
                 tracing::debug!(target:"connect_service::canonical_replacement",stage="managed-cold-original-cutoff",runtime_stopped=self.stop.is_cancelled(),root_cancelled=cancel.is_cancelled(),cutoff_elapsed=tokio::time::Instant::now()>=until,"Managed replacement cold stage refused");
                 return Err(Error::forbidden());
             }
-            let roles = self.role_projection.lock().await;
-            let mut i = match self
-                .continuation_read_for_commit_preparation(root, started, plan.clone())
-                .await
-            {
-                Ok(i) => i,
-                Err(error) if error.code == "authority-busy" => {
-                    drop(roles);
-                    self.managed_cut_metadata_pause(until, &cancel).await?;
-                    continue;
-                }
-                Err(error) => {
-                    tracing::debug!(target:"connect_service::canonical_replacement",stage="managed-cold-planning-read",code=%error.code,"Managed replacement cold stage refused");
-                    return Err(error);
-                }
-            };
-            i.deadline = i.deadline.min(until);
-            // Planning owner validation is real, but the original held-commit
-            // registry oracle belongs to final admission, not this new stage.
-            i.managed_capture = true;
-            let store = self.media.store.clone();
-            let read = i.read.clone();
-            let prepared = if let Some(prepared) = metadata.as_ref() {
-                let original = prepared.clone();
-                store_call(move || {
-                    store.revalidate_prepared_native_replacement_commit(&original, &read)
-                })
-                .await.map_err(|error| {
-                    tracing::debug!(target:"connect_service::canonical_replacement",stage="managed-cold-revalidate-store-metadata",code=%error.code,"Managed replacement cold stage refused");
-                    error
-                })?;
-                prepared.clone()
-            } else {
-                let origin = started
-                    .policy
-                    .origin
-                    .get()
-                    .cloned()
-                    .ok_or_else(Error::forbidden)?;
-                let prepared = Arc::new(
-                    store_call(move || {
-                        store.prepare_native_replacement_commit_until(origin, &read, until_epoch)
+            let original_metadata = metadata.clone();
+            let (mut i, roles, prepared) = super::cold_metadata::read(
+                until,
+                [&self.stop, &cancel],
+                || {
+                    let original_metadata = original_metadata.clone();
+                    let plan = plan.clone();
+                    Box::pin(async move {
+                        let roles = self.role_projection.lock().await;
+                        let mut i = self
+                            .continuation_read_for_commit_preparation(root, started, plan)
+                            .await.map_err(|error| {
+                                tracing::debug!(target:"connect_service::canonical_replacement",stage="managed-cold-planning-read",code=%error.code,"Managed replacement cold stage refused");
+                                error
+                            })?;
+                        i.deadline = i.deadline.min(until);
+                        // Planning owner validation is real. The original held-
+                        // commit registry oracle belongs to final admission.
+                        i.managed_capture = true;
+                        let store = self.media.store.clone();
+                        let read = i.read.clone();
+                        let prepared = if let Some(prepared) = original_metadata {
+                            let original = prepared.clone();
+                            store_call(move || {
+                                store.revalidate_prepared_native_replacement_commit(&original, &read)
+                            })
+                            .await.map_err(|error| {
+                                tracing::debug!(target:"connect_service::canonical_replacement",stage="managed-cold-revalidate-store-metadata",code=%error.code,"Managed replacement cold stage refused");
+                                error
+                            })?;
+                            prepared
+                        } else {
+                            let origin = started.policy.origin.get().cloned()
+                                .ok_or_else(Error::forbidden)?;
+                            Arc::new(store_call(move || {
+                                store.prepare_native_replacement_commit_until(origin, &read, until_epoch)
+                            })
+                            .await.map_err(|error| {
+                                tracing::debug!(target:"connect_service::canonical_replacement",stage="managed-cold-prepare-store-metadata",code=%error.code,"Managed replacement cold stage refused");
+                                error
+                            })?)
+                        };
+                        // Only success transfers this turn. Every Err drops its
+                        // actual planning Reader and role guard in this future.
+                        Ok((i, roles, prepared))
                     })
-                    .await.map_err(|error| {
-                        tracing::debug!(target:"connect_service::canonical_replacement",stage="managed-cold-prepare-store-metadata",code=%error.code,"Managed replacement cold stage refused");
-                        error
-                    })?,
-                );
+                },
+            ).await?;
+            if metadata.is_none() {
                 metadata = Some(prepared.clone());
-                prepared
-            };
+            }
             // The route proof is lexical and all callbacks below are pure or
             // try-only. It cannot escape in facts or survive the later await.
             let source_phone = i.source_phone.clone();

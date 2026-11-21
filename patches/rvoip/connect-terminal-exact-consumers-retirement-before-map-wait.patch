@@ -1,0 +1,460 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -427,8 +427,13 @@
+     }
+ }
+ impl AudioConsumer {
++    /// Begin terminal delivery refusal only. The owner must still retire and
++    /// drain this exact consumer; cancellation is not cleanup completion.
++    pub(super) fn begin_retirement(&self) {
++        self.cancellation.cancel();
++    }
+     pub(crate) fn retire(&self) {
+-        self.cancellation.cancel();
++        self.begin_retirement();
+         self.subscriptions.retire();
+         let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+         state.active = false;
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -720,6 +720,9 @@
+     }
+ }
+ impl AudioMember {
++    pub(super) fn belongs_to_consumer(&self, controller: &Arc<StreamController>, consumer: &Arc<AudioConsumer>) -> bool {
++        Arc::ptr_eq(&self.controller, controller) && Arc::ptr_eq(&self.consumer, consumer)
++    }
+     pub(crate) fn activate(&mut self, speaks: bool) {
+         self.target_pending.clear();
+         self.consumer.activate(speaks);
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_scene.rs
+@@ -404,11 +404,16 @@
+ }
+ impl Drop for SceneMember {
+     fn drop(&mut self) {
++        self.begin_retirement();
+         self.consumer.retire();
+         self.audio_consumer.retire();
+     }
+ }
+ impl SceneMember {
++    fn begin_retirement(&self) {
++        self.consumer.cancel.cancel();
++        self.audio_consumer.begin_retirement();
++    }
+     pub(super) fn control_view(&self) -> super::control_snapshot::MemberView<'_> {
+         super::control_snapshot::MemberView::live(&self.controller, &self.consumer, &self.audio_consumer)
+     }
+@@ -524,6 +529,41 @@
+             .iter()
+             .any(|p| p.binding.negotiated.requested.medium == Medium::Audio && p.binding.sink_ready)
+     }
++}
++/// Exact captured owners for committed/terminal cleanup, never fresh authority.
++/// This identity cannot discover a later same-ID or same-controller consumer.
++/// It has no Drop hook; full physical retire/drain remains the caller's work.
++pub(super) struct TerminalMemberRetirement {
++    pub(super) id: ConnectionId,
++    controller: Arc<StreamController>,
++    consumer: Arc<SceneConsumer>,
++    audio_consumer: Arc<AudioConsumer>,
++}
++impl TerminalMemberRetirement {
++    pub(super) fn capture(member: super::control_snapshot::MemberView<'_>) -> Self {
++        Self { id: member.controller.connection.clone(), controller: member.controller.clone(),
++            consumer: member.consumer.clone(), audio_consumer: member.audio_consumer.clone() }
++    }
++    pub(super) fn begin_retirement(&self) {
++        // BOTH notifications precede either potentially waiting retire hook.
++        self.consumer.cancel.cancel();
++        self.audio_consumer.begin_retirement();
++    }
++    fn matches(&self, member: &SceneMember) -> bool {
++        Arc::ptr_eq(&self.controller, &member.controller)
++            && Arc::ptr_eq(&self.consumer, &member.consumer)
++            && Arc::ptr_eq(&self.audio_consumer, &member.audio_consumer)
++    }
++    fn matches_audio(&self, member: &AudioMember) -> bool {
++        member.belongs_to_consumer(&self.controller, &self.audio_consumer)
++    }
++}
++/// Exact original keyed metadata for terminal clear, including candidates not
++/// admitted as SceneMembers. These metadata Arcs own no IO or authority.
++/// Capture once; a later same-key Arc is an ABA, never cleanup authority.
++pub(super) struct TerminalClearBookkeeping {
++    preparations: BTreeMap<ConnectionId, Arc<super::audience::ClosedAudience>>,
++    selections: BTreeMap<ConnectionId, Arc<super::selection_intent::SelectionProgram>>,
+ }
+ pub(crate) struct GuardedMediaScene {
+     pub(super) id: u128,
+@@ -845,7 +885,7 @@
+     /// Post-cut cleanup keeps the exact original incarnation. Every shared
+     /// registry is acquired by try-lock BEFORE the first removal; no member,
+     /// input, consumer, codec or route is retired/destroyed beneath a map.
+-    pub(super) fn try_remove_committed_members(&self,expected:&[(ConnectionId,Option<Arc<StreamController>>)])->ControlResult<()> {
++    pub(super) fn try_remove_committed_members(&self,expected:&[TerminalMemberRetirement])->ControlResult<()> {
+         // These owners precede the guarded block so even unwinding a later
+         // metadata effect releases ALL map guards before resource destruction.
+         let mut removed=Vec::with_capacity(expected.len());
+@@ -862,15 +902,22 @@
+             retired_groups.reserve(audiences.groups.len());
+             // Allocate pruning metadata before removing any original owner.
+             let mut obsolete=Vec::with_capacity(audiences.groups.len());
+-            for (id,original) in expected {
+-                if members.get(id).is_some_and(|member|original.as_ref().is_none_or(|original|!Arc::ptr_eq(&member.controller,original))) {continue;}
+-                if let Some(member)=members.remove(id) {removed.push(member);}
+-                if audio.get(id).is_some_and(|member|original.as_ref().is_some_and(|original|Arc::ptr_eq(&member.controller,original))) {
+-                    audio_removed.push(audio.remove(id).expect("same held original audio member"));
+-                }
+-                if let Some(preparation)=audiences.preparations.remove(id) {preparations.push(preparation);}
+-                if let Some(selection)=selected.remove(id) {selections.push(selection);}
+-            }
++            for original in expected {
++                let id=&original.id;
++                if members.get(id).is_some_and(|member|!original.matches(member))
++                    || audio.get(id).is_some_and(|member|!original.matches_audio(member)) {continue;}
++                // Missing originals are idempotent. A later keyed preparation
++                // or selection is not owned merely because its ID is equal.
++                if let Some(member)=members.remove(id) {
++                    removed.push(member);
++                    if let Some(preparation)=audiences.preparations.remove(id) {preparations.push(preparation);}
++                    if let Some(selection)=selected.remove(id) {selections.push(selection);}
++                }
++                if audio.get(id).is_some_and(|member|original.matches_audio(member)) {
++                    audio_removed.push(audio.remove(id).expect("same held original audio consumer"));
++                }
++            }
++            if removed.is_empty() && audio_removed.is_empty() { return Ok(()); }
+             for (operation,group) in &audiences.groups {
+                 if !audiences.restorable.contains(operation)&&!members.values().any(|member|group.contains(&member.controller)) {obsolete.push(operation.clone());}
+             }
+@@ -879,13 +926,17 @@
+         }
+         // ALL Scene/Audio/Audience/Selection guards are gone before these
+         // original retire hooks or field destructors can acquire metadata.
++        for member in &removed {member.begin_retirement();}
+         for member in &removed {member.consumer.retire();member.audio_consumer.retire();}
+         drop(audio_removed);drop(removed);drop(retired_groups);drop(preparations);drop(selections);
+         self.selection_changed.notify_waiters();Ok(())
+     }
+     pub(crate) fn remove(&self, id: &ConnectionId) {
+-        let original={self.members.lock().unwrap_or_else(|p|p.into_inner()).get(id).map(|member|member.controller.clone())};
+-        let expected=[(id.clone(),original)];
++        let expected={self.members.lock().unwrap_or_else(|p|p.into_inner()).get(id)
++            .map(|member|TerminalMemberRetirement::capture(member.control_view())).into_iter().collect::<Vec<_>>()};
++        // Actual terminal removal only. No registry survives these BOTH
++        // original consumer notifications, even if the audio callback is held.
++        for original in &expected { original.begin_retirement(); }
+         // Preserve legacy synchronous cleanup, but never wait while holding a
+         // media map. Managed post-publication uses the async retained task.
+         loop {match self.try_remove_committed_members(&expected) {
+@@ -894,7 +945,12 @@
+             Err(error)=>panic!("original scene removal failed: {error:?}"),
+         }}
+     }
+-    fn try_clear_members(&self)->ControlResult<()> {
++    pub(super) fn try_capture_clear_bookkeeping(&self)->ControlResult<TerminalClearBookkeeping> {
++        let audience=super::control_metadata::try_lock(&self.audiences)?;
++        let selected=super::control_metadata::try_lock(&self.selections)?;
++        Ok(TerminalClearBookkeeping {preparations:audience.preparations.clone(),selections:selected.clone()})
++    }
++    pub(super) fn try_clear_members(&self,expected:&[TerminalMemberRetirement],bookkeeping:&TerminalClearBookkeeping)->ControlResult<()> {
+         let removed;let mut audio_removed=Vec::new();
+         let audiences;let selections;
+         {
+@@ -903,21 +959,50 @@
+             let mut selected=super::control_metadata::try_lock(&self.selections)?;
+             let mut disclosure=super::control_metadata::try_lock(&self.disclosure_changed_at)?;
+             let mut audio=super::control_metadata::try_lock(&self.audio.members)?;
+-            audio_removed.reserve(members.len());
+-            for (id,member) in members.iter() {
+-                if audio.get(id).is_some_and(|actual|Arc::ptr_eq(&actual.controller,&member.controller)) {audio_removed.push(audio.remove(id).expect("same held original audio member"));}
+-            }
++            // Terminal callers have already fenced new admission. Refuse an
++            // unexpected ABA BEFORE extraction; never silently clear a newer
++            // controller or consumers, even on the same Controller allocation.
++            if members.iter().any(|(id,member)|expected.iter().find(|original|&original.id==id).is_none_or(|original|!original.matches(member)))
++                || audio.iter().any(|(id,member)|expected.iter().find(|original|&original.id==id).is_none_or(|original|!original.matches_audio(member))) {
++                return Err(StreamControlError::Authority);
++            }
++            if audience.preparations.iter().any(|(id,value)|bookkeeping.preparations.get(id).is_none_or(|original|!Arc::ptr_eq(value,original)))
++                || selected.iter().any(|(id,value)|bookkeeping.selections.get(id).is_none_or(|original|!Arc::ptr_eq(value,original))) {
++                return Err(StreamControlError::Authority);
++            }
++            audio_removed.reserve(audio.len());
++            for original in expected {
++                if audio.get(&original.id).is_some_and(|member|original.matches_audio(member)) {
++                    audio_removed.push(audio.remove(&original.id).expect("same held original audio consumer"));
++                }
++            }
++            // All remaining keyed Arcs are exact originals, including orphan
++            // cold preparations. Missing originals are already drained. No
++            // newer same-ID bookkeeping can be removed by this terminal cut.
+             removed=std::mem::take(&mut *members);
+             audiences=(std::mem::take(&mut audience.groups),std::mem::take(&mut audience.restorable),std::mem::take(&mut audience.preparations),std::mem::take(&mut audience.pending));
+             selections=std::mem::take(&mut *selected);
+             *disclosure=std::time::Instant::now();
+         }
++        for member in removed.values() {member.begin_retirement();}
+         for member in removed.values() {member.consumer.retire();member.audio_consumer.retire();}
+         drop(audio_removed);drop(removed);drop(audiences);drop(selections);
+         self.selection_changed.notify_waiters();Ok(())
+     }
+     pub(crate) fn clear(&self) {
+-        loop {match self.try_clear_members() {
++        let expected={self.members.lock().unwrap_or_else(|p|p.into_inner()).values()
++            .map(|member|TerminalMemberRetirement::capture(member.control_view())).collect::<Vec<_>>()};
++        for original in &expected { original.begin_retirement(); }
++        // No registry or original consumer metadata is held while retrying this
++        // pure capture. Once successful, NEVER refresh the original Arc maps.
++        let bookkeeping=loop {match self.try_capture_clear_bookkeeping() {
++            Ok(original)=>break original,
++            Err(StreamControlError::MetadataBusy)=>std::thread::sleep(Duration::from_millis(2)),
++            Err(error)=>panic!("original scene clear snapshot failed: {error:?}"),
++        }};
++        // Preserve the terminal error contract. Authority here means the
++        // admission fence was violated, never a completed cleanup receipt.
++        loop {match self.try_clear_members(&expected,&bookkeeping) {
+             Ok(())=>return,
+             Err(StreamControlError::MetadataBusy)=>std::thread::sleep(Duration::from_millis(2)),
+             Err(error)=>panic!("original scene clear failed: {error:?}"),
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -1251,18 +1251,27 @@
+                 // Actual publication already happened. The original terminal
+                 // supervisor retains this SAME cleanup obligation while map
+                 // metadata is Busy; expiry/cancel cannot erase retirement.
++                let mut expected=Vec::new();
++                if let Some(replacement)=&prepared.plan.replacement {
++                    if let Some(member)=prepared.members.get(&replacement.request.source) {
++                        expected.push(super::media_scene::TerminalMemberRetirement::capture(member.view()));
++                    }
++                }
++                if let Some(handoff)=&prepared.plan.handoff {
++                    if handoff.request.old_disposition==super::handoff::OldHandoffDisposition::Leave {
++                        for id in handoff.outgoing.keys() {if let Some(member)=prepared.members.get(id) {
++                            expected.push(super::media_scene::TerminalMemberRetirement::capture(member.view()));
++                        }}
++                    }
++                }
++                expected.sort_by(|a,b|a.id.cmp(&b.id));expected.dedup_by(|a,b|a.id==b.id);
++                // Actual committed source/Leave originals only. Signal BOTH
++                // exact consumers outside every registry before freeze.finish
++                // or either full retirement can wait. Observe/refusal/Busy do
++                // not enter this committed branch and never cancel originals.
++                for original in &expected {original.begin_retirement();}
+                 if let Some(freeze)=prepared.freeze.take() {freeze.finish_committed();}
+                 if let Some(scene)=self.scene.upgrade() {
+-                    let mut expected=Vec::new();
+-                    if let Some(replacement)=&prepared.plan.replacement {
+-                        if let Some(member)=prepared.members.get(&replacement.request.source) {expected.push((replacement.request.source.clone(),Some(member.controller.clone())));}
+-                    }
+-                    if let Some(handoff)=&prepared.plan.handoff {
+-                        if handoff.request.old_disposition==super::handoff::OldHandoffDisposition::Leave {
+-                            for id in handoff.outgoing.keys() {if let Some(member)=prepared.members.get(id) {expected.push((id.clone(),Some(member.controller.clone())));}}
+-                        }
+-                    }
+-                    expected.sort_by(|a,b|a.0.cmp(&b.0));expected.dedup_by(|a,b|a.0==b.0);
+                     loop {
+                         match scene.try_remove_committed_members(&expected) {
+                             Ok(())=>break,
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/control_guard_foundation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions/control_guard_foundation.rs
+@@ -153,8 +153,9 @@
+     receive_alice_video(&s,&s.f.b).await;
+     let mut healthy=s.f.ba.port(Medium::Video).take_egress().unwrap();s.scene.tick();
+     let(held,consumer)=hold_retirement(&departed);
+-    let scene=s.scene.clone();let original=departed.clone();let id=departed.connection.clone();
+-    let(worker,done)=control_thread(move||async move{scene.try_remove_committed_members(&[(id,Some(original))])});
++    let original={let members=s.scene.members.lock().unwrap();terminal(members.get(&departed.connection).unwrap().control_view())};
++    let scene=s.scene.clone();
++    let(worker,done)=control_thread(move||async move{scene.try_remove_committed_members(&[original])});
+     let bound=Instant::now()+Duration::from_secs(1);
+     while !consumer.cancel.is_cancelled()&&Instant::now()<bound {std::thread::yield_now();}
+     let retirement_entered=consumer.cancel.is_cancelled();
+@@ -175,21 +176,180 @@
+     let s=Scene::new(&[Medium::Audio,Medium::Video]).await;
+     let (departed,_adapter)=extra_video_member(&s,"cleanup-foreign").await;
+     receive_alice_video(&s,&s.f.b).await;let mut healthy=s.f.ba.port(Medium::Video).take_egress().unwrap();s.scene.tick();
+-    let expected=[(departed.connection.clone(),Some(departed.clone()))];
++    let expected={let members=s.scene.members.lock().unwrap();[terminal(members.get(&departed.connection).unwrap().control_view())]};
++    let scene_consumer=departed.scene_consumer.lock().unwrap().as_ref().unwrap().upgrade().unwrap();
++    let audio_consumer=departed.audio_consumer.lock().unwrap().as_ref().unwrap().upgrade().unwrap();
++    let audio_stamp=audio_consumer.stamp();
++    let before_cancel=(scene_consumer.cancel.is_cancelled(),audio_stamp.cancellation.is_cancelled());
+     let selected=s.scene.selections.lock().unwrap();
+     let busy=s.scene.try_remove_committed_members(&expected);
++    let unchanged_cancel=before_cancel==(scene_consumer.cancel.is_cancelled(),audio_stamp.cancellation.is_cancelled());
+     let still_exact=s.scene.members.lock().unwrap().get(&departed.connection).is_some_and(|member|Arc::ptr_eq(&member.controller,&departed));
+     drop(selected);
+     // A genuine second Controller allocation with the SAME logical ID is not
+     // the original cleanup owner, even if all textual scope fields match.
+     let foreign=StreamController::new(departed.conversation.clone(),departed.session.clone(),departed.connection.clone(),principal("cleanup-foreign"),departed.policy.clone(),Adapter::new(),departed.handles.clone(),16).unwrap();
+-    let refused_foreign=s.scene.try_remove_committed_members(&[(departed.connection.clone(),Some(foreign.clone()))]);
++    let foreign_identity=terminal(crate::staged_streams::control_snapshot::MemberView::live(&foreign,&scene_consumer,&audio_consumer));
++    let refused_foreign=s.scene.try_remove_committed_members(&[foreign_identity]);
++    let foreign_unchanged_cancel=before_cancel==(scene_consumer.cancel.is_cancelled(),audio_stamp.cancellation.is_cancelled());
+     let not_removed=s.scene.members.lock().unwrap().get(&departed.connection).is_some_and(|member|Arc::ptr_eq(&member.controller,&departed));
+     let published=publication(&s,Medium::Video,92000);s.scene.tick();let io=actual_video(healthy.try_recv().ok()).await;
+     let removed=s.scene.try_remove_committed_members(&expected);let absent=!s.scene.members.lock().unwrap().contains_key(&departed.connection);
+     let remaining=cleanup(&[s.f.a.clone(),s.f.b.clone(),departed,foreign]).await;
+-    assert!(matches!(busy,Err(StreamControlError::MetadataBusy))&&still_exact,"partial map acquisition removed an original member");
+-    assert!(refused_foreign.is_ok()&&not_removed,"same ID recaptured a foreign controller during cleanup");
++    assert!(matches!(busy,Err(StreamControlError::MetadataBusy))&&still_exact&&unchanged_cancel,"partial map acquisition removed an original member");
++    assert!(refused_foreign.is_ok()&&not_removed&&foreign_unchanged_cancel,"same ID recaptured a foreign controller during cleanup");
+     assert!(published.is_ok()&&io.0&&io.1.as_ref().is_some_and(|frame|frame.timestamp_rtp==92000));assert!(removed.is_ok()&&absent);
+     assert!(remaining.iter().all(|count|*count==0));
+ }
++
++fn terminal(view:crate::staged_streams::control_snapshot::MemberView<'_>)->crate::staged_streams::media_scene::TerminalMemberRetirement {
++    crate::staged_streams::media_scene::TerminalMemberRetirement::capture(view)
++}
++fn terminal_set(s:&Scene)->Vec<crate::staged_streams::media_scene::TerminalMemberRetirement> {
++    s.scene.members.lock().unwrap().values().map(|member|terminal(member.control_view())).collect()
++}
++fn later_preparation(controller:&Arc<StreamController>)->Arc<crate::staged_streams::audience::ClosedAudience> {
++    Arc::new(crate::staged_streams::audience::ClosedAudience {
++        operation:"later-terminal-bookkeeping".into(),
++        origins:vec![crate::staged_streams::audience::AudienceOrigin::new(controller)],
++        routing_identity:None,endpoint_probe_retired:std::sync::atomic::AtomicBool::new(false),
++    })
++}
++
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn terminal_scene_cleanup_cancels_both_originals_before_retirement_metadata_wait() {
++    for clear in [false,true] {
++        let s=Scene::new(&[Medium::Audio,Medium::Video]).await;
++        let departed=s.f.b.clone();
++        let audio=departed.audio_consumer.lock().unwrap().as_ref().unwrap().upgrade().unwrap().stamp();
++        let(held,consumer)=hold_retirement(&departed);
++        let scene=s.scene.clone();let id=departed.connection.clone();
++        let(worker,done)=control_thread(move||async move {if clear {scene.clear();}else {scene.remove(&id);}Ok::<_,StreamControlError>(())});
++        let bound=Instant::now()+Duration::from_secs(1);
++        while !(consumer.cancel.is_cancelled()&&audio.cancellation.is_cancelled())&&Instant::now()<bound {std::thread::yield_now();}
++        let cancelled=consumer.cancel.is_cancelled()&&audio.cancellation.is_cancelled();
++        let pending=done.try_recv().is_err();
++        let free_members=s.scene.members.try_lock().is_ok();let free_audiences=s.scene.audiences.try_lock().is_ok();let free_selection=s.scene.selections.try_lock().is_ok();
++        drop(held);let result=worker.join();
++        let absent=!s.scene.members.lock().unwrap().contains_key(&departed.connection);
++        let remaining=cleanup(&[s.f.a.clone(),s.f.b.clone()]).await;
++        assert!(cancelled&&pending,"both original notifications must precede held Scene retirement; notification is NOT completion");
++        assert!(free_members&&free_audiences&&free_selection,"retirement retained a shared registry");
++        assert!(result.is_ok_and(|result|result.is_ok())&&absent);assert!(remaining.iter().all(|count|*count==0));
++    }
++}
++
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn terminal_exact_consumer_refusal_and_removed_original_idempotence_preserve_real_route() {
++    let s=Scene::new(&[Medium::Audio,Medium::Video]).await;
++    receive_alice_video(&s,&s.f.b).await;
++    let mut output=s.f.ba.port(Medium::Video).take_egress().unwrap();s.scene.tick();
++    let (consumer,audio)={let members=s.scene.members.lock().unwrap();let member=members.get(&s.f.b.connection).unwrap();let view=member.control_view();(view.consumer.clone(),view.audio_consumer.clone())};
++    let new_scene=crate::staged_streams::scene_consumer::SceneConsumer::new(s.scene.id);
++    let new_audio=crate::staged_streams::audio_consumer::AudioConsumer::optional(None,s.scene.rate);
++    // Same actual Controller, genuinely different consumer allocations. Either
++    // changed half must refuse cleanup without cancelling the admitted pair.
++    for (scene,audio_expected) in [(&new_scene,&audio),(&consumer,&new_audio),(&new_scene,&new_audio)] {
++        let wrong=terminal(crate::staged_streams::control_snapshot::MemberView::live(&s.f.b,scene,audio_expected));
++        assert!(s.scene.try_remove_committed_members(&[wrong]).is_ok());
++        assert!(s.scene.members.lock().unwrap().get(&s.f.b.connection).is_some_and(|member|Arc::ptr_eq(&member.controller,&s.f.b)));
++        assert!(!consumer.cancel.is_cancelled()&&!audio.stamp().cancellation.is_cancelled());
++    }
++    // The same exact Controller with a changed Scene OR Audio consumer must
++    // also refuse a whole clear, before either current consumer is cancelled.
++    let bookkeeping=s.scene.try_capture_clear_bookkeeping().unwrap();
++    for (scene,audio_expected) in [(&new_scene,&audio),(&consumer,&new_audio)] {
++        let wrong_set=s.scene.members.lock().unwrap().values().map(|member| {
++            if Arc::ptr_eq(&member.controller,&s.f.b) {
++                terminal(crate::staged_streams::control_snapshot::MemberView::live(&s.f.b,scene,audio_expected))
++            } else {terminal(member.control_view())}
++        }).collect::<Vec<_>>();
++        assert!(matches!(s.scene.try_clear_members(&wrong_set,&bookkeeping),Err(StreamControlError::Authority)));
++        assert!(!consumer.cancel.is_cancelled()&&!audio.stamp().cancellation.is_cancelled());
++        assert_eq!(s.scene.members.lock().unwrap().len(),2);
++    }
++    let published=publication(&s,Medium::Video,93000);s.scene.tick();let io=actual_video(output.try_recv().ok()).await;
++    let exact={let members=s.scene.members.lock().unwrap();[terminal(members.get(&s.f.b.connection).unwrap().control_view())]};
++    for original in &exact {original.begin_retirement();}
++    assert!(s.scene.try_remove_committed_members(&exact).is_ok());
++    let later_selection=Arc::new(crate::staged_streams::selection_intent::SelectionProgram::default());
++    let later_preparing=later_preparation(&s.f.b);
++    s.scene.selections.lock().unwrap().insert(s.f.b.connection.clone(),later_selection.clone());
++    s.scene.audiences.lock().unwrap().preparations.insert(s.f.b.connection.clone(),later_preparing.clone());
++    assert!(s.scene.try_remove_committed_members(&exact).is_ok(),"same removed original is idempotent");
++    assert!(s.scene.selections.lock().unwrap().get(&s.f.b.connection).is_some_and(|value|Arc::ptr_eq(value,&later_selection)));
++    assert!(s.scene.audiences.lock().unwrap().preparations.get(&s.f.b.connection).is_some_and(|value|Arc::ptr_eq(value,&later_preparing)));
++    let selection=s.scene.selections.lock().unwrap().remove(&s.f.b.connection);let preparing=s.scene.audiences.lock().unwrap().preparations.remove(&s.f.b.connection);drop(selection);drop(preparing);
++    let remaining=cleanup(&[s.f.a.clone(),s.f.b.clone()]).await;
++    assert!(published.is_ok()&&io.0&&io.1.as_ref().is_some_and(|frame|frame.timestamp_rtp==93000),"wrong consumer cleanup broke genuine admitted IO");
++    assert!(remaining.iter().all(|count|*count==0));
++}
++
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn terminal_clear_same_id_aba_refuses_new_controller_and_bookkeeping_before_exact_drain() {
++    let s=Scene::new(&[Medium::Audio,Medium::Video]).await;
++    let (old,_old_adapter)=extra_video_member(&s,"terminal-clear-aba").await;
++    let old_set=terminal_set(&s);
++    let old_bookkeeping=s.scene.try_capture_clear_bookkeeping().unwrap();
++    let old_identity={let members=s.scene.members.lock().unwrap();[terminal(members.get(&old.connection).unwrap().control_view())]};
++    for original in &old_identity {original.begin_retirement();}
++    s.scene.try_remove_committed_members(&old_identity).unwrap();
++    // Real prepare/quiesce/insert with a newly allocated Controller reuses the
++    // same ID after original removal; no invented scalar incarnation check.
++    let (new,new_adapter)=extra_video_member(&s,"terminal-clear-aba").await;
++    assert!(!Arc::ptr_eq(&old,&new));receive_alice_video(&s,&new).await;
++    let mut output=new_adapter.port(Medium::Video).take_egress().unwrap();s.scene.tick();
++    let selection=Arc::new(crate::staged_streams::selection_intent::SelectionProgram::default());let preparing=later_preparation(&new);
++    s.scene.selections.lock().unwrap().insert(new.connection.clone(),selection.clone());
++    s.scene.audiences.lock().unwrap().preparations.insert(new.connection.clone(),preparing.clone());
++    let refused=s.scene.try_clear_members(&old_set,&old_bookkeeping);
++    let same_new=s.scene.members.lock().unwrap().get(&new.connection).is_some_and(|member|Arc::ptr_eq(&member.controller,&new));
++    let new_scene=new.scene_consumer.lock().unwrap().as_ref().unwrap().upgrade().unwrap();let new_audio=new.audio_consumer.lock().unwrap().as_ref().unwrap().upgrade().unwrap().stamp();
++    let same_selection=s.scene.selections.lock().unwrap().get(&new.connection).is_some_and(|value|Arc::ptr_eq(value,&selection));
++    let same_preparing=s.scene.audiences.lock().unwrap().preparations.get(&new.connection).is_some_and(|value|Arc::ptr_eq(value,&preparing));
++    let new_uncancelled=!new_scene.cancel.is_cancelled()&&!new_audio.cancellation.is_cancelled();
++    let published=publication(&s,Medium::Video,94000);s.scene.tick();let io=actual_video(output.try_recv().ok()).await;
++    let exact=terminal_set(&s);let bookkeeping=s.scene.try_capture_clear_bookkeeping().unwrap();for original in &exact {original.begin_retirement();}let drained=s.scene.try_clear_members(&exact,&bookkeeping);
++    let empty=s.scene.members.lock().unwrap().is_empty()&&s.scene.selections.lock().unwrap().is_empty()&&s.scene.audiences.lock().unwrap().preparations.is_empty();
++    let remaining=cleanup(&[s.f.a.clone(),s.f.b.clone(),old,new]).await;
++    assert!(matches!(refused,Err(StreamControlError::Authority))&&same_new&&same_selection&&same_preparing&&new_uncancelled);
++    assert!(new_audio.cancellation.is_cancelled()&&drained.is_ok()&&empty);
++    assert!(published.is_ok()&&io.0&&io.1.as_ref().is_some_and(|frame|frame.timestamp_rtp==94000));
++    assert!(remaining.iter().all(|count|*count==0));
++}
++
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn terminal_clear_drains_captured_orphan_bookkeeping_and_refuses_later_same_key_arcs() {
++    let s=Scene::new(&[Medium::Audio,Medium::Video]).await;
++    let id=ConnectionId::from_string("orphan-not-admitted");
++    s.f.policy.0.write().await.owners.insert(id.as_str().into(),owner(id.as_str()));
++    let orphan=StreamController::new(s.f.a.conversation.clone(),s.f.a.session.clone(),id.clone(),principal(id.as_str()),s.f.a.policy.clone(),Adapter::new(),s.f.a.handles.clone(),16).unwrap();
++    assert!(!s.scene.members.lock().unwrap().contains_key(&id));
++    let preparation=later_preparation(&orphan);let selection=Arc::new(crate::staged_streams::selection_intent::SelectionProgram::default());
++    s.scene.audiences.lock().unwrap().preparations.insert(id.clone(),preparation.clone());
++    s.scene.selections.lock().unwrap().insert(id.clone(),selection.clone());
++    let exact=terminal_set(&s);let bookkeeping=s.scene.try_capture_clear_bookkeeping().unwrap();
++    let successor_selection=Arc::new(crate::staged_streams::selection_intent::SelectionProgram::default());
++    s.scene.selections.lock().unwrap().insert(id.clone(),successor_selection.clone());
++    let changed_selection=s.scene.try_clear_members(&exact,&bookkeeping);
++    let kept_successor_selection=s.scene.selections.lock().unwrap().get(&id).is_some_and(|value|Arc::ptr_eq(value,&successor_selection));
++    let kept_original_preparation=s.scene.audiences.lock().unwrap().preparations.get(&id).is_some_and(|value|Arc::ptr_eq(value,&preparation));
++    s.scene.selections.lock().unwrap().insert(id.clone(),selection.clone());
++    let successor_preparation=later_preparation(&orphan);
++    s.scene.audiences.lock().unwrap().preparations.insert(id.clone(),successor_preparation.clone());
++    let changed_preparation=s.scene.try_clear_members(&exact,&bookkeeping);
++    let kept_successor_preparation=s.scene.audiences.lock().unwrap().preparations.get(&id).is_some_and(|value|Arc::ptr_eq(value,&successor_preparation));
++    let still_members=s.scene.members.lock().unwrap().len();
++    let consumer=s.f.b.scene_consumer.lock().unwrap().as_ref().unwrap().upgrade().unwrap();let audio=s.f.b.audio_consumer.lock().unwrap().as_ref().unwrap().upgrade().unwrap().stamp();
++    let no_cancel=!consumer.cancel.is_cancelled()&&!audio.cancellation.is_cancelled();
++    s.scene.audiences.lock().unwrap().preparations.insert(id.clone(),preparation);
++    for original in &exact {original.begin_retirement();}
++    let drained=s.scene.try_clear_members(&exact,&bookkeeping);
++    let empty=s.scene.members.lock().unwrap().is_empty()&&s.scene.selections.lock().unwrap().is_empty()&&s.scene.audiences.lock().unwrap().preparations.is_empty();
++    let repeated=s.scene.try_clear_members(&exact,&bookkeeping);
++    let remaining=cleanup(&[s.f.a.clone(),s.f.b.clone(),orphan]).await;
++    assert!(matches!(changed_selection,Err(StreamControlError::Authority))&&kept_successor_selection&&kept_original_preparation);
++    assert!(matches!(changed_preparation,Err(StreamControlError::Authority))&&kept_successor_preparation&&still_members==2&&no_cancel);
++    assert!(drained.is_ok()&&empty&&repeated.is_ok(),"terminal success must drain exact captured orphan keys too");
++    assert!(remaining.iter().all(|count|*count==0));
++}

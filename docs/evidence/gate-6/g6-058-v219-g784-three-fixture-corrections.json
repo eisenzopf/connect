@@ -1,0 +1,129 @@
+{
+  "format": "connect/g6-058-focused-failure-followthrough/1",
+  "updated": "2026-11-21T09:34:35.171901+00:00",
+  "run_status": "G780 completed all 67 focused checks: 64 passed, three failed, zero ignored or unrun. All nine build groups and nine inventories passed; all five tests that failed in G771 now pass. The three new failures are fixture setup, phase observation and error-contract expectations. Their reviewed test-only corrections are registered together as patch551, awaiting normal preparation and verification. No production behavior or Gate 6 quality limit changed. Next: all 67 retained checks plus two existing DTMF error-contract controls, then batch commit/push and the original remaining readiness checks. Matrix remains v218: 1/32 cells and 399/432 checks; G6-054 stays parked. Testing stays local Mac/native ARM.",
+  "actual_focused": {
+    "run": "G780",
+    "source_generation": 550,
+    "build_groups_passed": 9,
+    "binary_inventories_passed": 9,
+    "completed": 67,
+    "passed": 64,
+    "failed": 3,
+    "ignored": 0,
+    "unrun": 0,
+    "all_original_groups_closed": 87,
+    "source_unchanged": true,
+    "binaries_unchanged": true,
+    "result_sha256": "1616437b679e66ca561428456c6972cc5c096f2f26ddda9220700a5f1bad516f",
+    "root_join_sha256": "f1f860627cf2de2d4ac331812c4569e0658d69632ec50f84b24f0328cf81edf8",
+    "independent_audit_sha256": "1878a40ae9303f772244d6e25fb0521b7b98f89f6234bad3435a82aebc6e9d8d"
+  },
+  "original_five_regressions": [
+    {
+      "test": "adapter::inbound_context_tests::activation_receipt_follows_answer_then_media_binds_and_cleans_up",
+      "status": "passed",
+      "label": "batch549-control-0"
+    },
+    {
+      "test": "staged_streams::tests::private_consult::removal_during_audio_callback_retires_original_consumer_before_direct_reacquisition",
+      "status": "passed",
+      "label": "batch549-control-1"
+    },
+    {
+      "test": "peer_native::canonical_media::native_offers::dtmf::signed_native_dtmf_egress_uses_the_recipients_own_physical_scope_and_original_operation",
+      "status": "passed",
+      "label": "batch549-control-2"
+    },
+    {
+      "test": "peer_native::canonical_media::native_offers::subscriptions::actual_public_subscription_bad_confirmation_preserves_video_and_retry_burns_receiver_handle",
+      "status": "passed",
+      "label": "batch549-control-3"
+    },
+    {
+      "test": "canonical_native_connections::consultation::groups::replacement::managed_final_metadata_busy_releases_actual_store_writer_and_keeps_original_media_until_same_cut",
+      "status": "passed",
+      "label": "service-final-boundary-control-0"
+    }
+  ],
+  "remaining_current_controls": [
+    {
+      "failure": "Camera cache before first adoption",
+      "owner": "fixture_blockers; coordinator root",
+      "cause": "Fixture auto-subscribes all requested media; direct subscriptions explicitly reject Audio before any video oracle is reached.",
+      "correction": "Use supported Data beside Video at three incidental setup literals; preserve every video, cache, ticket, inflight and deadline assertion.",
+      "status": "reviewed-registered-unverified"
+    },
+    {
+      "failure": "Terminal cleanup during held retirement",
+      "owner": "independent_batch_review; coordinator root",
+      "cause": "Immediate registry probes race deliberately early cancellation notifications and the legitimate short extraction critical section.",
+      "correction": "Observe original member absence through the Scene map within the same one-second bound, then check registries while the same retirement holder remains active; require a genuinely pending worker.",
+      "status": "reviewed-registered-unverified"
+    },
+    {
+      "failure": "DTMF held-source terminal error",
+      "owner": "batch_build_review; coordinator root",
+      "cause": "The unchanged public API conservatively reports SubmissionUnknown after writer claim; cancellation can beat its eventual pre-IO completion acknowledgement.",
+      "correction": "Correct only the new after-claim assertion to Closed or SubmissionUnknown. Reject success and all other errors; preserve four modes, actual no-IO, deadlines, reader release, identity/epoch, count and cleanup checks. Existing before-claim exact Closed tests are unchanged.",
+      "status": "reviewed-registered-unverified"
+    }
+  ],
+  "registered_generation": 551,
+  "prepared_generation": 550,
+  "normal551": "pending",
+  "combined_patch": {
+    "path": "patches/rvoip/connect-test-g780-regression-fixtures.patch",
+    "sha256": "0054cdcbf1a6efded3feff0e18e88060dbedd295e566121c798b9ce603de30c6",
+    "upstream_test_files": 3,
+    "production_changes": 0,
+    "new_test_functions": 0
+  },
+  "source_lock_sha256": "d178ace7268f1b91a3b4584d6d6658fcf8eb7515e4d49da545fc1607386c696e",
+  "next_focused": {
+    "retained": 67,
+    "additional_existing_controls": 2,
+    "total": 69,
+    "status": "unrun"
+  },
+  "tracker_mapping": {
+    "existing_prerequisite_umbrella": "S113/P7.2",
+    "mapping_sha256": "4eadbff2a17d5882c46d488000c006fd709cd5e6c5d50a86a6506ef2bec7f272",
+    "new_blocker_or_task_IDs": 0
+  },
+  "actual_cache_cleanup": [
+    {
+      "run": "g781-old-incremental-root-cleanup",
+      "removed_sessions": 32,
+      "actual_net_reclaimed_bytes": 5319569408,
+      "after_available_bytes": 8749088768,
+      "source_and_current_outputs_preserved": true,
+      "receipt_sha256": "3ad24c8ba830ade90d20402749d620d2179d7485fc4d1a8e0c17dd1e39b0933d"
+    },
+    {
+      "run": "g783-extra-old-incremental-root-cleanup",
+      "removed_sessions": 12,
+      "actual_net_reclaimed_bytes": 3875565568,
+      "after_available_bytes": 12647792640,
+      "source_and_current_outputs_preserved": true,
+      "receipt_sha256": "c6c120769b40fcfb0e2dc1b127a7c2def64678c4390f49f9bac80dbf760b72c2"
+    }
+  ],
+  "mobile": {
+    "revision": 250,
+    "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+    "paragraphs": 422,
+    "unrelated_419_and_all_paragraph_styles_preserved": true
+  },
+  "historical_DTMF_timeout_leaf": "unproven; original failed test now passes, without historical regrading",
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "readiness": "Original seven requirements still apply. Not ready for 32; Mac packet capture remains root-only.",
+  "qualification": false,
+  "matrix_credit": false
+}
