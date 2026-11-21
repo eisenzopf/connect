@@ -1,0 +1,84 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "checkpoint": 164,
+  "recorded_at": "2026-11-21T01:17:01.236649+00:00",
+  "status": "ACTUAL49_FAILED48PASS1FAIL",
+  "actual_G759": {
+    "completed": 49,
+    "passed": 48,
+    "failed": 1,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "builds_passed": 9,
+    "inventories_passed": 9,
+    "source_fixed": true,
+    "binaries_fixed": true,
+    "children_natural_joined_unforced": 68,
+    "corrected_store_cutoff": "PASS",
+    "four_historical_media_failures": "CURRENT_PASS_AGAIN",
+    "sole_failure": "service-final-boundary-control-4",
+    "failure_assertion": {
+      "api_dispatches_actual": 2,
+      "expected": 1
+    },
+    "later_rollback_no_replay_tail": "NOT_REACHED_AFTER_ASSERTION"
+  },
+  "diagnosis": {
+    "confirmed": "API counter increments before Store SQL; definite pre-entry authority-busy returns Ok(None) for retry before SQL BEGIN",
+    "historical_exact_outcomes": "NOT_OBSERVED",
+    "unsafe_SQL_replay": "NEITHER_PROVEN_NOR_RULED_OUT_BY_COUNTER",
+    "correction": "INDEPENDENT_CANDIDATE_UNAPPLIED",
+    "required_witnesses": [
+      "typed definite pre-entry busy",
+      "actual transaction entry",
+      "actual injected INSERT error",
+      "one post-BEGIN attempt",
+      "no dispatch after uncertainty",
+      "same IDs",
+      "no Core invocation",
+      "real rollback",
+      "original publication/media limits"
+    ]
+  },
+  "source": {
+    "head": "502526cc78c2fbfe02db0132df4f9da1fc0d3153",
+    "files": 6593,
+    "sha256": "34e23f330fb7f67f53e86409070e545056d82c102a49f8d242291bee39eb47b5",
+    "generation": 544
+  },
+  "all7_readiness_scopes": "OPEN",
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "new_run": false,
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 243,
+  "mobile243": "VERIFIED_SCOPED_READBACK",
+  "historical_failed_runs": "RETAINED_UNCHANGED",
+  "proofs": [
+    {
+      "path": ".local/gate-6/g759-source544-reviewed-clock49-root/result.json",
+      "sha256": "812df07973bebe56ffbc1f114185ea578fe3e7d03f71f38d8804d29f95d70c0f"
+    },
+    {
+      "path": ".local/gate-6/g759-source544-reviewed-clock49-root/root-original-join-and-review.json",
+      "sha256": "9d161b3f679266581c89ce891cf1e60ffb52cbb94e13dada37ef10b5a95413de"
+    },
+    {
+      "path": ".local/gate-6/g759-actual49-independent-audit/receipt.json",
+      "sha256": "ff6dce11ba880f2f42bb97ebaac8298525e54a8c59eae34cf793f6e624f0083b"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v243-g759-current49.json",
+      "sha256": "051827304564dcab87ada5326807da6b18a80e899f736fa7bf85766d3f5fccef"
+    }
+  ]
+}

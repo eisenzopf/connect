@@ -1,19 +1,19 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-21T00:49:24.444047+00:00",
-  "revision": 163,
+  "updated_at": "2026-11-21T01:17:01.236649+00:00",
+  "revision": 164,
   "status": "in-progress",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint163-mobile242-scoped-readback",
-    "content_revision": 242,
-    "readback_evidence": ".local/gate-6/mobile242-failed49-corrected-store-unit-root/readback.json",
-    "readback_evidence_sha256": "4340140617d9291ca159b7c04474d7b6b4eef6ce25ed290e23505ee7b1757cf2",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v242-failed49-corrected-store-unit.json",
-    "postrun_readback_sha256": "927dd66c6b9036e3ea87c0bd0e84e611c88e8b0b0665d8436beb479383595151"
+    "sync_status": "verified-checkpoint164-mobile243-scoped-readback",
+    "content_revision": 243,
+    "readback_evidence": ".local/gate-6/mobile243-g759-current49-root/readback.json",
+    "readback_evidence_sha256": "f05ec0f0c7cbcef115015b42b2074366f4c66e7e5c9cc8709d0c3766090e6a97",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v243-g759-current49.json",
+    "postrun_readback_sha256": "051827304564dcab87ada5326807da6b18a80e899f736fa7bf85766d3f5fccef"
   },
   "baseline": {
     "run": "v215",
@@ -1384,7 +1384,7 @@
         "V219-WSS-INGRESS"
       ],
       "status": "in-progress",
-      "implementation_state": "G755 completed all49 selected component tests after all nine builds and nine inventories passed:48PASS/1FAIL, with zero ignored, incomplete or unrun cases. All five Service controls passed, including current passes for all four historical G735 media failures; these are scoped current-run results and do not regrade G735. Root and all68 original children closed naturally, were joined and freshly absent; the6591-file run source and nine binary hashes stayed fixed at completion. The sole failure was the Store shorter-cutoff test at its hook-not-reached assertion. Its raw log did not record the returned error or policy time, so the exact old stop reason remains unproven. The test-only correction now pins the existing thread-local policy clock before fixture setup and advances it to the same original base+1 cutoff at each actual SQL boundary. It preserves the real10s monotonic AuthorityWait, longer current read, both real SQL probes, typed Forbidden and full rollback snapshots, and adds an expired-before-entry negative requiring that no hook runs. The approved comment and official formatting are applied; no production code, dependency, media5s bound or test identity changes. G757 then passed the one corrected Store test,1PASS/0FAIL/0ignored, covering all three synchronous cases. Its original Cargo owner closed naturally and was freshly absent; the current6591-file source differs from G755 only in that reviewed formatted test file, with lock and prepared dependencies unchanged. This single-unit pass does not turn G755 into a49-case pass. A fresh full49 component retest remains unrun. The earlier G754 ENOSPC attempt retains its storage failure after eight completed builds and zero runtime cases; its empty result file is not synthesized as a successful receipt. G748 and all earlier failed results remain failed. Current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile242 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
+      "implementation_state": "G759 completed all 49 selected component tests: 48 passed and one failed, with zero ignored, incomplete or unrun cases. All nine builds and nine inventories passed. The corrected Store cutoff test passed, and all four historical G735 media failure cases passed again on this source. The sole failure is the real post-BEGIN SQL failure control: its API dispatch counter was two, while the test required one. Source inspection confirms that this counter increments before SQL entry and also counts a definite pre-entry authority-busy result, which legitimately returns Ok(None) for retry. The historical log does not distinguish those outcomes, so an unsafe SQL replay is not proven or ruled out by that count alone. The next correction must separately witness definite pre-entry busy, actual SQL entry and the actual injected INSERT failure, while requiring exactly one post-BEGIN attempt, no dispatch after uncertainty, the same operation IDs, no Core invocation, real rollback, and the original publication and media limits. No corrective code has yet been applied or tested for this failure. Root and all 68 original children ended naturally and were joined; source and binary hashes stayed fixed. This is component evidence only. All seven readiness scopes remain open. Matrix remains v218: 1/32 cells and 399/432 checks; no new matrix run or credit. G6-054 remains parked. Mobile243 is the verified scoped readback: only three coordinator paragraphs changed, with 419 unrelated paragraphs preserved.",
       "proposed_fix": "Finish drafts, independently review, record upstream patches/source-lock, prepare verified dependencies, format and build local shipping artifacts.",
       "required_evidence": "Causal unit and combined full-duration regressions all pass; old .deps mismatch resolved by documented prep; enough disk and capture access, approved browsers and ARM VM; exact source/binary digests recorded.",
       "coordinator_review": {
@@ -1613,6 +1613,11 @@
           "evidence": "docs/evidence/gate-6/g6-058-v219-g755-g757-failed49-corrected-store-unit.json",
           "result": "G75549completeFAILED48PASS1FAIL after9build9inventoryPASS; all5Service/current4historicalG735mediafailuresPASS. SoleStorehookmiss/olderrorunlogged; testonlydeterministicclockcorrectionapplied/formatted/G757exactunitPASS1_0_0. OldG754ENOSPC8build0runtime retained; fresh49UNRUN/all7open/no matrixcredit.",
           "matrix_result": false
+        },
+        {
+          "evidence": "docs/evidence/gate-6/g6-058-v219-g759-complete49-begin-fault-accounting.json",
+          "result": "G759 completed all 49 selected component tests: 48 passed and one failed, with zero ignored, incomplete or unrun cases. All nine builds and nine inventories passed. The corrected Store cutoff test passed, and all four historical G735 media failure cases passed again on this source. The sole failure is the real post-BEGIN SQL failure control: its API dispatch counter was two, while the test required one. Source inspection confirms that this counter increments before SQL entry and also counts a definite pre-entry authority-busy result, which legitimately returns Ok(None) for retry. The historical log does not distinguish those outcomes, so an unsafe SQL replay is not proven or ruled out by that count alone. The next correction must separately witness definite pre-entry busy, actual SQL entry and the actual injected INSERT failure, while requiring exactly one post-BEGIN attempt, no dispatch after uncertainty, the same operation IDs, no Core invocation, real rollback, and the original publication and media limits. No corrective code has yet been applied or tested for this failure. Root and all 68 original children ended naturally and were joined; source and binary hashes stayed fixed. This is component evidence only. All seven readiness scopes remain open. Matrix remains v218: 1/32 cells and 399/432 checks; no new matrix run or credit. G6-054 remains parked. Mobile243 is the verified scoped readback: only three coordinator paragraphs changed, with 419 unrelated paragraphs preserved.",
+          "matrix_result": false
         }
       ],
       "commit_ids": [
@@ -1620,7 +1625,7 @@
         "0426a23f"
       ],
       "matrix_result_refs": [],
-      "updated_at": "2026-11-21T00:49:24.444047+00:00",
+      "updated_at": "2026-11-21T01:17:01.236649+00:00",
       "mapped_check_count": 0,
       "mapping_scope": "cross-cutting verification or resource contract obligation",
       "architecture_invariants": [
@@ -2127,6 +2132,21 @@
         "matrix_credit": false,
         "evidence": "docs/evidence/gate-6/g6-058-v219-g755-g757-failed49-corrected-store-unit.json",
         "sha256": "f2efd79ec500281a59c84857d44b3b9603610cb6731a3a0b8f15e185dba8a8f3"
+      },
+      "current_frontiers_checkpoint164": {
+        "status": "actualG75949FAILED48PASS1FAIL_correctedStoreAnd4MediaPASS_BeginFaultAccountingUnproven",
+        "prepared_generation": 544,
+        "actual_component_completed": 49,
+        "actual_component_passed": 48,
+        "actual_component_failed": 1,
+        "corrected_store_currentPASS": true,
+        "four_G735_media_currentPASS": true,
+        "sole_failure": "service-final-boundary-control-4",
+        "correction": "UNAPPLIED",
+        "qualification": false,
+        "matrix_credit": false,
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g759-complete49-begin-fault-accounting.json",
+        "sha256": "cf6170b1a88b5081ac6feea85121cb5b8789163f40d7068d3169691e60900069"
       }
     },
     {
@@ -6472,6 +6492,13 @@
       "event": "ActualG75549FAILED48/49/all5ServicePASS; oneStorehookmiss. Approvedtestonlyclockfixapplied/formatted thenG757unitPASS; full49retestUNRUN. G754ENOSPC/G735/G748/history retained; no full/readiness/matrixcredit.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g755-g757-failed49-corrected-store-unit.json",
       "by": "/root"
+    },
+    {
+      "at": "2026-11-21T01:17:01.236649+00:00",
+      "revision": 164,
+      "event": "G759 all49 completed48PASS1FAIL; correctedStore+fourhistoricalmedia currentPASSagain. SoleBeginFault APIcounter2expected1; typedoutcomesabsent, SQLreplayunproven. Witnesscorrectionunapplied; all7open/no newmatrixcredit.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g759-complete49-begin-fault-accounting.json",
+      "by": "/root"
     }
   ],
   "tracking_review": {
@@ -8101,11 +8128,11 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "G755 completed all49 selected component tests after all nine builds and nine inventories passed:48PASS/1FAIL, with zero ignored, incomplete or unrun cases. All five Service controls passed, including current passes for all four historical G735 media failures; these are scoped current-run results and do not regrade G735. Root and all68 original children closed naturally, were joined and freshly absent; the6591-file run source and nine binary hashes stayed fixed at completion. The sole failure was the Store shorter-cutoff test at its hook-not-reached assertion. Its raw log did not record the returned error or policy time, so the exact old stop reason remains unproven. The test-only correction now pins the existing thread-local policy clock before fixture setup and advances it to the same original base+1 cutoff at each actual SQL boundary. It preserves the real10s monotonic AuthorityWait, longer current read, both real SQL probes, typed Forbidden and full rollback snapshots, and adds an expired-before-entry negative requiring that no hook runs. The approved comment and official formatting are applied; no production code, dependency, media5s bound or test identity changes. G757 then passed the one corrected Store test,1PASS/0FAIL/0ignored, covering all three synchronous cases. Its original Cargo owner closed naturally and was freshly absent; the current6591-file source differs from G755 only in that reviewed formatted test file, with lock and prepared dependencies unchanged. This single-unit pass does not turn G755 into a49-case pass. A fresh full49 component retest remains unrun. The earlier G754 ENOSPC attempt retains its storage failure after eight completed builds and zero runtime cases; its empty result file is not synthesized as a successful receipt. G748 and all earlier failed results remain failed. Current shared379, complete affected/full regression, OriginalV8 and all seven readiness scopes remain unrun or open. Matrix remains v218:1/32 cells and399/432 checks, with no new credit and not ready for32; G6-054 remains parked. Mobile242 is now the verified scoped readback: only three coordinator paragraphs changed, with419 unrelated paragraphs preserved.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g755-g757-failed49-corrected-store-unit.json",
-    "sha256": "f2efd79ec500281a59c84857d44b3b9603610cb6731a3a0b8f15e185dba8a8f3"
+    "status": "G759 completed all 49 selected component tests: 48 passed and one failed, with zero ignored, incomplete or unrun cases. All nine builds and nine inventories passed. The corrected Store cutoff test passed, and all four historical G735 media failure cases passed again on this source. The sole failure is the real post-BEGIN SQL failure control: its API dispatch counter was two, while the test required one. Source inspection confirms that this counter increments before SQL entry and also counts a definite pre-entry authority-busy result, which legitimately returns Ok(None) for retry. The historical log does not distinguish those outcomes, so an unsafe SQL replay is not proven or ruled out by that count alone. The next correction must separately witness definite pre-entry busy, actual SQL entry and the actual injected INSERT failure, while requiring exactly one post-BEGIN attempt, no dispatch after uncertainty, the same operation IDs, no Core invocation, real rollback, and the original publication and media limits. No corrective code has yet been applied or tested for this failure. Root and all 68 original children ended naturally and were joined; source and binary hashes stayed fixed. This is component evidence only. All seven readiness scopes remain open. Matrix remains v218: 1/32 cells and 399/432 checks; no new matrix run or credit. G6-054 remains parked. Mobile243 is the verified scoped readback: only three coordinator paragraphs changed, with 419 unrelated paragraphs preserved.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g759-complete49-begin-fault-accounting.json",
+    "sha256": "cf6170b1a88b5081ac6feea85121cb5b8789163f40d7068d3169691e60900069"
   },
-  "updated": "2026-11-21T00:49:24.444047+00:00",
+  "updated": "2026-11-21T01:17:01.236649+00:00",
   "v219_g570_exact_clock_component": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g570-exact-clock-component-progress.json",
     "sha256": "3d910638366c09869326694d91964eba1e8da2537b08c870f70ac2e5e1f818ef",
@@ -8876,5 +8903,20 @@
     ],
     "actual_last_readback_revision": 241,
     "publication_transform": "Prefix first paragraph Revision242 | Coordinator: /root | ; omit only draft-only final sentence at actual publication. Preserve facts and existing scoped revision/readback guard."
+  },
+  "v219_g759_complete49_begin_fault_accounting": {
+    "status": "actualG75949FAILED48PASS1FAIL_correctedStoreAnd4MediaPASS_BeginFaultAccountingUnproven",
+    "prepared_generation": 544,
+    "actual_component_completed": 49,
+    "actual_component_passed": 48,
+    "actual_component_failed": 1,
+    "corrected_store_currentPASS": true,
+    "four_G735_media_currentPASS": true,
+    "sole_failure": "service-final-boundary-control-4",
+    "correction": "UNAPPLIED",
+    "qualification": false,
+    "matrix_credit": false,
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g759-complete49-begin-fault-accounting.json",
+    "sha256": "cf6170b1a88b5081ac6feea85121cb5b8789163f40d7068d3169691e60900069"
   }
 }
