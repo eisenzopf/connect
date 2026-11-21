@@ -1,0 +1,85 @@
+{
+  "format": "connect/g6-058-component-checkpoint/1",
+  "checkpoint": 166,
+  "recorded_at": "2026-11-21T03:16:29.474599+00:00",
+  "status": "ACTUAL_G765_COMPLETE_COMPONENT49_ALL49_PASS",
+  "actual_component": {
+    "run": "G765",
+    "builds_passed": 9,
+    "inventories_passed": 9,
+    "completed": 49,
+    "passed": 49,
+    "failed": 0,
+    "ignored": 0,
+    "incomplete": 0,
+    "unrun": 0,
+    "source_files": 6598,
+    "source_sha256": "83929e84f04be5fcd8ba61e02f87034e8ba14f7bbe269571ac6285d1b3fc0e6d",
+    "head": "3229398155be613bec83fd61441a425afe6f7173",
+    "source_and_all9_test_binaries_fixed": true,
+    "original_exec": 7867,
+    "Root_PID_PGID": 63550,
+    "Root_natural_exit": 0,
+    "all68_child_natural_exit0_unforced_joined_fresh_absent": true,
+    "all5_Service_and_Store_cutoff_and_SQL_uncertainty_controls": "PASS"
+  },
+  "historical_G759": "FAILED48OF49_RETAINED_NOT_REGRADED",
+  "runner_pure_controls": {
+    "helpers": 18,
+    "corrected_drivers": 31,
+    "old_driver_attempt": "FAILED30OF31_RETAINED",
+    "scope": "fakeprocess negativecontrols only"
+  },
+  "upstream_generation": 544,
+  "next": "READINESS1_GENERATORS_CONTRACTS_DEFAULT_SHARED379",
+  "all7_readiness_scopes": "OPEN",
+  "matrix": {
+    "run": "v218",
+    "cells_passed": 1,
+    "cells_required": 32,
+    "checks_passed": 399,
+    "checks_required": 432,
+    "new_credit": false
+  },
+  "G6-054": "PARKED",
+  "host_capture": "BPFroot-only pendinguserTerminalstep",
+  "qualification": false,
+  "SourceReady32": false,
+  "mobile_actual_revision": 245,
+  "mobile245": "VERIFIED_SCOPED_READBACK",
+  "pending_independent_actual_audit": false,
+  "proofs": [
+    {
+      "path": ".local/gate-6/g765-source544-typed-native-begin49-root/result.json",
+      "sha256": "d3eb59e76cc264a434e4e979559809be2c63736b1a3b3b80f2566c1aa988d937"
+    },
+    {
+      "path": ".local/gate-6/g765-source544-typed-native-begin49-root/root-original-join-and-review.json",
+      "sha256": "2756198b9780887981b8239caa3dc08288dce74474278a83863795320e0183ca"
+    },
+    {
+      "path": ".local/gate-6/g765-source544-typed-native-begin49-root/plan.json",
+      "sha256": "9e3b11e9cc5ba459c7e2050802630a066e5ad997ddcfb13daf8d14e2d476b0c9"
+    },
+    {
+      "path": ".local/gate-6/g765-source544-typed-native-begin49-root/root-final-review.json",
+      "sha256": "8e9fcff161f0908521e776b7d840ba0d8ff1c46cc4d4f74bda6f49cd7ae67efb"
+    },
+    {
+      "path": ".local/gate-6/g764-targeted-regressions-checkpoint165-root/commit-push-receipt.json",
+      "sha256": "5ec7129923a1d6cdb189f8a05183ab252261768e23d603963629dfd9709904bb"
+    },
+    {
+      "path": ".local/gate-6/g766-completed-unusable-incremental-object-cache-inventory/cleanup-result.json",
+      "sha256": "b863ad9acaa7ec281e2ff37b439f70cbb96d9be369a8abb500ab873bffc11a0a"
+    },
+    {
+      "path": ".local/gate-6/g765-actual49-independent-audit/receipt.json",
+      "sha256": "5fa52183d08ab6d066c0e77d4fe053e8867093d7cefa7088a17f8f5bb47a6400"
+    },
+    {
+      "path": "docs/evidence/gate-6/g6-058-mobile-document-readback-v245-all49-component-pass.json",
+      "sha256": "675d84d4eb5d2b192afcede357979802715498db79c735248c0ca3c99e8ae603"
+    }
+  ]
+}
