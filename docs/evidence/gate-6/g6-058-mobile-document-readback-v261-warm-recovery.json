@@ -1,0 +1,30 @@
+{
+  "revision": 261,
+  "checkpoint": 169,
+  "paragraphs": 422,
+  "changed": [
+    2,
+    3,
+    9
+  ],
+  "unchanged": 419,
+  "all_styles_preserved": true,
+  "document_revision": "AHj4eMShd1qdpS9TyLrqLQ1G3PtdoSnAlaTOzyEVLeAP0TA-oUDg5MptPpmsffIxp4cYVhRRxLDp1HKq63Uqq5QncLqqoLmyxZlZkDX6ppo",
+  "source_generation": 561,
+  "focused_passed": 9,
+  "failed": 0,
+  "ignored": 0,
+  "canonical_compile_pending_readiness2": true,
+  "matrix_passed": 1,
+  "matrix_total": 32,
+  "new_matrix_run": false,
+  "qualification": false,
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "recorded_at": "2026-11-22T05:22:33.620490+00:00",
+  "raw_before_sha256": "8b0848cf2d9a54f8fb7f4865c792788a82aab80cfb2da60ac8ff3a2860d64afc",
+  "raw_readback_sha256": "c3bb4538afd896d327777b017cf42f6bc1ecad73c0abffb08e1d369e21636caf",
+  "private_request_sha256": "8b846423f527d47bf7f31d44d14184069056a5d122374d91172d9c9ff134cc72",
+  "private_write_sha256": "f83727bdedeb31b125484e4b37812155f8579487fe8f7e648f8a198ee68862b4",
+  "component_evidence": "docs/evidence/gate-6/g6-058-v219-g817-warm-recovery-implementation.json",
+  "component_evidence_sha256": "a8655950330a038f1357e88d05ff08e32d550b455f67b5ce61f57da9611b70ea"
+}

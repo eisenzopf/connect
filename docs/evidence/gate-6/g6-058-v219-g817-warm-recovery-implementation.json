@@ -1,0 +1,832 @@
+{
+  "checkpoint": 169,
+  "run_status": "Source561 passes all nine focused Core controls (zero failures or ignored tests), including the same actual held-State RED\u2192GREEN, both linear warm retry controls and both AV/Data lock controls. All three current library-test artifacts build and inventory successfully; all original unit child owners and Root close naturally. The original source557 RED returned NotReady before adapter entry with zero callbacks; source561 now retains the same F/warm reservation, first100ms cutoff and all observed grant minima only across definitely-unstarted metadata contention. Entered callbacks, stale/expired authority, cancellation and uncertainty never authorize retry. The separate non-Data messages-only PortState lock is removed while Data behavior stays exact. Source559 already passed the same nine units, but its canonical compile was intentionally stopped for its reviewed code experiment and was incomplete, not PASS. Source560 also passed nine units; its future-only-erased canonical compile was explicitly stopped for the reviewed code change and remained incomplete, not PASS. Source561 erases only the original borrowed warm token metadata and boxes the public cold start/hint futures; original control bodies and all nine controls remain unchanged. No measured speedup or unique compiler-cause claim. G811 unique historical producer remains unproven. Historical source555 full4281 and source556 four-handoff diagnostic are not current561 qualification. Current canonical API/integration compilation remains explicitly pending in original readiness scope2; final-source full regressions and all seven original readiness scopes remain pending. Matrix remains v218:1/32 cells and399/432 checks; no matrix credit. G6-054 stays parked; local Mac/native ARM only.",
+  "actual_demonstrated_contract": {
+    "source_generation": 557,
+    "expected_RED_verified": true,
+    "actual_summary": {
+      "passed": 0,
+      "failed": 1,
+      "ignored": 0
+    },
+    "original_error": "NotReady",
+    "adapter_calls": 0,
+    "natural_test_exit": 101,
+    "ordinary_original_API_only": true,
+    "same_original_F_and_warm_current": true,
+    "qualification": false,
+    "root_original_closed": true
+  },
+  "actual_implemented_source": {
+    "generation": 561,
+    "source_sha256": "5daf7cbba0bc91158c707581c893fe506623160f3dfac3ad0f47b4501c986539",
+    "source_files": 6626,
+    "source_lock_sha256": "ed7c1dfcdbde2569ae153497dd1cc73c3fa6a161b059031a31cf5bdad65a7277",
+    "prepared": {
+      "rvoip": "18d729f9af8fae0a59365f70f1562c1e15ed7500b439b41c852e872a6fa83ea4",
+      "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+    },
+    "normal_preparation_passed": true,
+    "runtime_tests_passed": 9,
+    "normal_original_root_and_commands_closed": true,
+    "normal_receipt_sha256": "ee70142ef6a20f8497333ce08b2d53c33986dc9e4edf6952c92b053d693a9d0d",
+    "normal_root_join_sha256": "2befa58fc452a1c7afaa26e08584672a9efa6c51d69e742aced7328d8395c543"
+  },
+  "source_review": {
+    "typed_v3_receipt": ".local/gate-6/g815-linear-warm-retry-independent-source-review/v3-receipt.json",
+    "AV_manifest": ".local/gate-6/av-messages-only-port-lock-v219-candidate/manifest.json"
+  },
+  "green_current": {
+    "directory": ".local/gate-6/g819-normal561-nine-green-root",
+    "actual_result": ".local/gate-6/g819-normal561-nine-green-root/result.json",
+    "actual_result_sha256": "65239cc176526adc84d1de8b1d8bf8a548a5d8e88d38f81fe13a506598aaa40e",
+    "root_original_join": ".local/gate-6/g819-normal561-nine-green-root/root-original-join.json",
+    "root_original_join_sha256": "44797faca6ed035323c8a829ecd8f4d7d34661c7f656b2140c762093021d7afa",
+    "independent_actual_audit": null,
+    "tests_required": 9,
+    "tests_passed": 9,
+    "tests_failed": 0,
+    "canonical_integration_build": null,
+    "scope": "Existing4+baseline1+typed2+AV2, exact selected identities; no browser runtime qualification",
+    "tests_ignored": 0,
+    "completed_case_results": [
+      {
+        "label": "green-control-1",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_state_contention_is_nonterminal_before_adapter_entry",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_state_contention_is_nonterminal_before_adapter_entry",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-2",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_keeps_same_f_unstarted_reservation_and_drops_source_target_admissions",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_keeps_same_f_unstarted_reservation_and_drops_source_target_admissions",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-3",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_preserves_postpolicy_expiry_and_terminal_stale_authority_cancel_and_entered_callback",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_preserves_postpolicy_expiry_and_terminal_stale_authority_cancel_and_entered_callback",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-4",
+        "selector": "staged_streams::tests::av_messages_only::av_delivery_uses_original_guards_while_both_actual_port_metadata_locks_are_held",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::av_messages_only::av_delivery_uses_original_guards_while_both_actual_port_metadata_locks_are_held",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-5",
+        "selector": "staged_streams::tests::av_messages_only::data_messages_gate_and_actual_port_metadata_refusal_remain_original",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::av_messages_only::data_messages_gate_and_actual_port_metadata_refusal_remain_original",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-6",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_uses_actual_target_under_distinct_policy_and_same_original_once",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_uses_actual_target_under_distinct_policy_and_same_original_once",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-7",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_retired_tickets_timeout_and_cancel_never_reinvoke_or_adopt_current_owner",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_retired_tickets_timeout_and_cancel_never_reinvoke_or_adopt_current_owner",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-8",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::keyframe_submission_controls::same_owned_warm_start_capability_and_started_sink_never_imply_successful_keyframe_submission",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::keyframe_submission_controls::same_owned_warm_start_capability_and_started_sink_never_imply_successful_keyframe_submission",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-9",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::definite_setup_controls::warm_try_none_preserves_same_f_and_seal_before_start_and_attempted_warm_never_becomes_none",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::definite_setup_controls::warm_try_none_preserves_same_f_and_seal_before_start_and_attempted_warm_never_becomes_none",
+            "ok"
+          ]
+        ],
+        "passed": true
+      }
+    ],
+    "cohort_complete": true,
+    "canonical_compile_pending_readiness2": true,
+    "current_library_builds_passed": 3,
+    "current_library_artifacts": {
+      "rvoip-core": {
+        "path": "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/rvoip_core-912c432db3b40496",
+        "sha256": "810cb2567a5a9b05be80685745856e86073b7c1f6319843554fc983126af8e9c",
+        "artifact": {
+          "reason": "compiler-artifact",
+          "package_id": "path+file:///Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.deps/rvoip/crates/foundation/rvoip-core#0.3.12",
+          "manifest_path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.deps/rvoip/crates/foundation/rvoip-core/Cargo.toml",
+          "target": {
+            "kind": [
+              "lib"
+            ],
+            "crate_types": [
+              "lib"
+            ],
+            "name": "rvoip_core",
+            "src_path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.deps/rvoip/crates/foundation/rvoip-core/src/lib.rs",
+            "edition": "2021",
+            "doc": true,
+            "doctest": true,
+            "test": true
+          },
+          "profile": {
+            "opt_level": "0",
+            "debuginfo": 2,
+            "debug_assertions": true,
+            "overflow_checks": true,
+            "test": true
+          },
+          "features": [
+            "default",
+            "identity",
+            "media",
+            "opus",
+            "rtp",
+            "sip",
+            "test-support",
+            "uctp",
+            "vcon",
+            "vcon-signing"
+          ],
+          "filenames": [
+            "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/rvoip_core-912c432db3b40496"
+          ],
+          "executable": "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/rvoip_core-912c432db3b40496",
+          "fresh": false
+        }
+      },
+      "rvoip-webrtc": {
+        "path": "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/rvoip_webrtc-a9dab58cdcbc0117",
+        "sha256": "3ba141580c6702726dbaf8a5c5c7c3abcf941caf76c23fe7a1e509866f723563",
+        "artifact": {
+          "reason": "compiler-artifact",
+          "package_id": "path+file:///Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.deps/rvoip/crates/webrtc/rvoip-webrtc#0.3.12",
+          "manifest_path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.deps/rvoip/crates/webrtc/rvoip-webrtc/Cargo.toml",
+          "target": {
+            "kind": [
+              "lib"
+            ],
+            "crate_types": [
+              "lib"
+            ],
+            "name": "rvoip_webrtc",
+            "src_path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.deps/rvoip/crates/webrtc/rvoip-webrtc/src/lib.rs",
+            "edition": "2021",
+            "doc": true,
+            "doctest": true,
+            "test": true
+          },
+          "profile": {
+            "opt_level": "0",
+            "debuginfo": 2,
+            "debug_assertions": true,
+            "overflow_checks": true,
+            "test": true
+          },
+          "features": [
+            "client",
+            "comprehensive",
+            "default",
+            "signaling-ws",
+            "test-hooks"
+          ],
+          "filenames": [
+            "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/rvoip_webrtc-a9dab58cdcbc0117"
+          ],
+          "executable": "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/rvoip_webrtc-a9dab58cdcbc0117",
+          "fresh": false
+        }
+      },
+      "rvoip-uctp": {
+        "path": "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/rvoip_uctp-24ebd9f1a94cefe8",
+        "sha256": "0c690e9019e2cfa35b355f1eed93b6ebc8cc1fe47058826dd8c8f4bf0afbf136",
+        "artifact": {
+          "reason": "compiler-artifact",
+          "package_id": "path+file:///Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.deps/rvoip/crates/uctp/rvoip-uctp#0.3.12",
+          "manifest_path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.deps/rvoip/crates/uctp/rvoip-uctp/Cargo.toml",
+          "target": {
+            "kind": [
+              "lib"
+            ],
+            "crate_types": [
+              "lib"
+            ],
+            "name": "rvoip_uctp",
+            "src_path": "/Volumes/D2-2019/Developer/Connect/.local/gate-6/media-continuation/.deps/rvoip/crates/uctp/rvoip-uctp/src/lib.rs",
+            "edition": "2021",
+            "doc": true,
+            "doctest": true,
+            "test": true
+          },
+          "profile": {
+            "opt_level": "0",
+            "debuginfo": 2,
+            "debug_assertions": true,
+            "overflow_checks": true,
+            "test": true
+          },
+          "features": [
+            "test-support"
+          ],
+          "filenames": [
+            "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/rvoip_uctp-24ebd9f1a94cefe8"
+          ],
+          "executable": "/Users/jonathaneisenzopf/.codex/tmp/connect-g6-058-macos-target/debug/deps/rvoip_uctp-24ebd9f1a94cefe8",
+          "fresh": false
+        }
+      }
+    }
+  },
+  "historical_G811_unique_producer": null,
+  "current_full_affected_regression": null,
+  "current_original_browser_cases": null,
+  "original_seven_final_source_readiness": null,
+  "matrix_credit": false,
+  "all_quality_deadline_authority_acceptance_unchanged": true,
+  "private_proof_pins": {
+    ".local/gate-6/g816-normal557-baseline-red-root/result.json": "420379fa7bca10cc3f5a96cfb1739984a32f0e5ff810302d06be99e54f56cc4d",
+    ".local/gate-6/g816-normal557-baseline-red-root/root-original-join.json": "0696ecf78df479d61721bcc435a38c130d29a5e3d4c98861a1737a59d45bc049",
+    ".local/gate-6/g816-normal557-baseline-red-root/baseline-red.log": "1afb639f2a3d4429e5e3c67ea4c3d34f1e7fc99a1bc0d2f5c5f4556f3f61050c",
+    ".local/gate-6/g817-normal559-av-warm-retry-root/root-original-join.json": "d11e6667d38958e700ba70ec91b6198c3f4490a45934fad590ab758c4b997c88",
+    ".local/gate-6/g817-normal559-av-warm-retry-root/normal559-runtime/receipt.json": "5f41797ebf234525524143254ac82f9d01764a93ad109e95cf9530db4a840581",
+    ".local/gate-6/g817-normal559-av-warm-retry-root/source-after-normal559.json": "e82d0e021601f0173997afb91767b19408cf99ef8e9a966614d1ff666e5e1828",
+    ".local/gate-6/g815-linear-warm-retry-independent-source-review/v3-receipt.json": "d95881d3bc2b82e46e6e242bb06f87367c58c7ca79de2af3bc9274a30fa56a12",
+    ".local/gate-6/g815-baseline-state-witness-independent-source-review/v2-receipt.json": "d4608f60d5fb66a8cad631fbec0857b7b173c6c973c9e789ef8b04b86b50c106",
+    ".local/gate-6/av-messages-only-port-lock-v219-candidate/manifest.json": "6130c2b3864a4928f5f0bad2ccd1eff8c59c58bfb51e1614e5206560a01fdbf7",
+    ".local/gate-6/g817-normal559-av-warm-retry-inert-candidate/SELECTORS.txt": "3cedb513e52a16693fd3e4f009673455e006490c8bd9fbfc1fba7cb462dc7bba",
+    ".local/gate-6/g817-normal559-nine-green-root/green-control-1-result.json": "bfa50fe1bea33916bed6c4ee2e556aee7eea44aaede2d364d5365c943483e122",
+    ".local/gate-6/g817-normal559-nine-green-root/green-control-2-result.json": "0a3cf3f8ea5f57d767765636a314eb56ba95dcf97b1884b8ac68635d24421c5b",
+    ".local/gate-6/g817-normal559-nine-green-root/green-control-3-result.json": "d68929b256dd8b2deade239e87e2b5094d08da31ea534e9dffffb01223fe1642",
+    ".local/gate-6/g817-normal559-nine-green-root/green-control-4-result.json": "60aa4da68c427642284dc9a4c3c4aa149fe16eecd0b46177d1b18b3436e1da27",
+    ".local/gate-6/g817-normal559-nine-green-root/green-control-5-result.json": "c611ba786f48748ab46d9548606471e9697e4d25a7c7ce39914ed8869404eaf7",
+    ".local/gate-6/g817-normal559-nine-green-root/green-control-6-result.json": "5211d3cd6c209e04ce714ee8a7b0933ebd22ce733be36494949b6139e1562a10",
+    ".local/gate-6/g817-normal559-nine-green-root/green-control-7-result.json": "3550a7afd713ef0046706d3317dc98c5a0698813ca6a8f6fd0dff33704ecadae",
+    ".local/gate-6/g817-normal559-nine-green-root/green-control-8-result.json": "63f41d0ff53cfc2aa9e8905d627cb48421a918002a2004973ab4a94160731e8b",
+    ".local/gate-6/g817-normal559-nine-green-root/green-control-9-result.json": "217bb0058a97e85e0ce5243a45266ff235da8103d1642c04ce19d7848ad3237d",
+    ".local/gate-6/g817-normal559-nine-green-root/root-original-join-after-intentional-stop.json": "50ec8122a9b4e8c2b9df388ae501da3ea7682bd4a722e57aeb6003cfe8bf965c",
+    ".local/gate-6/g817-held-warm-retry-future-erasure-independent-source-review/receipt.json": "49c7f700132d38002aa7ac16d2607d2e1454ecbc8e56496a409d044ad2b42865",
+    ".local/gate-6/g817-held-warm-retry-future-erasure-source-candidate/equivalence.json": "bd4317539ecc1130ae7eb63cc8a26034650ff1821d316d01b93f6f235904c2b0",
+    ".local/gate-6/g819-normal561-cold-boundary-root/normal561-runtime/receipt.json": "ee70142ef6a20f8497333ce08b2d53c33986dc9e4edf6952c92b053d693a9d0d",
+    ".local/gate-6/g819-normal561-cold-boundary-root/root-original-join.json": "2befa58fc452a1c7afaa26e08584672a9efa6c51d69e742aced7328d8395c543",
+    ".local/gate-6/g818-normal560-nine-green-root/root-original-join-after-intentional-stop.json": "6212459b7c9503d706fd41c2c86a107fbdbef13e1ef4af04ccae560bc2acaee0",
+    ".local/gate-6/g818-normal560-nine-green-root/result.json": "858aad190df5c895dc86f1bacae40a6902e40ef3383cf53326eec4e1ea50b1ad",
+    ".local/gate-6/g818-complete-warm-cold-boundary-independent-source-review/receipt.json": "47d0d9b8dc9606cfbbcf551f8dcc23c5e5e64829b55f9187db43a4f78df00491",
+    ".local/gate-6/g818-held-complete-warm-cold-boundary-erasure-source-candidate/equivalence.json": "53fa7ce6c89f95c88591b7d6d3cbace66fe01e503f22417809933c1467ec08f3",
+    ".local/gate-6/g819-normal561-nine-green-root/result.json": "65239cc176526adc84d1de8b1d8bf8a548a5d8e88d38f81fe13a506598aaa40e",
+    ".local/gate-6/g819-normal561-nine-green-root/root-original-join.json": "44797faca6ed035323c8a829ecd8f4d7d34661c7f656b2140c762093021d7afa",
+    ".local/gate-6/g819-normal561-nine-green-root/artifacts.json": "4fb65746154e3467b236ad4066f73e41c3fba327375c07120763d09650e47f20",
+    ".local/gate-6/g819-normal561-nine-green-root/selection.json": "1a51606c4bb4c98bc2dbabd63d6e378ef46ecb9cd16aa0a797161eb934cd945e",
+    ".local/gate-6/g819-normal561-nine-green-root/source-before-build.json": "5daf7cbba0bc91158c707581c893fe506623160f3dfac3ad0f47b4501c986539",
+    ".local/gate-6/g819-normal561-nine-green-root/upstream-build.jsonl": "babb354970af414cffdf1be7a7ec770546f99da108bcada2d3c992ff90b8b717",
+    ".local/gate-6/g819-normal561-nine-green-root/rvoip-core-inventory.log": "cc89bde10e510c94a99035990cc05b34dafd726d5a10ae1a836fe6b0b6e3b4ed",
+    ".local/gate-6/g819-normal561-nine-green-root/rvoip-webrtc-inventory.log": "89b96437935575ec434baef2aee1f3f8d3405011ef3d654da57f145f3e0d51f4",
+    ".local/gate-6/g819-normal561-nine-green-root/rvoip-uctp-inventory.log": "ae5191372cd29ed8cc0715f2eed0c80fa069d5228b34f3c2948ee11ca21a3e59"
+  },
+  "historical_source559": {
+    "focused_passed": 9,
+    "failed": 0,
+    "ignored": 0,
+    "checks": [
+      {
+        "label": "green-control-1",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_state_contention_is_nonterminal_before_adapter_entry",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_state_contention_is_nonterminal_before_adapter_entry",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-2",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_keeps_same_f_unstarted_reservation_and_drops_source_target_admissions",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_keeps_same_f_unstarted_reservation_and_drops_source_target_admissions",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-3",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_preserves_postpolicy_expiry_and_terminal_stale_authority_cancel_and_entered_callback",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_preserves_postpolicy_expiry_and_terminal_stale_authority_cancel_and_entered_callback",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-4",
+        "selector": "staged_streams::tests::av_messages_only::av_delivery_uses_original_guards_while_both_actual_port_metadata_locks_are_held",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::av_messages_only::av_delivery_uses_original_guards_while_both_actual_port_metadata_locks_are_held",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-5",
+        "selector": "staged_streams::tests::av_messages_only::data_messages_gate_and_actual_port_metadata_refusal_remain_original",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::av_messages_only::data_messages_gate_and_actual_port_metadata_refusal_remain_original",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-6",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_uses_actual_target_under_distinct_policy_and_same_original_once",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_uses_actual_target_under_distinct_policy_and_same_original_once",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-7",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_retired_tickets_timeout_and_cancel_never_reinvoke_or_adopt_current_owner",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_retired_tickets_timeout_and_cancel_never_reinvoke_or_adopt_current_owner",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-8",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::keyframe_submission_controls::same_owned_warm_start_capability_and_started_sink_never_imply_successful_keyframe_submission",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::keyframe_submission_controls::same_owned_warm_start_capability_and_started_sink_never_imply_successful_keyframe_submission",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-9",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::definite_setup_controls::warm_try_none_preserves_same_f_and_seal_before_start_and_attempted_warm_never_becomes_none",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::definite_setup_controls::warm_try_none_preserves_same_f_and_seal_before_start_and_attempted_warm_never_becomes_none",
+            "ok"
+          ]
+        ],
+        "passed": true
+      }
+    ],
+    "canonical_compile": "INTENTIONALLY_STOPPED_FOR_REVIEWED_CODE_EXPERIMENT_NOT_PASS",
+    "original94141": "Explicitly stopped for reviewed code change, not an observation timeout; no overall PASS",
+    "original_root_join": ".local/gate-6/g817-normal559-nine-green-root/root-original-join-after-intentional-stop.json",
+    "original_root_join_sha256": "50ec8122a9b4e8c2b9df388ae501da3ea7682bd4a722e57aeb6003cfe8bf965c",
+    "cleanup_transient_error": "PermissionError(1, 'Operation not permitted')",
+    "all17_PID_groups_fresh_absent": true,
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "control_future_erasure": {
+    "review": ".local/gate-6/g817-held-warm-retry-future-erasure-independent-source-review/receipt.json",
+    "review_sha256": "49c7f700132d38002aa7ac16d2607d2e1454ecbc8e56496a409d044ad2b42865",
+    "body_sha256": "d26235b9eb2d0ef617f6d034d73a90b13b6e8fc36eb95544fcfb6bb4c71bd30f",
+    "same_body_and_lazy_token_poll_drop": true,
+    "scope": "Public retry control future only; no per-packet allocation/check or changed retry authorization",
+    "measured_speedup": null,
+    "unique_compile_bottleneck_cause": null
+  },
+  "historical_source560": {
+    "focused_passed": 9,
+    "failed": 0,
+    "ignored": 0,
+    "checks": [
+      {
+        "label": "green-control-1",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_state_contention_is_nonterminal_before_adapter_entry",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_state_contention_is_nonterminal_before_adapter_entry",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-2",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_keeps_same_f_unstarted_reservation_and_drops_source_target_admissions",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_keeps_same_f_unstarted_reservation_and_drops_source_target_admissions",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-3",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_preserves_postpolicy_expiry_and_terminal_stale_authority_cancel_and_entered_callback",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::metadata_retry_controls::warm_metadata_retry_preserves_postpolicy_expiry_and_terminal_stale_authority_cancel_and_entered_callback",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-4",
+        "selector": "staged_streams::tests::av_messages_only::av_delivery_uses_original_guards_while_both_actual_port_metadata_locks_are_held",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::av_messages_only::av_delivery_uses_original_guards_while_both_actual_port_metadata_locks_are_held",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-5",
+        "selector": "staged_streams::tests::av_messages_only::data_messages_gate_and_actual_port_metadata_refusal_remain_original",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::av_messages_only::data_messages_gate_and_actual_port_metadata_refusal_remain_original",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-6",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_uses_actual_target_under_distinct_policy_and_same_original_once",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_uses_actual_target_under_distinct_policy_and_same_original_once",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-7",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_retired_tickets_timeout_and_cancel_never_reinvoke_or_adopt_current_owner",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::start_controls::managed_public_b_start_retired_tickets_timeout_and_cancel_never_reinvoke_or_adopt_current_owner",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-8",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::keyframe_submission_controls::same_owned_warm_start_capability_and_started_sink_never_imply_successful_keyframe_submission",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::keyframe_submission_controls::same_owned_warm_start_capability_and_started_sink_never_imply_successful_keyframe_submission",
+            "ok"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "label": "green-control-9",
+        "selector": "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::definite_setup_controls::warm_try_none_preserves_same_f_and_seal_before_start_and_attempted_warm_never_becomes_none",
+        "exit_code": 0,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "actual_tests": [
+          [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::definite_setup_controls::warm_try_none_preserves_same_f_and_seal_before_start_and_attempted_warm_never_becomes_none",
+            "ok"
+          ]
+        ],
+        "passed": true
+      }
+    ],
+    "canonical_compile": "INTENTIONALLY_STOPPED_FOR_REVIEWED_CODE_EXPERIMENT_NOT_PASS",
+    "canonical_compile_artifact": null,
+    "original98993": "Explicitly stopped for reviewed complete cold-boundary code change, not an observation timeout; incomplete, no overall PASS",
+    "original_root_join": ".local/gate-6/g818-normal560-nine-green-root/root-original-join-after-intentional-stop.json",
+    "original_root_join_sha256": "6212459b7c9503d706fd41c2c86a107fbdbef13e1ef4af04ccae560bc2acaee0",
+    "result_sha256": "858aad190df5c895dc86f1bacae40a6902e40ef3383cf53326eec4e1ea50b1ad",
+    "all_original_PID_groups_fresh_absent": true,
+    "qualification": false,
+    "matrix_credit": false
+  },
+  "complete_cold_boundary_erasure": {
+    "review": ".local/gate-6/g818-complete-warm-cold-boundary-independent-source-review/receipt.json",
+    "review_sha256": "47d0d9b8dc9606cfbbcf551f8dcc23c5e5e64829b55f9187db43a4f78df00491",
+    "equivalence": ".local/gate-6/g818-held-complete-warm-cold-boundary-erasure-source-candidate/equivalence.json",
+    "equivalence_sha256": "53fa7ce6c89f95c88591b7d6d3cbace66fe01e503f22417809933c1467ec08f3",
+    "private_borrowed_origin_same_original_UFCS": true,
+    "public_start_hint_same_delegation_bodies": true,
+    "token_allocation": false,
+    "cold_future_allocations_only": true,
+    "existing_nine_tests_unchanged": true,
+    "measured_speedup": null,
+    "unique_compile_bottleneck_cause": null
+  },
+  "recorded_at": "2026-11-22T05:18:15.076221+00:00",
+  "original_natural_child_owner_count": 15,
+  "original_root": {
+    "pid": 42902,
+    "pgid": 42902
+  },
+  "verification_scope": "Nine focused Core units plus three current library-test builds/inventories only; canonical API compile pending in original readiness2; no integration/browser/full/readiness/matrix promotion"
+}

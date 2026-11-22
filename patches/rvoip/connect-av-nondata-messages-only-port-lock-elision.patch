@@ -1,0 +1,131 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -3615,7 +3615,11 @@
+         } else {
+             (None,self.scene_admission(scene).inspect_err(|error| note_media_admission_refusal("source-scene-admission", error, Some(self), Some(port), Some(sending)))?)
+         };
+-        let messages_only = {
++        // Only Prepared Data ports can enable messages_only. The immutable
++        // medium therefore proves this flag false for AV without PortState.
++        let messages_only = if port.kind() != StreamKind::Data {
++            false
++        } else {
+             // The early forwarding probe is not an exclusion lease. A reader
+             // may acquire this PortState during current_data; refuse that race
+             // before consumer admission/enqueue and unwind all current guards.
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2949,3 +2949,6 @@
+ mod quarantined_initial;
+ 
+ mod quarantined_selected;
++
++#[path = "tests/av_messages_only.rs"]
++mod av_messages_only;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/av_messages_only.rs
+@@ -0,0 +1,104 @@
++//! Controlled Core IO only: AV never enables the Data-only messages gate.
++//! The separate original holder owns BOTH actual PortState locks until release.
++use super::*;
++use std::{future::Future, panic::{AssertUnwindSafe, catch_unwind, resume_unwind}, task::Poll};
++
++async fn caught<T>(future: impl Future<Output=T>) -> Result<T, Box<dyn Any+Send>> {
++    let mut original=Box::pin(future);
++    std::future::poll_fn(|cx| match catch_unwind(AssertUnwindSafe(||original.as_mut().poll(cx))) {
++        Ok(Poll::Pending)=>Poll::Pending,
++        Ok(Poll::Ready(value))=>Poll::Ready(Ok(value)),
++        Err(error)=>Poll::Ready(Err(error)),
++    }).await
++}
++async fn queued(f:&Fixture,medium:Medium)->QueuedMedia {
++    let source=f.aa.port(medium);
++    let id=desired(medium).logical_id;
++    let mut input=f.a.take_ingress(&id).unwrap();
++    let mut output=f.ba.port(medium).take_egress().unwrap();
++    source.try_publish(&frame(&source,9000)).unwrap();
++    receive(&mut input).await.try_forward_to(&f.b,&id).unwrap();
++    outgoing(&mut output).await
++}
++fn hold_ports(source:Arc<Port>,target:Arc<Port>)->(
++    std::sync::mpsc::Receiver<()>,std::sync::mpsc::SyncSender<()>,std::thread::JoinHandle<bool>,
++) {
++    let (entered,ready)=std::sync::mpsc::sync_channel(1);
++    let (release,released)=std::sync::mpsc::sync_channel(1);
++    let holder=std::thread::spawn(move|| {
++        let source_guard=source.state.lock().unwrap_or_else(|p|p.into_inner());
++        let target_guard=target.state.lock().unwrap_or_else(|p|p.into_inner());
++        let announced=entered.send(()).is_ok();
++        let released=released.recv_timeout(Duration::from_secs(2)).is_ok();
++        drop((source_guard,target_guard));
++        announced&&released
++    });
++    (ready,release,holder)
++}
++async fn clean(f:&Fixture)->bool {
++    let a=f.a.shutdown(deadline()).await;
++    let b=f.b.shutdown(deadline()).await;
++    a==0&&b==0&&f.aa.outstanding.load(Ordering::Acquire)==0&&f.ba.outstanding.load(Ordering::Acquire)==0
++}
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn av_delivery_uses_original_guards_while_both_actual_port_metadata_locks_are_held() {
++    let mut outcomes=Vec::new();
++    for medium in [Medium::Audio,Medium::Video,Medium::Screen] {
++        let f=Fixture::new(8);f.start(&[medium]).await;
++        let packet=queued(&f,medium).await;
++        let expected=packet.frame.clone();
++        let original_until=packet.original_realtime_deadline().unwrap();
++        let source=f.aa.port(medium).0.clone();let target=f.ba.port(medium).0.clone();
++        let (ready,release,holder)=hold_ports(source.clone(),target.clone());
++        let entered=ready.recv_timeout(Duration::from_secs(1)).is_ok();
++        let calls=Arc::new(AtomicUsize::new(0));let writes=calls.clone();
++        let same=Arc::new(AtomicBool::new(false));let observed=same.clone();
++        let result=caught(async {
++            if !entered {return ReadyMediaDelivery::Complete(Err(StreamControlError::Cancelled));}
++            packet.deliver_ready_with_origin(move|actual,_|async move {
++                let both_held=matches!(source.state.try_lock(),Err(std::sync::TryLockError::WouldBlock))
++                    &&matches!(target.state.try_lock(),Err(std::sync::TryLockError::WouldBlock));
++                observed.store(both_held&&actual.payload==expected.payload
++                    &&actual.timestamp_rtp==expected.timestamp_rtp&&actual.captured_at==expected.captured_at
++                    &&actual.stream_id==expected.stream_id&&Instant::now()<original_until,Ordering::Release);
++                writes.fetch_add(1,Ordering::AcqRel);Ok(())
++            }).await
++        }).await;
++        // All local futures/IO have ended before releasing the original holder.
++        let _=release.send(());let joined=holder.join().unwrap_or(false);
++        let completed=match result {Ok(ReadyMediaDelivery::Complete(Ok(())))=>true,Ok(other)=>{drop(other);false},Err(error)=>{let _=clean(&f).await;resume_unwind(error)}};
++        let current_readers_gone=f.policy.0.try_write().is_ok();
++        let cleaned=clean(&f).await;
++        outcomes.push((medium,entered,joined,completed,calls.load(Ordering::Acquire),same.load(Ordering::Acquire),current_readers_gone,cleaned));
++    }
++    assert!(outcomes.iter().all(|(_,entered,joined,completed,calls,same,readers,cleaned)|
++        *entered&&*joined&&*completed&&*calls==1&&*same&&*readers&&*cleaned),"{outcomes:?}");
++}
++#[tokio::test(flavor="multi_thread",worker_threads=2)]
++async fn data_messages_gate_and_actual_port_metadata_refusal_remain_original() {
++    let f=Fixture::new(8);f.start(&[Medium::Data]).await;
++    let packet=queued(&f,Medium::Data).await;
++    let expected=packet.frame.clone();
++    let source=f.aa.port(Medium::Data);let target=f.ba.port(Medium::Data);
++    let (ready,release,holder)=hold_ports(source.0.clone(),target.0.clone());
++    let entered=ready.recv_timeout(Duration::from_secs(1)).is_ok();
++    let refused=catch_unwind(AssertUnwindSafe(||packet.admit_queued_media()));
++    let _=release.send(());let joined=holder.join().unwrap_or(false);
++    let refused=match refused {Ok(Err(StreamControlError::NotReady))=>true,Ok(other)=>{drop(other);false},Err(error)=>{drop(packet);let _=clean(&f).await;resume_unwind(error)}};
++    let readers_gone=f.policy.0.try_write().is_ok();
++    let calls=Arc::new(AtomicUsize::new(0));let writes=calls.clone();
++    let delivered=packet.deliver(move|actual|async move {
++        if actual.payload!=expected.payload||actual.stream_id!=expected.stream_id {return Err(StreamControlError::Authority);}
++        writes.fetch_add(1,Ordering::AcqRel);Ok(())
++    }).await.is_ok();
++    let cleaned=clean(&f).await;
++    // Actual production setter is invoked during original Adapter.prepare.
++    let typed=Fixture::new(8);typed.aa.mode.store(5,Ordering::Release);typed.ba.mode.store(5,Ordering::Release);
++    typed.start(&[Medium::Data]).await;let typed_source=typed.aa.port(Medium::Data);
++    let only=typed_source.0.state.lock().unwrap().messages_only;
++    let generic_refused=matches!(typed_source.try_publish(&frame(&typed_source,1)),Err(StreamControlError::Unsupported));
++    let active_cannot_reconfigure=matches!(typed_source.require_data_messages(),Err(StreamControlError::NotReady));
++    let typed_cleaned=clean(&typed).await;
++    assert!(entered&&joined&&refused&&readers_gone&&delivered&&calls.load(Ordering::Acquire)==1
++        &&cleaned&&only&&generic_refused&&active_cannot_reconfigure&&typed_cleaned);
++}

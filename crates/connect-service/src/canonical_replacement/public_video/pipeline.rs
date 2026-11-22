@@ -66,6 +66,46 @@ fn terminal(root: &PreparedReplacement, stage: &'static str, kind: &str) {
         connection=%root.handle.intent().replacement,"Original replacement terminal boundary");
 }
 
+// Only a linear Core-issued pre-entry metadata token authorizes this wait.
+// The token has already released all policy/IO aliases and keeps its earliest
+// original100ms+observed grant cutoff; it is never dropped/recreated for retry.
+async fn finish_warm_invocation<'a>(
+    runtime: &Runtime,
+    root: &PreparedReplacement,
+    until: tokio::time::Instant,
+    mut attempt: rvoip_core::staged_streams::ControlResult<
+        rvoip_core::staged_streams::direct_subscriptions::PublicVideoWarmInvocation<'a>,
+    >,
+) -> rvoip_core::staged_streams::ControlResult<()> {
+    use rvoip_core::staged_streams::direct_subscriptions::PublicVideoWarmInvocation;
+    let cancel = root.handle.cancellation();
+    loop {
+        match attempt? {
+            PublicVideoWarmInvocation::Complete => return Ok(()),
+            PublicVideoWarmInvocation::DefinitelyUnstarted(retry) => {
+                let deadline = until.min(retry.deadline());
+                if runtime.stop.is_cancelled()
+                    || cancel.is_cancelled()
+                    || retry.cancellation().is_cancelled()
+                {
+                    return Err(StreamControlError::Cancelled);
+                }
+                if tokio::time::Instant::now() >= deadline {
+                    return Err(StreamControlError::Deadline);
+                }
+                tokio::select! {biased;
+                    _=runtime.stop.cancelled()=>return Err(StreamControlError::Cancelled),
+                    _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
+                    _=retry.cancellation().cancelled()=>return Err(StreamControlError::Cancelled),
+                    _=tokio::time::sleep_until(deadline)=>return Err(StreamControlError::Deadline),
+                    _=tokio::time::sleep_until(deadline.min(tokio::time::Instant::now()+std::time::Duration::from_millis(2)))=>{},
+                }
+                attempt = retry.retry().await;
+            }
+        }
+    }
+}
+
 impl Preparation {
     pub(super) fn binding(&self) -> Result<wire::Binding> {
         let native = self.negotiated.get().ok_or_else(Error::forbidden)?;
@@ -325,14 +365,18 @@ impl Runtime {
                 terminal(root, "warm-owner-missing", "refused");
                 Error::forbidden()
             })?;
-            warm.start().await.map_err(|error| {
-                terminal(root, "warm-start", stream_kind(&error));
-                stream_error(error)
-            })?;
-            warm.request_initial_picture().await.map_err(|error| {
-                terminal(root, "initial-picture", stream_kind(&error));
-                stream_error(error)
-            })?;
+            finish_warm_invocation(self, root, until, warm.start().await)
+                .await
+                .map_err(|error| {
+                    terminal(root, "warm-start", stream_kind(&error));
+                    stream_error(error)
+                })?;
+            finish_warm_invocation(self, root, until, warm.request_initial_picture().await)
+                .await
+                .map_err(|error| {
+                    terminal(root, "initial-picture", stream_kind(&error));
+                    stream_error(error)
+                })?;
             self.record_public_video_phase(root, started, Stage::CutBoundPostF)
                 .await
                 .map_err(|error| {

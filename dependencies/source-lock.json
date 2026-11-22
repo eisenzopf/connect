@@ -2966,6 +2966,31 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-public-video-warm-first-refusal-diagnostics.patch",
       "sha256": "e020fb55d98bd20f0df2bd8ce93b91bdf90904b7a977c53d7c7668bd0b606ae1"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-warm-preentry-state-contention-regression.patch",
+      "sha256": "2eb789261542e29560b10cdf347bb85eb72e24bcf812979f7cc4e06175856d5d"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-av-nondata-messages-only-port-lock-elision.patch",
+      "sha256": "e41748e29c501c394f51543ed53df9337b34e1122621e6d8faa4286773e43f13"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-warm-linear-unstarted-metadata-retry.patch",
+      "sha256": "a81c39efee17c07a32a5ac598ffda19c4f312e1ded1903afa0b17adbe0c69726"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-warm-retry-control-future-erasure.patch",
+      "sha256": "7c3df2bd32182c9ce82658b516dfd439bd05d9130502898941722cada90bd0d6"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-warm-cold-control-boundary-erasure.patch",
+      "sha256": "296ad0e42427c9d0d7ae652ff8b7e24138409fd23627136d00fda14ceda1e1bd"
     }
   ]
 }

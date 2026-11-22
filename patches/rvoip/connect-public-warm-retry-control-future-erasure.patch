@@ -1,0 +1,18 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
+@@ -60,12 +60,14 @@
+     /// Consume this exact pre-entry reservation for a fresh current admission.
+     /// All errors, and every callback outcome after entry, are terminal to the
+     /// caller; only another returned token permits another metadata wait.
+-    pub async fn retry(self)->ControlResult<PublicVideoWarmInvocation<'a>> {
++    pub fn retry(self)->std::pin::Pin<Box<dyn std::future::Future<Output=ControlResult<PublicVideoWarmInvocation<'a>>>+Send+'a>> {
++        Box::pin(async move {
+         let Self {original,reservation,start,deadline,cancel}=self;
+         if cancel.is_cancelled() {return Err(StreamControlError::Cancelled);}
+         if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
+         if !original.current() {return Err(StreamControlError::NotReady);}
+         original.invoke(start,reservation,deadline,cancel).await
++        })
+     }
+ }
+ /// Borrowed only inside the exact current source and B-warm admissions. No

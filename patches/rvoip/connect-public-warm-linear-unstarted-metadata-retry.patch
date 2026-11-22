@@ -1,0 +1,647 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -1456,6 +1456,9 @@
+ #[derive(Clone, Copy)]
+ enum AdmissionOwner<'a> {
+     Ordinary,
++    // Synchronous warm-only marker. It cannot escape this admission or carry
++    // authority; only an actually returned metadata WouldBlock sets it.
++    WarmControl(&'a std::cell::Cell<bool>),
+     Original(&'a original_ingress::OriginalStamp),
+     QueuedVisual,
+     QueuedAudio,
+@@ -3318,7 +3321,9 @@
+             if detached || queued_forward {
+                 match self.state.try_lock() {
+                     Ok(state) => Ok(state),
+-                    Err(std::sync::TryLockError::WouldBlock) => Err(if queued_forward && port.kind() == StreamKind::Data {
++                    Err(std::sync::TryLockError::WouldBlock) => {
++                        if let AdmissionOwner::WarmControl(blocked)=owner {blocked.set(true);}
++                        Err(if queued_forward && port.kind() == StreamKind::Data {
+                         StreamControlError::Backpressure
+                     } else if original.is_some() {
+                         StreamControlError::MetadataBusy
+@@ -3328,7 +3333,8 @@
+                         StreamControlError::Backpressure
+                     } else {
+                         StreamControlError::NotReady
+-                    }),
++                    })
++                    },
+                     Err(std::sync::TryLockError::Poisoned(error)) => Ok(error.into_inner()),
+                 }
+             } else {
+@@ -3615,8 +3621,6 @@
+         } else {
+             (None,self.scene_admission(scene).inspect_err(|error| note_media_admission_refusal("source-scene-admission", error, Some(self), Some(port), Some(sending)))?)
+         };
+-        // Only Prepared Data ports can enable messages_only. The immutable
+-        // medium therefore proves this flag false for AV without PortState.
+         let messages_only = if port.kind() != StreamKind::Data {
+             false
+         } else {
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -8,7 +8,7 @@
+ mod post_cut_public;
+ pub(super) use post_cut_public::PublicVideoAdoption;
+ pub(super) mod restore_sources;
+-pub use post_cut_public::{PublicVideoKeyframeRecorder,PublicVideoKeyframeSubmission,PublicVideoWarmStart,InitialVideoPictureRequest,PostCutPublicVideoScope,PublicVideoWarmPreparation,PublicVideoWarmTarget};
++pub use post_cut_public::{PublicVideoKeyframeRecorder,PublicVideoKeyframeSubmission,PublicVideoWarmStart,PublicVideoWarmInvocation,PublicVideoWarmRetry,InitialVideoPictureRequest,PostCutPublicVideoScope,PublicVideoWarmPreparation,PublicVideoWarmTarget};
+ pub use delivery::{PrivateVideoDeliveryObservation, PrivateVideoPhaseObservation};
+ use preroll::PrerollBinding;
+ pub use preroll::{VideoReplacementPreparation, VideoReplacementPreparationAttempt};
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
+@@ -2,7 +2,7 @@
+ //! an ordinary committed receiver. Metadata here alone grants no IO authority.
+ use super::*;
+ mod initial_picture;
+-pub use initial_picture::{InitialVideoPictureRequest,PublicVideoWarmStart};
++pub use initial_picture::{InitialVideoPictureRequest,PublicVideoWarmStart,PublicVideoWarmInvocation,PublicVideoWarmRetry};
+ use initial_picture::InitialPublicVideoPicture;
+ use crate::participant_transitions::ParticipantReplacementMutation;
+ use crate::orchestrator::participant_control::replacement::ReplacementPreparationIdentity;
+@@ -153,12 +153,14 @@
+         Arc::ptr_eq(&original,&self.owner).then_some(scope)
+     }
+ 
+-    /// At most one original selected-source hint. Refusal before adapter entry
+-    /// is retryable only under this SAME owner and original cutoff.
+     /// Start the exact reserved output once under fresh source+Warm admissions.
+-    /// No decoded readiness or publication is implied by successful setup.
+-    pub async fn start(&self)->ControlResult<()> {self.initial_picture.start().await}
+-    pub async fn request_initial_picture(&self)->ControlResult<()> {
++    /// Only DefinitelyUnstarted retains the original pre-entry reservation for
++    /// automatic metadata retry. An error never authorizes such a retry.
++    /// Complete means callback success only, never decoded readiness/publication.
++    pub async fn start(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {self.initial_picture.start().await}
++    /// Request one original source hint under the same linear retry rules.
++    /// The hint cannot prove a keyframe, native delivery or decoded readiness.
++    pub async fn request_initial_picture(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {
+         self.initial_picture.dispatch().await
+     }
+     /// Exact plan identity only; this is not a decoded-ready or IO grant.
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
+@@ -9,7 +9,64 @@
+     source_scene:Option<scene_consumer::SceneStamp>,
+     target_scene:Option<scene_consumer::SceneStamp>,
+     direct:DirectStamp,
+-    attempted:AtomicBool,started:AtomicBool,
++    attempted:AtomicU8,started:AtomicU8,
++}
++/// Completion of one original warm-start or initial-picture callback. This
++/// does not prove native submission, delivery, decoded readiness or publication.
++#[must_use]
++pub enum PublicVideoWarmInvocation<'a> {
++    /// The one original adapter callback returned success.
++    Complete,
++    /// Only actual pre-entry metadata contention can return this linear token.
++    /// It owns the SAME one-shot reservation and every earlier numeric cutoff.
++    DefinitelyUnstarted(PublicVideoWarmRetry<'a>),
++}
++impl std::fmt::Debug for PublicVideoWarmInvocation<'_> {
++    fn fmt(&self,f:&mut std::fmt::Formatter<'_>)->std::fmt::Result {
++        f.write_str(match self {Self::Complete=>"PublicVideoWarmInvocation::Complete",Self::DefinitelyUnstarted(_)=>"PublicVideoWarmInvocation::DefinitelyUnstarted"})
++    }
++}
++// 0 idle, 1 exclusively reserved before entry, 2 permanently consumed. Drop
++// can release ONLY state1; it can never reset an entered/uncertain callback.
++struct InvocationReservation<'a> {slot:&'a AtomicU8,owned:bool}
++impl<'a> InvocationReservation<'a> {
++    fn acquire(slot:&'a AtomicU8)->ControlResult<Self> {
++        slot.compare_exchange(0,1,Ordering::AcqRel,Ordering::Acquire).map_err(|_|StreamControlError::NotReady)?;
++        Ok(Self {slot,owned:true})
++    }
++    fn enter(&mut self)->ControlResult<()> {
++        self.slot.compare_exchange(1,2,Ordering::AcqRel,Ordering::Acquire).map_err(|_|StreamControlError::NotReady)?;
++        self.owned=false;Ok(())
++    }
++}
++impl Drop for InvocationReservation<'_> {
++    fn drop(&mut self) {
++        if self.owned {let _=self.slot.compare_exchange(1,0,Ordering::AcqRel,Ordering::Acquire);}
++    }
++}
++/// Linear proof that this exact original callback has NOT been entered and
++/// no concurrent caller can enter while this token owns its reservation. It
++/// contains no policy reader, IO/admission guard, controller or route owner.
++#[must_use]
++pub struct PublicVideoWarmRetry<'a> {
++    original:&'a InitialPublicVideoPicture,reservation:InvocationReservation<'a>,
++    start:bool,deadline:tokio::time::Instant,cancel:CancellationToken,
++}
++impl<'a> PublicVideoWarmRetry<'a> {
++    /// Earliest original100ms/captured scope/observed grant bound; never renew.
++    pub fn deadline(&self)->tokio::time::Instant {self.deadline}
++    /// The same original warm scope cancellation, not a new lifecycle.
++    pub fn cancellation(&self)->&CancellationToken {&self.cancel}
++    /// Consume this exact pre-entry reservation for a fresh current admission.
++    /// All errors, and every callback outcome after entry, are terminal to the
++    /// caller; only another returned token permits another metadata wait.
++    pub async fn retry(self)->ControlResult<PublicVideoWarmInvocation<'a>> {
++        let Self {original,reservation,start,deadline,cancel}=self;
++        if cancel.is_cancelled() {return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
++        if !original.current() {return Err(StreamControlError::NotReady);}
++        original.invoke(start,reservation,deadline,cancel).await
++    }
+ }
+ /// Borrowed only inside the exact current source and B-warm admissions. No
+ /// public constructor, Clone, Deserialize, or owned callback can mint a grant.
+@@ -121,7 +178,7 @@
+         let direct=DirectStamp {feedback:route.feedback.clone(),gate:Arc::downgrade(gate),
+             ticket:route.ticket.clone(),selection:route.selection.clone(),cancel:gate.cancel.clone(),
+             preparation:route.preparation.clone(),post_cut:route.post_cut.clone()};
+-        Ok(Self {source,target,source_ticket,target_ticket,source_scene,target_scene,direct,attempted:AtomicBool::new(false),started:AtomicBool::new(false)})
++        Ok(Self {source,target,source_ticket,target_ticket,source_scene,target_scene,direct,attempted:AtomicU8::new(0),started:AtomicU8::new(0)})
+     }
+     fn current(&self)->bool {
+         if !self.direct.is_current() {terminal_current_refusal(self,"current-direct-stamp","currentness-only-no-effect-proof");return false;}
+@@ -132,12 +189,21 @@
+         if ![&self.source_scene,&self.target_scene].into_iter().flatten().all(|s|!s.cancel.is_cancelled()) {terminal_current_refusal(self,"current-scene-cancellation","currentness-only-no-effect-proof");return false;}
+         true
+     }
+-    pub(super) async fn dispatch(&self)->ControlResult<()> {self.invoke(false).await}
+-    pub(super) async fn start(&self)->ControlResult<()> {self.invoke(true).await}
+-    async fn invoke(&self,start:bool)->ControlResult<()> {
+-        let attempted=if start {&self.started} else {&self.attempted};
++    pub(super) async fn dispatch(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {self.begin(false).await}
++    pub(super) async fn start(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {self.begin(true).await}
++    async fn begin(&self,start:bool)->ControlResult<PublicVideoWarmInvocation<'_>> {
++        let slot=if start {&self.started}else{&self.attempted};
++        let reservation=InvocationReservation::acquire(slot).map_err(|error|{terminal_refusal(self,"invoke-reservation-owned-or-consumed","before-this-invocation-adapter-entry-prior-entry-possible",&error);error})?;
+         if !self.current() {terminal_refusal(self,"invoke-initial-current","before-once-CAS-and-adapter-entry",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
+-        if attempted.load(Ordering::Acquire) {terminal_refusal(self,"invoke-already-attempted","before-this-invocation-adapter-entry-prior-entry-possible",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
++        let scope=self.direct.post_cut.as_ref().ok_or_else(||{terminal_refusal(self,"invoke-post-cut-scope-missing","before-once-CAS-and-adapter-entry",&StreamControlError::Authority);StreamControlError::Authority})?;
++        let cancel=scope.cancellation().inspect_err(|error|terminal_refusal(self,"invoke-scope-cancellation-owner","before-once-CAS-and-adapter-entry",error))?;
++        let deadline=scope.deadline().ok_or_else(||{terminal_refusal(self,"invoke-scope-deadline-owner","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?
++            .min(tokio::time::Instant::now()+Duration::from_millis(100));
++        self.invoke(start,reservation,deadline,cancel).await
++    }
++    async fn invoke<'a>(&'a self,start:bool,mut reservation:InvocationReservation<'a>,mut deadline:tokio::time::Instant,cancel:CancellationToken)->ControlResult<PublicVideoWarmInvocation<'a>> {
++        if cancel.is_cancelled() {return Err(StreamControlError::Cancelled);}
++        if tokio::time::Instant::now()>=deadline {return Err(StreamControlError::Deadline);}
+         let scope=self.direct.post_cut.as_ref().ok_or_else(||{terminal_refusal(self,"invoke-post-cut-scope-missing","before-once-CAS-and-adapter-entry",&StreamControlError::Authority);StreamControlError::Authority})?;
+         let source_port=self.source.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-source-port-gone","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?;
+         let target_port=self.target.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-target-port-gone","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?;
+@@ -145,26 +211,39 @@
+         let target=target_port.owner.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-target-controller-gone","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?;
+         if source.conversation!=target.conversation || source.session!=target.session
+             || !Arc::ptr_eq(&source.policy,&target.policy) {terminal_refusal(self,"invoke-source-target-domain-policy","before-once-CAS-and-adapter-entry",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
+-        let cancel=scope.cancellation().map_err(|error|{terminal_refusal(self,"invoke-scope-cancellation-owner","before-once-CAS-and-adapter-entry",&error);error})?;
+-        let mut deadline=scope.deadline().ok_or_else(||{terminal_refusal(self,"invoke-scope-deadline-owner","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?
+-            .min(tokio::time::Instant::now()+Duration::from_millis(100));
+-        let (source_lease,source_guard,source_bound)=source.admit_with_deadline(
+-            &source_port,&self.source_ticket,false,None,audio_consumer::ConsumerCheck::Retained(None),None,
+-            scene_consumer::SceneCheck::retained_publish(self.source_scene.as_ref()),None,None,None,Some(&mut deadline))
+-            .map_err(|error|{terminal_refusal(self,"invoke-source-admission","before-once-CAS-and-adapter-entry",&error);error})?;
+-        deadline=deadline.min(source_bound);
+-        // The exact pending-public stamp selects current_public_video_warm;
+-        // never ordinary receive authorization or a private-preroll bypass.
+-        let (target_lease,target_guard,target_bound)=target.admit_with_deadline(
+-            &target_port,&self.target_ticket,true,Some(scope.source()),audio_consumer::ConsumerCheck::Retained(None),Some(&self.direct),
+-            scene_consumer::SceneCheck::retained_receive(self.target_scene.as_ref(),self.source_scene.as_ref(),Instant::now()),
+-            None,None,None,Some(&mut deadline))
+-            .map_err(|error|{terminal_refusal(self,"invoke-target-warm-admission","before-once-CAS-and-adapter-entry",&error);error})?;
+-        deadline=deadline.min(target_bound);
+-        let mut tokens=vec![source.shutdown.clone(),target.shutdown.clone(),self.direct.cancel.clone(),cancel.clone()];
+-        for scene in [&self.source_scene,&self.target_scene].into_iter().flatten() {tokens.push(scene.cancel.clone());}
+-        let admitted=QueuedMediaAdmission {target,tokens:tokens.clone(),deadline,
+-            _leases:vec![source_lease,target_lease],_subscriptions:Vec::new(),_admissions:vec![source_guard,target_guard]};
++        // The !Sync Cell and AdmissionOwner marker live ONLY in this complete
++        // synchronous block. Neither type can become an async-future field.
++        let (admission,metadata_blocked)={
++            let blocked=std::cell::Cell::new(false);
++            let result=(|| {
++                let (source_lease,source_guard,source_bound)=source.admit_original_or_queued(
++                    &source_port,&self.source_ticket,false,None,audio_consumer::ConsumerCheck::Retained(None),None,
++                    scene_consumer::SceneCheck::retained_publish(self.source_scene.as_ref()),None,None,None,Some(&mut deadline),AdmissionOwner::WarmControl(&blocked))
++                    .inspect_err(|error|terminal_refusal(self,"invoke-source-admission","before-once-CAS-and-adapter-entry",error))?;
++                deadline=deadline.min(source_bound);
++                let (target_lease,target_guard,target_bound)=target.admit_original_or_queued(
++                    &target_port,&self.target_ticket,true,Some(scope.source()),audio_consumer::ConsumerCheck::Retained(None),Some(&self.direct),
++                    scene_consumer::SceneCheck::retained_receive(self.target_scene.as_ref(),self.source_scene.as_ref(),Instant::now()),
++                    None,None,None,Some(&mut deadline),AdmissionOwner::WarmControl(&blocked))
++                    .inspect_err(|error|terminal_refusal(self,"invoke-target-warm-admission","before-once-CAS-and-adapter-entry",error))?;
++                deadline=deadline.min(target_bound);
++                let mut tokens=vec![source.shutdown.clone(),target.shutdown.clone(),self.direct.cancel.clone(),cancel.clone()];
++                for scene in [&self.source_scene,&self.target_scene].into_iter().flatten() {tokens.push(scene.cancel.clone());}
++                Ok::<_,StreamControlError>(QueuedMediaAdmission {target,tokens,deadline,
++                    _leases:vec![source_lease,target_lease],_subscriptions:Vec::new(),_admissions:vec![source_guard,target_guard]})
++            })();
++            (result,blocked.get())
++        };
++        let admitted=match admission {
++            Ok(admitted)=>admitted,
++            Err(StreamControlError::NotReady) if metadata_blocked=>{
++                // Every partial source/target lease/guard was destroyed by the
++                // synchronous block before this token becomes observable.
++                return Ok(PublicVideoWarmInvocation::DefinitelyUnstarted(PublicVideoWarmRetry {original:self,reservation,start,deadline,cancel}));
++            }
++            Err(error)=>return Err(error),
++        };
++        let tokens=admitted.tokens.clone();
+         let callback_adapter=if start {admitted.target.adapter.clone()}else{source.adapter.clone()};
+         let request=InitialVideoPictureRequest {original:self,source:AdapterMediaPort(source_port),descriptor:scope.source().clone(),deadline,cancel:cancel.clone()};
+         let warm=PublicVideoWarmStart {original:self,target:AdapterMediaPort(target_port),scope:scope.clone(),deadline,cancel};
+@@ -172,21 +251,17 @@
+             _=audio_consumer::any_cancelled(tokens)=>{terminal_refusal(self,"invoke-cancel-select","callback-may-have-been-polled-no-replay-proof",&StreamControlError::Cancelled);Err(StreamControlError::Cancelled)},
+             value=tokio::time::timeout_at(deadline,async {
+                 if !request.is_current() {terminal_refusal(self,"invoke-request-current-before-CAS","before-once-CAS-and-adapter-entry",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
+-                // Consume BEFORE constructing/polling adapter IO. A dropped,
+-                // failed or uncertain callback can never be repeated as new.
+-                attempted.compare_exchange(false,true,Ordering::AcqRel,Ordering::Acquire)
+-                    .map_err(|_|{terminal_refusal(self,"invoke-once-CAS-refused","before-this-invocation-adapter-entry-prior-entry-possible",&StreamControlError::NotReady);StreamControlError::NotReady})?;
++                // Permanent consumption is BEFORE constructing/polling adapter
++                // IO; no error/timeout/cancel can later yield a retry token.
++                reservation.enter().inspect_err(|error|terminal_refusal(self,"invoke-once-CAS-refused","before-this-invocation-adapter-entry-prior-entry-possible",error))?;
+                 if start {
+-                    callback_adapter.start_public_video_warm(&warm).await.map_err(|error|{terminal_refusal(self,"invoke-warm-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",&error);error})?;
++                    callback_adapter.start_public_video_warm(&warm).await.inspect_err(|error|terminal_refusal(self,"invoke-warm-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",error))?;
+                     scope.owner.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-owner-gone-after-adapter","after-adapter-success-effects-possible",&StreamControlError::Cancelled);StreamControlError::Cancelled})?.into_owner().started.store(true,Ordering::Release);
+                     Ok(())
+-                }
+-                else {callback_adapter.request_initial_video_picture(&request).await.map_err(|error|{terminal_refusal(self,"invoke-picture-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",&error);error})}
++                }else {callback_adapter.request_initial_video_picture(&request).await.inspect_err(|error|terminal_refusal(self,"invoke-picture-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",error))}
+             })=>value.map_err(|_|{terminal_refusal(self,"invoke-timeout","callback-may-have-been-polled-no-replay-proof",&StreamControlError::Deadline);StreamControlError::Deadline})?,
+         };
+-        // select!/timeout destroys the actual borrowed callback future before
+-        // any fresh policy Reader or original delivery guard is released.
+         drop(admitted);
+-        result
+-    }
+-}
++        result.map(|()|PublicVideoWarmInvocation::Complete)
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -220,7 +220,14 @@
+     pending: Option<PreparedParticipantReplacement>,
+     probe_operation: Option<String>,
+ }
++struct WarmLeaseProbe {
++    connection:ConnectionId,
++    expires:Option<chrono::DateTime<chrono::Utc>>,
++    callback:Box<dyn FnOnce()+Send>,
++}
+ struct World {
++    media_leases:std::sync::atomic::AtomicUsize,
++    warm_lease_probe:Mutex<Option<WarmLeaseProbe>>,
+     resources: Mutex<HashMap<ConnectionId, Resource>>,
+     allowed: AtomicBool,
+     warm_allowed:AtomicBool,
+@@ -389,17 +396,29 @@
+         Ok(o)
+     }
+     fn lease(self: &Arc<Self>, s: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let owner=self.scope(s)?;
++        let probe={let mut slot=self.warm_lease_probe.lock().unwrap();
++            if slot.as_ref().is_some_and(|probe|&probe.connection==s.connection) {slot.take()}else{None}};
++        let expires=if let Some(probe)=probe {(probe.callback)();probe.expires}else{None};
++        self.media_leases.fetch_add(1,Ordering::AcqRel);
+         Ok(Box::new(WorldLease {
++            counted:true,expires,
+             world: self.clone(),
+-            owner: self.scope(s)?,
++            owner,
+         }))
+     }
+ }
+ struct WorldLease {
++    counted:bool,
++    expires:Option<chrono::DateTime<chrono::Utc>>,
+     world: Arc<World>,
+     owner: MediaOwner,
+ }
++impl Drop for WorldLease {
++    fn drop(&mut self) {if self.counted {self.world.media_leases.fetch_sub(1,Ordering::AcqRel);}}
++}
+ impl MediaAuthorityLease for WorldLease {
++    fn expires_at(&self)->Option<chrono::DateTime<chrono::Utc>> {self.expires}
+     fn authority(&self) -> &MediaOwner {
+         &self.owner
+     }
+@@ -486,11 +505,13 @@
+         source: &MediaParticipantSource,
+     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
+         let l = WorldLease {
++            counted:false,expires:None,
+             world: self.0.clone(),
+             owner: self.0.scope(s)?,
+         };
+         let owner = *l.control_participant_receive(source)?;
+         Ok(Box::new(WorldLease {
++            counted:false,expires:None,
+             world: self.0.clone(),
+             owner,
+         }))
+@@ -537,6 +558,7 @@
+         }
+         let owner = self.0.owner(s.pending.binding().connection())?;
+         Ok(Box::new(WorldLease {
++            counted:false,expires:None,
+             world: self.0.clone(),
+             owner,
+         }))
+@@ -577,6 +599,7 @@
+                 }
+                 return MediaControl::new(
+                     Box::new(WorldLease {
++                        counted:false,expires:None,
+                         world: self.0.clone(),
+                         owner: o,
+                     }),
+@@ -834,6 +857,7 @@
+             .await
+             .unwrap();
+         let world = Arc::new(World {
++            media_leases:Default::default(),warm_lease_probe:Default::default(),
+             resources: Mutex::new(HashMap::new()),
+             allowed: AtomicBool::new(true),
+             warm_allowed:AtomicBool::new(false),
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
+@@ -5,7 +5,7 @@
+ #[path="public_video_warm/initial_source_preflight_controls.rs"]
+ mod initial_source_preflight_controls;
+ use crate::staged_streams::physical_video_exposure::{PhysicalVideoExposure,PhysicalVideoExposureCoverage};
+-use crate::staged_streams::direct_subscriptions::{DirectSubscription,DirectSubscriptionChange,PostCutPublicVideoScope,PublicVideoWarmPreparation};
++use crate::staged_streams::direct_subscriptions::{DirectSubscription,DirectSubscriptionChange,PostCutPublicVideoScope,PublicVideoWarmPreparation,PublicVideoWarmInvocation,PublicVideoWarmRetry};
+ use crate::staged_streams::device_replacement::{ReplacementVideoRequest,ReplacementVideoStream,VideoReplacementPreparation,VideoReplacementPreparationAttempt};
+ 
+ pub(super) fn b_id()->StreamId {StreamId::from_string("public-video-b")}
+@@ -54,7 +54,7 @@
+     }
+     // Reservation succeeds with Control only: no routing/send/receive grant.
+     let mut owner=world.scope(scope)?;owner.may_route_source=false;owner.send_media.clear();owner.receive_media.clear();
+-    Ok(Box::new(WorldLease {world:world.clone(),owner}))
++    Ok(Box::new(WorldLease {world:world.clone(),owner,counted:false,expires:None}))
+ }
+ fn video_packet(node:&Node,timestamp:u32,original:Option<Arc<OriginalVideoFrame>>)->(MediaFrame,Option<Arc<OriginalVideoFrame>>) {
+     let port=node.backend.port(Medium::Video);
+@@ -273,3 +273,6 @@
+ }
+ #[path="public_video_warm/managed_cut_controls.rs"]
+ mod managed_cut_controls;
++
++#[path="public_video_warm/metadata_retry_controls.rs"]
++mod metadata_retry_controls;
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/adoption_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/adoption_controls.rs
+@@ -17,7 +17,7 @@
+     let result=catch_original(async {
+         let(ready,_old,source,owner,old_frame)=ready(&mut room).await;
+         let target=ready.grant.intent.replacement.clone();let backend=room.nodes[&target].backend.clone();backend.mode.store(20,Ordering::Release);
+-        assert!(owner.matches_original_plan(&ready.plan));owner.start().await.unwrap();
++        assert!(owner.matches_original_plan(&ready.plan));assert!(matches!(owner.start().await,Ok(PublicVideoWarmInvocation::Complete)));
+         let port=backend.ports.lock().unwrap()[&b_id()].clone();let mut output=port.take_egress().unwrap();
+         let family=room.nodes[&target].video_exposures[&b_id()].clone();let coverage=room.nodes[&target].video_coverage.as_ref().unwrap().clone();
+         let(packet,warm_frame)=video_packet(&room.nodes[&source],63000,None);let warm_frame=warm_frame.unwrap();
+@@ -77,7 +77,7 @@
+         let result=catch_original(async {
+             let(ready,_old,_source,owner,_point)=ready(&mut room).await;let target=ready.grant.intent.replacement.clone();
+             let backend=room.nodes[&target].backend.clone();backend.mode.store(20,Ordering::Release);
+-            if action>0 {owner.start().await.unwrap();}
++            if action>0 {assert!(matches!(owner.start().await,Ok(PublicVideoWarmInvocation::Complete)));}
+             if action==1 {room.nodes[&target].video_exposures[&b_id()].mark_untracked();}
+             if action==2 {room.nodes[&_source].backend.port(Medium::Video).report_terminal().unwrap();}
+             if action==4 {ready.root.cancel();}
+@@ -130,7 +130,7 @@
+         let(packet,old_frame)=video_packet(&room.nodes[&source],90000,None);let old_frame=old_frame.unwrap();publish_packet(&room.nodes[&source],packet,Some(old_frame.clone())).await;
+         let old_family=room.nodes[&old].video_exposures[&desired(Medium::Video).logical_id].clone();outgoing(&mut old_output).await.deliver(|_|async {old_family.record_potential(old_frame.frame_realm());Ok(())}).await.unwrap();
+         let f1=freeze(&room,&first.plan,&first.grant,&first.reservation).await;room.world.warm_allowed.store(true,Ordering::Release);
+-        let warm1=warm(&room,&first.plan,&first.grant).await.unwrap();room.nodes[&b1].backend.mode.store(20,Ordering::Release);warm1.start().await.unwrap();
++        let warm1=warm(&room,&first.plan,&first.grant).await.unwrap();room.nodes[&b1].backend.mode.store(20,Ordering::Release);assert!(matches!(warm1.start().await,Ok(PublicVideoWarmInvocation::Complete)));
+         let mut output1=room.nodes[&b1].backend.ports.lock().unwrap()[&b_id()].take_egress().unwrap();
+         let(packet,at_b1)=video_packet(&room.nodes[&source],93000,None);let at_b1=at_b1.unwrap();publish_packet(&room.nodes[&source],packet,Some(at_b1.clone())).await;
+         let b1_family=room.nodes[&b1].video_exposures[&b_id()].clone();outgoing(&mut output1).await.deliver(|_|async {b1_family.record_potential(at_b1.frame_realm());Ok(())}).await.unwrap();
+@@ -143,7 +143,7 @@
+         let f2=freeze(&room,&second.plan,&second.grant,&second.reservation).await;
+         assert_eq!(f1.realm_incarnation(),f2.realm_incarnation());assert!(f2.ordinal()>=at_b1.frame_realm().unwrap().ordinal()&&f2.ordinal()>f1.ordinal());
+         assert!(!coverage.mark_escaped(),"later original freeze loans the same published peer token without reopening raw access");
+-        let warm2=warm(&room,&second.plan,&second.grant).await.unwrap();assert!(!warm2.matches_original_plan(&previous_plan));assert!(warm2.matches_original_plan(&second.plan));let b2=second.grant.intent.replacement.clone();room.nodes[&b2].backend.mode.store(20,Ordering::Release);warm2.start().await.unwrap();
++        let warm2=warm(&room,&second.plan,&second.grant).await.unwrap();assert!(!warm2.matches_original_plan(&previous_plan));assert!(warm2.matches_original_plan(&second.plan));let b2=second.grant.intent.replacement.clone();room.nodes[&b2].backend.mode.store(20,Ordering::Release);assert!(matches!(warm2.start().await,Ok(PublicVideoWarmInvocation::Complete)));
+         let mut output2=room.nodes[&b2].backend.ports.lock().unwrap()[&b_id()].take_egress().unwrap();let calls=AtomicUsize::new(0);
+         for (timestamp,point) in [(90000,old_frame),(93000,at_b1)] {
+             let(packet,_)=video_packet(&room.nodes[&source],timestamp,Some(point.clone()));publish_packet(&room.nodes[&source],packet,Some(point)).await;
+@@ -164,7 +164,7 @@
+     let mut room=ManagedRoom::with_video(true).await;
+     let result=catch_original(async {
+         let(ready,_old,source,owner,_point)=ready(&mut room).await;let target=ready.grant.intent.replacement.clone();
+-        room.nodes[&target].backend.mode.store(20,Ordering::Release);owner.start().await.unwrap();
++        room.nodes[&target].backend.mode.store(20,Ordering::Release);assert!(matches!(owner.start().await,Ok(PublicVideoWarmInvocation::Complete)));
+         let mut output=room.nodes[&target].backend.ports.lock().unwrap()[&b_id()].take_egress().unwrap();
+         let(packet,point)=video_packet(&room.nodes[&source],63000,None);let point=point.unwrap();publish_packet(&room.nodes[&source],packet,Some(point)).await;
+         let original=outgoing(&mut output).await;let route=original.direct.as_ref().unwrap().delivery_ticket();
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/initial_picture_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/initial_picture_controls.rs
+@@ -28,7 +28,7 @@
+         let denied=matches!(owner.request_initial_picture().await,Err(StreamControlError::Unsupported));
+         let no_callback=source.initial_picture_calls.load(Ordering::Acquire)==0;
+         room.world.warm_allowed.store(true,Ordering::Release);
+-        let retry=owner.request_initial_picture().await.is_ok();
++        let retry=matches!(owner.request_initial_picture().await,Ok(PublicVideoWarmInvocation::Complete));
+         let repeat=owner.request_initial_picture().await.is_err();
+         let count=source.initial_picture_calls.load(Ordering::Acquire);
+         let unchanged=room.nodes[&candidate].controller.revision()==before && ready.private.is_current();
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/keyframe_submission_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/keyframe_submission_controls.rs
+@@ -11,7 +11,7 @@
+         let scopes=warm.scopes();assert_eq!(scopes.len(),1);let scope=scopes[0];
+         assert!(scope.successful_keyframe_submission().is_none());
+         target.backend.mode.store(24,Ordering::Release);
+-        warm.start().await.unwrap();
++        assert!(matches!(warm.start().await,Ok(PublicVideoWarmInvocation::Complete)));
+         assert!(warm.is_current());assert!(scope.successful_keyframe_submission().is_none(),
+             "actual setup/start/resource readiness is not a successful native write");
+         let recorder=target.backend.keyframe_recorder.lock().unwrap().take().unwrap();
+@@ -46,7 +46,7 @@
+     let result=catch_original(async {
+         let(ready,_old,_source,warm,old_frame)=super::adoption_controls::ready(&mut room).await;
+         let target=ready.grant.intent.replacement.clone();
+-        room.nodes[&target].backend.mode.store(20,Ordering::Release);warm.start().await.unwrap();
++        room.nodes[&target].backend.mode.store(20,Ordering::Release);assert!(matches!(warm.start().await,Ok(PublicVideoWarmInvocation::Complete)));
+         let mut output=room.nodes[&target].backend.ports.lock().unwrap()[&b_id()].take_egress().unwrap();
+         let actual=room.world.owner(&target).unwrap();
+         let held=Command::Audience {root:ready.grant.clone(),plan:ready.plan.media().audience().clone()};
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/managed_cut_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/managed_cut_controls.rs
+@@ -70,7 +70,7 @@
+         let(healthy_source,healthy_target,mut healthy_video)=healthy(&mut room).await;
+         let(ready,old,source,owner,old_frame)=managed_cut_ready(&mut room).await;
+         let target=ready.grant.intent.replacement.clone();let backend=room.nodes[&target].backend.clone();
+-        backend.mode.store(20,Ordering::Release);owner.start().await.unwrap();
++        backend.mode.store(20,Ordering::Release);assert!(matches!(owner.start().await,Ok(PublicVideoWarmInvocation::Complete)));
+         let port=backend.ports.lock().unwrap()[&b_id()].clone();let mut output=port.take_egress().unwrap();
+         let family=room.nodes[&target].video_exposures[&b_id()].clone();let scope=owner.scopes()[0].clone();
+         let prepared=cold(&room,&ready).await;
+@@ -112,7 +112,7 @@
+         let mut room=ManagedRoom::with_video(true).await;
+         let work=catch_original(async {
+             let(ready,old,source,owner,_point)=managed_cut_ready(&mut room).await;
+-            let target=ready.grant.intent.replacement.clone();room.nodes[&target].backend.mode.store(20,Ordering::Release);owner.start().await.unwrap();
++            let target=ready.grant.intent.replacement.clone();room.nodes[&target].backend.mode.store(20,Ordering::Release);assert!(matches!(owner.start().await,Ok(PublicVideoWarmInvocation::Complete)));
+             let mut output=room.nodes[&target].backend.ports.lock().unwrap()[&b_id()].take_egress().unwrap();
+             let family=room.nodes[&target].video_exposures[&b_id()].clone();
+             let scope=owner.scopes()[0].clone();let mut prepared=cold(&room,&ready).await;
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/metadata_retry_controls.rs
+@@ -0,0 +1,113 @@
++//! Actual warm setup/F, original source+target State exclusions and real
++//! policy lease Drop. The adapter callback is modeled, not native readiness.
++use super::*;
++use std::sync::mpsc;
++
++enum HoldCommand {Acquire,Release}
++struct StateHold {command:mpsc::Sender<HoldCommand>,entered:Option<mpsc::Receiver<()>>,thread:Option<std::thread::JoinHandle<()>>}
++impl StateHold {
++    fn new(controller:Arc<StreamController>)->Self {
++        let(command,receive)=mpsc::channel();let(sent,entered)=mpsc::sync_channel(1);
++        let thread=std::thread::spawn(move||{
++            if !matches!(receive.recv(),Ok(HoldCommand::Acquire)) {return;}
++            let held=controller.state.lock().unwrap();let _=sent.send(());let _=receive.recv();drop(held);
++        });
++        Self {command,entered:Some(entered),thread:Some(thread)}
++    }
++    fn callback(&mut self)->Box<dyn FnOnce()+Send> {
++        let command=self.command.clone();let entered=self.entered.take().unwrap();
++        Box::new(move||{command.send(HoldCommand::Acquire).unwrap();entered.recv_timeout(Duration::from_secs(1)).expect("actual State owner entered");})
++    }
++    fn acquire(&mut self) {(self.callback())();}
++    fn release(&mut self) {let _=self.command.send(HoldCommand::Release);if let Some(thread)=self.thread.take(){thread.join().unwrap();}}
++}
++impl Drop for StateHold {fn drop(&mut self){self.release();}}
++fn retry<'a>(value:ControlResult<PublicVideoWarmInvocation<'a>>)->PublicVideoWarmRetry<'a> {
++    match value.unwrap() {PublicVideoWarmInvocation::DefinitelyUnstarted(retry)=>retry,PublicVideoWarmInvocation::Complete=>panic!("actual metadata hold must precede callback entry")}
++}
++async fn invoke(owner:&PublicVideoWarmPreparation,hint:bool)->ControlResult<PublicVideoWarmInvocation<'_>> {
++    if hint {owner.request_initial_picture().await}else{owner.start().await}
++}
++fn calls(room:&ManagedRoom,source:&ConnectionId,target:&ConnectionId,hint:bool)->usize {
++    if hint {room.nodes[source].backend.initial_picture_calls.load(Ordering::Acquire)}else{room.nodes[target].backend.public_warm_starts.load(Ordering::Acquire)}
++}
++#[tokio::test]
++async fn warm_metadata_retry_keeps_same_f_unstarted_reservation_and_drops_source_target_admissions() {
++    let mut observations=Vec::new();
++    for hint in [false,true] {for target_side in [false,true] {for post_policy in [false,true] {
++        let mut room=ManagedRoom::with_video(true).await;
++        let result=catch_original(async {
++            let(ready,_old,source,owner)=start_controls::ready(&mut room).await;let target=ready.grant.intent.replacement.clone();
++            room.nodes[&source].backend.mode.store(10,Ordering::Release);room.nodes[&target].backend.mode.store(20,Ordering::Release);
++            let selected=if target_side {&target}else{&source};let mut hold=StateHold::new(room.nodes[selected].controller.clone());
++            let baseline=room.world.media_leases.load(Ordering::Acquire);let revision=room.nodes[&target].controller.revision();
++            let frontier=owner.scopes()[0].frontier();
++            if post_policy {*room.world.warm_lease_probe.lock().unwrap()=Some(WarmLeaseProbe {connection:selected.clone(),expires:None,callback:hold.callback()});}else{hold.acquire();}
++            let token=retry(invoke(&owner,hint).await);let first_deadline=token.deadline();
++            let aliases_released=room.world.media_leases.load(Ordering::Acquire)==baseline;
++            let before=calls(&room,&source,&target,hint);
++            let concurrent=matches!(invoke(&owner,hint).await,Err(StreamControlError::NotReady));
++            let token=retry(token.retry().await);let no_renewal=token.deadline()<=first_deadline;
++            let still_no_aliases=room.world.media_leases.load(Ordering::Acquire)==baseline;
++            hold.release();
++            let complete=matches!(token.retry().await,Ok(PublicVideoWarmInvocation::Complete));
++            let repeat=matches!(invoke(&owner,hint).await,Err(StreamControlError::NotReady));
++            let same_f=std::ptr::eq(frontier,owner.scopes()[0].frontier())&&owner.matches_original_plan(&ready.plan);
++            let unchanged=revision==room.nodes[&target].controller.revision();let count=calls(&room,&source,&target,hint);
++            owner.close();(aliases_released,still_no_aliases,before,concurrent,no_renewal,complete,repeat,same_f,unchanged,count)
++        }).await;
++        let clean=room.close_originals().await.into_iter().all(|x|x);if let Err(error)=result {resume_unwind(error)}
++        observations.push((hint,target_side,post_policy,clean,result.unwrap()));
++    }}}
++    assert!(observations.iter().all(|(_,_,_,clean,(a,b,before,c,d,e,f,g,h,count))|*clean&&*a&&*b&&*before==0&&*c&&*d&&*e&&*f&&*g&&*h&&*count==1),"{observations:?}");
++}
++#[tokio::test]
++async fn warm_metadata_retry_preserves_postpolicy_expiry_and_terminal_stale_authority_cancel_and_entered_callback() {
++    let mut facts=Vec::new();
++    for hint in [false,true] {for action in 0..6 {
++        let mut room=ManagedRoom::with_video(true).await;
++        let result=catch_original(async {
++            let(ready,_old,source,owner)=start_controls::ready(&mut room).await;let target=ready.grant.intent.replacement.clone();
++            room.nodes[&source].backend.mode.store(if action==5 {11}else{10},Ordering::Release);
++            room.nodes[&target].backend.mode.store(if action==5 {21}else{20},Ordering::Release);
++            let baseline=room.world.media_leases.load(Ordering::Acquire);
++            if action==5 {
++                let backend=room.nodes[if hint {&source}else{&target}].backend.clone();let mut original=Box::pin(invoke(&owner,hint));
++                tokio::select! {biased;_=backend.entered.notified()=>{},value=&mut original=>panic!("original callback not pending: {value:?}")}
++                let mut hold=StateHold::new(room.nodes[&source].controller.clone());hold.acquire();
++                let concurrent=matches!(invoke(&owner,hint).await,Err(StreamControlError::NotReady));hold.release();owner.close();
++                let terminal=matches!(original.as_mut().await,Err(StreamControlError::Cancelled|StreamControlError::Deadline));drop(original);
++                let repeat=matches!(invoke(&owner,hint).await,Err(StreamControlError::NotReady));
++                return(concurrent&&terminal&&repeat,calls(&room,&source,&target,hint)==1,room.world.media_leases.load(Ordering::Acquire)==baseline);
++            }
++            let held_connection=if action==1 {&target}else{&source};
++            let mut hold=StateHold::new(room.nodes[held_connection].controller.clone());
++            let mut supplied_grant_upper=None;
++            if action<=1 {
++                // UTC is sampled BEFORE monotonic: this bound is independent
++                // of the token under test and conservatively no earlier than
++                // this actual lease's supplied thirty-millisecond expiry.
++                let expires=chrono::Utc::now()+chrono::Duration::milliseconds(30);
++                supplied_grant_upper=Some(tokio::time::Instant::now()+Duration::from_millis(30));
++                *room.world.warm_lease_probe.lock().unwrap()=Some(WarmLeaseProbe {connection:held_connection.clone(),expires:Some(expires),callback:hold.callback()});
++            }else{hold.acquire();}
++            let before_admit=tokio::time::Instant::now();
++            let token=retry(invoke(&owner,hint).await);let deadline=token.deadline();
++            if let Some(upper)=supplied_grant_upper {
++                assert!(deadline<=upper+Duration::from_millis(1),"observed grant expiry must shorten the token");
++                assert!(deadline<before_admit+Duration::from_millis(80),"original100ms alone is insufficient");
++            }
++            let aliases=room.world.media_leases.load(Ordering::Acquire)==baseline;
++            let terminal=match action {
++                0|1=>{tokio::time::sleep_until(supplied_grant_upper.unwrap()+Duration::from_millis(2)).await;matches!(token.retry().await,Err(StreamControlError::Deadline))},
++                2=>{owner.close();matches!(token.retry().await,Err(StreamControlError::Cancelled))},
++                3=>{hold.release();room.world.allowed.store(false,Ordering::Release);let value=matches!(token.retry().await,Err(StreamControlError::Authority));room.world.allowed.store(true,Ordering::Release);value},
++                _=>{let port=room.nodes[&source].backend.port(Medium::Video);port.0.ticket(TicketSide::Ingress).retire_if_current();matches!(token.retry().await,Err(StreamControlError::NotReady))},
++            };
++            hold.release();let no_callback=calls(&room,&source,&target,hint)==0;owner.close();(terminal,no_callback,aliases)
++        }).await;
++        let clean=room.close_originals().await.into_iter().all(|x|x);if let Err(error)=result {resume_unwind(error)}
++        facts.push((hint,action,clean,result.unwrap()));
++    }}
++    assert!(facts.iter().all(|(_,_,clean,(terminal,no_callback,aliases))|*clean&&*terminal&&*no_callback&&*aliases),"{facts:?}");
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/native_restore_witness_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/native_restore_witness_controls.rs
+@@ -71,7 +71,7 @@
+ async fn pooled_native_two_session_managed_freezes_keep_exact_session_history_current_and_survive_foreign_retirement() {
+     let mut a=ManagedRoom::with_video(true).await;
+     let session=a.orch.start_session(a.conversation.clone(),crate::session::SessionMedium::Voice,vec![]).await.unwrap();
+-    let world=Arc::new(World {resources:Mutex::new(HashMap::new()),allowed:AtomicBool::new(true),warm_allowed:AtomicBool::new(false),video_mode:true});
++    let world=Arc::new(World {media_leases:Default::default(),warm_lease_probe:Default::default(),resources:Mutex::new(HashMap::new()),allowed:AtomicBool::new(true),warm_allowed:AtomicBool::new(false),video_mode:true});
+     let policy=Arc::new(PolicyView(world.clone()));let mut limits=ParticipantLimits::default();limits.mix_rate_hz=8000;
+     a.orch.enable_staged_participant_control(&session,world.clone(),policy.clone(),limits).unwrap();
+     let mut b=ManagedRoom {video_mode:true,orch:a.orch.clone(),route:a.route.clone(),world,policy,session,conversation:a.conversation.clone(),nodes:BTreeMap::new(),original_owners:Arc::new(Mutex::new(Vec::new()))};
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/restore_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/restore_controls.rs
+@@ -176,7 +176,7 @@
+     let mut room=ManagedRoom::with_video(true).await;
+     let result=catch_original(async {
+         let(first,_old,source,warm1,_old_frame)=super::adoption_controls::ready(&mut room).await;
+-        let b1=first.grant.intent.replacement.clone();room.nodes[&b1].backend.mode.store(20,Ordering::Release);warm1.start().await.unwrap();
++        let b1=first.grant.intent.replacement.clone();room.nodes[&b1].backend.mode.store(20,Ordering::Release);assert!(matches!(warm1.start().await,Ok(PublicVideoWarmInvocation::Complete)));
+         let mut output=room.nodes[&b1].backend.ports.lock().unwrap()[&b_id()].take_egress().unwrap();
+         let(packet,point)=video_packet(&room.nodes[&source],63000,None);let point=point.unwrap();publish_packet(&room.nodes[&source],packet,Some(point.clone())).await;
+         let family=room.nodes[&b1].video_exposures[&b_id()].clone();outgoing(&mut output).await.deliver(|_|async {family.record_potential(point.frame_realm());Ok(())}).await.unwrap();
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/start_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/start_controls.rs
+@@ -1,7 +1,7 @@
+ //! Real managed prepare/plan/freeze/current policy. Adapter startup is modeled;
+ //! this is not a native B keyframe/decoder or Store/Service integration claim.
+ use super::*;
+-async fn ready(room:&mut ManagedRoom)->(Ready,ConnectionId,ConnectionId,PublicVideoWarmPreparation) {
++pub(super) async fn ready(room:&mut ManagedRoom)->(Ready,ConnectionId,ConnectionId,PublicVideoWarmPreparation) {
+     let(alice,source,retained)=actors(room).await;
+     let ready=prepared(room,&alice,&source,&retained).await;
+     let mut old=room.nodes[&source].backend.port(Medium::Video).take_egress().unwrap();
+@@ -27,7 +27,7 @@
+         room.world.warm_allowed.store(false,Ordering::Release);
+         let refused=owner.start().await.is_err();let before=backend.public_warm_starts.load(Ordering::Acquire);
+         room.world.warm_allowed.store(true,Ordering::Release);
+-        let started=owner.start().await.is_ok();let twice=owner.start().await.is_err();
++        let started=matches!(owner.start().await,Ok(PublicVideoWarmInvocation::Complete));let twice=owner.start().await.is_err();
+         let target_count=backend.public_warm_starts.load(Ordering::Acquire);
+         let source_count=room.nodes[&source].backend.public_warm_starts.load(Ordering::Acquire);
+         for node in room.nodes.values_mut() {node.drain();}

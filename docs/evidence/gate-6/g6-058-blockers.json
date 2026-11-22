@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-21",
-  "run_status": "Source 555 provenance repair passes all 18 targeted checks (11 normalization, four reorder, two physical exposure and one actual capsule fanout/repair), zero failures or ignored tests. Independent audit verified current source, all three actual library-test artifacts, unchanged selected identities and natural closure of Root plus eight child owners. G804 identified pre-attempt physical coverage incomplete with sticky untracked tracking and maximum ordinal zero; the unique historical producer remains unproven. Late/expired packets stay rejected while later valid provenance survives; genuine source, timestamp and mapping ambiguity stays strict. Original browser integration and all seven final-source readiness scopes remain pending. Matrix remains v218: 1/32 cells and 399/432 checks; G6-054 stays parked; local Mac/native ARM only.",
+  "run_status": "Source561 passes all nine focused Core controls (zero failures or ignored tests), including the same actual held-State RED\u2192GREEN, both linear warm retry controls and both AV/Data lock controls. All three current library-test artifacts build and inventory successfully; all original unit child owners and Root close naturally. The original source557 RED returned NotReady before adapter entry with zero callbacks; source561 now retains the same F/warm reservation, first100ms cutoff and all observed grant minima only across definitely-unstarted metadata contention. Entered callbacks, stale/expired authority, cancellation and uncertainty never authorize retry. The separate non-Data messages-only PortState lock is removed while Data behavior stays exact. Source559 already passed the same nine units, but its canonical compile was intentionally stopped for its reviewed code experiment and was incomplete, not PASS. Source560 also passed nine units; its future-only-erased canonical compile was explicitly stopped for the reviewed code change and remained incomplete, not PASS. Source561 erases only the original borrowed warm token metadata and boxes the public cold start/hint futures; original control bodies and all nine controls remain unchanged. No measured speedup or unique compiler-cause claim. G811 unique historical producer remains unproven. Historical source555 full4281 and source556 four-handoff diagnostic are not current561 qualification. Current canonical API/integration compilation remains explicitly pending in original readiness scope2; final-source full regressions and all seven original readiness scopes remain pending. Matrix remains v218:1/32 cells and399/432 checks; no matrix credit. G6-054 stays parked; local Mac/native ARM only.",
   "blockers": [
     {
       "id": "B01",
@@ -1883,18 +1883,18 @@
     {
       "id": "V219-G811-WARM-START",
       "title": "Cold warm-start refusal needs exact definitely-unstarted recovery",
-      "status": "diagnosing",
-      "change": "G811 fourth return failed warm-start NotReady; G814 diagnostic passed without warm refusal. Known State metadata contention before callback needs deterministic regression and typed same-owner recovery, not generic retry.",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g814-warm-diagnostic.json",
-      "next": "Review composed source; run actual held-metadata/concurrency/deadline controls, then final-source regressions and original browser cases."
+      "status": "implemented-unit-verified-integration-pending",
+      "change": "Actual deterministic557 RED: held target Controller State returned NotReady before adapter entry; zero callbacks, same F/warm current, all owners naturally closed. Source561 implements linear DefinitelyUnstarted token for both warm start and initial picture, preserving first100ms/all grant bounds and same owned F; stale/Authority/expired/entered callback outcomes stay terminal. Historical G811 unique producer remains unproven.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g817-warm-recovery-implementation.json",
+      "next": "Final-source complete affected regressions and all seven original readiness scopes; retain historical G811 producer uncertainty and all original media/quality/current-authorization/deadline/cleanup oracles. No unit-to-cell promotion."
     },
     {
       "id": "V219-G814-AV-PORT-LOCK",
       "title": "Redundant non-Data PortState messages-only lock",
-      "status": "independent-source-reviewed",
-      "change": "Non-Data immutable ports cannot have messages_only true; remove only that AV lock, retaining Data behavior. No G811 or packet-loss attribution.",
-      "evidence": "docs/evidence/gate-6/g6-058-v219-g814-warm-diagnostic.json",
-      "next": "Compose with warm metadata fix and run deterministic real AV/Data lock controls."
+      "status": "implemented-unit-verified-integration-pending",
+      "change": "Implemented in actual normal561: immutable non-Data A/V skips only the redundant messages_only PortState lock; original Data body stays exact. Actual held-port AV and Data controls completed PASS; original unit Root closure verified, canonical API compilation pending original readiness2. No G811 or packet-loss attribution.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g817-warm-recovery-implementation.json",
+      "next": "Final-source complete affected regressions and all seven original readiness scopes; retain historical G811 producer uncertainty and all original media/quality/current-authorization/deadline/cleanup oracles. No unit-to-cell promotion."
     }
   ],
   "workplan_tasks": [
@@ -20398,7 +20398,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-22T03:51:24.001774+00:00",
+  "updated_at": "2026-11-22T05:18:15.076221+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20442,11 +20442,12 @@
     "ready_for_32": false
   },
   "current_preparation_checkpoint": {
-    "status": "Source 555 passed all 4,281 affected regressions (2,945 Rust, 1,251 Node, 85 Python; zero failures, ignored or skipped checks), all nine builds and 13 artifacts. Source 556 adds reviewed diagnostics only: four existing warm controls pass and G814 completes four real browser handoffs, both returns and one planned same-lease recovery. G811 previously failed its fourth return at warm-start NotReady; the exact inner producer remains unproven and the diagnostic pass is not a behavior repair. Typed definitely-unstarted warm recovery and a separate redundant A/V PortState lock removal are being prepared with deterministic controls. Matrix remains v218: 1/32 cells, 399/432 checks; no new matrix run. Local Mac/native ARM only; G6-054 stays parked.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g814-warm-diagnostic.json",
-    "sha256": "618f145b27d0672076e707e851cd77b167308602f47e411fc56ab6fba3d2a438",
-    "source_generation": 556,
-    "readiness_complete": false
+    "status": "Source561 passes all nine focused Core controls (zero failures or ignored tests), including the same actual held-State RED\u2192GREEN, both linear warm retry controls and both AV/Data lock controls. All three current library-test artifacts build and inventory successfully; all original unit child owners and Root close naturally. The original source557 RED returned NotReady before adapter entry with zero callbacks; source561 now retains the same F/warm reservation, first100ms cutoff and all observed grant minima only across definitely-unstarted metadata contention. Entered callbacks, stale/expired authority, cancellation and uncertainty never authorize retry. The separate non-Data messages-only PortState lock is removed while Data behavior stays exact. Source559 already passed the same nine units, but its canonical compile was intentionally stopped for its reviewed code experiment and was incomplete, not PASS. Source560 also passed nine units; its future-only-erased canonical compile was explicitly stopped for the reviewed code change and remained incomplete, not PASS. Source561 erases only the original borrowed warm token metadata and boxes the public cold start/hint futures; original control bodies and all nine controls remain unchanged. No measured speedup or unique compiler-cause claim. G811 unique historical producer remains unproven. Historical source555 full4281 and source556 four-handoff diagnostic are not current561 qualification. Current canonical API/integration compilation remains explicitly pending in original readiness scope2; final-source full regressions and all seven original readiness scopes remain pending. Matrix remains v218:1/32 cells and399/432 checks; no matrix credit. G6-054 stays parked; local Mac/native ARM only.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g817-warm-recovery-implementation.json",
+    "sha256": "a8655950330a038f1357e88d05ff08e32d550b455f67b5ce61f57da9611b70ea",
+    "source_generation": 561,
+    "readiness_complete": false,
+    "live_readiness_status": ".local/gate-6/ready32-source561/status.html"
   },
   "v219_g550_current_failure_frontiers": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
@@ -21700,6 +21701,20 @@
     "source555_full_passed": 4281,
     "source556_diagnostic_handoffs_passed": 4,
     "warm_behavior_repair_pending": true,
+    "matrix_credit": false
+  },
+  "v219_g819_warm_recovery_units": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g817-warm-recovery-implementation.json",
+    "sha256": "a8655950330a038f1357e88d05ff08e32d550b455f67b5ce61f57da9611b70ea",
+    "source_generation": 561,
+    "focused_passed": 9,
+    "failed": 0,
+    "ignored": 0,
+    "canonical_compile_passed": null,
+    "canonical_compile_pending_readiness2": true,
+    "library_builds_passed": 3,
+    "G811_unique_producer": null,
+    "current_full_pending": true,
     "matrix_credit": false
   }
 }

@@ -1,0 +1,58 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/start_controls.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/start_controls.rs
+@@ -71,3 +71,55 @@
+     }
+     assert!(facts.iter().all(|(clean,(refused,repeat,count))|*clean&&*refused&&*repeat&&*count),"{facts:?}");
+ }
++
++// This API-neutral contract is intentionally RED on the original ordinary
++// warm admission: real metadata WouldBlock returns terminal NotReady before
++// the callback. Typed final controls separately prove the exact retry token.
++#[tokio::test]
++async fn managed_public_b_state_contention_is_nonterminal_before_adapter_entry() {
++    struct OriginalStateOwner {
++        release:Option<std::sync::mpsc::SyncSender<()>>,
++        thread:Option<std::thread::JoinHandle<()>>,
++    }
++    impl OriginalStateOwner {
++        fn join(&mut self)->bool {
++            if let Some(release)=self.release.take() {let _=release.send(());}
++            self.thread.take().is_none_or(|thread|thread.join().is_ok())
++        }
++    }
++    impl Drop for OriginalStateOwner {fn drop(&mut self){let _=self.join();}}
++    let mut room=ManagedRoom::with_video(true).await;
++    let result=catch_original(async {
++        let(ready,_old,_source,owner)=ready(&mut room).await;
++        let target=ready.grant.intent.replacement.clone();let backend=room.nodes[&target].backend.clone();
++        backend.mode.store(20,Ordering::Release);
++        let controller=room.nodes[&target].controller.clone();
++        let(entered_tx,entered)=std::sync::mpsc::sync_channel(1);
++        let(release,wait)=std::sync::mpsc::sync_channel(1);
++        let thread=std::thread::spawn(move||{
++            let state=controller.state.lock().unwrap();
++            let _=entered_tx.send(());let _=wait.recv();drop(state);
++        });
++        let mut original=OriginalStateOwner {release:Some(release),thread:Some(thread)};
++        entered.recv_timeout(Duration::from_secs(1)).expect("actual target State owner entered");
++        let outcome=owner.start().await;
++        let terminal=outcome.is_err();
++        let actual_not_ready=matches!(&outcome,Err(StreamControlError::NotReady));
++        // This baseline does NOT interpret Ok as started/ready. It deliberately
++        // abandons any future typed nonterminal token without adapter entry;
++        // final typed controls exercise recovery using that exact token.
++        drop(outcome);
++        let callbacks=backend.public_warm_starts.load(Ordering::Acquire);
++        let same_current=owner.is_current()&&owner.matches_original_plan(&ready.plan);
++        let joined=original.join();owner.close();
++        (terminal,actual_not_ready,callbacks,same_current,joined)
++    }).await;
++    let clean=room.close_originals().await.into_iter().all(|value|value);
++    if let Err(error)=result {resume_unwind(error)}
++    let(terminal,actual_not_ready,callbacks,same_current,joined)=result.unwrap();
++    // All actual holder/room owners are closed BEFORE either assertion.
++    assert!(clean&&joined&&callbacks==0&&same_current,
++        "baseline must retain same current F/warm and enter no adapter: clean={clean} joined={joined} callbacks={callbacks} current={same_current}");
++    assert!(!terminal,
++        "actual pre-entry target State contention must be nonterminal; original NotReady={actual_not_ready}, adapter_calls={callbacks}");
++}

@@ -1,0 +1,57 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
+@@ -44,12 +44,19 @@
+         if self.owned {let _=self.slot.compare_exchange(1,0,Ordering::AcqRel,Ordering::Acquire);}
+     }
+ }
++// Private borrowed cold-control dispatch only. It grants no authority, adds
++// no token owner/allocation, and leaves every check in the original methods.
++trait WarmRetryOrigin:Sync {
++    fn current(&self)->bool;
++    fn invoke<'a>(&'a self,start:bool,reservation:InvocationReservation<'a>,deadline:tokio::time::Instant,cancel:CancellationToken)
++        ->std::pin::Pin<Box<dyn std::future::Future<Output=ControlResult<PublicVideoWarmInvocation<'a>>>+Send+'a>>;
++}
+ /// Linear proof that this exact original callback has NOT been entered and
+ /// no concurrent caller can enter while this token owns its reservation. It
+ /// contains no policy reader, IO/admission guard, controller or route owner.
+ #[must_use]
+ pub struct PublicVideoWarmRetry<'a> {
+-    original:&'a InitialPublicVideoPicture,reservation:InvocationReservation<'a>,
++    original:&'a dyn WarmRetryOrigin,reservation:InvocationReservation<'a>,
+     start:bool,deadline:tokio::time::Instant,cancel:CancellationToken,
+ }
+ impl<'a> PublicVideoWarmRetry<'a> {
+@@ -267,3 +274,13 @@
+         result.map(|()|PublicVideoWarmInvocation::Complete)
+     }
+ }
++
++// The sole implementation delegates by UFCS to the actual original methods;
++// boxing creates an unpolled control future, never an admission or retry grant.
++impl WarmRetryOrigin for InitialPublicVideoPicture {
++    fn current(&self)->bool {InitialPublicVideoPicture::current(self)}
++    fn invoke<'a>(&'a self,start:bool,reservation:InvocationReservation<'a>,deadline:tokio::time::Instant,cancel:CancellationToken)
++        ->std::pin::Pin<Box<dyn std::future::Future<Output=ControlResult<PublicVideoWarmInvocation<'a>>>+Send+'a>> {
++        Box::pin(InitialPublicVideoPicture::invoke(self,start,reservation,deadline,cancel))
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public.rs
+@@ -157,11 +157,15 @@
+     /// Only DefinitelyUnstarted retains the original pre-entry reservation for
+     /// automatic metadata retry. An error never authorizes such a retry.
+     /// Complete means callback success only, never decoded readiness/publication.
+-    pub async fn start(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {self.initial_picture.start().await}
++    pub fn start<'a>(&'a self)->std::pin::Pin<Box<dyn std::future::Future<Output=ControlResult<PublicVideoWarmInvocation<'a>>>+Send+'a>> {
++        Box::pin(async move {self.initial_picture.start().await})
++    }
+     /// Request one original source hint under the same linear retry rules.
+     /// The hint cannot prove a keyframe, native delivery or decoded readiness.
+-    pub async fn request_initial_picture(&self)->ControlResult<PublicVideoWarmInvocation<'_>> {
++    pub fn request_initial_picture<'a>(&'a self)->std::pin::Pin<Box<dyn std::future::Future<Output=ControlResult<PublicVideoWarmInvocation<'a>>>+Send+'a>> {
++        Box::pin(async move {
+         self.initial_picture.dispatch().await
++        })
+     }
+     /// Exact plan identity only; this is not a decoded-ready or IO grant.
+     pub fn matches_original_plan(&self,plan:&crate::orchestrator::participant_control::ManagedAudioDeviceReplacementPlan)->bool {
