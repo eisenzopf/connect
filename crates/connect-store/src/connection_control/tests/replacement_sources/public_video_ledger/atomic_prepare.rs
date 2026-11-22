@@ -202,6 +202,11 @@ fn public_video_atomic_failure_after_both_kernels_rolls_back_every_fact_then_ret
 fn public_video_atomic_optin_refuses_legacy_confirmation_cancelled_unknown_expiry_and_ambiguous_mapping_without_mint(
 ) {
     for mode in 0..4 {
+        // The one-second lease must remain live through fixture setup. Pin
+        // only this thread's policy seconds; monotonic admission waits and
+        // the original real two-second expiry wait remain unchanged.
+        let base = crate::now();
+        let clock = crate::test_clock::Clock::at(base);
         let (f, key, command, receipt, _sources) = captured(
             if mode == 3 { 2 } else { 1 },
             if mode == 2 { 1 } else { 60 },
@@ -215,7 +220,24 @@ fn public_video_atomic_optin_refuses_legacy_confirmation_cancelled_unknown_expir
             custody::cancel(&f, &key, &command);
         }
         if mode == 2 {
+            let original_expiry: i64 = f
+                .store
+                .connection()
+                .unwrap()
+                .query_row(
+                    "SELECT n.expires_at FROM native_replacements n JOIN operations o ON o.record_id=n.operation_record_id WHERE o.operation_id=?1",
+                    [&command.operation_id],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(original_expiry, base + 1, "same original one-second lease");
+            assert!(
+                crate::now() < original_expiry,
+                "setup did not consume expiry"
+            );
             std::thread::sleep(std::time::Duration::from_secs(2));
+            clock.set(base + 2);
+            assert!(crate::now() >= original_expiry, "original boundary reached");
         }
         let before = same_original_snapshot(&f, &key, &command);
         if mode == 1 {

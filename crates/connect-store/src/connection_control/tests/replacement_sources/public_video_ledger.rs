@@ -636,15 +636,32 @@ fn public_video_sql_guards_reject_registered_raw_replace_update_delete_and_keep_
 #[test]
 fn public_video_known_unpublished_cleanup_survives_original_expiry_cancel_and_revocation_without_target_grant(
 ) {
+    // Keep the original one-second setup lease live until the intentional
+    // expiry boundary, independent of wall-clock setup/SQL scheduling.
+    let base = crate::now();
+    let clock = crate::test_clock::Clock::at(base);
     let (f, key, command, p, _, _) = setup(1, Some(1));
     let r = f
         .store
         .reserve_native_replacement_public_video_intent(p.clone())
         .unwrap();
+    let original_expiry = r.expires_at();
+    assert_eq!(original_expiry, base + 1, "same original one-second lease");
+    assert!(
+        crate::now() < original_expiry,
+        "setup did not consume expiry"
+    );
     custody::cancel(&f, &key, &command);
     let admin = f.store.revalidate(&f.admin).unwrap();
     f.store.revoke(&admin, &key).unwrap();
     std::thread::sleep(std::time::Duration::from_secs(2));
+    clock.set(base + 2);
+    assert_eq!(
+        r.expires_at(),
+        original_expiry,
+        "no renewal after cancel/revoke"
+    );
+    assert!(crate::now() >= original_expiry, "original boundary reached");
     assert!(f
         .store
         .reserve_native_replacement_public_video_intent(p.clone())
@@ -655,6 +672,7 @@ fn public_video_known_unpublished_cleanup_survives_original_expiry_cancel_and_re
         .native_replacement_known_unpublished_read(p, &wait)
         .unwrap();
     assert!(cleanup.current());
+    assert_eq!(cleanup.original_expires_at(), original_expiry);
     assert!(cleanup.original_expires_at() <= crate::now());
     assert_eq!(cleanup.operation_record_id(), r.operation_record_id());
     assert_eq!(cleanup.candidate_connection_id(), "public-ledger-next");

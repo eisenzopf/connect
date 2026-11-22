@@ -1,0 +1,81 @@
+{
+  "format": "connect/g6-058-short-lease-fixture-clock/1",
+  "checkpoint": 171,
+  "recorded_at": "2026-11-22T08:04:35.471354+00:00",
+  "source_generation": 562,
+  "current_unit_source_sha256": "b8393bb78952a60181257fd5ace274e5fcee6be727ebafaeaa43bb5055de6091",
+  "source_lock_sha256": "4f3a80e29a110d3463157c854bba5cc9fe3fd8840c1c37dda194cc87c28ad1fd",
+  "prepared_unchanged": {
+    "rvoip": "757ee1dccea61dd8ddfc210c0ade666df7807c9698364e9f8a2066b62af68e3f",
+    "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+  },
+  "previous_full": {
+    "run": "G831",
+    "source_head": "025c980474c2dbf211ce2349409bf762661928db",
+    "passed": 4285,
+    "failed": 1,
+    "ignored": 0,
+    "builds_passed": 9,
+    "artifacts": 13,
+    "canonical_media_runtime_passed": 5,
+    "both_G821_failed_controls_now_pass": true,
+    "result_sha256": "882c27ddc7666824fcd2ec6d7aa624b0bad30ff33b07e70f8094d1494362e789",
+    "root_join_sha256": "49dce31c0a5fb313981180e6ddbd95acd30b7f0e2f2db5b0c6e9be88f9836de7",
+    "independent_actual_audit_sha256": "fe7d82f46ac21816de7b3104258b013991be7286e2537ae73070f15fc1801006",
+    "failed_selector": "connection_control::tests::replacement_sources::public_video_ledger::atomic_prepare::public_video_atomic_optin_refuses_legacy_confirmation_cancelled_unknown_expiry_and_ambiguous_mapping_without_mint",
+    "error": "forbidden at custody.rs72 native_replacement_preparation_attempt_read; historical mode and unique inner predicate not logged",
+    "historical_unique_cause_proven": false
+  },
+  "fix": {
+    "task_id": "V219-G831-FIXTURE-CLOCK",
+    "blocker_id": "V219-G831-ONE-SECOND-SETUP",
+    "owner_agent": "/root/batch_build_review",
+    "independent_reviewer": "/root/independent_batch_review",
+    "classification": "Test fixture whole-second short-lease setup",
+    "confirmed_flaw": "The one-second lease is minted with whole UTC seconds before plan/begin/setup steps; the available interval may approach zero at a second boundary. Two synthetic public-video controls share this assumption.",
+    "implementation": "Existing scoped thread-local cfg(test) policy clock is pinned before fixture construction. Both original1s leases and actual2s sleeps remain. After the same real sleep, advance the same clock tobase+2 and assert the original expiry is unchanged and reached.",
+    "preserved": [
+      "Allfour atomic modes/refusal codes/counts/SQL snapshots/no mint",
+      "Cleanup cancellation/revocation/idempotence/original expiry and wait cancellation",
+      "All stable test IDs and test counts",
+      "All production and media quality/deadline/admission requirements"
+    ],
+    "selectors": [
+      "connection_control::tests::replacement_sources::public_video_ledger::atomic_prepare::public_video_atomic_optin_refuses_legacy_confirmation_cancelled_unknown_expiry_and_ambiguous_mapping_without_mint",
+      "connection_control::tests::replacement_sources::public_video_ledger::public_video_known_unpublished_cleanup_survives_original_expiry_cancel_and_revocation_without_target_grant"
+    ],
+    "production_files_changed": 0,
+    "TTL_changed": false,
+    "effect_retry_added": false,
+    "source_candidate_sha256": "d0126ccda56a69e4dc793fdbf84768a0d059a0f619fda9099f8e41be1245a09c",
+    "source_review_sha256": "12dbcc288b2a60a37f49dbf4680cd499c685f805b502164274ec0ca9df1ccac4"
+  },
+  "focused": {
+    "passed": 13,
+    "failed": 0,
+    "ignored": 0,
+    "Core": 10,
+    "Store": 3,
+    "all_previous_eleven_retained": true,
+    "children_natural0": 19,
+    "root_natural0_closed": true,
+    "result_sha256": "070268daf64308dcb3bf8fdbfba27a4bccfa6d2b596b6f71d0ea3755f97dc7aa",
+    "root_join_sha256": "0c7cf959822c083083e608ccbf5b9b343802c7e8b96555e62bea793c86601dcd",
+    "source_body_review_sha256": "217e7bee003e9773f87649ce5d48258922b6a97f4ad7e2fff862412935eb946b",
+    "independent_actual_audit_sha256": "aa894da3006f11df96bfae1be60bb0e2d95daa2b28f1d879ed155b1da084479f",
+    "source_unchanged": true,
+    "actual_dependencies_verified_before_build": true,
+    "dependency_rotation": false,
+    "normal_prepared_dependency_proof_separate_from_current_workspace": true,
+    "scope": "Focused units only"
+  },
+  "acceptance_changed": false,
+  "ready_for_32": false,
+  "new_matrix_run": false,
+  "matrix_last_run": "v218",
+  "matrix_passed": 1,
+  "matrix_total": 32,
+  "matrix_checks_passed": 399,
+  "matrix_checks_total": 432,
+  "remaining": "Fresh all seven original readiness scopes on final source; original3V8 only strictfullPASS; stopREADY32. Local Mac/nativeARM only; G6-054 parked."
+}

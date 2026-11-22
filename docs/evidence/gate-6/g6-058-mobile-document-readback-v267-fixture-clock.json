@@ -1,0 +1,28 @@
+{
+  "revision": 267,
+  "checkpoint": 171,
+  "paragraphs": 422,
+  "changed": [
+    2,
+    9
+  ],
+  "unchanged": 420,
+  "all_styles_preserved": true,
+  "document_revision": "AHj4eMSjMXawUOecqk9yNMOinsQilK-dNxauJ9Ib4A28BEkGgZddDgbTiNIxSBJGCtNujmlfY0h1FRrALoRxxORfjXPbCGzZaLlrQujSOwg",
+  "source_generation": 562,
+  "focused_passed": 13,
+  "failed": 0,
+  "ignored": 0,
+  "matrix_passed": 1,
+  "matrix_total": 32,
+  "new_matrix_run": false,
+  "qualification": false,
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "recorded_at": "2026-11-22T08:04:35.471354+00:00",
+  "raw_before_sha256": "21c48ed8285c5eee01c58efd6c6faf25b32e1c6fe858e5a86bd17decbbd974c9",
+  "raw_readback_sha256": "2b60df8d291774045edecd194fddbe2ff70bd66336a2f27f4cba950fc9478f16",
+  "private_request_sha256": "050e305c6d42a03420e9d35433189e3894d264a5c59a2e36b3c5a61e39cb41a1",
+  "private_write_sha256": "901808999af908b934c07da68094fcb995e832521731867e42351016407ce85f",
+  "component_evidence": "docs/evidence/gate-6/g6-058-v219-g831-short-lease-fixtures.json",
+  "component_evidence_sha256": "608cbcc372c9491fa63a6288b7492dad6b36b346adafdeab2b8f4df6e184e053"
+}

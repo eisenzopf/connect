@@ -1,19 +1,19 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-22T07:16:49.178795+00:00",
-  "revision": 170,
-  "status": "Source562 passes all eleven focused controls: ten Core controls, including the repaired post-policy contention fixture, plus the Store closed-input/expiry control with a real held-reader admission refusal and same-helper recovery. Both previously failing selectors now pass without changing production behavior or acceptance. Normal dependency preparation passed; all19 focused-run children and Root closed naturally. The previous source561 full run remains4284PASS/2FAIL/0ignored with all9 builds/13 artifacts passed; its two failures are retained, not regraded. All seven original readiness scopes must now qualify final committed source, stopping at READY32. Matrix remains v218:1/32 cells,399/432 checks; no new matrix run. Local Mac/native ARM only; G6-054 remains parked.",
+  "updated_at": "2026-11-22T08:04:35.471354+00:00",
+  "revision": 171,
+  "status": "All13 focused controls PASS on the two-test clock batch: Core10 plus Store3, including both one-second lease fixtures and the previous11 checks. Both real two-second sleeps, original TTLs and every prior assertion remain. Only two Store test bodies changed; production code and prepared dependency generation562 stay unchanged. All19 children and Root closed naturally; independent actual runtime audit accepted. G831 full remains4285PASS/1FAIL/0ignored; both prior G821 failures passed, and the remaining atomic fixture now passes its focused check. Its historical exact mode/predicate was unlogged and remains unproven. Final-source full/all seven original readiness scopes remain required; stopREADY32. Matrix remains v218:1/32 cells and399/432 checks, no new matrix run. Local Mac/nativeARM only; G6-054 parked.",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint170-mobile265-scoped-readback",
-    "content_revision": 265,
-    "readback_evidence": ".local/gate-6/g827-checkpoint170-mobile265-root/readback.json",
-    "readback_evidence_sha256": "612ae7d2755dc95897f0040fe5854dfb3cbbeae21b05894e65f7a532a3bbfc4f",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v265-fixture-repairs.json",
-    "postrun_readback_sha256": "b9c21c97486140327d2543abdb9a75af1d3714f750042e520db5b0bf6185512e"
+    "sync_status": "verified-checkpoint171-mobile267-scoped-readback",
+    "content_revision": 267,
+    "readback_evidence": ".local/gate-6/g832-checkpoint171-mobile267-root/readback.json",
+    "readback_evidence_sha256": "2b60df8d291774045edecd194fddbe2ff70bd66336a2f27f4cba950fc9478f16",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v267-fixture-clock.json",
+    "postrun_readback_sha256": "e112fd30b82e24fb9d7db89f2b853bc3481164ef2ab6534bf5c9a5b23e5ba9c8"
   },
   "baseline": {
     "run": "v215",
@@ -3848,6 +3848,44 @@
           "scope": "Focused unit only"
         }
       ]
+    },
+    {
+      "id": "V219-G831-FIXTURE-CLOCK",
+      "plan_id": "G6-058",
+      "title": "Stabilize original1s fixture clocks before intended expiry",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-G831-ONE-SECOND-SETUP"
+      ],
+      "depends_on": [],
+      "status": "component-verified",
+      "implementation_state": "Two test bodies implemented and independently reviewed; actual two assigned selectors PASS within Core10+Store3 focused13. Fresh full/readiness pending.",
+      "proposed_fix": "Existing scoped thread-local cfg(test) policy clock is pinned before fixture construction. Both original1s leases and actual2s sleeps remain. After the same real sleep, advance the same clock tobase+2 and assert the original expiry is unchanged and reached.",
+      "required_evidence": [
+        "Same failing selector with allfour original modes and assertions",
+        "Related cleanup short-lease control with unchanged expiry/cancel/revoke oracles",
+        "Final-source full and all seven original readiness scopes"
+      ],
+      "coordinator_review": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g831-short-lease-fixtures.json",
+        "scope": "Actual focused13 only; historical unique predicate unproven; no matrix-cell attribution"
+      },
+      "verification_runs": [
+        {
+          "run": "G832",
+          "source_generation": 562,
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "selectors": [
+            "connection_control::tests::replacement_sources::public_video_ledger::atomic_prepare::public_video_atomic_optin_refuses_legacy_confirmation_cancelled_unknown_expiry_and_ambiguous_mapping_without_mint",
+            "connection_control::tests::replacement_sources::public_video_ledger::public_video_known_unpublished_cleanup_survives_original_expiry_cancel_and_revocation_without_target_grant"
+          ],
+          "scope": "Focused two clock controls only"
+        }
+      ]
     }
   ],
   "failure_mapping": [
@@ -6810,6 +6848,15 @@
       "at": "2026-11-22T07:19:52.109899+00:00",
       "by": "/root",
       "mobile_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v265-fixture-repairs.json"
+    },
+    {
+      "at": "2026-11-22T08:04:35.471354+00:00",
+      "revision": 171,
+      "event": "G831 full4285PASS1FAIL preserved; both olderfailures pass. Two clock fixture bodies corrected with same1s leases/real2s sleeps; focused13PASS, all19children+Rootclosed; finalfull/allseven pending.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g831-short-lease-fixtures.json",
+      "by": "/root",
+      "mobile_revision": 267,
+      "mobile_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v267-fixture-clock.json"
     }
   ],
   "tracking_review": {
@@ -8439,9 +8486,9 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "Source562 passes all eleven focused controls: ten Core controls, including the repaired post-policy contention fixture, plus the Store closed-input/expiry control with a real held-reader admission refusal and same-helper recovery. Both previously failing selectors now pass without changing production behavior or acceptance. Normal dependency preparation passed; all19 focused-run children and Root closed naturally. The previous source561 full run remains4284PASS/2FAIL/0ignored with all9 builds/13 artifacts passed; its two failures are retained, not regraded. All seven original readiness scopes must now qualify final committed source, stopping at READY32. Matrix remains v218:1/32 cells,399/432 checks; no new matrix run. Local Mac/native ARM only; G6-054 remains parked.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g821-fixture-repairs.json",
-    "sha256": "f5969d4de5d7c55104a508d9daad6b8a1e0420f19401390d6abf3a8313d0e8e7",
+    "status": "All13 focused controls PASS on the two-test clock batch: Core10 plus Store3, including both one-second lease fixtures and the previous11 checks. Both real two-second sleeps, original TTLs and every prior assertion remain. Only two Store test bodies changed; production code and prepared dependency generation562 stay unchanged. All19 children and Root closed naturally; independent actual runtime audit accepted. G831 full remains4285PASS/1FAIL/0ignored; both prior G821 failures passed, and the remaining atomic fixture now passes its focused check. Its historical exact mode/predicate was unlogged and remains unproven. Final-source full/all seven original readiness scopes remain required; stopREADY32. Matrix remains v218:1/32 cells and399/432 checks, no new matrix run. Local Mac/nativeARM only; G6-054 parked.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g831-short-lease-fixtures.json",
+    "sha256": "608cbcc372c9491fa63a6288b7492dad6b36b346adafdeab2b8f4df6e184e053",
     "source_generation": 562,
     "ready_for_32": false,
     "live_readiness_status": ".local/gate-6/ready32-source562/status.html"
@@ -9455,6 +9502,14 @@
     "full_source561_passed": 4284,
     "full_source561_failed": 2,
     "current_source562_units_passed": 11,
+    "ready_for_32": false
+  },
+  "v219_g832_clock_fixture_units": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g831-short-lease-fixtures.json",
+    "sha256": "608cbcc372c9491fa63a6288b7492dad6b36b346adafdeab2b8f4df6e184e053",
+    "focused_passed": 13,
+    "previous_full_passed": 4285,
+    "previous_full_failed": 1,
     "ready_for_32": false
   }
 }
