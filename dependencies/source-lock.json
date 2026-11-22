@@ -2961,6 +2961,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-webrtc-rejected-late-packets-preserve-provenance.patch",
       "sha256": "98d5edbd287ab156261c225f4688e50f23de9b1b756f0fb3e0729989cb2000c2"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-public-video-warm-first-refusal-diagnostics.patch",
+      "sha256": "e020fb55d98bd20f0df2bd8ce93b91bdf90904b7a977c53d7c7668bd0b606ae1"
     }
   ]
 }

@@ -1,0 +1,463 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -585,7 +585,7 @@
+             .unwrap_or_else(|p| p.into_inner());
+         let consumer = match slot.as_ref() {
+             None => None,
+-            Some(owner) => Some(owner.upgrade().ok_or(StreamControlError::NotReady)?),
++            Some(owner) => Some(owner.upgrade().ok_or(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("audio-consumer-owner-gone", error, Some(self), Some(port), Some(sending)))?),
+         };
+         if matches!(
+             expected,
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/preroll.rs
+@@ -48,7 +48,7 @@
+     }
+     pub(super) fn begin(&self) -> ControlResult<PeerDeliveryGuard> {
+         if !self.is_current() {
+-            return Err(StreamControlError::NotReady);
++            return Err(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("preroll-current-before-original-delivery", error, None, None, None));
+         }
+         // Keep the original selection fenced through the actual target write.
+         // An unsubscribe must drain these writes before it publishes retirement.
+@@ -56,9 +56,9 @@
+             .original
+             .ticket
+             .try_begin_delivery()
+-            .ok_or(StreamControlError::NotReady)?;
++            .ok_or(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("preroll-original-ticket-delivery", error, None, None, None))?;
+         if !self.is_current() {
+-            return Err(StreamControlError::NotReady);
++            return Err(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("preroll-current-after-original-delivery", error, None, None, None));
+         }
+         Ok(held)
+     }
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -365,7 +365,7 @@
+             .selection
+             .publisher
+             .upgrade()
+-            .ok_or(StreamControlError::NotReady)?;
++            .ok_or(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("direct-publisher-owner-gone", error, Some(target), Some(port), Some(true)))?;
+         if publisher.origin_member.participant() != &source.participant
+             || publisher.origin_member.epoch() != source.membership_epoch
+             || publisher.conversation != source.conversation
+@@ -382,9 +382,9 @@
+         let current = self
+             .ticket
+             .try_begin_delivery()
+-            .ok_or(StreamControlError::NotReady)?;
++            .ok_or(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("direct-ticket-delivery", error, Some(target), Some(port), Some(true)))?;
+         if !self.is_current() {
+-            return Err(StreamControlError::NotReady);
++            return Err(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("direct-current-after-delivery", error, Some(target), Some(port), Some(true)));
+         }
+         Ok(DirectDeliveryGuard {
+             _current: current,
+--- a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+@@ -71,7 +71,7 @@
+     ) -> ControlResult<PeerDeliveryGuard> {
+         let s = self.state.lock().unwrap_or_else(|p| p.into_inner());
+         if !s.active || self.cancel.is_cancelled() || !stamp.ticket.is_current() {
+-            return Err(StreamControlError::NotReady);
++            return Err(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("scene-begin-inactive-cancelled-or-ticket-stale", error, None, None, None));
+         }
+         // Activation does not rotate the route ticket. Check its exact start
+         // under the same State guard as delivery admission, not in a separate
+@@ -86,7 +86,7 @@
+         stamp
+             .ticket
+             .try_begin_delivery()
+-            .ok_or(StreamControlError::NotReady)
++            .ok_or(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("scene-ticket-delivery", error, None, None, None))
+     }
+ }
+ impl Drop for SceneConsumer {
+@@ -240,7 +240,7 @@
+             .lock()
+             .unwrap_or_else(|p| p.into_inner());
+         let owner = match &*slot {
+-            Some(weak) => Some(weak.upgrade().ok_or(StreamControlError::NotReady)?),
++            Some(weak) => Some(weak.upgrade().ok_or(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("scene-owner-gone", error, Some(self), None, None))?),
+             None => None,
+         };
+         let Some(owner) = owner else {
+@@ -265,7 +265,7 @@
+         let stamp = match check.retained {
+             None => owner.stamp(),
+             Some(Some(stamp)) => stamp.clone(),
+-            Some(None) => return Err(StreamControlError::NotReady),
++            Some(None) => return Err(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("scene-required-stamp-absent", error, Some(self), None, None)),
+         };
+         if check
+             .admitted
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -3351,7 +3351,7 @@
+                     .get(&port.binding.negotiated.requested.logical_id)
+                     .is_none_or(|stream| !stream.permits(sending))
+             {
+-                return Err(StreamControlError::NotReady);
++                return Err(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("controller-active-model-eligibility", error, Some(self), Some(port), Some(sending)));
+             }
+             Ok(())
+         };
+@@ -3381,7 +3381,7 @@
+         let state = if recover_fresh {
+             wait_without_authority(recovery_until)?
+         } else {
+-            lock_state()?
++            lock_state().inspect_err(|error| note_media_admission_refusal("controller-state-before-policy-would-block", error, Some(self), Some(port), Some(sending)))?
+         };
+         validate(&state)?;
+         let revision = state.model.revision();
+@@ -3470,7 +3470,7 @@
+                     Some(&policy_result),
+                 );
+             }
+-            let lease = policy_result?;
++            let lease = policy_result.inspect_err(|error| note_media_admission_refusal("current-policy", error, Some(self), Some(port), Some(sending)))?;
+             if let Some(until) = queued_deadline.as_deref_mut() {
+                 // Record every observed grant before reacquiring model State:
+                 // NotReady drops the lease but cannot forget its earlier expiry.
+@@ -3499,7 +3499,7 @@
+             }
+             let observed = match state.take() {
+                 Some(state) => Ok(state),
+-                None => lock_state(),
++                None => lock_state().inspect_err(|error| note_media_admission_refusal("controller-state-after-policy-would-block", error, Some(self), Some(port), Some(sending))),
+             };
+             match observed {
+                 Ok(state) => break (lease, state),
+@@ -3603,17 +3603,17 @@
+         if self.shutdown.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+-        port.require_ticket(if sending {TicketSide::Egress}else{TicketSide::Ingress},ticket)?;
++        port.require_ticket(if sending {TicketSide::Egress}else{TicketSide::Ingress},ticket).inspect_err(|error| note_media_admission_refusal("port-ticket-generation", error, Some(self), Some(port), Some(sending)))?;
+         let guard = ticket
+             .try_begin_delivery()
+-            .ok_or(StreamControlError::NotReady)?;
++            .ok_or(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("port-ticket-delivery", error, Some(self), Some(port), Some(sending)))?;
+         let (direct_guard,(scene_stamp,scene_guard)) = if sending && medium != Medium::Audio {
+             let (guard,stamp,scene_guard)=direct.ok_or(StreamControlError::Authority)?.begin_with_scene(
+                 self,port,source.ok_or(StreamControlError::Authority)?,scene,
+-            )?;
++            ).inspect_err(|error| note_media_admission_refusal("direct-scene-admission", error, Some(self), Some(port), Some(sending)))?;
+             (Some(guard),(stamp,scene_guard))
+         } else {
+-            (None,self.scene_admission(scene)?)
++            (None,self.scene_admission(scene).inspect_err(|error| note_media_admission_refusal("source-scene-admission", error, Some(self), Some(port), Some(sending)))?)
+         };
+         let messages_only = {
+             // The early forwarding probe is not an exclusion lease. A reader
+@@ -3626,16 +3626,16 @@
+                     AdmissionOwner::QueuedForward if port.kind() == StreamKind::Data => StreamControlError::Backpressure,
+                     _ if fresh_publication => StreamControlError::Backpressure,
+                     _ => StreamControlError::NotReady,
+-                }),
++                }).inspect_err(|error| note_media_admission_refusal("port-state-metadata-would-block", error, Some(self), Some(port), Some(sending))),
+                 Err(std::sync::TryLockError::Poisoned(error)) => error.into_inner(),
+             };
+             state.messages_only
+         };
+         if messages_only && scene_stamp.is_none() {
+-            return Err(StreamControlError::NotReady);
+-        }
+-
+-        let mut admission = self.consumer_admission(port, sending, consumer, guard)?;
++            return Err(StreamControlError::NotReady).inspect_err(|error| note_media_admission_refusal("messages-only-without-scene", error, Some(self), Some(port), Some(sending)));
++        }
++
++        let mut admission = self.consumer_admission(port, sending, consumer, guard).inspect_err(|error| note_media_admission_refusal("consumer-admission", error, Some(self), Some(port), Some(sending)))?;
+         admission.scene = scene_stamp;
+         admission._scene = scene_guard;
+         admission._direct = direct_guard;
+@@ -5160,3 +5160,21 @@
+ mod control_snapshot;
+ mod control_turn_reads;
+ mod control_port_guards;
++
++// Error-only fixed leaves. No packet predicate, authority or metadata is
++// resampled: callers invoke this only on their existing failed Result.
++fn note_media_admission_refusal(
++    leaf: &'static str, error: &StreamControlError,
++    controller: Option<&StreamController>, port: Option<&Port>, sending: Option<bool>,
++) {
++    if matches!(error, StreamControlError::NotReady) {
++        tracing::debug!(target: "connect_service::original_replacement_terminal",
++            boundary = "core-media-admission-not-ready", leaf, error_kind = "media-not-ready",
++            connection = controller.map(|owner| owner.connection.as_str()),
++            logical_id = port.map(|original| original.binding.negotiated.requested.logical_id.as_str()),
++            transport_id = port.map(|original| original.binding.transport_id.as_str()),
++            stream_generation = port.map(|original| original.binding.generation),
++            connection_generation = port.map(|original| original.binding.connection_generation),
++            sending, "Original current media admission refused");
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions/post_cut_public/initial_picture.rs
+@@ -20,6 +20,33 @@
+     deadline:tokio::time::Instant,
+     cancel:CancellationToken,
+ }
++fn terminal_refusal(original:&InitialPublicVideoPicture,leaf:&'static str,effect_stage:&'static str,error:&StreamControlError) {
++    let kind=match error {
++        StreamControlError::Model(_)=>"model",StreamControlError::Unsupported=>"unsupported",
++        StreamControlError::Authority=>"authority",StreamControlError::NotRecipient=>"not-recipient",
++        StreamControlError::Cancelled=>"cancelled",StreamControlError::Deadline=>"deadline",
++        StreamControlError::NotReady=>"not-ready",StreamControlError::MetadataBusy=>"metadata-busy",
++        StreamControlError::Backpressure=>"backpressure",StreamControlError::CleanupUnconfirmed=>"cleanup-unconfirmed",
++    };
++    terminal_refusal_kind(original,leaf,effect_stage,kind);
++}
++fn terminal_current_refusal(original:&InitialPublicVideoPicture,leaf:&'static str,effect_stage:&'static str) {
++    terminal_refusal_kind(original,leaf,effect_stage,"currentness-false");
++}
++fn terminal_refusal_kind(original:&InitialPublicVideoPicture,leaf:&'static str,effect_stage:&'static str,kind:&'static str) {
++    if let Some(scope)=original.direct.post_cut.as_ref() {
++        tracing::debug!(target:"connect_service::original_replacement_terminal",
++            boundary="public-video-warm-initial-refusal",leaf,effect_stage,error_kind=kind,
++            operation=%scope.original_intent().operation_id,source=%scope.source().connection,
++            target=%scope.original_intent().replacement,source_logical=%scope.source().logical_id,
++            target_logical=%scope.target().logical_id,realm=scope.frontier().realm_incarnation(),
++            physical_family=scope.target().physical_writer_incarnation,"Original public warm refusal");
++    } else {
++        tracing::debug!(target:"connect_service::original_replacement_terminal",
++            boundary="public-video-warm-initial-refusal",leaf,effect_stage,error_kind=kind,
++            original_scope_missing=true,"Original public warm refusal");
++    }
++}
+ impl InitialVideoPictureRequest<'_> {
+     pub fn source_port(&self)->&AdapterMediaPort {&self.source}
+     pub fn source(&self)->&MediaSource {&self.descriptor}
+@@ -27,8 +54,10 @@
+     pub fn cancellation(&self)->&CancellationToken {&self.cancel}
+     /// Current weak/ticket metadata, not a replacement for the held admissions.
+     pub fn is_current(&self)->bool {
+-        self.original.current() && !self.cancel.is_cancelled()
+-            && tokio::time::Instant::now()<self.deadline
++        if !self.original.current() {return false;}
++        if self.cancel.is_cancelled() {terminal_current_refusal(self.original,"picture-request-cancelled","currentness-only-no-effect-proof");return false;}
++        if !(tokio::time::Instant::now()<self.deadline) {terminal_current_refusal(self.original,"picture-request-deadline","currentness-only-no-effect-proof");return false;}
++        true
+     }
+ }
+ /// Borrowed only during current source Publish and exact target Warm admission.
+@@ -47,8 +76,13 @@
+     pub fn scope(&self)->&Arc<PostCutPublicVideoScope> {&self.scope}
+     pub fn deadline(&self)->tokio::time::Instant {self.deadline}
+     pub fn cancellation(&self)->&CancellationToken {&self.cancel}
+-    pub fn is_current(&self)->bool {self.original.current() && self.scope.is_current()
+-        && !self.cancel.is_cancelled() && tokio::time::Instant::now()<self.deadline}
++    pub fn is_current(&self)->bool {
++        if !self.original.current() {return false;}
++        if !self.scope.is_current() {terminal_current_refusal(self.original,"warm-request-scope-current","adapter-currentness-no-IO-proof");return false;}
++        if self.cancel.is_cancelled() {terminal_current_refusal(self.original,"warm-request-cancelled","adapter-currentness-no-IO-proof");return false;}
++        if !(tokio::time::Instant::now()<self.deadline) {terminal_current_refusal(self.original,"warm-request-deadline","adapter-currentness-no-IO-proof");return false;}
++        true
++    }
+ }
+ impl InitialPublicVideoPicture {
+     pub(super) fn from_route(
+@@ -90,35 +124,42 @@
+         Ok(Self {source,target,source_ticket,target_ticket,source_scene,target_scene,direct,attempted:AtomicBool::new(false),started:AtomicBool::new(false)})
+     }
+     fn current(&self)->bool {
+-        self.direct.is_current() && self.source_ticket.is_current() && self.target_ticket.is_current()
+-            && self.source.strong_count()!=0 && self.target.strong_count()!=0
+-            && [&self.source_scene,&self.target_scene].into_iter().flatten().all(|s|!s.cancel.is_cancelled())
++        if !self.direct.is_current() {terminal_current_refusal(self,"current-direct-stamp","currentness-only-no-effect-proof");return false;}
++        if !self.source_ticket.is_current() {terminal_current_refusal(self,"current-source-ticket","currentness-only-no-effect-proof");return false;}
++        if !self.target_ticket.is_current() {terminal_current_refusal(self,"current-target-ticket","currentness-only-no-effect-proof");return false;}
++        if !(self.source.strong_count()!=0) {terminal_current_refusal(self,"current-source-port-owner","currentness-only-no-effect-proof");return false;}
++        if !(self.target.strong_count()!=0) {terminal_current_refusal(self,"current-target-port-owner","currentness-only-no-effect-proof");return false;}
++        if ![&self.source_scene,&self.target_scene].into_iter().flatten().all(|s|!s.cancel.is_cancelled()) {terminal_current_refusal(self,"current-scene-cancellation","currentness-only-no-effect-proof");return false;}
++        true
+     }
+     pub(super) async fn dispatch(&self)->ControlResult<()> {self.invoke(false).await}
+     pub(super) async fn start(&self)->ControlResult<()> {self.invoke(true).await}
+     async fn invoke(&self,start:bool)->ControlResult<()> {
+         let attempted=if start {&self.started} else {&self.attempted};
+-        if !self.current() || attempted.load(Ordering::Acquire) {return Err(StreamControlError::NotReady);}
+-        let scope=self.direct.post_cut.as_ref().ok_or(StreamControlError::Authority)?;
+-        let source_port=self.source.upgrade().ok_or(StreamControlError::Cancelled)?;
+-        let target_port=self.target.upgrade().ok_or(StreamControlError::Cancelled)?;
+-        let source=source_port.owner.upgrade().ok_or(StreamControlError::Cancelled)?;
+-        let target=target_port.owner.upgrade().ok_or(StreamControlError::Cancelled)?;
++        if !self.current() {terminal_refusal(self,"invoke-initial-current","before-once-CAS-and-adapter-entry",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
++        if attempted.load(Ordering::Acquire) {terminal_refusal(self,"invoke-already-attempted","before-this-invocation-adapter-entry-prior-entry-possible",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
++        let scope=self.direct.post_cut.as_ref().ok_or_else(||{terminal_refusal(self,"invoke-post-cut-scope-missing","before-once-CAS-and-adapter-entry",&StreamControlError::Authority);StreamControlError::Authority})?;
++        let source_port=self.source.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-source-port-gone","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?;
++        let target_port=self.target.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-target-port-gone","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?;
++        let source=source_port.owner.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-source-controller-gone","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?;
++        let target=target_port.owner.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-target-controller-gone","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?;
+         if source.conversation!=target.conversation || source.session!=target.session
+-            || !Arc::ptr_eq(&source.policy,&target.policy) {return Err(StreamControlError::Authority);}
+-        let cancel=scope.cancellation()?;
+-        let mut deadline=scope.deadline().ok_or(StreamControlError::Cancelled)?
++            || !Arc::ptr_eq(&source.policy,&target.policy) {terminal_refusal(self,"invoke-source-target-domain-policy","before-once-CAS-and-adapter-entry",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        let cancel=scope.cancellation().map_err(|error|{terminal_refusal(self,"invoke-scope-cancellation-owner","before-once-CAS-and-adapter-entry",&error);error})?;
++        let mut deadline=scope.deadline().ok_or_else(||{terminal_refusal(self,"invoke-scope-deadline-owner","before-once-CAS-and-adapter-entry",&StreamControlError::Cancelled);StreamControlError::Cancelled})?
+             .min(tokio::time::Instant::now()+Duration::from_millis(100));
+         let (source_lease,source_guard,source_bound)=source.admit_with_deadline(
+             &source_port,&self.source_ticket,false,None,audio_consumer::ConsumerCheck::Retained(None),None,
+-            scene_consumer::SceneCheck::retained_publish(self.source_scene.as_ref()),None,None,None,Some(&mut deadline))?;
++            scene_consumer::SceneCheck::retained_publish(self.source_scene.as_ref()),None,None,None,Some(&mut deadline))
++            .map_err(|error|{terminal_refusal(self,"invoke-source-admission","before-once-CAS-and-adapter-entry",&error);error})?;
+         deadline=deadline.min(source_bound);
+         // The exact pending-public stamp selects current_public_video_warm;
+         // never ordinary receive authorization or a private-preroll bypass.
+         let (target_lease,target_guard,target_bound)=target.admit_with_deadline(
+             &target_port,&self.target_ticket,true,Some(scope.source()),audio_consumer::ConsumerCheck::Retained(None),Some(&self.direct),
+             scene_consumer::SceneCheck::retained_receive(self.target_scene.as_ref(),self.source_scene.as_ref(),Instant::now()),
+-            None,None,None,Some(&mut deadline))?;
++            None,None,None,Some(&mut deadline))
++            .map_err(|error|{terminal_refusal(self,"invoke-target-warm-admission","before-once-CAS-and-adapter-entry",&error);error})?;
+         deadline=deadline.min(target_bound);
+         let mut tokens=vec![source.shutdown.clone(),target.shutdown.clone(),self.direct.cancel.clone(),cancel.clone()];
+         for scene in [&self.source_scene,&self.target_scene].into_iter().flatten() {tokens.push(scene.cancel.clone());}
+@@ -128,20 +169,20 @@
+         let request=InitialVideoPictureRequest {original:self,source:AdapterMediaPort(source_port),descriptor:scope.source().clone(),deadline,cancel:cancel.clone()};
+         let warm=PublicVideoWarmStart {original:self,target:AdapterMediaPort(target_port),scope:scope.clone(),deadline,cancel};
+         let result=tokio::select! {biased;
+-            _=audio_consumer::any_cancelled(tokens)=>Err(StreamControlError::Cancelled),
++            _=audio_consumer::any_cancelled(tokens)=>{terminal_refusal(self,"invoke-cancel-select","callback-may-have-been-polled-no-replay-proof",&StreamControlError::Cancelled);Err(StreamControlError::Cancelled)},
+             value=tokio::time::timeout_at(deadline,async {
+-                if !request.is_current() {return Err(StreamControlError::NotReady);}
++                if !request.is_current() {terminal_refusal(self,"invoke-request-current-before-CAS","before-once-CAS-and-adapter-entry",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
+                 // Consume BEFORE constructing/polling adapter IO. A dropped,
+                 // failed or uncertain callback can never be repeated as new.
+                 attempted.compare_exchange(false,true,Ordering::AcqRel,Ordering::Acquire)
+-                    .map_err(|_|StreamControlError::NotReady)?;
++                    .map_err(|_|{terminal_refusal(self,"invoke-once-CAS-refused","before-this-invocation-adapter-entry-prior-entry-possible",&StreamControlError::NotReady);StreamControlError::NotReady})?;
+                 if start {
+-                    callback_adapter.start_public_video_warm(&warm).await?;
+-                    scope.owner.upgrade().ok_or(StreamControlError::Cancelled)?.into_owner().started.store(true,Ordering::Release);
++                    callback_adapter.start_public_video_warm(&warm).await.map_err(|error|{terminal_refusal(self,"invoke-warm-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",&error);error})?;
++                    scope.owner.upgrade().ok_or_else(||{terminal_refusal(self,"invoke-owner-gone-after-adapter","after-adapter-success-effects-possible",&StreamControlError::Cancelled);StreamControlError::Cancelled})?.into_owner().started.store(true,Ordering::Release);
+                     Ok(())
+                 }
+-                else {callback_adapter.request_initial_video_picture(&request).await}
+-            })=>value.map_err(|_|StreamControlError::Deadline)?,
++                else {callback_adapter.request_initial_video_picture(&request).await.map_err(|error|{terminal_refusal(self,"invoke-picture-adapter-return","after-once-CAS-and-adapter-entry-effects-possible",&error);error})}
++            })=>value.map_err(|_|{terminal_refusal(self,"invoke-timeout","callback-may-have-been-polled-no-replay-proof",&StreamControlError::Deadline);StreamControlError::Deadline})?,
+         };
+         // select!/timeout destroys the actual borrowed callback future before
+         // any fresh policy Reader or original delivery guard is released.
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media/public_warm.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/public_warm.rs
+@@ -1,46 +1,81 @@
+ //! Arm the SAME originally reserved B output; never allocate a replacement
+ //! queue, source worker, track, decoder or public mapping during warm start.
+ use super::*;
++fn terminal_warm_refusal(request:&direct_subscriptions::PublicVideoWarmStart<'_>,leaf:&'static str,effect_stage:&'static str,error:&StreamControlError) {
++    let scope=request.scope();
++    let kind=match error {
++        StreamControlError::Model(_)=>"model",StreamControlError::Unsupported=>"unsupported",
++        StreamControlError::Authority=>"authority",StreamControlError::NotRecipient=>"not-recipient",
++        StreamControlError::Cancelled=>"cancelled",StreamControlError::Deadline=>"deadline",
++        StreamControlError::NotReady=>"not-ready",StreamControlError::MetadataBusy=>"metadata-busy",
++        StreamControlError::Backpressure=>"backpressure",StreamControlError::CleanupUnconfirmed=>"cleanup-unconfirmed",
++    };
++    tracing::debug!(target:"connect_service::original_replacement_terminal",
++        boundary="public-video-warm-adapter-refusal",leaf,effect_stage,error_kind=kind,
++        operation=%scope.original_intent().operation_id,source=%scope.source().connection,
++        target=%scope.original_intent().replacement,source_logical=%scope.source().logical_id,
++        target_logical=%scope.target().logical_id,realm=scope.frontier().realm_incarnation(),
++        physical_family=scope.target().physical_writer_incarnation,"Original public warm refusal");
++}
+ impl Backend {
+     pub(super) async fn start_reserved_public_video(&self,request:&direct_subscriptions::PublicVideoWarmStart<'_>)->ControlResult<()> {
+         let port=request.target_port();let scope=request.scope();let descriptor=scope.target();let binding=port.binding();
+-        if !request.is_current() || !self.current()
+-            || !self.original_controller.get().is_some_and(|original|port.matches_adapter_media_owner(original))
+-            || port.context_ids()? != (scope.conversation().clone(),scope.session().clone(),scope.original_intent().replacement.clone())
+-            || self.id!=scope.original_intent().replacement || binding.transport_id!=descriptor.transport_id
+-            || binding.negotiated.requested.logical_id!=descriptor.logical_id
+-            || binding.generation!=descriptor.stream_generation || binding.connection_generation!=descriptor.connection_generation
+-            || binding.negotiated.requested.medium!=Medium::Video || !binding.sink_ready
+-            || self.physical.reserved_video.as_ref().map(|profile|profile.role(&binding.negotiated.requested)).transpose()?.flatten()!=Some(super::super::reserved_video::VideoRole::PublicReserved)
+-        {return Err(StreamControlError::Authority);}
+-        let io=self.ports.get(&descriptor.transport_id).map(|entry|entry.value().clone()).ok_or(StreamControlError::NotReady)?;
+-        let current=||self.current() && request.is_current() && io.health.confirmed()
+-            && io.port.upgrade().is_some_and(|original|original.same_original(port) && original.status()==PortStatus::Active)
+-            && same_binding(&io.binding,binding)
+-            && self.ports.get(&descriptor.transport_id).is_some_and(|original|Arc::ptr_eq(original.value(),&io));
+-        if !current() {return Err(StreamControlError::NotReady);}
++        if !request.is_current() {terminal_warm_refusal(request,"adapter-request-current","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if !self.current() {terminal_warm_refusal(request,"adapter-backend-current","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if !self.original_controller.get().is_some_and(|original|port.matches_adapter_media_owner(original)) {terminal_warm_refusal(request,"adapter-original-controller","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if port.context_ids().map_err(|error|{terminal_warm_refusal(request,"adapter-context-ids-error","adapter-entered-before-queue",&error);error})? != (scope.conversation().clone(),scope.session().clone(),scope.original_intent().replacement.clone()) {terminal_warm_refusal(request,"adapter-context-ids","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if self.id!=scope.original_intent().replacement {terminal_warm_refusal(request,"adapter-replacement-id","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if binding.transport_id!=descriptor.transport_id {terminal_warm_refusal(request,"adapter-transport-id","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if binding.negotiated.requested.logical_id!=descriptor.logical_id {terminal_warm_refusal(request,"adapter-logical-id","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if binding.generation!=descriptor.stream_generation {terminal_warm_refusal(request,"adapter-stream-generation","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if binding.connection_generation!=descriptor.connection_generation {terminal_warm_refusal(request,"adapter-connection-generation","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if binding.negotiated.requested.medium!=Medium::Video {terminal_warm_refusal(request,"adapter-medium","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if !binding.sink_ready {terminal_warm_refusal(request,"adapter-sink-ready","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        if self.physical.reserved_video.as_ref().map(|profile|profile.role(&binding.negotiated.requested)).transpose().map_err(|error|{terminal_warm_refusal(request,"adapter-reserved-role-error","adapter-entered-before-queue",&error);error})?.flatten()!=Some(super::super::reserved_video::VideoRole::PublicReserved) {terminal_warm_refusal(request,"adapter-reserved-role","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        let io=self.ports.get(&descriptor.transport_id).map(|entry|entry.value().clone()).ok_or_else(||{terminal_warm_refusal(request,"adapter-port-io-missing","adapter-entered-before-queue",&StreamControlError::NotReady);StreamControlError::NotReady})?;
++        let current=|stage:&'static str| {
++            if !self.current() {terminal_warm_refusal(request,"current-backend",stage,&StreamControlError::NotReady);return false;}
++            if !request.is_current() {terminal_warm_refusal(request,"current-request",stage,&StreamControlError::NotReady);return false;}
++            if !io.health.confirmed() {terminal_warm_refusal(request,"current-worker-health",stage,&StreamControlError::NotReady);return false;}
++            if !io.port.upgrade().is_some_and(|original|original.same_original(port) && original.status()==PortStatus::Active) {terminal_warm_refusal(request,"current-original-port-active",stage,&StreamControlError::NotReady);return false;}
++            if !same_binding(&io.binding,binding) {terminal_warm_refusal(request,"current-binding",stage,&StreamControlError::NotReady);return false;}
++            if !self.ports.get(&descriptor.transport_id).is_some_and(|original|Arc::ptr_eq(original.value(),&io)) {terminal_warm_refusal(request,"current-port-io-arc",stage,&StreamControlError::NotReady);return false;}
++            true
++        };
++        if !current("adapter-before-peer-before-queue") {return Err(StreamControlError::NotReady);}
+         // All potentially waiting native setup is BEFORE taking the reserved
+         // queue. No raw capability escapes and no worker/IO starts here.
+         let peer=tokio::select! {biased;
+-            _=request.cancellation().cancelled()=>return Err(StreamControlError::Cancelled),
+-            result=self.physical.peer_internal(request.deadline())=>result.map_err(|_|StreamControlError::NotReady)?,
++            _=request.cancellation().cancelled()=>{terminal_warm_refusal(request,"adapter-peer-cancel-select","adapter-entered-before-queue",&StreamControlError::Cancelled);return Err(StreamControlError::Cancelled)},
++            result=self.physical.peer_internal(request.deadline())=>result.map_err(|error|{
++                tracing::debug!(target:"connect_service::original_replacement_terminal",
++                    boundary="public-video-warm-adapter-refusal",leaf="adapter-original-peer-observation",
++                    effect_stage="adapter-entered-before-queue",error_kind="not-ready",peer_error_kind=error.diagnostic_class(),
++                    operation=%scope.original_intent().operation_id,source=%scope.source().connection,
++                    target=%scope.original_intent().replacement,source_logical=%scope.source().logical_id,
++                    target_logical=%scope.target().logical_id,realm=scope.frontier().realm_incarnation(),
++                    physical_family=scope.target().physical_writer_incarnation,"Original public warm refusal");
++                StreamControlError::NotReady
++            })?,
+         };
+-        if !current() {return Err(StreamControlError::NotReady);}
+-        let owner=io.reserved_video.as_ref().and_then(Weak::upgrade).ok_or(StreamControlError::NotReady)?;
+-        let mut setup=io.health.setup.try_lock().map_err(|_|StreamControlError::MetadataBusy)?;
+-        if setup.closing || !setup.tasks.is_empty() || !current() {return Err(StreamControlError::NotReady);}
+-        let mut slot=owner.video.try_lock().map_err(|_|StreamControlError::MetadataBusy)?;
+-        let video=slot.as_mut().ok_or(StreamControlError::NotReady)?;
+-        let (native_ssrc,payload_type,observed)=video.owned_binding_metadata(&peer).ok_or(StreamControlError::Authority)?;
+-        if observed.physical_family!=descriptor.physical_writer_incarnation {return Err(StreamControlError::Authority);}
+-        let recorder=request.keyframe_submission_recorder(native_ssrc,payload_type)?;
+-        video.arm_public_warm(scope.clone(),recorder)?;
++        if !current("adapter-after-peer-before-queue") {return Err(StreamControlError::NotReady);}
++        let owner=io.reserved_video.as_ref().and_then(Weak::upgrade).ok_or_else(||{terminal_warm_refusal(request,"adapter-reserved-owner-missing","adapter-entered-before-queue",&StreamControlError::NotReady);StreamControlError::NotReady})?;
++        let mut setup=io.health.setup.try_lock().map_err(|_|{terminal_warm_refusal(request,"adapter-setup-lock","adapter-entered-before-queue",&StreamControlError::MetadataBusy);StreamControlError::MetadataBusy})?;
++        if setup.closing {terminal_warm_refusal(request,"adapter-setup-closing","adapter-entered-before-queue",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
++        if !setup.tasks.is_empty() {terminal_warm_refusal(request,"adapter-setup-tasks-present","adapter-entered-before-queue",&StreamControlError::NotReady);return Err(StreamControlError::NotReady);}
++        if !current("adapter-under-setup-before-queue") {return Err(StreamControlError::NotReady);}
++        let mut slot=owner.video.try_lock().map_err(|_|{terminal_warm_refusal(request,"adapter-reserved-slot-lock","adapter-entered-before-queue",&StreamControlError::MetadataBusy);StreamControlError::MetadataBusy})?;
++        let video=slot.as_mut().ok_or_else(||{terminal_warm_refusal(request,"adapter-reserved-slot-empty","adapter-entered-before-queue",&StreamControlError::NotReady);StreamControlError::NotReady})?;
++        let (native_ssrc,payload_type,observed)=video.owned_binding_metadata(&peer).ok_or_else(||{terminal_warm_refusal(request,"adapter-original-writer-binding","adapter-entered-before-queue",&StreamControlError::Authority);StreamControlError::Authority})?;
++        if observed.physical_family!=descriptor.physical_writer_incarnation {terminal_warm_refusal(request,"adapter-physical-writer-family","adapter-entered-before-queue",&StreamControlError::Authority);return Err(StreamControlError::Authority);}
++        let recorder=request.keyframe_submission_recorder(native_ssrc,payload_type).map_err(|error|{terminal_warm_refusal(request,"adapter-keyframe-recorder","adapter-entered-before-queue-recorder-may-be-claimed",&error);error})?;
++        video.arm_public_warm(scope.clone(),recorder).map_err(|error|{terminal_warm_refusal(request,"adapter-arm-public-warm","adapter-entered-before-queue-recorder-claimed",&error);error})?;
+         // No await follows queue consumption/worker installation. Close shares
+         // this exact setup exclusion and retains both original task joins.
+-        let video=slot.take().ok_or(StreamControlError::NotReady)?;
++        let video=slot.take().ok_or_else(||{terminal_warm_refusal(request,"adapter-reserved-slot-take-empty","adapter-entered-recorder-claimed-arm-returned",&StreamControlError::NotReady);StreamControlError::NotReady})?;
+         let pictures=video.picture_requests();
+-        io.start_locked(&mut setup,picture_feedback(pictures,peer.video_keyframe_requests(),peer.video_repair_requests(),self.routes.clone(),self.picture_next.clone(),io.health.stop.clone()))?;
+-        io.start_locked(&mut setup,egress_loop(Egress::Video(video),io.health.stop.clone(),Medium::Video))?;
++        io.start_locked(&mut setup,picture_feedback(pictures,peer.video_keyframe_requests(),peer.video_repair_requests(),self.routes.clone(),self.picture_next.clone(),io.health.stop.clone())).map_err(|error|{terminal_warm_refusal(request,"adapter-picture-worker-install","original-queue-consumed-worker-effect-possible",&error);error})?;
++        io.start_locked(&mut setup,egress_loop(Egress::Video(video),io.health.stop.clone(),Medium::Video)).map_err(|error|{terminal_warm_refusal(request,"adapter-egress-worker-install","original-queue-consumed-picture-worker-installed",&error);error})?;
+         Ok(())
+     }
+ }

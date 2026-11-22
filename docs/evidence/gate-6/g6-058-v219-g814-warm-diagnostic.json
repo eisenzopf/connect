@@ -1,0 +1,128 @@
+{
+  "format": "connect/g6-058-warm-start-diagnostic-progress/1",
+  "updated_at": "2026-11-22T03:51:24.001774+00:00",
+  "run_status": "Source 555 passed all 4,281 affected regressions (2,945 Rust, 1,251 Node, 85 Python; zero failures, ignored or skipped checks), all nine builds and 13 artifacts. Source 556 adds reviewed diagnostics only: four existing warm controls pass and G814 completes four real browser handoffs, both returns and one planned same-lease recovery. G811 previously failed its fourth return at warm-start NotReady; the exact inner producer remains unproven and the diagnostic pass is not a behavior repair. Typed definitely-unstarted warm recovery and a separate redundant A/V PortState lock removal are being prepared with deterministic controls. Matrix remains v218: 1/32 cells, 399/432 checks; no new matrix run. Local Mac/native ARM only; G6-054 stays parked.",
+  "baseline_source555": {
+    "head": "967df9c641b564f3f47473fa7b7b03892788cad1",
+    "full_passed": 4281,
+    "rust_passed": 2945,
+    "node_passed": 1251,
+    "python_passed": 85,
+    "failed": 0,
+    "ignored_or_skipped": 0,
+    "builds": 9,
+    "artifacts": 13,
+    "natural_child_owners": 43,
+    "shared_vectors_passed": 379
+  },
+  "working_source556": {
+    "purpose": "Error-only first-refusal diagnostics; no behavior repair claimed",
+    "source_lock_sha256": "681f89e7460973c1b208b34f0feb0a9dac707b21ddab98e7df3706247234ce27",
+    "prepared_rvoip": "f4d82d440128a95e9d6e5b04a04178f36f0f0833fc23af259f523e12dc9c438d",
+    "existing_warm_controls_passed": 4,
+    "G814_diagnostic_handoffs_completed": 4,
+    "returns_completed": 2,
+    "planned_same_lease_recoveries": 1,
+    "original_owner_closure_verified": true,
+    "original_V8_qualification": false
+  },
+  "G811_failure": {
+    "completed_handoffs": 3,
+    "failed_handoff": "browser-wire-public-b-roundtrip-1-1",
+    "first_recorded_stage": "warm-start",
+    "first_recorded_code": "media-not-ready",
+    "first_seconds": 13.361200875,
+    "later_lifetime_forbidden_does_not_prove_initiating_cause": true,
+    "inner_producer": "unproven",
+    "other_two_original_cases_not_run": true,
+    "null_ledger_cut_id_not_proof_of_no_Core_F": true
+  },
+  "G814_observations": {
+    "core_not_ready_events": 965,
+    "controller_state_would_block": 703,
+    "events_not_unique_packet_loss": true,
+    "queued_media_retries": "SAME original packet, captured source/target/tickets and bounded age/deadline; entered callback errors remain terminal",
+    "warm_refusal_events": 0,
+    "G811_inner_producer_not_reproduced": true,
+    "observer_timing_limitation": "Error-only debug logging can affect later scheduling; no historical cause or cure inferred."
+  },
+  "fix_batch": {
+    "warm": {
+      "owner": "/root/batch_build_review",
+      "reviewer": "/root/independent_batch_review",
+      "status": "implementing-source-draft",
+      "design": "Nonclone definitely-unstarted retry token reserves the original warm one-shot; only controlled metadata contention before adapter entry; retain same F/warm, original 100ms cutoff and all observed grant-expiry minima; no retry of entered callbacks, stale authorization or expiry."
+    },
+    "AV_lock": {
+      "owner": "/root/v198_resources",
+      "reviewer": "/root/independent_batch_review",
+      "status": "standalone-source-reviewed-unrun",
+      "design": "Skip only the redundant PortState messages_only read for immutable non-Data ports; sole production true setter requires Prepared Data; preserve exact Data path and test real held-lock AV IO and Data semantics."
+    }
+  },
+  "private_proofs": {
+    "full": {
+      "path": ".local/gate-6/g810-readiness2-full-root/cohort/component-result.json",
+      "sha256": "7fafb64b5c02820f03b87b41fb8bd2a8b7916c52827d2de11106547c440771fc"
+    },
+    "full_audit": {
+      "path": ".local/gate-6/g810-actual-full-independent-audit/receipt.json",
+      "sha256": "4dfa56dc0453c5b29a94446bd68711309377899a2486a2638fa7b2d08ed61c8b"
+    },
+    "failed_browser_case": {
+      "path": ".local/gate-6/g811-original-v8-root/result.json",
+      "sha256": "9a0e7bcce5eee856b839172643b7047d32e8dd8b98118e808ad71f5f50fafee6"
+    },
+    "failed_case_join": {
+      "path": ".local/gate-6/g811-original-v8-root/root-original-join-and-reconciliation.json",
+      "sha256": "f08d7cb9c4249b012cc480f2dfb9570b29ce5037df8b362fc38d5e9cd24b5947"
+    },
+    "normal556": {
+      "path": ".local/gate-6/g812-normal556-warmdiag-root/normal556-runtime/receipt.json",
+      "sha256": "7add1e89d84c83bd38da654e4fec336dbf8839c20be6fc35d850b8bf5e4f547b"
+    },
+    "diagnostic_units_build": {
+      "path": ".local/gate-6/g813-warmdiag-controls-build-root/build-result.json",
+      "sha256": "7df338fa719082af01b1ef266b0f93936543bd8238a9d8163214a2334507a0e7"
+    },
+    "diagnostic_browser": {
+      "path": ".local/gate-6/g814-warm-first-refusal-singlecase-root/result.json",
+      "sha256": "ed5b32e42a036691bdb4480ed29be8973efbf73026771ba8c766f9a233573f8a"
+    },
+    "diagnostic_browser_join": {
+      "path": ".local/gate-6/g814-warm-first-refusal-singlecase-root/root-original-join-and-review.json",
+      "sha256": "c7a921696d2303826649db989caaeb0598410220447a71a45c3eabaa1060cb64"
+    },
+    "diagnostic_browser_audit": {
+      "path": ".local/gate-6/g814-diagnostic-roundtrip-independent-actual-audit/receipt.json",
+      "sha256": "146e2227267d4a5db8213ed0d19bfa5c19f06d98d7a894c910458d91764a4fc2"
+    },
+    "media_refusal_mapping": {
+      "path": ".local/gate-6/g814-media-notready-consumer-readonly-review/findings.json",
+      "sha256": "f4e4e6beb442b8e18112ab2b19b7d1dcf8f640e85d22c564d070797a159986c3"
+    },
+    "mobile260": {
+      "path": ".local/gate-6/g814-warm-first-refusal-singlecase-root/mobile260/verification.json",
+      "sha256": "9df0f92c943a39ec517f2389a5cf2ccfd8456fe3db13d9ca69eccbbb809f6699"
+    },
+    "mobile260_precision_correction": {
+      "path": ".local/gate-6/g814-warm-first-refusal-singlecase-root/mobile260/correction-verification.json",
+      "sha256": "e12dc4dbe5ffee19a6f064d5d5c61eec52c876600012b8012b443c8f3f7caa2a"
+    }
+  },
+  "coordinator": "/root",
+  "mobile_revision": 260,
+  "remaining_readiness": "All seven original scopes required on final fixed source; stop READY32, no matrix launch. Source555 full proof and source556 diagnostic proof do not substitute for final-source readiness.",
+  "matrix": {
+    "run": "v218",
+    "passed_cells": 1,
+    "total_cells": 32,
+    "passed_checks": 399,
+    "total_checks": 432,
+    "new_run": false
+  },
+  "ready_for_32": false,
+  "matrix_credit": false,
+  "acceptance_thresholds_changed": false,
+  "G6_054": "parked"
+}
