@@ -1,0 +1,140 @@
+{
+  "format": "connect/g6-058-muted-plan-metadata/1",
+  "checkpoint": 172,
+  "recorded_at": "2026-11-22T09:49:07.777676+00:00",
+  "source_generation": 563,
+  "source_base_commit": "fc1e5e7075173927690b228ab033301ca88c1b2c",
+  "current_prepared_source_sha256": "390a889d5d33da32ffeca923457cb049daaf6e273750dbbdfbb88700f98e9dce",
+  "source_lock_sha256": "32f4b1eea8d87a4e1564be66eba63ff640ee044791fd9a0b630b082d2b6c4748",
+  "prepared": {
+    "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab",
+    "rvoip": "41ace2d27d24d75e7da1de641bb4173f9b65bb986f64b432c220d2570d350aa3"
+  },
+  "previous_full": {
+    "run": "G834",
+    "commit": "fc1e5e7075173927690b228ab033301ca88c1b2c",
+    "passed": 4286,
+    "failed": 0,
+    "ignored": 0,
+    "Rust_passed": 2950,
+    "Node_passed": 1251,
+    "Python_passed": 85,
+    "builds_passed": 9,
+    "artifacts": 13,
+    "result_sha256": "cbff6c1683a9e27dc872e723253417942cc74687756c5650e9ab04acf98d4dd7",
+    "root_join_sha256": "cea9f23a7a770a5a94724ff13a25b43e0bce3b9c46fa1e6c8fcd418be7c61f14",
+    "independent_actual_audit_sha256": "aa8768eb65fc31ae8bff1687c2c8abda16804a541483a3ce7204bc71ffce5244",
+    "scope": "Affected component suite only; this baseline predates the new563 planning fix."
+  },
+  "original_V8": {
+    "run": "G835",
+    "passed": false,
+    "case": "rtc-roundtrip",
+    "case_exit_code": 101,
+    "root_exit_code": 1,
+    "source_unchanged": true,
+    "binaries_unchanged": true,
+    "three_moves_completed": true,
+    "fourth_move": "return1-1",
+    "first_server_boundary": "muted-activation forbidden at11.757593625s; exact inner producer not logged",
+    "historical_unique_inner_cause_proven": false,
+    "later_two_original_cases_run": false,
+    "all_original_owners_closed": true,
+    "closure_only_not_failure_promotion": true,
+    "result_sha256": "20e7cba0b616cd24fdf7a80b7b07b1492a76e4dea33323df47e77e6aa69cf243",
+    "root_reconciliation_sha256": "7ed8368985d5d0f63b936af3e66c6c5197abc1ec3a5f448e46dc9bf8d81d93ea",
+    "browser_closure_sha256": "dff7b33d6c71381068dad1cfe6e60851cc1d96d41dcd3baa8bfb8aef52028f2f"
+  },
+  "fix": {
+    "task_id": "V219-G835-MUTED-PLAN",
+    "blocker_id": "V219-G835-PLAN-CONTENTION",
+    "owner_agent": "/root/batch_build_review",
+    "independent_reviewer": "/root/independent_batch_review",
+    "confirmed_source_gap": "A real controller-State WouldBlock in effect-free audience planning became semantic Conflict, then Service flattened it to forbidden. This independently confirmed source defect is not uniquely attributed to the historical G835 failure.",
+    "implementation": "Only exact StateWouldBlock becomes existing MetadataBusy; poisoned State and semantic conflicts retain terminal errors. Service uses existing core_plan_error only for pure planning inside the original min(root.deadline,now+5s) read-loop. No begin/apply/entered callback retry; IDs, current authority and original deadlines remain. Fixed error-only substages preserve original drop/await/effect order.",
+    "source_candidate_sha256": "31171da42a3421f24c378096c6025fcf918b80d42588815f8b9650cbf4b40a39",
+    "source_review_sha256": "095e286e198bbff9df5cb5b3027588dc3a19e9a1dd38d4395130684de887d3f3",
+    "formatted_review_sha256": "0f54c35fed3b833ec8c47464396dd435dcbb38bbdeb6e3d0c2f7adede086173f",
+    "new_controls": "Two actual Core State-held planning controls plus one Service partial-reader/coordinator-release control; existing controls retained."
+  },
+  "normal_preparation": {
+    "passed": true,
+    "generation": 563,
+    "receipt_sha256": "5238c972c8bf9b0629a32392be56414180c23784d876a59ebadd7f5eaef907ac",
+    "root_join_sha256": "b661aee7b8fd8cefef05af9660306dae56bb50a52dc88b6a43d7f28572622d30",
+    "independent_actual_audit_sha256": "fd7bd46991e0a3acb072672cb66c10a799ad2d7d07d34efc802cabfc52e8bede",
+    "original_root_and_two_children_closed": true
+  },
+  "focused": {
+    "run": "G837",
+    "status": "PASS",
+    "original_exec": 34564,
+    "root_pid": 61695,
+    "required": 21,
+    "Core_required": 15,
+    "Store_required": 3,
+    "Service_required": 3,
+    "observed_Core_passed": 15,
+    "Core_case_result_hashes": {
+      "green-control-1-result.json": "bfa50fe1bea33916bed6c4ee2e556aee7eea44aaede2d364d5365c943483e122",
+      "green-control-2-result.json": "0a3cf3f8ea5f57d767765636a314eb56ba95dcf97b1884b8ac68635d24421c5b",
+      "green-control-3-result.json": "d68929b256dd8b2deade239e87e2b5094d08da31ea534e9dffffb01223fe1642",
+      "green-control-4-result.json": "60aa4da68c427642284dc9a4c3c4aa149fe16eecd0b46177d1b18b3436e1da27",
+      "green-control-5-result.json": "c611ba786f48748ab46d9548606471e9697e4d25a7c7ce39914ed8869404eaf7",
+      "green-control-6-result.json": "5211d3cd6c209e04ce714ee8a7b0933ebd22ce733be36494949b6139e1562a10",
+      "green-control-7-result.json": "3550a7afd713ef0046706d3317dc98c5a0698813ca6a8f6fd0dff33704ecadae",
+      "green-control-8-result.json": "63f41d0ff53cfc2aa9e8905d627cb48421a918002a2004973ab4a94160731e8b",
+      "green-control-9-result.json": "217bb0058a97e85e0ce5243a45266ff235da8103d1642c04ce19d7848ad3237d",
+      "green-control-10-result.json": "a49f71c899cd8426d68f365f8e469cbed0ab0420533d26fb72dfc9f92856c235",
+      "green-control-11-result.json": "13005b7691ace74c61eb144d6afa643fc69aa3183ec49058899c8bfdcd580ece",
+      "green-control-12-result.json": "e41f23120b5ad8e539ba0dbb8c99fd230d7a5c91822b79c0c852b5e7d7c33bcf",
+      "green-control-13-result.json": "6d1c6ef2e9bd5cd0299ac6213750fb24628efe7d83fc9084853b961c115b3cbf",
+      "green-control-14-result.json": "f01d53ab41b3331668f34feed5f74fea5a252aab33452a78dbd8584c244ddb21",
+      "green-control-15-result.json": "30cd02ad00ba8b087ff906bd18369dbf9b84db69fffc84732c098a0d31548e19"
+    },
+    "Store_result": {
+      "path": ".local/gate-6/g837-twentyone-units-root/store-control-result.json",
+      "sha256": "edd9695d286cc590ccae9ba58b0f68b56b8af313168e8cef8c42b5171a8369b6"
+    },
+    "Service_result": {
+      "path": ".local/gate-6/g837-twentyone-units-root/service-control-result.json",
+      "sha256": "c09c743d23314d5ba52c897a0f7fa867c699beb932ffde62345edd908de347b6"
+    },
+    "passed": 21,
+    "failed": 0,
+    "ignored": 0,
+    "final_result_sha256": "676093f7e50388f666c8925266894031d6723955807f416846831490511c38a4",
+    "root_join_sha256": "813585a718908e17549665b9f4433a89236404eec0fc99fa55dd1a2834ebff89",
+    "independent_actual_audit_sha256": "553bec022a0e16197358ce1ca929d318eff43e5a86d0ad6692a6d2a852bd1847",
+    "current_source_sha256": "3cf8a25ccf2148a63a9dcb7b2fd85ee32599fa82c1fef2222e7ddf8354cd693b",
+    "scope": "Focused21 units only; original owner closure and actual outcomes independently audited. Final-source full/API/media/readiness remains required.",
+    "Core_passed": 15,
+    "Store_passed": 3,
+    "Service_passed": 3,
+    "normal_source_sha256": "390a889d5d33da32ffeca923457cb049daaf6e273750dbbdfbb88700f98e9dce",
+    "entire_parsed_normal_and_unit_source_seals_equal": true,
+    "raw_source_hash_difference": "Serialized JSON key order only; both genuine raw hashes preserved.",
+    "original_root_and_26_children_natural0_closed": true,
+    "current_library_artifacts": 5
+  },
+  "acceptance_changed": false,
+  "ready_for_32": false,
+  "new_matrix_run": false,
+  "matrix": {
+    "last_run": "v218",
+    "passed": 1,
+    "total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "remaining": "Batch commit/push, then all seven original readiness scopes on finalsource. Strict fullPASS precedes all3 originalV8; laterFirefox BPF action stillpending. StopREADY32; localMac/nativeARM only; G6-054 parked.",
+  "historical_mobile270": {
+    "scope": "Immutable verified pre-normal snapshot, not relabelled as current unit proof.",
+    "private_readback_path": ".local/gate-6/g836-mobile270-reviewed-batch-root/readback.json",
+    "private_readback_sha256": "f6f948c9aeb390d94a7fbe1d4b26557410e7fe90ce067877032d4b0ce635dbfe"
+  },
+  "mobile272": {
+    "scope": "Fresh scoped readback after actual21PASS; only paragraphs2/9 changed,420 others/allstyles preserved.",
+    "public_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v272-actual-muted-plan-units.json"
+  }
+}

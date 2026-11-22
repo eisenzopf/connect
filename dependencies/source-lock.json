@@ -2996,6 +2996,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-original-ingress-postpolicy-model-contention-test.patch",
       "sha256": "25233d664592e66cd8afc0e325a5edbc538c2e84f195629b77df4353fbac3b8b"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-muted-activation-pure-plan-metadata-busy.patch",
+      "sha256": "51cb0f0989c16a12567022abd290c1e31003427d2a5d8db97b5a5625ddd25001"
     }
   ]
 }

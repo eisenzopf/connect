@@ -1,0 +1,295 @@
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_test_support.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control/replacement/metadata_test_support.rs
+@@ -86,3 +86,12 @@
+         state.confirmation.as_ref().map(|partial| partial.digits.clone()),
+     )
+ }
++
++/// Borrow the actual root-owned scene for crate unit metadata observations.
++/// This supplies no policy, grant, mutation, additional owner or public API.
++#[cfg(test)]
++pub(crate) fn replacement_scene_for_test(
++    p: &DeviceReplacementPreparation,
++) -> Option<&crate::staged_streams::media_scene::GuardedMediaScene> {
++    p.runtime.mixer.staged.as_deref()
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/audience.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audience.rs
+@@ -977,7 +977,12 @@
+                 .controller
+                 .state
+                 .try_lock()
+-                .map_err(|_| MediaTransitionError::Conflict)?;
++                .map_err(|error| match error {
++                    std::sync::TryLockError::WouldBlock => StreamControlError::MetadataBusy,
++                    std::sync::TryLockError::Poisoned(_) => {
++                        StreamControlError::Model(MediaTransitionError::Conflict)
++                    }
++                })?;
+             if source.controller.shutdown.is_cancelled()
+                 || source.current_descriptor(&state, true)?.is_none()
+                 || source.current_descriptor(&state, false)?.is_none()
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm/muted_activation_plan_controls.rs
+@@ -0,0 +1,184 @@
++//! Actual attached candidate and State exclusion at the pure plan boundary.
++//! These are controlled Core fixtures, not native/browser or durable receipts.
++use super::*;
++use crate::orchestrator::participant_control::replacement::metadata_test_support::{
++    pending_signal_snapshot, replacement_scene_for_test,
++};
++use std::sync::mpsc as channel;
++
++struct StateOwner {
++    release: Option<channel::SyncSender<()>>,
++    worker: Option<std::thread::JoinHandle<u64>>,
++    entered_revision: u64,
++    released_revision: Option<u64>,
++}
++impl StateOwner {
++    fn hold(controller: Arc<StreamController>) -> Self {
++        let (entered, ready) = channel::sync_channel(1);
++        let (release, resume) = channel::sync_channel(1);
++        let worker = std::thread::spawn(move || {
++            let state = controller.state.lock().unwrap();
++            let _ = entered.send(state.model.revision());
++            let _ = resume.recv();
++            let revision = state.model.revision();
++            drop(state);
++            revision
++        });
++        let mut owner = Self { release: Some(release), worker: Some(worker), entered_revision: 0, released_revision: None };
++        owner.entered_revision = ready.recv_timeout(Duration::from_secs(1)).expect("actual candidate State held");
++        owner
++    }
++    fn release(&mut self) {
++        if let Some(release) = self.release.take() { let _ = release.send(()); }
++        if let Some(worker) = self.worker.take() { self.released_revision = Some(worker.join().unwrap()); }
++    }
++}
++impl Drop for StateOwner {
++    fn drop(&mut self) { self.release(); }
++}
++
++#[derive(Debug, PartialEq, Eq)]
++struct Snapshot {
++    revision: u64,
++    groups: BTreeMap<String, usize>,
++    preparations: BTreeMap<ConnectionId, usize>,
++    pending: BTreeMap<String, usize>,
++    restorable: BTreeSet<String>,
++    members: BTreeMap<ConnectionId, usize>,
++}
++fn snapshot(_room: &ManagedRoom, root: &DeviceReplacementPreparation) -> Snapshot {
++    let scene = replacement_scene_for_test(root).unwrap();
++    let members = scene.members.lock().unwrap();
++    let state = scene.audiences.lock().unwrap();
++    Snapshot {
++        revision: state.revision,
++        groups: state.groups.iter().map(|(id, group)| (id.clone(), Arc::as_ptr(group) as usize)).collect(),
++        preparations: state.preparations.iter().map(|(id, group)| (id.clone(), Arc::as_ptr(group) as usize)).collect(),
++        pending: state.pending.iter().map(|(id, controller)| (id.clone(), controller.as_ptr() as usize)).collect(),
++        restorable: state.restorable.clone(),
++        members: members.iter().map(|(id, member)| (id.clone(), Arc::as_ptr(&member.controller) as usize)).collect(),
++    }
++}
++// Controller.revision() locks State: never call it while the holder owns
++// that State. The holder reports its actual revision through owned scalars.
++fn revisions(room: &ManagedRoom) -> BTreeMap<ConnectionId, u64> {
++    room.nodes.iter().map(|(id, node)| (id.clone(), node.controller.revision())).collect()
++}
++async fn attached(room: &mut ManagedRoom) -> (
++    Arc<DeviceReplacementPreparation>, ReplacementGrant, CancellationToken,
++) {
++    let (alice, source, retained) = actors(room).await;
++    let mut next = domain(&room.conversation, &room.session, "muted-plan-next", "alice");
++    let value = Arc::get_mut(&mut next).unwrap();
++    value.principal = alice.principal.clone();
++    value.member = alice.member.clone();
++    let (root, grant, _context, cancellation) = room.prepare_move_attached(&source, &retained, next).await;
++    (root, grant, cancellation)
++}
++
++#[tokio::test]
++async fn muted_activation_plan_actual_state_busy_preserves_original_metadata_and_recovers_once() {
++    let mut room = ManagedRoom::with_video(true).await;
++    let result = catch_original(async {
++        let (root, grant, _cancel) = attached(&mut room).await;
++        let candidate = room.nodes[&grant.intent.replacement].controller.clone();
++        let original_identity = root.preparation_identity();
++        let before = snapshot(&room, &root);
++        let before_revisions = revisions(&room);
++        let signals = pending_signal_snapshot(&root);
++        let leases = room.world.media_leases.load(Ordering::Acquire);
++        let mut owner = StateOwner::hold(candidate.clone());
++        assert_eq!(owner.entered_revision, before_revisions[&grant.intent.replacement]);
++        for _ in 0..2 {
++            let began = Instant::now();
++            let refused = room.orch.plan_staged_device_replacement_muted_activation(&root);
++            assert!(matches!(refused, Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))),
++                "actual State exclusion must be typed pre-effect metadata contention");
++            assert!(began.elapsed() < Duration::from_millis(250));
++            assert_eq!(snapshot(&room, &root), before, "no revision, group or pending slot minted");
++            assert_eq!(pending_signal_snapshot(&root), signals);
++            assert_eq!(room.world.media_leases.load(Ordering::Acquire), leases);
++        }
++        owner.release();
++        assert_eq!(owner.released_revision, Some(owner.entered_revision), "actual held model revision unchanged");
++        assert_eq!(revisions(&room), before_revisions);
++        let plan = room.orch.plan_staged_device_replacement_muted_activation(&root).unwrap();
++        let same = room.orch.plan_staged_device_replacement_muted_activation(&root).unwrap();
++        assert_eq!(plan.request(), same.request(), "same original handle/nonce and request");
++        assert!(plan.is_muted_endpoint_preparation());
++        assert!(original_identity.same(&root.preparation_identity()));
++        assert_eq!(snapshot(&room, &root), before, "successful planning is effect-free too");
++        let held = Command::Audience { root: grant.clone(), plan: plan.clone() };
++        let context = room.orch.activate_staged_device_replacement_with_held(&root, plan, &held).await.unwrap();
++        assert_eq!(candidate.revision(), before_revisions[&grant.intent.replacement] + 1);
++        assert_eq!(context.commit().revisions_for(&candidate).unwrap(),
++            (before_revisions[&grant.intent.replacement], candidate.revision()));
++        for (id, revision) in &before_revisions {
++            if id != &grant.intent.replacement { assert_eq!(room.nodes[id].controller.revision(), *revision); }
++        }
++        let committed = snapshot(&room, &root);
++        assert_eq!(committed.revision, before.revision + 1);
++        assert!(matches!(room.orch.plan_staged_device_replacement_muted_activation(&root),
++            Err(ParticipantControlError::Media(StreamControlError::Model(crate::stream_lifecycle::MediaTransitionError::Conflict)))));
++        assert_eq!(snapshot(&room, &root), committed, "duplicate semantic conflict never re-enters activation");
++    }).await;
++    let clean = room.close_originals().await.into_iter().all(|value| value);
++    assert!(clean, "all original controlled owners joined");
++    if let Err(error) = result { resume_unwind(error); }
++}
++
++#[tokio::test]
++async fn muted_activation_plan_semantic_authority_cancel_and_original_expiry_are_not_busy_retries() {
++    for action in 0..4 {
++        let mut room = ManagedRoom::with_video(true).await;
++        let result = catch_original(async {
++            let (root, grant, cancellation) = attached(&mut room).await;
++            let candidate = room.nodes[&grant.intent.replacement].controller.clone();
++            let before = snapshot(&room, &root);
++            let mut owner = StateOwner::hold(candidate);
++            assert!(matches!(room.orch.plan_staged_device_replacement_muted_activation(&root),
++                Err(ParticipantControlError::Media(StreamControlError::MetadataBusy))));
++            if action == 0 {
++                // A real revision mismatch wins before State exclusion. It is
++                // not a reason to retry or mint a new operation identifier.
++                let scene = replacement_scene_for_test(&root).unwrap();
++                let wrong = crate::staged_streams::audience::AudioAudienceRequest {
++                    operation_id: "unchanged-semantic-conflict".into(),
++                    expected_revision: before.revision + 1,
++                    private_connections: BTreeSet::from([grant.intent.replacement.clone()]),
++                    receivers: BTreeMap::from([(grant.intent.replacement.clone(), vec![])]),
++                    activate_muted: Some(grant.intent.replacement.clone()),
++                };
++                assert!(matches!(scene.plan_audio_audience(wrong),
++                    Err(StreamControlError::Model(crate::stream_lifecycle::MediaTransitionError::Conflict))));
++                assert_eq!(snapshot(&room, &root), before);
++                owner.release();
++            } else if action == 1 {
++                owner.release();
++                let plan = room.orch.plan_staged_device_replacement_muted_activation(&root).unwrap();
++                room.world.allowed.store(false, Ordering::Release);
++                let held = Command::Audience { root: grant.clone(), plan: plan.clone() };
++                let refused = room.orch.activate_staged_device_replacement_with_held(&root, plan, &held).await;
++                room.world.allowed.store(true, Ordering::Release);
++                assert!(matches!(refused, Err(ParticipantControlError::Authority)));
++                assert_eq!(snapshot(&room, &root), before, "fresh authority refusal never enters scene mutation");
++            } else if action == 2 {
++                // Cancel the SAME original constructor parent. Cancelling a
++                // newly derived root.cancellation() child would prove nothing.
++                cancellation.cancel();
++                assert!(matches!(room.orch.plan_staged_device_replacement_muted_activation(&root),
++                    Err(ParticipantControlError::Cancelled)));
++                owner.release(); // release before the original cleanup may run
++            } else {
++                owner.release(); // expiry cleanup must never wait for our holder
++                tokio::time::sleep_until(grant.until).await;
++                assert!(matches!(room.orch.plan_staged_device_replacement_muted_activation(&root),
++                    Err(ParticipantControlError::Deadline | ParticipantControlError::Cancelled)),
++                    "same original cutoff cannot turn expiry into metadata retry");
++            }
++        }).await;
++        let clean = room.close_originals().await.into_iter().all(|value| value);
++        assert!(clean, "all original controlled owners joined, action {action}");
++        if let Err(error) = result { resume_unwind(error); }
++    }
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum/public_video_warm.rs
+@@ -276,3 +276,7 @@
+ 
+ #[path="public_video_warm/metadata_retry_controls.rs"]
+ mod metadata_retry_controls;
++
++#[cfg(feature = "test-support")]
++#[path="public_video_warm/muted_activation_plan_controls.rs"]
++mod muted_activation_plan_controls;
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/private_outbound/managed_adoption_quantum.rs
+@@ -1075,7 +1075,10 @@
+     }
+     // The discard expiry control must retain the actual original pre-expiry
+     // activation plan; it cannot construct a new plan after cancellation.
+-    async fn prepare_move_with_activation_plan(
++    // Test fixture access to the genuine create/start/attach boundary. The
++    // returned token is the original constructor cancellation parent, not a
++    // newly derived child or a fabricated authority/currentness flag.
++    async fn prepare_move_attached(
+         &mut self,
+         source: &ConnectionId,
+         retained: &ConnectionId,
+@@ -1084,9 +1087,7 @@
+         Arc<DeviceReplacementPreparation>,
+         ReplacementGrant,
+         Arc<SignalContext>,
+-        crate::staged_streams::audience::AudioAudienceHandle,
+-        crate::staged_streams::endpoint_preparation::AudioEndpointPreparation,
+-        crate::staged_streams::audience::AudioAudiencePlan,
++        CancellationToken,
+     ) {
+         let id = ConnectionId::new();
+         let intent = ParticipantReplacementMutation {
+@@ -1108,6 +1109,7 @@
+             until: deadline(),
+             private_operation: Arc::new(std::sync::OnceLock::new()),
+         };
++        let cancellation = CancellationToken::new();
+         let root = self
+             .orch
+             .prepare_staged_device_replacement_with_held(
+@@ -1115,7 +1117,7 @@
+                 d.principal.clone(),
+                 intent.clone(),
+                 grant.until,
+-                CancellationToken::new(),
++                cancellation.clone(),
+                 &grant,
+             )
+             .unwrap();
+@@ -1254,6 +1256,24 @@
+             .attach_staged_device_replacement_with_held(&root, None, &grant)
+             .await
+             .unwrap();
++        (root, grant, context, cancellation)
++    }
++    async fn prepare_move_with_activation_plan(
++        &mut self,
++        source: &ConnectionId,
++        retained: &ConnectionId,
++        d: Arc<Domain>,
++    ) -> (
++        Arc<DeviceReplacementPreparation>,
++        ReplacementGrant,
++        Arc<SignalContext>,
++        crate::staged_streams::audience::AudioAudienceHandle,
++        crate::staged_streams::endpoint_preparation::AudioEndpointPreparation,
++        crate::staged_streams::audience::AudioAudiencePlan,
++    ) {
++        let (root, grant, context, _cancellation) =
++            self.prepare_move_attached(source, retained, d).await;
++        let id = grant.intent.replacement.clone();
+         let plan = self
+             .orch
+             .plan_staged_device_replacement_muted_activation(&root)

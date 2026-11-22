@@ -1,19 +1,19 @@
 {
   "format": "connect/g6-058-agent-work-tracker/1",
-  "updated_at": "2026-11-22T08:04:35.471354+00:00",
-  "revision": 171,
-  "status": "All13 focused controls PASS on the two-test clock batch: Core10 plus Store3, including both one-second lease fixtures and the previous11 checks. Both real two-second sleeps, original TTLs and every prior assertion remain. Only two Store test bodies changed; production code and prepared dependency generation562 stay unchanged. All19 children and Root closed naturally; independent actual runtime audit accepted. G831 full remains4285PASS/1FAIL/0ignored; both prior G821 failures passed, and the remaining atomic fixture now passes its focused check. Its historical exact mode/predicate was unlogged and remains unproven. Final-source full/all seven original readiness scopes remain required; stopREADY32. Matrix remains v218:1/32 cells and399/432 checks, no new matrix run. Local Mac/nativeARM only; G6-054 parked.",
+  "updated_at": "2026-11-22T09:49:07.777676+00:00",
+  "revision": 172,
+  "status": "All21 focused controls PASS (15Core/3Store/3Service; zero failed/ignored) on normally prepared563. Five current library-test artifacts/profiles/inventories, source and natural closure of26children+Root are independently audited. The confirmed pure-planning StateWouldBlock\u2192Conflict\u2192Forbidden gap is fixed; actual held-State controls prove unchanged metadata, same-request recovery and one activation. Genuine conflict/revoke/cancel/expiry remain terminal; entered callbacks never replay. Baseline G834 on fc1e remains4286PASS/0FAIL/0ignored, all9builds/13artifacts. Later G835 firstOriginalV8 case failed at return1-1 muted activation; allownersclosed, later2cases held, unique inner producer stillunproven. Focused21 does not regrade G835 or qualify finalfull/API/media. Next commit/push, then all seven original readiness scopes on finalsource; stopREADY32. Matrix v218 remains1/32 and399/432, no new run. LocalMac/nativeARM only; G6-054 parked.",
   "coordinator_agent": "/root",
   "mobile_document": {
     "url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
     "document_id": "1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y",
     "tab_id": "t.0",
-    "sync_status": "verified-checkpoint171-mobile267-scoped-readback",
-    "content_revision": 267,
-    "readback_evidence": ".local/gate-6/g832-checkpoint171-mobile267-root/readback.json",
-    "readback_evidence_sha256": "2b60df8d291774045edecd194fddbe2ff70bd66336a2f27f4cba950fc9478f16",
-    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v267-fixture-clock.json",
-    "postrun_readback_sha256": "e112fd30b82e24fb9d7db89f2b853bc3481164ef2ab6534bf5c9a5b23e5ba9c8"
+    "sync_status": "verified-checkpoint172-mobile272-scoped-readback",
+    "content_revision": 272,
+    "readback_evidence": ".local/gate-6/g838-mobile272-actual21-root/readback.json",
+    "readback_evidence_sha256": "792249f8263e25f41d66913e7e1d88ca4511b8bbb079c5ff2514dd506f6676cc",
+    "postrun_readback_evidence": "docs/evidence/gate-6/g6-058-mobile-document-readback-v272-actual-muted-plan-units.json",
+    "postrun_readback_sha256": "134295155059d3c53a3688ab8e352307d99de8d9d7a8753e1bb3f4c52944a19f"
   },
   "baseline": {
     "run": "v215",
@@ -3886,6 +3886,47 @@
           "scope": "Focused two clock controls only"
         }
       ]
+    },
+    {
+      "id": "V219-G835-MUTED-PLAN",
+      "plan_id": "G6-058",
+      "title": "Preserve definite pure-planning metadata contention without replaying activation",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "coordinator": "/root",
+      "blocker_ids": [
+        "V219-G835-PLAN-CONTENTION"
+      ],
+      "depends_on": [],
+      "status": "component-verified",
+      "implementation_state": "Implemented/source/format reviewed; normal563 and actual focused21 independently verified. The three assigned causal controls pass within15Core/3Store/3Service. Finalfull/API/media/readiness pending; unique historicalG835 inner producer unproven.",
+      "proposed_fix": "Only exact StateWouldBlock becomes existing MetadataBusy; poisoned State and semantic conflicts retain terminal errors. Service uses existing core_plan_error only for pure planning inside the original min(root.deadline,now+5s) read-loop. No begin/apply/entered callback retry; IDs, current authority and original deadlines remain. Fixed error-only substages preserve original drop/await/effect order.",
+      "required_evidence": [
+        "Actual State-held plan returns typed MetadataBusy with unchanged groups/models/IDs, then same-request recovery and one activation",
+        "Semantic conflicts, current authority revocation, original cancel/expiry remain terminal; no entered operation replay",
+        "Service partial authority and coordinator release before bounded wait",
+        "Actual focused21 closure, final-source full and all seven original readiness scopes"
+      ],
+      "coordinator_review": {
+        "evidence": "docs/evidence/gate-6/g6-058-v219-g835-muted-plan-metadata.json",
+        "scope": "Actual focused21 unit-only proof; G835historical unique inner producer remains unproven; no matrix-cell attribution."
+      },
+      "verification_runs": [
+        {
+          "run": "G837",
+          "source_generation": 563,
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "selectors": [
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::muted_activation_plan_controls::muted_activation_plan_actual_state_busy_preserves_original_metadata_and_recovers_once",
+            "staged_streams::tests::private_outbound::managed_adoption_quantum::public_video_warm::muted_activation_plan_controls::muted_activation_plan_semantic_authority_cancel_and_original_expiry_are_not_busy_retries",
+            "canonical_replacement::projection::tests::typed_plan_busy_releases_partial_authority_and_roles_before_same_budget_recovery_or_cancel"
+          ],
+          "whole_focused_passed": 21,
+          "scope": "Only the three assigned causal units; complete focused21 preserved; finalfull/API/media/readiness pending."
+        }
+      ]
     }
   ],
   "failure_mapping": [
@@ -6857,6 +6898,15 @@
       "by": "/root",
       "mobile_revision": 267,
       "mobile_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v267-fixture-clock.json"
+    },
+    {
+      "at": "2026-11-22T09:49:07.777676+00:00",
+      "revision": 172,
+      "event": "G834 full4286PASS preserved; G835 firstOriginalV8case failed/ownersclosed with unique inner producer unproven. Known pureplanmetadata gap fixed; normal563PASS and focused21PASS/0FAIL/0ignored with26children+Rootnaturalclosed. Finalfull/allseven pending; no matrixcredit.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g835-muted-plan-metadata.json",
+      "by": "/root",
+      "mobile_revision": 272,
+      "mobile_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v272-actual-muted-plan-units.json"
     }
   ],
   "tracking_review": {
@@ -8486,12 +8536,13 @@
     "matrix_qualified": false
   },
   "current_preparation_checkpoint": {
-    "status": "All13 focused controls PASS on the two-test clock batch: Core10 plus Store3, including both one-second lease fixtures and the previous11 checks. Both real two-second sleeps, original TTLs and every prior assertion remain. Only two Store test bodies changed; production code and prepared dependency generation562 stay unchanged. All19 children and Root closed naturally; independent actual runtime audit accepted. G831 full remains4285PASS/1FAIL/0ignored; both prior G821 failures passed, and the remaining atomic fixture now passes its focused check. Its historical exact mode/predicate was unlogged and remains unproven. Final-source full/all seven original readiness scopes remain required; stopREADY32. Matrix remains v218:1/32 cells and399/432 checks, no new matrix run. Local Mac/nativeARM only; G6-054 parked.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g831-short-lease-fixtures.json",
-    "sha256": "608cbcc372c9491fa63a6288b7492dad6b36b346adafdeab2b8f4df6e184e053",
-    "source_generation": 562,
+    "status": "All21 focused controls PASS (15Core/3Store/3Service; zero failed/ignored) on normally prepared563. Five current library-test artifacts/profiles/inventories, source and natural closure of26children+Root are independently audited. The confirmed pure-planning StateWouldBlock\u2192Conflict\u2192Forbidden gap is fixed; actual held-State controls prove unchanged metadata, same-request recovery and one activation. Genuine conflict/revoke/cancel/expiry remain terminal; entered callbacks never replay. Baseline G834 on fc1e remains4286PASS/0FAIL/0ignored, all9builds/13artifacts. Later G835 firstOriginalV8 case failed at return1-1 muted activation; allownersclosed, later2cases held, unique inner producer stillunproven. Focused21 does not regrade G835 or qualify finalfull/API/media. Next commit/push, then all seven original readiness scopes on finalsource; stopREADY32. Matrix v218 remains1/32 and399/432, no new run. LocalMac/nativeARM only; G6-054 parked.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g835-muted-plan-metadata.json",
+    "sha256": "1033fbe0e3091cfb7eb237fdcc397f0ac06be178652be58f47e334d19e6e2b8c",
+    "source_generation": 563,
     "ready_for_32": false,
-    "live_readiness_status": ".local/gate-6/ready32-source562/status.html"
+    "live_readiness_status": ".local/gate-6/ready32-source562/status.html",
+    "live_readiness_status_scope": "Existing source562 view is historical; all fresh563 readiness scopes remain pending."
   },
   "updated": "2026-11-21",
   "v219_g570_exact_clock_component": {
@@ -9511,5 +9562,24 @@
     "previous_full_passed": 4285,
     "previous_full_failed": 1,
     "ready_for_32": false
+  },
+  "v219_g835_muted_plan_metadata": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g835-muted-plan-metadata.json",
+    "sha256": "1033fbe0e3091cfb7eb237fdcc397f0ac06be178652be58f47e334d19e6e2b8c",
+    "baseline_full_passed": 4286,
+    "OriginalV8_first_case_failed": true,
+    "historical_unique_inner_producer_proven": false,
+    "normal_generation": 563,
+    "focused_status": "PASS",
+    "focused_final_result": "676093f7e50388f666c8925266894031d6723955807f416846831490511c38a4",
+    "focused_required": 21,
+    "observed_Core_passed": 15,
+    "ready_for_32": false,
+    "focused_passed": 21,
+    "focused_failed": 0,
+    "focused_ignored": 0,
+    "focused_root_join_sha256": "813585a718908e17549665b9f4433a89236404eec0fc99fa55dd1a2834ebff89",
+    "focused_actual_audit_sha256": "553bec022a0e16197358ce1ca929d318eff43e5a86d0ad6692a6d2a852bd1847",
+    "original_children_natural0_closed": 26
   }
 }

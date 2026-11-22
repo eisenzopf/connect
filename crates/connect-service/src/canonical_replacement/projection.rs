@@ -179,6 +179,76 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn typed_plan_busy_releases_partial_authority_and_roles_before_same_budget_recovery_or_cancel(
+    ) {
+        use rvoip_core::staged_streams::StreamControlError;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(
+            Store::initialize(&dir.path().join("state.sqlite3"), Default::default()).unwrap(),
+        );
+        let read_scope = AuthorityScope::identity("plan-member", AuthorityMode::Read).unwrap();
+        let write_scope = AuthorityScope::identity("plan-member", AuthorityMode::Write).unwrap();
+        for cancel in [false, true] {
+            let roles = Mutex::new(());
+            let stop = CancellationToken::new();
+            let attempted = tokio::sync::Notify::new();
+            let calls = AtomicUsize::new(0);
+            let cutoff = tokio::time::Instant::now() + Duration::from_secs(1);
+            let work = read(&roles, &stop, cutoff, || async {
+                assert!(
+                    tokio::time::Instant::now() < cutoff,
+                    "same original interval"
+                );
+                let reader = store.try_acquire_authority(std::slice::from_ref(&read_scope))?;
+                if calls.fetch_add(1, Ordering::SeqCst) == 0 {
+                    attempted.notify_one();
+                    // This actual partial Reader is owned by this failed
+                    // metadata future. It and the coordinator must both drop
+                    // before the existing twenty-millisecond retry pause.
+                    let _partial = reader;
+                    Err(core_plan_error(StreamControlError::MetadataBusy.into()))
+                } else {
+                    Ok(reader)
+                }
+            });
+            let observe = async {
+                attempted.notified().await;
+                let role = tokio::time::timeout_at(cutoff, roles.lock())
+                    .await
+                    .expect("same original budget bounds coordinator observation");
+                let writer = store
+                    .acquire_authority(
+                        std::slice::from_ref(&write_scope),
+                        &AuthorityWait::new(Duration::from_millis(50)),
+                    )
+                    .expect("partial original Reader released");
+                assert_eq!(calls.load(Ordering::SeqCst), 1);
+                if cancel {
+                    stop.cancel();
+                }
+                drop(writer);
+                drop(role);
+            };
+            let (result, ()) = tokio::join!(work, observe);
+            if cancel {
+                assert_eq!(result.err().unwrap().code, "forbidden");
+                assert_eq!(
+                    calls.load(Ordering::SeqCst),
+                    1,
+                    "cancellation cannot enter a second metadata call"
+                );
+            } else {
+                let (role, reader) = result.unwrap();
+                drop(reader);
+                drop(role);
+                assert_eq!(calls.load(Ordering::SeqCst), 2);
+            }
+            assert!(roles.try_lock().is_ok());
+        }
+    }
+
+    #[tokio::test]
     async fn refusal_cancellation_and_original_cutoff_never_lend_a_projection() {
         let roles = Mutex::new(());
         let stop = CancellationToken::new();

@@ -49,6 +49,78 @@ fn preparation_custody_observation(
         cutoff: invocation.root.deadline.min(invocation.deadline),
     })
 }
+// Fixed enum labels only; never format nested/private error payloads. These
+// cold error-only events preserve the existing admitted frame and drop order.
+fn muted_core_kind(
+    error: &rvoip_core::orchestrator::participant_control::ParticipantControlError,
+) -> &'static str {
+    use rvoip_core::orchestrator::participant_control::ParticipantControlError as E;
+    use rvoip_core::participant_transitions::ParticipantTransitionError as T;
+    use rvoip_core::staged_streams::StreamControlError as S;
+    use rvoip_core::stream_lifecycle::MediaTransitionError as M;
+    match error {
+        E::Transition(error) => match error {
+            T::Invalid => "participant-transition-invalid",
+            T::Conflict => "participant-transition-conflict",
+            T::Inactive => "participant-transition-inactive",
+            T::OwnerMismatch => "participant-transition-owner-mismatch",
+            T::NotReady => "participant-transition-not-ready",
+            T::Capacity => "participant-transition-capacity",
+            T::Ended => "participant-transition-ended",
+        },
+        E::Core(_) => "participant-core",
+        E::Media(error) => match error {
+            S::Model(error) => match error {
+                M::Invalid => "media-model-invalid",
+                M::Conflict => "media-model-conflict",
+                M::Unsupported => "media-model-unsupported",
+                M::Capacity => "media-model-capacity",
+                M::Authority => "media-model-authority",
+                M::NotReady => "media-model-not-ready",
+                M::Expired => "media-model-expired",
+            },
+            S::Unsupported => "media-unsupported",
+            S::Authority => "media-authority",
+            S::NotRecipient => "media-not-recipient",
+            S::Cancelled => "media-cancelled",
+            S::Deadline => "media-deadline",
+            S::NotReady => "media-not-ready",
+            S::MetadataBusy => "media-metadata-busy",
+            S::Backpressure => "media-backpressure",
+            S::CleanupUnconfirmed => "media-cleanup-unconfirmed",
+        },
+        E::Unsupported => "participant-unsupported",
+        E::Authority => "participant-authority",
+        E::Cancelled => "participant-cancelled",
+        E::Deadline => "participant-deadline",
+    }
+}
+fn muted_stream_kind(error: &rvoip_core::staged_streams::StreamControlError) -> &'static str {
+    use rvoip_core::staged_streams::StreamControlError as E;
+    match error {
+        E::Model(_) => "media-model",
+        E::Unsupported => "media-unsupported",
+        E::Authority => "media-authority",
+        E::NotRecipient => "media-not-recipient",
+        E::Cancelled => "media-cancelled",
+        E::Deadline => "media-deadline",
+        E::NotReady => "media-not-ready",
+        E::MetadataBusy => "media-metadata-busy",
+        E::Backpressure => "media-backpressure",
+        E::CleanupUnconfirmed => "media-cleanup-unconfirmed",
+    }
+}
+fn muted_refusal(
+    root: &PreparedReplacement,
+    stage: &'static str,
+    kind: &str,
+    effect_stage: &'static str,
+) {
+    tracing::debug!(target:"connect_service::original_replacement_terminal",
+        boundary="muted-activation-refusal",stage,error_kind=kind,effect_stage,
+        operation=%root.origin.request().operation_id,record=%root.origin.record_id(),
+        connection=%root.handle.intent().replacement,"Original replacement terminal boundary");
+}
 // Registry custody follows the original tracked native media future.
 struct NativeReplayCustody {
     runtime: std::sync::Weak<Runtime>,
@@ -456,18 +528,66 @@ impl Runtime {
                     let plan = self
                         .core
                         .plan_staged_device_replacement_muted_activation(&root.handle)
-                        .map_err(|_| Error::forbidden())?;
+                        .map_err(|error| {
+                            if !super::projection::is_core_metadata_busy(&error) {
+                                muted_refusal(
+                                    root,
+                                    "muted-plan",
+                                    muted_core_kind(&error),
+                                    "before-activate-begin",
+                                );
+                            }
+                            super::projection::core_plan_error(error)
+                        })?;
                     self.continuation_read_once(root, started, Phase::Activate(plan))
                         .await
+                        .map_err(|error| {
+                            if !matches!(
+                                error.code.as_str(),
+                                "authority-busy" | "storage-unavailable"
+                            ) {
+                                muted_refusal(
+                                    root,
+                                    "muted-continuation-read",
+                                    &error.code,
+                                    "before-activate-begin",
+                                );
+                            }
+                            error
+                        })
                 },
             )
-            .await?;
+            .await
+            .map_err(|error| {
+                muted_refusal(
+                    root,
+                    "muted-planning-admission",
+                    &error.code,
+                    "before-activate-begin",
+                );
+                error
+            })?;
             let Phase::Activate(plan) = i.phase.clone() else {
+                muted_refusal(
+                    root,
+                    "muted-phase-shape",
+                    "forbidden",
+                    "before-activate-begin",
+                );
                 return Err(Error::forbidden());
             };
             let candidate_only = plan.is_muted_endpoint_preparation();
-            let attempt = self.begin_continuation(started, &i, Step::Activate).await?;
-            let expected = attempt.expected()?;
+            let attempt = self
+                .begin_continuation(started, &i, Step::Activate)
+                .await
+                .map_err(|error| {
+                    muted_refusal(root, "muted-begin", &error.code, "activate-begin-called");
+                    error
+                })?;
+            let expected = attempt.expected().map_err(|error| {
+                muted_refusal(root, "muted-expected", &error.code, "after-activate-begin");
+                error
+            })?;
             #[cfg(feature = "test-support")]
             if let Some(probe) = self.media.take_preparation_custody_probe_for_test(
                 &root.origin.request().operation_id,
@@ -480,6 +600,16 @@ impl Runtime {
                 .core
                 .activate_staged_device_replacement_with_held(&root.handle, plan, &i)
                 .await;
+            if let Err(error) = &result {
+                // The call may have entered mutation. Observe the first typed
+                // result before capture/recording; never retry this invocation.
+                muted_refusal(
+                    root,
+                    "muted-core-activate",
+                    muted_core_kind(error),
+                    "activate-called",
+                );
+            }
             let revisions = match &result {
                 Ok(context) => (|| -> Result<_> {
                     let mut observed = std::collections::BTreeMap::new();
@@ -498,12 +628,29 @@ impl Runtime {
                                 .controller()
                                 .map_err(|_| Error::forbidden())?
                         } else {
-                            self.connection_media_controller(id)?
+                            self.connection_media_controller(id).map_err(|error| {
+                                muted_refusal(
+                                    root,
+                                    "muted-revision-controller",
+                                    &error.code,
+                                    "after-activate-returned",
+                                );
+                                error
+                            })?
                         };
-                        let revisions = context
-                            .commit()
-                            .revisions_for(&controller)
-                            .map_err(|_| Error::forbidden())?;
+                        let revisions =
+                            context
+                                .commit()
+                                .revisions_for(&controller)
+                                .map_err(|error| {
+                                    muted_refusal(
+                                        root,
+                                        "muted-revision-tuple",
+                                        muted_stream_kind(&error),
+                                        "after-activate-returned",
+                                    );
+                                    Error::forbidden()
+                                })?;
                         observed.insert(id.as_str().to_owned(), revisions);
                     }
                     if candidate_only {
@@ -516,6 +663,15 @@ impl Runtime {
                                 .collect(),
                         )
                     }
+                    .map_err(|error| {
+                        muted_refusal(
+                            root,
+                            "muted-audience-capture",
+                            &error.code,
+                            "after-activate-returned",
+                        );
+                        error
+                    })
                 })()
                 .map(Some),
                 Err(_) => Ok(None),
@@ -525,18 +681,53 @@ impl Runtime {
             let (capture, revision_error) = match revisions {
                 Ok(Some(revisions)) => (
                     attempt
-                        .applied(expected)?
-                        .with_audience_revisions(revisions)?,
+                        .applied(expected)
+                        .map_err(|error| {
+                            muted_refusal(
+                                root,
+                                "muted-applied-capture",
+                                &error.code,
+                                "after-activate-returned",
+                            );
+                            error
+                        })?
+                        .with_audience_revisions(revisions)
+                        .map_err(|error| {
+                            muted_refusal(
+                                root,
+                                "muted-audience-attribution",
+                                &error.code,
+                                "after-activate-returned",
+                            );
+                            error
+                        })?,
                     None,
                 ),
                 Ok(None) => (attempt.uncertain(), None),
-                Err(error) => (attempt.uncertain(), Some(error)),
+                Err(error) => {
+                    muted_refusal(
+                        root,
+                        "muted-revision-capture-return",
+                        &error.code,
+                        "after-activate-returned",
+                    );
+                    (attempt.uncertain(), Some(error))
+                }
             };
             super::projection::record(
                 roles,
                 self.save_continuation(root, started, Step::Activate, capture),
             )
-            .await?;
+            .await
+            .map_err(|error| {
+                muted_refusal(
+                    root,
+                    "muted-historical-record",
+                    &error.code,
+                    "activation-capture-record-called",
+                );
+                error
+            })?;
             if let Some(error) = revision_error {
                 return Err(error);
             }
