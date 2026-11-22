@@ -1,0 +1,28 @@
+{
+  "revision": 265,
+  "checkpoint": 170,
+  "paragraphs": 422,
+  "changed": [
+    2,
+    9
+  ],
+  "unchanged": 420,
+  "all_styles_preserved": true,
+  "document_revision": "AHj4eMQDzBIZX2E-pkqC4UUqKu9Q_WpWdNXlBJHET3DUcixCPxHTtBlMl0qDZTsPmZ5z1DFecXewgeQJ3ofhD_cvNyoBRuJM0hZLKuwjdoc",
+  "source_generation": 562,
+  "focused_passed": 11,
+  "failed": 0,
+  "ignored": 0,
+  "matrix_passed": 1,
+  "matrix_total": 32,
+  "new_matrix_run": false,
+  "qualification": false,
+  "document_url": "https://docs.google.com/document/d/1LZa9wSCYccAsfX4iX5g819QgxoeG3BaJF4y3rhNfK4Y/edit",
+  "recorded_at": "2026-11-22T07:16:49.178795+00:00",
+  "raw_before_sha256": "1e9bec2897a71a7e15f4e5cc1e11651f2b0f14899b683c04ca7094c8b04cd746",
+  "raw_readback_sha256": "612ae7d2755dc95897f0040fe5854dfb3cbbeae21b05894e65f7a532a3bbfc4f",
+  "private_request_sha256": "a9d76fab5b9a74cd7afcad1d1ef21cedc80753a4f6c727df1d0661d790573624",
+  "private_write_sha256": "860a3e394cd22433e7bf6348c40df728e93c76ee432fec4fbf3fc90f2f6e6032",
+  "component_evidence": "docs/evidence/gate-6/g6-058-v219-g821-fixture-repairs.json",
+  "component_evidence_sha256": "f5969d4de5d7c55104a508d9daad6b8a1e0420f19401390d6abf3a8313d0e8e7"
+}

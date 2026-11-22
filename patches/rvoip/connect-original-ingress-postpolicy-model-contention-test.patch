@@ -1,0 +1,26 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/original_ingress_custody.rs
+@@ -656,10 +656,12 @@
+         let (acquired, acquisition) = std::sync::mpsc::sync_channel(1);
+         let (release, released) = std::sync::mpsc::sync_channel(1);
+         *rendezvous.lock().unwrap() = Some((request, acquisition));
+-        let held_port = port.0.clone();
++        // A/V no longer reads the redundant late messages_only PortState.
++        // Exclude its actual current port-model metadata AFTER policy instead.
++        let held_controller = f.a.clone();
+         let holder = std::thread::spawn(move || {
+             if requested.recv_timeout(Duration::from_secs(2)).is_err() { return false; }
+-            let held = held_port.state.lock().unwrap();
++            let held = held_controller.state.lock().unwrap();
+             let _ = acquired.send(());
+             let released = released.recv_timeout(Duration::from_secs(2)).is_ok();
+             drop(held);
+@@ -681,7 +683,7 @@
+         let holder_released = holder.join().unwrap();
+         let (mut original, refused) = worker.join().unwrap();
+         assert!(holder_released);
+-        assert!(completed.is_ok(), "original physical receive waited on post-policy PortState {medium:?}");
++        assert!(completed.is_ok(), "original physical receive waited on post-policy Controller State {medium:?}");
+         assert!(matches!(refused, Err(StreamControlError::MetadataBusy)), "{refused:?}");
+         assert!(input.try_recv().is_err());
+         drop(f.policy.0.try_write().expect("metadata refusal retained current authority"));

@@ -1,0 +1,101 @@
+{
+  "format": "connect/g6-058-fixture-repairs/1",
+  "checkpoint": 170,
+  "recorded_at": "2026-11-22T07:16:49.178795+00:00",
+  "source_generation": 562,
+  "source_lock_sha256": "4f3a80e29a110d3463157c854bba5cc9fe3fd8840c1c37dda194cc87c28ad1fd",
+  "tested_source_sha256": "a573463067d3d083a3e3fc3fb880347de54eed40d5df5e53bbdaf8cb1f725c0b",
+  "prepared": {
+    "rvoip": "757ee1dccea61dd8ddfc210c0ade666df7807c9698364e9f8a2066b62af68e3f",
+    "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab"
+  },
+  "previous_full": {
+    "source_generation": 561,
+    "commit": "11f7ffaaf2cba8677a84ed2cb5ab80aef23f4f07",
+    "passed": 4284,
+    "failed": 2,
+    "ignored": 0,
+    "Rust_passed": 2948,
+    "Node_passed": 1251,
+    "Python_passed": 85,
+    "build_groups_passed": 9,
+    "current_artifacts": 13,
+    "result_sha256": "f4c1330a5eb2bd6dc41f0daa7dc477ce634c214e6f43a951fbed8874fa308c17",
+    "root_join_sha256": "4e109fe4e6785d9999cdc450b11254ad1d244b01001176a34eebc5c477644898",
+    "independent_audit_sha256": "25bfd0cab4b23b6d3380a0c4f8246fbccc8e50e600bd883cdab4c2362c9e519d",
+    "source_unchanged": true,
+    "original_three_browser_cases_run": false
+  },
+  "repairs": [
+    {
+      "task_id": "V219-G821-CORE-FIXTURE",
+      "blocker_id": "V219-G821-AV-FIXTURE",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "selector": "staged_streams::tests::original_ingress_custody::original_ingress_post_policy_port_metadata_busy_retains_same_original_without_authority",
+      "classification": "Test fixture fault-injection mismatch",
+      "cause": "The AV optimization removes the redundant messages_only PortState read. The old held-PortState injection no longer intersects admission, so Ok was correct. The corrected fixture holds the actual post-policy Controller metadata state.",
+      "preserved": "Same stable selector; all four Audio/Video x expiry cases, actual80ms grant, deadlines, no-authority retention, original payload/RTP/admitted_at and duplicate checks.",
+      "source_review_sha256": "ee19333ce60105ac1122480942ad5fe85fea06acb4da74b699da812689f45557",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "task_id": "V219-G821-STORE-FIXTURE",
+      "blocker_id": "V219-G821-SCENE-SETUP",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_ready_controls::scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_validation",
+      "classification": "Test setup assumes bounded admission cannot defer",
+      "cause": "A fixture unwrap failed on AuthorityWait expiry during scene-write admission, before phase begin and before the target validation assertions. The exact initial lock-versus-scheduling/IO trigger remains unproven.",
+      "fix": "Only metadata admission may retry under one fixed1s setup budget shared across three setup phases. Begin/applied/record remain outside retry; all other errors are terminal and late successful reads are dropped. Production5ms admission and original grant expiries stay unchanged.",
+      "regression": "Same selector additionally holds a real source Read, observes actual returned authority-busy, checks pending worker/no DML, releases that exact Read, resumes the same helper and checks current Read plus unchanged SQL snapshot. One-shot observation is fixture-local; no production hook.",
+      "preserved": "Original closed-unit, capture forgery,1100ms wait, expiry, rollback and healthy-reader assertions unchanged; no test IDs/count changes.",
+      "source_review_sha256": "aa089d070bb4687bc9de365736841e93ecef5da0795b5a9a9485d72f53fdf5b1",
+      "formatted_review_sha256": "cc21612e28c9c74f3e25fcb2be47518776a28443b1329f300992938f48130367",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    }
+  ],
+  "normal_preparation": {
+    "passed": true,
+    "unchanged_mtimes_restored": 4280,
+    "commands": 2,
+    "original_root_and_children_closed": true,
+    "receipt_sha256": "64f1461747e8340dfe64b68d8719cc0f1951a49d57ff5d223b4a0766eec52385",
+    "root_join_sha256": "84002bbfd12213015ed443dd7f947c719860b179f98519a4c2957ce57e7f0aa5",
+    "independent_actual_audit_sha256": "9544d1b52bbf19492de35c274e41e3d7061ab25de6ebff221ebaedb3fa7c8a6d"
+  },
+  "focused_units": {
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0,
+    "Core": 10,
+    "Store": 1,
+    "all_prior_nine_retained": true,
+    "result_sha256": "4b0665d043cfc63bf1b63cb35fb658d38b5a37cb78b14f59887faca4ae09179a",
+    "root_join_sha256": "f4eedfa2a98f3d501d399612332ba346ad076a57ac8d0b7582d176f4669cc248",
+    "children": 19,
+    "original_root_and_children_closed": true,
+    "source_unchanged": true,
+    "upstream_library_artifacts": 3,
+    "workspace_recipe": "Exact original four-package workspace feature union; current Store libtest artifact inventoried and run by exact selector",
+    "scope": "Focused units only; final-source full/readiness remains required",
+    "independent_actual_audit_sha256": "c6f23d6e977245fe040b4734305d4fd896705ae12fec2276b25d1e875d004ac4"
+  },
+  "shipping_behavior_files_changed": 0,
+  "acceptance_changed": false,
+  "matrix": {
+    "last_run": "v218",
+    "passed": 1,
+    "total": 32,
+    "checks_passed": 399,
+    "checks_total": 432,
+    "new_run": false,
+    "credit": false
+  },
+  "ready_for_32": false,
+  "remaining": "All seven original readiness scopes on final committed source; stop at READY32. G6-054 parked. Local Mac/native ARM only."
+}

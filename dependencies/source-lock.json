@@ -2991,6 +2991,11 @@
       "target": "rvoip",
       "path": "patches/rvoip/connect-public-warm-cold-control-boundary-erasure.patch",
       "sha256": "296ad0e42427c9d0d7ae652ff8b7e24138409fd23627136d00fda14ceda1e1bd"
+    },
+    {
+      "target": "rvoip",
+      "path": "patches/rvoip/connect-original-ingress-postpolicy-model-contention-test.patch",
+      "sha256": "25233d664592e66cd8afc0e325a5edbc538c2e84f195629b77df4353fbac3b8b"
     }
   ]
 }

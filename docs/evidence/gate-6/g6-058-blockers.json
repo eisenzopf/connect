@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
   "updated": "2026-11-21",
-  "run_status": "Source561 passes all nine focused Core controls (zero failures or ignored tests), including the same actual held-State RED\u2192GREEN, both linear warm retry controls and both AV/Data lock controls. All three current library-test artifacts build and inventory successfully; all original unit child owners and Root close naturally. The original source557 RED returned NotReady before adapter entry with zero callbacks; source561 now retains the same F/warm reservation, first100ms cutoff and all observed grant minima only across definitely-unstarted metadata contention. Entered callbacks, stale/expired authority, cancellation and uncertainty never authorize retry. The separate non-Data messages-only PortState lock is removed while Data behavior stays exact. Source559 already passed the same nine units, but its canonical compile was intentionally stopped for its reviewed code experiment and was incomplete, not PASS. Source560 also passed nine units; its future-only-erased canonical compile was explicitly stopped for the reviewed code change and remained incomplete, not PASS. Source561 erases only the original borrowed warm token metadata and boxes the public cold start/hint futures; original control bodies and all nine controls remain unchanged. No measured speedup or unique compiler-cause claim. G811 unique historical producer remains unproven. Historical source555 full4281 and source556 four-handoff diagnostic are not current561 qualification. Current canonical API/integration compilation remains explicitly pending in original readiness scope2; final-source full regressions and all seven original readiness scopes remain pending. Matrix remains v218:1/32 cells and399/432 checks; no matrix credit. G6-054 stays parked; local Mac/native ARM only.",
+  "run_status": "Source562 passes all eleven focused controls: ten Core controls, including the repaired post-policy contention fixture, plus the Store closed-input/expiry control with a real held-reader admission refusal and same-helper recovery. Both previously failing selectors now pass without changing production behavior or acceptance. Normal dependency preparation passed; all19 focused-run children and Root closed naturally. The previous source561 full run remains4284PASS/2FAIL/0ignored with all9 builds/13 artifacts passed; its two failures are retained, not regraded. All seven original readiness scopes must now qualify final committed source, stopping at READY32. Matrix remains v218:1/32 cells,399/432 checks; no new matrix run. Local Mac/native ARM only; G6-054 remains parked.",
   "blockers": [
     {
       "id": "B01",
@@ -1895,6 +1895,28 @@
       "change": "Implemented in actual normal561: immutable non-Data A/V skips only the redundant messages_only PortState lock; original Data body stays exact. Actual held-port AV and Data controls completed PASS; original unit Root closure verified, canonical API compilation pending original readiness2. No G811 or packet-loss attribution.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g817-warm-recovery-implementation.json",
       "next": "Final-source complete affected regressions and all seven original readiness scopes; retain historical G811 producer uncertainty and all original media/quality/current-authorization/deadline/cleanup oracles. No unit-to-cell promotion."
+    },
+    {
+      "id": "V219-G821-AV-FIXTURE",
+      "title": "Test fixture fault-injection mismatch",
+      "status": "implemented-unit-verified-integration-pending",
+      "change": "The AV optimization removes the redundant messages_only PortState read. The old held-PortState injection no longer intersects admission, so Ok was correct. The corrected fixture holds the actual post-policy Controller metadata state.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g821-fixture-repairs.json",
+      "actual_failed_selector": "staged_streams::tests::original_ingress_custody::original_ingress_post_policy_port_metadata_busy_retains_same_original_without_authority",
+      "original_full_source_generation": 561,
+      "current_verified_unit_source_generation": 562,
+      "next": "Final-source full regression and all seven original readiness scopes; no unit-to-cell promotion."
+    },
+    {
+      "id": "V219-G821-SCENE-SETUP",
+      "title": "Test setup assumes bounded admission cannot defer",
+      "status": "implemented-unit-verified-integration-pending",
+      "change": "Only metadata admission may retry under one fixed1s setup budget shared across three setup phases. Begin/applied/record remain outside retry; all other errors are terminal and late successful reads are dropped. Production5ms admission and original grant expiries stay unchanged.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g821-fixture-repairs.json",
+      "actual_failed_selector": "connection_control::tests::replacement_sources::commit::scoped_handoff::sql_ready_controls::scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_validation",
+      "original_full_source_generation": 561,
+      "current_verified_unit_source_generation": 562,
+      "next": "Final-source full regression and all seven original readiness scopes; no unit-to-cell promotion."
     }
   ],
   "workplan_tasks": [
@@ -3869,6 +3891,24 @@
       "title": "Reserve fresh public WebRTC B under original root",
       "status": "independent-source-reviewed",
       "completion": "DTO3 controls and inertSDK7 source reviewed, unrun. Actual producer, B construction/readiness and durableRootphases remain unimplemented. g6-058-v219-normal3-g458-failed.json"
+    },
+    {
+      "id": "V219-G821-CORE-FIXTURE",
+      "title": "Test fixture fault-injection mismatch",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "status": "component-verified",
+      "completion": "Same assigned failing selector PASS on source562; full/readiness pending.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g821-fixture-repairs.json"
+    },
+    {
+      "id": "V219-G821-STORE-FIXTURE",
+      "title": "Test setup assumes bounded admission cannot defer",
+      "owner_agent": "/root/batch_build_review",
+      "independent_reviewer": "/root/independent_batch_review",
+      "status": "component-verified",
+      "completion": "Same assigned failing selector PASS on source562; full/readiness pending.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g821-fixture-repairs.json"
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -20398,7 +20438,7 @@
     "evidence": "docs/evidence/gate-6/g6-058-v219-g476-component-progress.json",
     "sha256": "f717950cffaa786149adb2c9dfb62240655c4522f8ebd8c28543fa12b4c333e7"
   },
-  "updated_at": "2026-11-22T05:18:15.076221+00:00",
+  "updated_at": "2026-11-22T07:16:49.178795+00:00",
   "v219_g479_component_checkpoint": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g479-component-progress.json",
     "sha256": "690107fe3656d02a4450bb8e3edb35ba38df5bec11bde6d9041de0d9d3aadfda",
@@ -20442,12 +20482,13 @@
     "ready_for_32": false
   },
   "current_preparation_checkpoint": {
-    "status": "Source561 passes all nine focused Core controls (zero failures or ignored tests), including the same actual held-State RED\u2192GREEN, both linear warm retry controls and both AV/Data lock controls. All three current library-test artifacts build and inventory successfully; all original unit child owners and Root close naturally. The original source557 RED returned NotReady before adapter entry with zero callbacks; source561 now retains the same F/warm reservation, first100ms cutoff and all observed grant minima only across definitely-unstarted metadata contention. Entered callbacks, stale/expired authority, cancellation and uncertainty never authorize retry. The separate non-Data messages-only PortState lock is removed while Data behavior stays exact. Source559 already passed the same nine units, but its canonical compile was intentionally stopped for its reviewed code experiment and was incomplete, not PASS. Source560 also passed nine units; its future-only-erased canonical compile was explicitly stopped for the reviewed code change and remained incomplete, not PASS. Source561 erases only the original borrowed warm token metadata and boxes the public cold start/hint futures; original control bodies and all nine controls remain unchanged. No measured speedup or unique compiler-cause claim. G811 unique historical producer remains unproven. Historical source555 full4281 and source556 four-handoff diagnostic are not current561 qualification. Current canonical API/integration compilation remains explicitly pending in original readiness scope2; final-source full regressions and all seven original readiness scopes remain pending. Matrix remains v218:1/32 cells and399/432 checks; no matrix credit. G6-054 stays parked; local Mac/native ARM only.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g817-warm-recovery-implementation.json",
-    "sha256": "a8655950330a038f1357e88d05ff08e32d550b455f67b5ce61f57da9611b70ea",
-    "source_generation": 561,
-    "readiness_complete": false,
-    "live_readiness_status": ".local/gate-6/ready32-source561/status.html"
+    "status": "Source562 passes all eleven focused controls: ten Core controls, including the repaired post-policy contention fixture, plus the Store closed-input/expiry control with a real held-reader admission refusal and same-helper recovery. Both previously failing selectors now pass without changing production behavior or acceptance. Normal dependency preparation passed; all19 focused-run children and Root closed naturally. The previous source561 full run remains4284PASS/2FAIL/0ignored with all9 builds/13 artifacts passed; its two failures are retained, not regraded. All seven original readiness scopes must now qualify final committed source, stopping at READY32. Matrix remains v218:1/32 cells,399/432 checks; no new matrix run. Local Mac/native ARM only; G6-054 remains parked.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g821-fixture-repairs.json",
+    "sha256": "f5969d4de5d7c55104a508d9daad6b8a1e0420f19401390d6abf3a8313d0e8e7",
+    "source_generation": 562,
+    "ready_for_32": false,
+    "live_readiness_status": ".local/gate-6/ready32-source562/status.html",
+    "readiness_complete": false
   },
   "v219_g550_current_failure_frontiers": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
@@ -21716,5 +21757,13 @@
     "G811_unique_producer": null,
     "current_full_pending": true,
     "matrix_credit": false
+  },
+  "v219_g821_full_and_g827_fixture_repairs": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g821-fixture-repairs.json",
+    "sha256": "f5969d4de5d7c55104a508d9daad6b8a1e0420f19401390d6abf3a8313d0e8e7",
+    "full_source561_passed": 4284,
+    "full_source561_failed": 2,
+    "current_source562_units_passed": 11,
+    "ready_for_32": false
   }
 }

@@ -516,6 +516,37 @@ fn assert_resource_peer_dependencies(
     }
 }
 
+// Fixture setup may defer the SAME metadata-only scene admission under one
+// fixed budget. No begin/applied/record call is inside this retry boundary.
+fn fixture_scene_write_until(
+    store: &Store,
+    origin: &NativeReplacementMediaOrigin,
+    sources: &[Arc<NativeMediaOrigin>],
+    wait: &crate::AuthorityWait,
+    mut observe_busy: Option<Box<dyn FnOnce()>>,
+) -> crate::Result<crate::NativeReplacementSceneRead> {
+    loop {
+        wait.check()?;
+        match store.try_native_replacement_scene_write(origin, sources) {
+            Err(error) if error.code == "authority-busy" => {
+                // Test-only observation runs AFTER the actual API refused and
+                // released all SQL/file/role aliases; it supplies no refusal.
+                if let Some(observe) = observe_busy.take() {
+                    observe();
+                }
+                wait.pause()?;
+            }
+            Ok(read) => {
+                // Metadata has no durable effect: release a late read rather
+                // than starting a phase after the original setup budget.
+                wait.check()?;
+                return Ok(read);
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
 fn fixture_prepared(
     ready: bool,
     scene: (
@@ -565,15 +596,16 @@ fn fixture_prepared(
         .native_replacement_media_origin(started.clone())
         .unwrap();
     if ready {
+        // Same existing fixture admission duration, pinned ONCE across all
+        // three phases; production's per-call5ms and original expiries stay.
+        let setup_wait = crate::AuthorityWait::new(std::time::Duration::from_secs(1));
         for phase in [
             crate::NativeReplacementMediaPhase::Attach,
             crate::NativeReplacementMediaPhase::Activate,
             crate::NativeReplacementMediaPhase::Readiness,
         ] {
-            let read = f
-                .store
-                .try_native_replacement_scene_write(&origin, &sources)
-                .unwrap();
+            let read =
+                fixture_scene_write_until(&f.store, &origin, &sources, &setup_wait, None).unwrap();
             let attempt = f
                 .store
                 .begin_native_replacement_media_phase(origin.clone(), phase, read.media())
@@ -597,6 +629,54 @@ fn fixture_prepared(
         target_request: request,
     }
 }
+// Deterministic actual holder: the first real Writer admission must defer;
+// release only that exact source Read, then recover the SAME metadata call.
+// The fixture-only one-shot observes an actual returned Busy, never a grant
+// or injected failure; normal fixture setup passes None.
+fn assert_fixture_scene_write_recovers_actual_read_deferral(m: &Movement) {
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let held =
+        m.f.store
+            .try_native_media_read(&m.sources[0], None)
+            .unwrap();
+    let wait = crate::AuthorityWait::new(std::time::Duration::from_secs(1));
+    let (entered, ready) = std::sync::mpsc::sync_channel(1);
+    let (release, resume) = std::sync::mpsc::sync_channel(1);
+    let (actual_busy, pending, unchanged_while_busy, result) = std::thread::scope(|workers| {
+        let worker = workers.spawn(|| {
+            fixture_scene_write_until(
+                &m.f.store,
+                &m.origin,
+                &m.sources,
+                &wait,
+                Some(Box::new(move || {
+                    let _ = entered.send(());
+                    let _ = resume.recv_timeout(std::time::Duration::from_secs(2));
+                })),
+            )
+        });
+        let actual_busy = ready.recv_timeout(std::time::Duration::from_secs(1)) == Ok(());
+        let pending = !worker.is_finished();
+        let unchanged = Store::inspect_snapshot(m.f.store.path()).unwrap() == before;
+        drop(held);
+        let _ = release.send(());
+        (actual_busy, pending, unchanged, worker.join().unwrap())
+    });
+    // All actual holder/probe/worker ownership has ended before assertions.
+    assert!(
+        actual_busy && pending && unchanged_while_busy,
+        "actual original Read must defer metadata with no DML before release"
+    );
+    let read = result.expect("same bounded scene admission must recover after exact Read release");
+    assert!(read.current());
+    drop(read);
+    assert_eq!(
+        Store::inspect_snapshot(m.f.store.path()).unwrap(),
+        before,
+        "metadata admission recovery performed DML"
+    );
+}
+
 fn ready(
     read: &crate::NativeReplacementSceneRead,
     expected: &serde_json::Value,

@@ -485,6 +485,7 @@ fn actual_ready_publisher_cannot_commit_after_original_short_operator_expiry() {
 fn scoped_final_ready_closed_inputs_preserve_unit_expiry_and_exact_capture_validation() {
     let setup = setup(true);
     let m = &setup.movement;
+    assert_fixture_scene_write_recovers_actual_read_deferral(m);
     let captured = activation_barrier::captured(m);
     let target = captured.activation().target();
     let mut required = {
