@@ -1,7 +1,7 @@
 {
   "format": "connect/g6-058-blocker-progress/1",
-  "updated": "2026-11-22T09:49:07.777676+00:00",
-  "run_status": "All21 focused controls PASS (15Core/3Store/3Service; zero failed/ignored) on normally prepared563. Five current library-test artifacts/profiles/inventories, source and natural closure of26children+Root are independently audited. The confirmed pure-planning StateWouldBlock\u2192Conflict\u2192Forbidden gap is fixed; actual held-State controls prove unchanged metadata, same-request recovery and one activation. Genuine conflict/revoke/cancel/expiry remain terminal; entered callbacks never replay. Baseline G834 on fc1e remains4286PASS/0FAIL/0ignored, all9builds/13artifacts. Later G835 firstOriginalV8 case failed at return1-1 muted activation; allownersclosed, later2cases held, unique inner producer stillunproven. Focused21 does not regrade G835 or qualify finalfull/API/media. Next commit/push, then all seven original readiness scopes on finalsource; stopREADY32. Matrix v218 remains1/32 and399/432, no new run. LocalMac/nativeARM only; G6-054 parked.",
+  "updated": "2026-11-22T11:23:23.707869+00:00",
+  "run_status": "All22 focused controls PASS (15Core/4Store/3Service; zero failed/ignored), with26children and Root naturally closed. Only one existing Store test body changed: it had compared a discarded independent Read A with a later writer; the invariant is the writer\u2019s SAME internal B cutoff. Existing scoped Clock and one-shot scene-derived hook now prove exact B retention, exact-expiry refusal with no durable changes, immutable bounds/IDs and the original foreign-scene rejection. The old comparison fails deterministically in this control; actual G840 A/B clock values were unlogged, so no unique historical clock-edge claim. G840 remains FAILED:4288PASS/1FAIL/0ignored, all43children and Root closed; auditca235 retained. G835 OriginalV8 remainsFAILED and media is held. No production/dependency/criteria/deadline changes. Actual22 source, current five library artifacts/inventories and natural owner closure are independently audited; mobile276 scoped readback preserves420 other paragraphs and all styles. Next tested-fixture checkpoint commit/push and all seven final-source readiness scopes; stopREADY32. Matrix v218 remains1/32 and399/432, no new run. LocalMac/nativeARM only; G6-054 parked.",
   "blockers": [
     {
       "id": "B01",
@@ -1942,6 +1942,18 @@
       "independent_reviewer": "/root/independent_batch_review",
       "historical_G835_unique_inner_predicate_proven": false,
       "next": "Commit/push testedbatch, then freshfinalfull and allseven originalreadiness scopes including all3V8. Historical G835 exact inner cause remainsunproven; no unit-to-cell promotion."
+    },
+    {
+      "id": "V219-G840-WRITER-CUTOFF-FIXTURE",
+      "title": "Scene-writer fixture compared unrelated read windows instead of SAME internal cutoff",
+      "status": "implemented-unit-verified-integration-pending",
+      "change": "TESTONLY same existing selector, existing Clock and scene-derived hook; exact internalB preservation/expiry noDML and originalforeignnegative. No tolerance, arbitrarysleep, retry, production/dependency/criteria change.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g840-writer-cutoff-fixture.json",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/batch_build_review",
+      "historical_G840_A_B_clock_values_logged": false,
+      "unique_historical_clock_edge_proven": false,
+      "next": "Commit/push testedfixture/documentcheckpoint, then allseven final-source readiness scopes. G840/G835 stayFAILED; no historicaledge/cell attribution."
     }
   ],
   "workplan_tasks": [
@@ -3952,6 +3964,15 @@
       "status": "component-verified",
       "completion": "All three assigned causal units PASS in actual focused21 (15Core/3Store/3Service), independently audited with26children+Rootclosed. Finalfull/API/media/readiness pending.",
       "evidence": "docs/evidence/gate-6/g6-058-v219-g835-muted-plan-metadata.json"
+    },
+    {
+      "id": "V219-G840-WRITER-CUTOFF",
+      "title": "Assert SAME original scene-writer B cutoff across controlled reconstruction",
+      "owner_agent": "/root/v198_resources",
+      "independent_reviewer": "/root/batch_build_review",
+      "status": "component-verified",
+      "completion": "ONLYassigned existingwriterselector PASS in independentlyaudited actual22; previous21retained,26children+Rootnaturalclosed. Freshmobile276readback verified; finalfull/media/readiness required.",
+      "evidence": "docs/evidence/gate-6/g6-058-v219-g840-writer-cutoff-fixture.json"
     }
   ],
   "workplan_review_html": "docs/developer/g6-058-reassessment-v216.html",
@@ -18179,6 +18200,13 @@
       "passed": 69,
       "planned": 69,
       "evidence": "g6-058-v219-g788-focused69-verified.json"
+    },
+    {
+      "name": "Same internal scene Writer cutoff and exact-expiry/noDML regression",
+      "passed": 1,
+      "planned": 1,
+      "evidence": "g6-058-v219-g840-writer-cutoff-fixture.json",
+      "verification_run": "G842 focused22, other21 retained; no full/readiness credit"
     }
   ],
   "current_production_check": {
@@ -20525,13 +20553,17 @@
     "ready_for_32": false
   },
   "current_preparation_checkpoint": {
-    "status": "All21 focused controls PASS (15Core/3Store/3Service; zero failed/ignored) on normally prepared563. Five current library-test artifacts/profiles/inventories, source and natural closure of26children+Root are independently audited. The confirmed pure-planning StateWouldBlock\u2192Conflict\u2192Forbidden gap is fixed; actual held-State controls prove unchanged metadata, same-request recovery and one activation. Genuine conflict/revoke/cancel/expiry remain terminal; entered callbacks never replay. Baseline G834 on fc1e remains4286PASS/0FAIL/0ignored, all9builds/13artifacts. Later G835 firstOriginalV8 case failed at return1-1 muted activation; allownersclosed, later2cases held, unique inner producer stillunproven. Focused21 does not regrade G835 or qualify finalfull/API/media. Next commit/push, then all seven original readiness scopes on finalsource; stopREADY32. Matrix v218 remains1/32 and399/432, no new run. LocalMac/nativeARM only; G6-054 parked.",
-    "evidence": "docs/evidence/gate-6/g6-058-v219-g835-muted-plan-metadata.json",
-    "sha256": "1033fbe0e3091cfb7eb237fdcc397f0ac06be178652be58f47e334d19e6e2b8c",
+    "status": "All22 focused controls PASS (15Core/4Store/3Service; zero failed/ignored), with26children and Root naturally closed. Only one existing Store test body changed: it had compared a discarded independent Read A with a later writer; the invariant is the writer\u2019s SAME internal B cutoff. Existing scoped Clock and one-shot scene-derived hook now prove exact B retention, exact-expiry refusal with no durable changes, immutable bounds/IDs and the original foreign-scene rejection. The old comparison fails deterministically in this control; actual G840 A/B clock values were unlogged, so no unique historical clock-edge claim. G840 remains FAILED:4288PASS/1FAIL/0ignored, all43children and Root closed; auditca235 retained. G835 OriginalV8 remainsFAILED and media is held. No production/dependency/criteria/deadline changes. Actual22 source, current five library artifacts/inventories and natural owner closure are independently audited; mobile276 scoped readback preserves420 other paragraphs and all styles. Next tested-fixture checkpoint commit/push and all seven final-source readiness scopes; stopREADY32. Matrix v218 remains1/32 and399/432, no new run. LocalMac/nativeARM only; G6-054 parked.",
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g840-writer-cutoff-fixture.json",
+    "sha256": "75944adbdd1d55e962f691d8ac087765be77840f2796dfee32e2759ed3109f17",
     "source_generation": 563,
     "ready_for_32": false,
+    "final_current_commit": null,
+    "final_current_source": null,
+    "future_full": null,
+    "future_original_V8": null,
     "live_readiness_status": ".local/gate-6/ready32-source562/status.html",
-    "live_readiness_status_scope": "Existing source562 view is historical; all fresh563 readiness scopes remain pending."
+    "live_readiness_status_scope": "Existing oldview is historical; allseven freshfinalsource readiness scopes required, no run/qualification credit."
   },
   "v219_g550_current_failure_frontiers": {
     "evidence": "docs/evidence/gate-6/g6-058-v219-g555-media-fix-batch.json",
@@ -21835,5 +21867,26 @@
     "focused_root_join_sha256": "813585a718908e17549665b9f4433a89236404eec0fc99fa55dd1a2834ebff89",
     "focused_actual_audit_sha256": "553bec022a0e16197358ce1ca929d318eff43e5a86d0ad6692a6d2a852bd1847",
     "original_children_natural0_closed": 26
+  },
+  "v219_g840_writer_cutoff_fixture": {
+    "evidence": "docs/evidence/gate-6/g6-058-v219-g840-writer-cutoff-fixture.json",
+    "sha256": "75944adbdd1d55e962f691d8ac087765be77840f2796dfee32e2759ed3109f17",
+    "source_generation": 563,
+    "focused_status": "PASS",
+    "focused_passed": 22,
+    "focused_failed": 0,
+    "focused_ignored": 0,
+    "assigned_selector_passed": 1,
+    "retained_other_controls": 21,
+    "focused_result_sha256": "602c771bf8f016e4b21dfdd595be3afee58fd5c11eb893d5040225b687061256",
+    "focused_root_join_sha256": "e4330e160a11c2544ce41ab626bee1838cf2deb5d4b7155b689b8f5c55c2e629",
+    "focused_actual_audit_sha256": "3afa77df10497ede65d4a55ee7b943ce9e3d5e27773770b45e7d5565c85c27a5",
+    "original_children_natural0_closed": 26,
+    "previous_full_status": "FAILED",
+    "previous_full_passed": 4288,
+    "previous_full_failed": 1,
+    "previous_full_audit_sha256": "ca23599525165aec3fbe5398b92cafe82baddb4ed9e9767ea54dee5d8873f705",
+    "production_or_acceptance_change": false,
+    "ready_for_32": false
   }
 }

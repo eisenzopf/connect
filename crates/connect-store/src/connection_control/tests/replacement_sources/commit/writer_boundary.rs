@@ -242,6 +242,10 @@ fn public_replacement_write_drains_old_readers_then_rederives_and_commits_once()
 
 #[test]
 fn public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene() {
+    // Pin policy seconds BEFORE the real fixtures are created. A fresh call may
+    // get a fresh five-second read, but its own provisional bound cannot renew.
+    let start = crate::now();
+    let clock = std::rc::Rc::new(crate::test_clock::Clock::at(start));
     let m = fixture(true);
     let other = fixture(true);
     let provisional =
@@ -249,12 +253,113 @@ fn public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene() {
             .try_native_replacement_scene_read(&m.origin, &m.sources)
             .unwrap();
     let cutoff = provisional.media().source().expires_at();
+    let original_context = provisional.media().source().context().clone();
+    let original_request = provisional
+        .media()
+        .source()
+        .selection()
+        .origin
+        .request()
+        .clone();
+    let original_selection = provisional.media().source().selection().snapshot();
+    assert_eq!(cutoff, start + 5);
     drop(provisional);
-    let write =
-        m.f.store
-            .try_native_replacement_scene_write(&m.origin, &m.sources)
+
+    // Read-only facts name the SAME immutable reservation and all actual
+    // attempt/effect IDs. No synthetic phase, expiry or observation is written.
+    let facts = || {
+        let c = m.f.store.connection().unwrap();
+        let reservation = c.query_row(
+            "SELECT reservation_id,candidate_connection_id,candidate_runtime_id,runtime_epoch,expires_at FROM native_replacements WHERE operation_record_id=?1",
+            [&original_context.operation_record_id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?, row.get::<_, String>(3)?, row.get::<_, i64>(4)?)),
+        ).unwrap();
+        let mut statement = c.prepare(
+            "SELECT phase,attempt_id,effect_id,started,observation_json FROM native_replacement_steps WHERE operation_record_id=?1 ORDER BY phase",
+        ).unwrap();
+        let steps = statement
+            .query_map([&original_context.operation_record_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, bool>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                ))
+            })
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
             .unwrap();
-    assert!(write.media().source().expires_at() <= cutoff);
+        (reservation, steps)
+    };
+    let original_facts = facts();
+    let actor_until = m.f.store.revalidate(&m.key).unwrap().expires_at;
+    let target_until =
+        m.f.store
+            .revalidate(&m.target_request.credentials[0])
+            .unwrap()
+            .expires_at;
+    let immutable_caps = [
+        original_request.expires_at,
+        actor_until,
+        target_until,
+        original_selection["source"]["physical_expires_at"]
+            .as_i64()
+            .unwrap(),
+        original_selection["retained"]["physical_expires_at"]
+            .as_i64()
+            .unwrap(),
+        original_facts.0 .4,
+    ];
+    assert!(immutable_caps.iter().all(|until| *until > start + 8));
+    let before = Store::inspect_snapshot(m.f.store.path()).unwrap();
+    let foreign_before = Store::inspect_snapshot(other.f.store.path()).unwrap();
+
+    // A -> B is between independent calls, so B may have a later read bound.
+    clock.set(start + 1);
+    let current =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let captured_b = current.media().source().expires_at();
+    assert_eq!(captured_b, start + 6);
+    assert!(captured_b > cutoff);
+    drop(current);
+
+    // The existing one-shot hook is AFTER the writer's actual B was dropped
+    // and its expiry copied, BEFORE writer admission/reconstruction C.
+    let entries = std::rc::Rc::new(std::cell::Cell::new(0));
+    let observed = entries.clone();
+    let crossing = clock.clone();
+    let write = Store::with_native_replacement_commit_entry_probe_for_test(
+        "scene-derived",
+        move || {
+            observed.set(observed.get() + 1);
+            crossing.set(start + 2);
+        },
+        || {
+            m.f.store
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
+        },
+    )
+    .unwrap();
+    assert_eq!(entries.get(), 1);
+    assert_eq!(crate::now(), start + 2);
+    assert_eq!(write.media().source().expires_at(), captured_b);
+    // The discarded external A is deliberately older: its original comparison
+    // would now fail deterministically, although SAME internal B is preserved.
+    assert!(write.media().source().expires_at() > cutoff);
+    assert!(write.current());
+    assert!(immutable_caps
+        .iter()
+        .all(|until| write.expires_at() <= *until));
+    assert_eq!(write.media().source().context(), &original_context);
+    assert!(write.media().source().selection().origin.request() == &original_request);
+    assert_eq!(
+        write.media().source().selection().snapshot(),
+        original_selection
+    );
     let foreign = other
         .f
         .store
@@ -262,6 +367,63 @@ fn public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene() {
     let code = foreign.err().map(|error| error.code);
     drop(write);
     assert_eq!(code.as_deref(), Some("forbidden"));
+    assert_eq!(facts(), original_facts);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    assert_eq!(
+        Store::inspect_snapshot(other.f.store.path()).unwrap(),
+        foreign_before
+    );
+
+    // A second actual writer expires its OWN B at the exact copied cutoff.
+    // Pure rederivation must refuse, without any phase/effect/row mutation.
+    clock.set(start + 3);
+    let current =
+        m.f.store
+            .try_native_replacement_scene_read(&m.origin, &m.sources)
+            .unwrap();
+    let expires_b = current.media().source().expires_at();
+    assert_eq!(expires_b, start + 8);
+    drop(current);
+    let entries = std::rc::Rc::new(std::cell::Cell::new(0));
+    let observed = entries.clone();
+    let expiry = clock.clone();
+    let refused = Store::with_native_replacement_commit_entry_probe_for_test(
+        "scene-derived",
+        move || {
+            observed.set(observed.get() + 1);
+            expiry.set(expires_b);
+        },
+        || {
+            m.f.store
+                .try_native_replacement_scene_write(&m.origin, &m.sources)
+        },
+    );
+    let code = refused.as_ref().err().map(|error| error.code.clone());
+    drop(refused);
+    assert_eq!(entries.get(), 1);
+    assert_eq!(crate::now(), expires_b);
+    assert_eq!(code.as_deref(), Some("forbidden"));
+    assert_eq!(facts(), original_facts);
+    assert_eq!(Store::inspect_snapshot(m.f.store.path()).unwrap(), before);
+    assert_eq!(
+        m.f.store.revalidate(&m.key).unwrap().expires_at,
+        actor_until
+    );
+    assert_eq!(
+        m.f.store
+            .revalidate(&m.target_request.credentials[0])
+            .unwrap()
+            .expires_at,
+        target_until
+    );
+    // The failed writer released its interval; the original source remains
+    // eligible under its actual later immutable lifetime, not the expired B.
+    assert!(m
+        .f
+        .store
+        .try_native_media_read(&m.sources[0], None)
+        .unwrap()
+        .current());
 }
 
 #[test]

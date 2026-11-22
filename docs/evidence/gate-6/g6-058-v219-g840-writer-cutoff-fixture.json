@@ -1,0 +1,202 @@
+{
+  "format": "connect/g6-058-current-writer-cutoff-fixture-progress/1",
+  "checkpoint": 173,
+  "recorded_at": "2026-11-22T11:23:23.707869+00:00",
+  "proposal_state": "FINAL_COMPONENT_ONLY_ACTUAL22_AUDITED_MOBILE276_READBACK_VERIFIED",
+  "source_generation": 563,
+  "source_base_commit": "96a7d1a903a05f7b794fd5d5304d4edabb6c9088",
+  "current_source_scope": "Current committed96a7 plus exactly ONE existing StoreTESTbody; not a new normal rotation or finalcommit.",
+  "current_formatted_source": {
+    "path": ".local/gate-6/g841-writer-cutoff-source-root/source-after-format.json",
+    "sha256": "d9b9795c81163da66fc17dfcd07ee5b07a3b03b9232e9a47aa8a26c9aaa07703"
+  },
+  "actual_unit_source": {
+    "path": ".local/gate-6/g842-focused22-root/source-before-build.json",
+    "sha256": "d2a60bb56e8b97d124caa0964ce94f3dc2f5044345a677de240a6e6484c0c660"
+  },
+  "entire_parsed_unit_source_equals_formatted": true,
+  "test_file": "crates/connect-store/src/connection_control/tests/replacement_sources/commit/writer_boundary.rs",
+  "formatted_test_sha256": "64ad3a415514f273a654f3cf8b6dc0db0e572b41a03226409998536b59e6e3bc",
+  "source_lock_sha256": "32f4b1eea8d87a4e1564be66eba63ff640ee044791fd9a0b630b082d2b6c4748",
+  "prepared": {
+    "parley": "2db92a0033646d8dcfc0a0689eb23426dbf5370143e5d8ece5c087daf3d23eab",
+    "rvoip": "41ace2d27d24d75e7da1de641bb4173f9b65bb986f64b432c220d2570d350aa3"
+  },
+  "RCA": {
+    "primary": {
+      "path": ".local/gate-6/g840-writer-expiry-independent-readonly-rca/findings.json",
+      "sha256": "4209ae18caf7aa9255363e34cbd9c24493cd3a38fb98a125f33ec58a42240491"
+    },
+    "independent": {
+      "path": ".local/gate-6/g840-scene-writer-expiry-independent-readonly-analysis/receipt.json",
+      "sha256": "fce1e9aa6fc9a961860df1548ddaae5900240cac8252abfb59b1c3fbccd76efe"
+    },
+    "static_finding": "W<=internalB is required; W<=discarded independentA is not. Versioned metadata includes integer policysecond; independent current reads may have distinct now+5 bounds.",
+    "actual_G840_A_B_clock_values_logged": false,
+    "unique_historical_clock_edge_proven": false
+  },
+  "fix": {
+    "kind": "TEST_ONLY_ONE_EXISTING_BODY",
+    "source_candidate": {
+      "path": ".local/gate-6/g840-same-internal-scene-writer-cutoff-test-candidate/manifest.json",
+      "sha256": "0d31cb71a07115d9cb24d92293e379e17c3d6060cb21f298c8c0e4c6a0e446b9"
+    },
+    "source_review": {
+      "path": ".local/gate-6/g840-same-internal-scene-writer-cutoff-independent-source-review/receipt.json",
+      "sha256": "f595e6b0086072e70eaf98793aa2d05bc89fbe364ee2fdcce9b169fdcaccbb0d"
+    },
+    "official_format_binding": {
+      "path": ".local/gate-6/g841-writer-cutoff-source-root/source-binding.json",
+      "sha256": "1fb7abe655a1f65cb1e0a8c70f46ffbc23ee31235ff29dd8de6232f195f5c604"
+    },
+    "format_carry_review": {
+      "path": ".local/gate-6/g841-writer-cutoff-official-format-independent-carry-review/receipt.json",
+      "sha256": "8b04a2301d56d004230ddbeb6a0fe7b88ecd47a5979456a0a9bbb2cbde04249e"
+    },
+    "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene",
+    "new_test_selectors": 0,
+    "observed_assigned_control_passed": 1,
+    "immutable_bounds": "Original request/operator/target actor/source/remote physical/reservation bounds and original context/selection/attempt/effect IDs stay fixed.",
+    "positive": "Clock pinned before genuine fixtures; fresh A\u2192B between calls allowed; existing scene-derived hook advances B\u2192C only after SAME internal B captured/dropped; returned cutoff EXACT B. Original foreign-scene Forbidden retained.",
+    "negative": "At exact copied internal B expiry, actual writer refuses Forbidden; same reservation/attempt/effect IDs and complete durable snapshots unchanged, interval released and original source still current.",
+    "old_comparison_counterfactual": "Control establishes W==B and W>A; reinstating old W<=A fails deterministically. This does not attribute unlogged original timestamps."
+  },
+  "normal_preparation": {
+    "receipt": {
+      "path": ".local/gate-6/g836-normal563-muted-plan-root/normal563-runtime/receipt.json",
+      "sha256": "5238c972c8bf9b0629a32392be56414180c23784d876a59ebadd7f5eaef907ac"
+    },
+    "root_join": {
+      "path": ".local/gate-6/g836-normal563-muted-plan-root/root-original-join.json",
+      "sha256": "b661aee7b8fd8cefef05af9660306dae56bb50a52dc88b6a43d7f28572622d30"
+    },
+    "source": {
+      "path": ".local/gate-6/g836-normal563-muted-plan-root/source-after-normal563.json",
+      "sha256": "390a889d5d33da32ffeca923457cb049daaf6e273750dbbdfbb88700f98e9dce"
+    },
+    "audit": {
+      "path": ".local/gate-6/g836-actual-normal563-independent-preparation-audit/receipt.json",
+      "sha256": "fd7bd46991e0a3acb072672cb66c10a799ad2d7d07d34efc802cabfc52e8bede"
+    },
+    "scope": "Unchanged genuine generation563 upstream preparation390a/fd7b; unit-only StoreTESTdelta is bound separately."
+  },
+  "focused": {
+    "run": "G842",
+    "status": "PASS",
+    "original_exec": 93538,
+    "root_pid": 68778,
+    "required": 22,
+    "Core": 15,
+    "Store": 4,
+    "Service": 3,
+    "passed": 22,
+    "failed": 0,
+    "ignored": 0,
+    "assigned_fix_selector_count": 1,
+    "retained_other_controls": 21,
+    "selector": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene",
+    "result": {
+      "path": ".local/gate-6/g842-focused22-root/result.json",
+      "sha256": "602c771bf8f016e4b21dfdd595be3afee58fd5c11eb893d5040225b687061256"
+    },
+    "root_join": {
+      "path": ".local/gate-6/g842-focused22-root/root-original-join.json",
+      "sha256": "e4330e160a11c2544ce41ab626bee1838cf2deb5d4b7155b689b8f5c55c2e629"
+    },
+    "Store_result": {
+      "path": ".local/gate-6/g842-focused22-root/store-control-result.json",
+      "sha256": "3bea144a254e766b27a1d2c0c26994cc3c6e3d9f8273647339ffacf15a9a9677"
+    },
+    "Service_result": {
+      "path": ".local/gate-6/g842-focused22-root/service-control-result.json",
+      "sha256": "c09c743d23314d5ba52c897a0f7fa867c699beb932ffde62345edd908de347b6"
+    },
+    "current_five_artifact_records": [
+      {
+        "path": ".local/gate-6/g842-focused22-root/artifacts.json",
+        "sha256": "571eef8f6aa191309207e0623de05df2044419f886795ccd2cc9665a262619c4"
+      },
+      {
+        "path": ".local/gate-6/g842-focused22-root/store-artifact.json",
+        "sha256": "1ef17baf29f5f56599beb0b3a127d70213420194e8cf903f21ac26a40d9a6e3e"
+      },
+      {
+        "path": ".local/gate-6/g842-focused22-root/service-artifact.json",
+        "sha256": "8b38551bfb2832d0cfd3ffed39cd95602a9b3863946a6ba9f9c2e40b19061260"
+      }
+    ],
+    "independent_actual_audit": {
+      "path": ".local/gate-6/g842-actual-twentytwo-controls-independent-audit/receipt.json",
+      "sha256": "3afa77df10497ede65d4a55ee7b943ce9e3d5e27773770b45e7d5565c85c27a5"
+    },
+    "original_children_natural0_closed": 26,
+    "root_natural0_closed": true,
+    "scope": "Only the assigned SAMEwriter cutoff selector is component-verified by this task; retained21+1 actualrun separately recorded and independently audited. Finalfull/API/media/readiness pending."
+  },
+  "previous_full": {
+    "run": "G840",
+    "status": "FAILED",
+    "passed": 4288,
+    "failed": 1,
+    "ignored": 0,
+    "failed_selector": "connection_control::tests::replacement_sources::commit::writer_boundary::public_replacement_writer_keeps_original_expiry_and_rejects_foreign_scene",
+    "result": {
+      "path": ".local/gate-6/g840-readiness2-full-root/cohort/component-result.json",
+      "sha256": "55d728a530244eb7ad7f8a85bdc49ad2799c51b8f43d8a50104b48692a0300a3"
+    },
+    "root_join": {
+      "path": ".local/gate-6/g840-readiness2-full-root/cohort/root-original-join.json",
+      "sha256": "62458380f8c78144d92368324572b6d5327e5fedbd94294109190677f27a9ef4"
+    },
+    "audit": {
+      "path": ".local/gate-6/g840-actual-full-independent-audit/receipt.json",
+      "sha256": "ca23599525165aec3fbe5398b92cafe82baddb4ed9e9767ea54dee5d8873f705"
+    },
+    "all_original_children_closed": 43,
+    "Root_closed": true,
+    "historical_verdict_unchanged": true
+  },
+  "previous_OriginalV8": {
+    "run": "G835",
+    "status": "FAILED",
+    "result": {
+      "path": ".local/gate-6/g835-original-three-v8-current-fc1e-root/result.json",
+      "sha256": "20e7cba0b616cd24fdf7a80b7b07b1492a76e4dea33323df47e77e6aa69cf243"
+    },
+    "unique_historical_inner_producer_proven": false,
+    "later_media": "HELD; no new launch/qualification"
+  },
+  "acceptance_changed": false,
+  "production_changed": false,
+  "dependencies_or_lock_changed": false,
+  "ready_for_32": false,
+  "new_matrix_run": false,
+  "matrix": {
+    "last_run": "v218",
+    "passed": 1,
+    "total": 32,
+    "checks_passed": 399,
+    "checks_total": 432
+  },
+  "remaining": "Allseven original final-source readiness scopes, strictfullPASS beforeall3originalV8, existing BPF action pending before strictFirefoxNORMAL3, sameguardian900/ARM/release/preflight obligations unchanged. StopREADY32, localMac/nativeARM only, G6-054 parked.",
+  "historical_mobile272": {
+    "public_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v272-actual-muted-plan-units.json"
+  },
+  "mobile276": {
+    "public_readback": "docs/evidence/gate-6/g6-058-mobile-document-readback-v276-writer-cutoff-units.json",
+    "scope": "FreshRootmobile276 scopedreadback after actual22PASS, onlyparagraphs2/9 changed;420others/allstyles preserved. No author externalwrite.",
+    "document_revision": "AHj4eMTNsKlA_NAWBufsLcmF7kB-K6EqQSdmeK8CaPRk-FC6yMyPhck4quCKK_m7YTJ33J9eYOfEq3GSs_Aftx3jfuRQZLMxMg_Myy5d1YU",
+    "actual_readback": {
+      "path": ".local/gate-6/g842-mobile276-actual22-root/readback.json",
+      "sha256": "5c96f4af4b8bd677c34b984bae65a3373c7359de3d3304543a5dc7804f3abb5f"
+    },
+    "verification": {
+      "path": ".local/gate-6/g842-mobile276-actual22-root/verification.json",
+      "sha256": "a0818130567a568bb7271d86bef6d74333ce748da29384d2d0f07365f32915f4"
+    }
+  },
+  "future_commit": null,
+  "future_final_source": null,
+  "future_current_full": null,
+  "future_original_V8": null
+}
